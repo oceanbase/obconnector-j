@@ -56,6 +56,7 @@ public class ServerStatus {
 
   public static final short IN_TRANSACTION = 1;
   public static final short AUTOCOMMIT = 2;
+  public static final short OB_SERVER_USE_ORACLE_MODE = 4;
   public static final short MORE_RESULTS_EXISTS = 8;
   public static final short QUERY_NO_GOOD_INDEX_USED = 16;
   public static final short QUERY_NO_INDEX_USED = 32;

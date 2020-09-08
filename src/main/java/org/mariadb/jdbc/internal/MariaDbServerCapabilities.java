@@ -81,6 +81,7 @@ public class MariaDbServerCapabilities {
       1 << 21; /* authentication data length is a length auth integer */
   public static final int CLIENT_SESSION_TRACK = 1 << 23; /* server send session tracking info */
   public static final int CLIENT_DEPRECATE_EOF = 1 << 24; /* EOF packet deprecated */
+  public static final int CLIENT_SUPPORT_ORACLE = 1 << 27; /* OceanBase oracle packet */
   public static final int PROGRESS_OLD =
       1 << 29; /* Client support progress indicator (before 10.2)*/
 

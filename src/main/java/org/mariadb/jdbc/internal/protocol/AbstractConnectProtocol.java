@@ -154,6 +154,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private int minorVersion;
   private int patchVersion;
   private TimeZone timeZone;
+  private boolean isOracleMode; /* is server in oracle mode */
 
   /**
    * Get a protocol instance.
@@ -272,7 +273,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             | MariaDbServerCapabilities.PLUGIN_AUTH
             | MariaDbServerCapabilities.CONNECT_ATTRS
             | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-            | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+            | MariaDbServerCapabilities.CLIENT_SESSION_TRACK
+            | MariaDbServerCapabilities.CLIENT_SUPPORT_ORACLE;
 
     if (options.allowLocalInfile) {
       capabilities |= MariaDbServerCapabilities.LOCAL_FILES;
@@ -778,6 +780,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
           buffer.skipLengthEncodedNumeric(); // affectedRows
           buffer.skipLengthEncodedNumeric(); // insertId
           serverStatus = buffer.readShort();
+          if((serverStatus & ServerStatus.OB_SERVER_USE_ORACLE_MODE) != 0){
+            setOracleMode(true);
+          }
           break authentication_loop;
 
         default:
@@ -937,7 +942,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
    */
   private void sendPipelineAdditionalData() throws IOException {
     sendSessionInfos();
-    sendRequestSessionVariables();
+    if (!isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@session_vars
+        sendRequestSessionVariables();
+    }
     // for aurora, check that connection is master
     sendPipelineCheckMaster();
   }
@@ -951,6 +958,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     // after setting autocommit, we can rely on serverStatus value
     StringBuilder sessionOption =
         new StringBuilder("autocommit=").append(options.autocommit ? "1" : "0");
+    /* FIXME oceanbase not suppport client session track yet
     if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
       if (options.trackSchema) {
         sessionOption.append(", session_track_schema=1");
@@ -959,6 +967,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         sessionOption.append(", session_track_system_variables='auto_increment_increment' ");
       }
     }
+    */
 
     if (options.jdbcCompliantTruncation) {
       sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
@@ -1018,6 +1027,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void readPipelineAdditionalData(Map<String, String> serverData) throws SQLException {
 
+
     SQLException resultingException = null;
     // read set session OKPacket
     try {
@@ -1028,14 +1038,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     boolean canTrySessionWithShow = false;
-    try {
-      readRequestSessionVariables(serverData);
-    } catch (SQLException sqlException) {
-      if (resultingException == null) {
-        resultingException =
-            exceptionFactory.create("could not load system variables", "08000", sqlException);
+    if (isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@
         canTrySessionWithShow = true;
-      }
+    } else {
+        try {
+            readRequestSessionVariables(serverData);
+        } catch (SQLException sqlException) {
+            if (resultingException == null) {
+                resultingException =
+                        exceptionFactory.create("could not load system variables", "08000", sqlException);
+                canTrySessionWithShow = true;
+            }
+        }
     }
 
     try {
@@ -1297,6 +1311,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    *
    * @throws IOException in case of socket error.
    */
+  @Deprecated // FIXME DELETE IT
   private void sendPipelineCheckMaster() throws IOException {
     if (urlParser.getHaMode() == HaMode.AURORA) {
       writer.startPacket(0);
@@ -1306,6 +1321,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
+  @Deprecated // FIXME DELETE IT
   public void readPipelineCheckMaster() throws SQLException {
     // nothing if not aurora
   }
@@ -1647,4 +1663,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
     return "";
   }
+
+  public boolean isOracleMode() {
+    return isOracleMode;
+  }
+
+  public void setOracleMode(boolean oracleMode) {
+    isOracleMode = oracleMode;
+  }
+
 }
