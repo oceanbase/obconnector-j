@@ -1151,4 +1151,73 @@ public class BaseOracleTest {
     }
     return new int[] {autoInc, autoIncOffset};
   }
+
+
+  /* Test Type Enum */
+    protected enum T {
+        NULL,//
+        INT,//
+        VARCHAR, VARCHAR2, NVARCHAR, NVARCHAR2, CHAR, NCHAR;
+    }
+    /* Test Object */
+    protected static class TO {
+        T type;
+        Object value;
+
+        /** new */
+        public static TO $n(T type, Object value) {
+            TO testType = new TO();
+            testType.type = type;
+            testType.value = value;
+            return testType;
+        }
+
+        /** new */
+        public static TO $n(T type) {
+            TO testType = new TO();
+            testType.type = type;
+            testType.value = null;
+            return testType;
+        }
+    }
+
+    /**
+     * @param insert insert sql
+     * @param select select sql
+     * @param expectValues expected values
+     *            [[TO(TYPE, VALUE),TO(TYPE, VALUE)], [...] ... ]
+     */
+    protected void assertInsertSelect(String insert, String select, TO[]... expectValues) throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute(insert);
+        ResultSet rs = stmt.executeQuery(select);
+
+        int expectSize = expectValues.length;
+        int actualSize = 0;
+        while (rs.next()) {
+            TO[] value = expectValues[actualSize];
+            actualSize ++;
+            for (int i = 0; i < value.length; i++) {
+                TO val = value[i];
+                switch (val.type) {
+                    case NULL:
+                        assertNull(rs.getObject(i+1));
+                        break;
+                    case INT:
+                        assertEquals(val.value, rs.getInt(i+1));
+                        break;
+                    case VARCHAR:
+                    case NVARCHAR:
+                    case VARCHAR2:
+                    case NVARCHAR2:
+                    case CHAR:
+                    case NCHAR:
+                        assertEquals(val.value, rs.getString(i+1));
+                        break;
+                }
+            }
+        }
+        assertEquals(expectSize, actualSize);
+        rs.close();
+    }
 }
