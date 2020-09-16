@@ -77,14 +77,14 @@ import java.util.regex.Pattern;
 import static org.junit.Assert.*;
 
 /**
- * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root
+ * Base util class. For testing mvn test -DdbUrl=jdbc:oceanbase://localhost:3306/testj?user=root
  * -DlogLevel=FINEST
  */
 @Ignore
 @SuppressWarnings("Annotator")
 public class BaseOracleTest {
 
-  protected static final String mDefUrl = "jdbc:mariadb://localhost:3306/testj?user=root";
+  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();

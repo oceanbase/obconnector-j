@@ -74,7 +74,7 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.util.Options;
 
 /**
- * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root
+ * Base util class. For testing mvn test -DdbUrl=jdbc:oceanbase://localhost:3306/testj?user=root
  * -DlogLevel=FINEST
  */
 @Ignore
@@ -89,7 +89,7 @@ public class BaseTest {
       prop.load(inputStream);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+              "jdbc:oceanbase://%s:%s/%s?user=%s&password=%s&%s",
               prop.getProperty("DB_HOST"),
               prop.getProperty("DB_PORT"),
               prop.getProperty("DB_DATABASE"),

@@ -72,7 +72,7 @@ import org.mariadb.jdbc.util.Options;
  *
  * <p>basic syntax :<br>
  * {@code
- * jdbc:(mysql|mariadb):[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
+ * jdbc:oceanbase:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }
  *
  * <p>hostDescription:<br>
@@ -89,12 +89,12 @@ import org.mariadb.jdbc.util.Options;
  *
  * <p>host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * exemple : {@code jdbc:oceanbase://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  *
  * <p>Some examples :<br>
- * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:oceanbase://localhost:3306/database?user=greg&password=pass}<br>
  * {@code
- * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
+ * jdbc:oceanbase://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
  * <br>
  */
 public class UrlParser implements Cloneable {
@@ -156,8 +156,7 @@ public class UrlParser implements Cloneable {
    */
   public static boolean acceptsUrl(String url) {
     return (url != null)
-        && (url.startsWith("jdbc:mariadb:")
-            || (url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)));
+        && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL));
   }
 
   public static UrlParser parse(final String url) throws SQLException {
@@ -174,8 +173,7 @@ public class UrlParser implements Cloneable {
    */
   public static UrlParser parse(final String url, Properties prop) throws SQLException {
     if (url != null
-        && (url.startsWith("jdbc:mariadb:")
-            || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL))) {
+        && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL))) {
       UrlParser urlParser = new UrlParser();
       parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
       return urlParser;
@@ -230,12 +228,6 @@ public class UrlParser implements Cloneable {
     }
   }
 
-  /*
-  Parse ConnectorJ compatible urls
-  jdbc:[mariadb|mysql]://host:port/database
-  Example: jdbc:mariadb://localhost:3306/test?user=root&password=passwd
-  */
-
   /**
    * Sets the parameters of the UrlParser instance: addresses, database and options. It parses
    * through the additional parameters given in order to extract the database and the options for
@@ -279,10 +271,11 @@ public class UrlParser implements Cloneable {
   }
 
   private static HaMode parseHaMode(String url, int separator) {
-    // parser is sure to have at least 2 colon, since jdbc:[mysql|mariadb]: is tested.
+    // parser is sure to have at least 2 colon, since jdbc:oceanbase: is tested.
     int firstColonPos = url.indexOf(':');
     int secondColonPos = url.indexOf(':', firstColonPos + 1);
     int thirdColonPos = url.indexOf(':', secondColonPos + 1);
+    int forthColonPos = url.indexOf(':', thirdColonPos + 1);
 
     if (thirdColonPos > separator || thirdColonPos == -1) {
       if (secondColonPos == separator - 1) {
@@ -291,10 +284,19 @@ public class UrlParser implements Cloneable {
       thirdColonPos = separator;
     }
 
+    if (forthColonPos > separator || forthColonPos == -1) {
+        forthColonPos = separator;
+    }
+
     try {
       String haModeString =
           url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT);
-      if ("FAILOVER".equals(haModeString)) {
+      if ("ORACLE".equals(haModeString)) {
+          haModeString = url.substring(thirdColonPos + 1, forthColonPos).toUpperCase(Locale.ROOT);
+      }
+      if ("".equals(haModeString)) {
+         return HaMode.NONE;
+      } else if ("FAILOVER".equals(haModeString)) {
         haModeString = "LOADBALANCE";
       }
       return HaMode.valueOf(haModeString);
@@ -320,7 +322,7 @@ public class UrlParser implements Cloneable {
 
   private void setInitialUrl() {
     StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb:");
+    sb.append("jdbc:oceanbase:");
     if (haMode != HaMode.NONE) {
       sb.append(haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }
