@@ -88,7 +88,9 @@ public enum ColumnType {
   BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"),
   VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
-  GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B");
+  GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B"),
+
+  TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName());
 
   static final ColumnType[] typeMap;
 

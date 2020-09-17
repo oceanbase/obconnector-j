@@ -52,24 +52,22 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.Platform;
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.DeRegister;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.util.DefaultOptions;
+import static org.junit.Assert.*;
 
+import com.sun.jna.Platform;
 import java.math.BigDecimal;
+import java.sql.*;
 import java.sql.Date;
 import java.sql.Driver;
-import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.Assert.*;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.DeRegister;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class DriverOracleTest extends BaseOracleTest {
 
@@ -90,30 +88,16 @@ public class DriverOracleTest extends BaseOracleTest {
     createTable("utente", "id int not null primary key, test varchar(10)");
 
     createTable("Drivert3", "id int not null primary key, test varchar(10)");
-    createTable(
-        "Drivert30",
-        "id int not null primary key, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert4",
-        "id int not null primary key, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert5",
-        "id int not null primary key, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert6",
-        "id int not null primary key, test varchar(20)",
-        "engine=innodb");
+    createTable("Drivert30", "id int not null primary key, test varchar(20)", "engine=innodb");
+    createTable("Drivert4", "id int not null primary key, test varchar(20)", "engine=innodb");
+    createTable("Drivert5", "id int not null primary key, test varchar(20)", "engine=innodb");
+    createTable("Drivert6", "id int not null primary key, test varchar(20)", "engine=innodb");
     createTable("test_float", "id int not null primary key, a float");
-    createTable(
-        "test_big_autoinc2", "id int not null primary key, test varchar(10)");
+    createTable("test_big_autoinc2", "id int not null primary key, test varchar(10)");
     createTable("test_big_update", "id int primary key not null, updateme int");
     createTable("sharedConnection", "id int");
     createTable("extest", "id int not null primary key");
-    createTable(
-        "commentPreparedStatements", "id int not null primary key, a varchar(10)");
+    createTable("commentPreparedStatements", "id int not null primary key, a varchar(10)");
     createTable(
         "quotesPreparedStatements",
         "id int not null primary key, a varchar(10) , " + "b varchar(10)");
@@ -137,9 +121,12 @@ public class DriverOracleTest extends BaseOracleTest {
   @Test
   public void doQuery() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej1')");
-    stmt.execute("insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej2')");
-    stmt.execute("insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej3')");
+    stmt.execute(
+        "insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej1')");
+    stmt.execute(
+        "insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej2')");
+    stmt.execute(
+        "insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", 'hej3')");
     stmt.execute("insert into DriverTestt1 (id, test) values (" + ID.getAndIncrement() + ", null)");
     ResultSet rs = stmt.executeQuery("select * from DriverTestt1");
 
@@ -202,7 +189,7 @@ public class DriverOracleTest extends BaseOracleTest {
 
   @Test
   public void preparedTest() throws SQLException {
-      int id = ID.getAndIncrement();
+    int id = ID.getAndIncrement();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("insert into DriverTestt4 (id, test) values (" + id + ", 'hej1')");
     }
@@ -325,9 +312,12 @@ public class DriverOracleTest extends BaseOracleTest {
   public void updateTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
 
-    stmt.execute("insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej1')");
-    stmt.execute("insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej2')");
-    stmt.execute("insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej3')");
+    stmt.execute(
+        "insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej1')");
+    stmt.execute(
+        "insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej2')");
+    stmt.execute(
+        "insert into DriverTestt5 (id, test) values (" + ID.getAndIncrement() + ",'hej3')");
     int id = ID.getAndIncrement();
     stmt.execute("insert into DriverTestt5 (id, test) values (" + id + ", null)");
 
@@ -352,7 +342,8 @@ public class DriverOracleTest extends BaseOracleTest {
   public void ralfTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     for (int i = 0; i < 10; i++) {
-      stmt.execute("INSERT INTO Drivert2 (id, test) VALUES (" + ID.getAndIncrement() + ", 'aßa" + i + "')");
+      stmt.execute(
+          "INSERT INTO Drivert2 (id, test) VALUES (" + ID.getAndIncrement() + ", 'aßa" + i + "')");
     }
     PreparedStatement ps =
         sharedConnection.prepareStatement("SELECT * FROM Drivert2 where test like'%ß%' limit ?");
@@ -370,14 +361,18 @@ public class DriverOracleTest extends BaseOracleTest {
   public void autoIncTest() throws SQLException {
     Assume.assumeFalse(isGalera());
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("INSERT INTO Drivert3 (id, test) VALUES (" + ID.get() + ", 'aa')", Statement.RETURN_GENERATED_KEYS);
+    stmt.execute(
+        "INSERT INTO Drivert3 (id, test) VALUES (" + ID.get() + ", 'aa')",
+        Statement.RETURN_GENERATED_KEYS);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
 
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("insert_id"));
 
-    stmt.execute("INSERT INTO Drivert3 (id, test) VALUES (" + ID.get() + ",'aa')", Statement.RETURN_GENERATED_KEYS);
+    stmt.execute(
+        "INSERT INTO Drivert3 (id, test) VALUES (" + ID.get() + ",'aa')",
+        Statement.RETURN_GENERATED_KEYS);
     rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
 
@@ -386,7 +381,14 @@ public class DriverOracleTest extends BaseOracleTest {
 
     /* multi-row inserts */
     stmt.execute(
-        "INSERT INTO Drivert3 (id, test) VALUES (" + ID.getAndIncrement() + ",'bb'),(" + ID.getAndIncrement() + ",'cc'),(" + ID.getAndIncrement() + ",'dd')", Statement.RETURN_GENERATED_KEYS);
+        "INSERT INTO Drivert3 (id, test) VALUES ("
+            + ID.getAndIncrement()
+            + ",'bb'),("
+            + ID.getAndIncrement()
+            + ",'cc'),("
+            + ID.getAndIncrement()
+            + ",'dd')",
+        Statement.RETURN_GENERATED_KEYS);
     rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
@@ -398,8 +400,16 @@ public class DriverOracleTest extends BaseOracleTest {
         setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
       stmt = connection.createStatement();
       stmt.execute(
-          "INSERT INTO Drivert3 (id, test) values (" + ID.getAndIncrement() + ",'bb'),(" + ID.getAndIncrement() + ",'cc');" +
-                  "INSERT INTO Drivert3 (id, test) values (" + ID.getAndIncrement() + ",'dd'),(" + ID.getAndIncrement() + ",'ee')",
+          "INSERT INTO Drivert3 (id, test) values ("
+              + ID.getAndIncrement()
+              + ",'bb'),("
+              + ID.getAndIncrement()
+              + ",'cc');"
+              + "INSERT INTO Drivert3 (id, test) values ("
+              + ID.getAndIncrement()
+              + ",'dd'),("
+              + ID.getAndIncrement()
+              + ",'ee')",
           Statement.RETURN_GENERATED_KEYS);
 
       rs = stmt.getGeneratedKeys();
@@ -434,8 +444,10 @@ public class DriverOracleTest extends BaseOracleTest {
   public void transactionTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     sharedConnection.setAutoCommit(false);
-    stmt.executeUpdate("INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ",'heja')");
-    stmt.executeUpdate("INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ", 'japp')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ",'heja')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ", 'japp')");
     sharedConnection.commit();
     ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert30");
     assertEquals(true, rs.next());
@@ -444,7 +456,8 @@ public class DriverOracleTest extends BaseOracleTest {
     assertEquals("japp", rs.getString("test"));
     assertEquals(false, rs.next());
     stmt.executeUpdate(
-        "INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ",'rollmeback')", Statement.RETURN_GENERATED_KEYS);
+        "INSERT INTO Drivert30 (id, test) VALUES (" + ID.getAndIncrement() + ",'rollmeback')",
+        Statement.RETURN_GENERATED_KEYS);
     ResultSet rsGen = stmt.getGeneratedKeys();
     rsGen.next();
     int[] autoInc = setAutoInc();
@@ -459,14 +472,20 @@ public class DriverOracleTest extends BaseOracleTest {
   public void savepointTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     sharedConnection.setAutoCommit(false);
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej1')");
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej2')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej1')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej2')");
     Savepoint savepoint = sharedConnection.setSavepoint("yep");
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test)  values(" + ID.getAndIncrement() + ",'hej3')");
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej4')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test)  values(" + ID.getAndIncrement() + ",'hej3')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej4')");
     sharedConnection.rollback(savepoint);
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej5')");
-    stmt.executeUpdate("INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej6')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej5')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert4 (id, test) values(" + ID.getAndIncrement() + ",'hej6')");
     sharedConnection.commit();
     ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert4");
     assertTrue(rs.next());
@@ -485,14 +504,20 @@ public class DriverOracleTest extends BaseOracleTest {
   public void savepointUnname() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     sharedConnection.setAutoCommit(false);
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej1')");
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej2')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej1')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej2')");
     Savepoint savepoint = sharedConnection.setSavepoint();
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test)  values(" + ID.getAndIncrement() + "'hej3')");
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej4')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test)  values(" + ID.getAndIncrement() + "'hej3')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej4')");
     sharedConnection.rollback(savepoint);
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej5')");
-    stmt.executeUpdate("INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej6')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej5')");
+    stmt.executeUpdate(
+        "INSERT INTO Drivert5 (id, test) values(" + ID.getAndIncrement() + "'hej6')");
     sharedConnection.commit();
     ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert5");
     assertTrue(rs.next());
@@ -1503,7 +1528,8 @@ public class DriverOracleTest extends BaseOracleTest {
 
   @Test
   public void preparedStatementToString() throws Exception {
-    try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?,? FROM dual")) {
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?,? FROM dual")) {
       ps.setInt(1, 1);
       ps.setBigDecimal(2, new BigDecimal("1"));
       ps.setString(3, "one");
@@ -1620,13 +1646,18 @@ public class DriverOracleTest extends BaseOracleTest {
 
   @Test
   public void testRollbackOnClose() throws SQLException {
-    createTable(
-        "testRollbackOnClose", "id int not null primary key, test varchar(20)");
+    createTable("testRollbackOnClose", "id int not null primary key, test varchar(20)");
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
-      stmt.executeUpdate("INSERT INTO testRollbackOnClose (id, test) VALUES (" + ID.getAndIncrement() + ", 'heja')");
+      stmt.executeUpdate(
+          "INSERT INTO testRollbackOnClose (id, test) VALUES ("
+              + ID.getAndIncrement()
+              + ", 'heja')");
       connection.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO testRollbackOnClose (id, test) VALUES (" + ID.getAndIncrement() + ", 'japp')");
+      stmt.executeUpdate(
+          "INSERT INTO testRollbackOnClose (id, test) VALUES ("
+              + ID.getAndIncrement()
+              + ", 'japp')");
     }
 
     try (Connection connection = setConnection()) {
@@ -1644,14 +1675,16 @@ public class DriverOracleTest extends BaseOracleTest {
     try (Connection connection = setConnection()) {
       assertTrue(connection.getAutoCommit());
       Statement stmt = connection.createStatement();
-      stmt.executeUpdate("INSERT INTO testAutoCommit (id, test) VALUES (" + ID.getAndIncrement() + ",'heja')");
+      stmt.executeUpdate(
+          "INSERT INTO testAutoCommit (id, test) VALUES (" + ID.getAndIncrement() + ",'heja')");
     }
 
     try (Connection connection = setConnection("&autocommit=false")) {
       assertFalse(connection.getAutoCommit());
 
       Statement stmt = connection.createStatement();
-      stmt.executeUpdate("INSERT INTO testAutoCommit (id, test) VALUES (" + ID.getAndIncrement() + ", 'japp')");
+      stmt.executeUpdate(
+          "INSERT INTO testAutoCommit (id, test) VALUES (" + ID.getAndIncrement() + ", 'japp')");
 
       ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testAutoCommit");
       assertTrue(rs.next());

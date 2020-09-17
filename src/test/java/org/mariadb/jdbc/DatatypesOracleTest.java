@@ -52,100 +52,174 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.sql.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.SQLException;
-
 public class DatatypesOracleTest extends BaseOracleTest {
 
-    /**
-     * Tables initialisation.
-     *
-     * @throws SQLException exception
-     */
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("tt1_varchar", "id int , name varchar(20)");
-        createTable("tt1_varchar2", "id int , name varchar2(20)");
-        createTable("tt1_nvarchar2", "id int , name nvarchar2(20)");
-        createTable("tt1_char", "id int , name char(20)");
-        createTable("tt1_nchar", "id int , name nchar(20)");
+  /**
+   * Tables initialisation.
+   *
+   * @throws SQLException exception
+   */
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    createTable("tt1_varchar", "id int , name varchar(20)");
+    createTable("tt1_varchar2", "id int , name varchar2(20)");
+    createTable("tt1_nvarchar2", "id int , name nvarchar2(20)");
+    createTable("tt1_char", "id int , name char(20)");
+    createTable("tt1_nchar", "id int , name nchar(20)");
+
+    createTable("tt1_timestamp", "id int , tmp TIMESTAMP");
+  }
+
+  @Test
+  public void TIMESTAMP() throws SQLException {
+    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp)});
+
+    timestamp = new Timestamp(System.currentTimeMillis());
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 3)},
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 4)},
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp)});
+  }
+
+  @Test
+  public void varchar() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_varchar values(1, 'one')",
+        "select * from tt1_varchar",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.VARCHAR, "one")});
+    assertInsertSelect(
+        "insert into tt1_varchar values(2, '')",
+        "select * from tt1_varchar where id = 2",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_varchar values(3, null)",
+        "select * from tt1_varchar where id = 3",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_varchar values(4, '张三')",
+        "select * from tt1_varchar where id = 4",
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三")});
+  }
+
+  @Test
+  public void varchar2() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_varchar2 values(1, 'one')",
+        "select * from tt1_varchar2",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.VARCHAR2, "one")});
+    assertInsertSelect(
+        "insert into tt1_varchar2 values(2, '')",
+        "select * from tt1_varchar2 where id = 2",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_varchar2 values(3, null)",
+        "select * from tt1_varchar2 where id = 3",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_varchar2 values(4, '张三')",
+        "select * from tt1_varchar2 where id = 4",
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三")});
+  }
+
+  @Test
+  public void nvarchar2() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_nvarchar2 values(1, 'one')",
+        "select * from tt1_nvarchar2",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NVARCHAR2, "one")});
+    assertInsertSelect(
+        "insert into tt1_nvarchar2 values(2, '')",
+        "select * from tt1_nvarchar2 where id = 2",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_nvarchar2 values(3, null)",
+        "select * from tt1_nvarchar2 where id = 3",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_nvarchar2 values(4, '张三')",
+        "select * from tt1_nvarchar2 where id = 4",
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三")});
+  }
+
+  @Test
+  public void test_char() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_char values(1, 'one')",
+        "select * from tt1_char",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20))});
+    assertInsertSelect(
+        "insert into tt1_char values(2, '')",
+        "select * from tt1_char where id = 2",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_char values(3, null)",
+        "select * from tt1_char where id = 3",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.NULL)});
+    // TODO 这块还得考虑字符集
+    // insertAndSelect("insert into tt1_char values(4, '张三')", "select * from tt1_char where id =
+    // 4", new TO[]{TO.$n(T.INT, 4),
+    //        TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
+  }
+
+  @Test
+  public void test_nchar() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_nchar values(1, 'one')",
+        "select * from tt1_nchar",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20))});
+    assertInsertSelect(
+        "insert into tt1_nchar values(2, '')",
+        "select * from tt1_nchar where id = 2",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NULL)});
+    assertInsertSelect(
+        "insert into tt1_nchar values(3, null)",
+        "select * from tt1_nchar where id = 3",
+        new TO[] {TO.$n(T.INT, 3), TO.$n(T.NULL)});
+    // TODO 这块还得考虑字符集
+    assertInsertSelect(
+        "insert into tt1_nchar values(4, '张三')",
+        "select * from tt1_nchar where id = 4",
+        new TO[] {TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
+  }
+
+  public String rightPadding(String inputString, int length) {
+    if (inputString.length() >= length) {
+      return inputString;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append(inputString);
+    while (sb.length() < length) {
+      sb.append(' ');
     }
 
-    @Test
-    public void varchar() throws SQLException {
-        assertInsertSelect("insert into tt1_varchar values(1, 'one')", "select * from tt1_varchar", new TO[]{TO.$n(T.INT, 1),
-                TO.$n(T.VARCHAR, "one")});
-        assertInsertSelect("insert into tt1_varchar values(2, '')", "select * from tt1_varchar where id = 2", new TO[]{TO.$n(T.INT, 2),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_varchar values(3, null)", "select * from tt1_varchar where id = 3", new TO[]{TO.$n(T.INT, 3),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_varchar values(4, '张三')", "select * from tt1_varchar where id = 4", new TO[]{TO.$n(T.INT, 4),
-                TO.$n(T.NVARCHAR2, "张三")});
-    }
-
-    @Test
-    public void varchar2() throws SQLException {
-        assertInsertSelect("insert into tt1_varchar2 values(1, 'one')", "select * from tt1_varchar2", new TO[]{TO.$n(T.INT, 1),
-                TO.$n(T.VARCHAR2, "one")});
-        assertInsertSelect("insert into tt1_varchar2 values(2, '')", "select * from tt1_varchar2 where id = 2", new TO[]{TO.$n(T.INT, 2),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_varchar2 values(3, null)", "select * from tt1_varchar2 where id = 3", new TO[]{TO.$n(T.INT, 3),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_varchar2 values(4, '张三')", "select * from tt1_varchar2 where id = 4", new TO[]{TO.$n(T.INT, 4),
-                TO.$n(T.NVARCHAR2, "张三")});
-    }
-
-    @Test
-    public void nvarchar2() throws SQLException {
-        assertInsertSelect("insert into tt1_nvarchar2 values(1, 'one')", "select * from tt1_nvarchar2", new TO[]{TO.$n(T.INT, 1),
-                TO.$n(T.NVARCHAR2, "one")});
-        assertInsertSelect("insert into tt1_nvarchar2 values(2, '')", "select * from tt1_nvarchar2 where id = 2", new TO[]{TO.$n(T.INT, 2),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_nvarchar2 values(3, null)", "select * from tt1_nvarchar2 where id = 3", new TO[]{TO.$n(T.INT, 3),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_nvarchar2 values(4, '张三')", "select * from tt1_nvarchar2 where id = 4", new TO[]{TO.$n(T.INT, 4),
-                TO.$n(T.NVARCHAR2, "张三")});
-    }
-
-    @Test
-    public void test_char() throws SQLException {
-        assertInsertSelect("insert into tt1_char values(1, 'one')", "select * from tt1_char", new TO[]{TO.$n(T.INT, 1),
-                TO.$n(T.CHAR, rightPadding("one", 20))});
-        assertInsertSelect("insert into tt1_char values(2, '')", "select * from tt1_char where id = 2", new TO[]{TO.$n(T.INT, 2),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_char values(3, null)", "select * from tt1_char where id = 3", new TO[]{TO.$n(T.INT, 3),
-                TO.$n(T.NULL)});
-        // TODO 这块还得考虑字符集
-        // insertAndSelect("insert into tt1_char values(4, '张三')", "select * from tt1_char where id = 4", new TO[]{TO.$n(T.INT, 4),
-        //        TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
-    }
-
-    @Test
-    public void test_nchar() throws SQLException {
-        assertInsertSelect("insert into tt1_nchar values(1, 'one')", "select * from tt1_nchar", new TO[]{TO.$n(T.INT, 1),
-                TO.$n(T.CHAR, rightPadding("one", 20))});
-        assertInsertSelect("insert into tt1_nchar values(2, '')", "select * from tt1_nchar where id = 2", new TO[]{TO.$n(T.INT, 2),
-                TO.$n(T.NULL)});
-        assertInsertSelect("insert into tt1_nchar values(3, null)", "select * from tt1_nchar where id = 3", new TO[]{TO.$n(T.INT, 3),
-                TO.$n(T.NULL)});
-        // TODO 这块还得考虑字符集
-         assertInsertSelect("insert into tt1_nchar values(4, '张三')", "select * from tt1_nchar where id = 4", new TO[]{TO.$n(T.INT, 4),
-                TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
-    }
-
-    public String rightPadding(String inputString, int length) {
-        if (inputString.length() >= length) {
-            return inputString;
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append(inputString);
-        while (sb.length() < length) {
-            sb.append(' ');
-        }
-
-        return sb.toString();
-    }
-
+    return sb.toString();
+  }
 }

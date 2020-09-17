@@ -780,7 +780,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           buffer.skipLengthEncodedNumeric(); // affectedRows
           buffer.skipLengthEncodedNumeric(); // insertId
           serverStatus = buffer.readShort();
-          if((serverStatus & ServerStatus.OB_SERVER_USE_ORACLE_MODE) != 0){
+          if ((serverStatus & ServerStatus.OB_SERVER_USE_ORACLE_MODE) != 0) {
             setOracleMode(true);
           }
           break authentication_loop;
@@ -943,7 +943,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private void sendPipelineAdditionalData() throws IOException {
     sendSessionInfos();
     if (!isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@session_vars
-        sendRequestSessionVariables();
+      sendRequestSessionVariables();
     }
     // for aurora, check that connection is master
     sendPipelineCheckMaster();
@@ -1027,7 +1027,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void readPipelineAdditionalData(Map<String, String> serverData) throws SQLException {
 
-
     SQLException resultingException = null;
     // read set session OKPacket
     try {
@@ -1039,17 +1038,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     boolean canTrySessionWithShow = false;
     if (isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@
-        canTrySessionWithShow = true;
+      canTrySessionWithShow = true;
     } else {
-        try {
-            readRequestSessionVariables(serverData);
-        } catch (SQLException sqlException) {
-            if (resultingException == null) {
-                resultingException =
-                        exceptionFactory.create("could not load system variables", "08000", sqlException);
-                canTrySessionWithShow = true;
-            }
+      try {
+        readRequestSessionVariables(serverData);
+      } catch (SQLException sqlException) {
+        if (resultingException == null) {
+          resultingException =
+              exceptionFactory.create("could not load system variables", "08000", sqlException);
+          canTrySessionWithShow = true;
         }
+      }
     }
 
     try {
@@ -1664,6 +1663,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return "";
   }
 
+  @Override
   public boolean isOracleMode() {
     return isOracleMode;
   }
@@ -1671,5 +1671,4 @@ public abstract class AbstractConnectProtocol implements Protocol {
   public void setOracleMode(boolean oracleMode) {
     isOracleMode = oracleMode;
   }
-
 }

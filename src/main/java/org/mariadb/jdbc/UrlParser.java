@@ -155,8 +155,7 @@ public class UrlParser implements Cloneable {
    * @return true if url string correspond.
    */
   public static boolean acceptsUrl(String url) {
-    return (url != null)
-        && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL));
+    return (url != null) && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL));
   }
 
   public static UrlParser parse(final String url) throws SQLException {
@@ -172,8 +171,7 @@ public class UrlParser implements Cloneable {
    * @throws SQLException if parsing exception occur
    */
   public static UrlParser parse(final String url, Properties prop) throws SQLException {
-    if (url != null
-        && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL))) {
+    if (url != null && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL))) {
       UrlParser urlParser = new UrlParser();
       parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
       return urlParser;
@@ -285,17 +283,17 @@ public class UrlParser implements Cloneable {
     }
 
     if (forthColonPos > separator || forthColonPos == -1) {
-        forthColonPos = separator;
+      forthColonPos = separator;
     }
 
     try {
       String haModeString =
           url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT);
       if ("ORACLE".equals(haModeString)) {
-          haModeString = url.substring(thirdColonPos + 1, forthColonPos).toUpperCase(Locale.ROOT);
+        haModeString = url.substring(thirdColonPos + 1, forthColonPos).toUpperCase(Locale.ROOT);
       }
       if ("".equals(haModeString)) {
-         return HaMode.NONE;
+        return HaMode.NONE;
       } else if ("FAILOVER".equals(haModeString)) {
         haModeString = "LOADBALANCE";
       }

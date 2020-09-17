@@ -90,6 +90,8 @@ public interface Protocol {
 
   boolean inTransaction();
 
+  boolean isOracleMode();
+
   FailoverProxy getProxy();
 
   void setProxy(FailoverProxy proxy);

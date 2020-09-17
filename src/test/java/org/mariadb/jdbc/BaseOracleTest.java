@@ -52,16 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.Platform;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mariadb.jdbc.failover.TcpProxy;
-import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.util.Options;
+import static org.junit.Assert.*;
 
+import com.sun.jna.Platform;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
@@ -73,8 +66,14 @@ import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.*;
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mariadb.jdbc.failover.TcpProxy;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:oceanbase://localhost:3306/testj?user=root
@@ -101,6 +100,7 @@ public class BaseOracleTest {
   protected static String parameters;
   protected static boolean testSingleHost;
   protected static Connection sharedConnection;
+  protected static Connection sharedPSConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
@@ -194,6 +194,8 @@ public class BaseOracleTest {
 
     if (testSingleHost) {
       urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
+      UrlParser urlParserPS =
+          UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
       if (urlParser.getHostAddresses().size() > 0) {
         hostname = urlParser.getHostAddresses().get(0).host;
         port = urlParser.getHostAddresses().get(0).port;
@@ -236,6 +238,7 @@ public class BaseOracleTest {
 
       try {
         sharedConnection = MariaDbConnection.newConnection(urlParser, null);
+        sharedPSConnection = MariaDbConnection.newConnection(urlParserPS, null);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
@@ -321,6 +324,7 @@ public class BaseOracleTest {
 
       try {
         sharedConnection.close();
+        sharedPSConnection.close();
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -1152,72 +1156,179 @@ public class BaseOracleTest {
     return new int[] {autoInc, autoIncOffset};
   }
 
-
   /* Test Type Enum */
-    protected enum T {
-        NULL,//
-        INT,//
-        VARCHAR, VARCHAR2, NVARCHAR, NVARCHAR2, CHAR, NCHAR;
-    }
-    /* Test Object */
-    protected static class TO {
-        T type;
-        Object value;
+  protected enum T {
+    NULL, //
+    INT, //
+    VARCHAR,
+    VARCHAR2,
+    NVARCHAR,
+    NVARCHAR2,
+    CHAR,
+    NCHAR, //
+    TIMESTAMP,
+    OBTIMESTAMP;
+  }
+  /* Test Object */
+  protected static class TO {
+    T type;
+    Object value;
 
-        /** new */
-        public static TO $n(T type, Object value) {
-            TO testType = new TO();
-            testType.type = type;
-            testType.value = value;
-            return testType;
-        }
-
-        /** new */
-        public static TO $n(T type) {
-            TO testType = new TO();
-            testType.type = type;
-            testType.value = null;
-            return testType;
-        }
+    /** new */
+    public static TO $n(T type, Object value) {
+      TO testType = new TO();
+      testType.type = type;
+      testType.value = value;
+      return testType;
     }
 
-    /**
-     * @param insert insert sql
-     * @param select select sql
-     * @param expectValues expected values
-     *            [[TO(TYPE, VALUE),TO(TYPE, VALUE)], [...] ... ]
-     */
-    protected void assertInsertSelect(String insert, String select, TO[]... expectValues) throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute(insert);
-        ResultSet rs = stmt.executeQuery(select);
-
-        int expectSize = expectValues.length;
-        int actualSize = 0;
-        while (rs.next()) {
-            TO[] value = expectValues[actualSize];
-            actualSize ++;
-            for (int i = 0; i < value.length; i++) {
-                TO val = value[i];
-                switch (val.type) {
-                    case NULL:
-                        assertNull(rs.getObject(i+1));
-                        break;
-                    case INT:
-                        assertEquals(val.value, rs.getInt(i+1));
-                        break;
-                    case VARCHAR:
-                    case NVARCHAR:
-                    case VARCHAR2:
-                    case NVARCHAR2:
-                    case CHAR:
-                    case NCHAR:
-                        assertEquals(val.value, rs.getString(i+1));
-                        break;
-                }
-            }
-        }
-        assertEquals(expectSize, actualSize);
-        rs.close();
+    /** new */
+    public static TO $n(T type) {
+      TO testType = new TO();
+      testType.type = type;
+      testType.value = null;
+      return testType;
     }
+  }
+
+  /**
+   * assert insert & select with client ps
+   *
+   * @param insert insert sql
+   * @param insertValues insert values [TO(TYPE, VALUE),TO(TYPE, VALUE)]
+   * @param select select sql
+   * @param selectValues select values [TO(TYPE, VALUE),TO(TYPE, VALUE)]
+   * @param expectValues expected values [[TO(TYPE, VALUE),TO(TYPE, VALUE)], [...] ... ]
+   */
+  protected void assertInsertSelectClientPs(
+      String insert, TO[] insertValues, String select, TO[] selectValues, TO[]... expectValues)
+      throws SQLException {
+    assertInsertSelectPsInternal(false, insert, insertValues, select, selectValues, expectValues);
+  }
+
+  /**
+   * assert insert & select with server ps
+   *
+   * @param insert insert sql
+   * @param insertValues insert values [TO(TYPE, VALUE),TO(TYPE, VALUE)]
+   * @param select select sql
+   * @param selectValues select values [TO(TYPE, VALUE),TO(TYPE, VALUE)]
+   * @param expectValues expected values [[TO(TYPE, VALUE),TO(TYPE, VALUE)], [...] ... ]
+   */
+  protected void assertInsertSelectServerPs(
+      String insert, TO[] insertValues, String select, TO[] selectValues, TO[]... expectValues)
+      throws SQLException {
+    assertInsertSelectPsInternal(true, insert, insertValues, select, selectValues, expectValues);
+  }
+
+  protected void assertInsertSelectPsInternal(
+      boolean useServerPrepStmts,
+      String insert,
+      TO[] insertValues,
+      String select,
+      TO[] selectValues,
+      TO[]... expectValues)
+      throws SQLException {
+
+    BasePrepareStatement pstmt =
+        (BasePrepareStatement)
+            (useServerPrepStmts ? sharedPSConnection : sharedConnection).prepareStatement(insert);
+    for (int i = 0; i < insertValues.length; i++) {
+      TO val = insertValues[i];
+      switch (val.type) {
+        case INT:
+          pstmt.setInt(i + 1, (Integer) val.value);
+          break;
+        case VARCHAR:
+        case NVARCHAR:
+        case VARCHAR2:
+        case NVARCHAR2:
+        case CHAR:
+        case NCHAR:
+          pstmt.setString(i + 1, (String) val.value);
+          break;
+        case TIMESTAMP:
+          pstmt.setTimestamp(i + 1, (Timestamp) val.value);
+          break;
+        case OBTIMESTAMP:
+          pstmt.setTIMESTAMP(i + 1, (Timestamp) val.value);
+          break;
+      }
+    }
+    assertEquals(1, pstmt.executeUpdate());
+    pstmt.close();
+
+    pstmt =
+        (BasePrepareStatement)
+            (useServerPrepStmts ? sharedPSConnection : sharedConnection).prepareStatement(select);
+    for (int i = 0; i < selectValues.length; i++) {
+      TO val = selectValues[i];
+      switch (val.type) {
+        case INT:
+          pstmt.setInt(i + 1, (Integer) val.value);
+          break;
+        case VARCHAR:
+        case NVARCHAR:
+        case VARCHAR2:
+        case NVARCHAR2:
+        case CHAR:
+        case NCHAR:
+          pstmt.setString(i + 1, (String) val.value);
+          break;
+        case TIMESTAMP:
+          pstmt.setTimestamp(i + 1, (Timestamp) val.value);
+          break;
+        case OBTIMESTAMP:
+          pstmt.setTIMESTAMP(i + 1, (Timestamp) val.value);
+          break;
+      }
+    }
+
+    ResultSet rs = pstmt.executeQuery();
+    assertRsEquals(rs, expectValues);
+    rs.close();
+  }
+
+  /**
+   * @param insert insert sql
+   * @param select select sql
+   * @param expectValues expected values [[TO(TYPE, VALUE),TO(TYPE, VALUE)], [...] ... ]
+   */
+  protected void assertInsertSelect(String insert, String select, TO[]... expectValues)
+      throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute(insert);
+    ResultSet rs = stmt.executeQuery(select);
+    assertRsEquals(rs, expectValues);
+    rs.close();
+  }
+
+  protected void assertRsEquals(ResultSet rs, TO[]... expectValues) throws SQLException {
+    int expectSize = expectValues.length;
+    int actualSize = 0;
+    while (rs.next()) {
+      TO[] value = expectValues[actualSize];
+      actualSize++;
+      for (int i = 0; i < value.length; i++) {
+        TO val = value[i];
+        switch (val.type) {
+          case NULL:
+            assertNull(rs.getObject(i + 1));
+            break;
+          case INT:
+            assertEquals(val.value, rs.getInt(i + 1));
+            break;
+          case VARCHAR:
+          case NVARCHAR:
+          case VARCHAR2:
+          case NVARCHAR2:
+          case CHAR:
+          case NCHAR:
+            assertEquals(val.value, rs.getString(i + 1));
+            break;
+        }
+      }
+    }
+    assertEquals(expectSize, actualSize);
+  }
 }

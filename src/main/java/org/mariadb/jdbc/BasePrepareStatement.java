@@ -533,13 +533,39 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
    */
   public void setTimestamp(final int parameterIndex, final Timestamp timestamp)
       throws SQLException {
+    if (connection.getProtocol().isOracleMode()) {
+      setTIMESTAMP(parameterIndex, timestamp);
+    } else {
+      if (timestamp == null) {
+        setNull(parameterIndex, ColumnType.DATETIME);
+        return;
+      }
+      setParameter(
+          parameterIndex,
+          new TimestampParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds));
+    }
+  }
+
+  /**
+   * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver
+   * converts this to an SQL <code>TIMESTAMP</code> value when it sends it to the database.
+   *
+   * <p>https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2, ...
+   * @param timestamp the parameter value
+   * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL
+   *     statement; if a database access error occurs or this method is called on a closed <code>
+   *     PreparedStatement</code>
+   */
+  public void setTIMESTAMP(int parameterIndex, Timestamp timestamp) throws SQLException {
     if (timestamp == null) {
-      setNull(parameterIndex, ColumnType.DATETIME);
+      setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
       return;
     }
     setParameter(
         parameterIndex,
-        new TimestampParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds));
+        new OBTIMESTAMPParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds));
   }
 
   /**

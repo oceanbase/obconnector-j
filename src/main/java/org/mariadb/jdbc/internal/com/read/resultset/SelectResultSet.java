@@ -42,11 +42,13 @@ import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.MariaDbResultSetMetaData;
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.*;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
@@ -1103,6 +1105,15 @@ public class SelectResultSet implements ResultSet {
   /** {inheritDoc}. */
   public Time getTime(String columnLabel, Calendar cal) throws SQLException {
     return getTime(findColumn(columnLabel), cal);
+  }
+
+  public TIMESTAMP getTIMESTAMP(String columnLabel) throws SQLException {
+    return getTIMESTAMP(findColumn(columnLabel));
+  }
+
+  public TIMESTAMP getTIMESTAMP(int columnIndex) throws SQLException {
+    checkObjectRange(columnIndex);
+    return row.getInternalTIMESTAMP(columnsInformation[columnIndex - 1], null, timeZone);
   }
 
   /** {inheritDoc}. */

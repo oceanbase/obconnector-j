@@ -67,6 +67,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.util.Options;
 
@@ -161,6 +162,9 @@ public abstract class RowProtocol {
       throws SQLException;
 
   public abstract Timestamp getInternalTimestamp(
+      ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
+
+  public abstract TIMESTAMP getInternalTIMESTAMP(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
   public abstract Object getInternalObject(ColumnDefinition columnInfo, TimeZone timeZone)
