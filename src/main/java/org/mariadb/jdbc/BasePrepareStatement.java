@@ -63,6 +63,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.send.parameters.*;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -446,8 +448,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, Types.DATE);
       return;
     }
-    setParameter(
-        parameterIndex, new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
+    if (connection.getProtocol().isOracleMode()) {
+      setTimestamp(parameterIndex, new Timestamp(date.getTime()));
+    } else {
+      setParameter(
+          parameterIndex, new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
+    }
   }
 
   /**
@@ -566,6 +572,48 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
     setParameter(
         parameterIndex,
         new OBTIMESTAMPParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds));
+  }
+
+  /**
+   * Sets the designated parameter to the given <code>org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ
+   * </code> value. The driver converts this to an SQL <code>TIMESTAMP WITH TIME ZONE</code> value
+   * when it sends it to the database.
+   *
+   * <p>https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2, ...
+   * @param timestamp the parameter value
+   * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL
+   *     statement; if a database access error occurs or this method is called on a closed <code>
+   *     PreparedStatement</code>
+   */
+  public void setTIMESTAMPTZ(int parameterIndex, TIMESTAMPTZ timestamp) throws SQLException {
+    if (timestamp == null) {
+      setNull(parameterIndex, ColumnType.TIMESTAMP_TZ);
+      return;
+    }
+    setParameter(parameterIndex, new OBTIMESTAMPTZParameter(timestamp));
+  }
+
+  /**
+   * Sets the designated parameter to the given <code>org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ
+   * </code> value. The driver converts this to an SQL <code>TIMESTAMP WITH TIME ZONE</code> value
+   * when it sends it to the database.
+   *
+   * <p>https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2, ...
+   * @param timestamp the parameter value
+   * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL
+   *     statement; if a database access error occurs or this method is called on a closed <code>
+   *     PreparedStatement</code>
+   */
+  public void setTIMESTAMPLTZ(int parameterIndex, TIMESTAMPLTZ timestamp) throws SQLException {
+    if (timestamp == null) {
+      setNull(parameterIndex, ColumnType.TIMESTAMP_LTZ);
+      return;
+    }
+    setParameter(parameterIndex, new OBTIMESTAMPLTZParameter(timestamp, connection));
   }
 
   /**

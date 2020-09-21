@@ -7,23 +7,21 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Calendar;
+import org.mariadb.jdbc.MariaDbConnection;
 
 public abstract class Datum implements Serializable {
-  private byte[] data;
+
+  protected byte[] data; // FIXME should use buf/pos/length, but not data
   static final long serialVersionUID = 4645732484621936751L;
-  static final String dbTimeZone = "GMT+00:00";
 
   public Datum() {}
 
   public static String getSessionTimeZone(Connection connection) throws SQLException {
-    /* FIXME
     if (connection instanceof MariaDbConnection) {
-        return ((MariaDbConnection) connection).getSessionTimeZone();
+      return ((MariaDbConnection) connection).getSessionTimeZone().getID();
     } else {
-        throw new SQLException("unexpected connection type");
+      throw new SQLException("unexpected connection type");
     }
-     */
-    return null;
   }
 
   protected static final int getInt(byte[] bytes, int idx) {
@@ -72,9 +70,8 @@ public abstract class Datum implements Serializable {
       } else {
         return false;
       }
-    } else {
-      return false;
     }
+    return true;
   }
 
   public byte[] shareBytes() {

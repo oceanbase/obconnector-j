@@ -54,10 +54,7 @@ package org.mariadb.jdbc;
 
 import java.net.SocketException;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -114,6 +111,8 @@ public class MariaDbConnection implements Connection {
   private ExceptionFactory exceptionFactory;
 
   private boolean warningsCleared;
+
+  private TimeZone sessionTimeZone = TimeZone.getDefault(); // FIXME what is this? for TIMESTAMPLTZ?
 
   /**
    * Creates a new connection with a given protocol and query factory.
@@ -1751,5 +1750,9 @@ public class MariaDbConnection implements Connection {
 
   public boolean includeThreadsTraces() {
     return options.includeThreadDumpInDeadlockExceptions;
+  }
+
+  public TimeZone getSessionTimeZone() {
+    return protocol.getTimeZone();
   }
 }

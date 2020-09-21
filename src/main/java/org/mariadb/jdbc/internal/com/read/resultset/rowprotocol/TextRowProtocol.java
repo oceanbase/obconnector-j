@@ -66,6 +66,8 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -521,7 +523,20 @@ public class TextRowProtocol extends RowProtocol {
           return null;
         }
         return new Date(timestamp.getTime());
+      case TIMESTAMP_TZ:
+        TIMESTAMPTZ timestamptz = getInternalTIMESTAMPTZ(columnInfo, cal, timeZone);
+        if (timestamptz == null) {
+          return null;
+        }
 
+        return new Date(timestamptz.timestampValue().getTime());
+      case TIMESTAMP_LTZ:
+        TIMESTAMPLTZ timestampltz = getInternalTIMESTAMPLTZ(columnInfo, cal, timeZone);
+        if (timestampltz == null) {
+          return null;
+        }
+
+        return new Date(timestampltz.timestampValue().getTime());
       case TIME:
         throw new SQLException("Cannot read DATE using a Types.TIME field");
 
@@ -723,83 +738,6 @@ public class TextRowProtocol extends RowProtocol {
                 + value
                 + "\" cannot be parse as Timestamp");
     }
-  }
-
-  public TIMESTAMP getInternalTIMESTAMP(
-      ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
-    if (lastValueWasNull()) {
-      return null;
-    }
-
-    if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
-      if (length < 12) {
-        throw new SQLException(
-            "timestamp field data length is invalid, expected 12 at least, actual length is "
-                + length);
-      }
-
-      return buildTIMETAMP(buf, pos, length);
-    } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
-      throw new SQLException(
-          "Value type \""
-              + columnInfo.getColumnType().getTypeName()
-              + "\" with value \""
-              + value
-              + "\" cannot be parse as TIMESTAMP");
-    }
-  }
-
-  private TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
-    StringBuilder sb = new StringBuilder();
-    // 年份开头不会小于10
-    sb.append(buildTimestamp(bytes[pos])); // century
-    sb.append(buildTimestamp(bytes[pos + 1])); // year
-    sb.append("-");
-    sb.append(buildTimestamp(bytes[pos + 2])); // month
-    sb.append("-");
-    sb.append(buildTimestamp(bytes[pos + 3])); // day
-    sb.append(" ");
-    sb.append(buildTimestamp(bytes[pos + 4])); // hour
-    sb.append(":");
-    sb.append(buildTimestamp(bytes[pos + 5])); // minute
-    sb.append(":");
-    sb.append(buildTimestamp(bytes[pos + 6])); // second
-    sb.append(".");
-    byte[] nanosBytes = new byte[4];
-    System.arraycopy(bytes, pos + 7, nanosBytes, 0, 4);
-    int nanos = TIMESTAMP.getNanos(nanosBytes, 0); // FIXME
-    String temp = String.format("%09d", nanos);
-    char[] chars = temp.toCharArray();
-
-    int index;
-    for (index = chars.length; index > 1 && chars[index - 1] == '0'; --index) {;
-    }
-    temp = temp.substring(0, index);
-
-    // 11 byte represents scale
-    int scale = bytes[pos + 11];
-    if (scale > temp.length()) {
-      int x = scale - temp.length();
-      StringBuilder strBuf = new StringBuilder();
-      for (int i = 0; i < x; i++) {
-        strBuf.append("0");
-      }
-      temp += strBuf.toString();
-    }
-    sb.append(temp);
-
-    TIMESTAMP timestamp = new TIMESTAMP(Timestamp.valueOf(sb.toString()));
-    timestamp.setByte(11, bytes[pos + 11]);
-
-    return timestamp;
-  }
-
-  private String buildTimestamp(byte b) {
-    if (b < 10) {
-      return "0" + b;
-    }
-    return "" + b;
   }
 
   /**

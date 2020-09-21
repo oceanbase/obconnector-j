@@ -52,13 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.*;
-
 import java.sql.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
 
-public class DatatypesOracleTest extends BaseOracleTest {
+public class DatatypeOracleTest extends BaseOracleTest {
 
   /**
    * Tables initialisation.
@@ -74,6 +74,10 @@ public class DatatypesOracleTest extends BaseOracleTest {
     createTable("tt1_nchar", "id int , name nchar(20)");
 
     createTable("tt1_timestamp", "id int , tmp TIMESTAMP");
+    createTable("tt1_timestamptz", "id int , tmp TIMESTAMP WITH TIME ZONE");
+    createTable("tt1_timestampltz", "id int , tmp TIMESTAMP WITH LOCAL TIME ZONE");
+
+    createTable("tt1_date", "id int , tmp date");
   }
 
   @Test
@@ -94,19 +98,130 @@ public class DatatypesOracleTest extends BaseOracleTest {
         new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp)});
 
     timestamp = new Timestamp(System.currentTimeMillis());
-    assertInsertSelectClientPs(
+    assertInsertSelectServerPs(
         "insert into tt1_timestamp values(?,?)",
         new TO[] {TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp)},
         "select * from tt1_timestamp where id=?",
         new TO[] {TO.$n(T.INT, 3)},
         new TO[] {TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp)});
 
-    assertInsertSelectClientPs(
+    assertInsertSelectServerPs(
         "insert into tt1_timestamp values(?,?)",
         new TO[] {TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp)},
         "select * from tt1_timestamp where id=?",
         new TO[] {TO.$n(T.INT, 4)},
         new TO[] {TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 5)},
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null)});
+    assertInsertSelectServerPs(
+        "insert into tt1_timestamp values(?,?)",
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null)},
+        "select * from tt1_timestamp where id=?",
+        new TO[] {TO.$n(T.INT, 6)},
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null)});
+  }
+
+  @Test
+  public void TIMESTAMPTZ() throws SQLException {
+    TIMESTAMPTZ timestamp = new TIMESTAMPTZ(null, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamptz values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp)},
+        "select * from tt1_timestamptz where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp)});
+
+    timestamp = new TIMESTAMPTZ(null, Timestamp.valueOf("2019-01-26 16:54:19.878879"));
+    assertInsertSelectServerPs(
+        "insert into tt1_timestamptz values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp)},
+        "select * from tt1_timestamptz where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_timestamptz values(?,?)",
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null)},
+        "select * from tt1_timestamptz where id=?",
+        new TO[] {TO.$n(T.INT, 5)},
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null)});
+    assertInsertSelectServerPs(
+        "insert into tt1_timestamptz values(?,?)",
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null)},
+        "select * from tt1_timestamptz where id=?",
+        new TO[] {TO.$n(T.INT, 6)},
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null)});
+  }
+
+  @Test
+  public void TIMESTAMPLTZ() throws SQLException {
+    TIMESTAMPLTZ timestamp =
+        new TIMESTAMPLTZ(sharedConnection, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+    assertInsertSelectClientPs(
+        "insert into tt1_timestampltz values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp)},
+        "select * from tt1_timestampltz where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp)});
+
+    timestamp =
+        new TIMESTAMPLTZ(sharedPSConnection, Timestamp.valueOf("2019-01-26 16:54:19.878879"));
+    assertInsertSelectServerPs(
+        "insert into tt1_timestampltz values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp)},
+        "select * from tt1_timestampltz where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_timestampltz values(?,?)",
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null)},
+        "select * from tt1_timestampltz where id=?",
+        new TO[] {TO.$n(T.INT, 5)},
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null)});
+    assertInsertSelectServerPs(
+        "insert into tt1_timestampltz values(?,?)",
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null)},
+        "select * from tt1_timestampltz where id=?",
+        new TO[] {TO.$n(T.INT, 6)},
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null)});
+  }
+
+  @Test
+  public void DATE()
+      throws SQLException { // FIXME should test use TIMESTAMP/TIMESTAMPTZ/TIMESTAMPLTZ dataype, but
+    // use getDate method
+    Date date = new Date(Timestamp.valueOf("2018-12-26 16:54:19.878879").getTime());
+    assertInsertSelectClientPs(
+        "insert into tt1_date values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.DATE, date)},
+        "select * from tt1_date where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.DATE, date)});
+    assertInsertSelectServerPs(
+        "insert into tt1_date values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.DATE, date)},
+        "select * from tt1_date where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.DATE, date)});
+
+    assertInsertSelectClientPs(
+        "insert into tt1_date values(?,?)",
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.DATE, null)},
+        "select * from tt1_date where id=?",
+        new TO[] {TO.$n(T.INT, 5)},
+        new TO[] {TO.$n(T.INT, 5), TO.$n(T.DATE, null)});
+    assertInsertSelectServerPs(
+        "insert into tt1_date values(?,?)",
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.DATE, null)},
+        "select * from tt1_date where id=?",
+        new TO[] {TO.$n(T.INT, 6)},
+        new TO[] {TO.$n(T.INT, 6), TO.$n(T.DATE, null)});
   }
 
   @Test

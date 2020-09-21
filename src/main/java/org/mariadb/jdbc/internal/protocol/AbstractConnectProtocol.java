@@ -119,7 +119,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private static final byte[] IS_MASTER_QUERY =
       "select @@innodb_read_only".getBytes(StandardCharsets.UTF_8);
   protected static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
-
+  private static final byte[] ALTER_SESSION_TIMEZONE_QUERY =
+      "ALTER SESSION SET TIME_ZONE='".getBytes(StandardCharsets.UTF_8);
   private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
   protected final ReentrantLock lock;
   protected final UrlParser urlParser;
@@ -154,6 +155,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private int minorVersion;
   private int patchVersion;
   private TimeZone timeZone;
+  private TimeZone serverTimeZone;
   private boolean isOracleMode; /* is server in oracle mode */
 
   /**
@@ -990,6 +992,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
     writer.flush();
   }
 
+  private void sendAlterSessionTimezone(String zoneId) throws IOException {
+    writer.startPacket(0);
+    writer.write(COM_QUERY);
+    writer.write(ALTER_SESSION_TIMEZONE_QUERY);
+    writer.write(zoneId.getBytes());
+    writer.write('\'');
+    writer.flush();
+  }
+
   private void readRequestSessionVariables(Map<String, String> serverData) throws SQLException {
     Results results = new Results();
     getResult(results);
@@ -1167,6 +1178,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       try {
         timeZone = Utils.getTimeZone(tz);
+        serverTimeZone = timeZone;
+
+        TimeZone defaultTimezone = TimeZone.getDefault();
+        // TODO oracle should alter session to local time_zone, need more test case
+        if (isOracleMode && defaultTimezone.getRawOffset() != timeZone.getRawOffset()) {
+          sendAlterSessionTimezone(defaultTimezone.getID());
+          getResult(new Results());
+          timeZone = defaultTimezone;
+        }
       } catch (SQLException e) {
         if (options.serverTimezone != null) {
           throw exceptionFactory.create(
@@ -1186,6 +1206,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                   + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.",
               "01S00");
         }
+      } catch (IOException e) {
+        throw new SQLException("Alter session set time_zone exception", e);
       }
     }
   }
@@ -1575,6 +1597,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public TimeZone getTimeZone() {
     return timeZone;
+  }
+
+  public TimeZone getServerTimeZone() {
+    return serverTimeZone;
   }
 
   public Options getOptions() {

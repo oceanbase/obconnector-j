@@ -58,6 +58,8 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
 import org.mariadb.jdbc.util.Options;
 
 public enum ColumnType {
@@ -90,6 +92,8 @@ public enum ColumnType {
   STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B"),
 
+  TIMESTAMP_TZ(200, Types.TIMESTAMP, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName()),
+  TIMESTAMP_LTZ(201, Types.TIMESTAMP, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName()),
   TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName());
 
   static final ColumnType[] typeMap;

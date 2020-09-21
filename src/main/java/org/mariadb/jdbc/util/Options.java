@@ -85,7 +85,7 @@ public class Options implements Cloneable {
   public boolean cachePrepStmts = true;
   public int prepStmtCacheSize = 250;
   public int prepStmtCacheSqlLimit = 2048;
-  public boolean useLegacyDatetimeCode = true;
+  public boolean useLegacyDatetimeCode = false;
   public boolean useAffectedRows;
   public boolean maximizeMysqlCompatibility;
   public boolean useServerPrepStmts;

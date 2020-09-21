@@ -38,24 +38,34 @@ import java.sql.Date;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.MariaDbResultSetMetaData;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
+import org.mariadb.jdbc.internal.*;
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.*;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.*;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.*;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
+import org.mariadb.jdbc.internal.io.input.*;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.protocol.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.exceptions.*;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.*;
 import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings({
@@ -1114,6 +1124,24 @@ public class SelectResultSet implements ResultSet {
   public TIMESTAMP getTIMESTAMP(int columnIndex) throws SQLException {
     checkObjectRange(columnIndex);
     return row.getInternalTIMESTAMP(columnsInformation[columnIndex - 1], null, timeZone);
+  }
+
+  public TIMESTAMPTZ getTIMESTAMPTZ(String columnLabel) throws SQLException {
+    return getTIMESTAMPTZ(findColumn(columnLabel));
+  }
+
+  public TIMESTAMPTZ getTIMESTAMPTZ(int columnIndex) throws SQLException {
+    checkObjectRange(columnIndex);
+    return row.getInternalTIMESTAMPTZ(columnsInformation[columnIndex - 1], null, timeZone);
+  }
+
+  public TIMESTAMPLTZ getTIMESTAMPLTZ(String columnLabel) throws SQLException {
+    return getTIMESTAMPLTZ(findColumn(columnLabel));
+  }
+
+  public TIMESTAMPLTZ getTIMESTAMPLTZ(int columnIndex) throws SQLException {
+    checkObjectRange(columnIndex);
+    return row.getInternalTIMESTAMPLTZ(columnsInformation[columnIndex - 1], null, timeZone);
   }
 
   /** {inheritDoc}. */

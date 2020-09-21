@@ -61,6 +61,7 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
+import java.sql.Date;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
@@ -70,7 +71,10 @@ import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
+import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
 import org.mariadb.jdbc.failover.TcpProxy;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.util.Options;
@@ -1167,7 +1171,10 @@ public class BaseOracleTest {
     CHAR,
     NCHAR, //
     TIMESTAMP,
-    OBTIMESTAMP;
+    OBTIMESTAMP,
+    OBTIMESTAMPTZ,
+    OBTIMESTAMPLTZ,
+    DATE;
   }
   /* Test Object */
   protected static class TO {
@@ -1247,11 +1254,20 @@ public class BaseOracleTest {
         case NCHAR:
           pstmt.setString(i + 1, (String) val.value);
           break;
+        case DATE:
+          pstmt.setDate(i + 1, (Date) val.value);
+          break;
         case TIMESTAMP:
           pstmt.setTimestamp(i + 1, (Timestamp) val.value);
           break;
         case OBTIMESTAMP:
           pstmt.setTIMESTAMP(i + 1, (Timestamp) val.value);
+          break;
+        case OBTIMESTAMPTZ:
+          pstmt.setTIMESTAMPTZ(i + 1, (TIMESTAMPTZ) val.value);
+          break;
+        case OBTIMESTAMPLTZ:
+          pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
           break;
       }
     }
@@ -1275,17 +1291,26 @@ public class BaseOracleTest {
         case NCHAR:
           pstmt.setString(i + 1, (String) val.value);
           break;
+        case DATE:
+          pstmt.setDate(i + 1, (Date) val.value);
+          break;
         case TIMESTAMP:
           pstmt.setTimestamp(i + 1, (Timestamp) val.value);
           break;
         case OBTIMESTAMP:
           pstmt.setTIMESTAMP(i + 1, (Timestamp) val.value);
           break;
+        case OBTIMESTAMPTZ:
+          pstmt.setTIMESTAMPTZ(i + 1, (TIMESTAMPTZ) val.value);
+          break;
+        case OBTIMESTAMPLTZ:
+          pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
+          break;
       }
     }
 
     ResultSet rs = pstmt.executeQuery();
-    assertRsEquals(rs, expectValues);
+    assertRsEquals((SelectResultSet) rs, expectValues);
     rs.close();
   }
 
@@ -1299,11 +1324,11 @@ public class BaseOracleTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(insert);
     ResultSet rs = stmt.executeQuery(select);
-    assertRsEquals(rs, expectValues);
+    assertRsEquals((SelectResultSet) rs, expectValues);
     rs.close();
   }
 
-  protected void assertRsEquals(ResultSet rs, TO[]... expectValues) throws SQLException {
+  protected void assertRsEquals(SelectResultSet rs, TO[]... expectValues) throws SQLException {
     int expectSize = expectValues.length;
     int actualSize = 0;
     while (rs.next()) {
@@ -1326,6 +1351,35 @@ public class BaseOracleTest {
           case NCHAR:
             assertEquals(val.value, rs.getString(i + 1));
             break;
+          case DATE:
+            assertEquals(
+                val.value == null ? null : val.value.toString(),
+                rs.getDate(i + 1) == null ? null : rs.getDate(i + 1).toString());
+            break;
+          case TIMESTAMP:
+            assertEquals(val.value, rs.getTimestamp(i + 1));
+            break;
+          case OBTIMESTAMP:
+            assertEquals(val.value, rs.getTIMESTAMP(i + 1).timestampValue());
+            break;
+          case OBTIMESTAMPTZ:
+            assertEquals(
+                val.value == null ? null : ((TIMESTAMPTZ) val.value).toResultSetString(null),
+                rs.getTIMESTAMPTZ(i + 1) == null
+                    ? null
+                    : rs.getTIMESTAMPTZ(i + 1).toResultSetString(null));
+            break;
+          case OBTIMESTAMPLTZ:
+            assertEquals(
+                val.value == null
+                    ? null
+                    : ((TIMESTAMPLTZ) val.value).toResultSetString(sharedConnection),
+                rs.getTIMESTAMPLTZ(i + 1) == null
+                    ? null
+                    : rs.getTIMESTAMPLTZ(i + 1).toResultSetString(sharedConnection));
+            break;
+          default:
+            throw new SQLException("invalid type: " + val.type);
         }
       }
     }
