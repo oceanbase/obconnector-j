@@ -67,11 +67,11 @@ import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
 import org.mariadb.jdbc.util.Options;
 
-public class MariaDbDatabaseMetaData implements DatabaseMetaData {
+public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
-  public static final String DRIVER_NAME = "MariaDB Connector/J";
-  private final MariaDbConnection connection;
+  public static final String DRIVER_NAME = "OceanBase Connector/J";
   private final UrlParser urlParser;
+  private final MariaDbConnection connection;
   private boolean datePrecisionColumnExist = true;
 
   /**
@@ -81,6 +81,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @param urlParser Url parser
    */
   public MariaDbDatabaseMetaData(Connection connection, UrlParser urlParser) {
+    super(urlParser, connection);
     this.connection = (MariaDbConnection) connection;
     this.urlParser = urlParser;
   }
@@ -505,14 +506,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         + " END ";
   }
 
-  private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt = connection.createStatement();
-    SelectResultSet rs = (SelectResultSet) stmt.executeQuery(sql);
-    rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
-    rs.setForceTableAlias();
-    return rs;
-  }
-
   private String escapeQuote(String value) {
     if (value == null) {
       return "NULL";
@@ -653,6 +646,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       String catalog, String schemaPattern, String tableNamePattern, String[] types)
       throws SQLException {
 
+    if (connection.getProtocol().isOracleMode()){
+      return super.getTables(catalog, schemaPattern, tableNamePattern, types);
+    }
+
     StringBuilder sql =
         new StringBuilder(
             "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
@@ -777,6 +774,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getColumns(
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
+    if (connection.getProtocol().isOracleMode()){
+      return super.getColumns(catalog,schemaPattern,tableNamePattern,columnNamePattern);
+    }
     Options options = urlParser.getOptions();
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
@@ -1215,18 +1215,18 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @throws SQLException in case of socket error.
    */
   public String getDatabaseProductName() throws SQLException {
-    if (urlParser.getOptions().useMysqlMetadata) {
-      return "MySQL";
-    }
-    if (connection.getProtocol().isServerMariaDb()
-        && connection
-            .getProtocol()
-            .getServerVersion()
-            .toLowerCase(Locale.ROOT)
-            .contains("mariadb")) {
-      return "MariaDB";
-    }
-    return "MySQL";
+//    if (urlParser.getOptions().useMysqlMetadata) {
+//      return "MySQL";
+//    }
+//    if (connection.getProtocol().isServerMariaDb()
+//        && connection
+//            .getProtocol()
+//            .getServerVersion()
+//            .toLowerCase(Locale.ROOT)
+//            .contains("mariadb")) {
+//      return "MariaDB";
+//    }
+    return "OceanBase";
   }
 
   public String getDatabaseProductVersion() {
@@ -1940,6 +1940,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
       throws SQLException {
 
+    if (connection.getProtocol().isOracleMode()){
+      return super.getProcedures(catalog, schemaPattern, procedureNamePattern);
+    }
     String sql =
         "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
             + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
@@ -2313,6 +2316,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getCatalogs() throws SQLException {
+    if (connection.getProtocol().isOracleMode()){
+      return super.getCatalogs();
+    }
     return executeQuery("SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
   }
 
@@ -3877,6 +3883,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    */
   public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
       throws SQLException {
+    if (connection.getProtocol().isOracleMode()){
+      return super.getFunctions(catalog,schemaPattern,functionNamePattern);
+    }
     String sql =
         "SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"
             + " ROUTINE_COMMENT REMARKS,"

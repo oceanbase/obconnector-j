@@ -118,7 +118,7 @@ public class BaseTest {
   protected static Options options;
   protected static String parameters;
   protected static boolean testSingleHost;
-  protected static Connection sharedConnection;
+  protected static MariaDbConnection sharedConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
@@ -130,7 +130,7 @@ public class BaseTest {
         private long ttime;
 
         protected void starting(Description description) {
-          if (testSingleHost) {
+          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
             System.out.println(
                 "start test : " + description.getClassName() + "." + description.getMethodName());
             ttime = System.nanoTime();
@@ -139,7 +139,7 @@ public class BaseTest {
 
         // execute another query to ensure connection is stable
         protected void finished(Description description) {
-          if (testSingleHost) {
+          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
             Random random = new Random();
             int randInt = random.nextInt();
             try (PreparedStatement preparedStatement =
@@ -173,7 +173,7 @@ public class BaseTest {
         }
 
         protected void succeeded(Description description) {
-          if (testSingleHost) {
+          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
             System.out.println(
                 "finished test success : "
                     + description.getClassName()
@@ -186,7 +186,7 @@ public class BaseTest {
         }
 
         protected void failed(Throwable throwable, Description description) {
-          if (testSingleHost) {
+          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
             System.out.println(
                 "finished test failed : "
                     + description.getClassName()
@@ -253,7 +253,7 @@ public class BaseTest {
         sharedConnection = MariaDbConnection.newConnection(urlParser, null);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
-        sharedConnection = DriverManager.getConnection(url);
+        sharedConnection = (MariaDbConnection) DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -382,7 +382,13 @@ public class BaseTest {
       throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop table if exists " + tableName);
+
+//      stmt.execute("drop table if exists " + tableName);
+      try {
+        stmt.execute("drop table "+ tableName +";");
+      } catch (SQLException e) {
+        // ignore, maybe table does not exist
+      }
       stmt.execute(
           "create table "
               + tableName
