@@ -78,6 +78,8 @@ public class DatatypeOracleTest extends BaseOracleTest {
     createTable("tt1_timestampltz", "id int , tmp TIMESTAMP WITH LOCAL TIME ZONE");
 
     createTable("tt1_date", "id int , tmp date");
+
+    createTable("tt1_number", "id int , tmp number");
   }
 
   @Test
@@ -337,4 +339,61 @@ public class DatatypeOracleTest extends BaseOracleTest {
 
     return sb.toString();
   }
+
+  @Test
+  public void test_number_ps() throws Exception{
+    createTable("test_number_ps","id int ,tmp number(5) ");
+    Integer num = 2 ;
+    assertInsertSelectClientPs(
+            "insert into test_number_ps values(?,?)",
+            new TO[] {TO.$n(T.INT, 1), TO.$n(T.INT, num)},
+            "select * from test_number_ps where id=?",
+            new TO[] {TO.$n(T.INT, 1)},
+            new TO[] {TO.$n(T.INT, 1), TO.$n(T.INT, num)});
+    assertInsertSelectServerPs(
+            "insert into test_number_ps values(?,?)",
+            new TO[] {TO.$n(T.INT, 2), TO.$n(T.INT, num)},
+            "select * from test_number_ps where id=?",
+            new TO[] {TO.$n(T.INT, 2)},
+            new TO[] {TO.$n(T.INT, 2), TO.$n(T.INT, num)});
+  }
+
+  @Test
+  public void test_number() throws SQLException {
+    assertInsertSelect(
+            "insert into test_number values(1, 1)",
+            "select * from test_number",
+            new TO[] {TO.$n(T.NUMBER, 1)});
+  }
+
+  @Test
+  public void test_number_float() throws SQLException {
+    createTable("test_number_float","id int ,tmp number(10,2)");
+    assertInsertSelect(
+            "insert into test_number_float values(1, 1.0)",
+            "select * from test_number_float",
+            new TO[] {TO.$n(T.NUMBER_FLOAT, 1.0f)});
+  }
+
+
+  @Test
+  public void test_binary_float() throws SQLException {
+    createTable("test_binary_float","id int ,tmp number(10,2)");
+    assertInsertSelect(
+            "insert into test_binary_float values(1, 1.0)",
+            "select * from test_binary_float",
+            new TO[] {TO.$n(T.BINARY_FLOAT, 1.0f)});
+  }
+
+  @Test
+  public void test_binary_double() throws SQLException {
+    createTable("test_binary_double","id int ,tmp number(10,3)");
+    assertInsertSelect(
+            "insert into test_binary_double values(1, 1.0)",
+            "select * from test_binary_double",
+            new TO[] {TO.$n(T.BINARY_DOUBLE, 1.0d)});
+  }
+
+
+
 }

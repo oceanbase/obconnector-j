@@ -87,7 +87,8 @@ import org.mariadb.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class BaseOracleTest {
 
-  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
+//  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
+protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:18815/test?user=admin@oracle&password=admin";
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
@@ -327,8 +328,13 @@ public class BaseOracleTest {
       }
 
       try {
-        sharedConnection.close();
-        sharedPSConnection.close();
+        if(sharedConnection!=null){
+          sharedConnection.close();
+        }
+        if(sharedPSConnection !=null){
+          sharedPSConnection.close();
+        }
+
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -396,6 +402,11 @@ public class BaseOracleTest {
         end;
        */
       stmt.execute("call proc_dropifexists('" + tableName + "')");
+      try {
+        stmt.execute("drop table "+ tableName) ;
+      } catch (SQLException throwables) {
+        //eat exception
+      }
       stmt.execute(
           "create table "
               + tableName
@@ -1174,7 +1185,11 @@ public class BaseOracleTest {
     OBTIMESTAMP,
     OBTIMESTAMPTZ,
     OBTIMESTAMPLTZ,
-    DATE;
+    DATE,
+    NUMBER,
+    NUMBER_FLOAT,
+    BINARY_DOUBLE,
+    BINARY_FLOAT ;
   }
   /* Test Object */
   protected static class TO {
@@ -1269,6 +1284,16 @@ public class BaseOracleTest {
         case OBTIMESTAMPLTZ:
           pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
           break;
+        case NUMBER:
+          pstmt.setInt(i+1,(int) val.value);
+          break;
+        case BINARY_DOUBLE:
+          pstmt.setDouble(i+1,(double) val.value);
+          break;
+        case NUMBER_FLOAT:
+        case BINARY_FLOAT:
+          pstmt.setFloat(i+1,(float) val.value);
+          break;
       }
     }
     assertEquals(1, pstmt.executeUpdate());
@@ -1305,6 +1330,16 @@ public class BaseOracleTest {
           break;
         case OBTIMESTAMPLTZ:
           pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
+          break;
+        case NUMBER:
+          pstmt.setInt(i+1,(int) val.value);
+          break;
+        case BINARY_DOUBLE:
+          pstmt.setDouble(i+1,(double) val.value);
+          break;
+        case NUMBER_FLOAT:
+        case BINARY_FLOAT:
+          pstmt.setFloat(i+1,(float) val.value);
           break;
       }
     }
@@ -1377,6 +1412,16 @@ public class BaseOracleTest {
                 rs.getTIMESTAMPLTZ(i + 1) == null
                     ? null
                     : rs.getTIMESTAMPLTZ(i + 1).toResultSetString(sharedConnection));
+            break;
+          case NUMBER:
+            assertEquals(val.value, rs.getInt(1));
+            break;
+          case BINARY_DOUBLE:
+            assertEquals(val.value, rs.getDouble(1)) ;
+            break;
+          case NUMBER_FLOAT:
+          case BINARY_FLOAT:
+            assertEquals(val.value, rs.getFloat(1));
             break;
           default:
             throw new SQLException("invalid type: " + val.type);

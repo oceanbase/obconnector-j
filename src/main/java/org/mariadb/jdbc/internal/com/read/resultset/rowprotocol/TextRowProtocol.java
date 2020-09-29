@@ -65,9 +65,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
+
+import org.mariadb.jdbc.extend.datatype.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -830,6 +829,14 @@ public class TextRowProtocol extends RowProtocol {
         break;
       case SET:
         break;
+      case NUMBER:
+        return getInternalNumber(columnInfo) ;
+      case NUMBER_FLOAT:
+        return getInternalNumber_float(columnInfo);
+      case BINARY_DOUBLE:
+        return getInternalBINARY_DOUBLE();
+      case BINARY_FLOAT:
+        return getInternalBINARY_FLOAT() ;
       default:
         break;
     }
@@ -1186,4 +1193,33 @@ public class TextRowProtocol extends RowProtocol {
   public boolean isBinaryEncoded() {
     return false;
   }
+
+  public NUMBER getInternalNumber(ColumnDefinition columnInfo){
+    if (lastValueWasNull()) {
+      return new NUMBER("0".getBytes());
+    }
+    return new NUMBER(buf) ;
+  }
+
+  public NUMBER_FLOAT getInternalNumber_float(ColumnDefinition columnInfo){
+    if (lastValueWasNull()) {
+      return new NUMBER_FLOAT(0.0);
+    }
+    return new NUMBER_FLOAT(new Double(new String(buf))) ;
+  }
+
+  public BINARY_DOUBLE getInternalBINARY_DOUBLE(){
+    if (lastValueWasNull()) {
+      return new BINARY_DOUBLE(0.0d);
+    }
+    return new BINARY_DOUBLE(buf) ;
+  }
+
+  public BINARY_FLOAT getInternalBINARY_FLOAT(){
+    if (lastValueWasNull()) {
+      return new BINARY_FLOAT(0.0f);
+    }
+    return new BINARY_FLOAT(buf) ;
+  }
+
 }
