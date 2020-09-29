@@ -68,9 +68,8 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMP;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMPLTZ;
-import org.mariadb.jdbc.extend.datatype.TIMESTAMPTZ;
+
+import org.mariadb.jdbc.extend.datatype.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.util.Options;
@@ -392,6 +391,76 @@ public abstract class RowProtocol {
       value = value & 0xffffffffL;
     }
     return value;
+  }
+
+  protected NUMBER getNUMBER(ColumnDefinition columnInfo) throws Exception{
+    if (lastValueWasNull())  {
+      return null;
+    }
+    if(columnInfo.getColumnType()==ColumnType.NUMBER){
+       return new NUMBER(buf) ;
+    }else {
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as NUMBER");
+    }
+  }
+
+  protected NUMBER_FLOAT getNUMBER_FLOAT(ColumnDefinition columnInfo) throws Exception{
+    if (lastValueWasNull())  {
+      return null;
+    }
+    String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+    if(columnInfo.getColumnType()==ColumnType.NUMBER_FLOAT){
+      return new NUMBER_FLOAT(new Float(value),buf) ;
+    }else {
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as NUMBER_FLOAT");
+    }
+  }
+
+  protected BINARY_DOUBLE getBINARY_DOUBLE(ColumnDefinition columnInfo) throws Exception{
+    if (lastValueWasNull())  {
+      return null;
+    }
+    if(columnInfo.getColumnType()==ColumnType.BINARY_DOUBLE){
+      return new BINARY_DOUBLE(buf) ;
+    }else{
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as BINARY_DOUBLE");
+    }
+
+  }
+
+  protected BINARY_FLOAT getBINARY_FLOAT(ColumnDefinition columnInfo) throws Exception{
+    if (lastValueWasNull())  {
+      return null;
+    }
+    if(columnInfo.getColumnType() == ColumnType.NUMBER_FLOAT){
+      return new BINARY_FLOAT(buf) ;
+    }else{
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as BINARY_FLOAT");
+    }
+
   }
 
   protected void rangeCheck(

@@ -1104,6 +1104,7 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         return getInternalLong(columnInfo);
       case DOUBLE:
+      case BINARY_DOUBLE:
         return getInternalDouble(columnInfo);
       case VARCHAR:
       case VARSTRING:
@@ -1138,8 +1139,11 @@ public class BinaryRowProtocol extends RowProtocol {
         return getInternalShort(columnInfo);
       case SMALLINT:
       case MEDIUMINT:
+      case NUMBER:
         return getInternalInt(columnInfo);
       case FLOAT:
+      case NUMBER_FLOAT:
+      case BINARY_FLOAT:
         return getInternalFloat(columnInfo);
       case TIME:
         return getInternalTime(columnInfo, null, timeZone);
