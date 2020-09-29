@@ -3,18 +3,11 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
-    public static final String DRIVER_NAME = "MariaDB Connector/J";
     private final UrlParser urlParser;
     private final MariaDbConnection connection;
-    protected static Pattern sqlWildcardPattern = null;
 
     public OceanBaseOracleDatabaseMetadata(UrlParser urlParser, Connection connection) {
         this.urlParser = urlParser;
@@ -678,6 +671,9 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
         }
 
         ResultSet resultSet = stmt.executeQuery();
+        if (stmt!=null){
+            stmt.close();
+        }
         return resultSet;
     }
 
@@ -720,12 +716,21 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
         stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
         ResultSet resultSet = stmt.executeQuery();
+        if (stmt!=null){
+            stmt.close();
+        }
         return resultSet;
     }
 
     @Override
     public ResultSet getSchemas() throws SQLException {
-        return null;
+        Statement stmt = this.connection.createStatement();
+        String sql = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
+        ResultSet rs = stmt.executeQuery(sql);
+        if (stmt != null){
+            stmt.close();
+        }
+        return rs;
     }
 
     @Override
@@ -740,25 +745,27 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-//        String var1 = "SELECT ";
-//        String var2 = " NULL AS table_cat,\n";
-//        String var3 = "         DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length)";
-//        String var5 = "       t.owner AS table_schem,\n       t.table_name AS table_name,\n";
-//        String var6 = "       t.column_name AS column_name,\n       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n               'LONG', -1, 'DATE', 93 , 'RAW', -3, 'LONG RAW', -4,  \n" + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n" + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n" + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n" + "               'INTERVAL YEAR(2) TO MONTH', -103, \n" + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n" + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n" + "               'XMLTYPE', 2009, \n" + "               1111)\n" + "              AS data_type,\n" + "       t.data_type AS type_name,\n" + "       DECODE (t.data_precision, " + "               null, DECODE(t.data_type, " + "                       'NUMBER', DECODE(t.data_scale, " + " null, 0 ,38), " + var3 + "                           )," + "         t.data_precision)\n" + "              AS column_size,\n" + "       0 AS buffer_length,\n" + "       DECODE (t.data_type, " + "               'NUMBER', DECODE(t.data_precision, " + "                                null, DECODE(t.data_scale, " + "                                             null, -127                                             , t.data_scale), " + "                                 t.data_scale), " + "               t.data_scale) AS decimal_digits,\n" + "       10 AS num_prec_radix,\n" + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n";
-//        String var7 = "       NULL AS remarks,\n";
-//        String var8 = "       t.data_default AS column_def,\n       0 AS sql_data_type,\n       0 AS sql_datetime_sub,\n       t.data_length AS char_octet_length,\n       t.column_id AS ordinal_position,\n       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable,\n";
-//        String var9 = "         null as SCOPE_CATALOG,\n       null as SCOPE_SCHEMA,\n       null as SCOPE_TABLE,\n       null as SOURCE_DATA_TYPE,\n       'NO' as IS_AUTOINCREMENT\n";
-//        String var10 = "FROM all_tab_columns t";
-//        String var11 = "WHERE t.owner LIKE ?  AND t.table_name LIKE ?  AND t.column_name LIKE ?";
-//        String var12 = "ORDER BY table_schem, table_name, ordinal_position\n";
-//
-//        String var13 = var1 + var2;
-//        var13 = var13 + var5;
-//        var13 = var13 + var6;
-//        var13 = var13 + var7;
-//        var13 = var13 + var8 + var9 + var10;
-//        var13 = var13 + "\n" + var11;
-//        var13 = var13 + "\n" + var12;
+/**
+        String var1 = "SELECT ";
+        String var2 = " NULL AS table_cat,\n";
+        String var3 = "         DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length)";
+        String var5 = "       t.owner AS table_schem,\n       t.table_name AS table_name,\n";
+        String var6 = "       t.column_name AS column_name,\n       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n               'LONG', -1, 'DATE', 93 , 'RAW', -3, 'LONG RAW', -4,  \n" + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n" + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n" + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n" + "               'INTERVAL YEAR(2) TO MONTH', -103, \n" + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n" + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n" + "               'XMLTYPE', 2009, \n" + "               1111)\n" + "              AS data_type,\n" + "       t.data_type AS type_name,\n" + "       DECODE (t.data_precision, " + "               null, DECODE(t.data_type, " + "                       'NUMBER', DECODE(t.data_scale, " + " null, 0 ,38), " + var3 + "                           )," + "         t.data_precision)\n" + "              AS column_size,\n" + "       0 AS buffer_length,\n" + "       DECODE (t.data_type, " + "               'NUMBER', DECODE(t.data_precision, " + "                                null, DECODE(t.data_scale, " + "                                             null, -127                                             , t.data_scale), " + "                                 t.data_scale), " + "               t.data_scale) AS decimal_digits,\n" + "       10 AS num_prec_radix,\n" + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n";
+        String var7 = "       NULL AS remarks,\n";
+        String var8 = "       t.data_default AS column_def,\n       0 AS sql_data_type,\n       0 AS sql_datetime_sub,\n       t.data_length AS char_octet_length,\n       t.column_id AS ordinal_position,\n       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable,\n";
+        String var9 = "         null as SCOPE_CATALOG,\n       null as SCOPE_SCHEMA,\n       null as SCOPE_TABLE,\n       null as SOURCE_DATA_TYPE,\n       'NO' as IS_AUTOINCREMENT\n";
+        String var10 = "FROM all_tab_columns t";
+        String var11 = "WHERE t.owner LIKE ?  AND t.table_name LIKE ?  AND t.column_name LIKE ?";
+        String var12 = "ORDER BY table_schem, table_name, ordinal_position\n";
+
+        String var13 = var1 + var2;
+        var13 = var13 + var5;
+        var13 = var13 + var6;
+        var13 = var13 + var7;
+        var13 = var13 + var8 + var9 + var10;
+        var13 = var13 + "\n" + var11;
+        var13 = var13 + "\n" + var12;
+*/
 
         String sql = "SELECT  NULL AS table_cat,\n" +
                 "       t.owner AS table_schem,\n" +
@@ -804,7 +811,9 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
         stmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
 
         ResultSet resultSet = stmt.executeQuery();
-        stmt.close();
+        if (stmt!=null){
+            stmt.close();
+        }
         return resultSet;
     }
 
@@ -1015,7 +1024,18 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
-        return null;
+        if (schemaPattern == null) {
+            return this.getSchemas();
+        } else {
+            String sql = "SELECT username AS table_schem, null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
+            PreparedStatement stmt = this.connection.prepareStatement(sql);
+            stmt.setString(1, schemaPattern);
+            ResultSet rs = stmt.executeQuery();
+            if (stmt != null){
+                stmt.close();
+            }
+            return rs;
+        }
     }
 
     @Override
@@ -1040,7 +1060,7 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
         String var6 = "  AND package_name LIKE ? \n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
         String var7 = "  AND package_name IS NOT NULL\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
         String var8 = "ORDER BY function_schem, function_name\n";
-        PreparedStatement var9 = null;
+        PreparedStatement stmt = null;
         String var10 = null;
         String var11 = schemaPattern;
         if (schemaPattern == null) {
@@ -1060,24 +1080,27 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
         }
         if (catalog == null) {
             var10 = var4 + "UNION ALL " + var5 + var7 + var8;
-            var9 = this.connection.prepareStatement(var10);
-            var9.setString(1, var11);
-            var9.setString(2, var12);
-            var9.setString(3, var11);
-            var9.setString(4, var12);
+            stmt = this.connection.prepareStatement(var10);
+            stmt.setString(1, var11);
+            stmt.setString(2, var12);
+            stmt.setString(3, var11);
+            stmt.setString(4, var12);
         } else if (catalog.equals("")) {
-            var9 = this.connection.prepareStatement(var4);
-            var9.setString(1, var11);
-            var9.setString(2, var12);
+            stmt = this.connection.prepareStatement(var4);
+            stmt.setString(1, var11);
+            stmt.setString(2, var12);
         } else {
             var10 = var5 + var6 + var8;
-            var9 = this.connection.prepareStatement(var10);
-            var9.setString(1, var11);
-            var9.setString(2, var11);
-            var9.setString(3, var12);
+            stmt = this.connection.prepareStatement(var10);
+            stmt.setString(1, var11);
+            stmt.setString(2, var11);
+            stmt.setString(3, var12);
         }
 
-        ResultSet var13 = var9.executeQuery();
+        ResultSet var13 = stmt.executeQuery();
+        if (stmt!=null){
+            stmt.close();
+        }
         return var13;
     }
 

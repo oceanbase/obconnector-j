@@ -2308,10 +2308,16 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
   }
 
   public ResultSet getSchemas() throws SQLException {
+    if (connection.getProtocol().isOracleMode()){
+      return super.getSchemas();
+    }
     return executeQuery("SELECT '' TABLE_SCHEM, '' TABLE_catalog  FROM DUAL WHERE 1=0");
   }
 
   public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
+    if (connection.getProtocol().isOracleMode()){
+      return super.getSchemas(catalog,schemaPattern);
+    }
     return executeQuery("SELECT  ' ' table_schem, ' ' table_catalog FROM DUAL WHERE 1=0");
   }
 

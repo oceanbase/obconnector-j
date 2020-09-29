@@ -6,6 +6,7 @@ import java.sql.*;
 
 import static org.junit.Assert.*;
 
+//请在oracle模式账户下执行本测试类
 public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
@@ -16,6 +17,7 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         if (!rs.next()) {
             hasNext = false;
         }
+        //oracle中此方法拿不到任何数据
         assertTrue(!hasNext);
     }
 
@@ -126,81 +128,50 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         assertTrue(!rs.next());
     }
 
-
-    @Test
-    public void testGetColumns1() throws SQLException {
-        DatabaseMetaData dbmd = sharedConnection.getMetaData();
-
-        ResultSet r = dbmd.getColumns(null, null, "TABLE_TEST", null);
-        ResultSetMetaData rm = r.getMetaData();
-        int noofcols = rm.getColumnCount();
-
-        while (r.next()) {
-            for (int i = 1; i <= noofcols; i++) {
-                System.out.println(rm.getColumnName(i ) + ": \t\t" + r.getString(i ));
-            }
-            System.out.println("-------------------------------------");
-        }
-    }
-
     @Test
     public void getDatabaseProductNameTest() throws SQLException {
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         String databaseProductName = dmd.getDatabaseProductName();
-        System.out.println(databaseProductName);
+        assertEquals(databaseProductName,"OceanBase");
     }
 
     @Test
     public void getFunctionsTest() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getFunctions(null, null, null);
-        ResultSetMetaData rm = rs.getMetaData();
-        int noofcols = rm.getColumnCount();
-        while (rs.next()) {
-            for (int i = 1; i <= noofcols; i++) {
-                System.out.println(rm.getColumnName(i ) + ": \t\t" + rs.getString(i ));
-            }
-            System.out.println("-------------------------------------");
-        }
+        assertTrue(rs.next());
+        assertEquals(rs.getString("FUNCTION_CAT"),null);
+        assertEquals(rs.getString("FUNCTION_SCHEM"),"ADMIN");
+        assertEquals(rs.getString("FUNCTION_NAME"),"CALC_FUNC");
+        assertEquals(rs.getString("REMARKS"),"Standalone function");
+        assertEquals(rs.getInt("FUNCTION_TYPE"),0);
+        assertEquals(rs.getString("SPECIFIC_NAME"),null);
     }
 
     @Test
     public void getProceduresTest() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, null);
-        ResultSetMetaData rm = rs.getMetaData();
-        int noofcols = rm.getColumnCount();
-        while (rs.next()) {
-            for (int i = 1; i <= noofcols; i++) {
-                System.out.println(rm.getColumnName(i ) + ": \t\t" + rs.getString(i ));
-            }
-            System.out.println("-------------------------------------");
-        }
+        assertTrue(rs.next());
+        assertEquals(rs.getString("PROCEDURE_CAT"),null);
+        assertEquals(rs.getString("PROCEDURE_SCHEM"),"ADMIN");
+        assertEquals(rs.getString("PROCEDURE_NAME"),"ARR_PROC");
+        assertEquals(rs.getString("REMARKS"),"Standalone procedure or function");
+        assertEquals(rs.getInt("PROCEDURE_TYPE"),1);
+        assertEquals(rs.getString("SPECIFIC_NAME"),null);
     }
 
     @Test
     public void testGetSchemas() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getCatalogs();
-        boolean foundTestUnitsJdbc = false;
-        while (rs.next()) {
-            if (rs.getString(1).equals("test")) {
-                foundTestUnitsJdbc = true;
-            }
-        }
-        //在oracle数据库中，getCatalogs()方法不能查询到目录列表。
-        assertEquals(false, foundTestUnitsJdbc);
+        ResultSet rs = dbmd.getSchemas();
+        ResultSetMetaData metaData = rs.getMetaData();
+        assertTrue(rs.next());
+        assertEquals(metaData.getColumnName(1),"USERNAME");
+        assertEquals(metaData.getColumnName(2),"TABLE_CATALOG");
     }
 
     @Test
-    public void getTablesTest() throws Exception {
+    public void testGetTables() throws Exception {
         ResultSet rs = sharedConnection.getMetaData().getTables(null,null,null,null);
-//        ResultSetMetaData rm = rs.getMetaData();
-//        int noofcols = rm.getColumnCount();
-//        while (rs.next()) {
-//            for (int i = 1; i <= noofcols; i++) {
-//                System.out.println(rm.getColumnName(i ) + ": \t\t" + rs.getString(i ));
-//            }
-//            System.out.println("-------------------------------------");
-//        }
         assertTrue(rs.next());
         assertEquals(rs.getString("TABLE_CAT"),null);
         assertEquals(rs.getString("TABLE_SCHEM"),"__public");
