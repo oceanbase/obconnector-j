@@ -87,8 +87,7 @@ import org.mariadb.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class BaseOracleTest {
 
-//  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
-protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:18815/test?user=admin@oracle&password=admin";
+  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
@@ -247,7 +246,6 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
-        sharedPSConnection = DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -329,10 +327,10 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
       }
 
       try {
-        if(sharedConnection!=null){
+        if (sharedConnection != null) {
           sharedConnection.close();
         }
-        if(sharedPSConnection !=null){
+        if (sharedPSConnection != null) {
           sharedPSConnection.close();
         }
 
@@ -404,9 +402,9 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
        */
       stmt.execute("call proc_dropifexists('" + tableName + "')");
       try {
-        stmt.execute("drop table "+ tableName) ;
+        stmt.execute("drop table " + tableName);
       } catch (SQLException throwables) {
-        //eat exception
+        // eat exception
       }
       stmt.execute(
           "create table "
@@ -1190,7 +1188,7 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
     NUMBER,
     NUMBER_FLOAT,
     BINARY_DOUBLE,
-    BINARY_FLOAT ;
+    BINARY_FLOAT;
   }
   /* Test Object */
   protected static class TO {
@@ -1286,15 +1284,15 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
           pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
           break;
         case NUMBER:
-          pstmt.setNUMBER(i+1,val ==  null ? null : (int) val.value);
+          pstmt.setNUMBER(i + 1, val == null ? null : (int) val.value);
           break;
         case BINARY_DOUBLE:
-          pstmt.setBINARY_DOUBLE(i+1,val == null ? null : (double) val.value);
+          pstmt.setBINARY_DOUBLE(i + 1, val == null ? null : (double) val.value);
           break;
         case NUMBER_FLOAT:
-          pstmt.setNUMBER_FLOAT(i+1,val == null ? null : (float) val.value);
+          pstmt.setNUMBER_FLOAT(i + 1, val == null ? null : (float) val.value);
         case BINARY_FLOAT:
-          pstmt.setBINARY_FLOAT(i+1,val == null ? null :(float)(val.value));
+          pstmt.setBINARY_FLOAT(i + 1, val == null ? null : (float) (val.value));
           break;
       }
     }
@@ -1334,17 +1332,17 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
           pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
           break;
         case NUMBER:
-//          pstmt.setInt(i+1,(int) val.value);
-          pstmt.setNUMBER(i+1,(Integer) val.value);
+          //          pstmt.setInt(i+1,(int) val.value);
+          pstmt.setNUMBER(i + 1, (Integer) val.value);
           break;
         case BINARY_DOUBLE:
-          pstmt.setBINARY_DOUBLE(i+1,(double) val.value);
+          pstmt.setBINARY_DOUBLE(i + 1, (double) val.value);
           break;
         case NUMBER_FLOAT:
-          pstmt.setNUMBER_FLOAT(i+1,(float) val.value);
+          pstmt.setNUMBER_FLOAT(i + 1, (float) val.value);
           break;
         case BINARY_FLOAT:
-          pstmt.setBINARY_FLOAT(i+1,(float) val.value);
+          pstmt.setBINARY_FLOAT(i + 1, (float) val.value);
           break;
       }
     }
@@ -1381,7 +1379,6 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
             assertNull(rs.getObject(i + 1));
             break;
           case INT:
-          case NUMBER:
             assertEquals(val.value, rs.getInt(i + 1));
             break;
           case VARCHAR:
@@ -1420,7 +1417,7 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
                     : rs.getTIMESTAMPLTZ(i + 1).toResultSetString(sharedConnection));
             break;
           case BINARY_DOUBLE:
-            assertEquals(val.value, rs.getDouble(i + 1)) ;
+            assertEquals(val.value, rs.getDouble(i + 1));
             break;
           case NUMBER_FLOAT:
           case BINARY_FLOAT:

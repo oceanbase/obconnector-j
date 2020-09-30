@@ -59,8 +59,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import org.mariadb.jdbc.extend.datatype.*;
-
-import org.mariadb.jdbc.extend.datatype.*;
 import org.mariadb.jdbc.util.Options;
 
 public enum ColumnType {
@@ -97,10 +95,10 @@ public enum ColumnType {
   TIMESTAMP_LTZ(201, Types.TIMESTAMP, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName()),
   TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
 
-  NUMBER(3,Types.INTEGER,"Types.INTEGER", NUMBER.class.getName()),
-  NUMBER_FLOAT(206,Types.FLOAT,"Types.FLOAT", NUMBER_FLOAT.class.getName()),
-  BINARY_DOUBLE(5,Types.DOUBLE,"Types.DOUBLE", BINARY_DOUBLE.class.getName()),
-  BINARY_FLOAT(206,Types.FLOAT,"Types.FLOAT", BINARY_DOUBLE.class.getName());
+  NUMBER(3, Types.INTEGER, "Types.INTEGER", NUMBER.class.getName()),
+  NUMBER_FLOAT(206, Types.FLOAT, "Types.FLOAT", NUMBER_FLOAT.class.getName()),
+  BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", BINARY_DOUBLE.class.getName()),
+  BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName());
 
   static final ColumnType[] typeMap;
 
