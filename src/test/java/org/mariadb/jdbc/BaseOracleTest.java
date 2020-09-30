@@ -87,8 +87,7 @@ import org.mariadb.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class BaseOracleTest {
 
-//  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
-protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:18815/test?user=admin@oracle&password=admin";
+  protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
@@ -247,7 +246,6 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
-        sharedPSConnection = DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -1381,7 +1379,6 @@ protected static final String mDefUrl = "jdbc:oceanbase:oracle://100.88.109.130:
             assertNull(rs.getObject(i + 1));
             break;
           case INT:
-          case NUMBER:
             assertEquals(val.value, rs.getInt(i + 1));
             break;
           case VARCHAR:

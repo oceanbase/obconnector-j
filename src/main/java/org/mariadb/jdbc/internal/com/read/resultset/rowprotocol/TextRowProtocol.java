@@ -829,14 +829,6 @@ public class TextRowProtocol extends RowProtocol {
         break;
       case SET:
         break;
-      case NUMBER:
-        return getInternalNumber(columnInfo) ;
-      case NUMBER_FLOAT:
-        return getInternalNumber_float(columnInfo);
-      case BINARY_DOUBLE:
-        return getInternalBINARY_DOUBLE();
-      case BINARY_FLOAT:
-        return getInternalBINARY_FLOAT() ;
       default:
         break;
     }
