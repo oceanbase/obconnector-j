@@ -6,7 +6,7 @@ import java.sql.*;
 
 import static org.junit.Assert.*;
 
-//请在oracle模式账户下执行本测试类
+//在oracle模式账户下执行本测试类
 public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
@@ -17,7 +17,7 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         if (!rs.next()) {
             hasNext = false;
         }
-        //oracle中此方法拿不到任何数据
+        //oracle中此方法返回null
         assertTrue(!hasNext);
     }
 
@@ -155,8 +155,17 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getString("PROCEDURE_SCHEM"),"ADMIN");
         assertEquals(rs.getString("PROCEDURE_NAME"),"ARR_PROC");
         assertEquals(rs.getString("REMARKS"),"Standalone procedure or function");
+//        System.out.println(rs.getMetaData().getColumnName(4));
+//        System.out.println(rs.getMetaData().getColumnTypeName(4));
+//        System.out.println(rs.getMetaData().getColumnType(4));
         assertEquals(rs.getInt("PROCEDURE_TYPE"),1);
         assertEquals(rs.getString("SPECIFIC_NAME"),null);
+        int i = rs.getMetaData().getColumnCount();
+        for (int i1 = 1; i1 < i; i1++) {
+        System.out.print(rs.getMetaData().getColumnName(i1)+":");
+        System.out.print(rs.getMetaData().getColumnTypeName(i1)+":");
+        System.out.println(rs.getMetaData().getColumnType(i1));
+        }
     }
 
     @Test
@@ -166,6 +175,8 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         ResultSetMetaData metaData = rs.getMetaData();
         assertTrue(rs.next());
         assertEquals(metaData.getColumnName(1),"USERNAME");
+        System.out.println(metaData.getColumnName(1));
+        System.out.println(metaData.getColumnTypeName(1));
         assertEquals(metaData.getColumnName(2),"TABLE_CATALOG");
     }
 
@@ -207,5 +218,4 @@ public class OceanBaseOracleDatabaseMetadataTest extends BaseTest {
         UrlParser parse = UrlParser.parse(url);
         assertEquals(userName,parse.getUsername());
     }
-
 }

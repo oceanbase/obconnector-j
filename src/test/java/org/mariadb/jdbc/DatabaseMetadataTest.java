@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 
@@ -411,43 +412,78 @@ public class DatabaseMetadataTest extends BaseTest {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
         ResultSet rs = dbmd.getCatalogs();
-        boolean haveMysql = false;
-        boolean haveInformationSchema = false;
-        while (rs.next()) {
-            String cat = rs.getString(1);
 
-            if (cat.equalsIgnoreCase("mysql")) {
-                haveMysql = true;
-            } else if (cat.equalsIgnoreCase("information_schema")) {
-                haveInformationSchema = true;
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            boolean haveMysql = false;
+            boolean haveInformationSchema = false;
+            while (rs.next()) {
+                String cat = rs.getString(1);
+
+                if (cat.equalsIgnoreCase("mysql")) {
+                    haveMysql = true;
+                } else if (cat.equalsIgnoreCase("information_schema")) {
+                    haveInformationSchema = true;
+                }
             }
+            assertTrue(haveMysql);
+            assertTrue(haveInformationSchema);
+        }else {
+            boolean hasNext = true;
+            if (!rs.next()) {
+                hasNext = false;
+            }
+            //oracle中此方法返回null
+            assertTrue(!hasNext);
         }
-        assertTrue(haveMysql);
-        assertTrue(haveInformationSchema);
     }
 
     @Test
     public void testGetTables() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop table if exists fore_key0");
-        stmt.execute("drop table if exists fore_key1");
-        stmt.execute("drop table if exists prim_key");
+        ResultSet rs = null;
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop table if exists fore_key0");
+            stmt.execute("drop table if exists fore_key1");
+            stmt.execute("drop table if exists prim_key");
 
-        stmt.execute(
-                "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
-        stmt.execute(
-                "create table fore_key0 (id int not null primary key, "
-                        + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute(
-                "create table fore_key1 (id int not null primary key, "
-                        + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+            stmt.execute(
+                    "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
+            stmt.execute(
+                    "create table fore_key0 (id int not null primary key, "
+                            + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+            stmt.execute(
+                    "create table fore_key1 (id int not null primary key, "
+                            + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
-        DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
+            DatabaseMetaData dbmd = sharedConnection.getMetaData();
+            rs = dbmd.getTables(null, null, "prim_key", null);
 
-        assertEquals(true, rs.next());
-        rs = dbmd.getTables("", null, "prim_key", null);
-        assertEquals(true, rs.next());
+            assertEquals(true, rs.next());
+            rs = dbmd.getTables("", null, "prim_key", null);
+            assertEquals(true, rs.next());
+        }else {
+            rs = sharedConnection.getMetaData().getTables(null,null,null,null);
+            assertTrue(rs.next());
+            assertEquals(rs.getString("TABLE_CAT"),null);
+            assertEquals(rs.getString("TABLE_SCHEM"),"__public");
+            assertEquals(rs.getString("TABLE_NAME"),"TESTXX");
+            assertEquals(rs.getString("TABLE_TYPE"),"SYNONYM");
+            assertEquals(rs.getString("REMARKS"),null);
+
+            assertTrue(rs.next());
+            assertEquals(rs.getString("TABLE_CAT"),null);
+            assertEquals(rs.getString("TABLE_SCHEM"),"__public");
+            assertEquals(rs.getString("TABLE_NAME"),"TEST_SYNONYMS");
+            assertEquals(rs.getString("TABLE_TYPE"),"SYNONYM");
+            assertEquals(rs.getString("REMARKS"),null);
+
+            assertTrue(rs.next());
+            assertEquals(rs.getString("TABLE_CAT"),null);
+            assertEquals(rs.getString("TABLE_SCHEM"),"ADMIN");
+            assertEquals(rs.getString("TABLE_NAME"),"ADMIN");
+            assertEquals(rs.getString("TABLE_TYPE"),"TABLE");
+            assertEquals(rs.getString("REMARKS"),null);
+        }
     }
 
     @Test
@@ -501,126 +537,227 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetColumns() throws SQLException {
-        // mysql 5.6 doesn't permit VIRTUAL keyword
-        Assume.assumeTrue(isMariadbServer() || !isMariadbServer() && minVersion(5, 7));
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            // mysql 5.6 doesn't permit VIRTUAL keyword
+            Assume.assumeTrue(isMariadbServer() || !isMariadbServer() && minVersion(5, 7));
 
-        if (minVersion(10, 2) || !isMariadbServer()) {
-            createTable(
-                    "tablegetcolumns",
-                    "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                            + "d VARCHAR(5) AS (left(b,5)) STORED",
-                    "CHARACTER SET 'utf8mb4'");
-        } else {
-            createTable(
-                    "tablegetcolumns",
-                    "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                            + "d VARCHAR(5) AS (left(b,5)) PERSISTENT",
-                    "CHARACTER SET 'utf8mb4'");
+            if (minVersion(10, 2) || !isMariadbServer()) {
+                createTable(
+                        "tablegetcolumns",
+                        "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                                + "d VARCHAR(5) AS (left(b,5)) STORED",
+                        "CHARACTER SET 'utf8mb4'");
+            } else {
+                createTable(
+                        "tablegetcolumns",
+                        "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                                + "d VARCHAR(5) AS (left(b,5)) PERSISTENT",
+                        "CHARACTER SET 'utf8mb4'");
+            }
+
+            DatabaseMetaData dbmd = sharedConnection.getMetaData();
+            ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
+            assertTrue(rs.next());
+            assertEquals("testj", rs.getString(1)); // TABLE_CAT
+            assertEquals(null, rs.getString(2)); // TABLE_SCHEM
+            assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
+            assertEquals("a", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
+            assertEquals("INT", rs.getString(6)); // "TYPE_NAME
+            assertEquals(11, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals("", rs.getString(12)); // REMARKS
+            assertEquals(null, rs.getString(13)); // COLUMN_DEF
+            assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(1, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("YES", rs.getString(23)); // IS_AUTOINCREMENT
+            assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
+
+            assertTrue(rs.next());
+            assertEquals("testj", rs.getString(1)); // TABLE_CAT
+            assertEquals(null, rs.getString(2)); // TABLE_SCHEM
+            assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
+            assertEquals("b", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
+            assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals("", rs.getString(12)); // REMARKS
+
+            // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
+            // require
+            assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(32 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(2, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+            assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
+
+            assertTrue(rs.next());
+            assertEquals("testj", rs.getString(1)); // TABLE_CAT
+            assertEquals(null, rs.getString(2)); // TABLE_SCHEM
+            assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
+            assertEquals("c", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
+            assertEquals("INT", rs.getString(6)); // "TYPE_NAME
+            assertEquals(11, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals("", rs.getString(12)); // REMARKS
+
+            // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
+            // require
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+
+            assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+            assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
+
+            assertTrue(rs.next());
+            assertEquals("testj", rs.getString(1)); // TABLE_CAT
+            assertEquals(null, rs.getString(2)); // TABLE_SCHEM
+            assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
+            assertEquals("d", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
+            assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals("", rs.getString(12)); // REMARKS
+            // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
+            // require
+            assertTrue("left(`b`,5)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(5 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+            assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
+            assertFalse(rs.next());
+        }else {
+
+            DatabaseMetaData dbmd = sharedConnection.getMetaData();
+            ResultSet rs = dbmd.getColumns(null, null, "GETCOLUMNS_TEST", null);
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("TEST", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("A", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
+            assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
+            assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0,rs.getInt(8));//BUFFER_LENGTH
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertEquals(null, rs.getString(13)); // DATA_DEFAULT
+            assertEquals(0,rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0,rs.getInt(15));//SQL_DATETIME_SUB
+            assertEquals(0, rs.getInt(16)); // DATA_LENGTH
+            assertEquals(16, rs.getInt(17)); // COLUMN_ID
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("TEST", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("B", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
+            assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0,rs.getInt(8));//BUFFER_LENGTH
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // DATA_DEFAULT
+            assertEquals(0,rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0,rs.getInt(15));//SQL_DATETIME_SUB
+            assertEquals(32, rs.getInt(16)); // DATA_LENGTH
+            assertEquals(17, rs.getInt(17)); // COLUMN_ID
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("TEST", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("C", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
+            assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
+            assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(18, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("TEST", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("D", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
+            assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(1, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(5, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(19, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+
+            assertTrue(!rs.next());
         }
-
-        DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
-        assertTrue(rs.next());
-        assertEquals("testj", rs.getString(1)); // TABLE_CAT
-        assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-        assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
-        assertEquals("a", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
-        assertEquals("INT", rs.getString(6)); // "TYPE_NAME
-        assertEquals(11, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(0, rs.getInt(11)); // NULLABLE
-        assertEquals("", rs.getString(12)); // REMARKS
-        assertEquals(null, rs.getString(13)); // COLUMN_DEF
-        assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(1, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("NO", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("YES", rs.getString(23)); // IS_AUTOINCREMENT
-        assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
-
-        assertTrue(rs.next());
-        assertEquals("testj", rs.getString(1)); // TABLE_CAT
-        assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-        assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
-        assertEquals("b", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
-        assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
-        assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals("", rs.getString(12)); // REMARKS
-
-        // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
-        // require
-        assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
-        assertEquals(32 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(2, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
-        assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
-
-        assertTrue(rs.next());
-        assertEquals("testj", rs.getString(1)); // TABLE_CAT
-        assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-        assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
-        assertEquals("c", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
-        assertEquals("INT", rs.getString(6)); // "TYPE_NAME
-        assertEquals(11, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals("", rs.getString(12)); // REMARKS
-
-        // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
-        // require
-        assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
-
-        assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
-        assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
-
-        assertTrue(rs.next());
-        assertEquals("testj", rs.getString(1)); // TABLE_CAT
-        assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-        assertEquals("tablegetcolumns", rs.getString(3)); // TABLE_NAME
-        assertEquals("d", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
-        assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
-        assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals("", rs.getString(12)); // REMARKS
-        // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
-        // require
-        assertTrue("left(`b`,5)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
-        assertEquals(5 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
-        assertEquals("NO", rs.getString(24)); // IS_GENERATEDCOLUMN
-        assertFalse(rs.next());
     }
 
     private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
@@ -833,34 +970,57 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getCatalogsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getCatalogs(), "TABLE_CAT String");
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            testResultSetColumns(sharedConnection.getMetaData().getCatalogs(), "TABLE_CAT String");
+        }else{
+            ResultSet rs = sharedConnection.getMetaData().getCatalogs();
+            boolean hasNext = true;
+            if (!rs.next()) {
+                hasNext = false;
+            }
+            //oracle中此方法返回null
+            assertTrue(!hasNext);
+        }
     }
 
     @Test
     public void getColumnsBasic() throws SQLException {
-        cancelForVersion(10, 1); // due to server error MDEV-8984
-        if (minVersion(10, 2)) {
-            testResultSetColumns(
-                    sharedConnection.getMetaData().getColumns(null, null, null, null),
-                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
-                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
-                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH decimal,"
-                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
-                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
-        } else {
-            testResultSetColumns(
-                    sharedConnection.getMetaData().getColumns(null, null, null, null),
-                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
-                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
-                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
-                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
-                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            cancelForVersion(10, 1); // due to server error MDEV-8984
+            if (minVersion(10, 2)) {
+                testResultSetColumns(
+                        sharedConnection.getMetaData().getColumns(null, null, null, null),
+                        "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                                + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
+                                + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                                + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                                + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH decimal,"
+                                + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                                + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                                + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+            } else {
+                testResultSetColumns(
+                        sharedConnection.getMetaData().getColumns(null, null, null, null),
+                        "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                                + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
+                                + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                                + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                                + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
+                                + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                                + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                                + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+            }
+        }else {
+                    testResultSetColumns(
+                            sharedConnection.getMetaData().getColumns(null, null, null, null),
+                            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                                    + "DATA_TYPE decimal,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH decimal,"
+                                    + "DECIMAL_DIGITS decimal,NUM_PREC_RADIX decimal,NULLABLE decimal,"
+                                    + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE decimal,"
+                                    + "SQL_DATETIME_SUB decimal, CHAR_OCTET_LENGTH decimal,"
+                                    + "ORDINAL_POSITION decimal,IS_NULLABLE String,"
+                                    + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                                    + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
         }
     }
 
@@ -962,10 +1122,15 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getFunctionsBasic() throws SQLException {
-        testResultSetColumns(
-                sharedConnection.getMetaData().getFunctions(null, null, null),
-                "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short, "
-                        + "SPECIFIC_NAME String");
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            testResultSetColumns(
+                    sharedConnection.getMetaData().getFunctions(null, null, null),
+                    "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short,SPECIFIC_NAME String");
+        }else {
+            testResultSetColumns(
+                    sharedConnection.getMetaData().getFunctions(null, null, null),
+                    "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE decimal,SPECIFIC_NAME String");
+        }
     }
 
     @Test
@@ -978,14 +1143,19 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void testGetSchemas() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getCatalogs();
-        boolean foundTestUnitsJdbc = false;
-        while (rs.next()) {
-            if (rs.getString(1).equals("testj")) {
-                foundTestUnitsJdbc = true;
-            }
+        ResultSet rs = dbmd.getSchemas();
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+//            boolean foundTestUnitsJdbc = false;
+//            while (rs.next()) {
+//                if (rs.getString(1).equals("testj")) {
+//                    foundTestUnitsJdbc = true;
+//                }
+//            }
+//            assertEquals(true, foundTestUnitsJdbc);
+            testResultSetColumns(rs,"TABLE_SCHEM String , TABLE_catalog String");
+        }else {
+            testResultSetColumns(rs,"TABLE_SCHEM String , TABLE_CATALOG String");
         }
-        assertEquals(true, foundTestUnitsJdbc);
     }
 
     /* Verify default behavior for nullCatalogMeansCurrent (=true) */
@@ -1370,6 +1540,26 @@ public class DatabaseMetadataTest extends BaseTest {
     public void getDatabaseProductNameTest() throws SQLException {
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         String databaseProductName = dmd.getDatabaseProductName();
-        System.out.println(databaseProductName);
+        assertEquals(databaseProductName,"OceanBase");
+    }
+
+    @Test
+    public void getProceduresTest() throws SQLException {
+        ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, null);
+        if (!sharedConnection.getProtocol().isOracleMode()) {
+            testResultSetColumns(rs,"PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,RESERVED1 String,RESERVED2 String,RESERVED3 String,PROCEDURE_TYPE int,REMARKS String,SPECIFIC_NAME String");
+        }else {
+            testResultSetColumns(rs,"PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,NULL String,NULL String,NULL String,REMARKS String,PROCEDURE_TYPE decimal,SPECIFIC_NAME String");
+        }
+    }
+
+    @Test
+    public void getDriverNameTest() throws SQLException {
+        assertEquals(sharedConnection.getMetaData().getDriverName(),"OceanBase Connector/J");
+    }
+
+    @Test
+    public void getUserNameTest() throws SQLException {
+        assertEquals(sharedConnection.getMetaData().getUserName(),sharedConnection.getUsername());
     }
 }

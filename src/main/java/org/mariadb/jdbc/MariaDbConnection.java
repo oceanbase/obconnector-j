@@ -835,6 +835,10 @@ public class MariaDbConnection implements Connection {
    * @see #setCatalog
    */
   public String getCatalog() throws SQLException {
+    if (this.getProtocol().isOracleMode()){
+      //OracleJdbc中，此方法返回null
+      return null;
+    }
     return protocol.getCatalog();
   }
 
@@ -852,6 +856,10 @@ public class MariaDbConnection implements Connection {
    * @see #getCatalog
    */
   public void setCatalog(final String catalog) throws SQLException {
+    if (this.getProtocol().isOracleMode()){
+      //OracleJdbc中，此处未作任何实现
+      return;
+    }
     if (catalog == null) {
       throw new SQLException("The catalog name may not be null", "XAE05");
     }

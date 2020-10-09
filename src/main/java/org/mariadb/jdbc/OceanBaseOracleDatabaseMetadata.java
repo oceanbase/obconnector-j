@@ -1055,53 +1055,52 @@ public class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
     @Override
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
-        String var4 = "SELECT\n  NULL AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Standalone function' AS remarks,\n  0 AS function_type,\n  NULL AS specific_name\nFROM all_objects\nWHERE object_type = 'FUNCTION'\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var5 = "SELECT\n  -- Packaged functions\n  package_name AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Packaged function' AS remarks,\n  decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type,\n  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NULL\n  AND in_out = 'OUT'\n  AND data_level = 0\n";
-        String var6 = "  AND package_name LIKE ? \n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var7 = "  AND package_name IS NOT NULL\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var8 = "ORDER BY function_schem, function_name\n";
+        String var1 = "SELECT\n  NULL AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Standalone function' AS remarks,\n  0 AS function_type,\n  NULL AS specific_name\nFROM all_objects\nWHERE object_type = 'FUNCTION'\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
+        String var2 = "SELECT\n  -- Packaged functions\n  package_name AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Packaged function' AS remarks,\n  decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type,\n  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NULL\n  AND in_out = 'OUT'\n  AND data_level = 0\n";
+        String var3 = "  AND package_name LIKE ? \n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
+        String var4 = "  AND package_name IS NOT NULL\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
+        String var5 = "ORDER BY function_schem, function_name\n";
         PreparedStatement stmt = null;
-        String var10 = null;
-        String var11 = schemaPattern;
+        String var6 = null;
+        String var7 = schemaPattern;
         if (schemaPattern == null) {
-            var11 = "%";
+            var7 = "%";
         } else if (schemaPattern.equals("")) {
-            var11 = this.getUserName().toUpperCase();
+            var7 = this.getUserName().toUpperCase();
         } else {
-            var11 = schemaPattern.toUpperCase();
+            var7 = schemaPattern.toUpperCase();
         }
-        String var12 = functionNamePattern;
+        String var8 = functionNamePattern;
         if (functionNamePattern == null) {
-            var12 = "%";
+            var8 = "%";
         } else if (functionNamePattern.equals("")) {
             throw new SQLException();
         } else {
-            var12 = functionNamePattern.toUpperCase();
+            var8 = functionNamePattern.toUpperCase();
         }
         if (catalog == null) {
-            var10 = var4 + "UNION ALL " + var5 + var7 + var8;
-            stmt = this.connection.prepareStatement(var10);
-            stmt.setString(1, var11);
-            stmt.setString(2, var12);
-            stmt.setString(3, var11);
-            stmt.setString(4, var12);
+            var6 = var1 + "UNION ALL " + var2 + var4 + var5;
+            stmt = this.connection.prepareStatement(var6);
+            stmt.setString(1, var7);
+            stmt.setString(2, var8);
+            stmt.setString(3, var7);
+            stmt.setString(4, var8);
         } else if (catalog.equals("")) {
-            stmt = this.connection.prepareStatement(var4);
-            stmt.setString(1, var11);
-            stmt.setString(2, var12);
+            stmt = this.connection.prepareStatement(var1);
+            stmt.setString(1, var7);
+            stmt.setString(2, var8);
         } else {
-            var10 = var5 + var6 + var8;
-            stmt = this.connection.prepareStatement(var10);
-            stmt.setString(1, var11);
-            stmt.setString(2, var11);
-            stmt.setString(3, var12);
+            var6 = var2 + var3 + var5;
+            stmt = this.connection.prepareStatement(var6);
+            stmt.setString(1, var7);
+            stmt.setString(2, var7);
+            stmt.setString(3, var8);
         }
-
-        ResultSet var13 = stmt.executeQuery();
+        ResultSet rs = stmt.executeQuery();
         if (stmt!=null){
             stmt.close();
         }
-        return var13;
+        return rs;
     }
 
     @Override
