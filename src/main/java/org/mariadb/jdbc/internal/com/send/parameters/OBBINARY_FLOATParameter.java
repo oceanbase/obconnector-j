@@ -4,7 +4,6 @@ import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-/** @Author : wb-xsy @Description @Date : 2020/9/27 18:56 */
 public class OBBINARY_FLOATParameter implements Cloneable, ParameterHolder {
   private final float value;
 

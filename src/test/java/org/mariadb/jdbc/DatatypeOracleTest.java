@@ -345,7 +345,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
     createTable("test_number_ps", "id int ,tmp number(5) ");
     Integer num = 2;
     assertInsertSelectClientPs(
-            "insert into test_number_ps values(?,?)",
+        "insert into test_number_ps values(?,?)",
         new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER, num)},
         "select * from test_number_ps where id=?",
         new TO[] {TO.$n(T.INT, 1)},
@@ -357,7 +357,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
         new TO[] {TO.$n(T.INT, 2)},
         new TO[] {TO.$n(T.INT, 2), TO.$n(T.NUMBER, num)});
     createTable("test_number_ps", "id int ,tmp number(5,2) ");
-    createTable("test_number_ps","id int ,tmp number(5,2) ");
+    createTable("test_number_ps", "id int ,tmp number(5,2) ");
   }
 
   @Test
