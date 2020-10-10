@@ -68,6 +68,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
+
 import org.mariadb.jdbc.extend.datatype.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;

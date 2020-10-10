@@ -6,7 +6,11 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-
+/**
+ * @Author : wb-xsy
+ * @Description
+ * @Date : 2020/9/24 17:38
+ */
 public class NUMBER_FLOAT extends Datum {
 
   private final float value;

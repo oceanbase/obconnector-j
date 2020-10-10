@@ -246,6 +246,7 @@ public class BaseOracleTest {
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
+        sharedPSConnection = DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -327,10 +328,10 @@ public class BaseOracleTest {
       }
 
       try {
-        if (sharedConnection != null) {
+        if(sharedConnection!=null){
           sharedConnection.close();
         }
-        if (sharedPSConnection != null) {
+        if(sharedPSConnection !=null){
           sharedPSConnection.close();
         }
 
@@ -402,9 +403,9 @@ public class BaseOracleTest {
        */
       stmt.execute("call proc_dropifexists('" + tableName + "')");
       try {
-        stmt.execute("drop table " + tableName);
+        stmt.execute("drop table "+ tableName) ;
       } catch (SQLException throwables) {
-        // eat exception
+        //eat exception
       }
       stmt.execute(
           "create table "
@@ -1188,7 +1189,7 @@ public class BaseOracleTest {
     NUMBER,
     NUMBER_FLOAT,
     BINARY_DOUBLE,
-    BINARY_FLOAT;
+    BINARY_FLOAT ;
   }
   /* Test Object */
   protected static class TO {
@@ -1332,17 +1333,16 @@ public class BaseOracleTest {
           pstmt.setTIMESTAMPLTZ(i + 1, (TIMESTAMPLTZ) val.value);
           break;
         case NUMBER:
-          //          pstmt.setInt(i+1,(int) val.value);
-          pstmt.setNUMBER(i + 1, (Integer) val.value);
+          pstmt.setNUMBER(i+1,(Integer) val.value);
           break;
         case BINARY_DOUBLE:
-          pstmt.setBINARY_DOUBLE(i + 1, (double) val.value);
+          pstmt.setBINARY_DOUBLE(i+1,(double) val.value);
           break;
         case NUMBER_FLOAT:
-          pstmt.setNUMBER_FLOAT(i + 1, (float) val.value);
+          pstmt.setNUMBER_FLOAT(i+1,(float) val.value);
           break;
         case BINARY_FLOAT:
-          pstmt.setBINARY_FLOAT(i + 1, (float) val.value);
+          pstmt.setBINARY_FLOAT(i+1,(float) val.value);
           break;
       }
     }
@@ -1379,6 +1379,7 @@ public class BaseOracleTest {
             assertNull(rs.getObject(i + 1));
             break;
           case INT:
+          case NUMBER:
             assertEquals(val.value, rs.getInt(i + 1));
             break;
           case VARCHAR:
