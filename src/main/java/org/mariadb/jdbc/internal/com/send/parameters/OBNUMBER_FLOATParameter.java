@@ -4,7 +4,6 @@ import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-/** @Author : wb-xsy @Description @Date : 2020/9/27 18:56 */
 public class OBNUMBER_FLOATParameter implements Cloneable, ParameterHolder {
   private final float value;
 
@@ -14,13 +13,11 @@ public class OBNUMBER_FLOATParameter implements Cloneable, ParameterHolder {
 
   @Override
   public void writeTo(PacketOutputStream os) throws IOException {
-    //        os.write(String.valueOf(value));
     os.write(String.valueOf(value).getBytes());
   }
 
   @Override
   public void writeBinary(PacketOutputStream pos) throws IOException {
-    //        pos.write(String.valueOf(value).getBytes());
     pos.writeInt(Float.floatToIntBits(value));
   }
 

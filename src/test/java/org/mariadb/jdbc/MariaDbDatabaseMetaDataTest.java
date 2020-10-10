@@ -164,10 +164,9 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
   }
 
   @Test
-  public void getIdentifierQuoteStringTest() {
+  public void getIdentifierQuoteStringTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       createTable("quote_test", "id int primary key , create_time timestamp");
       stmt = sharedConnection.createStatement();
       stmt.executeUpdate("insert into quote_test values(1,now())");
@@ -176,16 +175,12 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
       assertEquals("create_time", rs.getMetaData().getColumnName(2));
       assertEquals(true, rs.next());
       assertEquals("`", sharedConnection.getMetaData().getIdentifierQuoteString());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 
   @Test
-  public void getSQLKeywordsTest() {
+  public void getSQLKeywordsTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       stmt = sharedConnection.createStatement();
       assertEquals(
           "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
@@ -201,31 +196,23 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
               + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
               + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL",
           sharedConnection.getMetaData().getSQLKeywords());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 
   @Test
-  public void getNumericFunctionsTest() {
+  public void getNumericFunctionsTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       stmt = sharedConnection.createStatement();
       assertEquals(
           "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
               + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE",
           sharedConnection.getMetaData().getNumericFunctions());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 
   @Test
-  public void getStringFunctionsTest() {
+  public void getStringFunctionsTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       stmt = sharedConnection.createStatement();
       assertEquals(
           "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
@@ -234,30 +221,22 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
               + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
               + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING",
           sharedConnection.getMetaData().getStringFunctions());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 
   @Test
-  public void getSystemFunctionsTest() {
+  public void getSystemFunctionsTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       stmt = sharedConnection.createStatement();
       assertEquals(
           "DATABASE,USER,SYSTEM_USER,SESSION_USER,LAST_INSERT_ID,VERSION",
           sharedConnection.getMetaData().getSystemFunctions());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 
   @Test
-  public void getTimeDateFunctionsTest() {
+  public void getTimeDateFunctionsTest() throws Exception{
     Statement stmt = null;
     ResultSet rs = null;
-    try {
       stmt = sharedConnection.createStatement();
       assertEquals(
           "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
@@ -267,8 +246,5 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
               + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
               + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK",
           sharedConnection.getMetaData().getTimeDateFunctions());
-    } catch (SQLException throwables) {
-      throwables.printStackTrace();
-    }
   }
 }

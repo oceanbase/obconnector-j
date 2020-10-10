@@ -59,9 +59,6 @@ public class BINARY_DOUBLE extends Datum {
     try {
       return Double.valueOf(var0);
     } catch (NumberFormatException var3) {
-      //            SQLException var2 = DatabaseError.createSqlException((OracleConnection)null,
-      // 59);
-      //            var2.fillInStackTrace();
       throw var3;
     }
   }

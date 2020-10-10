@@ -3,7 +3,6 @@ package org.mariadb.jdbc.extend.datatype;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
-/** @Date : 2020/9/23 16:53 */
 public class BINARY_FLOAT extends Datum {
   static final long serialVersionUID = -4231112037190700631L;
   public static final boolean TRACE = false;
@@ -59,12 +58,8 @@ public class BINARY_FLOAT extends Datum {
   private static float stringToFloat(String var0) throws SQLException {
     try {
       return Float.valueOf(var0);
-    } catch (NumberFormatException var3) {
-      //            SQLException var2 = DatabaseError.createSqlException((OracleConnection)null,
-      // 59);
-      //
-      //            var2.fillInStackTrace();
-      throw var3;
+    } catch (NumberFormatException e) {
+      throw e;
     }
   }
 
