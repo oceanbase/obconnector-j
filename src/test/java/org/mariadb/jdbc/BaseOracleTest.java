@@ -299,7 +299,7 @@ public class BaseOracleTest {
         Statement stmt = sharedConnection.createStatement();
         for (String tableName : tempTableList) {
           try {
-            stmt.execute("DROP TABLE IF EXISTS " + tableName);
+            stmt.execute("DROP TABLE " + tableName);
           } catch (SQLException e) {
             // eat exception
           }
