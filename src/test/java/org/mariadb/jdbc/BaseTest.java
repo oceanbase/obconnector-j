@@ -383,12 +383,7 @@ public class BaseTest {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
 
-//      stmt.execute("drop table if exists " + tableName);
-      try {
-        stmt.execute("drop table "+ tableName +";");
-      } catch (SQLException e) {
-        // ignore, maybe table does not exist
-      }
+      stmt.execute("drop table if exists " + tableName);
       stmt.execute(
           "create table "
               + tableName

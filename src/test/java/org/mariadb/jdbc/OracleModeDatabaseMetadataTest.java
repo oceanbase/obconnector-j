@@ -155,7 +155,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     public void getDatabaseProductNameTest() throws SQLException {
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         String databaseProductName = dmd.getDatabaseProductName();
-        assertEquals(databaseProductName, "OceanBase");
+        assertEquals(databaseProductName, "Oracle");
     }
 
     @Test

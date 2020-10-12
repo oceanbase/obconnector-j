@@ -1215,18 +1215,14 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
    * @throws SQLException in case of socket error.
    */
   public String getDatabaseProductName() throws SQLException {
-//    if (urlParser.getOptions().useMysqlMetadata) {
-//      return "MySQL";
-//    }
-//    if (connection.getProtocol().isServerMariaDb()
-//        && connection
-//            .getProtocol()
-//            .getServerVersion()
-//            .toLowerCase(Locale.ROOT)
-//            .contains("mariadb")) {
-//      return "MariaDB";
-//    }
-    return "OceanBase";
+    if (connection != null){
+      if (connection.getProtocol().isOracleMode()){
+        return "Oracle";
+      }else {
+        return "MYSQL";
+      }
+    }
+    return null;
   }
 
   public String getDatabaseProductVersion() {

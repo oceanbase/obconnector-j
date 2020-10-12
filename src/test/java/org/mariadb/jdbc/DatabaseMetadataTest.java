@@ -1365,7 +1365,7 @@ public class DatabaseMetadataTest extends BaseTest {
     public void getDatabaseProductNameTest() throws SQLException {
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         String databaseProductName = dmd.getDatabaseProductName();
-        assertEquals(databaseProductName, "OceanBase");
+        assertEquals(databaseProductName, "MYSQL");
     }
 
     @Test
