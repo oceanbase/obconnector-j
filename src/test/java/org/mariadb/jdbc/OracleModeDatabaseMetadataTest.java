@@ -7,8 +7,17 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 //在oracle模式账户下执行本测试类
-public class OracleModeDatabaseMetadataTest extends BaseTest {
-    DatabaseMetaData dbmd = sharedConnection.getMetaData();
+public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
+
+    private static DatabaseMetaData dbmd;
+
+    static {
+        try {
+            dbmd = sharedConnection.getMetaData();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
     public void testGetCatalogs() throws SQLException {
@@ -208,7 +217,6 @@ public class OracleModeDatabaseMetadataTest extends BaseTest {
     public void getSchemasBasic() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getSchemas();
-        testResultSetColumns(rs, "TABLE_SCHEM String , TABLE_catalog String");
         testResultSetColumns(rs, "TABLE_SCHEM String , TABLE_CATALOG String");
     }
 
