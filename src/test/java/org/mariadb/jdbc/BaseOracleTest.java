@@ -402,6 +402,11 @@ public class BaseOracleTest {
         end;
        */
       stmt.execute("call proc_dropifexists('" + tableName + "')");
+      try {
+        stmt.execute("drop table "+ tableName) ;
+      } catch (SQLException throwables) {
+        //eat exception
+      }
       stmt.execute(
           "create table "
               + tableName
@@ -1184,7 +1189,7 @@ public class BaseOracleTest {
     NUMBER,
     NUMBER_FLOAT,
     BINARY_DOUBLE,
-    BINARY_FLOAT;
+    BINARY_FLOAT ;
   }
   /* Test Object */
   protected static class TO {
