@@ -130,7 +130,7 @@ public class BaseTest {
         private long ttime;
 
         protected void starting(Description description) {
-          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
+          if (testSingleHost) {
             System.out.println(
                 "start test : " + description.getClassName() + "." + description.getMethodName());
             ttime = System.nanoTime();
@@ -139,7 +139,7 @@ public class BaseTest {
 
         // execute another query to ensure connection is stable
         protected void finished(Description description) {
-          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
+          if (testSingleHost) {
             Random random = new Random();
             int randInt = random.nextInt();
             try (PreparedStatement preparedStatement =
@@ -173,7 +173,7 @@ public class BaseTest {
         }
 
         protected void succeeded(Description description) {
-          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
+          if (testSingleHost) {
             System.out.println(
                 "finished test success : "
                     + description.getClassName()
@@ -186,7 +186,7 @@ public class BaseTest {
         }
 
         protected void failed(Throwable throwable, Description description) {
-          if (!sharedConnection.getProtocol().isOracleMode()&&testSingleHost) {
+          if (testSingleHost) {
             System.out.println(
                 "finished test failed : "
                     + description.getClassName()
