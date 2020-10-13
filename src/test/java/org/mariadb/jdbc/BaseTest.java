@@ -118,7 +118,7 @@ public class BaseTest {
   protected static Options options;
   protected static String parameters;
   protected static boolean testSingleHost;
-  protected static Connection sharedConnection;
+  protected static MariaDbConnection sharedConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
@@ -253,7 +253,7 @@ public class BaseTest {
         sharedConnection = MariaDbConnection.newConnection(urlParser, null);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
-        sharedConnection = DriverManager.getConnection(url);
+        sharedConnection = (MariaDbConnection) DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -382,6 +382,7 @@ public class BaseTest {
       throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
+
       stmt.execute("drop table if exists " + tableName);
       stmt.execute(
           "create table "
