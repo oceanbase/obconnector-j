@@ -174,7 +174,11 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, ColumnType.BLOB);
       return;
     }
-    setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBReaderParameter(reader, length, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -201,7 +205,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, ColumnType.BLOB);
       return;
     }
-    setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
+
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBReaderParameter(reader, length, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -230,7 +239,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, ColumnType.BLOB);
       return;
     }
-    setParameter(parameterIndex, new ReaderParameter(reader, noBackslashEscapes));
+
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBReaderParameter(reader, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new ReaderParameter(reader, noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -263,9 +277,15 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, Types.BLOB);
       return;
     }
-    setParameter(
-        parameterIndex,
-        new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(
+              parameterIndex,
+              new OBStreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+    } else {
+      setParameter(
+              parameterIndex,
+              new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -293,7 +313,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, ColumnType.BLOB);
       return;
     }
-    setParameter(parameterIndex, new StreamParameter(inputStream, length, noBackslashEscapes));
+
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBStreamParameter(inputStream, length, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new StreamParameter(inputStream, length, noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -321,7 +346,11 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       return;
     }
 
-    setParameter(parameterIndex, new StreamParameter(inputStream, noBackslashEscapes));
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBStreamParameter(inputStream, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new StreamParameter(inputStream, noBackslashEscapes));
+    }
     hasLongData = true;
   }
 
@@ -1459,7 +1488,11 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       return;
     }
 
-    setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes));
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBStringParameter(str, noBackslashEscapes));
+    } else {
+      setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes));
+    }
   }
 
   /**
@@ -1480,7 +1513,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       return;
     }
 
-    setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
+    if (this.connection.getProtocol().isOracleMode()) {
+      setParameter(parameterIndex, new OBByteArrayParameter(bytes, noBackslashEscapes));
+
+    } else {
+      setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
+    }
   }
 
   /**

@@ -300,7 +300,7 @@ public class BaseOracleTest {
         Statement stmt = sharedConnection.createStatement();
         for (String tableName : tempTableList) {
           try {
-            stmt.execute("DROP TABLE IF EXISTS " + tableName);
+            stmt.execute("DROP TABLE " + tableName);
           } catch (SQLException e) {
             // eat exception
           }
@@ -401,7 +401,12 @@ public class BaseOracleTest {
            end if;
         end;
        */
-      stmt.execute("call proc_dropifexists('" + tableName + "')");
+      try{
+        stmt.execute("drop table "+tableName);
+      }catch (Exception e){
+        //ignore,maybe the table doesn't exist
+      }
+//      stmt.execute("call proc_dropifexists('" + tableName + "')");
       stmt.execute(
           "create table "
               + tableName

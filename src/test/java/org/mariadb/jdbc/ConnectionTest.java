@@ -1027,4 +1027,14 @@ public class ConnectionTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void setCatalogTest() throws SQLException {
+    sharedConnection.setCatalog("SYS");
+    if (sharedConnection.getProtocol().isOracleMode()){
+      assertNull(sharedConnection.getCatalog());
+    }else {
+      assertEquals(sharedConnection.getCatalog(), "SYS");
+    }
+  }
 }

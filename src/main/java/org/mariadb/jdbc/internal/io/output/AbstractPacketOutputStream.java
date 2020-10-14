@@ -635,6 +635,37 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
   }
 
   /**
+   * Write stream AS hexdump into socket.
+   *
+   * @param is inputStream
+   * @param escape must be escape
+   * @param noBackslashEscapes escape method
+   * @throws IOException if socket error occur
+   */
+  public void writeHex(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException {
+    byte[] array = new byte[2048];
+    int len;
+    //TODO optimize byte[] to hexbyte[] directly, not use hexString any more
+    if (escape) {
+      while ((len = is.read(array)) > 0) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : array) {
+          sb.append(String.format("%02x", b));
+        }
+        writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
+      }
+    } else {
+      while ((len = is.read(array)) > 0) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : array) {
+          sb.append(String.format("%02x", b));
+        }
+        write(sb.toString().getBytes(), 0, (len << 1));
+      }
+    }
+  }
+
+  /**
    * Write stream into socket.
    *
    * @param is inputStream
@@ -652,6 +683,38 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
         writeBytesEscaped(array, len, noBackslashEscapes);
       } else {
         write(array, 0, len);
+      }
+      length -= len;
+    }
+  }
+
+  /**
+   * Write stream As hexdump into socket.
+   *
+   * @param is inputStream
+   * @param length write length
+   * @param escape must be escape
+   * @param noBackslashEscapes escape method
+   * @throws IOException if socket error occur
+   */
+  public void writeHex(InputStream is, long length, boolean escape, boolean noBackslashEscapes)
+          throws IOException {
+    byte[] array = new byte[2048];
+    int len;
+    //TODO optimize byte[] to hexbyte[] directly, not use hexString any more
+    while (length > 0 && (len = is.read(array, 0, Math.min(2048, (int) length))) > 0) {
+      StringBuilder sb = new StringBuilder();
+      if (escape) {
+        for (byte b : array) {
+          sb.append(String.format("%02x", b));
+        }
+        writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
+      } else {
+        for (byte b : array) {
+          sb.append(String.format("%02x", b));
+        }
+        //write(sb.toString().getBytes(), 0, (len << 1));
+        writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
       }
       length -= len;
     }
@@ -782,6 +845,92 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
             || bytes[i] == '"'
             || bytes[i] == ZERO_BYTE) {
           buf[pos++] = BACKSLASH; // add escape slash
+        }
+        buf[pos++] = bytes[i];
+      }
+    }
+  }
+
+  /**
+   * Write escape bytes to socket.
+   *
+   * @param bytes bytes
+   * @param len len to write
+   * @param noBackslashEscapes escape method
+   * @throws IOException if socket error occur
+   */
+  public void writeBytesEscapedQuote(byte[] bytes, int len, boolean noBackslashEscapes)
+          throws IOException {
+    if (len * 2 > buf.length - pos) {
+
+      // makes buffer bigger (up to 16M)
+      if (buf.length != getMaxPacketLength()) {
+        growBuffer(len * 2);
+      }
+
+      // data may be bigger than buffer.
+      // must flush buffer when full (and reset position to 0)
+      if (len * 2 > buf.length - pos) {
+
+        if (mark != -1) {
+          growBuffer(len * 2);
+          if (mark != -1) {
+            flushBufferStopAtMark();
+          }
+
+        } else {
+
+          // not enough space in buffer, will fill buffer
+          if (noBackslashEscapes) {
+            for (int i = 0; i < len; i++) {
+              if (QUOTE == bytes[i]) {
+                buf[pos++] = QUOTE;
+                if (buf.length <= pos) {
+                  flushBuffer(false);
+                }
+              }
+              buf[pos++] = bytes[i];
+              if (buf.length <= pos) {
+                flushBuffer(false);
+              }
+            }
+          } else {
+            for (int i = 0; i < len; i++) {
+              if (bytes[i] == QUOTE /*
+                      || bytes[i] == BACKSLASH
+                      || bytes[i] == DBL_QUOTE
+                      || bytes[i] == ZERO_BYTE*/) {
+                buf[pos++] = '\'';
+                if (buf.length <= pos) {
+                  flushBuffer(false);
+                }
+              }
+              buf[pos++] = bytes[i];
+              if (buf.length <= pos) {
+                flushBuffer(false);
+              }
+            }
+          }
+          return;
+        }
+      }
+    }
+
+    // sure to have enough place filling buffer directly
+    if (noBackslashEscapes) {
+      for (int i = 0; i < len; i++) {
+        if (QUOTE == bytes[i]) {
+          buf[pos++] = QUOTE;
+        }
+        buf[pos++] = bytes[i];
+      }
+    } else {
+      for (int i = 0; i < len; i++) {
+        if (bytes[i] == QUOTE/*
+                || bytes[i] == BACKSLASH
+                || bytes[i] == '"'
+                || bytes[i] == ZERO_BYTE*/) {
+          buf[pos++] = '\''; // add escape slash
         }
         buf[pos++] = bytes[i];
       }
