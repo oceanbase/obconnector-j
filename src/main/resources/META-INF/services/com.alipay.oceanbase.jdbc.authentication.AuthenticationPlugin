@@ -1,0 +1,8 @@
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.ClearPasswordPlugin
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.SendGssApiAuthPacket
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.Ed25519PasswordPlugin
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.NativePasswordPlugin
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.OldPasswordPlugin
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.SendPamAuthPacket
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.Sha256PasswordPlugin
+com.alipay.oceanbase.jdbc.internal.com.send.authentication.CachingSha2PasswordPlugin
