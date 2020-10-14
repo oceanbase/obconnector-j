@@ -401,12 +401,7 @@ public class BaseOracleTest {
            end if;
         end;
        */
-      try{
-        stmt.execute("drop table "+tableName);
-      }catch (Exception e){
-        //ignore,maybe the table doesn't exist
-      }
-//      stmt.execute("call proc_dropifexists('" + tableName + "')");
+      stmt.execute("call proc_dropifexists('" + tableName + "')");
       stmt.execute(
           "create table "
               + tableName
