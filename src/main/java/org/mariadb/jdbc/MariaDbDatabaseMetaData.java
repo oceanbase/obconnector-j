@@ -63,6 +63,7 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -74,7 +75,7 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     private final UrlParser urlParser;
     private final MariaDbConnection connection;
     private boolean datePrecisionColumnExist = true;
-
+  Protocol protocol = null;
     /**
      * Constructor.
      *
@@ -85,6 +86,7 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         super(urlParser, connection);
         this.connection = (MariaDbConnection) connection;
         this.urlParser = urlParser;
+        this.protocol = this.connection.getProtocol();
     }
 
     private static String columnTypeClause(Options options) {
@@ -1284,6 +1286,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public String getIdentifierQuoteString() {
+      if (protocol.isOracleMode()) {
+        return "\"";
+      }
         return "`";
     }
 
@@ -1295,6 +1300,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     @Override
     public String getSQLKeywords() {
+        if (protocol.isOracleMode()) {
+          return "ACCESS, ADD, ALTER, AUDIT, CLUSTER, COLUMN, COMMENT, COMPRESS, CONNECT, DATE, DROP, EXCLUSIVE, FILE, IDENTIFIED, IMMEDIATE, INCREMENT, INDEX, INITIAL, INTERSECT, LEVEL, LOCK, LONG, MAXEXTENTS, MINUS, MODE, NOAUDIT, NOCOMPRESS, NOWAIT, NUMBER, OFFLINE, ONLINE, PCTFREE, PRIOR, all_PL_SQL_reserved_ words";
+        }
         return "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
                 + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
                 + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
@@ -1316,6 +1324,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     @Override
     public String getNumericFunctions() {
+        if (protocol.isOracleMode()) {
+          return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        }
         return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
                 + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
@@ -1327,6 +1338,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     @Override
     public String getStringFunctions() {
+        if (protocol.isOracleMode()) {
+          return "ASCII,CHAR,CHAR_LENGTH,CHARACTER_LENGTH,CONCAT,LCASE,LENGTH,LTRIM,OCTET_LENGTH,REPLACE,RTRIM,SOUNDEX,SUBSTRING,UCASE";
+        }
         return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
                 + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
                 + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
@@ -1341,6 +1355,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     @Override
     public String getSystemFunctions() {
+      if (protocol.isOracleMode()) {
+        return "USER";
+      }
         return "DATABASE,USER,SYSTEM_USER,SESSION_USER,LAST_INSERT_ID,VERSION";
     }
 
@@ -1351,6 +1368,9 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     @Override
     public String getTimeDateFunctions() {
+      if (protocol.isOracleMode()) {
+        return "CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR";
+      }
         return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
                 + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
                 + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
@@ -1360,10 +1380,16 @@ public class MariaDbDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public String getSearchStringEscape() {
+        if (protocol.isOracleMode()) {
+          return "/";
+        }
         return "\\";
     }
 
     public String getExtraNameCharacters() {
+        if (protocol.isOracleMode()) {
+          return "$#";
+        }
         return "#@";
     }
 

@@ -78,6 +78,8 @@ public class DatatypeOracleTest extends BaseOracleTest {
     createTable("tt1_timestampltz", "id int , tmp TIMESTAMP WITH LOCAL TIME ZONE");
 
     createTable("tt1_date", "id int , tmp date");
+
+    createTable("tt1_number", "id int , tmp number");
   }
 
   @Test
@@ -336,5 +338,114 @@ public class DatatypeOracleTest extends BaseOracleTest {
     }
 
     return sb.toString();
+  }
+
+  @Test
+  public void test_number_ps() throws Exception {
+    createTable("test_number_ps", "id int ,tmp number(5) ");
+    Integer num = 2;
+    assertInsertSelectClientPs(
+        "insert into test_number_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER, num)},
+        "select * from test_number_ps where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER, num)});
+    assertInsertSelectServerPs(
+        "insert into test_number_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NUMBER, num)},
+        "select * from test_number_ps where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NUMBER, num)});
+    createTable("test_number_ps", "id int ,tmp number(5,2) ");
+    createTable("test_number_ps", "id int ,tmp number(5,2) ");
+  }
+
+  @Test
+  public void test_number() throws SQLException {
+    assertInsertSelect(
+        "insert into tt1_number values(1, 3)",
+        "select id,tmp from tt1_number",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER, 3)});
+  }
+
+  @Test
+  public void test_number_float_ps() throws Exception {
+    createTable("test_number_float_ps", "id int ,tmp number(5,2) ");
+    float num = 5.3f;
+    assertInsertSelectClientPs(
+        "insert into test_number_float_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num)},
+        "select id,tmp from test_number_float_ps where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num)});
+    assertInsertSelectServerPs(
+        "insert into test_number_float_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num)},
+        "select id,tmp from test_number_float_ps where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num)});
+  }
+
+  @Test
+  public void test_number_float() throws SQLException {
+    createTable("test_number_float", "id int ,tmp number(10,2)");
+    assertInsertSelect(
+        "insert into test_number_float values(1, 2.43)",
+        "select * from test_number_float",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, 2.43f)});
+  }
+
+  @Test
+  public void test_binary_float() throws SQLException {
+    createTable("test_binary_float", "id int ,tmp number(10,2)");
+    assertInsertSelect(
+        "insert into test_binary_float values(1, 1.23)",
+        "select * from test_binary_float",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, 1.23f)});
+  }
+
+  @Test
+  public void test_binary_float_ps() throws Exception {
+    createTable("test_binary_float_ps", "id int ,tmp number(5,3) ");
+    float num = 2.345f;
+    assertInsertSelectClientPs(
+        "insert into test_binary_float_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num)},
+        "select id,tmp from test_binary_float_ps where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num)});
+    assertInsertSelectServerPs(
+        "insert into test_binary_float_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num)},
+        "select id,tmp from test_binary_float_ps where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num)});
+  }
+
+  @Test
+  public void test_binary_double() throws SQLException {
+    createTable("test_binary_double", "id int ,tmp number(10,3)");
+    assertInsertSelect(
+        "insert into test_binary_double values(1, 1.234)",
+        "select * from test_binary_double",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, 1.234d)});
+  }
+
+  @Test
+  public void test_binary_double_ps() throws Exception {
+    createTable("test_binary_double_ps", "id int ,tmp number(5,3) ");
+    double num = 2.345d;
+    assertInsertSelectClientPs(
+        "insert into test_binary_double_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num)},
+        "select id,tmp from test_binary_double_ps where id=?",
+        new TO[] {TO.$n(T.INT, 1)},
+        new TO[] {TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num)});
+    assertInsertSelectServerPs(
+        "insert into test_binary_double_ps values(?,?)",
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num)},
+        "select id,tmp from test_binary_double_ps where id=?",
+        new TO[] {TO.$n(T.INT, 2)},
+        new TO[] {TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num)});
   }
 }

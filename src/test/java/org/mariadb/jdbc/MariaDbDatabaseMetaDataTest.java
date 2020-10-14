@@ -162,4 +162,89 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void getIdentifierQuoteStringTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      createTable("quote_test", "id int primary key , create_time timestamp");
+      stmt = sharedConnection.createStatement();
+      stmt.executeUpdate("insert into quote_test values(1,now())");
+      rs = stmt.executeQuery("select ID,CREATE_TIME from quote_test");
+      assertEquals("id", rs.getMetaData().getColumnName(1)); // oracle 返回大写的字段名 mysql返回小写的。
+      assertEquals("create_time", rs.getMetaData().getColumnName(2));
+      assertEquals(true, rs.next());
+      assertEquals("`", sharedConnection.getMetaData().getIdentifierQuoteString());
+  }
+
+  @Test
+  public void getSQLKeywordsTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      stmt = sharedConnection.createStatement();
+      assertEquals(
+          "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
+              + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
+              + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
+              + "HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_SERVER_IDS,INDEX,INFILE,INOUT,INT1,INT2,"
+              + "INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,"
+              + "LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,"
+              + "MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
+              + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READ_WRITE,READS,REGEXP,RELEASE,"
+              + "RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,"
+              + "SEPARATOR,SHOW,SIGNAL,SLOW,SPATIAL,SPECIFIC,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,"
+              + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
+              + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL",
+          sharedConnection.getMetaData().getSQLKeywords());
+  }
+
+  @Test
+  public void getNumericFunctionsTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      stmt = sharedConnection.createStatement();
+      assertEquals(
+          "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
+              + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE",
+          sharedConnection.getMetaData().getNumericFunctions());
+  }
+
+  @Test
+  public void getStringFunctionsTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      stmt = sharedConnection.createStatement();
+      assertEquals(
+          "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
+              + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
+              + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
+              + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+              + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING",
+          sharedConnection.getMetaData().getStringFunctions());
+  }
+
+  @Test
+  public void getSystemFunctionsTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      stmt = sharedConnection.createStatement();
+      assertEquals(
+          "DATABASE,USER,SYSTEM_USER,SESSION_USER,LAST_INSERT_ID,VERSION",
+          sharedConnection.getMetaData().getSystemFunctions());
+  }
+
+  @Test
+  public void getTimeDateFunctionsTest() throws Exception{
+    Statement stmt = null;
+    ResultSet rs = null;
+      stmt = sharedConnection.createStatement();
+      assertEquals(
+          "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
+              + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
+              + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
+              + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
+              + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
+              + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK",
+          sharedConnection.getMetaData().getTimeDateFunctions());
+  }
 }

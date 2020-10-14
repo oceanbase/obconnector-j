@@ -1553,6 +1553,10 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
   }
 
   public void setInt(final int column, final int value) throws SQLException {
+    if (this.connection.getProtocol().isOracleMode()) {
+      setNUMBER(column, value);
+      return;
+    }
     setParameter(column, new IntParameter(value));
   }
 
@@ -1581,6 +1585,10 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
    *     PreparedStatement</code>
    */
   public void setFloat(final int parameterIndex, final float value) throws SQLException {
+    if (this.connection.getProtocol().isOracleMode()) {
+      setNUMBER_FLOAT(parameterIndex, value);
+      return;
+    }
     setParameter(parameterIndex, new FloatParameter(value));
   }
 
@@ -1616,5 +1624,47 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
     }
 
     setParameter(parameterIndex, new BigDecimalParameter(bigDecimal));
+  }
+
+  /**
+   * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver
+   * converts this to an SQL <code>NUMERIC</code> value when it sends it to the database.
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2, ...
+   * @param number the parameter value
+   * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL
+   *     statement; if a database access error occurs or this method is called on a closed <code>
+   *     PreparedStatement</code>
+   */
+  public void setNUMBER(final int parameterIndex, final Integer number) throws SQLException {
+    if (number == null) {
+      setNull(parameterIndex, ColumnType.NUMBER);
+      return;
+    }
+    setParameter(parameterIndex, new OBNUMBERParameter(number.intValue()));
+  }
+
+  public void setNUMBER_FLOAT(final int parameterIndex, final Float number) throws SQLException {
+    if (number == null) {
+      setNull(parameterIndex, ColumnType.NUMBER_FLOAT);
+      return;
+    }
+    setParameter(parameterIndex, new OBNUMBER_FLOATParameter(number.floatValue()));
+  }
+
+  public void setBINARY_FLOAT(final int parameterIndex, final Float number) throws SQLException {
+    if (number == null) {
+      setNull(parameterIndex, ColumnType.BINARY_FLOAT);
+      return;
+    }
+    setParameter(parameterIndex, new OBBINARY_FLOATParameter(number.floatValue()));
+  }
+
+  public void setBINARY_DOUBLE(final int parameterIndex, final Double number) throws SQLException {
+    if (number == null) {
+      setNull(parameterIndex, ColumnType.BINARY_DOUBLE);
+      return;
+    }
+    setParameter(parameterIndex, new OBBINARY_DOUBLEParameter(number.floatValue()));
   }
 }
