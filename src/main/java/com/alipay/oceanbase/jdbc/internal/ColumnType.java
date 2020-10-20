@@ -49,6 +49,10 @@ public enum ColumnType {
                  com.alipay.oceanbase.jdbc.extend.datatype.NUMBER_FLOAT.class.getName()), //
     BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE",
                   com.alipay.oceanbase.jdbc.extend.datatype.BINARY_DOUBLE.class.getName()), //
+    INTERVALYM(204, Types.OTHER, "Types.OTHER",
+               com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM.class.getName()), //
+    INTERVALDS(205, Types.OTHER, "Types.OTHER",
+               com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS.class.getName()), //
     BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName());
 
     static final ColumnType[] typeMap;

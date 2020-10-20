@@ -10,10 +10,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
-
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -277,6 +278,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     return null;
                 }
                 return timestamp.toString();
+            case INTERVALDS:
+                INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
+                return intervalds.toString();
+            case INTERVALYM:
+                INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
+                return intervalym.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -1592,6 +1599,26 @@ public class BinaryRowProtocol extends RowProtocol {
                 throw new SQLException("Cannot read LocalDate using a "
                                        + columnInfo.getColumnType().getJavaTypeName() + " field");
         }
+    }
+
+    @Override
+    public INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException {
+        if (columnInfo.getColumnType() != ColumnType.INTERVALDS) {
+            throw new SQLException("the field type is not FIELD_TYPE_INTERVALDS");
+        }
+        byte[] target = new byte[length];
+        System.arraycopy(buf, pos, target, 0, length);
+        return new INTERVALDS(target);
+    }
+
+    @Override
+    public INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException {
+        if (columnInfo.getColumnType() != ColumnType.INTERVALYM) {
+            throw new SQLException("the field type is not FIELD_TYPE_INTERVALYM");
+        }
+        byte[] target = new byte[length];
+        System.arraycopy(buf, pos, target, 0, length);
+        return new INTERVALYM(target);
     }
 
     /**

@@ -11,6 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
@@ -1578,5 +1580,23 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         setParameter(parameterIndex, new OBBINARY_DOUBLEParameter(number.floatValue()));
+    }
+
+    public void setINTERVALDS(final int parameterIndex, final INTERVALDS intervalds)
+                                                                                    throws SQLException {
+        if (intervalds == null) {
+            setNull(parameterIndex, ColumnType.INTERVALDS);
+            return;
+        }
+        setParameter(parameterIndex, new OBINTERVALDSParameter(intervalds));
+    }
+
+    public void setINTERVALYM(final int parameterIndex, final INTERVALYM intervalym)
+                                                                                    throws SQLException {
+        if (intervalym == null) {
+            setNull(parameterIndex, ColumnType.INTERVALDS);
+            return;
+        }
+        setParameter(parameterIndex, new OBINTERVALYMParameter(intervalym));
     }
 }

@@ -274,6 +274,8 @@ public abstract class RowProtocol {
 
   public abstract LocalDate getInternalLocalDate(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
+  public abstract INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException;
+  public abstract INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException;
 
   public abstract boolean isBinaryEncoded();
 
@@ -409,6 +411,40 @@ public abstract class RowProtocol {
               + value
               + "\" cannot be parse as BINARY_FLOAT");
     }
+  }
+  protected INTERVALDS getINTERVALDS(ColumnDefinition columnInfo) throws Exception {
+    if (lastValueWasNull()) {
+      return null;
+    }
+    if (columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+      return new INTERVALDS(buf);
+    } else {
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as INTERVALDS");
+    }
+
+  }
+  protected INTERVALYM getINTERVALYM(ColumnDefinition columnInfo) throws Exception {
+    if (lastValueWasNull()) {
+      return null;
+    }
+    if (columnInfo.getColumnType() == ColumnType.INTERVALYM) {
+      return new INTERVALYM(buf);
+    } else {
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as INTERVALYM");
+    }
+
   }
 
   protected void rangeCheck(

@@ -7,6 +7,8 @@ import com.alipay.oceanbase.jdbc.OceanBaseStatement;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -1073,6 +1075,24 @@ public class SelectResultSet implements ResultSet {
     public TIMESTAMP getTIMESTAMP(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTIMESTAMP(columnsInformation[columnIndex - 1], null, timeZone);
+    }
+
+    public INTERVALDS getINTERVALDS(String columnLabel) throws SQLException {
+        return getINTERVALDS(findColumn(columnLabel));
+    }
+
+    public INTERVALDS getINTERVALDS(int columnIndex) throws SQLException {
+        checkObjectRange(columnIndex);
+        return row.getInternalINTERVALDS(columnsInformation[columnIndex - 1]);
+    }
+
+    public INTERVALYM getINTERVALYM(String columnLabel) throws SQLException {
+        return getINTERVALYM(findColumn(columnLabel));
+    }
+
+    public INTERVALYM getINTERVALYM(int columnIndex) throws SQLException {
+        checkObjectRange(columnIndex);
+        return row.getInternalINTERVALYM(columnsInformation[columnIndex - 1]);
     }
 
     public TIMESTAMPTZ getTIMESTAMPTZ(String columnLabel) throws SQLException {

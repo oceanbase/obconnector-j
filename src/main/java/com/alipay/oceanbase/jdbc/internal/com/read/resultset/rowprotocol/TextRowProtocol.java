@@ -159,6 +159,12 @@ public class TextRowProtocol extends RowProtocol {
                     return null;
                 }
                 return timestamp.toString();
+            case INTERVALDS:
+                INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
+                return intervalds.toString();
+            case INTERVALYM:
+                INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
+                return intervalym.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -1114,5 +1120,23 @@ public class TextRowProtocol extends RowProtocol {
             return new BINARY_FLOAT(0.0f);
         }
         return new BINARY_FLOAT(buf);
+    }
+
+    @Override
+    public INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException {
+        if (lastValueWasNull()) {
+            return new INTERVALDS("0 0:0:0.0");
+        }
+        return new INTERVALDS(buf);
+    }
+
+    @Override
+    public INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException {
+        if (lastValueWasNull()) {
+            return new INTERVALYM("0-0");
+        }
+        //        byte[] target;
+        //        System.arraycopy(target,pos,buf,0);
+        return new INTERVALYM(buf);
     }
 }
