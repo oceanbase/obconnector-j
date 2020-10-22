@@ -1,6 +1,8 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.sql.Types;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
@@ -13,16 +15,16 @@ public class ColumnDefinition {
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
     // where character_sets.character_set_name = collations.character_set_name order by id"
-    private static final int[] maxCharlen = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 0,
-            1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4,
-            1, 1, 1, 1, 1, 1, 1, 4, 4, 0, 1, 1, 1, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            0, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 2, 1, 2, 3, 1, 1, 1, 2, 2, 3, 3, 1, 0, 4, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 4, 4, 0, 0, 0, 0, 0,
-            0, 0, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0             };
+    private static final int[] maxCharlen              = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+            2, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 4, 4, 0, 1, 1, 1, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 2, 1, 2, 3, 1, 1, 1, 2, 2, 3, 3, 1,
+            0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 4, 4,
+            0, 0, 0, 0, 0, 0, 0, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0,
+            4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0           };
 
     private final Buffer       buffer;
     private final short        charsetNumber;
@@ -30,6 +32,26 @@ public class ColumnDefinition {
     private final ColumnType   type;
     private final byte         decimals;
     private final short        flags;
+    private final byte         sqltype;
+
+    private int                catalogNameStart;
+    private int                catalogNameLength;
+    private int                databaseNameStart;
+    private int                databaseNameLength;
+    private int                tableNameStart;
+    private int                tableNameLength;
+    private int                originalTableNameStart;
+    private int                originalTableNameLength;
+    private int                nameStart;
+    private int                nameLength;
+    private int                originalColumnNameStart;
+    private int                originalColumnNameLength;
+    private short              longColFlag;
+    private int                complexSchemaNameStart  = -1;
+    private int                complexSchemaNameLength = -1;
+    private int                complexTypeNameStart    = -1;
+    private int                complexTypeNameLength   = -1;
+    private int                complexVersion          = 0;
 
     /**
      * Constructor for extent.
@@ -40,6 +62,7 @@ public class ColumnDefinition {
         this.buffer = other.buffer;
         this.charsetNumber = other.charsetNumber;
         this.length = other.length;
+        this.sqltype = other.sqltype;
         this.type = other.type;
         this.decimals = other.decimals;
         this.flags = other.flags;
@@ -52,6 +75,7 @@ public class ColumnDefinition {
      */
     public ColumnDefinition(Buffer buffer) {
         this.buffer = buffer;
+        // has41NewNewProt fixme :Value should be based on connection properties
 
         /*
         lenenc_str     catalog
@@ -68,15 +92,52 @@ public class ColumnDefinition {
         1              decimals
         2              filler [00] [00]
         */
-
-        // set position after length encoded value, not read most of the time
-        buffer.position = buffer.limit - 12;
-
+        /**
+         *  Record the offset of related information to achieve the purpose of reusing the buffer
+         */
+        catalogNameStart = buffer.getPosition() + 1;
+        catalogNameLength = buffer.fastSkipLenString();
+        catalogNameStart = adjustStartForFieldLength(catalogNameStart, catalogNameLength);
+        databaseNameStart = buffer.getPosition() + 1;
+        databaseNameLength = buffer.fastSkipLenString();
+        databaseNameStart = adjustStartForFieldLength(databaseNameStart, databaseNameLength);
+        tableNameStart = buffer.getPosition() + 1;
+        tableNameLength = buffer.fastSkipLenString();
+        tableNameStart = adjustStartForFieldLength(tableNameStart, tableNameLength);
+        originalTableNameStart = buffer.getPosition() + 1;
+        originalTableNameLength = buffer.fastSkipLenString();
+        originalTableNameStart = adjustStartForFieldLength(originalTableNameStart,
+            originalTableNameLength);
+        originalColumnNameStart = buffer.getPosition() + 1;
+        originalColumnNameLength = buffer.fastSkipLenString();
+        originalColumnNameStart = adjustStartForFieldLength(originalColumnNameStart,
+            originalColumnNameLength);
+        nameStart = buffer.getPosition() + 1;
+        nameLength = buffer.fastSkipLenString();
+        nameStart = adjustStartForFieldLength(nameStart, nameLength);
+        buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber);
+        sqltype = buffer.readByte();
+        longColFlag = buffer.readShort();
+        type = ColumnType.fromServer(sqltype & 0xff, charsetNumber);
         flags = buffer.readShort();
         decimals = buffer.readByte();
+
+        if (ColumnType.COMPLEX.getType() == type.getType()) {
+            buffer.setPosition(buffer.getPosition());
+            complexSchemaNameStart = buffer.getPosition() + 1;
+            complexSchemaNameLength = buffer.fastSkipLenString();
+            complexSchemaNameStart = adjustStartForFieldLength(complexSchemaNameStart,
+                complexSchemaNameLength);
+
+            complexTypeNameStart = buffer.getPosition() + 1;
+            complexTypeNameLength = buffer.fastSkipLenString();
+            complexTypeNameStart = adjustStartForFieldLength(complexTypeNameStart,
+                complexTypeNameLength);
+
+            complexVersion = (int) buffer.readFieldLength();
+        }
     }
 
     /**
@@ -141,6 +202,22 @@ public class ColumnDefinition {
         arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
 
         return new ColumnDefinition(new Buffer(arr));
+    }
+
+    private int adjustStartForFieldLength(int nameStart, int nameLength) {
+        if (nameLength < 251) {
+            return nameStart;
+        }
+
+        if (nameLength >= 251 && nameLength < 65536) {
+            return nameStart + 2;
+        }
+
+        if (nameLength >= 65536 && nameLength < 16777216) {
+            return nameStart + 3;
+        }
+
+        return nameStart + 8;
     }
 
     private String getString(int idx) {
@@ -264,5 +341,72 @@ public class ColumnDefinition {
     // like string), but have the binary flag
     public boolean isBinary() {
         return (getCharsetNumber() == 63);
+    }
+
+    public String getComplexTypeName() throws SQLException {
+        return getStringFromBytes(this.complexTypeNameStart, this.complexTypeNameLength);
+    }
+
+    public static String toAsciiString(byte[] buffer, int startPos, int length) {
+        char[] charArray = new char[length];
+        int readpoint = startPos;
+
+        for (int i = 0; i < length; i++) {
+            charArray[i] = (char) buffer[readpoint];
+            readpoint++;
+        }
+
+        return new String(charArray);
+    }
+
+    private String getStringFromBytes(int stringStart, int stringLength) throws SQLException {
+        if ((stringStart == -1) || (stringLength == -1)) {
+            return null;
+        }
+        // fixme
+        //        String stringVal = null;
+        //
+        //        if (this.connection != null) {
+        //            if (this.connection.getUseUnicode()) {
+        //                String javaEncoding = this.connection.getCharacterSetMetadata();
+        //
+        //                if (javaEncoding == null) {
+        //                    javaEncoding = this.connection.getEncoding();
+        //                }
+        //
+        //                if (javaEncoding != null) {
+        //                    SingleByteCharsetConverter converter = null;
+        //
+        //                    if (this.connection != null) {
+        //                        converter = this.connection.getCharsetConverter(javaEncoding);
+        //                    }
+        //
+        //                    if (converter != null) { // we have a converter
+        //                        stringVal = converter.toString(this.buffer, stringStart, stringLength);
+        //                    } else {
+        //                        // we have no converter, use JVM converter
+        //                        try {
+        //                            stringVal = StringUtils.toString(this.buffer, stringStart,
+        //                                    stringLength, javaEncoding);
+        //                        } catch (UnsupportedEncodingException ue) {
+        //                            throw new RuntimeException(Messages.getString("Field.12")
+        //                                    + javaEncoding
+        //                                    + Messages.getString("Field.13"));
+        //                        }
+        //                    }
+        //                } else {
+        //                    // we have no encoding, use JVM standard charset
+        //                    stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
+        //                }
+        //            } else {
+        //                // we are not using unicode, so use JVM standard charset
+        //                stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
+        //            }
+        //        } else {
+        //            // we don't have a connection, so punt
+        //            stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
+        //        }
+
+        return toAsciiString(buffer.buf, stringStart, stringLength);
     }
 }

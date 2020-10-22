@@ -1,0 +1,322 @@
+package com.alipay.oceanbase.jdbc;
+
+import org.junit.*;
+
+import java.sql.*;
+import java.util.Arrays;
+
+import static org.junit.Assert.*;
+
+/**
+ * The test depends on the ob version .Version 2.2.52 has no problems, but 2.2.60 has errors !
+ */
+public class ComplexOracleTest extends BaseOracleTest {
+    /**
+     * Tables initialisation.
+     *
+     * @throws SQLException exception
+     */
+    public static String tablenameArray  = "testarray";
+    public static String tablenameStruct = "teststruct";
+    public static String array1          = "test_array";
+    public static String array2          = "test_array2";
+    public static String array3          = "test_array3";
+    public static String struct1         = "test_struct1";
+    public static String struct2         = "test_struct2";
+    public static String struct3         = "test_struct3";
+    public static String raw1            = "test_raw1";
+    public static String refcursor1      = "test_ref";
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable(tablenameArray, "c1 int primary key,c2 interval day(6) to second(5)");
+        createTable(tablenameStruct, " c1 int primary key,c2 interval year(4) to month");
+        createTable(array1, "c1 int");
+        createTable(array2, "c1 varchar(100)");
+        createTable(array3, "c1 date");
+        createTable(struct1, "c1 int");
+        createTable(struct2, "c1 varchar(100)");
+        createTable(struct3, "c1 date");
+        createTable(raw1, "c1 int ,c2 raw(100)");
+        createTable(refcursor1, "c1 varchar(20), c2 number");
+    }
+
+    public void showArrayRes(Array array) throws Exception {
+        ResultSet arrayRes = array.getResultSet();
+        while (arrayRes.next()) {
+            int index = arrayRes.getInt(1);
+            Struct struct = (Struct) arrayRes.getObject(2);
+            Object[] objArr = struct.getAttributes();
+            for (Object obj : objArr) {
+                System.out.printf("index j %d obj now is %s\n", index, obj);
+            }
+        }
+    }
+
+    public void executeSqls(String[] sqls, Connection conn) {
+        PreparedStatement ps;
+        for (String sql : sqls) {
+            try {
+                ps = conn.prepareStatement(sql);
+                ps.execute();
+                ps.close();
+            } catch (Exception e) {
+                System.out.println("sql:" + sql);
+                // ignore, maybe table does not exist
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void basicArrayAndStructTest() throws SQLException {
+
+        Connection conn = null;
+        try {
+            conn = sharedPSConnection;
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c1 int, c2 varchar(100), c3 date)");
+            stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj");
+
+            // test input
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_objarr(X IN obj_array) IS "
+                                 + "BEGIN " + "  FOR idx IN 1..X.count LOOP " + "    INSERT INTO "
+                                 + array1 + " VALUES(X(idx).c1);" + "  END LOOP; "
+                                 + "  FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array2
+                                 + "  VALUES(X(idx).c2);" + "  END LOOP; "
+                                 + "    FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array3
+                                 + " VALUES(X(idx).c3);" + "  END LOOP; " + "END;";
+            stmt.execute(createPlSql);
+            Integer[] intArray = new Integer[10];
+            for (int i = 0; i < 10; ++i) {
+                if (i % 2 == 0) {
+                    intArray[i] = null;
+                } else {
+                    intArray[i] = i;
+                }
+            }
+            String[] strArray = new String[10];
+            for (int i = 0; i < 10; ++i) {
+                if (i % 2 == 0) {
+                    strArray[i] = "luyun_" + i;
+                } else {
+                    strArray[i] = null;
+                }
+            }
+            java.sql.Timestamp[] dateArray = new Timestamp[10];
+            for (int i = 0; i < 10; ++i) {
+                if (i % 2 == 0) {
+                    dateArray[i] = Timestamp.valueOf("2019-06-04 10:29:11.123456");
+                } else {
+                    dateArray[i] = null;
+                }
+            }
+            Object[] structArray = new Object[10];
+            for (int i = 0; i < 10; ++i) {
+                structArray[i] = conn.createStruct("my_obj", new Object[] { intArray[i],
+                        strArray[i], dateArray[i] });
+            }
+            Array array = conn.createArrayOf("my_obj", structArray);
+            //            ((ArrayImpl)array).getComplexType().setTypeName("obj_array");
+            {
+                System.out.println("=======prepareStatement input test =============");
+                ps = conn.prepareStatement("call my_proc_objarr(?)");
+                ps.setArray(1, array);
+                ps.execute();
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array1);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getInt("c1"));
+                }
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array2);
+                rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getString("c1"));
+                }
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array3);
+                rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getDate("c1"));
+                }
+                ps.close();
+            }
+            {
+                System.out.println("=======callable Statement input test =============");
+                ps = conn.prepareCall("call my_proc_objarr(?)");
+                ps.setArray(1, array);
+                ps.execute();
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array1);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getInt("c1"));
+                }
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array2);
+                rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getString("c1"));
+                }
+                ps.close();
+
+                ps = conn.prepareStatement("select * from " + array3);
+                rs = ps.executeQuery();
+                while (rs.next()) {
+                    System.out.println(rs.getDate("c1"));
+                }
+                ps.close();
+            }
+            // test output
+            createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out(x OUT obj_array) IS"
+                          + " i int :=1;" + " BEGIN" + " x.extend(10);" + "  for idx in 1..5 loop"
+                          + "    x(i).c1 := idx;" + "    x(i).c2 := idx;"
+                          + "    x(i).c3 := date '1970-01-01';" + "    x(i + 1).c1 := null;"
+                          + "    x(i + 1).c2 := null;" + "    x(i + 1).c3 := null;"
+                          + "    i := i + 2;" + "  end loop;" + "END;";
+            {
+                stmt.execute(createPlSql);
+                ps = conn.prepareStatement("call my_proc_obj_out(?)");
+                ps.setArray(1, null);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    Array resArray = rs.getArray(1);
+                    showArrayRes(resArray);
+                }
+            }
+            // callable test
+            {
+                System.out.println("=========callable stmt test==========");
+                CallableStatement csmt = conn.prepareCall("{call my_proc_obj_out(?)}");
+                csmt.registerOutParameter(1, Types.ARRAY, "obj_array");
+                csmt.execute();
+                Array resArray = csmt.getArray(1);
+                showArrayRes(resArray);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void basicRawTest() throws SQLException {
+        Connection conn = null;
+        try {
+            conn = sharedPSConnection;
+            PreparedStatement ps = null;
+            ps = conn.prepareStatement("insert into " + raw1 + " values(?,?)");
+            ps.setInt(1, 11);
+            ps.setBytes(2, new byte[] { 1, 2, 3 });
+            ps.execute();
+
+            ps = conn.prepareStatement("select c1 ,c2 from " + raw1 + " where c1 = 11");
+            ResultSet rs = ps.executeQuery();
+            //            Assert.assertEquals("[B", rs.getMetaData().getColumnClassName(2));
+            Assert.assertEquals("RAW", rs.getMetaData().getColumnTypeName(2));
+            Assert.assertEquals(-3, rs.getMetaData().getColumnType(2));
+            Assert.assertEquals(2, rs.getMetaData().getColumnCount());
+            Assert.assertEquals("C2", rs.getMetaData().getColumnLabel(2));
+            Assert.assertEquals(100, rs.getMetaData().getColumnDisplaySize(2));
+            Assert.assertEquals("SYS", rs.getMetaData().getCatalogName(2));
+            Assert.assertEquals("C2", rs.getMetaData().getColumnName(2));
+            Assert.assertEquals(0, rs.getMetaData().getScale(2));
+            Assert.assertEquals("TEST_RAW1", rs.getMetaData().getTableName(2));
+            //            assertFalse(rs.getMetaData().isCaseSensitive(2));
+            assertTrue(rs.next());
+            Assert.assertEquals(11, rs.getInt(1));
+            Assert.assertTrue(Arrays.equals(new byte[] { 1, 2, 3 }, rs.getBytes(2)));
+            Assert.assertEquals("010203", rs.getString(2));
+            Assert.assertEquals(3, rs.getBinaryStream(2).available());
+            rs.close();
+            ps.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testRefCursor() {
+        for (int loop = 0; loop < 2; loop++) {
+            Connection conn = sharedPSConnection;
+            {
+                {
+                    String sql = "insert into " + refcursor1 + " values(?, ?)";
+                    for (int i = 0; i < 10; i++) {
+                        try {
+                            PreparedStatement statement = conn.prepareStatement(sql);
+                            statement.setString(1, "test" + i);
+                            statement.setInt(2, i);
+                            statement.execute();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                try {
+                    String sql = "select * from " + refcursor1;
+                    PreparedStatement statement = conn.prepareStatement(sql);
+                    statement.execute();
+                    ResultSet resultSet = statement.getResultSet();
+                    while (resultSet.next()) {
+                        int columnCnt = resultSet.getMetaData().getColumnCount();
+                        for (int j = 1; j <= columnCnt; j++) {
+                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                               + resultSet.getString(j));
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Statement statement = conn.createStatement();
+                    String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(p_cursor OUT sys_refcursor) "
+                                         + "is BEGIN "
+                                         + " open p_cursor for select * from "
+                                         + refcursor1 + ";" + "end;";
+                    statement.execute(createPlSql);
+                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)");
+                    csmt.registerOutParameter(1, Types.REF);
+                    csmt.execute();
+                    ResultSet resultSet = (ResultSet) csmt.getObject(1);
+                    resultSet.setFetchSize(2);
+                    System.out.println("=========refcursor output==========");
+                    while (resultSet.next()) {
+                        int columnCnt = resultSet.getMetaData().getColumnCount();
+                        for (int j = 1; j <= columnCnt; j++) {
+                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                               + resultSet.getString(j));
+                        }
+                    }
+                    resultSet.close();
+                    resultSet = (ResultSet) csmt.getObject(1);
+                    System.out.println("=========refcursor output==========");
+                    try {
+                        while (resultSet.next()) {
+                            int columnCnt = resultSet.getMetaData().getColumnCount();
+                            for (int j = 1; j <= columnCnt; j++) {
+                                System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                                   + resultSet.getString(j));
+                            }
+                        }
+                    } catch (SQLException e) {
+                        Assert.assertEquals(e.getErrorCode(), 600);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    Assert.assertEquals(e.getMessage(), "cursor is not open");
+                }
+            }
+        }
+    }
+
+}

@@ -25,6 +25,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   private boolean mustExecuteOnMaster;
   private long     checksum = 1;
 
+  /** Do we need to send/resend types to the server? */
+  private boolean      sendTypesToServer           = false;
+
   /**
    * Constructor for creating Server prepared statement.
    *
@@ -323,10 +326,18 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   @Override
   public ResultSet executeQuery() throws SQLException {
     if (execute()) {
+      if(results.getCallableResultSet() != null) return results.getCallableResultSet();
       return results.getResultSet();
     }
     return SelectResultSet.createEmptyResultSet();
   }
+  public  SelectResultSet cursorFetch(int cursorId,int fetchSize) throws SQLException {
+    this.protocol.sendFechRowViaCursor(serverPrepareResult,cursorId,fetchSize,results);
+//    if(results.getCallableResultSet() != null) return results.getCallableResultSet();
+    results.commandEnd();
+    return results.getResultSet();
+  }
+
 
   /**
    * Executes the SQL statement in this <code>PreparedStatement</code> object, which must be an SQL
@@ -400,7 +411,8 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
           mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
       protocol.resetChecksum();
       results.commandEnd();
-      return results.getResultSet() != null;
+      if(results.getCallableResultSet() != null) return true;
+      else return results.getResultSet() != null;
 
     } catch (SQLException exception) {
       throw executeExceptionEpilogue(exception);

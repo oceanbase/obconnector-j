@@ -3,10 +3,7 @@ package com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetTime;
@@ -21,6 +18,7 @@ import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 public abstract class RowProtocol {
@@ -116,6 +114,10 @@ public abstract class RowProtocol {
 
   public abstract Timestamp getInternalTimestamp(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
+
+  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
 
   public TIMESTAMP getInternalTIMESTAMP(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
@@ -519,7 +521,11 @@ public abstract class RowProtocol {
   public Protocol getProtocol() {
     return protocol;
   }
+
   public void setProtocol(Protocol protocol) {
     this.protocol = protocol;
+	}
+  public SelectResultSet sendFechRowViaCursor(long statementid,int fetchSize) {
+      return SelectResultSet.createEmptyResultSet();
   }
 }

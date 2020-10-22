@@ -7,12 +7,17 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.internal.util.CallableStatementCache;
 import com.alipay.oceanbase.jdbc.internal.util.ConnectionState;
 import com.alipay.oceanbase.jdbc.internal.util.StringCacheUtil;
+import com.alipay.oceanbase.jdbc.internal.util.LRUCache;
 import com.alipay.oceanbase.jdbc.internal.util.Utils;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
@@ -63,7 +68,178 @@ public class OceanBaseConnection implements Connection {
 
     private boolean                  warningsCleared;
 
+    private LRUCache                 serverSideStatementCheckCache;
+    private LRUCache                 serverSideStatementCache;
+    private LRUCache                 complexDataCache;
+    private UrlParser                urlParser;
+    private GlobalStateInfo          globalStateInfo;
+
     private TimeZone                 sessionTimeZone              = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
+    private static final int         DEPTH_INDEX                  = 1;
+    private static final int         PARENT_TYPE_INDEX            = 3;
+    private static final int         CHILD_TYPE_INDEX             = 4;
+    private static final int         ATTR_NO_INDEX                = 5;
+    private static final int         CHILD_OWNER_INDEX            = 6;
+    private static final int         ATTR_TYPE_INDEX              = 7;
+    private String                   origHostToConnectTo;
+    // we don't want to be able to publicly clone this... // todo
+    private int                      origPortToConnectTo;
+    private String                   origDatabaseToConnectTo;
+    private java.sql.Connection      complexConnection            = null;
+    private static final String      complexTypeSql               = "SELECT\n"
+                                                                    + "  0 DEPTH,\n"
+                                                                    + "  NULL PARENT_OWNER,\n"
+                                                                    + "  NULL PARENT_TYPE,\n"
+                                                                    + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "  0 ATTR_NO,\n"
+                                                                    + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
+                                                                    + "  A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "  NULL LENGTH,\n"
+                                                                    + "  NULL NUMBER_PRECISION,\n"
+                                                                    + "  NULL SCALE,\n"
+                                                                    + "  NULL CHARACTER_SET_NAME\n"
+                                                                    + "FROM\n"
+                                                                    + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
+                                                                    + "UNION\n"
+                                                                    + "(\n"
+                                                                    + "WITH \n"
+                                                                    + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
+                                                                    + "AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      0 ATTR_NO,\n"
+                                                                    + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM\n"
+                                                                    + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
+                                                                    + "    UNION\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      B.ATTR_NO ATTR_NO,\n"
+                                                                    + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
+                                                                    + ") ,\n"
+                                                                    + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "AS (\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    1 DEPTH,\n"
+                                                                    + "    PARENT_OWNER,\n"
+                                                                    + "    PARENT_TYPE,\n"
+                                                                    + "    CHILD_TYPE,\n"
+                                                                    + "    ATTR_NO,\n"
+                                                                    + "    CHILD_TYPE_OWNER,\n"
+                                                                    + "    ATTR_TYPE_CODE,\n"
+                                                                    + "    LENGTH,\n"
+                                                                    + "    NUMBER_PRECISION,\n"
+                                                                    + "    SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
+                                                                    + "  UNION ALL\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    DEPTH + 1 DEPTH,\n"
+                                                                    + "    CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "    CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "    CTE_RESULT.ATTR_NO,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "    CTE_RESULT.LENGTH,\n"
+                                                                    + "    CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "    CTE_RESULT.SCALE,\n"
+                                                                    + "    CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
+                                                                    + ")\n" + "SELECT * FROM CTE\n"
+                                                                    + ");";
+
+    private static final String      complexAllTypeSql            = "SELECT\n"
+                                                                    + "    0 DEPTH,\n"
+                                                                    + "    NULL PARENT_OWNER,\n"
+                                                                    + "    NULL PARENT_TYPE,\n"
+                                                                    + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "    0 ATTR_NO,\n"
+                                                                    + "    OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "    A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "    NULL LENGTH,\n"
+                                                                    + "    NULL NUMBER_PRECISION,\n"
+                                                                    + "    NULL SCALE,\n"
+                                                                    + "    NULL CHARACTER_SET_NAME\n"
+                                                                    + "  FROM\n"
+                                                                    + "    ALL_TYPES A WHERE TYPE_NAME = ? AND OWNER = ?\n"
+                                                                    + "  UNION\n"
+                                                                    + "  (\n"
+                                                                    + "  WITH\n"
+                                                                    + "  CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        0 ATTR_NO,\n"
+                                                                    + "        B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM\n"
+                                                                    + "        ALL_COLL_TYPES B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME AND A.OWNER = B.ELEM_TYPE_OWNER\n"
+                                                                    + "      UNION\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        B.ATTR_NO ATTR_NO,\n"
+                                                                    + "        B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM ALL_TYPE_ATTRS B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ATTR_TYPE_NAME AND A.OWNER = B.ATTR_TYPE_OWNER ORDER BY ATTR_NO\n"
+                                                                    + "  ) ,\n"
+                                                                    + "  CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      1 DEPTH,\n"
+                                                                    + "      PARENT_OWNER,\n"
+                                                                    + "      PARENT_TYPE,\n"
+                                                                    + "      CHILD_TYPE,\n"
+                                                                    + "      ATTR_NO,\n"
+                                                                    + "      CHILD_TYPE_OWNER,\n"
+                                                                    + "      ATTR_TYPE_CODE,\n"
+                                                                    + "      LENGTH,\n"
+                                                                    + "      NUMBER_PRECISION,\n"
+                                                                    + "      SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT WHERE PARENT_TYPE = ? AND PARENT_OWNER = ?\n"
+                                                                    + "    UNION ALL\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      DEPTH + 1 DEPTH,\n"
+                                                                    + "      CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "      CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "      CTE_RESULT.ATTR_NO,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "      CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "      CTE_RESULT.LENGTH,\n"
+                                                                    + "      CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "      CTE_RESULT.SCALE,\n"
+                                                                    + "      CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
+                                                                    + "  )\n"
+                                                                    + "  SELECT * FROM CTE\n"
+                                                                    + "  );";
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -82,6 +258,34 @@ public class OceanBaseConnection implements Connection {
         }
         this.lock = protocol.getLock();
         this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
+        //        if (getCacheComplexData()) {
+        //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
+        //        }
+        //todo add connection propertis in the future
+        this.complexDataCache = new LRUCache(50);
+    }
+
+    public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo) throws SQLException {
+        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+        ;
+        this.urlParser = urlParser;
+        this.globalStateInfo = globalInfo;
+        this.protocol = protocol;
+        options = protocol.getOptions();
+        canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
+        sessionStateAware = protocol.sessionStateAware();
+        nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
+        if (options.cacheCallableStmts) {
+            callableStatementCache = CallableStatementCache
+                .newInstance(options.callableStmtCacheSize);
+        }
+        this.lock = protocol.getLock();
+        this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
+        //        if (getCacheComplexData()) {
+        //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
+        //        }
+        //todo add connection propertis in the future
+        this.complexDataCache = new LRUCache(50);
     }
 
     /**
@@ -98,8 +302,9 @@ public class OceanBaseConnection implements Connection {
             return Pools.retrievePool(urlParser).getConnection();
         }
 
-        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
-        return new OceanBaseConnection(protocol);
+        //        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+        ////        return new OceanBaseConnection(protocol);
+        return new OceanBaseConnection(urlParser, globalInfo);
     }
 
     public static String quoteIdentifier(String string) {
@@ -786,6 +991,19 @@ public class OceanBaseConnection implements Connection {
         return protocol.versionGreaterOrEqual(major, minor, patch);
     }
 
+    private Connection getObOrcaleConnection() throws Exception {
+        //        final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false&useServerPrepStmts=true";
+        //                final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false";
+        //        final String url = "jdbc:oceanbase://100.88.105.219:2121/sys?pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true";
+        //        final String username = "admin@oracle";
+        //        final String password = "admin";
+        final String url = "jdbc:oceanbase://11.159.217.1:10013/SYS?useSSL=false&useServerPrepStmts=true";
+        final String username = "sys@oracle";
+        final String password = "";
+        Class.forName("com.alipay.oceanbase.jdbc.Driver");
+        return DriverManager.getConnection(url, username, password);
+    }
+
     /**
      * Retrieves this <code>Connection</code> object's current transaction isolation level.
      *
@@ -1388,7 +1606,180 @@ public class OceanBaseConnection implements Connection {
      *     on a closed connection
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
-        throw exceptionFactory.notSupported("Array type is not supported");
+        if (!this.getProtocol().isOracleMode()) {
+            throw exceptionFactory.notSupported("Array type is not supported");
+        }
+        boolean fetchTypeFromRemote = true;
+        ComplexDataType attrType = null;
+        if (getCacheComplexData()) {
+            synchronized (this.complexDataCache) {
+                attrType = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                    .get(typeName.toUpperCase());
+                if (null != attrType && attrType.isValid()) {
+                    fetchTypeFromRemote = false;
+                } else if (null == attrType
+                           && ComplexDataType.isBaseDataType(ComplexDataType
+                               .getObComplexType(typeName))) {
+                    fetchTypeFromRemote = false;
+                    attrType = new ComplexDataType(typeName, this.getSchema(),
+                        ComplexDataType.getObComplexType(typeName));
+                }
+            }
+        }
+        if (fetchTypeFromRemote) {
+            attrType = getComplexDataTypeFromRemote(typeName);
+        }
+        if (attrType.getType() == ComplexDataType.TYPE_COLLECTION) {
+            // array element is still array is not supported
+            throw exceptionFactory.notSupported("array element is still array is not supported");
+        }
+        ComplexDataType parentType = new ComplexDataType("", this.getSchema(),
+            ComplexDataType.TYPE_COLLECTION);
+        parentType.setAttrCount(1);
+        parentType.setAttrType(0, attrType);
+        ArrayImpl array = new ArrayImpl(parentType);
+        array.setAttrData(elements);
+        return array;
+    }
+
+    public boolean getCacheComplexData() { // todo connection properties
+        //        return this.cacheComplexData.getValueAsBoolean();
+        //        Object obj = this;
+        //        Boolean tmp =(Boolean)obj;
+        //        return tmp.booleanValue();
+        return true;
+    }
+
+    public void recacheComplexDataType(ComplexDataType type) {
+        //        synchronized (getConnectionMutex()) { //
+        synchronized (this.protocol) { // todo don't know
+            synchronized (this.complexDataCache) {
+                this.complexDataCache.put(type.getTypeName().toUpperCase(), type);
+            }
+        }
+    }
+
+    public ComplexDataType getComplexDataType(String typeName) throws SQLException {
+        ComplexDataType type = null;
+        type = getComplexDataTypeFromCache(typeName);
+        if (null != type && type.isValid()) {
+            return type;
+        }
+        type = getComplexDataTypeFromRemote(typeName);
+        return type;
+    }
+
+    public ComplexDataType getComplexDataTypeFromCache(String typeName) {
+        synchronized (this.complexDataCache) {
+            return (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                .get(typeName.toUpperCase());
+        }
+    }
+
+    private java.sql.Connection getComplexConnection() throws SQLException {
+        if (null == this.complexConnection || this.complexConnection.isClosed()) {
+            //            Protocol protocolTmp = Utils.retrieveProxy(this.getProtocol().getUrlParser(),this.getProtocol().globalInfo);
+            this.complexConnection = new OceanBaseConnection(this.urlParser, this.globalStateInfo); // duplicate a new connection todo
+        }
+        return this.complexConnection;
+    }
+
+    public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
+        try {
+            //            java.sql.Connection conn = this.getComplexConnection(); // NOPMD
+            java.sql.Connection conn = this.getComplexConnection();
+            java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            //
+            //            java.sql.PreparedStatement ps = this.prepareStatement(complexTypeSql,
+            //                  ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            //            System.out.println("com = " + complexTypeSql);
+
+            ps.setString(1, typeName.toUpperCase());
+            ps.setString(2, typeName.toUpperCase());
+            java.sql.ResultSet rs = ps.executeQuery(); // NOPMD
+            if (rs.next()) {
+                rs.beforeFirst();
+            } else {
+                rs.close();
+                ps.close();
+
+                ps = this.prepareStatement(complexAllTypeSql, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                    ResultSet.CONCUR_READ_ONLY);
+                ps.setString(1, typeName.toUpperCase());
+                ps.setString(2, "SYS");
+                ps.setString(3, typeName.toUpperCase());
+                ps.setString(4, "SYS");
+                rs = ps.executeQuery(); // NOPMD
+            }
+
+            while (rs.next()) {
+                ComplexDataType complexType = null;
+                String childTypeName = rs.getString(CHILD_TYPE_INDEX);
+                int type = ComplexDataType.getObComplexType(rs.getString(ATTR_TYPE_INDEX));
+                if (ComplexDataType.TYPE_OBJECT == type || ComplexDataType.TYPE_COLLECTION == type) {
+                    complexType = getComplexDataTypeFromCache(childTypeName);
+                    if (null == complexType) {
+                        complexType = new ComplexDataType(childTypeName,
+                            rs.getString(CHILD_OWNER_INDEX), type);
+                        complexType.setValid(false);
+                        recacheComplexDataType(complexType);
+                    } else {
+                        complexType.setValid(false);
+                    }
+                } else {
+                    // for base data type
+                    complexType = getComplexDataTypeFromCache(childTypeName);
+                    if (null == complexType) {
+                        complexType = new ComplexDataType(childTypeName, "", type);
+                        complexType.setValid(true);
+                        recacheComplexDataType(complexType);
+                    }
+                }
+                if (rs.getInt(DEPTH_INDEX) > 0) {
+                    // depth > 0 means parent is object  or collection
+                    String parentTypeName = rs.getString(PARENT_TYPE_INDEX);
+                    ComplexDataType parentType = getComplexDataTypeFromCache(parentTypeName);
+                    int attrIndex = rs.getInt(ATTR_NO_INDEX);
+                    if (ComplexDataType.TYPE_OBJECT == parentType.getType()
+                        && parentType.getAttrCount() < attrIndex)
+                        parentType.setAttrCount(attrIndex);
+                }
+            }
+            // second loop
+            rs.first();
+            do {
+                if (rs.getInt(DEPTH_INDEX) > 0) {
+                    String parentTypeName = rs.getString(PARENT_TYPE_INDEX);
+                    ComplexDataType parentComplexType = getComplexDataTypeFromCache(parentTypeName);
+                    String attrTypeName = rs.getString(CHILD_TYPE_INDEX);
+                    ComplexDataType attrComplexType = getComplexDataTypeFromCache(attrTypeName);
+
+                    if (parentComplexType.getType() == ComplexDataType.TYPE_OBJECT) {
+                        parentComplexType
+                            .setAttrType(rs.getInt(ATTR_NO_INDEX) - 1, attrComplexType);
+                        parentComplexType.incInitAttrCount();
+                        if (parentComplexType.getInitAttrCount() == parentComplexType
+                            .getAttrCount()) {
+                            parentComplexType.setValid(true);
+                        }
+                    } else if (parentComplexType.getType() == ComplexDataType.TYPE_COLLECTION) {
+                        parentComplexType.setAttrCount(1);
+                        parentComplexType.setAttrType(0, attrComplexType);
+                        parentComplexType.setValid(true);
+                    }
+                }
+            } while (rs.next());
+
+            rs.close();
+            ps.close();
+            conn.close();
+        } catch (SQLException e) {
+            throw e;
+        } catch (Exception se) {
+            se.printStackTrace();
+        }
+        return getComplexDataTypeFromCache(typeName);
     }
 
     /**
@@ -1405,7 +1796,26 @@ public class OceanBaseConnection implements Connection {
      */
     public Struct createStruct(final String typeName, final Object[] attributes)
                                                                                 throws SQLException {
-        throw exceptionFactory.notSupported("Struct type is not supported");
+        if (!this.getProtocol().isOracleMode()) {
+            throw exceptionFactory.notSupported("Struct type is not supported");
+        }
+        boolean fetchTypeFromRemote = true;
+        ComplexDataType type = null;
+        if (getCacheComplexData()) { // todo
+            synchronized (this.complexDataCache) {
+                type = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                    .get(typeName.toUpperCase());
+                if (null != type && type.isValid()) {
+                    fetchTypeFromRemote = false;
+                }
+            }
+        }
+        if (fetchTypeFromRemote) {
+            type = getComplexDataTypeFromRemote(typeName);
+        }
+        StructImpl struct = new StructImpl(type);
+        struct.setAttrData(attributes);
+        return struct;
     }
 
     /**
@@ -1554,6 +1964,10 @@ public class OceanBaseConnection implements Connection {
     public String getSchema() {
         // We support only catalog
         return null;
+    }
+
+    public String getDatabase() {
+        return urlParser.getDatabase();
     }
 
     public void setSchema(String arg0) {

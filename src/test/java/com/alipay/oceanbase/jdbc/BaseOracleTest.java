@@ -341,19 +341,18 @@ public class BaseOracleTest {
       Statement stmt = sharedConnection.createStatement();
       /*
       create or replace procedure proc_dropifexists(
-            p_table in varchar2
-        ) is
-            v_count number(10);
-        begin
-           select count(*)
-           into v_count
-           from user_objects
-           where object_name = upper(p_table);
-
-           if v_count > 0 then
-              execute immediate 'drop table ' || p_table ||' purge';
-           end if;
-        end;
+            p_table in varchar2 \
+        ) is \
+            v_count number(10); \
+        begin \
+           select count(*) \
+           into v_count \
+           from user_objects \
+           where object_name = upper(p_table); \
+           if v_count > 0 then \
+              execute immediate 'drop table ' || p_table ||' purge'; \
+           end if; \
+        end; \
        */
 
       stmt.execute("call proc_dropifexists('" + tableName + "')");

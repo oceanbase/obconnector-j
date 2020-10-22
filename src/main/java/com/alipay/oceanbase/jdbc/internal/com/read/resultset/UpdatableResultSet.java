@@ -57,8 +57,10 @@ public class UpdatableResultSet extends SelectResultSet {
      */
     public UpdatableResultSet(ColumnDefinition[] columnsInformation, Results results,
                               Protocol protocol, PacketInputStream reader, boolean callableResult,
-                              boolean eofDeprecated) throws IOException, SQLException {
-        super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated);
+                              boolean eofDeprecated, boolean isPsOutParamter) throws IOException,
+                                                                             SQLException {
+        super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated,
+            isPsOutParamter);
         checkIfUpdatable(results);
         parameterHolders = new ParameterHolder[columnInformationLength];
     }

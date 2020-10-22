@@ -53,7 +53,16 @@ public enum ColumnType {
                com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM.class.getName()), //
     INTERVALDS(205, Types.OTHER, "Types.OTHER",
                com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS.class.getName()), //
-    BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName());
+    COMPLEX(160, Types.OTHER, "Types.OTHER",
+            com.alipay.oceanbase.jdbc.extend.datatype.ComplexData.class.getName()), //
+    ARRAY(161, Types.ARRAY, "Types.Array",
+          com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl.class.getName()), //
+    STRUCT(162, Types.STRUCT, "Types.STRUCT",
+           com.alipay.oceanbase.jdbc.extend.datatype.StructImpl.class.getName()), //
+    RAW(203, Types.VARBINARY, "Types.VARBINARY",
+        com.alipay.oceanbase.jdbc.extend.datatype.RAW.class.getName()), //
+    CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP"), //
+    BINARY_FLOAT(206, Types.FLOAT, "Types.VARBINARY;", BINARY_DOUBLE.class.getName());
 
     static final ColumnType[] typeMap;
 

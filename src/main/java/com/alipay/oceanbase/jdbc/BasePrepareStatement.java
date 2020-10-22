@@ -13,6 +13,8 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
@@ -379,7 +381,12 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setArray(final int parameterIndex, final Array array) throws SQLException {
-        throw exceptionFactory.notSupported("Arrays not supported");
+        if (array == null) {
+            setNull(parameterIndex, ColumnType.NULL);
+            return;
+        }
+        this.setParameter(parameterIndex,
+            new OBArrayParameter((ArrayImpl) array, this.protocol.getOptions())); // todo
     }
 
     /**
@@ -963,6 +970,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
                 useFractionalSeconds));
+        } else if (obj instanceof Array) {
+            setArray(parameterIndex, (Array) obj);
+        } else if (obj instanceof Struct) {
+            setStruct(parameterIndex, (Struct) obj);
         } else {
             // fallback to sending serialized object
             setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
@@ -1426,9 +1437,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-
+        byte[] x = bytes;
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBByteArrayParameter(bytes, noBackslashEscapes));
+
+            StringBuilder sb = new StringBuilder();
+            for (byte b : x) {
+                sb.append(String.format("%02x", b));
+            }
+            x = sb.toString().getBytes();
+
+            setParameter(parameterIndex, new OBByteArrayParameter(x, noBackslashEscapes));
 
         } else {
             setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
@@ -1598,5 +1616,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         setParameter(parameterIndex, new OBINTERVALYMParameter(intervalym));
+    }
+
+    public void setStruct(final int parameterIndex, Struct x) throws SQLException {
+        if (x == null) {
+            setNull(parameterIndex, ColumnType.STRUCT);
+            return;
+        }
+        setParameter(parameterIndex, new OBStructParameter((StructImpl) x)); // todo
     }
 }

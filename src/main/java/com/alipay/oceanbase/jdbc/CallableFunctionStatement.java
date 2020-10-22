@@ -302,6 +302,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
+        if (getResult().getProtocol() == null)
+            getResult().setProtocol(this.protocol);
         return getResult().getObject(indexToOutputIndex(parameterIndex));
     }
 

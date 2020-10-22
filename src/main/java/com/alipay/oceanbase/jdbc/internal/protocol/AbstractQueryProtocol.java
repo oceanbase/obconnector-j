@@ -16,8 +16,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.alipay.oceanbase.jdbc.OceanBaseConnection;
-import com.alipay.oceanbase.jdbc.UrlParser;
+import com.alipay.oceanbase.jdbc.*;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -47,8 +46,6 @@ import com.alipay.oceanbase.jdbc.internal.util.exceptions.OceanBaseSqlException;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.alipay.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.alipay.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import com.alipay.oceanbase.jdbc.LocalInfileInterceptor;
-import com.alipay.oceanbase.jdbc.OceanBaseStatement;
 import com.alipay.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.alipay.oceanbase.jdbc.internal.io.LruTraceCache;
 
@@ -811,7 +808,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-      cmdPrologue();
+      cmdPrologue(); // ?
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_PREPARE);
       writer.write(sql);
@@ -1062,7 +1059,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       int parameterCount = serverPrepareResult.getParameters().length;
 
-      // send binary data in a separate stream
       for (int i = 0; i < parameterCount; i++) {
         if (parameters[i].isLongData()) {
           writer.startPacket(0);
@@ -1073,7 +1069,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           writer.flush();
         }
       }
-
+      writer.setTimeZone(this.getServerTimeZone());
       // send execute query
       ComStmtExecute.send(
           writer,
@@ -1092,6 +1088,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
+  public void sendFechRowViaCursor(ServerPrepareResult serverPrepareResult,int cursorId,int fetchSize,Results results) throws SQLException {
+
+    cmdPrologue();
+    try {
+      writer.startPacket(0);
+      writer.write(Packet.COM_STMT_FETCH);
+      writer.writeInt(cursorId);
+      writer.writeInt(fetchSize);
+      writer.flush();
+      getResult(results);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
   /** Rollback transaction. */
   public void rollback() throws SQLException {
 
@@ -1463,8 +1473,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     readPacket(results);
 
     // load additional results
-    while (hasMoreResults()) {
-      readPacket(results);
+//    while (hasMoreResults()) {
+    while(hasMoreResults()) {
+       readPacket(results);
     }
   }
 
@@ -1762,10 +1773,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // read columns information's
       ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
       for (int i = 0; i < fieldCount; i++) {
-        ci[i] = new ColumnDefinition(reader.getPacket(false));
+        Buffer buf = reader.getPacket(false);
+        ci[i] = new ColumnDefinition(buf);
       }
 
       boolean callableResult = false;
+      boolean isPsOutParamter = false;
       if (!eofDeprecated) {
         // read EOF packet
         // EOF status is mandatory because :
@@ -1785,19 +1798,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                               options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
         }
         bufferEof.skipBytes(2); // Skip warningCount
-        callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
+        short currentStatus = bufferEof.readShort();
+        /**
+         * We dont send an ok packet after all result set rows;Ob server send a execution response pacet ,but the PS_OUT_PARAMETERS is set
+         */
+        callableResult = (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
+//        isPsOutParamter =  (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
       }
 
       // read resultSet
       SelectResultSet selectResultSet;
       if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
         selectResultSet =
-            new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
+            new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
       } else {
         // remove fetch size to permit updating results without creating new connection
         results.removeFetchSize();
         selectResultSet =
-            new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
+            new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
       }
 
       results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);

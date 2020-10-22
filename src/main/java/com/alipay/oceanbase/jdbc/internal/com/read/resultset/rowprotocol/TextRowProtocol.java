@@ -170,6 +170,22 @@ public class TextRowProtocol extends RowProtocol {
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
                     columnInfo);
+            case RAW: {
+                byte[] data = new byte[length];
+                System.arraycopy(buf, pos, data, 0, length);
+                boolean wasNullFlag; // todo where to use
+                if (data != null) {
+                    wasNullFlag = false;
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : data) {
+                        sb.append(String.format("%02x", b));
+                    }
+                    return sb.toString();
+                } else {
+                    wasNullFlag = true;
+                    return null;
+                }
+            }
             case NULL:
                 return null;
             default:
@@ -655,6 +671,25 @@ public class TextRowProtocol extends RowProtocol {
                                        + "\" with value \"" + value
                                        + "\" cannot be parse as Timestamp");
         }
+    }
+
+    @Override
+    public Array getInternalArray(ColumnDefinition columnInfo, ComplexDataType complexDataType)
+                                                                                               throws SQLException {
+        return null;
+    }
+
+    @Override
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
+                                                                                                 throws SQLException {
+        return null;
+    }
+
+    @Override
+    public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
+                                                ComplexDataType complexDataType)
+                                                                                throws SQLException {
+        return null;
     }
 
     /**
