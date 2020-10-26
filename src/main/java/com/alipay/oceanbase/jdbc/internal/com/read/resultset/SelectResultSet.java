@@ -405,9 +405,10 @@ public class SelectResultSet implements ResultSet {
                 //
                 // - after a callable resultSet, a OK packet is send,
                 //   but mysql before 5.7.4 doesn't send MORE_RESULTS_EXISTS flag
-                //                if (callableResult) {
-                //                    serverStatus |= MORE_RESULTS_EXISTS;
-                //                } // todo
+
+                if (callableResult) { //TODO check it set MORE_RESULTS_EXISTS in callableResult,
+                    //serverStatus |= MORE_RESULTS_EXISTS;
+                }
 
             } else {
 

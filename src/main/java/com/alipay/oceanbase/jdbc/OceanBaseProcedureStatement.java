@@ -1,5 +1,6 @@
 package com.alipay.oceanbase.jdbc;
 
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -13,6 +14,8 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
                                                                            CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
+
+    private boolean         isObFunction    = false;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -29,22 +32,54 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
      * @param exceptionFactory Exception Factory
      * @throws SQLException exception
      */
-    public OceanBaseProcedureStatement(String query, OceanBaseConnection connection,
-                                       String procedureName, String database, int resultSetType,
+    public OceanBaseProcedureStatement(boolean isObFunction, String query,
+                                       OceanBaseConnection connection, String procedureName,
+                                       String database, int resultSetType,
                                        int resultSetConcurrency, ExceptionFactory exceptionFactory)
                                                                                                    throws SQLException {
-        super(connection, query, resultSetType, resultSetConcurrency, exceptionFactory);
-        this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName,
-            false);
+        super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
+            exceptionFactory);
+        this.isObFunction = isObFunction;
+        if (!this.connection.getProtocol().isOracleMode()) {
+            this.parameterMetadata = new CallableParameterMetaData(connection, database,
+                procedureName, false);
+        } else {
+            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
+                procedureName, isObFunction);
+            this.parameterMetadata.readMetadataFromDbIfRequired();
+        }
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
 
-    private void setParamsAccordingToSetArguments() {
-    params = new ArrayList<>(parameterCount);
-    for (int index = 0; index < parameterCount; index++) {
-      params.add(new CallParameter());
-    }
+    private void setParamsAccordingToSetArguments() throws SQLException {
+        if (parameterCount > this.parameterMetadata.getParameterCount()) {
+            System.out.println("SIZE:" + parameterCount + " " + this.parameterMetadata.getParameterCount());
+            throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
+        }
+        /*
+        OceanBaseResultSetMetaData metaData = (OceanBaseResultSetMetaData)this.getMetaData();
+        if (parameterCount != metaData.getColumnCount()) {
+            //System.out.println("SIZE2:" + parameterCount + " " + metaData.getColumnCount());
+            throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
+        } */
+        //System.out.println("SQL:" + this.originalSql);
+        params = new ArrayList<>(parameterCount);
+        /*
+        for (int index = 0; index < parameterCount; index++) {
+            CallParameter addParamMeta = null;
+            if (null != metaData.getColumnName(index + 1)) {
+                addParamMeta = (CallParameter)this.parameterMetadata.getParamByName(metaData.getColumnName(index + 1));
+            }
+            System.out.println(addParamMeta.toString() + " " + addParamMeta.isOutput() + " " + addParamMeta.getName());
+            //params.add(new CallParameter());
+            //if (this.parameterMetadata.getName(index))
+            //params.add(this.parameterMetadata.getParam(index + 1));
+            params.add(addParamMeta);
+        }*/
+        for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
+            this.params.add(this.parameterMetadata.getParam(index + 1)); //TODO if check registerOutputParamter need to add it by arguments
+        }
   }
 
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
@@ -132,6 +167,13 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
 
     protected SelectResultSet getOutputResult() throws SQLException {
         if (outputResultSet == null) {
+            if (this.isObFunction) { // For ObFunction
+                outputResultSet = results.getResultSet();
+                if (outputResultSet != null) {
+                    outputResultSet.next();
+                    return outputResultSet;
+                }
+            }
             if (fetchSize != 0) {
                 results.loadFully(false, protocol);
                 outputResultSet = results.getCallableResultSet();

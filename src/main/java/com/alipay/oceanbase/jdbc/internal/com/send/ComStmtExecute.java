@@ -100,7 +100,9 @@ public class ComStmtExecute {
             } else {
                 pos.write((byte) 0x00);
             }
-        }
+        } /* else { // TODO In mysql_JDBC it will write 0x00 if not have any parameter.
+            pos.write((byte) 0x00);
+          } */
 
         for (int i = 0; i < parameterCount; i++) {
             ParameterHolder holder = parameters[i];

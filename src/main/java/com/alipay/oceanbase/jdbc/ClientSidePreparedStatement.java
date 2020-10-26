@@ -454,6 +454,7 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
   private void loadParametersData() throws SQLSyntaxErrorException {
     try (ServerSidePreparedStatement ssps =
         new ServerSidePreparedStatement(
+                false,
             connection,
             sqlQuery,
             ResultSet.TYPE_SCROLL_INSENSITIVE,
