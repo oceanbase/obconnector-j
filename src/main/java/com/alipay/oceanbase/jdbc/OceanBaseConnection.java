@@ -12,6 +12,7 @@ import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.internal.util.CallableStatementCache;
 import com.alipay.oceanbase.jdbc.internal.util.ConnectionState;
+import com.alipay.oceanbase.jdbc.internal.util.StringCacheUtil;
 import com.alipay.oceanbase.jdbc.internal.util.Utils;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
@@ -391,6 +392,18 @@ public class OceanBaseConnection implements Connection {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
+    private String getCachedSql(String originSql) throws SQLException {
+        if (StringCacheUtil.sqlStringCache == null) {
+            return originSql;
+        }
+        String sqlCache = StringCacheUtil.sqlStringCache.getIfPresent(originSql);
+        if (sqlCache == null) {
+            StringCacheUtil.sqlStringCache.put(originSql, originSql);
+            sqlCache = originSql;
+        }
+        return sqlCache;
+    }
+
     /**
      * Send ServerPrepareStatement or ClientPrepareStatement depending on SQL query and options If
      * server side and PREPARE can be delayed, a facade will be return, to have a fallback on client
@@ -416,7 +429,9 @@ public class OceanBaseConnection implements Connection {
         if (sql != null) {
 
             String sqlQuery = Utils.nativeSql(sql, protocol);
-
+            if (options.useSqlStringCache) {
+                sqlQuery = getCachedSql(sqlQuery);
+            }
             if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
