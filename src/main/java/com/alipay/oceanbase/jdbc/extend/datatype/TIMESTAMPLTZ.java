@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 import com.alipay.oceanbase.jdbc.OceanBaseConnection;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class TIMESTAMPLTZ extends Datum {
     private static int      SIZE_TIMESTAMPLTZ        = 12;
@@ -138,8 +139,22 @@ public class TIMESTAMPLTZ extends Datum {
         return timestamp;
     }
 
+    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes) throws SQLException {
+        if (bytes.length < 12) {
+            throw new SQLException("invalid bytes length");
+        }
+        Timestamp timestamp = new Timestamp(TIMESTAMPTZ.getOriginTime(bytes,
+            TimeZone.getTimeZone(protocol.getTimeZone().getID())));
+        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
+        return timestamp;
+    }
+
     public static TIMESTAMP toTIMESTAMP(Connection connection, byte[] bytes) throws SQLException {
         return new TIMESTAMP(toTimestamp(connection, bytes));
+    }
+
+    public static TIMESTAMP toTIMESTAMP(Protocol protocol, byte[] bytes) throws SQLException {
+        return new TIMESTAMP(toTimestamp(protocol, bytes));
     }
 
     public static TIMESTAMPTZ toTIMESTAMPTZ(Connection connection, byte[] bytes)

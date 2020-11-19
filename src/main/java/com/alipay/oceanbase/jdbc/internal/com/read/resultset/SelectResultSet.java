@@ -114,6 +114,7 @@ public class SelectResultSet implements ResultSet {
         } else {
             row = new TextRowProtocol(results.getMaxFieldSize(), options);
         }
+        row.setProtocol(protocol);
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
         this.dataSize = 0;

@@ -11,6 +11,9 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -782,7 +785,28 @@ public class BinaryRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
-
+        if (this.getProtocol().isOracleMode()) {
+            Calendar cal;
+            if (userCalendar != null) {
+                cal = userCalendar;
+            } else {
+                cal = Calendar.getInstance(timeZone);
+            }
+            TIMESTAMP timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case TIMESTAMP_TZ:
+                    TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
+                        timeZone);
+                    timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
+                    return timestamp.timestampValue(cal);
+                case TIMESTAMP_LTZ:
+                    TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
+                        userCalendar, timeZone);
+                    timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
+                        oracleTimestampLTZ.getBytes());
+                    return timestamp.timestampValue(cal);
+            }
+        }
         if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
             Calendar cal;
             if (userCalendar != null) {
@@ -983,6 +1007,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case SET:
                 break;
+            case TIMESTAMP_TZ:
+                return getInternalTIMESTAMPTZ(columnInfo, null, timeZone);
+            case TIMESTAMP_LTZ:
+                return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
             default:
                 break;
         }

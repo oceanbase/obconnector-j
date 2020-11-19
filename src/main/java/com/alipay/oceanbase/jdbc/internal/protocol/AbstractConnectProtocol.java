@@ -257,6 +257,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
             capabilities |= OceanBaseServerCapabilities.CONNECT_WITH_DB;
         }
+        // tell ObServer if client support LobLocator.
+        if (options.supportLobLocator) {
+            capabilities |= OceanBaseServerCapabilities.CLIENT_SUPPORT_LOB_LOCATOR;
+        }
         return capabilities;
     }
 

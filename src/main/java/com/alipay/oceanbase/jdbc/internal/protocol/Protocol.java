@@ -237,4 +237,10 @@ public interface Protocol {
     boolean isInterrupted();
 
     void stopIfInterrupted() throws SQLTimeoutException;
+
+    void setChecksum(long checksum);
+
+    void resetChecksum();
+
+    long getChecksum();
 }

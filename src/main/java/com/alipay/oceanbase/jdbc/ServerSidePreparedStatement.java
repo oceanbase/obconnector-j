@@ -9,6 +9,7 @@ import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.alipay.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.alipay.oceanbase.jdbc.util.ObCrc32C;
 
 public class ServerSidePreparedStatement extends BasePrepareStatement implements Cloneable {
 
@@ -22,6 +23,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   private Map<Integer, ParameterHolder> currentParameterHolder;
   private List<ParameterHolder[]> queryParameters = new ArrayList<>();
   private boolean mustExecuteOnMaster;
+  private long     checksum = 1;
 
   /**
    * Constructor for creating Server prepared statement.
@@ -79,6 +81,11 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
 
   private void prepare(String sql) throws SQLException {
     try {
+      ObCrc32C crc32C = new ObCrc32C();
+      crc32C.reset();
+      byte[] b = sql.getBytes(); //  Consider the case of multiple character sets
+      crc32C.update(b, 0, b.length);
+      this.checksum = crc32C.getValue();
       serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
       setMetaFromResult();
     } catch (SQLException e) {
@@ -385,11 +392,11 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
               protocol.getAutoIncrementIncrement(),
               sql,
               parameterHolders);
-
+      protocol.setChecksum(this.checksum);
       serverPrepareResult.resetParameterTypeHeader();
       protocol.executePreparedQuery(
           mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
-
+      protocol.resetChecksum();
       results.commandEnd();
       return results.getResultSet() != null;
 

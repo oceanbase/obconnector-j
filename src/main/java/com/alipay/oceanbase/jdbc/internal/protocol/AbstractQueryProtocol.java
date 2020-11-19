@@ -65,6 +65,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
+  private long checksum = 1;
 
   /**
    * Get a protocol instance.
@@ -1005,7 +1006,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             paramCount,
             parameterTypeHeader,
             writer,
-            Packet.CURSOR_TYPE_NO_CURSOR);
+            Packet.CURSOR_TYPE_NO_CURSOR,
+                getProtocol());
         writer.flush();
       }
 
@@ -1079,7 +1081,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           parameters,
           parameterCount,
           serverPrepareResult.getParameterTypeHeader(),
-          Packet.CURSOR_TYPE_NO_CURSOR);
+          Packet.CURSOR_TYPE_NO_CURSOR,
+              this);
       getResult(results);
 
     } catch (SQLException qex) {
@@ -2018,5 +2021,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // interrupted during read, must throw an exception manually
       throw new SQLTimeoutException("Timeout during batch execution");
     }
+  }
+  @Override
+  public void setChecksum(long checksum) {
+    this.checksum = checksum;
+  }
+
+  @Override
+  public void resetChecksum() {
+    this.checksum = 1;
+  }
+
+  @Override
+  public long getChecksum() {
+    return checksum;
   }
 }

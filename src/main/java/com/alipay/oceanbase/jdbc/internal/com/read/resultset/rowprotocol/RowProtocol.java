@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 public abstract class RowProtocol {
@@ -37,6 +38,7 @@ public abstract class RowProtocol {
 
   public static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
   protected static final int NULL_LENGTH = -1;
+  private Protocol    protocol;
 
   static {
     TEXT_LOCAL_DATE_TIME =
@@ -476,5 +478,12 @@ public abstract class RowProtocol {
    */
   public boolean wasNull() {
     return (lastValueNull & BIT_LAST_FIELD_NULL) != 0 || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
+  }
+
+  public Protocol getProtocol() {
+    return protocol;
+  }
+  public void setProtocol(Protocol protocol) {
+    this.protocol = protocol;
   }
 }

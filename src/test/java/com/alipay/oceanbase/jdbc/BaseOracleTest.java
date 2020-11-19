@@ -10,6 +10,7 @@ import com.sun.jna.Platform;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
@@ -53,6 +54,7 @@ public class BaseOracleTest {
   protected static boolean testSingleHost;
   protected static Connection sharedConnection;
   protected static Connection sharedPSConnection;
+  protected static Connection sharedPSConnectionWithoutChecksum;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
@@ -148,6 +150,8 @@ public class BaseOracleTest {
       urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
       UrlParser urlParserPS =
           UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
+      UrlParser urlParserPSWithoutChecksum =
+              UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&useServerPsStmtChecksum=false");
       if (urlParser.getHostAddresses().size() > 0) {
         hostname = urlParser.getHostAddresses().get(0).host;
         port = urlParser.getHostAddresses().get(0).port;
@@ -191,10 +195,12 @@ public class BaseOracleTest {
       try {
         sharedConnection = OceanBaseConnection.newConnection(urlParser, null);
         sharedPSConnection = OceanBaseConnection.newConnection(urlParserPS, null);
+        sharedPSConnectionWithoutChecksum = OceanBaseConnection.newConnection(urlParserPSWithoutChecksum, null);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
         sharedPSConnection = DriverManager.getConnection(url);
+        sharedPSConnectionWithoutChecksum = DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
