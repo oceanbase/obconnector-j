@@ -238,6 +238,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
               null);
 
       // if  multi send capacity
+      protocol.setChecksum(this.checksum);
       if ((options.useBatchMultiSend || options.useBulkStmts)
           && (protocol.executeBatchServer(
               mustExecuteOnMaster,
@@ -249,6 +250,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
         if (metadata == null) {
           setMetaFromResult(); // first prepare
         }
+        protocol.resetChecksum();
         results.commandEnd();
         return;
       }
@@ -296,7 +298,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
       if (exception != null) {
         throw exception;
       }
-
+      protocol.resetChecksum();
       results.commandEnd();
     } catch (SQLException initialSqlEx) {
       throw executeBatchExceptionEpilogue(initialSqlEx, queryParameterSize);

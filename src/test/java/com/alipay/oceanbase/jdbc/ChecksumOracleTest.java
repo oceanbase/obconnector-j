@@ -24,6 +24,9 @@ public class ChecksumOracleTest extends BaseOracleTest {
         createTable(
             "test_batch2",
             "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
+        createTable(
+            "test_batch3",
+            "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
     }
 
     public static void testChecksum(Connection conn, String tableName) {
@@ -260,6 +263,47 @@ public class ChecksumOracleTest extends BaseOracleTest {
         }
     }
 
+    public static void testChecksumReflection(Connection conn, String tableName) {
+        try {
+            ResultSet rs = null;
+            PreparedStatement ps = null;
+
+            ps = conn
+                .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
+                                  + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+            for (int i = 0; i < 10; ++i) {
+                ps.setInt(1, i);
+                ps.setString(2, "value_" + String.format("%02d", i));
+                ps.setTimestamp(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(4, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(5, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(6, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            ps = conn
+                .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
+                                  + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+            Class psClass = (Class) ps.getClass();
+            java.lang.reflect.Field f = psClass.getDeclaredField("checksum");
+            f.setAccessible(true);
+            f.set(ps, 1222);
+            for (int i = 0; i < 10; ++i) {
+                ps.setInt(1, i);
+                ps.setString(2, "value_" + String.format("%02d", i));
+                ps.setTimestamp(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(4, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(5, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.setTimestamp(6, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertTrue(e.getMessage().contains("unexpected end of stream"));
+        }
+    }
+
     /**
      * Test for useServerPsStmtChecksum=true , the default value is true.
      * @throws SQLException throw sql exception
@@ -278,5 +322,11 @@ public class ChecksumOracleTest extends BaseOracleTest {
     public void testChecksumOff() throws SQLException {
         Connection conn = sharedPSConnectionWithoutChecksum;
         testChecksum(conn, "test_batch2");
+    }
+
+    @Test
+    public void testChecksumReflection() throws SQLException {
+        Connection conn = sharedPSConnection;
+        testChecksumReflection(conn, "test_batch3");
     }
 }
