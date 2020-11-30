@@ -41,7 +41,6 @@ public final class ObCrc32C implements Checksum {
 
     /**
      * Return a masked representation of crc.
-     * <p/>
      * Motivation: it is problematic to compute the CRC of a string that contains embedded CRCs.  Therefore we recommend
      * that CRCs stored somewhere (e.g., in files) should be masked before being stored.
      */
