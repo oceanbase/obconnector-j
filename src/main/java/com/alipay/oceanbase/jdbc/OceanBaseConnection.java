@@ -301,10 +301,9 @@ public class OceanBaseConnection implements Connection {
         if (urlParser.getOptions().pool) {
             return Pools.retrievePool(urlParser).getConnection();
         }
-
-        //        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
-        ////        return new OceanBaseConnection(protocol);
-        return new OceanBaseConnection(urlParser, globalInfo);
+        // ? todo
+        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+        return new OceanBaseConnection(protocol);
     }
 
     public static String quoteIdentifier(String string) {
@@ -1630,15 +1629,11 @@ public class OceanBaseConnection implements Connection {
     }
 
     public boolean getCacheComplexData() { // todo connection properties
-        //        return this.cacheComplexData.getValueAsBoolean();
-        //        Object obj = this;
-        //        Boolean tmp =(Boolean)obj;
-        //        return tmp.booleanValue();
+        // todo
         return true;
     }
 
     public void recacheComplexDataType(ComplexDataType type) {
-        //        synchronized (getConnectionMutex()) { //
         synchronized (this.protocol) { // todo don't know
             synchronized (this.complexDataCache) {
                 this.complexDataCache.put(type.getTypeName().toUpperCase(), type);
@@ -1665,8 +1660,8 @@ public class OceanBaseConnection implements Connection {
 
     private java.sql.Connection getComplexConnection() throws SQLException {
         if (null == this.complexConnection || this.complexConnection.isClosed()) {
-            //            Protocol protocolTmp = Utils.retrieveProxy(this.getProtocol().getUrlParser(),this.getProtocol().globalInfo);
-            this.complexConnection = new OceanBaseConnection(this.urlParser, this.globalStateInfo); // duplicate a new connection todo
+            this.complexConnection = new OceanBaseConnection(this.protocol.getUrlParser(),
+                this.globalStateInfo); // duplicate a new connection todo
         }
         return this.complexConnection;
     }

@@ -55,6 +55,7 @@ public class BaseOracleTest {
   protected static Connection sharedConnection;
   protected static Connection sharedPSConnection;
   protected static Connection sharedPSConnectionWithoutChecksum;
+  protected static Connection sharedPSLobConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
@@ -150,6 +151,8 @@ public class BaseOracleTest {
       urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
       UrlParser urlParserPS =
           UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
+      UrlParser urlParserPSLob =
+              UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
       UrlParser urlParserPSWithoutChecksum =
               UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&useServerPsStmtChecksum=false");
       if (urlParser.getHostAddresses().size() > 0) {
@@ -196,6 +199,7 @@ public class BaseOracleTest {
         sharedConnection = OceanBaseConnection.newConnection(urlParser, null);
         sharedPSConnection = OceanBaseConnection.newConnection(urlParserPS, null);
         sharedPSConnectionWithoutChecksum = OceanBaseConnection.newConnection(urlParserPSWithoutChecksum, null);
+        sharedPSLobConnection = OceanBaseConnection.newConnection(urlParserPSLob, null);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);

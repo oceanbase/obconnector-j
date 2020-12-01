@@ -227,6 +227,12 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
+        if (this.connection.getProtocol().isOracleMode()
+            && (((OceanBaseBlob) blob).getLocator() != null)
+            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+            byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
+            setParameter(parameterIndex, new OBByteArrayParameter(data, noBackslashEscapes));
+        }
         if (this.connection.getProtocol().isOracleMode()) {
             setParameter(parameterIndex,
                 new OBStreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));

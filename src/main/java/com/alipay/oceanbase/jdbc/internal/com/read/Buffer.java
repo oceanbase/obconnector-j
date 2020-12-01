@@ -120,6 +120,32 @@ public class Buffer {
                 + ((buf[position++] & 0xff) << 16) + ((buf[position++] & 0xff) << 24));
     }
 
+    public int readIntV1() {
+        byte[] b = this.buf; // a little bit optimization
+
+        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8);
+    }
+
+    public long readLongV1() {
+        byte[] b = this.buf;
+
+        return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24);
+    }
+
+    public long readLongLongV1() {
+        byte[] b = this.buf;
+
+        return (b[this.position++] & 0xff) | ((long) (b[this.position++] & 0xff) << 8)
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24)
+               | ((long) (b[this.position++] & 0xff) << 32)
+               | ((long) (b[this.position++] & 0xff) << 40)
+               | ((long) (b[this.position++] & 0xff) << 48)
+               | ((long) (b[this.position++] & 0xff) << 56);
+    }
+
     /**
      * Read a long (8 bytes) from the buffer.
      *
@@ -130,13 +156,6 @@ public class Buffer {
                 + ((long) (buf[position++] & 0xff) << 16) + ((long) (buf[position++] & 0xff) << 24)
                 + ((long) (buf[position++] & 0xff) << 32) + ((long) (buf[position++] & 0xff) << 40)
                 + ((long) (buf[position++] & 0xff) << 48) + ((long) (buf[position++] & 0xff) << 56));
-    }
-
-    public long readLongV1() {
-        byte[] b = this.buf;
-        return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
-               | ((long) (b[this.position++] & 0xff) << 16)
-               | ((long) (b[this.position++] & 0xff) << 24);
     }
 
     /**
@@ -157,7 +176,7 @@ public class Buffer {
         return buf[position];
     }
 
-    final byte[] getBytes(int len) {
+    public byte[] getBytes(int len) {
         byte[] b = new byte[len];
         System.arraycopy(this.buf, this.position, b, 0, len);
         this.position += len; // update cursor
@@ -431,18 +450,6 @@ public class Buffer {
         this.limit = newCapacity;
     }
 
-    public long readLongLongV1() {
-        byte[] b = this.buf;
-
-        return (b[this.position++] & 0xff) | ((long) (b[this.position++] & 0xff) << 8)
-               | ((long) (b[this.position++] & 0xff) << 16)
-               | ((long) (b[this.position++] & 0xff) << 24)
-               | ((long) (b[this.position++] & 0xff) << 32)
-               | ((long) (b[this.position++] & 0xff) << 40)
-               | ((long) (b[this.position++] & 0xff) << 48)
-               | ((long) (b[this.position++] & 0xff) << 56);
-    }
-
     public int readLongIntV1() {
         byte[] b = this.buf;
 
@@ -506,5 +513,18 @@ public class Buffer {
             default:
                 return sw;
         }
+    }
+
+    public int getLimit() {
+        return limit;
+    }
+
+    /**
+     * Returns the array of bytes this Buffer is using to read from.
+     *
+     * @return byte array being read from
+     */
+    public byte[] getByteBuffer() {
+        return buf;
     }
 }

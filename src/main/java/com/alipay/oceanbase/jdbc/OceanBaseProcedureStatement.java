@@ -47,6 +47,77 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
     }
   }
 
+    private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
+        int i = 0;
+        while (paramTypesRs.next()) {
+            String paramName = paramTypesRs.getString("ARGUMENT_NAME");
+            String inOut = paramTypesRs.getString("IN_OUT");
+            //            int inOutModifier = DatabaseMetaData.procedureColumnUnknown;
+            //            boolean isOutParameter = false;
+            //            boolean isInParameter = false;
+            //            if (this.numberOfParameters() == 0 && this.getfucn) {
+            //                isOutParameter = true;
+            //                isInParameter = false;
+            //            } else if (null == inOut || inOut.equalsIgnoreCase("IN")) {
+            //                isOutParameter = false;
+            //                isInParameter = true;
+            //                inOutModifier = DatabaseMetaData.procedureColumnIn;
+            //            } else if (inOut.equalsIgnoreCase("INOUT")) {
+            //                isOutParameter = true;
+            //                isInParameter = true;
+            //                inOutModifier = DatabaseMetaData.procedureColumnInOut;
+            //            } else if (inOut.equalsIgnoreCase("OUT")) {
+            //                isOutParameter = true;
+            //                isInParameter = false;
+            //                inOutModifier = DatabaseMetaData.procedureColumnOut;
+            //            } else {
+            //                isInParameter = true;
+            //                isOutParameter = false;
+            //                inOutModifier = DatabaseMetaData.procedureColumnIn;
+            //            }
+
+            String typeName = paramTypesRs.getString("DATA_TYPE");
+            int precision = paramTypesRs.getInt("DATA_PRECISION");
+            int scale = paramTypesRs.getInt("DATA_SCALE");
+            //++this.numParameters;
+        }
+    }
+
+    private void determineParameterTypes(String database, String procedureName) throws SQLException {
+        if (database != null) {
+            database = database.replace("`", "");
+        } else {
+            database = null;
+        }
+        String proc = procedureName.replace("`", "");
+        java.sql.ResultSet paramTypesRs = null; // NOPMD
+        java.sql.Statement paramRetrievalStmt = null; // NOPMD
+        paramRetrievalStmt = this.connection.createStatement();
+        /* TODO due to the ObServer will have two same procedure for user (with schema and without schema), we add DISTINCT for ARGUMENT_NAME
+           to get one from them. */
+        String sqlHeader = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
+                           + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
+        StringBuilder paramMetaSql = new StringBuilder(sqlHeader);
+
+        String objectName = database + "." + proc;
+        String[] objectNameList = objectName.split("\\.");
+        if (objectNameList.length == 2) {
+            paramMetaSql.append(objectNameList[1].toUpperCase());
+            paramMetaSql.append("' and package_name = '").append(objectNameList[0].toUpperCase());
+        } else {
+            paramMetaSql.append(objectNameList[0].toUpperCase());
+        }
+
+        paramMetaSql.append("' order by POSITION");
+        paramTypesRs = paramRetrievalStmt.executeQuery(paramMetaSql.toString());
+
+        if (paramTypesRs.next()) {
+            paramTypesRs.previous();
+            //                convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
+            //                addParametersFromDBOD(paramTypesRs);
+        }
+    }
+
     private void setInputOutputParameterMap() {
         if (outputParameterMapper == null) {
             outputParameterMapper = new int[params.size()];

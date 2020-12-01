@@ -1407,6 +1407,12 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == 210) {
+            columnsInformation[columnIndex - 1].getCharsetNumber();
+            byte[] data = new byte[row.length];
+            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            return new OceanBaseBlob(true, data, "UTF-8", this.statement.getConnection()); // todo
+        }
         return new OceanBaseBlob(row.buf, row.pos, row.length);
     }
 

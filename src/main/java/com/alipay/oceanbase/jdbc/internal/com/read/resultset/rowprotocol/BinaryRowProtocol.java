@@ -184,7 +184,8 @@ public class BinaryRowProtocol extends RowProtocol {
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
-
+                                    case 210: // Blob Locator
+                                    case 211: // Clob Locator
                                     case 253:
                                         // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
                                         length = 0xffffff & ((buf[internalPos++] & 0xff)

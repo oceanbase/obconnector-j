@@ -105,6 +105,7 @@ public class ComplexOracleTest extends BaseOracleTest {
             //                    strArray[i] = null;
             //                }
             //            }
+
             java.sql.Timestamp[] dateArray = new Timestamp[10];
             for (int i = 0; i < 10; ++i) {
                 if (i % 2 == 0) {
