@@ -32,7 +32,7 @@ public class ComplexOracleTest extends BaseOracleTest {
         createTable(tablenameArray, "c1 int primary key,c2 interval day(6) to second(5)");
         createTable(tablenameStruct, " c1 int primary key,c2 interval year(4) to month");
         createTable(array1, "c1 int");
-        createTable(array2, "c1 varchar(100)");
+        createTable(array2, "c1 char(100)");
         createTable(array3, "c1 date");
         createTable(struct1, "c1 int");
         createTable(struct2, "c1 varchar(100)");
@@ -76,15 +76,16 @@ public class ComplexOracleTest extends BaseOracleTest {
             conn = sharedPSConnection;
             PreparedStatement ps = null;
             Statement stmt = conn.createStatement();
-            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c1 int, c2 varchar(100), c3 date)");
+            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c1 int, c3 date)");
             stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj");
 
             // test input
             String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_objarr(X IN obj_array) IS "
                                  + "BEGIN " + "  FOR idx IN 1..X.count LOOP " + "    INSERT INTO "
-                                 + array1 + " VALUES(X(idx).c1);" + "  END LOOP; "
-                                 + "  FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array2
-                                 + "  VALUES(X(idx).c2);" + "  END LOOP; "
+                                 + array1 + " VALUES(X(idx).c1);"
+                                 + "  END LOOP; "
+                                 //                                 + "  FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array2
+                                 //                                 + "  VALUES(X(idx).c2);" + "  END LOOP; "
                                  + "    FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array3
                                  + " VALUES(X(idx).c3);" + "  END LOOP; " + "END;";
             stmt.execute(createPlSql);
@@ -96,14 +97,14 @@ public class ComplexOracleTest extends BaseOracleTest {
                     intArray[i] = i;
                 }
             }
-            String[] strArray = new String[10];
-            for (int i = 0; i < 10; ++i) {
-                if (i % 2 == 0) {
-                    strArray[i] = "luyun_" + i;
-                } else {
-                    strArray[i] = null;
-                }
-            }
+            //            String[] strArray = new String[10];
+            //            for (int i = 0; i < 10; ++i) {
+            //                if (i % 2 == 0) {
+            //                    strArray[i] = "luyun_" + i;
+            //                } else {
+            //                    strArray[i] = null;
+            //                }
+            //            }
             java.sql.Timestamp[] dateArray = new Timestamp[10];
             for (int i = 0; i < 10; ++i) {
                 if (i % 2 == 0) {
@@ -115,7 +116,8 @@ public class ComplexOracleTest extends BaseOracleTest {
             Object[] structArray = new Object[10];
             for (int i = 0; i < 10; ++i) {
                 structArray[i] = conn.createStruct("my_obj", new Object[] { intArray[i],
-                        strArray[i], dateArray[i] });
+                        dateArray[i] });
+                //                        strArray[i], dateArray[i] });
             }
             Array array = conn.createArrayOf("my_obj", structArray);
             //            ((ArrayImpl)array).getComplexType().setTypeName("obj_array");
@@ -133,12 +135,12 @@ public class ComplexOracleTest extends BaseOracleTest {
                 }
                 ps.close();
 
-                ps = conn.prepareStatement("select * from " + array2);
-                rs = ps.executeQuery();
-                while (rs.next()) {
-                    System.out.println(rs.getString("c1"));
-                }
-                ps.close();
+                //                ps = conn.prepareStatement("select * from " + array2);
+                //                rs = ps.executeQuery();
+                //                while (rs.next()) {
+                //                    System.out.println(rs.getString("c1"));
+                //                }
+                //                ps.close();
 
                 ps = conn.prepareStatement("select * from " + array3);
                 rs = ps.executeQuery();
@@ -161,12 +163,12 @@ public class ComplexOracleTest extends BaseOracleTest {
                 }
                 ps.close();
 
-                ps = conn.prepareStatement("select * from " + array2);
-                rs = ps.executeQuery();
-                while (rs.next()) {
-                    System.out.println(rs.getString("c1"));
-                }
-                ps.close();
+                //                ps = conn.prepareStatement("select * from " + array2);
+                //                rs = ps.executeQuery();
+                //                while (rs.next()) {
+                //                    System.out.println(rs.getString("c1"));
+                //                }
+                //                ps.close();
 
                 ps = conn.prepareStatement("select * from " + array3);
                 rs = ps.executeQuery();
@@ -178,10 +180,11 @@ public class ComplexOracleTest extends BaseOracleTest {
             // test output
             createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out(x OUT obj_array) IS"
                           + " i int :=1;" + " BEGIN" + " x.extend(10);" + "  for idx in 1..5 loop"
-                          + "    x(i).c1 := idx;" + "    x(i).c2 := idx;"
-                          + "    x(i).c3 := date '1970-01-01';" + "    x(i + 1).c1 := null;"
-                          + "    x(i + 1).c2 := null;" + "    x(i + 1).c3 := null;"
-                          + "    i := i + 2;" + "  end loop;" + "END;";
+                          //                          + "    x(i).c1 := idx;" + "    x(i).c2 := idx;"
+                          + "    x(i).c1 := idx;" + "    x(i).c3 := date '1970-01-01';"
+                          + "    x(i + 1).c1 := null;"
+                          //                          + "    x(i + 1).c2 := null;" + "    x(i + 1).c3 := null;"
+                          + "    x(i + 1).c3 := null;" + "    i := i + 2;" + "  end loop;" + "END;";
             {
                 stmt.execute(createPlSql);
                 ps = conn.prepareStatement("call my_proc_obj_out(?)");

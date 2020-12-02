@@ -991,19 +991,6 @@ public class OceanBaseConnection implements Connection {
         return protocol.versionGreaterOrEqual(major, minor, patch);
     }
 
-    private Connection getObOrcaleConnection() throws Exception {
-        //        final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false&useServerPrepStmts=true";
-        //                final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false";
-        //        final String url = "jdbc:oceanbase://100.88.105.219:2121/sys?pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true";
-        //        final String username = "admin@oracle";
-        //        final String password = "admin";
-        final String url = "jdbc:oceanbase://11.159.217.1:10013/SYS?useSSL=false&useServerPrepStmts=true";
-        final String username = "sys@oracle";
-        final String password = "";
-        Class.forName("com.alipay.oceanbase.jdbc.Driver");
-        return DriverManager.getConnection(url, username, password);
-    }
-
     /**
      * Retrieves this <code>Connection</code> object's current transaction isolation level.
      *
