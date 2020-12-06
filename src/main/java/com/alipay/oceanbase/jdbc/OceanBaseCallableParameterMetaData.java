@@ -163,7 +163,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
 
             paramMetaSql.append("' order by POSITION");
 
-            System.out.println("DML SQL:" + paramMetaSql.toString());
+//            System.out.println("DML SQL:" + paramMetaSql.toString());
 
             ResultSet rs = stmt.executeQuery(paramMetaSql.toString());
 

@@ -231,14 +231,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             && (((OceanBaseBlob) blob).getLocator() != null)
             && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
             byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
-            setParameter(parameterIndex, new OBByteArrayParameter(data, noBackslashEscapes));
-        }
-        if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex,
-                new OBStreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
-        } else {
-            setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(),
+            //            setParameter(parameterIndex, new OBByteArrayParameter(data, noBackslashEscapes));
+            setParameter(parameterIndex, new OBStreamParameter(true, data, blob.length(),
                 noBackslashEscapes));
+
+        } else {
+            if (this.connection.getProtocol().isOracleMode()) {
+                setParameter(parameterIndex, new OBStreamParameter(false, blob.getBinaryStream(),
+                    blob.length(), noBackslashEscapes));
+            } else {
+                setParameter(parameterIndex,
+                    new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+            }
         }
         hasLongData = true;
     }
@@ -269,7 +273,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         }
 
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBStreamParameter(inputStream, length,
+
+            setParameter(parameterIndex, new OBStreamParameter(false, inputStream, length,
                 noBackslashEscapes));
         } else {
             setParameter(parameterIndex, new StreamParameter(inputStream, length,
@@ -326,9 +331,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-
-        setParameter(parameterIndex, new ReaderParameter(clob.getCharacterStream(), clob.length(),
-            noBackslashEscapes));
+        if (this.connection.getProtocol().isOracleMode()
+            && (((OceanBaseBlob) clob).getLocator() != null)
+            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+            byte[] data = ((OceanBaseBlob) clob).getLocator().binaryData;
+            setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
+                noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex,
+                new ReaderParameter(clob.getCharacterStream(), clob.length(), noBackslashEscapes));
+        }
         hasLongData = true;
     }
 

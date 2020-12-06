@@ -11,20 +11,36 @@ import java.sql.*;
 import static org.junit.Assert.fail;
 
 public class LobLocatorOracleTest extends BaseOracleTest {
-    public static String tableNameDS = "test_intervalds";
+    public static String tableBlob             = "test_blob";
+    public static String tableLobLoad          = "test_blob1";
+    public static String tableBlobSetBytes     = "test_blob2";
+    public static String tableBlobTrim         = "test_blob3";
+    public static String tableOBOracleModeBlob = "test_blob4";
+    public static String tableClob             = "test_clob";
+    public static String tableClobSetString    = "test_clob2";
+    public static String tableClobTrim         = "test_clob3";
+    public static String tableOBOracleModeClob = "test_clob4";
+    public static String tableClobEncoding     = "zdw_test_clob";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
-        //        createTable(tableNameDS, "c1 int primary key,c2 interval day(6) to second(5)");
-        System.out.println("tableNameDS = " + tableNameDS);
-        //
+        createTable(tableBlob, "c1 varchar(10), c2 Blob");
+        createTable(tableLobLoad, "c1 varchar(10), c2 Blob");
+        createTable(tableBlobSetBytes, "c1 varchar(10), c2 Blob");
+        createTable(tableBlobTrim, "c1 varchar(10), c2 Blob");
+        createTable(tableOBOracleModeBlob, "c1 varchar(10), c2 Blob");
+        createTable(tableBlob, "c1 varchar(10), c2 Clob");
+        createTable(tableClobSetString, "c1 varchar(10), c2 Clob");
+        createTable(tableClobTrim, "c1 varchar(10), c2 Clob");
+        createTable(tableOBOracleModeClob, "c1 varchar(10), c2 Clob");
+        createTable(tableClobEncoding, "c1 varchar(10), c2 Clob");
     }
 
     @Test
     public void oracleLobRead() throws SQLException, IOException {
         Connection conn = sharedPSLobConnection;
-        PreparedStatement pstmtt = conn
-            .prepareStatement("SELECT * FROM zdw_test_blob WHERE c1=? for update");
+        PreparedStatement pstmtt = conn.prepareStatement("SELECT * FROM " + tableLobLoad
+                                                         + " WHERE c1=? for update");
         pstmtt.setString(1, "112");
         ResultSet rs = null;//pstmtt.executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
         rs = pstmtt.executeQuery();
@@ -51,23 +67,14 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         Connection conn = sharedPSLobConnection;
         try {
 
-            String c_sql = "drop table zdw_test_clob";
-            PreparedStatement pstmt = conn.prepareStatement(c_sql);
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test_clob(c1 varchar(10), c2 Clob);";
-
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
+            PreparedStatement pstmt = null;
             /*
                         pstmt = conn.prepareStatement("insert into zdw_test_clob values(?, ?)");
                         pstmt.setString(1, "112");
                         pstmt.setBytes(2, new byte[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g' });
                         pstmt.executeUpdate();
             */
-            c_sql = "insert into zdw_test_clob values('112', 'CLOB_1111111');";
+            String c_sql = "insert into " + tableClobSetString + " values('112', 'CLOB_1111111');";
             pstmt = conn.prepareStatement(c_sql);
             pstmt.execute();
 
@@ -75,8 +82,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //pstmt.
             conn.setAutoCommit(false);
 
-            ResultSet rs = pstmt
-                .executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
+            ResultSet rs = pstmt.executeQuery("SELECT * FROM " + tableClobSetString
+                                              + " WHERE c1='112' for update;");
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -91,7 +98,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
-            rs = pstmt.executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
+            rs = pstmt.executeQuery("SELECT * FROM " + tableClobSetString
+                                    + " WHERE c1='112' for update;");
             c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -104,13 +112,6 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -120,19 +121,10 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         try {
             conn = sharedPSLobConnection;
 
-            String c_sql = "drop table zdw_test_clob";
-            PreparedStatement pstmt = conn.prepareStatement(c_sql);
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test_clob(c1 varchar(10), c2 Clob);";
-
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
+            PreparedStatement pstmt = null;
 
             //c_sql = "insert into zdw_test_clob values('112', 'CLOB_1111111');";
-            c_sql = "insert into zdw_test_clob values('112', 'CLOB_中华人民共和国');";
+            String c_sql = "insert into " + tableClobTrim + " values('112', 'CLOB_中华人民共和国');";
             pstmt = conn.prepareStatement(c_sql);
             pstmt.execute();
 
@@ -140,8 +132,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //pstmt.
             conn.setAutoCommit(false);
 
-            ResultSet rs = pstmt
-                .executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
+            ResultSet rs = pstmt.executeQuery("SELECT * FROM " + tableClobTrim
+                                              + " WHERE c1='112' for update;");
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -156,7 +148,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
-            rs = pstmt.executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
+            rs = pstmt.executeQuery("SELECT * FROM " + tableClobTrim
+                                    + " WHERE c1='112' for update;");
             c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -168,108 +161,78 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
-    //    @Ignore
-    //    public void oracleClobEncoding() {
-    //        Connection conn = null;
-    //        try {
-    //            String encoding_str[] = {"utf8", "utf8", "gbk"};
-    //            String encoding_str2[] = {"utf8", "utf8mb4", "gbk"};
-    //            for (int i = 0; i < encoding_str.length; i++) {
-    //
-    //                System.out.println("Encoding:" + encoding_str2[i]);
-    //                conn = ConnectionUtil.getObOracleLobConnectionWithCharset(encoding_str[i]);
-    //
-    //                Statement stmt = conn.createStatement();
-    //                stmt.executeUpdate("set names " + encoding_str2[i]);
-    //
-    //                String c_sql = "drop table zdw_test_clob";
-    //                PreparedStatement pstmt = conn.prepareStatement(c_sql);
-    //                try {
-    //                    pstmt.execute();
-    //                } catch (SQLException e) {
-    //                }
-    //                c_sql = "create table zdw_test_clob(c1 varchar(10), c2 Clob);";
-    //
-    //                pstmt = conn.prepareStatement(c_sql);
-    //                pstmt.execute();
-    //
-    //                c_sql = "insert into zdw_test_clob values('112', 'CLOB_奥星贝斯数据库，输入的是中文！');";
-    //                pstmt = conn.prepareStatement(c_sql);
-    //                pstmt.execute();
-    //
-    //                Clob clob = null;
-    //                //pstmt.
-    //                conn.setAutoCommit(false);
-    //
-    //                ResultSet rs = pstmt
-    //                        .executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
-    //                String c1 = null;
-    //                while (rs.next()) {
-    //                    c1 = rs.getString(1);
-    //                    clob = (Clob) rs.getClob(2);
-    //                    System.out.println("1:--> c1:" + rs.getString("c1") + "\t"
-    //                            + clob.getSubString(1, (int) clob.length()));
-    //                }
-    //
-    //                clob.truncate(9);
-    //
-    //                System.out.println("2:--> c1:112" + "\t" + clob.getSubString(1, (int) clob.length()));
-    //                Assert.assertTrue("CLOB_奥星贝斯".equals(clob.getSubString(1, (int) clob.length())));
-    //
-    //                rs = pstmt
-    //                        .executeQuery("SELECT * FROM zdw_test_clob WHERE c1='112' for update;");
-    //                c1 = null;
-    //                while (rs.next()) {
-    //                    c1 = rs.getString(1);
-    //                    clob = (Clob) rs.getClob(2);
-    //                    System.out.println("3:--> c1:" + rs.getString("c1") + "\t"
-    //                            + clob.getSubString(1, (int) clob.length()));
-    //                }
-    //                clob.setString(12, "GOOD 好");
-    //                System.out.println("4:--> c1:112" + "\t" + clob.getSubString(1, (int) clob.length()));
-    //                Assert.assertTrue("CLOB_奥星贝斯  GOOD 好".equals(clob.getSubString(1, (int) clob.length())));
-    //            }
-    //        } catch (Exception e) {
-    //            e.printStackTrace();
-    //        } finally {
-    //            if (conn != null) {
-    //                try {
-    //                    conn.close();
-    //                } catch (SQLException e) {
-    //                    e.printStackTrace();
-    //                }
-    //            }
-    //        }
-    //    }
+    @Test
+    public void oracleClobEncoding() {
+        Connection conn = null;
+        try {
+            String encoding_str[] = { "utf8", "utf8" };
+            //                String encoding_str[] = {"utf8", "utf8", "gbk"};
+            String encoding_str2[] = { "utf8", "utf8mb4" };
+            //                String encoding_str2[] = {"utf8", "utf8mb4", "gbk"};
+            for (int i = 2; i < encoding_str.length; i++) {
+
+                System.out.println("Encoding:" + encoding_str2[i]);
+                conn = getObOracleLobConnectionWithCharset(encoding_str[i]);
+
+                String c_sql = "insert into " + tableClobEncoding
+                               + " values('112', 'CLOB_奥星贝斯数据库，输入的是中文！');";
+                PreparedStatement pstmt = conn.prepareStatement(c_sql);
+                pstmt.execute();
+
+                Clob clob = null;
+                //pstmt.
+                conn.setAutoCommit(false);
+
+                ResultSet rs = pstmt.executeQuery("SELECT * FROM " + tableClobEncoding
+                                                  + " WHERE c1='112' for update;");
+                String c1 = null;
+                while (rs.next()) {
+                    c1 = rs.getString(1);
+                    clob = (Clob) rs.getClob(2);
+                    System.out.println("clob.length() = " + clob.length());
+                    System.out.println("1:--> c1:" + rs.getString("c1") + "\t"
+                                       + clob.getSubString(1, (int) clob.length()));
+                }
+
+                clob.truncate(9);
+                System.out.println("2:--> c1:112" + "\t"
+                                   + clob.getSubString(1, (int) clob.length()));
+                Assert.assertTrue("CLOB_奥星贝斯".equals(clob.getSubString(1, (int) clob.length())));
+
+                rs = pstmt.executeQuery("SELECT * FROM " + tableClobEncoding
+                                        + " WHERE c1='112' for update;");
+                c1 = null;
+                while (rs.next()) {
+                    c1 = rs.getString(1);
+                    clob = (Clob) rs.getClob(2);
+                    System.out.println("3:--> c1:" + rs.getString("c1") + "\t"
+                                       + clob.getSubString(1, (int) clob.length()));
+                }
+                clob.setString(12, "GOOD 好");
+                System.out.println("4:--> c1:112" + "\t"
+                                   + clob.getSubString(1, (int) clob.length()));
+                Assert.assertTrue("CLOB_奥星贝斯  GOOD 好".equals(clob.getSubString(1,
+                    (int) clob.length())));
+                conn.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+
+        }
+    }
 
     @Test
     public void oracleBlobSetBytes() {
         Connection conn = null;
         try {
             conn = sharedPSLobConnection;
+            PreparedStatement pstmt = null;
 
-            String c_sql = "drop table zdw_test_blob";
-            PreparedStatement pstmt = conn.prepareStatement(c_sql);
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test_blob(c1 varchar(10), c2 Blob);";
-
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
-
-            pstmt = conn.prepareStatement("insert into zdw_test_blob values(?, ?)");
+            pstmt = conn.prepareStatement("insert into " + tableBlobSetBytes + " values(?, ?)");
             pstmt.setString(1, "112");
             pstmt.setBytes(2, new byte[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g' });
             pstmt.executeUpdate();
@@ -278,8 +241,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //pstmt.
             conn.setAutoCommit(false);
 
-            ResultSet rs = pstmt
-                .executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            ResultSet rs = pstmt.executeQuery("SELECT * FROM " + tableBlobSetBytes
+                                              + " WHERE c1='112' for update;");
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -287,7 +250,6 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 byte blob_byte[] = new byte[100];
                 blob.getBinaryStream().read(blob_byte);
                 StringBuilder bu = new StringBuilder();
-                System.out.println("blob.length() = " + blob.length());
                 for (int i = 0; i < blob.length(); i++) {
                     bu.append(Long.toHexString(Integer.toUnsignedLong(blob_byte[i])));
                     //System.out.println("->" + blob_byte[i]);
@@ -312,7 +274,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
-            rs = pstmt.executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            rs = pstmt.executeQuery("SELECT * FROM " + tableBlobSetBytes
+                                    + " WHERE c1='112' for update;");
             c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -332,13 +295,6 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -349,17 +305,9 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             conn = sharedPSLobConnection;
 
             String c_sql = "drop table zdw_test_blob";
-            PreparedStatement pstmt = conn.prepareStatement(c_sql);
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test_blob(c1 varchar(10), c2 Blob);";
+            PreparedStatement pstmt = null;
 
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
-
-            pstmt = conn.prepareStatement("insert into zdw_test_blob values(?, ?)");
+            pstmt = conn.prepareStatement("insert into " + tableBlobTrim + " values(?, ?)");
             pstmt.setString(1, "112");
             pstmt.setBytes(2, new byte[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g' });
             pstmt.executeUpdate();
@@ -367,8 +315,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             Blob blob = null;
             conn.setAutoCommit(false);
 
-            ResultSet rs = pstmt
-                .executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            ResultSet rs = pstmt.executeQuery("SELECT * FROM " + tableBlobTrim
+                                              + " WHERE c1='112' for update;");
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -388,7 +336,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             blob.truncate(1);
             //            blob.updateBlobToServer();
 
-            rs = pstmt.executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            rs = pstmt.executeQuery("SELECT * FROM " + tableBlobTrim
+                                    + " WHERE c1='112' for update;");
             c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -408,17 +357,10 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
-    @Test
+    @Ignore
     public void oracleClobAndBlobDbmsLobFunction() {
         Connection conn = null;
         try {
@@ -481,18 +423,12 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             e.printStackTrace();
             fail();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+
         }
     }
 
     @Test
-    public void test_ob_oracle_mode() {
+    public void oracleMode() {
         Connection conn = null;
         try {
 
@@ -501,25 +437,16 @@ public class LobLocatorOracleTest extends BaseOracleTest {
 
             PreparedStatement pstmt = null;
             PreparedStatement pstmtt = null;
-            String c_sql = "drop table zdw_test";
-            pstmt = conn.prepareStatement(c_sql);
             pstmtt = conn.prepareStatement("");
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test(c1 varchar(10), c2 Clob);";
+            String c_sql = null;
 
             ResultSet rs = null;
 
+            c_sql = "insert into " + tableOBOracleModeClob + " values('111', 'CLOB_1111111');";
             pstmt = conn.prepareStatement(c_sql);
             pstmt.execute();
 
-            c_sql = "insert into zdw_test values('111', 'CLOB_1111111');";
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
-
-            c_sql = "SELECT  * FROM zdw_test;";
+            c_sql = "SELECT  * FROM " + tableOBOracleModeClob + ";";
             pstmt = conn.prepareStatement(c_sql);
             rs = pstmt.executeQuery();
 
@@ -532,19 +459,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     (int) (c.length() + 10))));
             }
 
-            c_sql = "drop table zdw_test_blob";
-            pstmt = conn.prepareStatement(c_sql);
-            try {
-                pstmt.execute();
-            } catch (SQLException e) {
-            }
-            c_sql = "create table zdw_test_blob(c1 varchar(10), c2 Blob);";
-
-            pstmt = conn.prepareStatement(c_sql);
-            pstmt.execute();
-
-            PreparedStatement apstmt = conn
-                .prepareStatement("insert into zdw_test_blob values(?, ?)");
+            PreparedStatement apstmt = conn.prepareStatement("insert into " + tableOBOracleModeBlob
+                                                             + " values(?, ?)");
 
             apstmt.setString(1, "112");
             //apstmt.setString(2, "ABC");
@@ -553,7 +469,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
 
             Blob blob = null;
 
-            rs = pstmtt.executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            rs = pstmtt.executeQuery("SELECT * FROM " + tableOBOracleModeBlob
+                                     + " WHERE c1='112' for update;");
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -579,7 +496,8 @@ public class LobLocatorOracleTest extends BaseOracleTest {
 
             conn.setAutoCommit(false);
 
-            rs = pstmtt.executeQuery("SELECT * FROM zdw_test_blob WHERE c1='112' for update;");
+            rs = pstmtt.executeQuery("SELECT * FROM " + tableOBOracleModeBlob
+                                     + " WHERE c1='112' for update;");
             c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -600,7 +518,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             apstmt.setBlob(2, blob);
             apstmt.executeUpdate();
 
-            rs = apstmt.executeQuery("SELECT * FROM zdw_test_blob");
+            rs = apstmt.executeQuery("SELECT * FROM " + tableOBOracleModeBlob + "");
 
             byte b[] = new byte[100];
             while (rs.next()) {
@@ -626,17 +544,11 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+
         }
     }
 
-    @Test
+    @Ignore
     public void bcLogUseAnonymous() {
         Connection conn = null;
         try {
@@ -695,13 +607,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+
         }
     }
 

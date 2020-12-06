@@ -37,6 +37,7 @@ public enum ColumnType {
     LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
     BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
     OBBLOB(210, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
+    OBCLOB(211, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
     VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
     STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
     GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B"), //

@@ -152,7 +152,7 @@ public class BaseOracleTest {
       UrlParser urlParserPS =
           UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
       UrlParser urlParserPSLob =
-              UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
+              UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true");
       UrlParser urlParserPSWithoutChecksum =
               UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&useServerPsStmtChecksum=false");
       if (urlParser.getHostAddresses().size() > 0) {
@@ -211,6 +211,16 @@ public class BaseOracleTest {
       doPrecisionTest =
           isMariadbServer() || !dbVersion.startsWith("5.5"); // MySQL 5.5 doesn't support precision
     }
+  }
+  public static Connection getObOracleLobConnectionWithCharset(String charset) throws SQLException {
+    String url = System.getProperty("oracleModeDbUrl", mDefUrl);
+    UrlParser urlParserPSLob = null;
+    if (charset != null) {
+      urlParserPSLob = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true" + "&characterEncoding=" + charset);
+    } else {
+      urlParserPSLob = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true");
+    }
+    return  OceanBaseConnection.newConnection(urlParserPSLob, null);
   }
 
   private static void setUri() {

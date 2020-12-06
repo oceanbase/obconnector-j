@@ -1408,11 +1408,15 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == 210) {
-            columnsInformation[columnIndex - 1].getCharsetNumber();
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
+            if (encoding == null) {
+                encoding = "UTF8";
+            }
             byte[] data = new byte[row.length];
             System.arraycopy(row.buf, row.pos, data, 0, row.length);
-            return new OceanBaseBlob(true, data, "UTF-8", this.statement.getConnection()); // todo
+            return new OceanBaseBlob(true, data, encoding, this.statement.getConnection());
         }
         return new OceanBaseBlob(row.buf, row.pos, row.length);
     }
@@ -1427,6 +1431,16 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
+            if (encoding == null) {
+                encoding = "UTF8";
+            }
+            byte[] data = new byte[row.length];
+            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            return new OceanBaseClob(true, data, encoding, this.statement.getConnection());
         }
         return new OceanBaseClob(row.buf, row.pos, row.length);
     }
