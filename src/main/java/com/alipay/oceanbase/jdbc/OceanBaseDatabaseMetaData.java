@@ -3120,10 +3120,11 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getClientInfoProperties() {
         ColumnDefinition[] columns = new ColumnDefinition[4];
-        columns[0] = ColumnDefinition.create("NAME", ColumnType.STRING);
-        columns[1] = ColumnDefinition.create("MAX_LEN", ColumnType.INTEGER);
-        columns[2] = ColumnDefinition.create("DEFAULT_VALUE", ColumnType.STRING);
-        columns[3] = ColumnDefinition.create("DESCRIPTION", ColumnType.STRING);
+        boolean isOracleMode = this.protocol.isOracleMode();
+        columns[0] = ColumnDefinition.create("NAME", ColumnType.STRING, isOracleMode);
+        columns[1] = ColumnDefinition.create("MAX_LEN", ColumnType.INTEGER, isOracleMode);
+        columns[2] = ColumnDefinition.create("DEFAULT_VALUE", ColumnType.STRING, isOracleMode);
+        columns[3] = ColumnDefinition.create("DESCRIPTION", ColumnType.STRING, isOracleMode);
 
         byte[] sixteenMb =
                 new byte[]{
