@@ -52,6 +52,7 @@ public class ColumnDefinition {
     private int                complexTypeNameStart    = -1;
     private int                complexTypeNameLength   = -1;
     private int                complexVersion          = 0;
+    private final boolean      isOracleMode;
 
     /**
      * Constructor for extent.
@@ -66,6 +67,7 @@ public class ColumnDefinition {
         this.type = other.type;
         this.decimals = other.decimals;
         this.flags = other.flags;
+        this.isOracleMode = other.isOracleMode;
     }
 
     /**
@@ -73,7 +75,7 @@ public class ColumnDefinition {
      *
      * @param buffer buffer
      */
-    public ColumnDefinition(Buffer buffer) {
+    public ColumnDefinition(Buffer buffer, boolean OracleMode) {
         this.buffer = buffer;
         // has41NewNewProt fixme :Value should be based on connection properties
 
@@ -120,7 +122,7 @@ public class ColumnDefinition {
         length = buffer.readInt();
         sqltype = buffer.readByte();
         longColFlag = buffer.readShort();
-        type = ColumnType.fromServer(sqltype & 0xff, charsetNumber);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber, OracleMode);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
@@ -138,6 +140,7 @@ public class ColumnDefinition {
 
             complexVersion = (int) buffer.readFieldLength();
         }
+        isOracleMode = OracleMode;
     }
 
     /**
@@ -147,7 +150,7 @@ public class ColumnDefinition {
      * @param type column type
      * @return ColumnInformation
      */
-    public static ColumnDefinition create(String name, ColumnType type) {
+    public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode) {
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 
         byte[] arr = new byte[19 + 2 * nameBytes.length];
@@ -201,7 +204,7 @@ public class ColumnDefinition {
 
         arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
 
-        return new ColumnDefinition(new Buffer(arr));
+        return new ColumnDefinition(new Buffer(arr), isOracleMode);
     }
 
     private int adjustStartForFieldLength(int nameStart, int nameLength) {

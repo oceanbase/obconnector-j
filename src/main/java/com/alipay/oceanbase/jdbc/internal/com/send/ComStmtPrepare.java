@@ -67,7 +67,8 @@ public class ComStmtPrepare {
 
             if (numParams > 0) {
                 for (int i = 0; i < numParams; i++) {
-                    params[i] = new ColumnDefinition(reader.getPacket(false));
+                    params[i] = new ColumnDefinition(reader.getPacket(false),
+                        this.protocol.isOracleMode());
                 }
 
                 if (numColumns > 0) {
@@ -75,7 +76,8 @@ public class ComStmtPrepare {
                         protocol.skipEofPacket();
                     }
                     for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false));
+                        columns[i] = new ColumnDefinition(reader.getPacket(false),
+                            this.protocol.isOracleMode());
                     }
                 }
                 if (!eofDeprecated) {
@@ -84,7 +86,8 @@ public class ComStmtPrepare {
             } else {
                 if (numColumns > 0) {
                     for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false));
+                        columns[i] = new ColumnDefinition(reader.getPacket(false),
+                            this.protocol.isOracleMode());
                     }
                     if (!eofDeprecated) {
                         protocol.readEofPacket();
