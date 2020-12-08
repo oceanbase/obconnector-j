@@ -122,7 +122,7 @@ public class ColumnDefinition {
         length = buffer.readInt();
         sqltype = buffer.readByte();
         longColFlag = buffer.readShort();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber, OracleMode);
+        type = ColumnType.fromServer(sqltype & 0xff, charsetNumber, OracleMode);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
