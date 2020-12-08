@@ -30,6 +30,7 @@ public class ColumnDefinition {
     private final ColumnType   type;
     private final byte         decimals;
     private final short        flags;
+    private final boolean      isOracleMode;
 
     /**
      * Constructor for extent.
@@ -43,6 +44,7 @@ public class ColumnDefinition {
         this.type = other.type;
         this.decimals = other.decimals;
         this.flags = other.flags;
+        this.isOracleMode = other.isOracleMode;
     }
 
     /**
@@ -50,7 +52,7 @@ public class ColumnDefinition {
      *
      * @param buffer buffer
      */
-    public ColumnDefinition(Buffer buffer) {
+    public ColumnDefinition(Buffer buffer, boolean OracleMode) {
         this.buffer = buffer;
 
         /*
@@ -74,9 +76,10 @@ public class ColumnDefinition {
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber, OracleMode);
         flags = buffer.readShort();
         decimals = buffer.readByte();
+        isOracleMode = OracleMode;
     }
 
     /**
@@ -86,7 +89,7 @@ public class ColumnDefinition {
      * @param type column type
      * @return ColumnInformation
      */
-    public static ColumnDefinition create(String name, ColumnType type) {
+    public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode) {
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 
         byte[] arr = new byte[19 + 2 * nameBytes.length];
@@ -140,7 +143,7 @@ public class ColumnDefinition {
 
         arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
 
-        return new ColumnDefinition(new Buffer(arr));
+        return new ColumnDefinition(new Buffer(arr), isOracleMode);
     }
 
     private String getString(int idx) {

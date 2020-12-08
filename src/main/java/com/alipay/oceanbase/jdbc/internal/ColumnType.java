@@ -11,65 +11,84 @@ import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 public enum ColumnType {
-    OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()), //
-    TINYINT(1, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()), //
-    SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()), //
-    INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName()), //
-    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName()), //
-    DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName()), //
-    NULL(6, Types.NULL, "Types.NULL", String.class.getName()), //
-    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()), //
-    BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName()), //
-    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName()), //
-    DATE(10, Types.DATE, "Types.DATE", Date.class.getName()), //
-    TIME(11, Types.TIME, "Types.TIME", Time.class.getName()), //
-    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()), //
-    YEAR(13, Types.SMALLINT, "Types.SMALLINT", Short.class.getName()), //
-    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()), //
-    VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    BIT(16, Types.BIT, "Types.BIT", "[B"), //
-    JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()), //
-    ENUM(247, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    SET(248, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B"), //
-    MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B"), //
-    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
-    BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"), //
-    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()), //
-    GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B"), //
+    OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
+    TINYINT(1, Types.TINYINT, "Types.TINYINT", Integer.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT  -> Types.TINYINT
+    SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName(), ColumnType.BOTH_TYPE), //
+    INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.MYSQL_TYPE), //
+    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.BOTH_TYPE), //
+    DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName(), ColumnType.MYSQL_TYPE), //
+    NULL(6, Types.NULL, "Types.NULL", String.class.getName(), ColumnType.BOTH_TYPE), //
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE), //
+    BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName(), ColumnType.BOTH_TYPE), //
+    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.BOTH_TYPE), // in V1 it is FIELD_TYPE_INT24
+    DATE(10, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE), //
+    TIME(11, Types.TIME, "Types.TIME", Time.class.getName(), ColumnType.BOTH_TYPE), //
+    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE), //
+    YEAR(13, Types.DATE, "Types.SMALLINT", Short.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT -> Types.DATE
+    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE), //
+    VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), //
+    BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE), //
+    JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
+    ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), //
+    MEDIUMBLOB(250, Types.LONGVARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARBINARY -> LONGVARBINARY
+    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //Types.CHAR -> Types.DECIMAL
+    BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //
+    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), //
+    STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    GEOMETRY(255, Types.CHAR, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
 
-    TIMESTAMP_TZ(200, Types.TIMESTAMP, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName()), //
-    TIMESTAMP_LTZ(201, Types.TIMESTAMP, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName()), //
-    TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()), //
+    TIMESTAMP_TZ(200, -101, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -101
+    TIMESTAMP_LTZ(201, -102, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -102
+    TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.ORACLE_TYPE), //
     NUMBER(3, Types.INTEGER, "Types.INTEGER",
-           com.alipay.oceanbase.jdbc.extend.datatype.NUMBER.class.getName()), //
+           com.alipay.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE), //
     NUMBER_FLOAT(206, Types.FLOAT, "Types.FLOAT",
-                 com.alipay.oceanbase.jdbc.extend.datatype.NUMBER_FLOAT.class.getName()), //
+                 com.alipay.oceanbase.jdbc.extend.datatype.NUMBER_FLOAT.class.getName(), ColumnType.ORACLE_TYPE), //
     BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE",
-                  com.alipay.oceanbase.jdbc.extend.datatype.BINARY_DOUBLE.class.getName()), //
-    BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName());
+                  com.alipay.oceanbase.jdbc.extend.datatype.BINARY_DOUBLE.class.getName(), ColumnType.ORACLE_TYPE), //
+    BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName(), ColumnType.ORACLE_TYPE);
 
-    static final ColumnType[] typeMap;
+    /* Add one protocol type need to check:
+     *      1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types
+     * */
+
+    static final ColumnType[] typeMysqlMap;
+    static final ColumnType[] typeOracleMap;
+    static final int MYSQL_TYPE    = 1;
+    static final int ORACLE_TYPE   = 2;
+    static final int BOTH_TYPE     = 3;
 
     static {
-        typeMap = new ColumnType[256];
+        typeMysqlMap = new ColumnType[256];
+        typeOracleMap = new ColumnType[256];
         for (ColumnType v : values()) {
-            typeMap[v.mariadbType] = v;
+            if (v.serverType == ColumnType.MYSQL_TYPE) {
+                typeMysqlMap[v.protocolType] = v;
+            } else if (v.serverType == ColumnType.ORACLE_TYPE) {
+                typeOracleMap[v.protocolType] = v;
+            } else if (v.serverType == ColumnType.BOTH_TYPE) {
+                typeMysqlMap[v.protocolType] = v;
+                typeOracleMap[v.protocolType] = v;
+            }
+            /* others do nothing */
         }
     }
 
-    private final short       mariadbType;
+    private final short       protocolType;
     private final int         javaType;
     private final String      javaTypeName;
     private final String      className;
+    private final int         serverType; /* 1 just for MySQL / 2 just for Oracle / 3 for both */
 
-    ColumnType(int mariadbType, int javaType, String javaTypeName, String className) {
-        this.mariadbType = (short) mariadbType;
+    ColumnType(int protocolType, int javaType, String javaTypeName, String className, int serverType) {
+        this.protocolType = (short) protocolType;
         this.javaType = javaType;
         this.javaTypeName = javaTypeName;
         this.className = className;
+        this.serverType = serverType;
     }
 
     /**
@@ -85,10 +104,12 @@ public enum ColumnType {
                 return Boolean.class;
 
             case Types.TINYINT:
-                return Byte.class;
+                //return Byte.class;
+                return Integer.class;
 
             case Types.SMALLINT:
-                return Short.class;
+                //return Short.class;
+                return Integer.class;
 
             case Types.INTEGER:
                 return Integer.class;
@@ -117,6 +138,7 @@ public enum ColumnType {
             case Types.LONGNVARCHAR:
             case Types.CLOB:
             case Types.NCLOB:
+                //TODO need to update
                 return String.class;
 
             case Types.DECIMAL:
@@ -235,9 +257,14 @@ public enum ColumnType {
      * @param charsetNumber charset
      * @return MariaDb type
      */
-    public static ColumnType fromServer(int typeValue, int charsetNumber) {
+    public static ColumnType fromServer(int typeValue, int charsetNumber, boolean isOracleMode) {
 
-        ColumnType columnType = typeMap[typeValue];
+        ColumnType columnType;
+        if (isOracleMode) {
+            columnType = typeOracleMap[typeValue];
+        } else {
+            columnType = typeMysqlMap[typeValue];
+        }
 
         if (columnType == null) {
             // Potential fallback for types that are not implemented.
@@ -320,7 +347,7 @@ public enum ColumnType {
     }
 
     public short getType() {
-        return mariadbType;
+        return protocolType;
     }
 
     public String getJavaTypeName() {
