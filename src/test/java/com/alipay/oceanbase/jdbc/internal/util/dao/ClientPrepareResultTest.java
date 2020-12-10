@@ -43,6 +43,6 @@ public class ClientPrepareResultTest {
     }
 
     private boolean checkRewritable(String query) {
-        return ClientPrepareResult.rewritableParts(query, true).isQueryMultiValuesRewritable();
+        return ClientPrepareResult.rewritableParts(query, true, false).isQueryMultiValuesRewritable();
     }
 }

@@ -49,9 +49,9 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
     sqlQuery = sql;
 
     if (options.rewriteBatchedStatements) {
-      prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes());
+      prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode());
     } else {
-      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes());
+      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode());
     }
     parameters = new ParameterHolder[prepareResult.getParamCount()];
   }

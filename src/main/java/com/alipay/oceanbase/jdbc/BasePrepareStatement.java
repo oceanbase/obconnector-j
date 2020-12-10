@@ -1503,6 +1503,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     }
 
     public void setInt(final int column, final int value) throws SQLException {
+        /* TODO need to check this.connection is null when PS is close */
         if (this.connection.getProtocol().isOracleMode()) {
             setNUMBER(column, value);
             return;

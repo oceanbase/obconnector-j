@@ -661,7 +661,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // check that queries are rewritable
       boolean canAggregateSemiColumn = true;
       for (String query : queries) {
-        if (!ClientPrepareResult.canAggregateSemiColon(query, noBackslashEscapes())) {
+        if (!ClientPrepareResult.canAggregateSemiColon(query, noBackslashEscapes(), isOracleMode())) {
           canAggregateSemiColumn = false;
           break;
         }
