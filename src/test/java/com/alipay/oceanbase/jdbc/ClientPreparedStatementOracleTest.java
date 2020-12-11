@@ -1,11 +1,31 @@
 package com.alipay.oceanbase.jdbc;
 
+import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.alipay.oceanbase.jdbc.internal.failover.FailoverProxy;
+import com.alipay.oceanbase.jdbc.internal.io.input.PacketInputStream;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
+import com.alipay.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
+import com.alipay.oceanbase.jdbc.internal.util.Utils;
+import com.alipay.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
+import com.alipay.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
+import com.alipay.oceanbase.jdbc.util.Options;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.Charset;
 import java.sql.*;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.Assert.*;
 
@@ -121,6 +141,103 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         while (rs.next()) {
             assertTrue(101 == rs.getInt(1));
             assertTrue("101".equals(rs.getString(2)));
+        }
+    }
+
+    @Test
+    public void testVarcharWithApostrophe() throws SQLException {
+        String sql = "drop table test_varchar_with_symbols";
+
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+        try {
+            preparedStatement.executeUpdate();
+        } catch (Exception e) {
+            //skip
+        }
+        preparedStatement.execute("CREATE TABLE test_varchar_with_symbols (col1 NUMBER(5,2), col2 varchar (200), col3 varchar(100))");
+        sql = "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')"; //str is: `INSERT INTO test_nvarchar2 VALUES (15, 'PJ>PK:ROf\', 'PJ>PK?ROf')`
+        preparedStatement = sharedConnection.prepareStatement(sql);
+        preparedStatement.executeUpdate();
+        sql = "INSERT INTO test_varchar_with_symbols VALUES (12, 'PJ>PK\":ROf\\', 'PJ>PK?ROf')"; //str is: `INSERT INTO test_nvarchar2 VALUES (12, 'PJ>PK":ROf\', 'PJ>PK?ROf')`
+        preparedStatement = sharedConnection.prepareStatement(sql);
+        preparedStatement.executeUpdate();
+        sql = "select col1, col2, col3 from test_varchar_with_symbols";
+        PreparedStatement cstmt1 = sharedConnection.prepareStatement(sql);
+        cstmt1.execute();
+        ResultSet resultSet = cstmt1.getResultSet();
+        try {
+            while (resultSet.next()) {
+                Object obj1 = resultSet.getObject(1);
+                Object obj2 = resultSet.getObject(2);
+                Object obj3 = resultSet.getObject(3);
+                System.out.println("OBJECT:" + obj1 + "\t" + obj2 + "\t" + obj3);
+//                if (Integer.parseInt((String) obj1) == 15) {
+//                    //Assert.assertEquals("PJ>PK:ROf\\", obj2);
+//                    //Assert.assertEquals("PJ>PK?ROf", obj3);
+//                }
+            }
+        } catch (Exception e) {
+            fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testVarcharWithApostrophe2() throws SQLException {
+        String sql = "drop table test_symbols";
+
+        Statement statement = sharedConnection.createStatement();
+        //PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+        try {
+            statement.executeUpdate(sql);
+        } catch (Exception e) {
+            //skip
+        }
+        statement.execute("CREATE TABLE test_symbols (cc varchar(100))");
+        sql = "INSERT INTO test_symbols VALUES ('^+c$k\"(!YX'),('db=(qB,(Q '),('/~~`zLD3/('),('FnAEFwPl{L'),('t[Nb-&%?7 '),('\"~[qD`|Iz<'),('CL(5w=(L7}'),('x?>}V\\Dz''T'),('O\\rIC/e7Pl'),('h8=v\\odkI8'),('v0z=ukdfe]'),('ZLfJ:BxPxw'),('u22tr)|FsX'),('2n1vX)k_4 '),('*3EhYn4CV-'),('xu6igHpNR '),('G;Su2+F\"i^'),('\"[]Wv.t>mu'),('''m L9\"]^n!'),('&[CB]-Li%t'),('>`%mCA%|L '),('}S}E7E0D+&'),('E?|=/3qW6G'),('q=6&@+STA-'),('c;-`Q2;Px='),('civzF)F@MQ'),('r`%78CC]&a'),('+}QFS/W-zG'),('`n2hH$w?\\ '),(']z*j/?~2m-'),('Lh;1ml8-I)'),('/6`1^7xZh '),('q7A(rJ z\"M'),('Y7 l@n2b}M'),('=,&8~OIh+`'),('J>3I9oQ9k9'),(',.G9?&z$;x'),('jB%z5d&|;y'),('pN6=ZD~I<_'),('Y4X_S[RC:='),('3v>$oD[*c('),('|&]4L''e=Vc'),('HP{\"fm7T90'),('gCEYfy yTJ'),('<9L6:aD_H '),('H{h^}fy1A~'),('rX,aXjw3bQ'),('3f\"8oK(@<{'),('PJ>PK:ROf\\'),(':;]yQ3ID}L'),('|8m`L_d4cf'),('/f;(:\"8Jww'),('~)cZ>lCD<2'),(']+51KX!1M9'),('E;iL'']DX;K'),('`UN0-EmC^x'),('9[=HdY{B_ '),('TTZ+i\\9{hf'),('Co61c6wyl1'),(']]PA/LkDM*'),('07!]uvKh61'),('hk!.):1+! '),('Lki>ALUg{1'),('^e*KV&E;{S'),('zqLmp(.cPb'),('/p53m;B=3q'),('<tm)Y>=H(U'),('wIt}{=>N@o'),('Fo}TVMa^}!'),('3ljFV0X}=6'),('''U2q_Re W?'),('b=8|C,N4T,'),('9b|N4;6MxT'),('$UzgL@\\6ja'),('A*BT5([\\Dd'),(';\"XY9?B8eP'),('2}K;qbIyC]'),('ZcLYt+I2!@'),('NmmnF ,+\"H'),('*g.l5`vRbi'),('s!%Jg2Y1@<'),('[/`etVG_me'),('-^l65z,C1O'),('0[]\"RvN;}I'),('?m,[~PGc\"D'),('J,(J;PnB`&'),('l/q0:Yz!:-'),('To\"wW!o|W '),('?8-cUaV;CY'),('GTxLb>T-I6'),('h]|DZzb&Ud'),('26/hh1}^al'),('qqW[I5Y.Sk'),('}Hm@PSEvJl'),('+1@.]4@y/~'),('zL4m[Qn[Le'),('xCpY[Pu&Ak'),('8S=vE?JM?@'),('EnD}4D\\f`5'),('\"yX~m@hi)J');";
+        statement.executeUpdate(sql);
+        sql = "select * from test_symbols";
+        PreparedStatement cstmt1 = sharedConnection.prepareStatement(sql);
+        cstmt1.execute();
+        ResultSet resultSet = cstmt1.getResultSet();
+        try {
+            while (resultSet.next()) {
+                Object obj1 = resultSet.getObject(1);
+                System.out.println("OBJECT: \t" + obj1);
+            }
+        } catch (Exception e) {
+            fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testVarcharWithApostrophe3() throws SQLException {
+        String sql = "drop table test_symbols";
+
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+        try {
+            preparedStatement.executeUpdate();
+        } catch (Exception e) {
+            //skip
+        }
+        preparedStatement.execute("CREATE TABLE test_symbols (cc varchar(100))");
+        sql = "INSERT INTO test_symbols VALUES ('^+c$k\"(!YX'),('db=(qB,(Q '),('/~~`zLD3/('),('FnAEFwPl{L'),('t[Nb-&%?7 '),('\"~[qD`|Iz<'),('CL(5w=(L7}'),('x?>}V\\Dz''T'),('O\\rIC/e7Pl'),('h8=v\\odkI8'),('v0z=ukdfe]'),('ZLfJ:BxPxw'),('u22tr)|FsX'),('2n1vX)k_4 '),('*3EhYn4CV-'),('xu6igHpNR '),('G;Su2+F\"i^'),('\"[]Wv.t>mu'),('''m L9\"]^n!'),('&[CB]-Li%t'),('>`%mCA%|L '),('}S}E7E0D+&'),('E?|=/3qW6G'),('q=6&@+STA-'),('c;-`Q2;Px='),('civzF)F@MQ'),('r`%78CC]&a'),('+}QFS/W-zG'),('`n2hH$w?\\ '),(']z*j/?~2m-'),('Lh;1ml8-I)'),('/6`1^7xZh '),('q7A(rJ z\"M'),('Y7 l@n2b}M'),('=,&8~OIh+`'),('J>3I9oQ9k9'),(',.G9?&z$;x'),('jB%z5d&|;y'),('pN6=ZD~I<_'),('Y4X_S[RC:='),('3v>$oD[*c('),('|&]4L''e=Vc'),('HP{\"fm7T90'),('gCEYfy yTJ'),('<9L6:aD_H '),('H{h^}fy1A~'),('rX,aXjw3bQ'),('3f\"8oK(@<{'),('PJ>PK:ROf\\'),(':;]yQ3ID}L'),('|8m`L_d4cf'),('/f;(:\"8Jww'),('~)cZ>lCD<2'),(']+51KX!1M9'),('E;iL'']DX;K'),('`UN0-EmC^x'),('9[=HdY{B_ '),('TTZ+i\\9{hf'),('Co61c6wyl1'),(']]PA/LkDM*'),('07!]uvKh61'),('hk!.):1+! '),('Lki>ALUg{1'),('^e*KV&E;{S'),('zqLmp(.cPb'),('/p53m;B=3q'),('<tm)Y>=H(U'),('wIt}{=>N@o'),('Fo}TVMa^}!'),('3ljFV0X}=6'),('''U2q_Re W?'),('b=8|C,N4T,'),('9b|N4;6MxT'),('$UzgL@\\6ja'),('A*BT5([\\Dd'),(';\"XY9?B8eP'),('2}K;qbIyC]'),('ZcLYt+I2!@'),('NmmnF ,+\"H'),('*g.l5`vRbi'),('s!%Jg2Y1@<'),('[/`etVG_me'),('-^l65z,C1O'),('0[]\"RvN;}I'),('?m,[~PGc\"D'),('J,(J;PnB`&'),('l/q0:Yz!:-'),('To\"wW!o|W '),('?8-cUaV;CY'),('GTxLb>T-I6'),('h]|DZzb&Ud'),('26/hh1}^al'),('qqW[I5Y.Sk'),('}Hm@PSEvJl'),('+1@.]4@y/~'),('zL4m[Qn[Le'),('xCpY[Pu&Ak'),('8S=vE?JM?@'),('EnD}4D\\f`5'),('\"yX~m@hi)J');";
+        System.out.println("SQL:" + sql);
+        preparedStatement = sharedConnection.prepareStatement(sql);
+        preparedStatement.executeUpdate();
+        sql = "select * from test_symbols";
+        PreparedStatement cstmt1 = sharedConnection.prepareStatement(sql);
+        cstmt1.execute();
+        ResultSet resultSet = cstmt1.getResultSet();
+        try {
+            while (resultSet.next()) {
+                Object obj1 = resultSet.getObject(1);
+                System.out.println("OBJECT: \t" + obj1);
+            }
+        } catch (Exception e) {
+            fail();
+            e.printStackTrace();
         }
     }
 
