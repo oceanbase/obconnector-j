@@ -1,6 +1,7 @@
 package com.alipay.oceanbase.jdbc;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -221,6 +222,13 @@ public class OceanBaseBlob implements Blob, Serializable {
         }
 
         return new ByteArrayInputStream(data, this.offset + (int) pos - 1, (int) length);
+    }
+
+    public Reader getCharacterStream() throws SQLException {
+        if (this.data != null) {
+            return new StringReader(new String(this.data, Charset.forName(this.encoding)));
+        }
+        return null;
     }
 
     /**

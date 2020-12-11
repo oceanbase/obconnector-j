@@ -232,23 +232,24 @@ public class ColumnDefinition {
     }
 
     public String getDatabase() {
-        return getString(1);
+        return getStringFromBytes(databaseNameStart, databaseNameLength);
     }
 
     public String getTable() {
-        return getString(2);
+        return getStringFromBytes(tableNameStart, tableNameLength);
     }
 
     public String getOriginalTable() {
-        return getString(3);
+        return getStringFromBytes(originalTableNameStart, originalTableNameLength);
     }
 
     public String getName() {
-        return getString(4);
+        return getStringFromBytes(nameStart, nameLength);
     }
 
     public String getOriginalName() {
-        return getString(5);
+        //        return getString(5);
+        return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
     }
 
     public short getCharsetNumber() {
@@ -362,54 +363,10 @@ public class ColumnDefinition {
         return new String(charArray);
     }
 
-    private String getStringFromBytes(int stringStart, int stringLength) throws SQLException {
+    private String getStringFromBytes(int stringStart, int stringLength) {
         if ((stringStart == -1) || (stringLength == -1)) {
             return null;
         }
-        // fixme
-        //        String stringVal = null;
-        //
-        //        if (this.connection != null) {
-        //            if (this.connection.getUseUnicode()) {
-        //                String javaEncoding = this.connection.getCharacterSetMetadata();
-        //
-        //                if (javaEncoding == null) {
-        //                    javaEncoding = this.connection.getEncoding();
-        //                }
-        //
-        //                if (javaEncoding != null) {
-        //                    SingleByteCharsetConverter converter = null;
-        //
-        //                    if (this.connection != null) {
-        //                        converter = this.connection.getCharsetConverter(javaEncoding);
-        //                    }
-        //
-        //                    if (converter != null) { // we have a converter
-        //                        stringVal = converter.toString(this.buffer, stringStart, stringLength);
-        //                    } else {
-        //                        // we have no converter, use JVM converter
-        //                        try {
-        //                            stringVal = StringUtils.toString(this.buffer, stringStart,
-        //                                    stringLength, javaEncoding);
-        //                        } catch (UnsupportedEncodingException ue) {
-        //                            throw new RuntimeException(Messages.getString("Field.12")
-        //                                    + javaEncoding
-        //                                    + Messages.getString("Field.13"));
-        //                        }
-        //                    }
-        //                } else {
-        //                    // we have no encoding, use JVM standard charset
-        //                    stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
-        //                }
-        //            } else {
-        //                // we are not using unicode, so use JVM standard charset
-        //                stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
-        //            }
-        //        } else {
-        //            // we don't have a connection, so punt
-        //            stringVal = StringUtils.toAsciiString(this.buffer, stringStart, stringLength);
-        //        }
-
         return toAsciiString(buffer.buf, stringStart, stringLength);
     }
 }

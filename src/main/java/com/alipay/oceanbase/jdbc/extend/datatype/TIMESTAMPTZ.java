@@ -172,14 +172,14 @@ public class TIMESTAMPTZ extends Datum {
                 ;
             }
             temp = temp.substring(0, index);
-            if (scale > temp.length()) {
-                int x = scale - temp.length();
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < x; i++) {
-                    sb.append("0");
-                }
-                temp += sb.toString();
-            }
+            //            if (scale > temp.length()) {
+            //                int x = scale - temp.length();
+            //                StringBuilder sb = new StringBuilder();
+            //                for (int i = 0; i < x; i++) {
+            //                    sb.append("0");
+            //                }
+            //                temp += sb.toString();
+            //            }
 
             time = time + "." + temp;
         }

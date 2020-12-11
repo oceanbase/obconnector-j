@@ -1535,10 +1535,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setFloat(final int parameterIndex, final float value) throws SQLException {
-        if (this.connection.getProtocol().isOracleMode()) {
-            setNUMBER_FLOAT(parameterIndex, value);
-            return;
-        }
+        //        if (this.connection.getProtocol().isOracleMode()) {
+        //            setNUMBER_FLOAT(parameterIndex, value);
+        //            return;
+        //        }
         setParameter(parameterIndex, new FloatParameter(value));
     }
 

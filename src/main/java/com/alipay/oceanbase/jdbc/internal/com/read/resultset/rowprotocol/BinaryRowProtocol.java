@@ -167,6 +167,17 @@ public class BinaryRowProtocol extends RowProtocol {
                                 this.pos = internalPos;
                                 this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                 return;
+                            case BINARY_FLOAT:
+                                this.pos = internalPos;
+                                length = 4;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
+                            case BINARY_DOUBLE:
+                                this.pos = internalPos;
+                                length = 8;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
+
                             default:
                                 // field with variable length
                                 int type = this.buf[internalPos++] & 0xff;
@@ -234,9 +245,15 @@ public class BinaryRowProtocol extends RowProtocol {
     public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                                  throws SQLException {
         if ((lastValueNull & BIT_LAST_FIELD_NULL) != 0) {
-            return null;
+            switch (columnInfo.getColumnType()) {
+                case BINARY_DOUBLE:
+                    return Double.toString(0);
+                case BINARY_FLOAT:
+                    return Float.toString(0);
+                default:
+                    return null;
+            }
         }
-
         switch (columnInfo.getColumnType()) {
             case STRING:
                 if (getMaxFieldSize() > 0) {
@@ -315,6 +332,12 @@ public class BinaryRowProtocol extends RowProtocol {
                 return sb.toString();
             case VARSTRING:
                 return new String(buf, pos, length, StandardCharsets.UTF_8);
+            case BINARY_DOUBLE:
+                Double d = getInternalDouble(columnInfo);
+                return Double.toString(d);
+            case BINARY_FLOAT:
+                Float f = getInternalFloat(columnInfo);
+                return Float.toString(f);
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
@@ -513,6 +536,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 int valueFloat = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
                                   + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
                 return Float.intBitsToFloat(valueFloat);
+            case BINARY_FLOAT:
+                int asInt = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8)
+                            | ((buf[pos + 2] & 0xff) << 16) | ((buf[pos + 3] & 0xff) << 24);
+
+                return Float.intBitsToFloat(asInt);
+            case NUMBER_FLOAT:
+                String str = new String(buf, pos, length, StandardCharsets.UTF_8);
+                Float f = Float.valueOf(str);
+                return f;
             case DOUBLE:
                 return (float) getInternalDouble(columnInfo);
             case DECIMAL:
@@ -605,6 +637,17 @@ public class BinaryRowProtocol extends RowProtocol {
                     sqlException.initCause(nfe);
                     throw sqlException;
                 }
+            case BINARY_DOUBLE:
+                long valueAsLong = (buf[pos + 0] & 0xff) | ((long) (buf[pos + 1] & 0xff) << 8)
+                                   | ((long) (buf[pos + 2] & 0xff) << 16)
+                                   | ((long) (buf[pos + 3] & 0xff) << 24)
+                                   | ((long) (buf[pos + 4] & 0xff) << 32)
+                                   | ((long) (buf[pos + 5] & 0xff) << 40)
+                                   | ((long) (buf[pos + 6] & 0xff) << 48)
+                                   | ((long) (buf[pos + 7] & 0xff) << 56);
+
+                return Double.longBitsToDouble(valueAsLong);
+                //                return Double.parseDouble(new String(buf, pos, length, StandardCharsets.UTF_8));
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -686,6 +729,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_TZ:
+            case TIMESTAMP_LTZ:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
             case TIME:
@@ -757,6 +802,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_TZ:
+            case TIMESTAMP_LTZ:
                 Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
@@ -1020,7 +1067,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case FLOAT:
             case NUMBER_FLOAT:
             case BINARY_FLOAT:
-                return getInternalFloat(columnInfo);
+                //                return getInternalFloat(columnInfo);
+                byte[] b = new byte[length];
+                System.arraycopy(buf, pos, b, 0, length);
+                NUMBER number = new NUMBER(b);
+                return number;
             case TIME:
                 return getInternalTime(columnInfo, null, timeZone);
             case OLDDECIMAL:

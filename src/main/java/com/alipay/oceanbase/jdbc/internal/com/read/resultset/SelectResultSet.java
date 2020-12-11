@@ -73,18 +73,18 @@ public class SelectResultSet implements ResultSet {
     private RowProtocol                     row;
     private int                             dataFetchTime;
     private boolean                         streaming;
-    private byte[][]                        data;
-    private int                             dataSize;
+    protected byte[][]                      data;
+    protected int                           dataSize;
     private int                             fetchSize;
     private int                             resultSetScrollType;
-    private int                             rowPointer;
+    protected int                           rowPointer;
     private int                             discardedRows       = 0;
     private ColumnLabelIndexer              columnLabelIndexer;
     private int                             lastRowPointer      = -1;
     private boolean                         isClosed;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
-    private boolean                         forceAlias;
+    protected boolean                       forceAlias;
     private ComplexData[]                   complexData;
     private boolean                         isPsOutParameter;
 
@@ -936,6 +936,22 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            Clob clob = getClob(columnIndex);
+            if (clob == null) {
+                return null;
+            }
+            return clob.getAsciiStream();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            }
+            return blob.getBinaryStream();
+        }
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(),
             StandardCharsets.UTF_8).getBytes());
     }
@@ -943,6 +959,34 @@ public class SelectResultSet implements ResultSet {
     /** {inheritDoc}. */
     public String getString(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
+        switch (columnsInformation[columnIndex - 1].getColumnType()) {
+            case OBCLOB:
+                Clob clob = getClob(columnIndex);
+                if (clob == null) {
+                    return null;
+                }
+                long len = ((OceanBaseClob) clob).length();
+                return ((OceanBaseClob) clob).getSubString(1, (int) len);
+            case OBBLOB:
+                throw new SQLFeatureNotSupportedException();
+            case TIMESTAMP_TZ:
+                TIMESTAMPTZ timestamptz = row.getInternalTIMESTAMPTZ(
+                    columnsInformation[columnIndex - 1], null, timeZone);
+                if (timestamptz == null) {
+                    return null;
+                }
+                return timestamptz.toResultSetString(this.statement.getConnection());
+            case TIMESTAMP_LTZ:
+                TIMESTAMPLTZ timestampltz = row.getInternalTIMESTAMPLTZ(
+                    columnsInformation[columnIndex - 1], null, timeZone);
+                if (timestampltz == null) {
+                    return null;
+                }
+                return timestampltz.toResultSetString(this.statement.getConnection());
+            default:
+                break;
+        }
+
         return row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
@@ -968,6 +1012,14 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            return getClob(columnIndex).getAsciiStream();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            return getBlob(columnIndex).getBinaryStream();
         }
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
@@ -1006,6 +1058,13 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public float getFloat(int columnIndex) throws SQLException {
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+            case BINARY_DOUBLE:
+                return (float) getDouble(columnIndex);
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalFloat(columnsInformation[columnIndex - 1]);
     }
@@ -1017,6 +1076,14 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public double getDouble(int columnIndex) throws SQLException {
+
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+        //            case BINARY_FLOAT:
+        //                return (double) getFloat(columnIndex);
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalDouble(columnsInformation[columnIndex - 1]);
     }
@@ -1034,6 +1101,17 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+        //            case BINARY_FLOAT:
+        //                Float f = getFloat(columnIndex);
+        //                return new BigDecimal(Float.toString(f));
+        //            case BINARY_DOUBLE:
+        //                Double d = getDouble(columnIndex);
+        //                return new BigDecimal(Double.toString(d));
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
@@ -1053,6 +1131,19 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            throw new SQLFeatureNotSupportedException();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            }
+            long len = ((OceanBaseBlob) blob).length();
+            return blob.getBytes(1, (int) len);
         }
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
@@ -1192,19 +1283,31 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public ResultSetMetaData getMetaData() {
-        return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias);
+        return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias, this
+            .getProtocol().isOracleMode());
     }
 
     /** {inheritDoc}. */
     public Object getObject(int columnIndex) throws SQLException {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
-        if (type == ColumnType.STRUCT) {
-            return getStruct(columnIndex);
-        } else if (type == ColumnType.ARRAY) {
-            return getArray(columnIndex);
-        } else if (type == ColumnType.CURSOR) {
-            return getComplexCursor(columnIndex);
+        switch (type) {
+            case STRUCT:
+                return getStruct(columnIndex);
+            case ARRAY:
+                return getArray(columnIndex);
+            case CURSOR:
+                return getComplexCursor(columnIndex);
+            case OBBLOB:
+                return getBlob(columnIndex);
+            case OBCLOB:
+                return getClob(columnIndex);
+                //            case BINARY_FLOAT:
+                //                return getFloat(columnIndex);
+                //            case BINARY_DOUBLE:
+                //                return getDouble(columnIndex);
+            default:
+                break;
         }
         checkObjectRange(columnIndex);
         return row.getInternalObject(columnsInformation[columnIndex - 1], timeZone);
@@ -1376,6 +1479,24 @@ public class SelectResultSet implements ResultSet {
     /** {inheritDoc}. */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            Clob clob = getClob(columnIndex);
+            if (clob == null) {
+                return null;
+            } else {
+                return clob.getCharacterStream();
+            }
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            } else {
+                return ((OceanBaseBlob) blob).getCharacterStream();
+            }
+        }
         String value = row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
         if (value == null) {
             return null;

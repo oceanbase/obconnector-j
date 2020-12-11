@@ -112,7 +112,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     }
     metadata =
         new OceanBaseResultSetMetaData(
-            serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false);
+            serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false,this.protocol.isOracleMode());
     parameterMetaData = new OceanBaseParameterMetaData(serverPrepareResult.getParameters());
   }
 

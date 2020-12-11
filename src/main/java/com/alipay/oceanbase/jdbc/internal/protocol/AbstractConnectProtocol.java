@@ -1059,58 +1059,79 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void loadCalendar(final String srvTimeZone, final String srvSystemTimeZone)
                                                                                        throws SQLException {
-        if (options.useLegacyDatetimeCode) {
-            // legacy use client timezone
-            timeZone = Calendar.getInstance().getTimeZone();
-        } else {
-            // use server time zone
-            String tz = options.serverTimezone;
-            if (tz == null) {
+        String tz = null;
+        try {
+            if (isOracleMode) {
+                // use server time zone
                 tz = srvTimeZone;
-                if ("SYSTEM".equals(tz)) {
-                    tz = srvSystemTimeZone;
+                if (tz == null) {
+                    tz = srvTimeZone;
+                    if ("SYSTEM".equals(tz)) {
+                        tz = srvSystemTimeZone;
+                    }
                 }
-            }
-            // handle custom timezone id
-            if (tz != null && tz.length() >= 2 && (tz.startsWith("+") || tz.startsWith("-"))
-                && Character.isDigit(tz.charAt(1))) {
-                tz = "GMT" + tz;
-            }
-
-            try {
-                timeZone = Utils.getTimeZone(tz);
-                serverTimeZone = timeZone;
+                // handle custom timezone id
+                if (tz != null && tz.length() >= 2 && (tz.startsWith("+") || tz.startsWith("-"))
+                    && Character.isDigit(tz.charAt(1))) {
+                    tz = "GMT" + tz;
+                }
 
                 TimeZone defaultTimezone = TimeZone.getDefault();
                 // TODO oracle should alter session to local time_zone, need more test case
-                if (isOracleMode && defaultTimezone.getRawOffset() != timeZone.getRawOffset()) {
+                if (tz != null) {
+                    timeZone = Utils.getTimeZone(tz);
+                    serverTimeZone = timeZone;
+                    if (defaultTimezone.getRawOffset() != timeZone.getRawOffset()) {
+                        sendAlterSessionTimezone(defaultTimezone.getID());
+                        getResult(new Results());
+                        timeZone = defaultTimezone;
+                    } else {
+                        timeZone = defaultTimezone;
+                    }
+                } else {
                     sendAlterSessionTimezone(defaultTimezone.getID());
                     getResult(new Results());
                     timeZone = defaultTimezone;
                 }
-            } catch (SQLException e) {
-                if (options.serverTimezone != null) {
-                    throw exceptionFactory
-                        .create(
-                            "The server time_zone '"
-                                    + tz
-                                    + "' defined in the 'serverTimezone' parameter cannot be parsed "
-                                    + "by java TimeZone implementation. See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your "
-                                    + "JRE implementation.", "01S00");
-                } else {
-                    throw exceptionFactory
-                        .create(
-                            "The server time_zone '"
-                                    + tz
-                                    + "' cannot be parsed. The server time zone must defined in the "
-                                    + "jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly with "
-                                    + "sessionVariables=time_zone='Canada/Atlantic' for example).  See "
-                                    + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.",
-                            "01S00");
+
+            } else {
+                tz = options.serverTimezone;
+                if (tz == null) {
+                    tz = srvTimeZone;
+                    if ("SYSTEM".equals(tz)) {
+                        tz = srvSystemTimeZone;
+                    }
                 }
-            } catch (IOException e) {
-                throw new SQLException("Alter session set time_zone exception", e);
+                // handle custom timezone id
+                if (tz != null && tz.length() >= 2 && (tz.startsWith("+") || tz.startsWith("-"))
+                    && Character.isDigit(tz.charAt(1))) {
+                    tz = "GMT" + tz;
+                }
+
+                timeZone = Utils.getTimeZone(tz);
             }
+        } catch (SQLException e) {
+            if (options.serverTimezone != null) {
+                throw exceptionFactory
+                    .create(
+                        "The server time_zone '"
+                                + tz
+                                + "' defined in the 'serverTimezone' parameter cannot be parsed "
+                                + "by java TimeZone implementation. See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your "
+                                + "JRE implementation.", "01S00");
+            } else {
+                throw exceptionFactory
+                    .create(
+                        "The server time_zone '"
+                                + tz
+                                + "' cannot be parsed. The server time zone must defined in the "
+                                + "jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly with "
+                                + "sessionVariables=time_zone='Canada/Atlantic' for example).  See "
+                                + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.",
+                        "01S00");
+            }
+        } catch (IOException e) {
+            throw new SQLException("Alter session set time_zone exception", e);
         }
     }
 

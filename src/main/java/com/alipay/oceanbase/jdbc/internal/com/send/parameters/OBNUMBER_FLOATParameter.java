@@ -19,7 +19,7 @@ public class OBNUMBER_FLOATParameter implements Cloneable, ParameterHolder {
 
     @Override
     public void writeBinary(PacketOutputStream pos) throws IOException {
-        pos.writeInt(Float.floatToIntBits(value));
+        pos.writeFloatV1(value);
     }
 
     @Override

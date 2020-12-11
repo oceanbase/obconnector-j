@@ -1,6 +1,7 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import com.alipay.oceanbase.jdbc.OceanBaseConnection;
+import com.alipay.oceanbase.jdbc.OceanBaseResultSetMetaData;
 import com.alipay.oceanbase.jdbc.extend.datatype.RowObCursorData;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -18,14 +19,16 @@ public class RowDataObCursor extends SelectResultSet {
      * @param creatingStatement statement that opened the cursor.
      * @param metadata
      */
-    private OceanBaseConnection connection;       // todo
+    private OceanBaseConnection connection;            // todo
     RowDataCursor               dataCursor;
-    boolean                     isOpen    = false;
+    boolean                     isOpen         = false;
     int                         cursorId;
-    boolean                     initialed = false;
+    boolean                     initialed      = false;
     Protocol                    cursorProtocol;
     Statement                   cursorStatement;
     RowObCursorData             obCursorData;
+    int                         currentPointer = 0;
+    int                         total          = 0;
 
     //    private RowObCursorData rowObCursorData;
 
@@ -63,6 +66,11 @@ public class RowDataObCursor extends SelectResultSet {
         dataCursor.setOwner(rs);
     }
 
+    public ResultSetMetaData getMetaData() {
+        return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias,
+            this.cursorProtocol.isOracleMode());
+    }
+
     @Override
     public void setFetchSize(int fetchSize) {
         dataCursor.setNumRowsToFetch(fetchSize);
@@ -75,11 +83,7 @@ public class RowDataObCursor extends SelectResultSet {
         super.close();
     }
 
-    @Override
-    public boolean next() throws SQLException {
-        if (!isOpen) {
-            return false;
-        }
+    private boolean addData() throws SQLException {
         byte[] buffer = dataCursor.next();
         columnsInformation = dataCursor.getMetadata();
         columnInformationLength = columnsInformation.length;
@@ -88,7 +92,32 @@ public class RowDataObCursor extends SelectResultSet {
         if (buffer == null)
             return false;
         this.addRowData(buffer);
+        total++;
         return true;
+    }
+
+    @Override
+    public boolean next() throws SQLException {
+        if (!isOpen) {
+            return false;
+        }
+        boolean ret = addData();
+        if (!ret && currentPointer == total - 1) {
+            return false;
+        } else {
+            ret = true;
+        }
+        currentPointer++;
+        rowPointer = currentPointer;
+        return ret;
+    }
+
+    public boolean init() throws SQLException {
+        if (!isOpen) {
+            return false;
+        }
+        currentPointer = -1;
+        return addData();
     }
 
     public void setRowObCursorData(RowObCursorData obCursorData) throws SQLException {
@@ -97,8 +126,9 @@ public class RowDataObCursor extends SelectResultSet {
         dataCursor.setCursorId(cursorId);
         if (!initialed) {
             //todo
-            next();
+            init();
             initialed = true;
+
         }
     }
 

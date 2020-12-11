@@ -11,11 +11,12 @@ import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 public enum ColumnType {
+
     OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
     TINYINT(1, Types.TINYINT, "Types.TINYINT", Integer.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT  -> Types.TINYINT
     SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName(), ColumnType.BOTH_TYPE), //
     INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.MYSQL_TYPE), //
-    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.BOTH_TYPE), //
+    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.MYSQL_TYPE), //
     DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName(), ColumnType.MYSQL_TYPE), //
     NULL(6, Types.NULL, "Types.NULL", String.class.getName(), ColumnType.BOTH_TYPE), //
     TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
@@ -47,8 +48,8 @@ public enum ColumnType {
                   ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -102
     TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
                    ColumnType.ORACLE_TYPE), //
-    OBBLOB(210, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.ORACLE_TYPE), //
-    OBCLOB(211, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.ORACLE_TYPE), //
+    OBBLOB(210, Types.BLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
+    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
     INTERVALYM(204, Types.OTHER, "Types.OTHER",
                com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM.class.getName(),
                ColumnType.ORACLE_TYPE), //
@@ -64,18 +65,17 @@ public enum ColumnType {
     STRUCT(162, Types.STRUCT, "Types.STRUCT",
            com.alipay.oceanbase.jdbc.extend.datatype.StructImpl.class.getName(),
            ColumnType.ORACLE_TYPE), //
-    RAW(203, Types.VARBINARY, "Types.VARBINARY",
-        com.alipay.oceanbase.jdbc.extend.datatype.RAW.class.getName(), ColumnType.ORACLE_TYPE), //
+    RAW(203, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.ORACLE_TYPE), //
     CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE), //
     NUMBER(3, Types.INTEGER, "Types.INTEGER",
            com.alipay.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE), //
     NUMBER_FLOAT(206, Types.FLOAT, "Types.FLOAT",
                  com.alipay.oceanbase.jdbc.extend.datatype.NUMBER_FLOAT.class.getName(),
                  ColumnType.ORACLE_TYPE), //
-    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", BINARY_DOUBLE.class.getName(),
-                  ColumnType.ORACLE_TYPE), //
-    BINARY_FLOAT(206, Types.FLOAT, "Types.FLOAT", BINARY_DOUBLE.class.getName(),
-                 ColumnType.ORACLE_TYPE);
+    BINARY_DOUBLE(5, ObOracleDefs.FIELD_JAVA_TYPE_BINARY_DOUBLE, "Types.DOUBLE",
+                  BINARY_DOUBLE.class.getName(), ColumnType.ORACLE_TYPE), //
+    BINARY_FLOAT(4, ObOracleDefs.FIELD_JAVA_TYPE_BINARY_FLOAT, "Types.FLOAT", BINARY_DOUBLE.class
+        .getName(), ColumnType.ORACLE_TYPE);
 
     /* Add one protocol type need to check:
      *      1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types
@@ -227,8 +227,8 @@ public enum ColumnType {
     /**
      * Get columnTypeName.
      *
-     * @param type type
-     * @param len len
+     * @param type   type
+     * @param len    len
      * @param signed signed
      * @param binary binary
      * @return type
@@ -271,6 +271,16 @@ public enum ColumnType {
                     return "BINARY";
                 }
                 return "CHAR";
+            case OBCLOB:
+                return "CLOB";
+            case OBBLOB:
+                return "BLOB";
+            case TIMESTAMP_NANO:
+                return "TIMESTAMP";
+            case TIMESTAMP_TZ:
+                return "TIMESTAMP WITH TIME ZONE";
+            case TIMESTAMP_LTZ:
+                return "TIMESTAMP WITH LOCAL TIME ZONE";
             default:
                 return type.getTypeName();
         }
@@ -279,7 +289,7 @@ public enum ColumnType {
     /**
      * Convert server Type to server type.
      *
-     * @param typeValue type value
+     * @param typeValue     type value
      * @param charsetNumber charset
      * @return MariaDb type
      */
@@ -324,10 +334,10 @@ public enum ColumnType {
     /**
      * Get class name.
      *
-     * @param type type
-     * @param len len
-     * @param signed signed
-     * @param binary binary
+     * @param type    type
+     * @param len     len
+     * @param signed  signed
+     * @param binary  binary
      * @param options options
      * @return class name
      */

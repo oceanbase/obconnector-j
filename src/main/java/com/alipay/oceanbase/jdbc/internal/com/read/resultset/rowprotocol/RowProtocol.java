@@ -151,7 +151,7 @@ public abstract class RowProtocol {
     }
 
     if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ) {
-      if (length < 16) {
+      if (length < 12) {
         throw new SQLException(
             "timestamp field data length is invalid, expected 12 at least, actual length is "
                 + length);
@@ -346,13 +346,21 @@ public abstract class RowProtocol {
     }
     return value;
   }
-
-  protected NUMBER getNUMBER(ColumnDefinition columnInfo) throws Exception {
+  boolean isNUMBERTYPE(ColumnType columnType) {
+    if(columnType == ColumnType.NUMBER || columnType == ColumnType.FLOAT || columnType == ColumnType.DECIMAL || columnType == ColumnType.BINARY_DOUBLE || columnType == ColumnType.BINARY_FLOAT) {
+      return true;
+    }
+    return false;
+  }
+  protected NUMBER zgetNUMBER(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
-    if (columnInfo.getColumnType() == ColumnType.NUMBER) {
-      return new NUMBER(buf);
+//    if (columnInfo.getColumnType() == ColumnType.NUMBER) {
+    if(isNUMBERTYPE(columnInfo.getColumnType())) {
+      byte[] b = new byte[length];
+      System.arraycopy(buf,pos,b,0,length);
+      return new NUMBER(b);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(
@@ -364,7 +372,7 @@ public abstract class RowProtocol {
     }
   }
 
-  protected NUMBER_FLOAT getNUMBER_FLOAT(ColumnDefinition columnInfo) throws Exception {
+  protected NUMBER_FLOAT getNUMBER_FLOAT(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -381,12 +389,12 @@ public abstract class RowProtocol {
     }
   }
 
-  protected BINARY_DOUBLE getBINARY_DOUBLE(ColumnDefinition columnInfo) throws Exception {
+  protected BINARY_DOUBLE getBINARY_DOUBLE(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
     if (columnInfo.getColumnType() == ColumnType.BINARY_DOUBLE) {
-      return new BINARY_DOUBLE(buf);
+      return new BINARY_DOUBLE(buf[pos]);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(
@@ -398,12 +406,12 @@ public abstract class RowProtocol {
     }
   }
 
-  protected BINARY_FLOAT getBINARY_FLOAT(ColumnDefinition columnInfo) throws Exception {
+  protected BINARY_FLOAT getBINARY_FLOAT(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
-    if (columnInfo.getColumnType() == ColumnType.NUMBER_FLOAT) {
-      return new BINARY_FLOAT(buf);
+    if (columnInfo.getColumnType() == ColumnType.BINARY_FLOAT) {
+      return new BINARY_FLOAT(buf[pos]);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(

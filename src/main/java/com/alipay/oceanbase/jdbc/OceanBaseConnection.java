@@ -2075,8 +2075,8 @@ public class OceanBaseConnection implements Connection {
         return options.includeThreadDumpInDeadlockExceptions;
     }
 
-    public TimeZone getSessionTimeZone() {
-        return protocol.getTimeZone();
+    public String getSessionTimeZone() {
+        return protocol.getTimeZone().getID();
     }
 
     public java.sql.Statement getMetadataSafeStatement() throws SQLException {

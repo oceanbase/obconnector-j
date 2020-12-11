@@ -14,6 +14,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     private final ColumnDefinition[] fieldPackets;
     private final Options            options;
     private final boolean            forceAlias;
+    private final boolean            isOracleMode;
 
     /**
      * Constructor.
@@ -27,6 +28,16 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         this.fieldPackets = fieldPackets;
         this.options = options;
         this.forceAlias = forceAlias;
+        this.isOracleMode = false;
+    }
+
+    public OceanBaseResultSetMetaData(final ColumnDefinition[] fieldPackets, final Options options,
+                                      final boolean forceAlias, boolean isOracleMode) {
+        this.fieldPackets = fieldPackets;
+        this.options = options;
+        this.forceAlias = forceAlias;
+        this.isOracleMode = isOracleMode;
+
     }
 
     /**
@@ -57,7 +68,51 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(final int column) throws SQLException {
-        return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
+        //        return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
+        ColumnDefinition columnInformation = getColumnInformation(column);
+
+        if (isOracleMode) {
+            switch (columnInformation.getColumnType().getSqlType()) {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.NCHAR:
+                case Types.NVARCHAR:
+                    return true;
+                default:
+                    return false;
+            }
+        } else {
+            switch (columnInformation.getColumnType().getSqlType()) {
+                case Types.BIT:
+                case Types.TINYINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                case Types.BIGINT:
+                case Types.FLOAT:
+                case Types.REAL:
+                case Types.DOUBLE:
+                case Types.DATE:
+                case Types.TIME:
+                case Types.TIMESTAMP:
+                    return false;
+
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    if (columnInformation.isBinary()) {
+                        return true;
+                    }
+                    return true;
+                    // fixme collation
+                    //                    String collationName = columnInformation.();
+                    //
+                    //                    return ((collationName != null) && !collationName.endsWith("_ci"));
+                default:
+                    return true;
+            }
+        }
     }
 
     /**

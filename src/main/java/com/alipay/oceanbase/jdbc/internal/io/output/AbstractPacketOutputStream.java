@@ -245,6 +245,16 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         pos += 4;
     }
 
+    public void writeFloatV1(float f) throws IOException {
+
+        int i = Float.floatToIntBits(f);
+        byte[] b = this.buf;
+        b[this.pos++] = (byte) (i & 0xff);
+        b[this.pos++] = (byte) (i >>> 8);
+        b[this.pos++] = (byte) (i >>> 16);
+        b[this.pos++] = (byte) (i >>> 24);
+    }
+
     /**
      * Write long value into buffer. flush buffer if too small.
      *

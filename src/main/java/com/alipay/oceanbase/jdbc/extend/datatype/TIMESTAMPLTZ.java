@@ -53,9 +53,9 @@ public class TIMESTAMPLTZ extends Datum {
         }
 
         Calendar calendar = Calendar.getInstance(TimeZone
-            .getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID()));
+            .getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone()));
         calendar.setTimeInMillis(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH) + 1;
         int day = calendar.get(Calendar.DAY_OF_MONTH);
@@ -121,12 +121,12 @@ public class TIMESTAMPLTZ extends Datum {
 
     public static Date toDate(Connection connection, byte[] bytes) throws SQLException {
         return new Date(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
     }
 
     public static Time toTime(Connection connection, byte[] bytes) throws SQLException {
         return new Time(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
     }
 
     public static Timestamp toTimestamp(Connection connection, byte[] bytes) throws SQLException {
@@ -134,7 +134,7 @@ public class TIMESTAMPLTZ extends Datum {
             throw new SQLException("invalid bytes length");
         }
         Timestamp timestamp = new Timestamp(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
         timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
         return timestamp;
     }

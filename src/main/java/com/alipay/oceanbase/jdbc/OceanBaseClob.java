@@ -166,6 +166,9 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     }
 
     public Reader getCharacterStream() {
+        if (this.charData != null) {
+            return new StringReader(this.charData);
+        }
         return new StringReader(toString());
     }
 
@@ -204,6 +207,17 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     }
 
     public InputStream getAsciiStream() throws SQLException {
+        if (this.charData != null) {
+            try {
+                if (this.encoding != null) {
+                    return new ByteArrayInputStream(charData.getBytes(this.encoding));
+                } else {
+                    return new ByteArrayInputStream(charData.getBytes());
+                }
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+            }
+        }
         return getBinaryStream();
     }
 

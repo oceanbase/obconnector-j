@@ -20,7 +20,7 @@ public abstract class Datum implements Serializable {
 
     public static String getSessionTimeZone(Connection connection) throws SQLException {
         if (connection instanceof OceanBaseConnection) {
-            return ((OceanBaseConnection) connection).getSessionTimeZone().getID();
+            return ((OceanBaseConnection) connection).getSessionTimeZone();
         } else {
             throw new SQLException("unexpected connection type");
         }
