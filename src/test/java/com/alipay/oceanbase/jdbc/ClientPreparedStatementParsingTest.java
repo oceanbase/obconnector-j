@@ -213,7 +213,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
         assertTrue(
             e.getCause()
                 .getMessage()
-                .contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
+                .contains("Query is: INSERT INTO errorTable (a, b) VALUES ('1', '2', '3')"));
       }
     }
   }

@@ -55,7 +55,7 @@ public class INTERVALYM extends Datum {
                 String monthStr = subStr.substring(index + 1);
                 year = Integer.valueOf(yearStr);
                 month = Integer.valueOf(monthStr);
-                if (month > MAXMONTH) {
+                if (month >= MAXMONTH) {
                     throw new NumberFormatException("invalid month " + month + " in " + var);
                 }
                 intervalymBytes[0] = (byte) (is_negative & 255);
@@ -81,14 +81,21 @@ public class INTERVALYM extends Datum {
                 throw new NumberFormatException("year should not exceed "
                                                 + Math.pow(10, MAXYEARPREC) + ", now is " + year);
             }
-            if (month < 0 || month > MAXMONTH) {
+            if (month < 0 || month >= MAXMONTH) {
                 throw new NumberFormatException("month should not exceed " + MAXMONTH + ", now is "
                                                 + month);
             }
-            String format = String.format("%%0%dd-%%02d", year_scale);
+            String format = String.format("%%%dd-%%2d", year_scale);
             String result = String.format(format, year, month);
+            String[] s = result.split(" ");
+            if (s.length > 1) {
+                result = "";
+                for (int i = 0; i < s.length; i++) {
+                    result += s[i];
+                }
+            }
             if (is_negative == 0) {
-                return "+" + result;
+                return result;
             } else {
                 return "-" + result;
             }

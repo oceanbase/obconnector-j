@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.ObOracleDefs;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.constant.ColumnFlags;
 
@@ -30,9 +31,11 @@ public class ColumnDefinition {
     private final short        charsetNumber;
     private final long         length;
     private final ColumnType   type;
-    private final byte         decimals;
-    private final short        flags;
-    private final byte         sqltype;
+    private final int          decimals;
+    private final int          precision;
+    private final int          inoutType;
+
+    private final int          sqltype;
 
     private int                catalogNameStart;
     private int                catalogNameLength;
@@ -53,6 +56,7 @@ public class ColumnDefinition {
     private int                complexTypeNameLength   = -1;
     private int                complexVersion          = 0;
     private final boolean      isOracleMode;
+    private int                precisionAdjustFactor   = 0;
 
     /**
      * Constructor for extent.
@@ -66,8 +70,9 @@ public class ColumnDefinition {
         this.sqltype = other.sqltype;
         this.type = other.type;
         this.decimals = other.decimals;
-        this.flags = other.flags;
         this.isOracleMode = other.isOracleMode;
+        this.precision = other.precision;
+        this.inoutType = other.inoutType;
     }
 
     /**
@@ -120,11 +125,13 @@ public class ColumnDefinition {
         buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        sqltype = buffer.readByte();
+        sqltype = buffer.readByte() & 0xff;
         longColFlag = buffer.readShort();
-        type = ColumnType.fromServer(sqltype & 0xff, charsetNumber, OracleMode);
-        flags = buffer.readShort();
-        decimals = buffer.readByte();
+        type = ColumnType.fromServer(sqltype, charsetNumber, OracleMode);
+
+        decimals = buffer.readByte() & 0xff;
+        precision = buffer.readByte() & 0xff;
+        inoutType = buffer.readByte() & 0xff;
 
         if (ColumnType.COMPLEX.getType() == type.getType()) {
             buffer.setPosition(buffer.getPosition());
@@ -141,6 +148,29 @@ public class ColumnDefinition {
             complexVersion = (int) buffer.readFieldLength();
         }
         isOracleMode = OracleMode;
+        if (isSigned()) {
+            switch (type) {
+                case DECIMAL:
+                case OBDECIMAL:
+                case OLDDECIMAL:
+                    precisionAdjustFactor = -1;
+                    break;
+                case DOUBLE:
+                case BINARY_DOUBLE:
+                case FLOAT:
+                case BINARY_FLOAT:
+                    precisionAdjustFactor = 1;
+            }
+        } else {
+            switch (type) {
+                case DOUBLE:
+                case BINARY_DOUBLE:
+                case FLOAT:
+                case BINARY_FLOAT:
+                    precisionAdjustFactor = 1;
+                    break;
+            }
+        }
     }
 
     /**
@@ -266,18 +296,37 @@ public class ColumnDefinition {
      * @return precision
      */
     public long getPrecision() {
-        switch (type) {
-            case OLDDECIMAL:
-            case DECIMAL:
-                // DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
-                // so :
-                // - if can be signed, 1 byte is saved for sign
-                // - if decimal > 0, one byte more for dot
-                if (isSigned()) {
-                    return length - ((decimals > 0) ? 2 : 1);
+        switch (type.getSqlType()) {
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                if (decimals > 0) {
+                    return length - 1 + precisionAdjustFactor;
                 } else {
-                    return length - ((decimals > 0) ? 1 : 0);
+                    return length + precisionAdjustFactor;
                 }
+            default:
+                break;
+        }
+        switch (type) {
+            case NVARCHAR2:
+            case VARCHAR2:
+            case STRING:
+            case VARSTRING:
+            case NCHAR:
+            case OBCLOB:
+                int maxWidth = maxCharlen[charsetNumber & 0xff];
+                if (maxWidth == 0) {
+                    maxWidth = 1;
+                }
+                return length / maxWidth;
             default:
                 return length;
         }
@@ -290,7 +339,8 @@ public class ColumnDefinition {
      */
     public int getDisplaySize() {
         int vtype = type.getSqlType();
-        if (vtype == Types.VARCHAR || vtype == Types.CHAR) {
+        if (vtype == Types.VARCHAR || vtype == Types.CHAR || vtype == Types.NVARCHAR
+            || vtype == Types.NCHAR || vtype == Types.CLOB) {
             int maxWidth = maxCharlen[charsetNumber & 0xff];
             if (maxWidth == 0) {
                 maxWidth = 1;
@@ -301,8 +351,21 @@ public class ColumnDefinition {
         return (int) length;
     }
 
-    public byte getDecimals() {
-        return decimals;
+    public int getDecimals() {
+        switch (type.getSqlType()) {
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                return decimals;
+        }
+        return 0;
     }
 
     public ColumnType getColumnType() {
@@ -310,35 +373,35 @@ public class ColumnDefinition {
     }
 
     public short getFlags() {
-        return flags;
+        return longColFlag;
     }
 
     public boolean isSigned() {
-        return ((flags & ColumnFlags.UNSIGNED) == 0);
+        return ((longColFlag & ColumnFlags.UNSIGNED) == 0);
     }
 
     public boolean isNotNull() {
-        return ((this.flags & 1) > 0);
+        return ((this.longColFlag & 1) > 0);
     }
 
     public boolean isPrimaryKey() {
-        return ((this.flags & 2) > 0);
+        return ((this.longColFlag & 2) > 0);
     }
 
     public boolean isUniqueKey() {
-        return ((this.flags & 4) > 0);
+        return ((this.longColFlag & 4) > 0);
     }
 
     public boolean isMultipleKey() {
-        return ((this.flags & 8) > 0);
+        return ((this.longColFlag & 8) > 0);
     }
 
     public boolean isBlob() {
-        return ((this.flags & 16) > 0);
+        return ((this.longColFlag & 16) > 0);
     }
 
     public boolean isZeroFill() {
-        return ((this.flags & 64) > 0);
+        return ((this.longColFlag & 64) > 0);
     }
 
     // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle

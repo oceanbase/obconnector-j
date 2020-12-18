@@ -1134,7 +1134,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return "Oracle";
         } else {
-            return "MYSQL";
+            return "MySQL";
         }
     }
 

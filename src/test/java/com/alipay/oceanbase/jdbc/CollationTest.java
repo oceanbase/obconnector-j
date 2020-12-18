@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CollationTest extends BaseTest {
@@ -160,7 +161,10 @@ public class CollationTest extends BaseTest {
      *
      * @throws SQLException if connection error occur.
      */
-    @Test
+    /*
+     No supported  character set latin1 now
+     */
+    @Ignore
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
         createTable("fooLatin1", "x longtext", "DEFAULT CHARSET=latin1");
 

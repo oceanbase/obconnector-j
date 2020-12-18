@@ -24,8 +24,10 @@ public class CallStatementTest extends BaseTest {
         createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
         createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
         createProcedure("TEST_SP1", "() BEGIN\n" + "SELECT @Something := 'Something';\n"
-                                    + "SIGNAL SQLSTATE '70100'\n"
-                                    + "SET MESSAGE_TEXT = 'Test error from SP'; \n" + "END");
+//                                    + "SIGNAL SQLSTATE '70100'\n"
+                                    + "SIGNAL SQLSTATE '70100';\n"
+//                                    + "SET MESSAGE_TEXT = 'Test error from SP'; \n" + "END");
+                                    + "END");
     }
 
     @Before
@@ -129,7 +131,7 @@ public class CallStatementTest extends BaseTest {
 
     @Test
     public void prepareStmtMultiResultSets() throws Exception {
-        PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
+        PreparedStatement stmt = sharedConnection.prepareStatement("call multiResultSets()");
         stmt.execute();
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());

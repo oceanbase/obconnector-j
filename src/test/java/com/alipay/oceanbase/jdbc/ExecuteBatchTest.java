@@ -139,8 +139,8 @@ public class ExecuteBatchTest extends BaseTest {
   public void serverBulk20mTest() throws SQLException {
     Assume.assumeTrue(checkMaxAllowedPacketMore20m("serverBulk20mTest"));
     Assume.assumeTrue(runLongTest);
-    Assume.assumeFalse(sharedIsAurora());
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeFalse(sharedIsAurora());
+//    Assume.assumeTrue(isMariadbServer());
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 

@@ -41,19 +41,23 @@ public class ClientPreparedStatementParsingOracleTest extends BaseOracleTest {
 
     @Test
     public void stringEscapeParsing() throws Exception {
-//        assertTrue(checkParsing("select '\\'' as a, ? as b, \"\\\"\" as c, ? as d", 2, false, true,
-//            new String[] { "select '\\'' as a, ", "", " as b, \"\\\"\" as c, ", "", " as d" },
-//            new String[] { "select '\\'' as a, ", " as b, \"\\\"\" as c, ", " as d" }));
+        //        assertTrue(checkParsing("select '\\'' as a, ? as b, \"\\\"\" as c, ? as d", 2, false, true,
+        //            new String[] { "select '\\'' as a, ", "", " as b, \"\\\"\" as c, ", "", " as d" },
+        //            new String[] { "select '\\'' as a, ", " as b, \"\\\"\" as c, ", " as d" }));
         assertTrue(checkParsing("select '''' as a, ? as b, '\"' as c, ? as d", 2, false, true,
-                new String[] { "select '''' as a, ", "", " as b, '\"' as c, ", "", " as d" },
-                new String[] { "select '''' as a, ", " as b, '\"' as c, ", " as d" }));
+            new String[] { "select '''' as a, ", "", " as b, '\"' as c, ", "", " as d" },
+            new String[] { "select '''' as a, ", " as b, '\"' as c, ", " as d" }));
     }
 
     @Test
     public void stringEscapeParsingApostrophe() throws Exception {
-        assertTrue(checkParsing("INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')", 0, false, true,
-                new String[] {"INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')"},
-                new String[] {"INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')"}));
+        assertTrue(checkParsing(
+            "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')",
+            0,
+            false,
+            true,
+            new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" },
+            new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" }));
     }
 
     @Test

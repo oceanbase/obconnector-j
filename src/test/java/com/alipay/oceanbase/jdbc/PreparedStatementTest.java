@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.sql.*;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class PreparedStatementTest extends BaseTest {
@@ -91,7 +92,7 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void cannotPrepareMetadata() throws Exception {
-        Assume.assumeTrue(isMariadbServer() && !minVersion(10, 2)); // corrected in 10.2
+//        Assume.assumeTrue(isMariadbServer() && !minVersion(10, 2)); // corrected in 10.2
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
         try {
@@ -437,7 +438,7 @@ public class PreparedStatementTest extends BaseTest {
      *
      * @throws Throwable exception
      */
-    @Test
+    @Ignore
   public void clientPrepareStatementValuesWithoutParameter() throws Throwable {
     createTable("clientPrepareStatementValuesWithoutParameter", "created_at datetime primary key");
 

@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.Properties;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MultiTest extends BaseTest {
@@ -239,7 +240,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
     public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
         verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000);
     }
@@ -249,7 +250,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
     public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
 
         createTable("MultiTestt6", "id int, test varchar(10000)");
@@ -424,7 +425,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
   public void rewriteBatchedStatementsSemicolon() throws SQLException {
     // set the rewrite batch statements parameter
     Properties props = new Properties();
@@ -516,7 +517,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
   public void semicolonTest() throws SQLException {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", "true");
@@ -545,7 +546,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
   public void rewriteBatchedStatementsUpdateTest() throws SQLException {
     // set the rewrite batch statements parameter
     Properties props = new Properties();
@@ -580,7 +581,7 @@ public class MultiTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
   public void testMultipleExecuteBatch() throws SQLException {
     // set the rewrite batch statements parameter
     Properties props = new Properties();
@@ -611,7 +612,7 @@ public class MultiTest extends BaseTest {
     }
   }
 
-    @Test
+    @Ignore
   public void rewriteBatchedStatementsInsertWithDuplicateRecordsTest() throws SQLException {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", "true");
@@ -968,17 +969,17 @@ public class MultiTest extends BaseTest {
         }
     }
 
-    @Test
+    @Ignore
     public void rewriteErrorRewriteValues() throws SQLException {
         prepareBatchUpdateException(true, true);
     }
 
-    @Test
+    @Ignore
     public void rewriteErrorRewriteMulti() throws SQLException {
         prepareBatchUpdateException(false, true);
     }
 
-    @Test
+    @Ignore
     public void rewriteErrorStandard() throws SQLException {
         prepareBatchUpdateException(false, false);
     }

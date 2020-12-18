@@ -7,10 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 /**
  * Aurora test suite. Some environment parameter must be set : - defaultAuroraUrl : example
@@ -35,7 +32,7 @@ public class AuroraFailoverTest extends BaseReplication {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
-
+    @Ignore
     @Test
   public void testErrorWriteOnReplica() throws SQLException {
     try (Connection connection = getNewConnection(false)) {
@@ -60,7 +57,7 @@ public class AuroraFailoverTest extends BaseReplication {
     }
   }
 
-    @Test
+    @Ignore
   public void testReplication() throws SQLException, InterruptedException {
     try (Connection connection = getNewConnection(false)) {
       Statement stmt = connection.createStatement();
@@ -81,7 +78,7 @@ public class AuroraFailoverTest extends BaseReplication {
     }
   }
 
-    @Test
+    @Ignore
   public void testReadOnly() throws SQLException {
     try (Connection connection = getNewConnection(false)) {
       ResultSet rs = connection.createStatement().executeQuery("select @@innodb_read_only");
@@ -100,7 +97,7 @@ public class AuroraFailoverTest extends BaseReplication {
     }
   }
 
-    @Test
+    @Ignore
   public void testFailMaster() throws Throwable {
     try (Connection connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true)) {
       int previousPort = getProtocolFromConnection(connection).getPort();
@@ -128,7 +125,7 @@ public class AuroraFailoverTest extends BaseReplication {
      *
      * @throws SQLException exception
      */
-    @Test
+    @Ignore
   public void socketTimeoutTest() throws SQLException {
     // set a short connection timeout
     try (Connection connection = getNewConnection("&socketTimeout=4000", false)) {
@@ -167,7 +164,7 @@ public class AuroraFailoverTest extends BaseReplication {
   }
 
     /** Conj-166 Connection error code must be thrown. */
-    @Test
+    @Ignore
     public void testAccessDeniedErrorCode() {
         try {
             DriverManager.getConnection(defaultUrl + "&retriesAllDown=6", "foouser", "foopwd");
@@ -180,7 +177,7 @@ public class AuroraFailoverTest extends BaseReplication {
         }
     }
 
-    @Test
+    @Ignore
   public void testClearBlacklist() throws Throwable {
     try (Connection connection = getNewConnection(true)) {
       connection.setReadOnly(true);
@@ -200,7 +197,7 @@ public class AuroraFailoverTest extends BaseReplication {
       assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
   }
-
+  @Ignore
     @Test
   public void testCloseFail() throws Throwable {
     assureBlackList();

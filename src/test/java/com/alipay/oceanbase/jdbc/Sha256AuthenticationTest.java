@@ -23,7 +23,7 @@ public class Sha256AuthenticationTest extends BaseTest {
      */
     @Before
     public void checkSsl() throws SQLException {
-        Assume.assumeTrue(!isMariadbServer() && minVersion(5, 7));
+//        Assume.assumeTrue(!isMariadbServer() && minVersion(5, 7));
         serverPublicKey = System.getProperty("serverPublicKey");
         // try default if not present
         if (serverPublicKey == null) {

@@ -33,13 +33,16 @@ public enum ColumnType {
     BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE), //
     JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
+    OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(),
+              ColumnType.ORACLE_TYPE), //
     ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), //
-    MEDIUMBLOB(250, Types.LONGVARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARBINARY -> LONGVARBINARY
+    MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARBINARY -> LONGVARBINARY
     LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //Types.CHAR -> Types.DECIMAL
     BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //
-    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), //
+    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE), //
+    VARCHAR2(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.ORACLE_TYPE), //
     STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     GEOMETRY(255, Types.CHAR, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
 
@@ -49,12 +52,11 @@ public enum ColumnType {
     TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
                    ColumnType.ORACLE_TYPE), //
     OBBLOB(210, Types.BLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
-    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
-    INTERVALYM(204, Types.OTHER, "Types.OTHER",
-               com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM.class.getName(),
+    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.alipay.oceanbase.jdbc.Clob",
+           ColumnType.ORACLE_TYPE), //
+    INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
                ColumnType.ORACLE_TYPE), //
-    INTERVALDS(205, Types.OTHER, "Types.OTHER",
-               com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS.class.getName(),
+    INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
                ColumnType.ORACLE_TYPE), //
     COMPLEX(160, Types.OTHER, "Types.OTHER",
             com.alipay.oceanbase.jdbc.extend.datatype.ComplexData.class.getName(),
@@ -69,13 +71,16 @@ public enum ColumnType {
     CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE), //
     NUMBER(3, Types.INTEGER, "Types.INTEGER",
            com.alipay.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE), //
-    NUMBER_FLOAT(206, Types.FLOAT, "Types.FLOAT",
-                 com.alipay.oceanbase.jdbc.extend.datatype.NUMBER_FLOAT.class.getName(),
+    NUMBER_FLOAT(206, Types.VARCHAR, "Types.FLOAT", java.lang.String.class.getName(),
                  ColumnType.ORACLE_TYPE), //
-    BINARY_DOUBLE(5, ObOracleDefs.FIELD_JAVA_TYPE_BINARY_DOUBLE, "Types.DOUBLE",
-                  BINARY_DOUBLE.class.getName(), ColumnType.ORACLE_TYPE), //
-    BINARY_FLOAT(4, ObOracleDefs.FIELD_JAVA_TYPE_BINARY_FLOAT, "Types.FLOAT", BINARY_DOUBLE.class
-        .getName(), ColumnType.ORACLE_TYPE);
+    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(),
+                  ColumnType.ORACLE_TYPE), //
+    NCHAR(208, Types.NCHAR, "Types.NCHAR", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
+    NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(),
+              ColumnType.ORACLE_TYPE), //
+    ROWID(209, Types.ROWID, "Types.ROWID", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
+    BINARY_FLOAT(4, Types.FLOAT, "Types.FLOAT", java.lang.Float.class.getName(),
+                 ColumnType.ORACLE_TYPE);
 
     /* Add one protocol type need to check:
      *      1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types
@@ -233,7 +238,9 @@ public enum ColumnType {
      * @param binary binary
      * @return type
      */
-    public static String getColumnTypeName(ColumnType type, long len, boolean signed, boolean binary) {
+    public static String getColumnTypeName(ColumnType type, long len, boolean signed,
+                                           boolean binary, boolean isOracelMode) {
+        long l = len;
         switch (type) {
             case SMALLINT:
             case MEDIUMINT:
@@ -249,13 +256,21 @@ public enum ColumnType {
                  map to different blob types based on datatype length
                  see https://mariadb.com/kb/en/library/data-types/
                 */
+                /*
+                Each BLOB value is stored using a two-byte length prefix that
+                indicates the number of bytes in the value.
+                 */
+
+                if (binary) {
+                    l -= 2;
+                }
                 if (len < 0) {
                     return "LONGBLOB";
-                } else if (len <= 255) {
+                } else if (l <= 255) {
                     return "TINYBLOB";
-                } else if (len <= 65535) {
+                } else if (l <= 65535) {
                     return "BLOB";
-                } else if (len <= 16777215) {
+                } else if (l <= 16777215) {
                     return "MEDIUMBLOB";
                 } else {
                     return "LONGBLOB";
@@ -281,6 +296,17 @@ public enum ColumnType {
                 return "TIMESTAMP WITH TIME ZONE";
             case TIMESTAMP_LTZ:
                 return "TIMESTAMP WITH LOCAL TIME ZONE";
+            case OLDDECIMAL:
+            case DECIMAL:
+                return !signed ? "DECIMAL UNSIGNED" : "DECIMAL";
+            case OBDECIMAL:
+                return !signed ? "NUMBER UNSIGNED" : "NUMBER";
+            case NUMBER_FLOAT:
+                return "NUMBER";
+            case DATETIME:
+                if (isOracelMode) {
+                    return "DATE";
+                }
             default:
                 return type.getTypeName();
         }

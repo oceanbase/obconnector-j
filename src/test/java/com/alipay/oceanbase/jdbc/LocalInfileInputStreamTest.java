@@ -20,8 +20,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
         createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
         createTable("ttlocal", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
-        createTable("`infile`", "`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL",
-            "ENGINE=InnoDB DEFAULT CHARSET=latin1");
+//        createTable("`infile`", "`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL",
+//            "ENGINE=InnoDB DEFAULT CHARSET=latin1");
     }
 
     @Test

@@ -392,6 +392,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case DECIMAL:
             case OLDDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
                     columnInfo);
@@ -551,7 +552,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-            case OLDDECIMAL:
                 try {
                     return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -560,6 +560,10 @@ public class BinaryRowProtocol extends RowProtocol {
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
                     throw sqlException;
                 }
+            case OBDECIMAL:
+                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(val);
+                return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -626,7 +630,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-            case OLDDECIMAL:
                 try {
                     return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -648,6 +651,10 @@ public class BinaryRowProtocol extends RowProtocol {
 
                 return Double.longBitsToDouble(valueAsLong);
                 //                return Double.parseDouble(new String(buf, pos, length, StandardCharsets.UTF_8));
+            case OBDECIMAL:
+                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(val);
+                return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -703,6 +710,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR:
             case STRING:
             case OLDDECIMAL:
+            case OBDECIMAL:
                 return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
@@ -1045,6 +1053,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
+            case OBDECIMAL:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:

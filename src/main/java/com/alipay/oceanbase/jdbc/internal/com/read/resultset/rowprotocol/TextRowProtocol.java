@@ -415,6 +415,10 @@ public class TextRowProtocol extends RowProtocol {
                 //            case BINARY_DOUBLE:
                 //                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 //                return (float)d;
+            case OBDECIMAL:
+                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(value);
+                return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -463,8 +467,13 @@ public class TextRowProtocol extends RowProtocol {
                     throw sqlException;
                 }
             case BINARY_FLOAT:
+
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 return (double) f;
+            case OBDECIMAL:
+                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(value);
+                return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -842,6 +851,7 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR:
             case VARSTRING:
             case STRING:
+            case VARCHAR2:
                 if (columnInfo.isBinary()) {
                     byte[] data = new byte[getLengthMaxFieldSize()];
                     System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
@@ -855,6 +865,7 @@ public class TextRowProtocol extends RowProtocol {
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
+            case OBDECIMAL:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:
@@ -891,15 +902,25 @@ public class TextRowProtocol extends RowProtocol {
             case SET:
                 break;
             case NUMBER:
-                return getInternalNumber(columnInfo);
             case NUMBER_FLOAT:
-                return getInternalNumber_float(columnInfo);
+                return getInternalNumber(columnInfo);
+                //            case NUMBER_FLOAT:
+                //                return getInternalNumber_float(columnInfo);
             case BINARY_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 return f;
             case BINARY_DOUBLE:
                 Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 return d;
+            case NVARCHAR2:
+            case NCHAR:
+                return getInternalString(columnInfo, null, timeZone);
+            case TIMESTAMP_TZ:
+                return getInternalTIMESTAMPTZ(columnInfo, null, timeZone);
+            case TIMESTAMP_LTZ:
+                return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
+            case INTERVALYM:
+                return getInternalINTERVALYM(columnInfo);
             default:
                 break;
         }
@@ -1243,7 +1264,9 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new NUMBER("0".getBytes());
         }
-        return new NUMBER(buf);
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new NUMBER(b);
     }
 
     public NUMBER_FLOAT getInternalNumber_float(ColumnDefinition columnInfo) {
@@ -1257,13 +1280,17 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new BINARY_DOUBLE(0.0d);
         }
-        return new BINARY_DOUBLE(buf); // todo fixme
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new BINARY_DOUBLE(b); // todo fixme
     }
 
     public BINARY_FLOAT getInternalBINARY_FLOAT() {
         if (lastValueWasNull()) {
             return new BINARY_FLOAT(0.0f);
         }
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
         return new BINARY_FLOAT(buf); // fixme
     }
 
@@ -1272,7 +1299,9 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new INTERVALDS("0 0:0:0.0");
         }
-        return new INTERVALDS(buf);
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new INTERVALDS(b);
     }
 
     @Override
@@ -1280,8 +1309,8 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new INTERVALYM("0-0");
         }
-        //        byte[] target;
-        //        System.arraycopy(target,pos,buf,0);
-        return new INTERVALYM(new String(buf, pos, length, StandardCharsets.UTF_8));
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new INTERVALYM(b);
     }
 }

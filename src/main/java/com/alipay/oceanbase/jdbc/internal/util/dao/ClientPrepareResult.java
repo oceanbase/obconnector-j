@@ -172,7 +172,8 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes escape
      * @return valid flag
      */
-    public static boolean canAggregateSemiColon(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
+    public static boolean canAggregateSemiColon(String queryString, boolean noBackslashEscapes,
+                                                boolean isOracleMode) {
 
         LexState state = LexState.Normal;
         char lastChar = '\0';

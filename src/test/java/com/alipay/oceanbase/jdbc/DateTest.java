@@ -145,7 +145,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void yearTest() throws SQLException {
-        Assume.assumeTrue(isMariadbServer());
+        //        Assume.assumeTrue(isMariadbServer());
         createTable("yeartest", "y1 year, y2 year(2)");
         sharedConnection.createStatement().execute(
             "insert into yeartest values (null, null), (1901, 70), (0, 0), " + "(2155, 69)");
@@ -267,7 +267,7 @@ public class DateTest extends BaseTest {
 
     @Test
   public void timestampZeroTest() throws SQLException {
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeTrue(isMariadbServer());
     String timestampZero = "0000-00-00 00:00:00";
     String dateZero = "0000-00-00";
     sharedConnection
@@ -580,7 +580,7 @@ public class DateTest extends BaseTest {
     /** Conj-317 : null pointer exception on getDate on null timestamp. */
     @Test
     public void nullDateFromTimestamp() throws Throwable {
-        Assume.assumeTrue(isMariadbServer());
+//        Assume.assumeTrue(isMariadbServer());
 
         createTable("nulltimestamp", "ts timestamp(6) NULL ");
         Statement stmt = sharedConnection.createStatement();
@@ -619,7 +619,7 @@ public class DateTest extends BaseTest {
      */
     @Test
   public void getZeroDateString() throws SQLException {
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeTrue(isMariadbServer());
     createTable("zeroTimestamp", "ts timestamp NULL ");
     try (Statement statement = sharedConnection.createStatement()) {
       statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
