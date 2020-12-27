@@ -4,6 +4,7 @@ import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import org.junit.*;
 import java.sql.*;
+import oracle.jdbc.*;
 
 import static org.junit.Assert.*;
 
@@ -30,53 +31,116 @@ public class INTERVALOracleTest extends BaseOracleTest {
 
     }
 
+    @Test
+    public void INTERVALYMTest() {
+        {
+            String str = "+01233-11";
+            INTERVALYM intervalym = new INTERVALYM(str);
+            oracle.sql.INTERVALYM intervalym1 = new oracle.sql.INTERVALYM(str);
+            System.out.println("intervalym1 = " + intervalym1);
+            System.out.println("intervalym = " + intervalym);
+            Assert.assertEquals(intervalym1.toString(), intervalym.toString());
+        }
+        {
+            String str = "-1233-13";
+            try {
+                INTERVALYM intervalym = new INTERVALYM(str);
+            } catch (Exception ex) {
+                Assert.assertEquals(ex.getMessage(), "invalid month 13 in " + str);
+            }
+        }
+    }
+
+    @Test
+    public void INTERVALDSTest() {
+        {
+            String str = "-111 12:11:10.1110000";
+            INTERVALDS intervalds = new INTERVALDS(str);
+            oracle.sql.INTERVALDS intervalds1 = new oracle.sql.INTERVALDS(str);
+            Assert.assertEquals(intervalds1.toString(), intervalds.toString());
+        }
+    }
+
     /**
      * The basic test of intervalds includes query, insert, update;Due to AONE-30982102,The table contains only one interval column
      * @throws SQLException exception
      */
     @Test
     public void basicOracleIntervalds() throws SQLException {
+        try {
+            Connection oracleConnection = getOracleConnection();
+            String sql = null;
+            sql = "delete  from " + tableNameDS;
+            sharedPSConnection.createStatement().execute(sql);
 
-        String sql = null;
-        sql = "delete  from " + tableNameDS;
-        sharedPSConnection.createStatement().execute(sql);
+            try {
+                oracleConnection.createStatement().execute("drop table test_intervalds");
+            } catch (SQLException throwables) {
+                // ignore
+            }
+            oracleConnection
+                .createStatement()
+                .execute(
+                    "create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
 
-        sql = "insert into " + tableNameDS + "  values(?, ?)";
-        PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.setInt(1, 1);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS(
-            "2324 5:12:10.212"));
-        pstmt.execute();
-        sql = "insert into " + tableNameDS + " values(2, '-122324 5:12:10.22222222')";
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        sql = "select c1, c2 from " + tableNameDS;
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        ResultSet resultSet = pstmt.getResultSet();
+            String sql1 = "insert into " + tableNameDS + "  values(?, ?)";
 
-        assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt("c1"));
-        assertEquals("+002324 05:12:10.21200", resultSet.getString("c2"));
-        assertTrue(resultSet.next());
-        assertEquals(2, resultSet.getInt("c1"));
-        assertEquals("-122324 05:12:10.22222", resultSet.getString("c2"));
-        resultSet.close();
-        // test for update and query
+            PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql1);
+            pstmt.setInt(1, 1);
+            ((BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS("2324 5:12:10.0212"));
+            pstmt.execute();
+            String sql2 = "insert into " + tableNameDS + " values(2, '-122324 5:12:10.22222222')";
+            pstmt = sharedPSConnection.prepareStatement(sql2);
+            pstmt.execute();
+            String sql3 = "select c1, c2 from " + tableNameDS;
+            pstmt = sharedPSConnection.prepareStatement(sql3);
+            pstmt.execute();
+            ResultSet resultSet = pstmt.getResultSet();
 
-        sql = "update " + tableNameDS + " set c2 = ? where c1 = 1";
-        pstmt = sharedConnection.prepareStatement(sql);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALDS(1, new INTERVALDS(
-            "1234 5:12:10.212"));
-        pstmt.execute();
+            PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql1);
+            oraclePstmt.setInt(1, 1);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
+                "2324 5:12:10.0212"));
+            oraclePstmt.execute();
+            oraclePstmt = oracleConnection.prepareStatement(sql2);
+            oraclePstmt.execute();
+            oraclePstmt = oracleConnection.prepareStatement(sql3);
+            oraclePstmt.execute();
+            ResultSet oracleResultSet = oraclePstmt.getResultSet();
 
-        sql = "select c2 from " + tableNameDS + " where c1 = 1";
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        resultSet = pstmt.getResultSet();
-        assertTrue(resultSet.next());
-        assertEquals("+001234 05:12:10.21200", resultSet.getString("c2"));
-        resultSet.close();
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(oracleResultSet.getInt("c1"), resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(oracleResultSet.getInt("c1"), resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+            resultSet.close();
+            // test for update and query
+
+            sql = "update " + tableNameDS + " set c2 = ? where c1 = 1";
+            pstmt = sharedConnection.prepareStatement(sql);
+            ((BasePrepareStatement) pstmt).setINTERVALDS(1, new INTERVALDS("1234 5:12:10.212"));
+            pstmt.execute();
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
+                "1234 5:12:10.212"));
+            oraclePstmt.execute();
+
+            sql = "select c2 from " + tableNameDS + " where c1 = 1";
+            pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.execute();
+            resultSet = pstmt.getResultSet();
+
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.execute();
+            oracleResultSet = oraclePstmt.getResultSet();
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+            resultSet.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -85,45 +149,82 @@ public class INTERVALOracleTest extends BaseOracleTest {
      * INTERVALDS(byte[] intervalDS)
      * INTERVALDS(String str)
      */
+
     @Test
     public void constructorOracleIntervalds() throws SQLException {
-        String sql = null;
-        sql = "delete  from " + tableNameDS;
-        sharedPSConnection.createStatement().execute(sql);
+        try {
+            Connection oracleConnection = getOracleConnection();
+            System.out.println("start !!!!!!");
+            String sql = null;
+            sql = "delete  from " + tableNameDS;
+            sharedPSConnection.createStatement().execute(sql);
+            try {
+                oracleConnection.createStatement().execute("drop table test_intervalds");
+            } catch (SQLException throwables) {
+                // ignore
+            }
+            oracleConnection
+                .createStatement()
+                .execute(
+                    "create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
 
-        sql = "insert into " + tableNameDS + "  values(?,?)";
-        PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.setInt(1, 1);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS()); //
-        pstmt.addBatch();
-        pstmt.setInt(1, 2);
-        INTERVALDS val = new INTERVALDS("2324 5:12:10.212");
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS(
-            val.getBytes()));
-        pstmt.addBatch();
-        pstmt.setInt(1, 3);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS(
-            "2324 5:12:10.212"));
-        pstmt.addBatch();
-        pstmt.executeBatch();
+            String intervalStr = "2324 5:12:10.21211111";
+            sql = "insert into " + tableNameDS + "  values(?,?)";
+            PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.setInt(1, 1);
+            INTERVALDS tmp = new INTERVALDS();
+            ((BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS()); //
+            pstmt.addBatch();
+            pstmt.setInt(1, 2);
+            INTERVALDS val = new INTERVALDS(intervalStr);
+            ((BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS(val.getBytes()));
+            pstmt.addBatch();
+            pstmt.setInt(1, 3);
+            ((BasePrepareStatement) pstmt).setINTERVALDS(2, new INTERVALDS(intervalStr));
+            pstmt.addBatch();
+            pstmt.executeBatch();
 
-        sql = "select c1, c2 from " + tableNameDS;
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        ResultSet resultSet = pstmt.getResultSet();
+            PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.setInt(1, 1);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS());
+            oraclePstmt.addBatch();
 
-        assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt("c1"));
-        assertEquals("+000000 00:00:00.00000", resultSet.getString("c2"));
+            oracle.sql.INTERVALDS oracleVal = new oracle.sql.INTERVALDS(intervalStr);
+            oraclePstmt.setInt(1, 2);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
+                oracleVal.toBytes()));
+            oraclePstmt.addBatch();
 
-        assertTrue(resultSet.next());
-        assertEquals(2, resultSet.getInt("c1"));
-        assertEquals("+002324 05:12:10.21200", resultSet.getString("c2"));
-        assertTrue(resultSet.next());
+            oraclePstmt.setInt(1, 3);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
+                intervalStr));
+            oraclePstmt.addBatch();
+            oraclePstmt.executeBatch();
 
-        assertEquals(3, resultSet.getInt("c1"));
-        assertEquals("+002324 05:12:10.21200", resultSet.getString("c2"));
-        resultSet.close();
+            sql = "select c1, c2 from " + tableNameDS;
+            pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.execute();
+            ResultSet resultSet = pstmt.getResultSet();
+
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.execute();
+            ResultSet oracleResultSet = oraclePstmt.getResultSet();
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(1, resultSet.getInt("c1"));
+            //            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(2, resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(3, resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -140,13 +241,74 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void methodOracleIntervalds() throws SQLException {
-        INTERVALDS intervalds = new INTERVALDS("10 3:36:12.222");
-
+        String interval = "1 1:1:2.222";
+        INTERVALDS intervalds = new INTERVALDS(interval);
+        oracle.sql.INTERVALDS intervalds1 = new oracle.sql.INTERVALDS(interval);
         assertTrue(intervalds.isConvertibleTo(String.class));
-        assertEquals("+10 03:36:12.222000000", intervalds.toString());
-        byte[] bdata = INTERVALDS.toBytes("10 3:36:12.222");
-        assertEquals("+10 03:36:12.222000000", INTERVALDS.toString(bdata));
-        assertArrayEquals(INTERVALDS.toBytes("5 3:20:11.1"), INTERVALDS.toBytes("5 3:20:11.1"));
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        byte[] bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "01 1:1:2.222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        System.out.println("intervalds.toString() = " + intervalds.toString());
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "100 1:1:2.222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "100 01:1:2.222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        System.out.println("intervalds = " + intervalds.toString());
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "100 00:1:2.222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        System.out.println("intervalds = " + intervalds.toString());
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "+100 00:1:2.222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        System.out.println("intervalds = " + intervalds.toString());
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
+
+        interval = "-100 00:1:2.0222";
+        intervalds = new INTERVALDS(interval);
+        intervalds1 = new oracle.sql.INTERVALDS(interval);
+        System.out.println("intervalds = " + intervalds.toString());
+        assertTrue(intervalds.isConvertibleTo(String.class));
+        System.out.println("intervalds1 = " + intervalds1.toString());
+        assertEquals(intervalds1.toString(), intervalds.toString());
+        bdata = INTERVALDS.toBytes(interval);
+        assertEquals(intervalds1.toString(), INTERVALDS.toString(bdata));
+        assertArrayEquals(INTERVALDS.toBytes(interval), INTERVALDS.toBytes(interval));
 
     }
 
@@ -161,12 +323,19 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void boundaryOracleIntervalds() throws SQLException {
-        INTERVALDS unsignedIntervalds = new INTERVALDS("100 10:10:10.10");
-        INTERVALDS negIntervalds = new INTERVALDS("-100 10:10:10.10");
-        INTERVALDS posIntervalds = new INTERVALDS("+100 10:10:10.10");
-        assertEquals("+100 10:10:10.100000000", unsignedIntervalds.toString());
-        assertEquals("+100 10:10:10.100000000", posIntervalds.toString());
-        assertEquals("-100 10:10:10.100000000", negIntervalds.toString());
+        INTERVALDS unsignedIntervalds = new INTERVALDS("2324 5:12:10.012345678");
+        oracle.sql.INTERVALDS oracleUnsignedIntervalds = new oracle.sql.INTERVALDS(
+            "2324 5:12:10.012345678");
+        System.out.println("unsignedIntervalds = " + unsignedIntervalds.toString());
+        System.out.println("oracleUnsignedIntervalds.toString() = "
+                           + oracleUnsignedIntervalds.toString());
+        INTERVALDS negIntervalds = new INTERVALDS("-100 10:10:10.010");
+        oracle.sql.INTERVALDS oracleNegIntervalds = new oracle.sql.INTERVALDS("-100 10:10:10.010");
+        INTERVALDS posIntervalds = new INTERVALDS("+100 10:10:10.010");
+        oracle.sql.INTERVALDS oraclePosIntervalds = new oracle.sql.INTERVALDS("+100 10:10:10.010");
+        assertEquals(oracleUnsignedIntervalds.toString(), unsignedIntervalds.toString());
+        assertEquals(oracleNegIntervalds.toString(), negIntervalds.toString());
+        assertEquals(oraclePosIntervalds.toString(), posIntervalds.toString());
 
         try {
             INTERVALDS inHour = new INTERVALDS("+100 24:10:10.10");
@@ -210,45 +379,77 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void basicOracleIntervalym() throws SQLException {
-        String sql = null;
-        sql = "delete from " + tableNameYM;
-        sharedPSConnection.createStatement().execute(sql);
+        try {
+            Connection oracleConnection = getOracleConnection();
 
-        sql = "insert into " + tableNameYM + " values(?, ?)";
-        PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.setInt(1, 1);
-        ((BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM("123-2"));
-        pstmt.execute();
-        sql = "insert into " + tableNameYM + " values(2,'123-2')";
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
+            try {
+                oracleConnection.createStatement().execute("drop table test_intervalym");
+            } catch (SQLException throwables) {
+                // ignore
+            }
+            oracleConnection.createStatement().execute(
+                "create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
 
-        sql = "select c1, c2 from " + tableNameYM;
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        ResultSet rs = pstmt.getResultSet();
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertEquals("+0123-02", rs.getString(2));
+            String sql = null;
+            sql = "delete from " + tableNameYM;
+            sharedPSConnection.createStatement().execute(sql);
 
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertEquals("+0123-02", rs.getString(2));
+            String sql1 = "insert into " + tableNameYM + " values(?, ?)";
+            PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql1);
+            pstmt.setInt(1, 1);
+            ((BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM("123-2"));
+            pstmt.execute();
+            String sql2 = "insert into " + tableNameYM + " values(2,'123-2')";
+            pstmt = sharedPSConnection.prepareStatement(sql2);
+            pstmt.execute();
+            PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql1);
+            oraclePstmt.setInt(1, 1);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
+                "123-2"));
+            oraclePstmt.execute();
+            oraclePstmt = oracleConnection.prepareStatement(sql2);
+            oraclePstmt.execute();
 
-        // test for update and query
-        sql = "update " + tableNameYM + " set c2 = ? where c1 = 1";
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALYM(1, new INTERVALYM(
-            "10-10"));
-        pstmt.execute();
+            String sql3 = "select c1, c2 from " + tableNameYM;
+            pstmt = sharedPSConnection.prepareStatement(sql3);
+            pstmt.execute();
+            ResultSet rs = pstmt.getResultSet();
+            oraclePstmt = oracleConnection.prepareStatement(sql3);
+            oraclePstmt.execute();
+            ResultSet oracleResult = oraclePstmt.getResultSet();
 
-        sql = "select c2 from " + tableNameYM + " where c1 = 1";
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        rs = pstmt.getResultSet();
-        assertTrue(rs.next());
-        assertEquals("+0010-10", rs.getString(1));
-        rs.close();
+            assertTrue(rs.next() && oracleResult.next());
+            assertEquals(1, rs.getInt(1));
+            assertEquals(oracleResult.getString(2), rs.getString(2));
+
+            assertTrue(rs.next() && oracleResult.next());
+            assertEquals(2, rs.getInt(1));
+            assertEquals(oracleResult.getString(2), rs.getString(2));
+
+            // test for update and query
+            sql = "update " + tableNameYM + " set c2 = ? where c1 = 1";
+            pstmt = sharedPSConnection.prepareStatement(sql);
+            ((BasePrepareStatement) pstmt).setINTERVALYM(1, new INTERVALYM("10-10"));
+            pstmt.execute();
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
+                "10-10"));
+            oraclePstmt.execute();
+
+            sql = "select c2 from " + tableNameYM + " where c1 = 1";
+            pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.execute();
+            rs = pstmt.getResultSet();
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.execute();
+            oracleResult = oraclePstmt.getResultSet();
+
+            assertTrue(rs.next() && oracleResult.next());
+            assertEquals(oracleResult.getString(1), rs.getString(1));
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -260,43 +461,73 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void constructorOracleInetervalym() throws SQLException {
-        String sql = null;
-        sql = "delete from " + tableNameYM;
-        sharedPSConnection.createStatement().execute(sql);
+        try {
+            Connection oracleConnection = getOracleConnection();
 
-        sql = "insert into " + tableNameYM + " values(?,?)";
-        PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.setInt(1, 1);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM());
-        pstmt.addBatch();
-        pstmt.setInt(1, 2);
-        INTERVALYM val = new INTERVALYM("22-3");
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM(
-            val.getBytes()));
-        pstmt.addBatch();
-        pstmt.setInt(1, 3);
-        ((com.alipay.oceanbase.jdbc.BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM(
-            "21-4"));
-        pstmt.addBatch();
-        pstmt.executeBatch();
+            try {
+                oracleConnection.createStatement().execute("drop table test_intervalym");
+            } catch (SQLException throwables) {
+                // ignore
+            }
+            oracleConnection.createStatement().execute(
+                "create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
 
-        sql = "select c1,c2 from " + tableNameYM;
-        pstmt = sharedPSConnection.prepareStatement(sql);
-        pstmt.execute();
-        ResultSet resultSet = pstmt.getResultSet();
+            String sql = null;
+            sql = "delete from " + tableNameYM;
+            sharedPSConnection.createStatement().execute(sql);
 
-        assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt("c1"));
-        assertEquals("+0000-00", resultSet.getString("c2"));
+            sql = "insert into " + tableNameYM + " values(?,?)";
+            PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.setInt(1, 1);
+            ((BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM());
+            pstmt.addBatch();
+            pstmt.setInt(1, 2);
+            INTERVALYM val = new INTERVALYM("22-3");
+            ((BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM(val.getBytes()));
+            pstmt.addBatch();
+            pstmt.setInt(1, 3);
+            ((BasePrepareStatement) pstmt).setINTERVALYM(2, new INTERVALYM("21-4"));
+            pstmt.addBatch();
+            pstmt.executeBatch();
+            PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.setInt(1, 1);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM());
+            oraclePstmt.addBatch();
+            oraclePstmt.setInt(1, 2);
+            oracle.sql.INTERVALYM val2 = new oracle.sql.INTERVALYM("22-3");
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2,
+                new oracle.sql.INTERVALYM(val2.getBytes()));
+            oraclePstmt.addBatch();
+            oraclePstmt.setInt(1, 3);
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
+                "21-4"));
+            oraclePstmt.addBatch();
+            oraclePstmt.executeBatch();
 
-        assertTrue(resultSet.next());
-        assertEquals(2, resultSet.getInt("c1"));
-        assertEquals("+0022-03", resultSet.getString("c2"));
-        assertTrue(resultSet.next());
+            sql = "select c1,c2 from " + tableNameYM;
+            pstmt = sharedPSConnection.prepareStatement(sql);
+            pstmt.execute();
+            ResultSet resultSet = pstmt.getResultSet();
+            oraclePstmt = oracleConnection.prepareStatement(sql);
+            oraclePstmt.execute();
+            ResultSet oracleResultSet = oraclePstmt.getResultSet();
 
-        assertEquals(3, resultSet.getInt("c1"));
-        assertEquals("+0021-04", resultSet.getString("c2"));
-        resultSet.close();
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(1, resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(2, resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+
+            assertTrue(resultSet.next() && oracleResultSet.next());
+            assertEquals(3, resultSet.getInt("c1"));
+            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+            resultSet.close();
+            oracleResultSet.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -313,12 +544,14 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void methodOracleIntervalym() throws SQLException {
-        INTERVALYM intervalym = new INTERVALYM("10-11");
-
+        String intervalStr = "10-11";
+        INTERVALYM intervalym = new INTERVALYM(intervalStr);
+        oracle.sql.INTERVALYM intervalym1 = new oracle.sql.INTERVALYM(intervalStr);
         assertTrue(intervalym.isConvertibleTo(String.class));
-        assertEquals("+10-11", intervalym.toString());
-        byte[] bdata = INTERVALYM.toBytes("11-11");
-        assertEquals("+11-11", INTERVALYM.toString(bdata));
+        assertEquals(intervalym1.toString(), intervalym.toString());
+
+        byte[] bdata = INTERVALYM.toBytes(intervalStr);
+        assertEquals(intervalym1.toString(), INTERVALYM.toString(bdata));
         assertArrayEquals(INTERVALYM.toBytes("10-10"), INTERVALYM.toBytes("10-10"));
 
     }
@@ -333,11 +566,11 @@ public class INTERVALOracleTest extends BaseOracleTest {
     @Test
     public void boundaryOracleIntervalym() throws SQLException {
         INTERVALYM unsignedIntervalym = new INTERVALYM("10-1");
+        oracle.sql.INTERVALYM oracleUnsignedIntervalym = new oracle.sql.INTERVALYM("10-1");
         INTERVALYM negIntervalym = new INTERVALYM("-10-1");
+        oracle.sql.INTERVALYM oracleNegIntervalym = new oracle.sql.INTERVALYM("-10-1");
         INTERVALYM posIntervalym = new INTERVALYM("+10-1");
-        assertEquals("+10-01", unsignedIntervalym.toString());
-        assertEquals("-10-01", negIntervalym.toString());
-        assertEquals("+10-01", posIntervalym.toString());
+        oracle.sql.INTERVALYM oraclePosIntervalym = new oracle.sql.INTERVALYM("+10-1");
 
         try {
             INTERVALYM inYear = new INTERVALYM("1234567890-10");

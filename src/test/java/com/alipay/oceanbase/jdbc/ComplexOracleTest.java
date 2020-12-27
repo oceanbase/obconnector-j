@@ -70,7 +70,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void basicArrayAndStructTest() throws SQLException {
-
+        Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
         try {
             conn = sharedPSConnection;

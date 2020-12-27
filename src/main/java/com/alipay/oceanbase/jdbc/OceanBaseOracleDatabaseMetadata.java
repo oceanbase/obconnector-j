@@ -170,49 +170,48 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                 var13 = var13 + "\n" + var11;
                 var13 = var13 + "\n" + var12;
         */
-
-        String sql = "SELECT  NULL AS table_cat,\n"
-                     + "       t.owner AS table_schem,\n"
-                     + "       t.table_name AS table_name,\n"
-                     + "       t.column_name AS column_name,\n"
-                     + "       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n"
-                     + "               'LONG', -1, 'DATE', 93 , 'RAW', -3, 'LONG RAW', -4,  \n"
-                     + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n"
-                     + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n"
-                     + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n"
-                     + "               'INTERVAL YEAR(2) TO MONTH', -103, \n"
-                     + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n"
-                     + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n"
-                     + "               'XMLTYPE', 2009, \n"
-                     + "               1111)\n"
-                     + "              AS data_type,\n"
-                     + "       t.data_type AS type_name,\n"
-                     + "       DECODE (t.data_precision,                null, DECODE(t.data_type,                        'NUMBER', DECODE(t.data_scale,  null, 0 ,38),          DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length)                           ),         t.data_precision)\n"
-                     + "              AS column_size,\n"
-                     + "       0 AS buffer_length,\n"
-                     + "       DECODE (t.data_type,                'NUMBER', DECODE(t.data_precision,                                 null, DECODE(t.data_scale,                                              null, -127                                             , t.data_scale),                                  t.data_scale),                t.data_scale) AS decimal_digits,\n"
-                     + "       10 AS num_prec_radix,\n"
-                     + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n"
-                     + "       NULL AS remarks,\n" + "       t.data_default AS column_def,\n"
-                     + "       0 AS sql_data_type,\n" + "       0 AS sql_datetime_sub,\n"
-                     + "       t.data_length AS char_octet_length,\n"
-                     + "       t.column_id AS ordinal_position,\n"
-                     + "       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable,\n"
-                     + "         null as SCOPE_CATALOG,\n" + "       null as SCOPE_SCHEMA,\n"
-                     + "       null as SCOPE_TABLE,\n" + "       null as SOURCE_DATA_TYPE,\n"
-                     + "       'NO' as IS_AUTOINCREMENT\n" + "FROM all_tab_columns t\n"
-                     + "WHERE t.owner LIKE ?  AND t.table_name LIKE ?  AND t.column_name LIKE ?\n"
-                     + "ORDER BY table_schem, table_name, ordinal_position\n";
-
-        PreparedStatement stmt = this.connection.prepareStatement(sql);
-        stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
-        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
-        stmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
-
-        ResultSet resultSet = stmt.executeQuery();
+        Statement stmt = this.connection.getMetadataSafeStatement();
+        String querySql = String
+            .format(
+                "SELECT  NULL AS table_cat,\n"
+                        + "       t.owner AS table_schem,\n"
+                        + "       t.table_name AS table_name,\n"
+                        + "       t.column_name AS column_name,\n"
+                        + "       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n"
+                        + "               'LONG', -1, 'DATE', 93, 'RAW', -3, 'LONG RAW', -4,  \n"
+                        + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n"
+                        + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n"
+                        + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n"
+                        + "               'INTERVAL YEAR(2) TO MONTH', -103, \n"
+                        + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n"
+                        + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n"
+                        + "               'XMLTYPE', 2009, \n"
+                        + "               1111)\n"
+                        + "              AS data_type,\n"
+                        + "       t.data_type AS type_name,\n"
+                        + "       DECODE (t.data_precision, null,          DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length),         t.data_precision)\n"
+                        + "              AS column_size,\n"
+                        + "       0 AS buffer_length,\n"
+                        + "       DECODE (t.data_type,                'NUMBER', DECODE (t.data_precision,                                  null, -127,                                  t.data_scale),                t.data_scale) AS decimal_digits,\n"
+                        + "       10 AS num_prec_radix,\n"
+                        + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n"
+                        + "       NULL AS remarks,\n" + "       t.data_default AS column_def,\n"
+                        + "       0 AS sql_data_type,\n" + "       0 AS sql_datetime_sub,\n"
+                        + "       t.data_length AS char_octet_length,\n"
+                        + "       t.column_id AS ordinal_position,\n"
+                        + "       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable\n"
+                        + "FROM all_tab_columns t\n" + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
+                        + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
+                        + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
+                        + "  AND t.owner != '__recyclebin' \n" // Avoid return __recyclebin tables
+                        + "\n" + "ORDER BY table_schem, table_name, ordinal_position\n",
+                schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
+                    : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern);
+        ResultSet resultSet = stmt.executeQuery(querySql);
         if (stmt != null) {
             stmt.close();
         }
+
         return resultSet;
     }
 

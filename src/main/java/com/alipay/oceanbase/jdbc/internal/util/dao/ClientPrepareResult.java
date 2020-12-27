@@ -48,6 +48,7 @@ public class ClientPrepareResult implements PrepareResult {
 
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
+    boolean slashend = false;
     for (int i = 0; i < queryLength; i++) {
 
       char car = query[i];
@@ -66,7 +67,11 @@ public class ClientPrepareResult implements PrepareResult {
 
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
-            state = LexState.Normal;
+              state = LexState.Normal;
+              slashend = true;
+          } else if (state == LexState.Normal && slashend && lastChar == '/') {
+              slashend = false;
+              break;
           } else if (state == LexState.Normal && lastChar == '/') {
             state = LexState.EOLComment;
           }

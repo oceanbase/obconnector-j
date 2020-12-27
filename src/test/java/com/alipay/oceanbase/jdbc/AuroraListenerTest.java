@@ -12,6 +12,7 @@ import org.junit.Test;
 public class AuroraListenerTest {
 
     public static final String EXPECTED_CLUSTER_DNS_SUFFIX = "ZZZZZZZZZZZZ.us-east-1.rds.amazonaws.com";
+
     @Ignore
     public void testWithWriterCluster() throws SQLException {
         GlobalStateInfo globalInfo = new GlobalStateInfo();
@@ -21,6 +22,7 @@ public class AuroraListenerTest {
 
         assertEquals(listener.getClusterDnsSuffix(), EXPECTED_CLUSTER_DNS_SUFFIX);
     }
+
     @Ignore
     public void testWithReaderCluster() throws SQLException {
         GlobalStateInfo globalInfo = new GlobalStateInfo();

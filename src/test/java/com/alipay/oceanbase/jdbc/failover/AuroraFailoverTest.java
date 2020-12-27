@@ -32,6 +32,7 @@ public class AuroraFailoverTest extends BaseReplication {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
+
     @Ignore
     @Test
   public void testErrorWriteOnReplica() throws SQLException {
@@ -197,7 +198,8 @@ public class AuroraFailoverTest extends BaseReplication {
       assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
   }
-  @Ignore
+
+    @Ignore
     @Test
   public void testCloseFail() throws Throwable {
     assureBlackList();

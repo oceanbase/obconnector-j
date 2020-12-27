@@ -84,6 +84,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         String toInsert1 = "Øbbcdefgh\njklmn\"";
         String toInsert2 = "Øabcdefgh\njklmn\"";
         PreparedStatement stmt = sharedConnection
@@ -113,6 +114,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacter() throws Throwable {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
@@ -134,6 +136,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testReaderWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
@@ -166,6 +169,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlobWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
@@ -197,6 +201,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
         String clob = "Øclob";
@@ -218,6 +223,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClob3() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
         Clob clob = sharedConnection.createClob();
@@ -236,6 +242,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlob() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
         byte[] theBlob = { 1, 2, 3, 4, 5, 6 };
@@ -263,6 +270,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
         String clob = "clob";
@@ -279,8 +287,19 @@ public class BlobTest extends BaseTest {
         assertEquals(new String(chars), clob);
     }
 
+    //    @Test
+    //    public void testMy5()  {
+    //        try {
+    //
+    ////            createTable(sharedConnection,"BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
+    //            sharedConnection.createStatement().execute("drop table if exists BlobTeststreamtest3");
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //        }
+    //    }
     @Test
     public void testClob2() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
         Clob clob = sharedConnection.createClob();
@@ -396,6 +415,7 @@ public class BlobTest extends BaseTest {
 
     @Test
   public void sendEmptyBlobPreparedQuery() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
     createTable("emptyBlob", "test longblob, test2 text, test3 text");
     try (Connection conn = setConnection()) {
       PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
@@ -421,7 +441,8 @@ public class BlobTest extends BaseTest {
         oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseBlob blob2 = (OceanBaseBlob) ois.readObject();
+        Object obj = ois.readObject();
+        OceanBaseBlob blob2 = (OceanBaseBlob) obj;
         byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
         assertEquals(2, blobBytes.length);
         assertEquals(2, blobBytes[0]);

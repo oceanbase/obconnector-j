@@ -432,4 +432,8 @@ public class ColumnDefinition {
         }
         return toAsciiString(buffer.buf, stringStart, stringLength);
     }
+
+    public int getSqltype() {
+        return sqltype;
+    }
 }

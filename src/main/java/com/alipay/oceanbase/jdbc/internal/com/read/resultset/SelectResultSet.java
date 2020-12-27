@@ -1577,7 +1577,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     public Array getArray(int columnIndex) throws SQLException {
-        if (!this.getProtocol().isOracleMode() ) {
+        if (!this.getProtocol().isOracleMode()) {
             throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
         }
         checkObjectRange(columnIndex);

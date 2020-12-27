@@ -285,6 +285,7 @@ public class BasicBatchTest extends BaseTest {
       assertFalse(resultSet.next());
     }
   }
+
     /*
     too big
      */

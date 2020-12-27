@@ -972,7 +972,7 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void nullField() throws SQLException {
-//        Assume.assumeTrue(isMariadbServer()); // '0000-00-00' doesn't work anymore on mysql 5.7.
+        //        Assume.assumeTrue(isMariadbServer()); // '0000-00-00' doesn't work anymore on mysql 5.7.
         createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
@@ -1105,7 +1105,7 @@ public class ResultSetTest extends BaseTest {
     public void checkInvisibleMetaData() throws SQLException {
 
         // since 10.3.3
-//        Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
+        //        Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
         cancelForVersion(10, 3, 0);
         cancelForVersion(10, 3, 1);
         cancelForVersion(10, 3, 2);

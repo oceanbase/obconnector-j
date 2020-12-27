@@ -166,11 +166,18 @@ public class INTERVALDS extends Datum {
                 fractional_second = fractional_second
                                     / (int) Math.pow(10, MAXLEADPREC - fractional_second_scale);
             }
-            String format = String.format("%%0%dd %%02d:%%02d:%%02d.%%0%dd", day_scale,
-                fractional_second_scale);
+            String format = String.format("%%d %%d:%%d:%%d.%%0%dd", fractional_second_scale);
             String result = String.format(format, day, hour, minute, second, fractional_second);
+            int endIndex = result.length() - 1;
+            for (int i = result.length() - 1; result.charAt(i) != '.'; i--) {
+                if (result.charAt(i) != '0') {
+                    endIndex = i;
+                    break;
+                }
+            }
+            result = result.substring(0, endIndex + 1);
             if (is_negative == 0) {
-                return "+" + result;
+                return result;
             } else {
                 return "-" + result;
             }

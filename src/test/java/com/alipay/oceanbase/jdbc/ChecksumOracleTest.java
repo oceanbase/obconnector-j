@@ -37,6 +37,7 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ps = conn
                 .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
                                   + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+
             for (int i = 0; i < 10; ++i) {
                 ps.setInt(1, i);
                 ps.setString(2, "value_" + String.format("%02d", i));
@@ -310,6 +311,7 @@ public class ChecksumOracleTest extends BaseOracleTest {
      */
     @Test
     public void testChecksumOn() throws SQLException {
+
         Connection conn = sharedPSConnection;
         testChecksum(conn, "test_batch1");
     }
@@ -326,6 +328,7 @@ public class ChecksumOracleTest extends BaseOracleTest {
 
     @Test
     public void testChecksumReflection() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
         Connection conn = sharedPSConnection;
         testChecksumReflection(conn, "test_batch3");
     }

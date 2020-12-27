@@ -265,7 +265,8 @@ public class OceanBaseConnection implements Connection {
         this.complexDataCache = new LRUCache(50);
     }
 
-    public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo) throws SQLException {
+    public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
+                                                                                             throws SQLException {
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         ;
         this.urlParser = urlParser;
@@ -1669,7 +1670,7 @@ public class OceanBaseConnection implements Connection {
     private java.sql.Connection getComplexConnection() throws SQLException {
         if (null == this.complexConnection || this.complexConnection.isClosed()) {
             this.complexConnection = new OceanBaseConnection(this.protocol.getUrlParser(),
-                this.globalStateInfo); // duplicate a new connection todo
+                this.globalStateInfo, true); // duplicate a new connection todo
         }
         return this.complexConnection;
     }
@@ -1677,7 +1678,8 @@ public class OceanBaseConnection implements Connection {
     public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
         try {
             //            java.sql.Connection conn = this.getComplexConnection(); // NOPMD
-            java.sql.Connection conn = this.getComplexConnection();
+            java.sql.Connection conn = null;
+            //            java.sql.Connection conn = this.getComplexConnection();
             java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             //

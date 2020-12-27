@@ -61,6 +61,12 @@ public class OceanBaseBlob implements Blob, Serializable {
         length = 0;
     }
 
+    public OceanBaseBlob(OceanBaseBlob other) {
+        data = other.data;
+        offset = other.offset;
+        length = other.length;
+    }
+
     /**
      * Creates a blob with content.
      *
@@ -134,17 +140,22 @@ public class OceanBaseBlob implements Blob, Serializable {
     }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
-        if (offset != 0 || data.length != length) {
-            offset = 0;
-            length = 0;
-        }
+        //        if (offset != 0 || data.length != length) {
+        //            offset = 0;
+        //            length = 0;
+        //        }
+        // ?
+        out.writeInt(offset);
+        out.writeInt(length);
         out.defaultWriteObject();
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        offset = in.readInt();
+        length = in.readInt();
         in.defaultReadObject();
-        offset = 0;
-        length = data.length;
+        //        offset = 0;
+        //        length = data.length;
     }
 
     /**

@@ -319,6 +319,9 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case VARCHAR:
+                if (ci.getSqltype() == 251) {
+                    return Types.LONGVARCHAR;
+                }
                 if (ci.isBinary()) {
                     return Types.VARBINARY;
                 }

@@ -3,8 +3,12 @@ package com.alipay.oceanbase.jdbc;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -509,7 +513,10 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
     sb.append("]");
     return sb.toString();
   }
-
+  @Override
+  public void setArray(final int parameterIndex, final Array array) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
   protected ClientPrepareResult getPrepareResult() {
     return prepareResult;
   }
