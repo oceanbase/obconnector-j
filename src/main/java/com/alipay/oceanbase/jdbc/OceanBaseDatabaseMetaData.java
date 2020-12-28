@@ -16,15 +16,14 @@ import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.util.Options;
-import org.apache.commons.lang3.StringUtils;
 
 public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
-    public static final String DRIVER_NAME = "OceanBase Connector/J";
-    private final UrlParser urlParser;
+    public static final String        DRIVER_NAME              = "OceanBase Connector/J";
+    private final UrlParser           urlParser;
     private final OceanBaseConnection connection;
-    private boolean datePrecisionColumnExist = true;
-    Protocol protocol = null;
+    private boolean                   datePrecisionColumnExist = true;
+    Protocol                          protocol                 = null;
 
     /**
      * Constructor.
@@ -41,17 +40,17 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     private static String columnTypeClause(Options options) {
         String upperCaseWithoutSize = " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
-                + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
-                + "COLUMN_TYPE))";
+                                      + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
+                                      + "COLUMN_TYPE))";
 
         if (options.tinyInt1isBit) {
             upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', "
-                    + upperCaseWithoutSize + ")";
+                                   + upperCaseWithoutSize + ")";
         }
 
         if (!options.yearIsDateType) {
             return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize
-                    + ")";
+                   + ")";
         }
 
         return upperCaseWithoutSize;
@@ -69,7 +68,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     private static int parseIdentifier(char[] part, int startPos, Identifier identifier)
-            throws ParseException {
+                                                                                        throws ParseException {
         int pos = skipWhite(part, startPos);
         if (part[pos] != '`') {
             throw new ParseException(new String(part), pos);
@@ -104,13 +103,13 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     private static int parseIdentifierList(char[] part, int startPos, List<Identifier> list)
-            throws ParseException {
+                                                                                            throws ParseException {
         int pos = skipWhite(part, startPos);
         if (part[pos] != '(') {
             throw new ParseException(new String(part), pos);
         }
         pos++;
-        for (; ; ) {
+        for (;;) {
             pos = skipWhite(part, pos);
             char ch = part[pos];
             switch (ch) {
@@ -126,7 +125,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     break;
                 default:
                     throw new ParseException(new String(part, startPos, part.length - startPos),
-                            startPos);
+                        startPos);
             }
         }
     }
@@ -163,7 +162,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
             default:
                 throw new IllegalArgumentException("Illegal key action '" + actionKey
-                        + "' specified.");
+                                                   + "' specified.");
         }
     }
 
@@ -344,7 +343,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @see #getExportedKeys
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table)
-            throws SQLException {
+                                                                                 throws SQLException {
 
         String database = catalog;
         // We avoid using information schema queries by default, because this appears to be an expensive
@@ -380,74 +379,74 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     private String dataTypeClause(String fullTypeColumnName) {
         Options options = urlParser.getOptions();
         return " CASE data_type" + " WHEN 'bit' THEN "
-                + Types.BIT
-                + " WHEN 'tinyblob' THEN "
-                + Types.VARBINARY
-                + " WHEN 'mediumblob' THEN "
-                + Types.LONGVARBINARY
-                + " WHEN 'longblob' THEN "
-                + Types.LONGVARBINARY
-                + " WHEN 'blob' THEN "
-                + Types.LONGVARBINARY
-                + " WHEN 'tinytext' THEN "
-                + Types.VARCHAR
-                + " WHEN 'mediumtext' THEN "
-                + Types.LONGVARCHAR
-                + " WHEN 'longtext' THEN "
-                + Types.LONGVARCHAR
-                + " WHEN 'text' THEN "
-                + Types.LONGVARCHAR
-                + " WHEN 'date' THEN "
-                + Types.DATE
-                + " WHEN 'datetime' THEN "
-                + Types.TIMESTAMP
-                + " WHEN 'decimal' THEN "
-                + Types.DECIMAL
-                + " WHEN 'double' THEN "
-                + Types.DOUBLE
-                + " WHEN 'enum' THEN "
-                + Types.VARCHAR
-                + " WHEN 'float' THEN "
-                + Types.REAL
-                + " WHEN 'int' THEN IF( "
-                + fullTypeColumnName
-                + " like '%unsigned%', "
-                + Types.INTEGER
-                + ","
-                + Types.INTEGER
-                + ")"
-                + " WHEN 'bigint' THEN "
-                + Types.BIGINT
-                + " WHEN 'mediumint' THEN "
-                + Types.INTEGER
-                + " WHEN 'null' THEN "
-                + Types.NULL
-                + " WHEN 'set' THEN "
-                + Types.VARCHAR
-                + " WHEN 'smallint' THEN IF( "
-                + fullTypeColumnName
-                + " like '%unsigned%', "
-                + Types.SMALLINT
-                + ","
-                + Types.SMALLINT
-                + ")"
-                + " WHEN 'varchar' THEN "
-                + Types.VARCHAR
-                + " WHEN 'varbinary' THEN "
-                + Types.VARBINARY
-                + " WHEN 'char' THEN "
-                + Types.CHAR
-                + " WHEN 'binary' THEN "
-                + Types.BINARY
-                + " WHEN 'time' THEN "
-                + Types.TIME
-                + " WHEN 'timestamp' THEN "
-                + Types.TIMESTAMP
-                + " WHEN 'tinyint' THEN "
-                + (options.tinyInt1isBit ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%',"
-                + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
-                + " WHEN 'year' THEN " + (options.yearIsDateType ? Types.DATE : Types.SMALLINT)
-                + " ELSE " + Types.OTHER + " END ";
+               + Types.BIT
+               + " WHEN 'tinyblob' THEN "
+               + Types.VARBINARY
+               + " WHEN 'mediumblob' THEN "
+               + Types.LONGVARBINARY
+               + " WHEN 'longblob' THEN "
+               + Types.LONGVARBINARY
+               + " WHEN 'blob' THEN "
+               + Types.LONGVARBINARY
+               + " WHEN 'tinytext' THEN "
+               + Types.VARCHAR
+               + " WHEN 'mediumtext' THEN "
+               + Types.LONGVARCHAR
+               + " WHEN 'longtext' THEN "
+               + Types.LONGVARCHAR
+               + " WHEN 'text' THEN "
+               + Types.LONGVARCHAR
+               + " WHEN 'date' THEN "
+               + Types.DATE
+               + " WHEN 'datetime' THEN "
+               + Types.TIMESTAMP
+               + " WHEN 'decimal' THEN "
+               + Types.DECIMAL
+               + " WHEN 'double' THEN "
+               + Types.DOUBLE
+               + " WHEN 'enum' THEN "
+               + Types.VARCHAR
+               + " WHEN 'float' THEN "
+               + Types.REAL
+               + " WHEN 'int' THEN IF( "
+               + fullTypeColumnName
+               + " like '%unsigned%', "
+               + Types.INTEGER
+               + ","
+               + Types.INTEGER
+               + ")"
+               + " WHEN 'bigint' THEN "
+               + Types.BIGINT
+               + " WHEN 'mediumint' THEN "
+               + Types.INTEGER
+               + " WHEN 'null' THEN "
+               + Types.NULL
+               + " WHEN 'set' THEN "
+               + Types.VARCHAR
+               + " WHEN 'smallint' THEN IF( "
+               + fullTypeColumnName
+               + " like '%unsigned%', "
+               + Types.SMALLINT
+               + ","
+               + Types.SMALLINT
+               + ")"
+               + " WHEN 'varchar' THEN "
+               + Types.VARCHAR
+               + " WHEN 'varbinary' THEN "
+               + Types.VARBINARY
+               + " WHEN 'char' THEN "
+               + Types.CHAR
+               + " WHEN 'binary' THEN "
+               + Types.BINARY
+               + " WHEN 'time' THEN "
+               + Types.TIME
+               + " WHEN 'timestamp' THEN "
+               + Types.TIMESTAMP
+               + " WHEN 'tinyint' THEN "
+               + (options.tinyInt1isBit ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%',"
+                                          + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
+               + " WHEN 'year' THEN " + (options.yearIsDateType ? Types.DATE : Types.SMALLINT)
+               + " ELSE " + Types.OTHER + " END ";
     }
 
     private String escapeQuote(String value) {
@@ -493,9 +492,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return "";
         }
         String predicate = (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1) ? "="
-                : "LIKE";
+            : "LIKE";
         return " AND " + columnName + " " + predicate + " '" + Utils.escapeString(tableName, true)
-                + "' ";
+               + "' ";
     }
 
     /**
@@ -526,19 +525,19 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @throws SQLException if a database access error occurs
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table)
-            throws SQLException {
+                                                                                throws SQLException {
         // MySQL 8 now use 'PRI' in place of 'pri'
         String sql = "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
-                + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
-                + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
-                + " AND "
-                + catalogCond("A.TABLE_SCHEMA", catalog)
-                + " AND "
-                + catalogCond("B.TABLE_SCHEMA", catalog)
-                + patternCond("A.TABLE_NAME", table)
-                + patternCond("B.TABLE_NAME", table)
-                + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
-                + " ORDER BY A.COLUMN_NAME";
+                     + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
+                     + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
+                     + " AND "
+                     + catalogCond("A.TABLE_SCHEMA", catalog)
+                     + " AND "
+                     + catalogCond("B.TABLE_SCHEMA", catalog)
+                     + patternCond("A.TABLE_NAME", table)
+                     + patternCond("B.TABLE_NAME", table)
+                     + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
+                     + " ORDER BY A.COLUMN_NAME";
 
         return executeQuery(sql);
     }
@@ -589,12 +588,12 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
 
         StringBuilder sql = new StringBuilder(
-                "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                        + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
-                        + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
-                        + " NULL REF_GENERATION" + " FROM INFORMATION_SCHEMA.TABLES " + " WHERE "
-                        + catalogCond("TABLE_SCHEMA", catalog)
-                        + patternCond("TABLE_NAME", tableNamePattern));
+            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
+                    + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                    + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
+                    + " NULL REF_GENERATION" + " FROM INFORMATION_SCHEMA.TABLES " + " WHERE "
+                    + catalogCond("TABLE_SCHEMA", catalog)
+                    + patternCond("TABLE_NAME", tableNamePattern));
 
         if (types != null && types.length > 0) {
             sql.append(" AND TABLE_TYPE IN (");
@@ -603,7 +602,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     continue;
                 }
                 String type = "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'"
-                        : escapeQuote(types[i]);
+                    : escapeQuote(types[i]);
                 if (i == types.length - 1) {
                     sql.append(type).append(")");
                 } else {
@@ -713,47 +712,47 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
         Options options = urlParser.getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-                + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE,"
-                + columnTypeClause(options)
-                + " TYPE_NAME, "
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN "
-                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                : "10")
-                + "  WHEN 'date' THEN 10"
-                + "  WHEN 'datetime' THEN "
-                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
-                + "  WHEN 'timestamp' THEN "
-                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
-                + (options.yearIsDateType ? "" : " WHEN 'year' THEN 5")
-                + "  ELSE "
-                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                + Integer.MAX_VALUE
-                + "), NUMERIC_PRECISION) "
-                + " END"
-                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
-                + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN "
-                + (options.yearIsDateType ? "NUMERIC_SCALE" : "0")
-                + " WHEN 'tinyint' THEN "
-                + (options.tinyInt1isBit ? "0" : "NUMERIC_SCALE")
-                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
-                + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-                + " LEAST(CHARACTER_OCTET_LENGTH,"
-                + Integer.MAX_VALUE
-                + ") CHAR_OCTET_LENGTH,"
-                + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-                + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-                + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
-                + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
-                + catalogCond("TABLE_SCHEMA", catalog)
-                + patternCond("TABLE_NAME", tableNamePattern)
-                + patternCond("COLUMN_NAME", columnNamePattern)
-                + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
+                     + dataTypeClause("COLUMN_TYPE")
+                     + " DATA_TYPE,"
+                     + columnTypeClause(options)
+                     + " TYPE_NAME, "
+                     + " CASE DATA_TYPE"
+                     + "  WHEN 'time' THEN "
+                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+                         : "10")
+                     + "  WHEN 'date' THEN 10"
+                     + "  WHEN 'datetime' THEN "
+                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                         : "19")
+                     + "  WHEN 'timestamp' THEN "
+                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                         : "19")
+                     + (options.yearIsDateType ? "" : " WHEN 'year' THEN 5")
+                     + "  ELSE "
+                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+                     + Integer.MAX_VALUE
+                     + "), NUMERIC_PRECISION) "
+                     + " END"
+                     + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
+                     + " CONVERT (CASE DATA_TYPE"
+                     + " WHEN 'year' THEN "
+                     + (options.yearIsDateType ? "NUMERIC_SCALE" : "0")
+                     + " WHEN 'tinyint' THEN "
+                     + (options.tinyInt1isBit ? "0" : "NUMERIC_SCALE")
+                     + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+                     + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
+                     + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+                     + " LEAST(CHARACTER_OCTET_LENGTH,"
+                     + Integer.MAX_VALUE
+                     + ") CHAR_OCTET_LENGTH,"
+                     + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+                     + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+                     + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
+                     + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
+                     + catalogCond("TABLE_SCHEMA", catalog)
+                     + patternCond("TABLE_NAME", tableNamePattern)
+                     + patternCond("COLUMN_NAME", columnNamePattern)
+                     + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
         try {
             return executeQuery(sql);
@@ -832,36 +831,36 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @see #getImportedKeys
      */
     public ResultSet getExportedKeys(String catalog, String schema, String table)
-            throws SQLException {
+                                                                                 throws SQLException {
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-                + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-                + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                + " CASE update_rule "
-                + "   WHEN 'RESTRICT' THEN 1"
-                + "   WHEN 'NO ACTION' THEN 3"
-                + "   WHEN 'CASCADE' THEN 0"
-                + "   WHEN 'SET NULL' THEN 2"
-                + "   WHEN 'SET DEFAULT' THEN 4"
-                + " END UPDATE_RULE,"
-                + " CASE DELETE_RULE"
-                + "  WHEN 'RESTRICT' THEN 1"
-                + "  WHEN 'NO ACTION' THEN 3"
-                + "  WHEN 'CASCADE' THEN 0"
-                + "  WHEN 'SET NULL' THEN 2"
-                + "  WHEN 'SET DEFAULT' THEN 4"
-                + " END DELETE_RULE,"
-                + " RC.CONSTRAINT_NAME FK_NAME,"
-                + " 'PRIMARY' PK_NAME,"
-                + importedKeyNotDeferrable
-                + " DEFERRABILITY"
-                + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-                + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-                + " WHERE "
-                + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
-                + patternCond("KCU.REFERENCED_TABLE_NAME", table)
-                + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+                     + " CASE update_rule "
+                     + "   WHEN 'RESTRICT' THEN 1"
+                     + "   WHEN 'NO ACTION' THEN 3"
+                     + "   WHEN 'CASCADE' THEN 0"
+                     + "   WHEN 'SET NULL' THEN 2"
+                     + "   WHEN 'SET DEFAULT' THEN 4"
+                     + " END UPDATE_RULE,"
+                     + " CASE DELETE_RULE"
+                     + "  WHEN 'RESTRICT' THEN 1"
+                     + "  WHEN 'NO ACTION' THEN 3"
+                     + "  WHEN 'CASCADE' THEN 0"
+                     + "  WHEN 'SET NULL' THEN 2"
+                     + "  WHEN 'SET DEFAULT' THEN 4"
+                     + " END DELETE_RULE,"
+                     + " RC.CONSTRAINT_NAME FK_NAME,"
+                     + " 'PRIMARY' PK_NAME,"
+                     + importedKeyNotDeferrable
+                     + " DEFERRABILITY"
+                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                     + " WHERE "
+                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
+                     + patternCond("KCU.REFERENCED_TABLE_NAME", table)
+                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
         return executeQuery(sql);
     }
@@ -875,41 +874,41 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @throws SQLException exception
      */
     public ResultSet getImportedKeysUsingInformationSchema(String catalog, String table)
-            throws SQLException {
+                                                                                        throws SQLException {
         if (table == null) {
             throw new SQLException("'table' parameter in getImportedKeys cannot be null");
         }
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-                + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-                + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                + " CASE update_rule "
-                + "   WHEN 'RESTRICT' THEN 1"
-                + "   WHEN 'NO ACTION' THEN 3"
-                + "   WHEN 'CASCADE' THEN 0"
-                + "   WHEN 'SET NULL' THEN 2"
-                + "   WHEN 'SET DEFAULT' THEN 4"
-                + " END UPDATE_RULE,"
-                + " CASE DELETE_RULE"
-                + "  WHEN 'RESTRICT' THEN 1"
-                + "  WHEN 'NO ACTION' THEN 3"
-                + "  WHEN 'CASCADE' THEN 0"
-                + "  WHEN 'SET NULL' THEN 2"
-                + "  WHEN 'SET DEFAULT' THEN 4"
-                + " END DELETE_RULE,"
-                + " RC.CONSTRAINT_NAME FK_NAME,"
-                + " NULL PK_NAME,"
-                + importedKeyNotDeferrable
-                + " DEFERRABILITY"
-                + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-                + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-                + " WHERE "
-                + catalogCond("KCU.TABLE_SCHEMA", catalog)
-                + " AND "
-                + " KCU.TABLE_NAME = "
-                + escapeQuote(table)
-                + " ORDER BY PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, KEY_SEQ";
+                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+                     + " CASE update_rule "
+                     + "   WHEN 'RESTRICT' THEN 1"
+                     + "   WHEN 'NO ACTION' THEN 3"
+                     + "   WHEN 'CASCADE' THEN 0"
+                     + "   WHEN 'SET NULL' THEN 2"
+                     + "   WHEN 'SET DEFAULT' THEN 4"
+                     + " END UPDATE_RULE,"
+                     + " CASE DELETE_RULE"
+                     + "  WHEN 'RESTRICT' THEN 1"
+                     + "  WHEN 'NO ACTION' THEN 3"
+                     + "  WHEN 'CASCADE' THEN 0"
+                     + "  WHEN 'SET NULL' THEN 2"
+                     + "  WHEN 'SET DEFAULT' THEN 4"
+                     + " END DELETE_RULE,"
+                     + " RC.CONSTRAINT_NAME FK_NAME,"
+                     + " NULL PK_NAME,"
+                     + importedKeyNotDeferrable
+                     + " DEFERRABILITY"
+                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                     + " WHERE "
+                     + catalogCond("KCU.TABLE_SCHEMA", catalog)
+                     + " AND "
+                     + " KCU.TABLE_NAME = "
+                     + escapeQuote(table)
+                     + " ORDER BY PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, KEY_SEQ";
 
         return executeQuery(sql);
     }
@@ -923,7 +922,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @throws Exception exception
      */
     public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String table)
-            throws Exception {
+                                                                                      throws Exception {
 
         if (catalog == null || catalog.isEmpty()) {
             throw new IllegalArgumentException("catalog");
@@ -934,8 +933,8 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
 
         ResultSet rs = connection.createStatement().executeQuery(
-                "SHOW CREATE TABLE " + OceanBaseConnection.quoteIdentifier(catalog) + "."
-                        + OceanBaseConnection.quoteIdentifier(table));
+            "SHOW CREATE TABLE " + OceanBaseConnection.quoteIdentifier(catalog) + "."
+                    + OceanBaseConnection.quoteIdentifier(table));
         if (rs.next()) {
             String tableDef = rs.getString(2);
             return OceanBaseDatabaseMetaData.getImportedKeys(tableDef, table, catalog, connection);
@@ -999,16 +998,16 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
 
         String sql = "SELECT "
-                + DatabaseMetaData.bestRowUnknown
-                + " SCOPE, COLUMN_NAME,"
-                + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
-                + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
-                + " NUMERIC_SCALE DECIMAL_DIGITS," + " 1 PSEUDO_COLUMN"
-                + " FROM INFORMATION_SCHEMA.COLUMNS"
-                + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" + " AND "
-                + catalogCond("TABLE_SCHEMA", catalog) + " AND TABLE_NAME = "
-                + escapeQuote(table);
+                     + DatabaseMetaData.bestRowUnknown
+                     + " SCOPE, COLUMN_NAME,"
+                     + dataTypeClause("COLUMN_TYPE")
+                     + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
+                     + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                     + " NUMERIC_SCALE DECIMAL_DIGITS," + " 1 PSEUDO_COLUMN"
+                     + " FROM INFORMATION_SCHEMA.COLUMNS"
+                     + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" + " AND "
+                     + catalogCond("TABLE_SCHEMA", catalog) + " AND TABLE_NAME = "
+                     + escapeQuote(table);
 
         return executeQuery(sql);
     }
@@ -1078,14 +1077,14 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getPseudoColumns(String catalog, String schemaPattern,
                                       String tableNamePattern, String columnNamePattern)
-            throws SQLException {
+                                                                                        throws SQLException {
         return connection
-                .createStatement()
-                .executeQuery(
-                        "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM,"
-                                + "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS,"
-                                + "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL "
-                                + "WHERE 1=0");
+            .createStatement()
+            .executeQuery(
+                "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM,"
+                        + "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS,"
+                        + "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL "
+                        + "WHERE 1=0");
     }
 
     public boolean allProceduresAreCallable() {
@@ -1219,17 +1218,17 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return "ACCESS, ADD, ALTER, AUDIT, CLUSTER, COLUMN, COMMENT, COMPRESS, CONNECT, DATE, DROP, EXCLUSIVE, FILE, IDENTIFIED, IMMEDIATE, INCREMENT, INDEX, INITIAL, INTERSECT, LEVEL, LOCK, LONG, MAXEXTENTS, MINUS, MODE, NOAUDIT, NOCOMPRESS, NOWAIT, NUMBER, OFFLINE, ONLINE, PCTFREE, PRIOR, all_PL_SQL_reserved_ words";
         }
         return "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
-                + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
-                + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
-                + "HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_SERVER_IDS,INDEX,INFILE,INOUT,INT1,INT2,"
-                + "INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,"
-                + "LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,"
-                + "MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
-                + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READ_WRITE,READS,REGEXP,RELEASE,"
-                + "RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,"
-                + "SEPARATOR,SHOW,SIGNAL,SLOW,SPATIAL,SPECIFIC,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,"
-                + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
-                + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL";
+               + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
+               + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
+               + "HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_SERVER_IDS,INDEX,INFILE,INOUT,INT1,INT2,"
+               + "INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,"
+               + "LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,"
+               + "MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
+               + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READ_WRITE,READS,REGEXP,RELEASE,"
+               + "RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,"
+               + "SEPARATOR,SHOW,SIGNAL,SLOW,SPATIAL,SPECIFIC,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,"
+               + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
+               + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL";
     }
 
     /**
@@ -1243,7 +1242,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
         }
         return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
-                + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+               + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
     /**
@@ -1257,10 +1256,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return "ASCII,CHAR,CHAR_LENGTH,CHARACTER_LENGTH,CONCAT,LCASE,LENGTH,LTRIM,OCTET_LENGTH,REPLACE,RTRIM,SOUNDEX,SUBSTRING,UCASE";
         }
         return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
-                + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
-                + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
-                + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
-                + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
+               + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
+               + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
+               + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+               + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
     }
 
     /**
@@ -1287,11 +1286,11 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return "CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR";
         }
         return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
-                + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
-                + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
-                + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
-                + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
-                + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
+               + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
+               + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
+               + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
+               + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
+               + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
     }
 
     public String getSearchStringEscape() {
@@ -1873,33 +1872,33 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @see #getSearchStringEscape
      */
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
-            throws SQLException {
+                                                                                                     throws SQLException {
 
         if (connection.getProtocol().isOracleMode()) {
             return super.getProcedures(catalog, schemaPattern, procedureNamePattern);
         }
         String sql = "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
-                + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
-                + " CASE ROUTINE_TYPE "
-                + "  WHEN 'FUNCTION' THEN "
-                + procedureReturnsResult
-                + "  WHEN 'PROCEDURE' THEN "
-                + procedureNoResult
-                + "  ELSE "
-                + procedureResultUnknown
-                + " END PROCEDURE_TYPE,"
-                + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.ROUTINES "
-                + " WHERE "
-                + catalogCond("ROUTINE_SCHEMA", catalog)
-                + patternCond("ROUTINE_NAME", procedureNamePattern)
-                + "/* AND ROUTINE_TYPE='PROCEDURE' */";
+                     + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
+                     + " CASE ROUTINE_TYPE "
+                     + "  WHEN 'FUNCTION' THEN "
+                     + procedureReturnsResult
+                     + "  WHEN 'PROCEDURE' THEN "
+                     + procedureNoResult
+                     + "  ELSE "
+                     + procedureResultUnknown
+                     + " END PROCEDURE_TYPE,"
+                     + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
+                     + " FROM INFORMATION_SCHEMA.ROUTINES "
+                     + " WHERE "
+                     + catalogCond("ROUTINE_SCHEMA", catalog)
+                     + patternCond("ROUTINE_NAME", procedureNamePattern)
+                     + "/* AND ROUTINE_TYPE='PROCEDURE' */";
         return executeQuery(sql);
     }
 
     /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
     private boolean haveInformationSchemaParameters() {
-//        return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
+        //        return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
         return false;
     }
 
@@ -1998,7 +1997,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getProcedureColumns(String catalog, String schemaPattern,
                                          String procedureNamePattern, String columnNamePattern)
-            throws SQLException {
+                                                                                               throws SQLException {
         String sql;
 
         if (haveInformationSchemaParameters()) {
@@ -2006,85 +2005,86 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
              *  Get info from information_schema.parameters
              */
             sql = "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-                    + " PARAMETER_NAME COLUMN_NAME, " + " CASE PARAMETER_MODE " + "  WHEN 'IN' THEN "
-                    + procedureColumnIn
-                    + "  WHEN 'OUT' THEN "
-                    + procedureColumnOut
-                    + "  WHEN 'INOUT' THEN "
-                    + procedureColumnInOut
-                    + "  ELSE IF(PARAMETER_MODE IS NULL,"
-                    + procedureColumnReturn
-                    + ","
-                    + procedureColumnUnknown
-                    + ")"
-                    + " END COLUMN_TYPE,"
-                    + dataTypeClause("DTD_IDENTIFIER")
-                    + " DATA_TYPE,"
-                    + "DATA_TYPE TYPE_NAME,"
-                    + " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                    : "10")
-                    + "  WHEN 'date' THEN 10"
-                    + "  WHEN 'datetime' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                    : "19")
-                    + "  WHEN 'timestamp' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                    : "19")
-                    + "  ELSE "
-                    + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                    + Integer.MAX_VALUE
-                    + "), NUMERIC_PRECISION) "
-                    + " END `PRECISION`,"
-                    + " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                    : "10")
-                    + "  WHEN 'date' THEN 10"
-                    + "  WHEN 'datetime' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                    : "19")
-                    + "  WHEN 'timestamp' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                    : "19")
-                    + "  ELSE "
-                    + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                    + Integer.MAX_VALUE
-                    + "), NUMERIC_PRECISION) "
-                    + " END `LENGTH`,"
-                    + (datePrecisionColumnExist ? " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  ELSE NUMERIC_SCALE " + " END `SCALE`,"
-                    : " NUMERIC_SCALE `SCALE`,")
-                    + "10 RADIX,"
-                    + procedureNullableUnknown
-                    + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-                    + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                    + " FROM INFORMATION_SCHEMA.PARAMETERS "
-                    + " WHERE "
-                    + catalogCond("SPECIFIC_SCHEMA", catalog)
-                    + patternCond("SPECIFIC_NAME", procedureNamePattern)
-                    + patternCond("PARAMETER_NAME", columnNamePattern)
-                    + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
-                    + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
+                  + " PARAMETER_NAME COLUMN_NAME, " + " CASE PARAMETER_MODE " + "  WHEN 'IN' THEN "
+                  + procedureColumnIn
+                  + "  WHEN 'OUT' THEN "
+                  + procedureColumnOut
+                  + "  WHEN 'INOUT' THEN "
+                  + procedureColumnInOut
+                  + "  ELSE IF(PARAMETER_MODE IS NULL,"
+                  + procedureColumnReturn
+                  + ","
+                  + procedureColumnUnknown
+                  + ")"
+                  + " END COLUMN_TYPE,"
+                  + dataTypeClause("DTD_IDENTIFIER")
+                  + " DATA_TYPE,"
+                  + "DATA_TYPE TYPE_NAME,"
+                  + " CASE DATA_TYPE"
+                  + "  WHEN 'time' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+                      : "10")
+                  + "  WHEN 'date' THEN 10"
+                  + "  WHEN 'datetime' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                      : "19")
+                  + "  WHEN 'timestamp' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                      : "19")
+                  + "  ELSE "
+                  + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+                  + Integer.MAX_VALUE
+                  + "), NUMERIC_PRECISION) "
+                  + " END `PRECISION`,"
+                  + " CASE DATA_TYPE"
+                  + "  WHEN 'time' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+                      : "10")
+                  + "  WHEN 'date' THEN 10"
+                  + "  WHEN 'datetime' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                      : "19")
+                  + "  WHEN 'timestamp' THEN "
+                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                      : "19")
+                  + "  ELSE "
+                  + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+                  + Integer.MAX_VALUE
+                  + "), NUMERIC_PRECISION) "
+                  + " END `LENGTH`,"
+                  + (datePrecisionColumnExist ? " CASE DATA_TYPE"
+                                                + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
+                                                + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
+                                                + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
+                                                + "  ELSE NUMERIC_SCALE " + " END `SCALE`,"
+                      : " NUMERIC_SCALE `SCALE`,")
+                  + "10 RADIX,"
+                  + procedureNullableUnknown
+                  + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
+                  + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+                  + " FROM INFORMATION_SCHEMA.PARAMETERS "
+                  + " WHERE "
+                  + catalogCond("SPECIFIC_SCHEMA", catalog)
+                  + patternCond("SPECIFIC_NAME", procedureNamePattern)
+                  + patternCond("PARAMETER_NAME", columnNamePattern)
+                  + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
+                  + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
         } else {
 
             /* No information_schema.parameters
              * TODO : figure out what to do with older versions (get info via mysql.proc)
              * For now, just a dummy result set is returned.
              */
-            try{
-                ResultSet procsAndOrFuncsRs=  getProcAndFunctions(catalog,procedureNamePattern);
-                return getCallStmtParameterTypes(catalog,procedureNamePattern);
+            try {
+                ResultSet procsAndOrFuncsRs = getProcAndFunctions(catalog, procedureNamePattern);
+                return getCallStmtParameterTypes(catalog, procedureNamePattern);
             } catch (SQLException throwables) {
-                throw  throwables;
+                throw throwables;
             }
         }
         return null;
     }
+
     ResultSet  getProcAndFunctions(String catalog,String procedureNamePattern) throws SQLException {
         String[] columnNames = {
                 "PROCEDURE_CAT",
@@ -2202,9 +2202,12 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         results.close();
         return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
     }
-    ResultSet  getCallStmtParameterTypes(String catalog,String procedureNamePattern) throws SQLException {
+
+    ResultSet getCallStmtParameterTypes(String catalog, String procedureNamePattern)
+                                                                                    throws SQLException {
         this.connection.setCatalog(catalog);
-        PreparedStatement paramRetrievalStmt = this.connection.clientPrepareStatement("SELECT DATABASE()");
+        PreparedStatement paramRetrievalStmt = this.connection
+            .clientPrepareStatement("SELECT DATABASE()");
         ResultSet rs = paramRetrievalStmt.executeQuery();
         rs.next();
         catalog = rs.getString(1);
@@ -2224,7 +2227,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         procNameBuf.append(procedureNamePattern);
         procNameBuf.append("`");
         ResultSet paramRetrievalRs = paramRetrievalStmt.executeQuery("SHOW CREATE PROCEDURE "
-                + procNameBuf.toString());
+                                                                     + procNameBuf.toString());
         String fieldName = "Create Procedure";
         String quote = "`";
         String parameterDef;
@@ -2238,13 +2241,14 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             storageDefnClosures = ")" + identifierMarkers;
             int startIndex = procedureDef.indexOf('`');
             int endIindex = procedureDef.indexOf('`');
-            parameterDef = procedureDef.substring(startIndex,endIindex);
+            parameterDef = procedureDef.substring(startIndex, endIindex);
             System.out.println("parameterDef = " + parameterDef);
 
         }
-//        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+        //        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
         return null;
     }
+
     /**
      * Retrieves a description of the given catalog's system or user function parameters and return
      * type.
@@ -2332,36 +2336,36 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getFunctionColumns(String catalog, String schemaPattern,
                                         String functionNamePattern, String columnNamePattern)
-            throws SQLException {
+                                                                                             throws SQLException {
 
         String sql;
         if (haveInformationSchemaParameters()) {
 
             sql = "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
-                    + " PARAMETER_NAME COLUMN_NAME, "
-                    + " CASE PARAMETER_MODE "
-                    + "  WHEN 'IN' THEN "
-                    + functionColumnIn
-                    + "  WHEN 'OUT' THEN "
-                    + functionColumnOut
-                    + "  WHEN 'INOUT' THEN "
-                    + functionColumnInOut
-                    + "  ELSE "
-                    + functionReturn
-                    + " END COLUMN_TYPE,"
-                    + dataTypeClause("DTD_IDENTIFIER")
-                    + " DATA_TYPE,"
-                    + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
-                    + procedureNullableUnknown
-                    + " NULLABLE,NULL REMARKS,"
-                    + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                    + " FROM INFORMATION_SCHEMA.PARAMETERS "
-                    + " WHERE "
-                    + catalogCond("SPECIFIC_SCHEMA", catalog)
-                    + patternCond("SPECIFIC_NAME", functionNamePattern)
-                    + patternCond("PARAMETER_NAME", columnNamePattern)
-                    + " AND ROUTINE_TYPE='FUNCTION'"
-                    + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
+                  + " PARAMETER_NAME COLUMN_NAME, "
+                  + " CASE PARAMETER_MODE "
+                  + "  WHEN 'IN' THEN "
+                  + functionColumnIn
+                  + "  WHEN 'OUT' THEN "
+                  + functionColumnOut
+                  + "  WHEN 'INOUT' THEN "
+                  + functionColumnInOut
+                  + "  ELSE "
+                  + functionReturn
+                  + " END COLUMN_TYPE,"
+                  + dataTypeClause("DTD_IDENTIFIER")
+                  + " DATA_TYPE,"
+                  + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
+                  + procedureNullableUnknown
+                  + " NULLABLE,NULL REMARKS,"
+                  + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+                  + " FROM INFORMATION_SCHEMA.PARAMETERS "
+                  + " WHERE "
+                  + catalogCond("SPECIFIC_SCHEMA", catalog)
+                  + patternCond("SPECIFIC_NAME", functionNamePattern)
+                  + patternCond("PARAMETER_NAME", columnNamePattern)
+                  + " AND ROUTINE_TYPE='FUNCTION'"
+                  + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
         } else {
             /*
              * No information_schema.parameters
@@ -2369,10 +2373,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
              * For now, just a dummy result set is returned.
              */
             sql = "SELECT '' FUNCTION_CAT, NULL FUNCTION_SCHEM, '' FUNCTION_NAME,"
-                    + " '' COLUMN_NAME, 0  COLUMN_TYPE, 0 DATA_TYPE,"
-                    + " '' TYPE_NAME,0 `PRECISION`,0 LENGTH, 0 SCALE,0 RADIX,"
-                    + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, "
-                    + " '' IS_NULLABLE, '' SPECIFIC_NAME " + " FROM DUAL WHERE 1=0 ";
+                  + " '' COLUMN_NAME, 0  COLUMN_TYPE, 0 DATA_TYPE,"
+                  + " '' TYPE_NAME,0 `PRECISION`,0 LENGTH, 0 SCALE,0 RADIX,"
+                  + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, "
+                  + " '' IS_NULLABLE, '' SPECIFIC_NAME " + " FROM DUAL WHERE 1=0 ";
         }
         return executeQuery(sql);
     }
@@ -2443,11 +2447,11 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             throw new SQLException("'table' parameter must not be null");
         }
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME,"
-                + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
-                + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
-                + catalogCond("TABLE_SCHEMA", catalog) + " AND " + " TABLE_NAME = "
-                + escapeQuote(table) + patternCond("COLUMN_NAME", columnNamePattern)
-                + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
+                     + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
+                     + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
+                     + catalogCond("TABLE_SCHEMA", catalog) + " AND " + " TABLE_NAME = "
+                     + escapeQuote(table) + patternCond("COLUMN_NAME", columnNamePattern)
+                     + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
 
         return executeQuery(sql);
     }
@@ -2491,10 +2495,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getTablePrivileges(String catalog, String schemaPattern,
                                         String tableNamePattern) throws SQLException {
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT,NULL  TABLE_SCHEM, TABLE_NAME, NULL GRANTOR,"
-                + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-                + " WHERE " + catalogCond("TABLE_SCHEMA", catalog)
-                + patternCond("TABLE_NAME", tableNamePattern)
-                + "ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ";
+                     + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
+                     + " WHERE " + catalogCond("TABLE_SCHEMA", catalog)
+                     + patternCond("TABLE_NAME", tableNamePattern)
+                     + "ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ";
 
         return executeQuery(sql);
     }
@@ -2540,10 +2544,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @throws SQLException if a database access error occurs
      */
     public ResultSet getVersionColumns(String catalog, String schema, String table)
-            throws SQLException {
+                                                                                   throws SQLException {
         String sql = "SELECT 0 SCOPE, ' ' COLUMN_NAME, 0 DATA_TYPE,"
-                + " ' ' TYPE_NAME, 0 COLUMN_SIZE, 0 BUFFER_LENGTH,"
-                + " 0 DECIMAL_DIGITS, 0 PSEUDO_COLUMN " + " FROM DUAL WHERE 1 = 0";
+                     + " ' ' TYPE_NAME, 0 COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                     + " 0 DECIMAL_DIGITS, 0 PSEUDO_COLUMN " + " FROM DUAL WHERE 1 = 0";
         return executeQuery(sql);
     }
 
@@ -2626,44 +2630,44 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getCrossReference(String parentCatalog, String parentSchema,
                                        String parentTable, String foreignCatalog,
                                        String foreignSchema, String foreignTable)
-            throws SQLException {
+                                                                                 throws SQLException {
 
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-                + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-                + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                + " CASE update_rule "
-                + "   WHEN 'RESTRICT' THEN 1"
-                + "   WHEN 'NO ACTION' THEN 3"
-                + "   WHEN 'CASCADE' THEN 0"
-                + "   WHEN 'SET NULL' THEN 2"
-                + "   WHEN 'SET DEFAULT' THEN 4"
-                + " END UPDATE_RULE,"
-                + " CASE DELETE_RULE"
-                + "  WHEN 'RESTRICT' THEN 1"
-                + "  WHEN 'NO ACTION' THEN 3"
-                + "  WHEN 'CASCADE' THEN 0"
-                + "  WHEN 'SET NULL' THEN 2"
-                + "  WHEN 'SET DEFAULT' THEN 4"
-                + " END DELETE_RULE,"
-                + " RC.CONSTRAINT_NAME FK_NAME,"
-                + " NULL PK_NAME,"
-                + importedKeyNotDeferrable
-                + " DEFERRABILITY"
-                + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-                + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-                + " WHERE "
-                + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
-                + " AND "
-                + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
-                + " AND "
-                + " KCU.REFERENCED_TABLE_NAME = "
-                + escapeQuote(parentTable)
-                + " AND "
-                + " KCU.TABLE_NAME = "
-                + escapeQuote(foreignTable)
-                + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+                     + " CASE update_rule "
+                     + "   WHEN 'RESTRICT' THEN 1"
+                     + "   WHEN 'NO ACTION' THEN 3"
+                     + "   WHEN 'CASCADE' THEN 0"
+                     + "   WHEN 'SET NULL' THEN 2"
+                     + "   WHEN 'SET DEFAULT' THEN 4"
+                     + " END UPDATE_RULE,"
+                     + " CASE DELETE_RULE"
+                     + "  WHEN 'RESTRICT' THEN 1"
+                     + "  WHEN 'NO ACTION' THEN 3"
+                     + "  WHEN 'CASCADE' THEN 0"
+                     + "  WHEN 'SET NULL' THEN 2"
+                     + "  WHEN 'SET DEFAULT' THEN 4"
+                     + " END DELETE_RULE,"
+                     + " RC.CONSTRAINT_NAME FK_NAME,"
+                     + " NULL PK_NAME,"
+                     + importedKeyNotDeferrable
+                     + " DEFERRABILITY"
+                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                     + " WHERE "
+                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
+                     + " AND "
+                     + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
+                     + " AND "
+                     + " KCU.REFERENCED_TABLE_NAME = "
+                     + escapeQuote(parentTable)
+                     + " AND "
+                     + " KCU.TABLE_NAME = "
+                     + escapeQuote(foreignTable)
+                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
         return executeQuery(sql);
     }
@@ -2728,101 +2732,101 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @return a <code>ResultSet</code> object in which each row is an SQL type description
      */
     public ResultSet getTypeInfo() {
-        String[] columnNames = {"TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX",
+        String[] columnNames = { "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX",
                 "LITERAL_SUFFIX", "CREATE_PARAMS", "NULLABLE", "CASE_SENSITIVE", "SEARCHABLE",
                 "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE", "AUTO_INCREMENT", "LOCAL_TYPE_NAME",
                 "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
-                "NUM_PREC_RADIX"};
-        ColumnType[] columnTypes = {ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.INTEGER,
+                "NUM_PREC_RADIX" };
+        ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.INTEGER,
                 ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.INTEGER,
                 ColumnType.BIT, ColumnType.SMALLINT, ColumnType.BIT, ColumnType.BIT,
                 ColumnType.BIT, ColumnType.VARCHAR, ColumnType.SMALLINT, ColumnType.SMALLINT,
-                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER};
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER };
 
         String[][] data = {
-                {"BIT", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BIT", "0", "0", "0",
-                        "0", "10"},
-                {"BOOL", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BOOL", "0", "0",
-                        "0", "0", "10"},
-                {"TINYINT", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "TINYINT", "0", "0", "0", "0", "10"},
-                {"TINYINT UNSIGNED", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0",
-                        "3", "1", "0", "1", "TINYINT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"BIGINT", "-5", "19", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "BIGINT", "0", "0", "0", "0", "10"},
-                {"BIGINT UNSIGNED", "-5", "20", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "BIGINT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"LONG VARBINARY", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0",
-                        "LONG VARBINARY", "0", "0", "0", "0", "10"},
-                {"MEDIUMBLOB", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0",
-                        "MEDIUMBLOB", "0", "0", "0", "0", "10"},
-                {"LONGBLOB", "-4", "2147483647", "'", "'", "", "1", "1", "3", "0", "0", "0",
-                        "LONGBLOB", "0", "0", "0", "0", "10"},
-                {"BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0",
-                        "0", "0", "0", "10"},
-                {"TINYBLOB", "-4", "255", "'", "'", "", "1", "1", "3", "0", "0", "0", "TINYBLOB",
-                        "0", "0", "0", "0", "10"},
-                {"VARBINARY", "-3", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0",
-                        "VARBINARY", "0", "0", "0", "0", "10"},
-                {"BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY",
-                        "0", "0", "0", "0", "10"},
-                {"LONG VARCHAR", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0",
-                        "LONG VARCHAR", "0", "0", "0", "0", "10"},
-                {"MEDIUMTEXT", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0",
-                        "MEDIUMTEXT", "0", "0", "0", "0", "10"},
-                {"LONGTEXT", "-1", "2147483647", "'", "'", "", "1", "0", "3", "0", "0", "0",
-                        "LONGTEXT", "0", "0", "0", "0", "10"},
-                {"TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0",
-                        "0", "0", "0", "10"},
-                {"TINYTEXT", "-1", "255", "'", "'", "", "1", "0", "3", "0", "0", "0", "TINYTEXT",
-                        "0", "0", "0", "0", "10"},
-                {"CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0",
-                        "0", "0", "0", "10"},
-                {"NUMERIC", "2", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0",
-                        "1", "NUMERIC", "-308", "308", "0", "0", "10"},
-                {"DECIMAL", "3", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0",
-                        "1", "DECIMAL", "-308", "308", "0", "0", "10"},
-                {"INTEGER", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "INTEGER", "0", "0", "0", "0", "10"},
-                {"INTEGER UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "INTEGER UNSIGNED", "0", "0", "0", "0", "10"},
-                {"INT", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0",
-                        "1", "INT", "0", "0", "0", "0", "10"},
-                {"INT UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0",
-                        "1", "INT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"MEDIUMINT", "4", "7", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "MEDIUMINT", "0", "0", "0", "0", "10"},
-                {"MEDIUMINT UNSIGNED", "4", "8", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "MEDIUMINT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"SMALLINT", "5", "5", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "SMALLINT", "0", "0", "0", "0", "10"},
-                {"SMALLINT UNSIGNED", "5", "5", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
-                        "0", "1", "SMALLINT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"FLOAT", "7", "10", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
-                        "FLOAT", "-38", "38", "0", "0", "10"},
-                {"DOUBLE", "8", "17", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
-                        "DOUBLE", "-308", "308", "0", "0", "10"},
-                {"DOUBLE PRECISION", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0",
-                        "0", "1", "DOUBLE PRECISION", "-308", "308", "0", "0", "10"},
-                {"REAL", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
-                        "REAL", "-308", "308", "0", "0", "10"},
-                {"VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR",
-                        "0", "0", "0", "0", "10"},
-                {"ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "ENUM", "0",
-                        "0", "0", "0", "10"},
-                {"SET", "12", "64", "'", "'", "", "1", "0", "3", "0", "0", "0", "SET", "0", "0",
-                        "0", "0", "10"},
-                {"DATE", "91", "10", "'", "'", "", "1", "0", "3", "0", "0", "0", "DATE", "0", "0",
-                        "0", "0", "10"},
-                {"TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIME", "0",
-                        "0", "0", "0", "10"},
-                {"DATETIME", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0",
-                        "DATETIME", "0", "0", "0", "0", "10"},
-                {"TIMESTAMP", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0",
-                        "TIMESTAMP", "0", "0", "0", "0", "10"}};
+                { "BIT", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BIT", "0", "0", "0",
+                        "0", "10" },
+                { "BOOL", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BOOL", "0", "0",
+                        "0", "0", "10" },
+                { "TINYINT", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "TINYINT", "0", "0", "0", "0", "10" },
+                { "TINYINT UNSIGNED", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0",
+                        "3", "1", "0", "1", "TINYINT UNSIGNED", "0", "0", "0", "0", "10" },
+                { "BIGINT", "-5", "19", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "BIGINT", "0", "0", "0", "0", "10" },
+                { "BIGINT UNSIGNED", "-5", "20", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "BIGINT UNSIGNED", "0", "0", "0", "0", "10" },
+                { "LONG VARBINARY", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0",
+                        "LONG VARBINARY", "0", "0", "0", "0", "10" },
+                { "MEDIUMBLOB", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0",
+                        "MEDIUMBLOB", "0", "0", "0", "0", "10" },
+                { "LONGBLOB", "-4", "2147483647", "'", "'", "", "1", "1", "3", "0", "0", "0",
+                        "LONGBLOB", "0", "0", "0", "0", "10" },
+                { "BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0",
+                        "0", "0", "0", "10" },
+                { "TINYBLOB", "-4", "255", "'", "'", "", "1", "1", "3", "0", "0", "0", "TINYBLOB",
+                        "0", "0", "0", "0", "10" },
+                { "VARBINARY", "-3", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0",
+                        "VARBINARY", "0", "0", "0", "0", "10" },
+                { "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY",
+                        "0", "0", "0", "0", "10" },
+                { "LONG VARCHAR", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0",
+                        "LONG VARCHAR", "0", "0", "0", "0", "10" },
+                { "MEDIUMTEXT", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0",
+                        "MEDIUMTEXT", "0", "0", "0", "0", "10" },
+                { "LONGTEXT", "-1", "2147483647", "'", "'", "", "1", "0", "3", "0", "0", "0",
+                        "LONGTEXT", "0", "0", "0", "0", "10" },
+                { "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0",
+                        "0", "0", "0", "10" },
+                { "TINYTEXT", "-1", "255", "'", "'", "", "1", "0", "3", "0", "0", "0", "TINYTEXT",
+                        "0", "0", "0", "0", "10" },
+                { "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0",
+                        "0", "0", "0", "10" },
+                { "NUMERIC", "2", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0",
+                        "1", "NUMERIC", "-308", "308", "0", "0", "10" },
+                { "DECIMAL", "3", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0",
+                        "1", "DECIMAL", "-308", "308", "0", "0", "10" },
+                { "INTEGER", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "INTEGER", "0", "0", "0", "0", "10" },
+                { "INTEGER UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "INTEGER UNSIGNED", "0", "0", "0", "0", "10" },
+                { "INT", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0",
+                        "1", "INT", "0", "0", "0", "0", "10" },
+                { "INT UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0",
+                        "1", "INT UNSIGNED", "0", "0", "0", "0", "10" },
+                { "MEDIUMINT", "4", "7", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "MEDIUMINT", "0", "0", "0", "0", "10" },
+                { "MEDIUMINT UNSIGNED", "4", "8", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "MEDIUMINT UNSIGNED", "0", "0", "0", "0", "10" },
+                { "SMALLINT", "5", "5", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "SMALLINT", "0", "0", "0", "0", "10" },
+                { "SMALLINT UNSIGNED", "5", "5", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1",
+                        "0", "1", "SMALLINT UNSIGNED", "0", "0", "0", "0", "10" },
+                { "FLOAT", "7", "10", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
+                        "FLOAT", "-38", "38", "0", "0", "10" },
+                { "DOUBLE", "8", "17", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
+                        "DOUBLE", "-308", "308", "0", "0", "10" },
+                { "DOUBLE PRECISION", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0",
+                        "0", "1", "DOUBLE PRECISION", "-308", "308", "0", "0", "10" },
+                { "REAL", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
+                        "REAL", "-308", "308", "0", "0", "10" },
+                { "VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR",
+                        "0", "0", "0", "0", "10" },
+                { "ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "ENUM", "0",
+                        "0", "0", "0", "10" },
+                { "SET", "12", "64", "'", "'", "", "1", "0", "3", "0", "0", "0", "SET", "0", "0",
+                        "0", "0", "10" },
+                { "DATE", "91", "10", "'", "'", "", "1", "0", "3", "0", "0", "0", "DATE", "0", "0",
+                        "0", "0", "10" },
+                { "TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIME", "0",
+                        "0", "0", "0", "10" },
+                { "DATETIME", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0",
+                        "DATETIME", "0", "0", "0", "0", "10" },
+                { "TIMESTAMP", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0",
+                        "TIMESTAMP", "0", "0", "0", "0", "10" } };
 
         return SelectResultSet.createResultSet(columnNames, columnTypes, data,
-                connection.getProtocol());
+            connection.getProtocol());
     }
 
     /**
@@ -2882,13 +2886,13 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                   boolean approximate) throws SQLException {
 
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
-                + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
-                + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
-                + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
-                + " FROM INFORMATION_SCHEMA.STATISTICS" + " WHERE TABLE_NAME = "
-                + escapeQuote(table) + " AND " + catalogCond("TABLE_SCHEMA", catalog)
-                + ((unique) ? " AND NON_UNIQUE = 0" : "")
-                + " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
+                     + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
+                     + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
+                     + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
+                     + " FROM INFORMATION_SCHEMA.STATISTICS" + " WHERE TABLE_NAME = "
+                     + escapeQuote(table) + " AND " + catalogCond("TABLE_SCHEMA", catalog)
+                     + ((unique) ? " AND NON_UNIQUE = 0" : "")
+                     + " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
 
         return executeQuery(sql);
     }
@@ -3020,7 +3024,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
                              int[] types) throws SQLException {
         String sql = "SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
-                + " FROM DUAL WHERE 1=0";
+                     + " FROM DUAL WHERE 1=0";
 
         return executeQuery(sql);
     }
@@ -3080,9 +3084,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @since 1.4
      */
     public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
-            throws SQLException {
+                                                                                                throws SQLException {
         String sql = "SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' ' SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME"
-                + " FROM DUAL WHERE 1=0";
+                     + " FROM DUAL WHERE 1=0";
 
         return executeQuery(sql);
     }
@@ -3119,7 +3123,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @since 1.4
      */
     public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
-            throws SQLException {
+                                                                                                  throws SQLException {
         String sql = "SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL WHERE 1=0";
         return executeQuery(sql);
     }
@@ -3196,10 +3200,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                    String attributeNamePattern) throws SQLException {
 
         String sql = "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
-                + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
-                + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
-                + " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE,"
-                + " 0 SOURCE_DATA_TYPE" + " FROM DUAL " + " WHERE 1=0";
+                     + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
+                     + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
+                     + " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE,"
+                     + " 0 SOURCE_DATA_TYPE" + " FROM DUAL " + " WHERE 1=0";
 
         return executeQuery(sql);
     }
@@ -3371,19 +3375,19 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      * @since 1.6
      */
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
-            throws SQLException {
+                                                                                                   throws SQLException {
         if (connection.getProtocol().isOracleMode()) {
             return super.getFunctions(catalog, schemaPattern, functionNamePattern);
         }
         String sql = "SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"
-                + " ROUTINE_COMMENT REMARKS,"
-                + functionNoTable
-                + " FUNCTION_TYPE, SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.ROUTINES "
-                + " WHERE "
-                + catalogCond("ROUTINE_SCHEMA", catalog)
-                + patternCond("ROUTINE_NAME", functionNamePattern)
-                + " AND ROUTINE_TYPE='FUNCTION'";
+                     + " ROUTINE_COMMENT REMARKS,"
+                     + functionNoTable
+                     + " FUNCTION_TYPE, SPECIFIC_NAME "
+                     + " FROM INFORMATION_SCHEMA.ROUTINES "
+                     + " WHERE "
+                     + catalogCond("ROUTINE_SCHEMA", catalog)
+                     + patternCond("ROUTINE_NAME", functionNamePattern)
+                     + " AND ROUTINE_TYPE='FUNCTION'";
 
         return executeQuery(sql);
     }

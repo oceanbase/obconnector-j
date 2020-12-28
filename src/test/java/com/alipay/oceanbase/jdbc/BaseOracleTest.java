@@ -204,15 +204,10 @@ public class BaseOracleTest {
       urlParserPS.auroraPipelineQuirks();
 
       try {
-        System.out.println("start ");
         sharedConnection = OceanBaseConnection.newConnection(urlParser, null);
-        System.out.println("1");
         sharedPSConnection = OceanBaseConnection.newConnection(urlParserPS, null);
-        System.out.println(2);
         sharedPSConnectionWithoutChecksum = OceanBaseConnection.newConnection(urlParserPSWithoutChecksum, null);
-        System.out.println(3);
         sharedPSLobConnection = OceanBaseConnection.newConnection(urlParserPSLob, null);
-        System.out.println(4);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
