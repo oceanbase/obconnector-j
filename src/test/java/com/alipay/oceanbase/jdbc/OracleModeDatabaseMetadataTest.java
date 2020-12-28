@@ -38,103 +38,132 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "GETCOLUMNS_TEST", null);
-        assertTrue(rs.next());
-        assertEquals(null, rs.getString(1)); // TABLE_CAT
-        assertEquals("SYS", rs.getString(2)); // OWNER
-        assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
-        assertEquals("A", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
-        assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
-        assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(0, rs.getInt(11)); // NULLABLE
-        assertEquals(null, rs.getString(12)); // REMARKS
-        assertEquals(null, rs.getString(13)); // DATA_DEFAULT
-        assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
-        assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
-        assertEquals(0, rs.getInt(16)); // DATA_LENGTH
-        assertEquals(16, rs.getInt(17)); // COLUMN_ID
-        assertEquals("NO", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+//        while(rs.next()) {
+////            System.out.println( rs.getString(1)); // TABLE_CAT
+////            System.out.println( rs.getString(2)); // OWNER
+////            System.out.println( rs.getString(3)); // TABLE_NAME
+////            System.out.println( rs.getString(4)); // COLUMN_NAME
+////            System.out.println( rs.getInt(5)); // DATA_TYPE
+////            System.out.println( rs.getString(6)); // "TYPE_NAME
+////            System.out.println( rs.getInt(7)); // "COLUMN_SIZE
+////            System.out.println( rs.getInt(8));//BUFFER_LENGTH
+////            System.out.println( rs.getInt(9)); // DECIMAL_DIGITS
+////            System.out.println( rs.getInt(10)); // NUM_PREC_RADIX
+////            System.out.println( rs.getInt(11)); // NULLABLE
+////            System.out.println( rs.getString(12)); // REMARKS
+////            System.out.println( rs.getString(13)); // DATA_DEFAULT
+////            System.out.println( rs.getInt(14));//SQL_DATA_TYPE
+////            System.out.println( rs.getInt(15));//SQL_DATETIME_SUB
+////            System.out.println( rs.getInt(16)); // DATA_LENGTH
+////            System.out.println( rs.getString(17)); // COLUMN_ID
+////            System.out.println( rs.getString(18)); // IS_NULLABLE
+////            System.out.println( rs.getString(19)); // SCOPE_CATALOG
+////            System.out.println( rs.getString(20)); // SCOPE_SCHEMA
+////            System.out.println( rs.getString(21)); // SCOPE_TABLE
+////            System.out.println( rs.getShort(22)); // SOURCE_DATA_TYPE
+////            System.out.println( rs.getString(23)); // IS_AUTOINCREMENT
+//            System.out.println("------------------------------------");
+//        }
 
-        assertTrue(rs.next());
-        assertEquals(null, rs.getString(1)); // TABLE_CAT
-        assertEquals("SYS", rs.getString(2)); // OWNER
-        assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
-        assertEquals("B", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
-        assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
-        assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals(null, rs.getString(12)); // REMARKS
-        assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // DATA_DEFAULT
-        assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
-        assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
-        assertEquals(32, rs.getInt(16)); // DATA_LENGTH
-        assertEquals(17, rs.getInt(17)); // COLUMN_ID
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+        {
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("A", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
+            assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
+            assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertEquals(null, rs.getString(13)); // DATA_DEFAULT
+            assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
+            assertEquals(0, rs.getInt(16)); // DATA_LENGTH
+            assertEquals(1, rs.getInt(17)); // COLUMN_ID
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
 
-        assertTrue(rs.next());
-        assertEquals(null, rs.getString(1)); // TABLE_CAT
-        assertEquals("SYS", rs.getString(2)); // OWNER
-        assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
-        assertEquals("C", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
-        assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
-        assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals(null, rs.getString(12)); // REMARKS
-        assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
-                   || rs.getString(13) == null); // COLUMN_DEF
-        assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(18, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("B", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
+            assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // DATA_DEFAULT
+            assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
+            assertEquals(32, rs.getInt(16)); // DATA_LENGTH
+            assertEquals(2, rs.getInt(17)); // COLUMN_ID
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
 
-        assertTrue(rs.next());
-        assertEquals(null, rs.getString(1)); // TABLE_CAT
-        assertEquals("SYS", rs.getString(2)); // OWNER
-        assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
-        assertEquals("D", rs.getString(4)); // COLUMN_NAME
-        assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
-        assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
-        assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
-        assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
-        assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-        assertEquals(1, rs.getInt(11)); // NULLABLE
-        assertEquals(null, rs.getString(12)); // REMARKS
-        assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
-                   || rs.getString(13) == null); // COLUMN_DEF
-        assertEquals(5, rs.getInt(16)); // CHAR_OCTET_LENGTH
-        assertEquals(19, rs.getInt(17)); // ORDINAL_POSITION
-        assertEquals("YES", rs.getString(18)); // IS_NULLABLE
-        assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
-        assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
-        assertEquals(null, rs.getString(21)); // SCOPE_TABLE
-        assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
-        assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("C", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
+            assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
+            assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
+                    || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
 
-        assertTrue(!rs.next());
+            assertTrue(rs.next());
+            assertEquals(null, rs.getString(1)); // TABLE_CAT
+            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
+            assertEquals("D", rs.getString(4)); // COLUMN_NAME
+            assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
+            assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
+            assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
+            assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+            assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(null, rs.getString(12)); // REMARKS
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
+                    || rs.getString(13) == null); // COLUMN_DEF
+            assertEquals(5, rs.getInt(16)); // CHAR_OCTET_LENGTH
+            assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
+            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
+            assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
+            assertEquals(null, rs.getString(21)); // SCOPE_TABLE
+            assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
+            assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
+
+            assertTrue(!rs.next());
+        }
     }
 
     @Test

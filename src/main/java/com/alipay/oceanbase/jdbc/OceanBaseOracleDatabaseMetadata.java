@@ -1,8 +1,14 @@
 package com.alipay.oceanbase.jdbc;
 
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
@@ -145,7 +151,246 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     public ResultSet getCatalogs() throws SQLException {
         return executeQuery("select 'nothing' as table_cat from dual where 1 = 2");
     }
+    class TypeDescriptor {
+        int     bufferLength;
 
+        int     charOctetLength;
+
+        Integer columnSize;
+
+        short   dataType;
+
+        Integer decimalDigits;
+
+        String  isNullable;
+
+        int     nullability;
+
+        int     numPrecRadix = 10;
+
+        String  typeName;
+
+//        TypeDescriptor(String typeInfo, String nullabilityInfo) throws SQLException {
+//            if (typeInfo == null) {
+//                throw new SQLException("NULL typeinfo not supported.");
+//            }
+//
+//            String mysqlType = "";
+//            String fullMysqlType = null;
+//
+//            if (typeInfo.indexOf("(") != -1) {
+//                mysqlType = typeInfo.substring(0, typeInfo.indexOf("(")).trim();
+//            } else {
+//                mysqlType = typeInfo;
+//            }
+//
+//            int indexOfUnsignedInMysqlType = StringUtils.indexOfIgnoreCase(mysqlType, "unsigned");
+//
+//            if (indexOfUnsignedInMysqlType != -1) {
+//                mysqlType = mysqlType.substring(0, (indexOfUnsignedInMysqlType - 1));
+//            }
+//
+//            // Add unsigned to typename reported to enduser as 'native type', if present
+//
+//            boolean isUnsigned = false;
+//
+//            if ((StringUtils.indexOfIgnoreCase(typeInfo, "unsigned") != -1)
+//                    && (StringUtils.indexOfIgnoreCase(typeInfo, "set") != 0)
+//                    && (StringUtils.indexOfIgnoreCase(typeInfo, "enum") != 0)) {
+//                fullMysqlType = mysqlType + " unsigned";
+//                isUnsigned = true;
+//            } else {
+//                fullMysqlType = mysqlType;
+//            }
+//
+//            if (DatabaseMetaData.this.conn.getCapitalizeTypeNames()) {
+//                fullMysqlType = fullMysqlType.toUpperCase(Locale.ENGLISH);
+//            }
+//
+//            this.dataType = (short) MysqlDefs.mysqlToJavaType(mysqlType);
+//
+//            this.typeName = fullMysqlType;
+//
+//            // Figure Out the Size
+//
+//            if (StringUtils.startsWithIgnoreCase(typeInfo, "enum")) {
+//                String temp = typeInfo.substring(typeInfo.indexOf("("), typeInfo.lastIndexOf(")"));
+//                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(temp, ",");
+//                int maxLength = 0;
+//
+//                while (tokenizer.hasMoreTokens()) {
+//                    maxLength = Math.max(maxLength, (tokenizer.nextToken().length() - 2));
+//                }
+//
+//                this.columnSize = Integer.valueOf(maxLength);
+//                this.decimalDigits = null;
+//            } else if (StringUtils.startsWithIgnoreCase(typeInfo, "set")) {
+//                String temp = typeInfo.substring(typeInfo.indexOf("(") + 1,
+//                        typeInfo.lastIndexOf(")"));
+//                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(temp, ",");
+//                int maxLength = 0;
+//
+//                int numElements = tokenizer.countTokens();
+//
+//                if (numElements > 0) {
+//                    maxLength += (numElements - 1);
+//                }
+//
+//                while (tokenizer.hasMoreTokens()) {
+//                    String setMember = tokenizer.nextToken().trim();
+//
+//                    if (setMember.startsWith("'") && setMember.endsWith("'")) {
+//                        maxLength += setMember.length() - 2;
+//                    } else {
+//                        maxLength += setMember.length();
+//                    }
+//                }
+//
+//                this.columnSize = Integer.valueOf(maxLength);
+//                this.decimalDigits = null;
+//            } else if (typeInfo.indexOf(",") != -1) {
+//                // Numeric with decimals
+//                this.columnSize = Integer.valueOf(typeInfo.substring((typeInfo.indexOf("(") + 1),
+//                        (typeInfo.indexOf(","))).trim());
+//                this.decimalDigits = Integer.valueOf(typeInfo.substring(
+//                        (typeInfo.indexOf(",") + 1), (typeInfo.indexOf(")"))).trim());
+//            } else {
+//                this.columnSize = null;
+//                this.decimalDigits = null;
+//
+//                /* If the size is specified with the DDL, use that */
+//                if ((StringUtils.indexOfIgnoreCase(typeInfo, "char") != -1
+//                        || StringUtils.indexOfIgnoreCase(typeInfo, "text") != -1
+//                        || StringUtils.indexOfIgnoreCase(typeInfo, "blob") != -1
+//                        || StringUtils.indexOfIgnoreCase(typeInfo, "binary") != -1 || StringUtils
+//                        .indexOfIgnoreCase(typeInfo, "bit") != -1) && typeInfo.indexOf("(") != -1) {
+//                    int endParenIndex = typeInfo.indexOf(")");
+//
+//                    if (endParenIndex == -1) {
+//                        endParenIndex = typeInfo.length();
+//                    }
+//
+//                    this.columnSize = Integer.valueOf(typeInfo.substring(
+//                            (typeInfo.indexOf("(") + 1), endParenIndex).trim());
+//
+//                    // Adjust for pseudo-boolean
+//                    if (DatabaseMetaData.this.conn.getTinyInt1isBit()
+//                            && this.columnSize.intValue() == 1
+//                            && StringUtils.startsWithIgnoreCase(typeInfo, 0, "tinyint")) {
+//                        if (DatabaseMetaData.this.conn.getTransformedBitIsBoolean()) {
+//                            this.dataType = Types.BOOLEAN;
+//                            this.typeName = "BOOLEAN";
+//                        } else {
+//                            this.dataType = Types.BIT;
+//                            this.typeName = "BIT";
+//                        }
+//                    }
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "tinyint")) {
+//                    if (DatabaseMetaData.this.conn.getTinyInt1isBit()
+//                            && typeInfo.indexOf("(1)") != -1) {
+//                        if (DatabaseMetaData.this.conn.getTransformedBitIsBoolean()) {
+//                            this.dataType = Types.BOOLEAN;
+//                            this.typeName = "BOOLEAN";
+//                        } else {
+//                            this.dataType = Types.BIT;
+//                            this.typeName = "BIT";
+//                        }
+//                    } else {
+//                        this.columnSize = Integer.valueOf(3);
+//                        this.decimalDigits = Integer.valueOf(0);
+//                    }
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "smallint")) {
+//                    this.columnSize = Integer.valueOf(5);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "mediumint")) {
+//                    this.columnSize = Integer.valueOf(isUnsigned ? 8 : 7);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "int")) {
+//                    this.columnSize = Integer.valueOf(10);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "integer")) {
+//                    this.columnSize = Integer.valueOf(10);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "bigint")) {
+//                    this.columnSize = Integer.valueOf(isUnsigned ? 20 : 19);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "int24")) {
+//                    this.columnSize = Integer.valueOf(19);
+//                    this.decimalDigits = Integer.valueOf(0);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "real")) {
+//                    this.columnSize = Integer.valueOf(12);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "float")) {
+//                    this.columnSize = Integer.valueOf(12);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "decimal")) {
+//                    this.columnSize = Integer.valueOf(12);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "numeric")) {
+//                    this.columnSize = Integer.valueOf(12);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "double")) {
+//                    this.columnSize = Integer.valueOf(22);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "char")) {
+//                    this.columnSize = Integer.valueOf(1);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "varchar")) {
+//                    this.columnSize = Integer.valueOf(255);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "timestamp")) {
+//                    this.columnSize = Integer.valueOf(19);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "datetime")) {
+//                    this.columnSize = Integer.valueOf(19);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "date")) {
+//                    this.columnSize = Integer.valueOf(10);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "time")) {
+//                    this.columnSize = Integer.valueOf(8);
+//
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "tinyblob")) {
+//                    this.columnSize = Integer.valueOf(255);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "blob")) {
+//                    this.columnSize = Integer.valueOf(65535);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "mediumblob")) {
+//                    this.columnSize = Integer.valueOf(16777215);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "longblob")) {
+//                    this.columnSize = Integer.valueOf(Integer.MAX_VALUE);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "tinytext")) {
+//                    this.columnSize = Integer.valueOf(255);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "text")) {
+//                    this.columnSize = Integer.valueOf(65535);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "mediumtext")) {
+//                    this.columnSize = Integer.valueOf(16777215);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "longtext")) {
+//                    this.columnSize = Integer.valueOf(Integer.MAX_VALUE);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "enum")) {
+//                    this.columnSize = Integer.valueOf(255);
+//                } else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo, "set")) {
+//                    this.columnSize = Integer.valueOf(255);
+//                }
+//
+//            }
+//
+//            // BUFFER_LENGTH
+//            this.bufferLength = MysqlIO.getMaxBuf();
+//
+//            // NUM_PREC_RADIX (is this right for char?)
+//            this.numPrecRadix = 10;
+//
+//            // Nullable?
+//            if (nullabilityInfo != null) {
+//                if (nullabilityInfo.equals("YES")) {
+//                    this.nullability = java.sql.DatabaseMetaData.columnNullable;
+//                    this.isNullable = "YES";
+//
+//                } else if (nullabilityInfo.equals("UNKNOWN")) {
+//                    this.nullability = java.sql.DatabaseMetaData.columnNullableUnknown;
+//                    this.isNullable = "";
+//
+//                    // IS_NULLABLE
+//                } else {
+//                    this.nullability = java.sql.DatabaseMetaData.columnNoNulls;
+//                    this.isNullable = "NO";
+//                }
+//            } else {
+//                this.nullability = java.sql.DatabaseMetaData.columnNoNulls;
+//                this.isNullable = "NO";
+//            }
+//        }
+    }
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
@@ -207,12 +452,120 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                         + "\n" + "ORDER BY table_schem, table_name, ordinal_position\n",
                 schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
                     : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern);
-        ResultSet resultSet = stmt.executeQuery(querySql);
+        ResultSet results = stmt.executeQuery(querySql);
         if (stmt != null) {
             stmt.close();
         }
-
-        return resultSet;
+//        int count = results.getFetchSize();
+        String[] data = new String[24];
+        List<String[]> list = new ArrayList<> ();
+        int i = 0;
+        while (results.next()) {
+            data[0] = null;
+            data[1] = results.getString("TABLE_SCHEM");
+            data[2] = results.getString("TABLE_NAME");
+            data[3] = results.getString("COLUMN_NAME");
+            data[4] = results.getString("DATA_TYPE");
+            data[5] = results.getString("TYPE_NAME");
+            data[6] = results.getString("COLUMN_SIZE");
+            data[7] = results.getString("BUFFER_LENGTH");
+            data[8] = results.getString("DECIMAL_DIGITS");
+            data[9] = results.getString("NUM_PREC_RADIX");
+            String nullabilityInfo = results.getString("NULLABLE");
+            String isNullable = null;
+            int  nullability = 0;
+            if (nullabilityInfo != null) {
+                if (nullabilityInfo.equals("YES")) {
+                    nullability = java.sql.DatabaseMetaData.columnNullable;
+                    isNullable = "YES";
+                } else if (nullabilityInfo.equals("UNKNOWN")) {
+                    nullability = java.sql.DatabaseMetaData.columnNullableUnknown;
+                    isNullable = "";
+                } else {
+                    nullability = java.sql.DatabaseMetaData.columnNoNulls;
+                    isNullable = "NO";
+                }
+            } else {
+                nullability = java.sql.DatabaseMetaData.columnNoNulls;
+                isNullable = "NO";
+            }
+            data[10] = Integer.toString(nullability);
+            data[11] = results.getString("REMARKS");
+            data[12] = results.getString("COLUMN_DEF");
+            data[13] = results.getString("SQL_DATA_TYPE");
+            data[14] = results.getString("SQL_DATETIME_SUB");
+            data[15] = results.getString("CHAR_OCTET_LENGTH");
+            data[16] = Integer.toString(results.getInt("ORDINAL_POSITION") -15);
+            data[17] = isNullable;
+            data[18] = null;
+            data[19] = null;
+            data[20] = null;
+            data[21] = null;
+            data[22] = "NO";
+            data[23] = null;
+            i ++ ;
+            String[] tmp = new String[24];
+            System.arraycopy(data,0,tmp,0,data.length);
+            list.add(tmp);
+        }
+        String[][] val = new String[list.size()][];
+        for(int j=0; j<list.size(); j++)  {
+            val[j] = list.get(j);
+        }
+        String[] columnNames = {
+                "TABLE_CAT",
+                "TABLE_SCHEM",
+                "TABLE_NAME",
+                "COLUMN_NAME",
+                "DATA_TYPE",
+                "TYPE_NAME",
+                "COLUMN_SIZE",
+                "BUFFER_LENGTH",
+                "DECIMAL_DIGITS",
+                "NUM_PREC_RADIX",
+                "NULLABLE",
+                "REMARKS",
+                "COLUMN_DEF",
+                "SQL_DATA_TYPE",
+                "SQL_DATETIME_SUB",
+                "CHAR_OCTET_LENGTH",
+                "ORDINAL_POSITION",
+                "IS_NULLABLE",
+                "SCOPE_CATALOG",
+                "SCOPE_SCHEMA",
+                "SCOPE_TABLE",
+                "SOURCE_DATA_TYPE",
+                "IS_AUTOINCREMENT",
+                "IS_GENERATEDCOLUMN"
+        };
+        ColumnType[] columnTypes = {
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.INTEGER,
+                ColumnType.ENUM,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.SMALLINT,
+                ColumnType.ENUM,
+                ColumnType.ENUM
+        };
+        ResultSet rs = SelectResultSet.createResultSet(columnNames,columnTypes,val,this.connection.getProtocol());
+        return rs;
     }
 
     @Override

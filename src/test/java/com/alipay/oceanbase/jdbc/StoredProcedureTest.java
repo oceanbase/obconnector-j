@@ -33,8 +33,9 @@ public class StoredProcedureTest extends BaseTest {
         "TEST_SP1",
         "() BEGIN\n"
             + "SELECT @Something := 'Something';\n"
-            + "SIGNAL SQLSTATE '70100'\n"
-            + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+//            + "SIGNAL SQLSTATE '70100'\n"
+            + "SIGNAL SQLSTATE '70100';\n"
+//            + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
             + "END");
 
     // sequence table are not in MySQL and MariaDB < 10.1, so create some basic table

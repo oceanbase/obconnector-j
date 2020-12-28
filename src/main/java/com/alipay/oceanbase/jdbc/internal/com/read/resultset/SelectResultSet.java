@@ -177,7 +177,7 @@ public class SelectResultSet implements ResultSet {
         }
 
         this.row = new TextRowProtocol(0, this.options);
-        this.protocol = null;
+        this.protocol = protocol;
         this.columnsInformation = columnDefinition;
         this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
         this.columnInformationLength = columnDefinition.length;
@@ -434,8 +434,8 @@ public class SelectResultSet implements ResultSet {
         if (dataSize + 1 >= data.length) {
             growDataArray();
         }
-        Buffer buffer = new Buffer(buf, buf.length);
-        //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
+//        Buffer buffer = new Buffer(buf, buf.length);
+//        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
         data[dataSize++] = buf;
         return true;
     }

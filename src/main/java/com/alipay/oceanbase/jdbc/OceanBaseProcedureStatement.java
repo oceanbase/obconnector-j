@@ -11,45 +11,123 @@ import com.alipay.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class OceanBaseProcedureStatement extends CallableProcedureStatement implements
-                                                                           CloneableCallableStatement {
+        CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
 
-    private boolean         isObFunction    = false;
+    private boolean isObFunction = false;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
      *
-     * @param query query
-     * @param connection current connection
-     * @param procedureName procedure name
-     * @param database database
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
-     *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param query                query
+     * @param connection           current connection
+     * @param procedureName        procedure name
+     * @param database             database
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param exceptionFactory Exception Factory
+     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param exceptionFactory     Exception Factory
      * @throws SQLException exception
      */
     public OceanBaseProcedureStatement(boolean isObFunction, String query,
                                        OceanBaseConnection connection, String procedureName,
                                        String database, int resultSetType,
                                        int resultSetConcurrency, ExceptionFactory exceptionFactory)
-                                                                                                   throws SQLException {
+            throws SQLException {
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
-            exceptionFactory);
+                exceptionFactory);
         this.isObFunction = isObFunction;
         if (!this.connection.getProtocol().isOracleMode()) {
             this.parameterMetadata = new CallableParameterMetaData(connection, database,
-                procedureName, false);
+                    procedureName, false);
         } else {
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
-                procedureName, isObFunction);
+                    procedureName, isObFunction);
             this.parameterMetadata.readMetadataFromDbIfRequired();
         }
+//        determineParameterTypes(query,database,procedureName);
         setParamsAccordingToSetArguments();
         setParametersVariables();
+    }
+
+    private void determineParameterTypes(String queryString,String database,String procname) throws SQLException {
+        java.sql.ResultSet paramTypesRs = null;
+
+        try {
+            //Bug#57022, we need to check for db.SPname notation first and pass on only SPname
+//            String procName = extractProcedureName();
+            String procName = procname;
+            String quotedId = "";
+//            try {
+//                quotedId = this.connection.supportsQuotedIdentifiers() ? this.connection
+//                        .getMetaData().getIdentifierQuoteString() : "";
+//            } catch (SQLException sqlEx) {
+//                // Forced by API, never thrown from getIdentifierQuoteString() in
+//                // this implementation.
+////                AssertionFailedException.shouldNotHappen(sqlEx);
+//            }
+
+//            List<?> parseList = StringUtils.splitDBdotName(procName, "", quotedId,
+//                    this.connection.isNoBackslashEscapesSet());
+//            String tmpCatalog = "";
+//            //There *should* be 2 rows, if any.
+//            if (parseList.size() == 2) {
+//                tmpCatalog = (String) parseList.get(0);
+//                procName = (String) parseList.get(1);
+//            } else { // NOPMD
+//                //keep values as they are
+//            }
+
+            java.sql.DatabaseMetaData dbmd = this.connection.getMetaData();
+
+            boolean useCatalog = false;
+
+//            if (tmpCatalog.length() <= 0) {
+//                useCatalog = true;
+//            }
+
+            paramTypesRs = dbmd
+//                    .getProcedureColumns(
+//                            this.connection.versionMeetsMinimum(5, 0, 2) && useCatalog ? this.currentCatalog
+//                                    : tmpCatalog/* null */, null, procName, "%");
+            .getProcedureColumns(
+                           database , null, procName, "%");
+
+            boolean hasResults = false;
+            try {
+                if (paramTypesRs.next()) {
+                    paramTypesRs.previous();
+                    hasResults = true;
+                }
+            } catch (Exception e) {
+                // paramTypesRs is empty, proceed with fake params. swallow, was expected
+            }
+//            if (hasResults) {
+//                convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
+//            } else {
+//                fakeParameterTypes(true);
+//            }
+        } finally {
+            SQLException sqlExRethrow = null;
+
+            if (paramTypesRs != null) {
+                try {
+                    paramTypesRs.close();
+                } catch (SQLException sqlEx) {
+                    sqlExRethrow = sqlEx;
+                }
+
+                paramTypesRs = null;
+            }
+
+            if (sqlExRethrow != null) {
+                throw sqlExRethrow;
+            }
+        }
+
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
@@ -80,7 +158,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
             this.params.add(this.parameterMetadata.getParam(index + 1)); //TODO if check registerOutputParamter need to add it by arguments
         }
-  }
+    }
 
     private void setInputOutputParameterMap() {
         if (outputParameterMapper == null) {
@@ -89,7 +167,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
 
             for (int index = 0; index < params.size(); index++) {
                 outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++
-                    : -1;
+                        : -1;
             }
         }
     }
@@ -124,7 +202,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
      * @throws CloneNotSupportedException if any error occur.
      */
     public OceanBaseProcedureStatement clone(OceanBaseConnection connection)
-                                                                            throws CloneNotSupportedException {
+            throws CloneNotSupportedException {
         OceanBaseProcedureStatement clone = (OceanBaseProcedureStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
@@ -139,7 +217,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
     }
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder)
-                                                                                    throws SQLException {
+            throws SQLException {
         params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
