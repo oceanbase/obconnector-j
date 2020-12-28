@@ -7,10 +7,13 @@ import java.sql.Statement;
 
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class AttributeTest extends BaseTest {
-
+    /*
+    No supported performance_schema now
+     */
     @Test
   public void testServerHost() throws Exception {
     // test for _server_host attribute

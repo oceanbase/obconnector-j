@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 import com.alipay.oceanbase.jdbc.OceanBaseConnection;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class TIMESTAMPLTZ extends Datum {
     private static int      SIZE_TIMESTAMPLTZ        = 12;
@@ -52,9 +53,9 @@ public class TIMESTAMPLTZ extends Datum {
         }
 
         Calendar calendar = Calendar.getInstance(TimeZone
-            .getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID()));
+            .getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone()));
         calendar.setTimeInMillis(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH) + 1;
         int day = calendar.get(Calendar.DAY_OF_MONTH);
@@ -120,12 +121,12 @@ public class TIMESTAMPLTZ extends Datum {
 
     public static Date toDate(Connection connection, byte[] bytes) throws SQLException {
         return new Date(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
     }
 
     public static Time toTime(Connection connection, byte[] bytes) throws SQLException {
         return new Time(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
     }
 
     public static Timestamp toTimestamp(Connection connection, byte[] bytes) throws SQLException {
@@ -133,13 +134,27 @@ public class TIMESTAMPLTZ extends Datum {
             throw new SQLException("invalid bytes length");
         }
         Timestamp timestamp = new Timestamp(TIMESTAMPTZ.getOriginTime(bytes,
-            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone().getID())));
+            TimeZone.getTimeZone(((OceanBaseConnection) connection).getSessionTimeZone())));
+        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
+        return timestamp;
+    }
+
+    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes) throws SQLException {
+        if (bytes.length < 12) {
+            throw new SQLException("invalid bytes length");
+        }
+        Timestamp timestamp = new Timestamp(TIMESTAMPTZ.getOriginTime(bytes,
+            TimeZone.getTimeZone(protocol.getTimeZone().getID())));
         timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
         return timestamp;
     }
 
     public static TIMESTAMP toTIMESTAMP(Connection connection, byte[] bytes) throws SQLException {
         return new TIMESTAMP(toTimestamp(connection, bytes));
+    }
+
+    public static TIMESTAMP toTIMESTAMP(Protocol protocol, byte[] bytes) throws SQLException {
+        return new TIMESTAMP(toTimestamp(protocol, bytes));
     }
 
     public static TIMESTAMPTZ toTIMESTAMPTZ(Connection connection, byte[] bytes)

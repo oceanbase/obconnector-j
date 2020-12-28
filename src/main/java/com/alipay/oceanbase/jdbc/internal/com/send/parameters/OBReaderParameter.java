@@ -11,6 +11,8 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     private final Reader  reader;
     private final long    length;
     private final boolean noBackslashEscapes;
+    private final boolean hasLobLocator;
+    private final byte[]  bytes;
 
     /**
      * Constructor.
@@ -23,10 +25,21 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.bytes = null;
+        this.hasLobLocator = false;
     }
 
     public OBReaderParameter(Reader reader, boolean noBackslashEscapes) {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
+    }
+
+    public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length,
+                             boolean noBackslashEscapes) {
+        this.reader = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
+        this.bytes = bytes;
+        this.hasLobLocator = hasLobLocator;
     }
 
     /**
@@ -36,13 +49,15 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
-        pos.write(QUOTE);
-        if (length == Long.MAX_VALUE) {
-            pos.write(reader, false, noBackslashEscapes);
-        } else {
-            pos.write(reader, length, false, noBackslashEscapes);
+        if (!hasLobLocator && reader != null) {
+            pos.write(QUOTE);
+            if (length == Long.MAX_VALUE) {
+                pos.write(reader, false, noBackslashEscapes);
+            } else {
+                pos.write(reader, length, false, noBackslashEscapes);
+            }
+            pos.write(QUOTE);
         }
-        pos.write(QUOTE);
     }
 
     /**
@@ -61,7 +76,10 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        if (length == Long.MAX_VALUE) {
+        if (hasLobLocator && bytes != null) {
+            pos.writeFieldLength(bytes.length);
+            pos.write(bytes, 0, bytes.length);
+        } else if (reader != null && length == Long.MAX_VALUE) {
             pos.write(reader, false, noBackslashEscapes);
         } else {
             pos.write(reader, length, false, noBackslashEscapes);
@@ -69,7 +87,7 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return ColumnType.STRING;
+        return this.hasLobLocator ? ColumnType.OBCLOB : ColumnType.STRING;
     }
 
     @Override
@@ -82,6 +100,6 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     }
 
     public boolean isLongData() {
-        return true;
+        return this.hasLobLocator ? false : true;
     }
 }

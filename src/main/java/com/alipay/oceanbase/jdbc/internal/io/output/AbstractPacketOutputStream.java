@@ -2,7 +2,9 @@ package com.alipay.oceanbase.jdbc.internal.io.output;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.TimeZone;
 
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.alipay.oceanbase.jdbc.internal.io.LruTraceCache;
@@ -30,6 +32,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private int               mark                       = -1;
     private boolean           bufferContainDataAfterMark = false;
     protected long            threadId;
+    private TimeZone          tm                         = null;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
@@ -44,6 +47,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         this.maxQuerySizeToLog = maxQuerySizeToLog;
         cmdLength = 0;
         this.threadId = threadId;
+    }
+
+    public void setTimeZone(TimeZone tm) {
+        this.tm = tm;
+    }
+
+    public TimeZone getTimeZone() {
+        return tm;
     }
 
     public abstract int getMaxPacketLength();
@@ -198,6 +209,18 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     }
 
     /**
+     * writeInt operation for jdbc 1.x
+     * @param i
+     * @throws IOException
+     */
+    public final void writeIntV1(int i) throws IOException {
+
+        byte[] b = this.buf;
+        b[this.pos++] = (byte) (i & 0xff);
+        b[this.pos++] = (byte) (i >>> 8);
+    }
+
+    /**
      * Write int value into buffer. flush buffer if too small.
      *
      * @param value int value
@@ -220,6 +243,16 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         buf[pos + 2] = (byte) (value >> 16);
         buf[pos + 3] = (byte) (value >> 24);
         pos += 4;
+    }
+
+    public void writeFloatV1(float f) throws IOException {
+
+        int i = Float.floatToIntBits(f);
+        byte[] b = this.buf;
+        b[this.pos++] = (byte) (i & 0xff);
+        b[this.pos++] = (byte) (i >>> 8);
+        b[this.pos++] = (byte) (i >>> 16);
+        b[this.pos++] = (byte) (i >>> 24);
     }
 
     /**
@@ -253,6 +286,20 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         buf[pos + 6] = (byte) (value >> 48);
         buf[pos + 7] = (byte) (value >> 56);
         pos += 8;
+    }
+
+    /**
+     * writeLong operation for jdbc 1.x
+     * @param i
+     * @throws IOException
+     */
+    public void writeLongV1(long i) throws IOException {
+
+        byte[] b = this.buf;
+        b[this.pos++] = (byte) (i & 0xff);
+        b[this.pos++] = (byte) (i >>> 8);
+        b[this.pos++] = (byte) (i >>> 16);
+        b[this.pos++] = (byte) (i >>> 24);
     }
 
     /**
@@ -944,4 +991,21 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         }
         return null;
     }
+
+    /**
+     * Get current position
+     * @return position value
+     */
+    public int getPosition() {
+        return pos;
+    }
+
+    /**
+     * Set current position
+     * @param val set current position vallue to val
+     */
+    public void setPosition(int val) {
+        pos = val;
+    }
+
 }

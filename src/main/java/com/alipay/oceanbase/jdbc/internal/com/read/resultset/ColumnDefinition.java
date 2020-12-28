@@ -1,8 +1,11 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.sql.Types;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.ObOracleDefs;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.constant.ColumnFlags;
 
@@ -13,24 +16,47 @@ public class ColumnDefinition {
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
     // where character_sets.character_set_name = collations.character_set_name order by id"
-    private static final int[] maxCharlen = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 0,
-            1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4,
-            1, 1, 1, 1, 1, 1, 1, 4, 4, 0, 1, 1, 1, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            0, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 2, 1, 2, 3, 1, 1, 1, 2, 2, 3, 3, 1, 0, 4, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 4, 4, 0, 0, 0, 0, 0,
-            0, 0, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0             };
+    private static final int[] maxCharlen              = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+            2, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 4, 4, 0, 1, 1, 1, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 2, 1, 2, 3, 1, 1, 1, 2, 2, 3, 3, 1,
+            0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 4, 4,
+            0, 0, 0, 0, 0, 0, 0, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0,
+            4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0           };
 
     private final Buffer       buffer;
     private final short        charsetNumber;
     private final long         length;
     private final ColumnType   type;
-    private final byte         decimals;
-    private final short        flags;
+    private final int          decimals;
+    private final int          precision;
+    private final int          inoutType;
+
+    private final int          sqltype;
+
+    private int                catalogNameStart;
+    private int                catalogNameLength;
+    private int                databaseNameStart;
+    private int                databaseNameLength;
+    private int                tableNameStart;
+    private int                tableNameLength;
+    private int                originalTableNameStart;
+    private int                originalTableNameLength;
+    private int                nameStart;
+    private int                nameLength;
+    private int                originalColumnNameStart;
+    private int                originalColumnNameLength;
+    private short              longColFlag;
+    private int                complexSchemaNameStart  = -1;
+    private int                complexSchemaNameLength = -1;
+    private int                complexTypeNameStart    = -1;
+    private int                complexTypeNameLength   = -1;
+    private int                complexVersion          = 0;
     private final boolean      isOracleMode;
+    private int                precisionAdjustFactor   = 0;
 
     /**
      * Constructor for extent.
@@ -41,10 +67,12 @@ public class ColumnDefinition {
         this.buffer = other.buffer;
         this.charsetNumber = other.charsetNumber;
         this.length = other.length;
+        this.sqltype = other.sqltype;
         this.type = other.type;
         this.decimals = other.decimals;
-        this.flags = other.flags;
         this.isOracleMode = other.isOracleMode;
+        this.precision = other.precision;
+        this.inoutType = other.inoutType;
     }
 
     /**
@@ -54,6 +82,7 @@ public class ColumnDefinition {
      */
     public ColumnDefinition(Buffer buffer, boolean OracleMode) {
         this.buffer = buffer;
+        // has41NewNewProt fixme :Value should be based on connection properties
 
         /*
         lenenc_str     catalog
@@ -70,16 +99,78 @@ public class ColumnDefinition {
         1              decimals
         2              filler [00] [00]
         */
-
-        // set position after length encoded value, not read most of the time
-        buffer.position = buffer.limit - 12;
-
+        /**
+         *  Record the offset of related information to achieve the purpose of reusing the buffer
+         */
+        catalogNameStart = buffer.getPosition() + 1;
+        catalogNameLength = buffer.fastSkipLenString();
+        catalogNameStart = adjustStartForFieldLength(catalogNameStart, catalogNameLength);
+        databaseNameStart = buffer.getPosition() + 1;
+        databaseNameLength = buffer.fastSkipLenString();
+        databaseNameStart = adjustStartForFieldLength(databaseNameStart, databaseNameLength);
+        tableNameStart = buffer.getPosition() + 1;
+        tableNameLength = buffer.fastSkipLenString();
+        tableNameStart = adjustStartForFieldLength(tableNameStart, tableNameLength);
+        originalTableNameStart = buffer.getPosition() + 1;
+        originalTableNameLength = buffer.fastSkipLenString();
+        originalTableNameStart = adjustStartForFieldLength(originalTableNameStart,
+            originalTableNameLength);
+        originalColumnNameStart = buffer.getPosition() + 1;
+        originalColumnNameLength = buffer.fastSkipLenString();
+        originalColumnNameStart = adjustStartForFieldLength(originalColumnNameStart,
+            originalColumnNameLength);
+        nameStart = buffer.getPosition() + 1;
+        nameLength = buffer.fastSkipLenString();
+        nameStart = adjustStartForFieldLength(nameStart, nameLength);
+        buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber, OracleMode);
-        flags = buffer.readShort();
-        decimals = buffer.readByte();
+        sqltype = buffer.readByte() & 0xff;
+        longColFlag = buffer.readShort();
+        type = ColumnType.fromServer(sqltype, charsetNumber, OracleMode);
+
+        decimals = buffer.readByte() & 0xff;
+        precision = buffer.readByte() & 0xff;
+        inoutType = buffer.readByte() & 0xff;
+
+        if (ColumnType.COMPLEX.getType() == type.getType()) {
+            buffer.setPosition(buffer.getPosition());
+            complexSchemaNameStart = buffer.getPosition() + 1;
+            complexSchemaNameLength = buffer.fastSkipLenString();
+            complexSchemaNameStart = adjustStartForFieldLength(complexSchemaNameStart,
+                complexSchemaNameLength);
+
+            complexTypeNameStart = buffer.getPosition() + 1;
+            complexTypeNameLength = buffer.fastSkipLenString();
+            complexTypeNameStart = adjustStartForFieldLength(complexTypeNameStart,
+                complexTypeNameLength);
+
+            complexVersion = (int) buffer.readFieldLength();
+        }
         isOracleMode = OracleMode;
+        if (isSigned()) {
+            switch (type) {
+                case DECIMAL:
+                case OBDECIMAL:
+                case OLDDECIMAL:
+                    precisionAdjustFactor = -1;
+                    break;
+                case DOUBLE:
+                case BINARY_DOUBLE:
+                case FLOAT:
+                case BINARY_FLOAT:
+                    precisionAdjustFactor = 1;
+            }
+        } else {
+            switch (type) {
+                case DOUBLE:
+                case BINARY_DOUBLE:
+                case FLOAT:
+                case BINARY_FLOAT:
+                    precisionAdjustFactor = 1;
+                    break;
+            }
+        }
     }
 
     /**
@@ -146,6 +237,22 @@ public class ColumnDefinition {
         return new ColumnDefinition(new Buffer(arr), isOracleMode);
     }
 
+    private int adjustStartForFieldLength(int nameStart, int nameLength) {
+        if (nameLength < 251) {
+            return nameStart;
+        }
+
+        if (nameLength >= 251 && nameLength < 65536) {
+            return nameStart + 2;
+        }
+
+        if (nameLength >= 65536 && nameLength < 16777216) {
+            return nameStart + 3;
+        }
+
+        return nameStart + 8;
+    }
+
     private String getString(int idx) {
         buffer.position = 0;
         for (int i = 0; i < idx; i++) {
@@ -155,23 +262,24 @@ public class ColumnDefinition {
     }
 
     public String getDatabase() {
-        return getString(1);
+        return getStringFromBytes(databaseNameStart, databaseNameLength);
     }
 
     public String getTable() {
-        return getString(2);
+        return getStringFromBytes(tableNameStart, tableNameLength);
     }
 
     public String getOriginalTable() {
-        return getString(3);
+        return getStringFromBytes(originalTableNameStart, originalTableNameLength);
     }
 
     public String getName() {
-        return getString(4);
+        return getStringFromBytes(nameStart, nameLength);
     }
 
     public String getOriginalName() {
-        return getString(5);
+        //        return getString(5);
+        return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
     }
 
     public short getCharsetNumber() {
@@ -188,18 +296,37 @@ public class ColumnDefinition {
      * @return precision
      */
     public long getPrecision() {
-        switch (type) {
-            case OLDDECIMAL:
-            case DECIMAL:
-                // DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
-                // so :
-                // - if can be signed, 1 byte is saved for sign
-                // - if decimal > 0, one byte more for dot
-                if (isSigned()) {
-                    return length - ((decimals > 0) ? 2 : 1);
+        switch (type.getSqlType()) {
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                if (decimals > 0) {
+                    return length - 1 + precisionAdjustFactor;
                 } else {
-                    return length - ((decimals > 0) ? 1 : 0);
+                    return length + precisionAdjustFactor;
                 }
+            default:
+                break;
+        }
+        switch (type) {
+            case NVARCHAR2:
+            case VARCHAR2:
+            case STRING:
+            case VARSTRING:
+            case NCHAR:
+            case OBCLOB:
+                int maxWidth = maxCharlen[charsetNumber & 0xff];
+                if (maxWidth == 0) {
+                    maxWidth = 1;
+                }
+                return length / maxWidth;
             default:
                 return length;
         }
@@ -212,7 +339,8 @@ public class ColumnDefinition {
      */
     public int getDisplaySize() {
         int vtype = type.getSqlType();
-        if (vtype == Types.VARCHAR || vtype == Types.CHAR) {
+        if (vtype == Types.VARCHAR || vtype == Types.CHAR || vtype == Types.NVARCHAR
+            || vtype == Types.NCHAR || vtype == Types.CLOB) {
             int maxWidth = maxCharlen[charsetNumber & 0xff];
             if (maxWidth == 0) {
                 maxWidth = 1;
@@ -223,8 +351,21 @@ public class ColumnDefinition {
         return (int) length;
     }
 
-    public byte getDecimals() {
-        return decimals;
+    public int getDecimals() {
+        switch (type.getSqlType()) {
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                return decimals;
+        }
+        return 0;
     }
 
     public ColumnType getColumnType() {
@@ -232,40 +373,67 @@ public class ColumnDefinition {
     }
 
     public short getFlags() {
-        return flags;
+        return longColFlag;
     }
 
     public boolean isSigned() {
-        return ((flags & ColumnFlags.UNSIGNED) == 0);
+        return ((longColFlag & ColumnFlags.UNSIGNED) == 0);
     }
 
     public boolean isNotNull() {
-        return ((this.flags & 1) > 0);
+        return ((this.longColFlag & 1) > 0);
     }
 
     public boolean isPrimaryKey() {
-        return ((this.flags & 2) > 0);
+        return ((this.longColFlag & 2) > 0);
     }
 
     public boolean isUniqueKey() {
-        return ((this.flags & 4) > 0);
+        return ((this.longColFlag & 4) > 0);
     }
 
     public boolean isMultipleKey() {
-        return ((this.flags & 8) > 0);
+        return ((this.longColFlag & 8) > 0);
     }
 
     public boolean isBlob() {
-        return ((this.flags & 16) > 0);
+        return ((this.longColFlag & 16) > 0);
     }
 
     public boolean isZeroFill() {
-        return ((this.flags & 64) > 0);
+        return ((this.longColFlag & 64) > 0);
     }
 
     // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle
     // like string), but have the binary flag
     public boolean isBinary() {
         return (getCharsetNumber() == 63);
+    }
+
+    public String getComplexTypeName() throws SQLException {
+        return getStringFromBytes(this.complexTypeNameStart, this.complexTypeNameLength);
+    }
+
+    public static String toAsciiString(byte[] buffer, int startPos, int length) {
+        char[] charArray = new char[length];
+        int readpoint = startPos;
+
+        for (int i = 0; i < length; i++) {
+            charArray[i] = (char) buffer[readpoint];
+            readpoint++;
+        }
+
+        return new String(charArray);
+    }
+
+    private String getStringFromBytes(int stringStart, int stringLength) {
+        if ((stringStart == -1) || (stringLength == -1)) {
+            return null;
+        }
+        return toAsciiString(buffer.buf, stringStart, stringLength);
+    }
+
+    public int getSqltype() {
+        return sqltype;
     }
 }

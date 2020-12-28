@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class BasicBatchTest extends BaseTest {
@@ -285,6 +286,9 @@ public class BasicBatchTest extends BaseTest {
     }
   }
 
+    /*
+    too big
+     */
     @Test
   public void testBatchString() throws SQLException {
     Assume.assumeTrue(
@@ -292,7 +296,8 @@ public class BasicBatchTest extends BaseTest {
             && (sharedOptions().useBulkStmts || sharedIsRewrite())); // if not will be too long.
     createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
     Statement stmt = sharedConnection.createStatement();
-    String[] datas = new String[1_000_000];
+//    String[] datas = new String[1_000_000];
+    String[] datas = new String[1000];
     String empty =
         "____________________________________________________________________________________________________";
 

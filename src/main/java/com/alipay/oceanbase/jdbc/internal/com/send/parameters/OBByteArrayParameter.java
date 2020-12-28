@@ -25,12 +25,7 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
     public void writeTo(final PacketOutputStream pos) throws IOException {
         //pos.write(BINARY_INTRODUCER);
         pos.write(QUOTE);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        pos.writeBytesEscaped(sb.toString().getBytes(), sb.toString().getBytes().length,
-            noBackslashEscapes);
+        pos.writeBytesEscaped(bytes, bytes.length, noBackslashEscapes);
         pos.write(QUOTE);
     }
 

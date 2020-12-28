@@ -1,11 +1,48 @@
 package com.alipay.oceanbase.jdbc;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Arrays;
 
+import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+
+/**
+ * The LobLocator for OceanBase Blob/Clob object. It will be send when the serverCapabilities's OB_CLIENT_SUPPORT_LOB_LOCATOR has been set. Server will
+ * update data base on the <code>ObLobLocator</code> object. Length for the <code>ObLobLocator</code> is OB_LOG_LOCATOR_HEADER(40), and it has payloadOffset
+ * length rowId, and the data left if data store on the database.
+ * Such as:
+ *      magic_code_:		21 42 4f 4c
+ *      version_:			01 00 00 00
+ *      snapshot_version_:	89 ae d4 cb 3f af 05 00
+ *      table_id_:			7b c3 00 00 00 e9 03 00
+ *      column_id_:		    11 00 00 00
+ *      flags_：			00 00
+ *      option_:			00 00
+ *      payload_offset_:	11 00 00 00
+ *      payload_size_:		03 00 00 00
+ *      row_id_:		    2a 41 41 49 4b 41 51 41 41 41 41 41 41 41 41 41 3d
+ *      data_(payload):	    61 62 63 #will be store to Blob/Clob object
+ *
+ */
+class ObLobLocator {
+    protected long                         magicCode;                 // uint32_t magic_code_;
+    protected long                         version;                   // uint32_t version_;
+    protected long                         snapshotVersion;           // int64_t  snapshot_version_;
+    protected byte[]                       tableId;                   // uint64_t table_id_;
+    protected long                         columnId;                  // uint32_t column_id_;
+    protected int                          flags;                     // uint16_t flags_;
+    protected int                          option;                    // uint16_t option_;
+    protected long                         payloadOffset;             // uint32_t payload_offset_;
+    protected long                         payloadSize;               // uint32_t payload_size_;
+    protected byte[]                       rowId;                     // row_id length == payloadOffset
+    protected byte[]                       binaryData;                // binary to data to send
+    public static int                      OB_LOG_LOCATOR_HEADER = 40;
+    protected volatile OceanBaseConnection connection;
+}
 
 public class OceanBaseBlob implements Blob, Serializable {
 
@@ -13,12 +50,21 @@ public class OceanBaseBlob implements Blob, Serializable {
     protected byte[]          data;
     protected transient int   offset;
     protected transient int   length;
+    protected ObLobLocator    locator          = null;
+    protected String          encoding         = null;
+    protected String          charData         = null;
 
     /** Creates an empty blob. */
     public OceanBaseBlob() {
         data = new byte[0];
         offset = 0;
         length = 0;
+    }
+
+    public OceanBaseBlob(OceanBaseBlob other) {
+        data = other.data;
+        offset = other.offset;
+        length = other.length;
     }
 
     /**
@@ -51,19 +97,65 @@ public class OceanBaseBlob implements Blob, Serializable {
         this.length = Math.min(bytes.length - offset, length);
     }
 
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        if (offset != 0 || data.length != length) {
-            data = Arrays.copyOfRange(data, offset, offset + length);
-            offset = 0;
-            length = 0;
+    /**
+     * Create a BLOB with Locator
+     * @param data
+     */
+    public OceanBaseBlob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) {
+        if (null != conn) {
+            this.encoding = "UTF-8";
+            /* It only be used by getCharacterStream for Blob, and to decode the byte[] data to char[]
+             *  Use the encoding with the Connection's encoding's Name assigned by USER. For that it is
+             *  user which encoding byte[] to char[]. */
+            //            this.encoding =
+        } else if (null != encoding) {
+            this.encoding = encoding; // not to be here
         }
+        // readLong in 1.x is equivalent to readInt in 2.0,readLongLong in 1.x is equivalent to readLong in 2.0.
+        { /* Has Locator with Blob */
+            if (null != data && null != conn) {
+                Buffer buffer = new Buffer(data);
+                if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                    locator = new ObLobLocator();
+                    locator.magicCode = buffer.readLongV1();
+                    locator.version = buffer.readLongV1();
+                    locator.snapshotVersion = buffer.readLongLongV1();
+                    locator.tableId = buffer.getBytes(8);
+                    locator.columnId = buffer.readLongV1();
+                    locator.flags = buffer.readIntV1();
+                    locator.option = buffer.readIntV1();
+                    locator.payloadOffset = buffer.readLongV1();
+                    locator.payloadSize = buffer.readLongV1();
+                    locator.binaryData = buffer.getByteBuffer();
+                    if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
+                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                        locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
+                        this.data = (buffer.getBytes((int) locator.payloadSize)); // binary data less than MAX_INT
+                        this.length = (int) locator.payloadSize;
+                        locator.connection = conn;
+                    }
+                }
+            }
+        }
+    }
+
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        //        if (offset != 0 || data.length != length) {
+        //            offset = 0;
+        //            length = 0;
+        //        }
+        // ?
+        out.writeInt(offset);
+        out.writeInt(length);
         out.defaultWriteObject();
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        offset = in.readInt();
+        length = in.readInt();
         in.defaultReadObject();
-        offset = 0;
-        length = data.length;
+        //        offset = 0;
+        //        length = data.length;
     }
 
     /**
@@ -143,6 +235,13 @@ public class OceanBaseBlob implements Blob, Serializable {
         return new ByteArrayInputStream(data, this.offset + (int) pos - 1, (int) length);
     }
 
+    public Reader getCharacterStream() throws SQLException {
+        if (this.data != null) {
+            return new StringReader(new String(this.data, Charset.forName(this.encoding)));
+        }
+        return null;
+    }
+
     /**
      * Retrieves the byte position at which the specified byte array <code>pattern</code> begins
      * within the <code>BLOB</code> value that this <code>Blob</code> object represents. The search
@@ -209,7 +308,10 @@ public class OceanBaseBlob implements Blob, Serializable {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
-
+        if (this.locator != null) {
+            updateBlobToServer(pos, bytes, offset, bytes.length);
+            return bytes.length;
+        }
         final int arrayPos = (int) pos - 1;
 
         if (length > arrayPos + bytes.length) {
@@ -261,7 +363,10 @@ public class OceanBaseBlob implements Blob, Serializable {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
-
+        if (this.locator != null) {
+            updateBlobToServer(pos, bytes, offset, len);
+            return len;
+        }
         final int arrayPos = (int) pos - 1;
         final int byteToWrite = Math.min(bytes.length - offset, len);
 
@@ -324,9 +429,13 @@ public class OceanBaseBlob implements Blob, Serializable {
      * @param len the length, in bytes, to which the <code>BLOB</code> value that this <code>Blob
      *     </code> object represents should be truncated
      */
-    public void truncate(final long len) {
-        if (len >= 0 && len < this.length) {
-            this.length = (int) len;
+    public void truncate(final long len) throws SQLException {
+        if (locator != null) {
+            trimBlobToServer((int) len);
+        } else {
+            if (len >= 0 && len < this.length) {
+                this.length = (int) len;
+            }
         }
     }
 
@@ -342,5 +451,107 @@ public class OceanBaseBlob implements Blob, Serializable {
         this.data = new byte[0];
         this.offset = 0;
         this.length = 0;
+    }
+
+    /**
+     * 
+     * @return
+     */
+    public synchronized ObLobLocator getLocator() {
+        return this.locator;
+    }
+
+    /**
+     * Update <code>ObLobLocator</code> object which Bbob contains.
+     *
+     * @param locator
+     *              Source <code>ObLobLocator</code> object.
+     */
+    public synchronized void setLocator(ObLobLocator locator) {
+        if (this.locator == null) {
+            this.locator = new ObLobLocator();
+        }
+        this.locator.columnId = locator.columnId;
+        this.locator.flags = locator.flags;
+        this.locator.magicCode = locator.magicCode;
+        this.locator.option = locator.option;
+        this.locator.snapshotVersion = locator.snapshotVersion;
+        this.locator.tableId = locator.tableId;
+        this.locator.rowId = locator.rowId;
+        this.locator.version = locator.version;
+        this.locator.payloadOffset = locator.payloadOffset;
+        this.locator.payloadSize = locator.payloadSize;
+        this.locator.binaryData = locator.binaryData;
+    }
+
+    /**
+     * Update <code>Blob</code> object by the DBMS_LOB.write(?,?,?,?), starting with writeAt and write the bytes to
+     * database.
+     *
+     * @param writeAt
+     *              Start position to be write.
+     * @param bytes
+     *              byte[] data to be write.
+     * @param offset
+     *              first position offset will be write.
+     * @param length
+     *              date length to be write.
+     * @throws SQLException
+     *              if database error occur
+     */
+    public synchronized void updateBlobToServer(long writeAt, byte[] bytes, int offset, int length)
+                                                                                                   throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed BLOB");
+        }
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
+        cstmt.setBlob(1, this);
+        cstmt.setInt(2, length);
+        cstmt.setInt(3, (int) writeAt);
+        cstmt.setBytes(4, bytes);
+        cstmt.registerOutParameter(1, Types.BLOB);
+        cstmt.execute();
+
+        OceanBaseBlob r = (OceanBaseBlob) cstmt.getBlob(1);
+        if (r == null || r.getLocator() == null) {
+            throw new SQLException("Invalid operator on setBytes for BLOB");
+        } else {
+            setLocator(r.locator);
+            this.data = r.data;
+        }
+
+    }
+
+    /**
+     * Truncate <code>Blob</code> object by the DBMS_LOB.trim(?,?), truncate data from len, exception if len is big than data's length
+     * and success when len is less than data's length.
+     * @param len
+     *              truncate data from len
+     * @throws SQLException
+     *              if database error occur
+     */
+    public synchronized void trimBlobToServer(int len) throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            //            throw SQLError.createSQLException("Invalid operation on closed BLOB",
+            //                    SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
+            throw new SQLException("Invalid operation on closed BLOB");
+        }
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
+        cstmt.setBlob(1, this);
+        cstmt.setInt(2, len);
+        cstmt.registerOutParameter(1, Types.BLOB);
+        cstmt.execute();
+
+        OceanBaseBlob r = (OceanBaseBlob) cstmt.getBlob(1);
+        if (r == null || r.getLocator() == null) {
+            throw new SQLException("Invalid operator on trim() for BLOB");
+        } else {
+            setLocator(r.locator);
+            this.data = r.data;
+        }
     }
 }

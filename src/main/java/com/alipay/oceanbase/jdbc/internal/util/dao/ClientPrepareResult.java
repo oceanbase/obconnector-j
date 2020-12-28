@@ -35,7 +35,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes escape mode
      * @return ClientPrepareResult
      */
-    public static ClientPrepareResult parameterParts(String queryString, boolean noBackslashEscapes) {
+    public static ClientPrepareResult parameterParts(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
     boolean reWritablePrepare = false;
     boolean multipleQueriesPrepare = true;
     List<byte[]> partList = new ArrayList<>();
@@ -48,6 +48,7 @@ public class ClientPrepareResult implements PrepareResult {
 
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
+    boolean slashend = false;
     for (int i = 0; i < queryLength; i++) {
 
       char car = query[i];
@@ -66,14 +67,18 @@ public class ClientPrepareResult implements PrepareResult {
 
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
-            state = LexState.Normal;
+              state = LexState.Normal;
+              slashend = true;
+          } else if (state == LexState.Normal && slashend && lastChar == '/') {
+              slashend = false;
+              break;
           } else if (state == LexState.Normal && lastChar == '/') {
             state = LexState.EOLComment;
           }
           break;
 
         case '#':
-          if (state == LexState.Normal) {
+          if ((!isOracleMode) && state == LexState.Normal) {
             state = LexState.EOLComment;
           }
           break;
@@ -118,7 +123,7 @@ public class ClientPrepareResult implements PrepareResult {
           if (noBackslashEscapes) {
             break;
           }
-          if (state == LexState.String) {
+          if ((!isOracleMode) && state == LexState.String) {
             state = LexState.Escape;
           }
           break;
@@ -172,7 +177,8 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes escape
      * @return valid flag
      */
-    public static boolean canAggregateSemiColon(String queryString, boolean noBackslashEscapes) {
+    public static boolean canAggregateSemiColon(String queryString, boolean noBackslashEscapes,
+                                                boolean isOracleMode) {
 
         LexState state = LexState.Normal;
         char lastChar = '\0';
@@ -204,7 +210,7 @@ public class ClientPrepareResult implements PrepareResult {
                     break;
 
                 case '#':
-                    if (state == LexState.Normal) {
+                    if ((!isOracleMode) && state == LexState.Normal) {
                         state = LexState.EOLComment;
                     }
                     break;
@@ -250,7 +256,7 @@ public class ClientPrepareResult implements PrepareResult {
                     if (noBackslashEscapes) {
                         break;
                     }
-                    if (state == LexState.String) {
+                    if ((!isOracleMode) && state == LexState.String) {
                         state = LexState.Escape;
                     }
                     break;
@@ -316,7 +322,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @return List of query part.
      */
     public static ClientPrepareResult rewritableParts(
-      String queryString, boolean noBackslashEscapes) {
+      String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
     boolean reWritablePrepare = true;
     boolean multipleQueriesPrepare = true;
     List<byte[]> partList = new ArrayList<>();
@@ -364,7 +370,7 @@ public class ClientPrepareResult implements PrepareResult {
           break;
 
         case '#':
-          if (state == LexState.Normal) {
+          if ((!isOracleMode) && state == LexState.Normal) {
             state = LexState.EOLComment;
           }
           break;
@@ -413,7 +419,7 @@ public class ClientPrepareResult implements PrepareResult {
           if (noBackslashEscapes) {
             break;
           }
-          if (state == LexState.String) {
+          if ((!isOracleMode) && state == LexState.String) {
             state = LexState.Escape;
           }
           break;

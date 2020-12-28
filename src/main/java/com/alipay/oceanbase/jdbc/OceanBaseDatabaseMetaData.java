@@ -1134,7 +1134,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return "Oracle";
         } else {
-            return "MYSQL";
+            return "MySQL";
         }
     }
 
@@ -2242,7 +2242,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return super.getCatalogs();
         }
-        return executeQuery("SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
+        return executeQuery("SELECT SCHEMA_NAME  TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
     }
 
     public ResultSet getTableTypes() throws SQLException {

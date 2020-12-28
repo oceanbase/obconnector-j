@@ -9,20 +9,28 @@ import java.util.regex.Pattern;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static final Pattern      PARAMETER_PATTERN = Pattern
-                                                            .compile(
-                                                                "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                Pattern.CASE_INSENSITIVE);
-    private static final Pattern      RETURN_PATTERN    = Pattern
-                                                            .compile(
-                                                                "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
-                                                                Pattern.CASE_INSENSITIVE);
-    private final OceanBaseConnection con;
-    private final String              name;
-    private List<CallParameter>       params;
-    private String                    database;
-    private boolean                   valid;
-    private boolean                   isFunction;
+    private static final Pattern        PARAMETER_PATTERN = Pattern
+                                                              .compile(
+                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                  Pattern.CASE_INSENSITIVE);
+    private static final Pattern        RETURN_PATTERN    = Pattern
+                                                              .compile(
+                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                  Pattern.CASE_INSENSITIVE);
+    protected final OceanBaseConnection con;
+    protected final String              name;
+    protected List<CallParameter>       params;
+    protected String                    database;
+    protected boolean                   valid;
+    protected boolean                   isFunction;
+
+    public String getProName() {
+        return name;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
 
     /**
      * Retrieve Callable metaData.
@@ -255,7 +263,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
         return params.size();
     }
 
-    private CallParameter getParam(int index) throws SQLException {
+    public CallParameter getParamByName(String name) {
+        return null; // not supported and no used.
+    }
+
+    public CallParameter getParam(int index) throws SQLException {
         if (index < 1 || index > params.size()) {
             throw new SQLException("invalid parameter index " + index);
         }

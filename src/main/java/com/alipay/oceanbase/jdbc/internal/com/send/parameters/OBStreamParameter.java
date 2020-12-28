@@ -11,6 +11,8 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     private final InputStream is;
     private final long        length;
     private final boolean     noBackslashEscapes;
+    private final boolean     hasLobLocator;
+    private final byte[]      bytes;
 
     /**
      * Constructor.
@@ -19,14 +21,26 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
      * @param length max length to write (if null the whole stream will be send)
      * @param noBackslashEscapes must backslash be escape
      */
-    public OBStreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
+    public OBStreamParameter(boolean hasLobLocator, InputStream is, long length,
+                             boolean noBackslashEscapes) {
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.hasLobLocator = hasLobLocator;
+        this.bytes = null;
+    }
+
+    public OBStreamParameter(boolean hasLobLocator, byte[] bytes, long length,
+                             boolean noBackslashEscapes) {
+        this.is = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
+        this.hasLobLocator = hasLobLocator;
+        this.bytes = bytes;
     }
 
     public OBStreamParameter(InputStream is, boolean noBackSlashEscapes) {
-        this(is, Long.MAX_VALUE, noBackSlashEscapes);
+        this(false, is, Long.MAX_VALUE, noBackSlashEscapes);
     }
 
     /**
@@ -37,13 +51,15 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         //pos.write(BINARY_INTRODUCER);
-        pos.write(QUOTE);
-        if (length == Long.MAX_VALUE) {
-            pos.writeHex(is, false, noBackslashEscapes);
-        } else {
-            pos.writeHex(is, length, false, noBackslashEscapes);
+        if (!hasLobLocator && is != null) {
+            pos.write(QUOTE);
+            if (length == Long.MAX_VALUE) {
+                pos.writeHex(is, false, noBackslashEscapes);
+            } else {
+                pos.writeHex(is, length, false, noBackslashEscapes);
+            }
+            pos.write(QUOTE);
         }
-        pos.write(QUOTE);
     }
 
     /**
@@ -62,10 +78,15 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            pos.write(is, false, noBackslashEscapes);
-        } else {
-            pos.write(is, length, false, noBackslashEscapes);
+        if (hasLobLocator && bytes != null) {
+            pos.writeFieldLength(bytes.length);
+            pos.write(bytes);
+        } else if (is != null) {
+            if (length == Long.MAX_VALUE) {
+                pos.write(is, false, noBackslashEscapes);
+            } else {
+                pos.write(is, length, false, noBackslashEscapes);
+            }
         }
     }
 
@@ -75,7 +96,7 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return ColumnType.BLOB;
+        return this.hasLobLocator ? ColumnType.OBBLOB : ColumnType.BLOB;
     }
 
     public boolean isNullData() {
@@ -83,6 +104,6 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     }
 
     public boolean isLongData() {
-        return true;
+        return this.hasLobLocator ? false : true;
     }
 }

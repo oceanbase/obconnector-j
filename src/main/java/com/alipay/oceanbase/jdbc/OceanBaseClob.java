@@ -6,11 +6,16 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+
+import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Serializable {
 
     private static final long serialVersionUID = -3066501059817815286L;
+    private static int        maxLength        = 1 * 1024 * 1024 * 1024;
 
     /**
      * Creates a Clob with content.
@@ -24,7 +29,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     /**
      * Creates a Clob with content.
      *
-     * @param bytes the content for the Clob.
+     * @param bytes  the content for the Clob.
      * @param offset offset
      * @param length length
      */
@@ -32,9 +37,83 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         super(bytes, offset, length);
     }
 
-    /** Creates an empty Clob. */
+    public OceanBaseClob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
+                                                                                                    throws SQLException {
+        if (!hasLocator) {
+            this.encoding = encoding;
+            try {
+                this.charData = new String(data, this.encoding);
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding");
+            }
+        } else {
+            if (null != data && null != conn) {
+                Buffer buffer = new Buffer(data);
+                this.encoding = encoding;
+                if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                    locator = new ObLobLocator();
+                    locator.magicCode = buffer.readLongV1();
+                    locator.version = buffer.readLongV1();
+                    locator.snapshotVersion = buffer.readLongLongV1();
+                    locator.tableId = buffer.getBytes(8);
+                    locator.columnId = buffer.readLongV1();
+                    locator.flags = buffer.readIntV1();
+                    locator.option = buffer.readIntV1();
+                    locator.payloadOffset = buffer.readLongV1();
+                    locator.payloadSize = buffer.readLongV1();
+                    locator.binaryData = buffer.getByteBuffer();
+                    if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
+                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                        locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
+                        locator.connection = conn;
+                        try {
+                            if ((int) locator.payloadSize <= OceanBaseClob.maxLength) {
+                                this.charData = new String(
+                                    buffer.getBytes(
+                                        (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset),
+                                        (int) locator.payloadSize), this.encoding);
+                            } else {
+                                throw new SQLException("Exceed max length of Clob for support "
+                                                       + OceanBaseClob.maxLength + " current "
+                                                       + locator.payloadSize);
+                            }
+                        } catch (UnsupportedEncodingException e) {
+                            throw new SQLException("Unsupported character encoding "
+                                                   + this.encoding);
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    /**
+     * Creates an empty Clob.
+     */
     public OceanBaseClob() {
         super();
+    }
+
+    public synchronized ObLobLocator getLocator() {
+        return this.locator;
+    }
+
+    public synchronized void setLocator(ObLobLocator locator) {
+        if (this.locator == null) {
+            this.locator = new ObLobLocator();
+        }
+        this.locator.columnId = locator.columnId;
+        this.locator.flags = locator.flags;
+        this.locator.magicCode = locator.magicCode;
+        this.locator.option = locator.option;
+        this.locator.snapshotVersion = locator.snapshotVersion;
+        this.locator.tableId = locator.tableId;
+        this.locator.rowId = locator.rowId;
+        this.locator.version = locator.version;
+        this.locator.payloadOffset = locator.payloadOffset;
+        this.locator.payloadSize = locator.payloadSize;
+        this.locator.binaryData = locator.binaryData;
     }
 
     /**
@@ -49,7 +128,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     /**
      * Get sub string.
      *
-     * @param pos position
+     * @param pos    position
      * @param length length of sub string
      * @return substring
      * @throws SQLException if pos is less than 1 or length is less than 0
@@ -63,6 +142,20 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         if (length < 0) {
             throw ExceptionFactory.INSTANCE.create("length must be > 0");
         }
+        int adjustedStartPos = (int) pos - 1;
+        int adjustedEndIndex = adjustedStartPos + length;
+
+        if (this.charData != null) {
+            if (adjustedEndIndex > this.charData.length()) {
+                // Do nothing just use the adjustedEndIndex.
+                adjustedEndIndex = this.charData.length();
+                /*
+                throw SQLError.createSQLException(Messages.getString("Clob.7"),
+                    SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor); */
+            }
+
+            return this.charData.substring(adjustedStartPos, adjustedEndIndex);
+        }
 
         try {
             String val = toString();
@@ -73,6 +166,9 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     }
 
     public Reader getCharacterStream() {
+        if (this.charData != null) {
+            return new StringReader(this.charData);
+        }
         return new StringReader(toString());
     }
 
@@ -80,12 +176,12 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
      * Returns a Reader object that contains a partial Clob value, starting with the character
      * specified by pos, which is length characters in length.
      *
-     * @param pos the offset to the first character of the partial value to be retrieved. The first
-     *     character in the Clob is at position 1.
+     * @param pos    the offset to the first character of the partial value to be retrieved. The first
+     *               character in the Clob is at position 1.
      * @param length the length in characters of the partial value to be retrieved.
      * @return Reader through which the partial Clob value can be read.
      * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters
-     *     in the Clob or if pos + length is greater than the number of characters in the Clob
+     *                      in the Clob or if pos + length is greater than the number of characters in the Clob
      */
     public Reader getCharacterStream(long pos, long length) throws SQLException {
         String val = toString();
@@ -111,6 +207,17 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     }
 
     public InputStream getAsciiStream() throws SQLException {
+        if (this.charData != null) {
+            try {
+                if (this.encoding != null) {
+                    return new ByteArrayInputStream(charData.getBytes(this.encoding));
+                } else {
+                    return new ByteArrayInputStream(charData.getBytes());
+                }
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+            }
+        }
         return getBinaryStream();
     }
 
@@ -158,9 +265,18 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
      * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
-        int bytePosition = utf8Position((int) pos - 1);
-        super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
-        return str.length();
+        if (this.locator != null) {
+            try {
+                updateClobToServer(pos, str.getBytes(this.encoding), 0, str.length());
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+            }
+        } else {
+            int bytePosition = utf8Position((int) pos - 1);
+            super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
+            return str.length();
+        }
+        return 0;
     }
 
     public int setString(long pos, String str, int offset, int len) throws SQLException {
@@ -171,10 +287,15 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         return setBinaryStream(utf8Position((int) pos - 1) + 1);
     }
 
-    /** Return character length of the Clob. Assume UTF8 encoding. */
+    /**
+     * Return character length of the Clob. Assume UTF8 encoding.
+     */
     @Override
     public long length() {
         // The length of a character string is the number of UTF-16 units (not the number of characters)
+        if (this.charData != null) {
+            return this.charData.length();
+        }
         long len = 0;
         int pos = offset;
 
@@ -220,8 +341,19 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     }
 
     @Override
-    public void truncate(final long truncateLen) {
+    public void truncate(final long truncateLen) throws SQLException {
+        if (locator != null) {
+            if (length > this.charData.length()) {
+                throw new SQLException("Clob length is more than charData length");
+            }
 
+            if (this.locator == null) {
+                this.charData = this.charData.substring(0, (int) truncateLen);
+            } else {
+                trimClobToServer((int) truncateLen);
+            }
+            return;
+        }
         // truncate the number of UTF-16 characters
         // this can result in a bad UTF-8 string if string finish with a
         // character represented in 2 UTF-16
@@ -272,5 +404,91 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
             }
         }
         length = pos - offset;
+    }
+
+    /**
+     * Update <code>Clob</code> object by the DBMS_LOB.write(?,?,?,?), starting with writeAt and write the bytes to
+     * database.
+     *
+     * @param writeAt Start position to be write.
+     * @param bytes   byte[] data to be write.
+     * @param offset  first position offset will be write.
+     * @param length  date length to be write.
+     * @throws SQLException if database error occur
+     */
+    public synchronized void updateClobToServer(long writeAt, byte[] bytes, int offset, int length)
+                                                                                                   throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        }
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
+        cstmt.setClob(1, this);
+        cstmt.setInt(2, length);
+        cstmt.setInt(3, (int) writeAt);
+        try {
+            //            cstmt.setString(4, StringUtils.toString(bytes, this.encoding)); // todo
+            cstmt.setString(4, new String(bytes, this.encoding));
+        } catch (UnsupportedEncodingException e) {
+            throw new SQLException(e.getMessage());
+        }
+        cstmt.registerOutParameter(1, Types.CLOB);
+        cstmt.execute();
+
+        OceanBaseClob r = (OceanBaseClob) cstmt.getClob(1);
+        if (r == null || r.getLocator() == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        } else {
+            setLocator(r.locator);
+            this.data = r.data;
+            int from = (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset);
+            int to = (int) (from + locator.payloadSize);
+            this.encoding = r.encoding;
+            try {
+                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
+                    this.encoding);
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+            }
+        }
+
+    }
+
+    /**
+     * Truncate <code>Clob</code> object by the DBMS_LOB.trim(?,?), truncate data from len, exception if len is big than data's length
+     * and success when len is less than data's length.
+     *
+     * @param len truncate data from len
+     * @throws SQLException if database error occur
+     */
+    public synchronized void trimClobToServer(int len) throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        }
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
+        cstmt.setClob(1, this);
+        cstmt.setInt(2, len);
+        cstmt.registerOutParameter(1, Types.CLOB);
+        cstmt.execute();
+
+        OceanBaseClob r = (OceanBaseClob) cstmt.getClob(1);
+        if (r == null || r.getLocator() == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        } else {
+            setLocator(r.locator);
+            this.data = r.data;
+            int from = (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset);
+            int to = (int) (from + locator.payloadSize);
+            this.encoding = r.encoding;
+            try {
+                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
+                    this.encoding);
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+
+            }
+        }
     }
 }

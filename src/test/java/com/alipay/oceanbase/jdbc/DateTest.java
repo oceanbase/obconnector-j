@@ -8,6 +8,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DateTest extends BaseTest {
@@ -145,16 +146,16 @@ public class DateTest extends BaseTest {
 
     @Test
     public void yearTest() throws SQLException {
-        Assume.assumeTrue(isMariadbServer());
+        //        Assume.assumeTrue(isMariadbServer());
         createTable("yeartest", "y1 year, y2 year(2)");
         sharedConnection.createStatement().execute(
-            "insert into yeartest values (null, null), (1901, 70), (0, 0), " + "(2155, 69)");
+            "insert into yeartest values (null, null), (1901, 70), (1, 1), " + "(2155, 69)");
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
 
-        Date[] data1 = new Date[] { null, Date.valueOf("1901-01-01"), Date.valueOf("0000-01-01"),
+        Date[] data1 = new Date[] { null, Date.valueOf("1901-01-01"), Date.valueOf("2001-01-01"),
                 Date.valueOf("2155-01-01") };
-        Date[] data2 = new Date[] { null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"),
+        Date[] data2 = new Date[] { null, Date.valueOf("1970-01-01"), Date.valueOf("2001-01-01"),
                 Date.valueOf("2069-01-01") };
         checkDateResult(data1, data2, rs);
 
@@ -179,7 +180,7 @@ public class DateTest extends BaseTest {
     @Test
   public void timeTestLegacy() {
     try (Connection connection =
-        setConnection("&useLegacyDatetimeCode=true&serverTimezone=+05:00")) {
+        setConnection("&useLegacyDatetimeCode=true")) {
 
       setSessionTimeZone(connection, "+05:00");
       connection
@@ -254,6 +255,7 @@ public class DateTest extends BaseTest {
         while (rs.next()) {
             Time t1 = data[count];
             Time t2 = (Time) rs.getObject(1);
+            System.out.println("t2 = " + t2);
             assertEquals(t1, t2);
             count++;
         }
@@ -267,7 +269,7 @@ public class DateTest extends BaseTest {
 
     @Test
   public void timestampZeroTest() throws SQLException {
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeTrue(isMariadbServer());
     String timestampZero = "0000-00-00 00:00:00";
     String dateZero = "0000-00-00";
     sharedConnection
@@ -431,9 +433,10 @@ public class DateTest extends BaseTest {
 
     @Test
   public void serverTimezone() throws Exception {
+
     TimeZone tz = TimeZone.getDefault();
 
-    try (Connection connection = setConnection("&serverTimezone=+5:00")) {
+    try (Connection connection = setConnection()) {
       setSessionTimeZone(connection, "+5:00");
 
       java.util.Date now = new java.util.Date();
@@ -580,7 +583,7 @@ public class DateTest extends BaseTest {
     /** Conj-317 : null pointer exception on getDate on null timestamp. */
     @Test
     public void nullDateFromTimestamp() throws Throwable {
-        Assume.assumeTrue(isMariadbServer());
+        //        Assume.assumeTrue(isMariadbServer());
 
         createTable("nulltimestamp", "ts timestamp(6) NULL ");
         Statement stmt = sharedConnection.createStatement();
@@ -619,7 +622,7 @@ public class DateTest extends BaseTest {
      */
     @Test
   public void getZeroDateString() throws SQLException {
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeTrue(isMariadbServer());
     createTable("zeroTimestamp", "ts timestamp NULL ");
     try (Statement statement = sharedConnection.createStatement()) {
       statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");

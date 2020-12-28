@@ -19,7 +19,7 @@ public class OBBINARY_DOUBLEParameter implements Cloneable, ParameterHolder {
 
     @Override
     public void writeBinary(PacketOutputStream pos) throws IOException {
-        pos.write(String.valueOf(value).getBytes());
+        pos.writeLong(Double.doubleToLongBits(value));
     }
 
     @Override

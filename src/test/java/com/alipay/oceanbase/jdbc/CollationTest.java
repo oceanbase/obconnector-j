@@ -7,7 +7,10 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
+
+import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CollationTest extends BaseTest {
@@ -71,6 +74,7 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void test4BytesUtf8() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
         if (rs.next()) {
@@ -160,7 +164,10 @@ public class CollationTest extends BaseTest {
      *
      * @throws SQLException if connection error occur.
      */
-    @Test
+    /*
+     No supported  character set latin1 now
+     */
+    @Ignore
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
         createTable("fooLatin1", "x longtext", "DEFAULT CHARSET=latin1");
 

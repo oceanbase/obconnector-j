@@ -1,14 +1,17 @@
 package com.alipay.oceanbase.jdbc.internal.com.read;
 
+import com.alipay.oceanbase.jdbc.internal.util.constant.Constants;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Buffer {
 
-    public byte[] buf;
-    public int    position;
-    public int    limit;
+    public byte[]     buf;
+    public int        position;
+    public int        limit;
+    static final long NULL_LENGTH = -1;
 
     public Buffer(final byte[] buf, int limit) {
         this.buf = buf;
@@ -23,6 +26,10 @@ public class Buffer {
     public Buffer(final byte[] buf) {
         this.buf = buf;
         this.limit = this.buf.length;
+    }
+
+    public Buffer() {
+
     }
 
     public int remaining() {
@@ -113,6 +120,32 @@ public class Buffer {
                 + ((buf[position++] & 0xff) << 16) + ((buf[position++] & 0xff) << 24));
     }
 
+    public int readIntV1() {
+        byte[] b = this.buf; // a little bit optimization
+
+        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8);
+    }
+
+    public long readLongV1() {
+        byte[] b = this.buf;
+
+        return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24);
+    }
+
+    public long readLongLongV1() {
+        byte[] b = this.buf;
+
+        return (b[this.position++] & 0xff) | ((long) (b[this.position++] & 0xff) << 8)
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24)
+               | ((long) (b[this.position++] & 0xff) << 32)
+               | ((long) (b[this.position++] & 0xff) << 40)
+               | ((long) (b[this.position++] & 0xff) << 48)
+               | ((long) (b[this.position++] & 0xff) << 56);
+    }
+
     /**
      * Read a long (8 bytes) from the buffer.
      *
@@ -141,6 +174,37 @@ public class Buffer {
      */
     public byte getByte() {
         return buf[position];
+    }
+
+    public byte[] getBytes(int len) {
+        byte[] b = new byte[len];
+        System.arraycopy(this.buf, this.position, b, 0, len);
+        this.position += len; // update cursor
+
+        return b;
+    }
+
+    public byte[] getBytes(int offset, int len) {
+        byte[] dest = new byte[len];
+        System.arraycopy(this.buf, offset, dest, 0, len);
+
+        return dest;
+    }
+
+    public byte[] readLenByteArray(int offset) {
+        long len = this.readFieldLength();
+
+        if (len == NULL_LENGTH) {
+            return null;
+        }
+
+        if (len == 0) {
+            return Constants.EMPTY_BYTE_ARRAY;
+        }
+
+        this.position += offset;
+
+        return getBytes((int) len);
     }
 
     /**
@@ -384,5 +448,83 @@ public class Buffer {
         }
         buf = Arrays.copyOf(buf, newCapacity);
         this.limit = newCapacity;
+    }
+
+    public int readLongIntV1() {
+        byte[] b = this.buf;
+
+        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8)
+               | ((b[this.position++] & 0xff) << 16);
+    }
+
+    public int readnBytes() {
+        int sw = this.buf[this.position++] & 0xff;
+
+        switch (sw) {
+            case 1:
+                return this.buf[this.position++] & 0xff;
+
+            case 2:
+                return this.readInt();
+
+            case 3:
+                return this.readLongIntV1();
+
+            case 4:
+                return (int) this.readLongV1();
+
+            default:
+                return 255;
+        }
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
+
+    public int fastSkipLenString() {
+        long len = this.readFieldLength();
+
+        this.position += len;
+
+        return (int) len;
+    }
+
+    public final long readFieldLength() {
+        int sw = this.buf[this.position++] & 0xff;
+
+        switch (sw) {
+            case 251:
+                return NULL_LENGTH;
+
+            case 252:
+                return readInt();
+
+            case 253:
+                return readLongIntV1();
+
+            case 254:
+                return readLongLongV1();
+
+            default:
+                return sw;
+        }
+    }
+
+    public int getLimit() {
+        return limit;
+    }
+
+    /**
+     * Returns the array of bytes this Buffer is using to read from.
+     *
+     * @return byte array being read from
+     */
+    public byte[] getByteBuffer() {
+        return buf;
     }
 }

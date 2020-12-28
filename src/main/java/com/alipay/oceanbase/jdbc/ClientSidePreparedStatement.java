@@ -3,8 +3,12 @@ package com.alipay.oceanbase.jdbc;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -49,9 +53,9 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
     sqlQuery = sql;
 
     if (options.rewriteBatchedStatements) {
-      prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes());
+      prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode());
     } else {
-      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes());
+      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode());
     }
     parameters = new ParameterHolder[prepareResult.getParamCount()];
   }
@@ -454,6 +458,7 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
   private void loadParametersData() throws SQLSyntaxErrorException {
     try (ServerSidePreparedStatement ssps =
         new ServerSidePreparedStatement(
+                false,
             connection,
             sqlQuery,
             ResultSet.TYPE_SCROLL_INSENSITIVE,
@@ -508,7 +513,10 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
     sb.append("]");
     return sb.toString();
   }
-
+  @Override
+  public void setArray(final int parameterIndex, final Array array) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
   protected ClientPrepareResult getPrepareResult() {
     return prepareResult;
   }

@@ -664,7 +664,72 @@ public enum DefaultOptions {
       Boolean.TRUE,
       "2.6.0",
       "manage session_track_schema setting when server has CLIENT_SESSION_TRACK capability",
-      false);
+      false),
+  // Oceanbase extended options
+  SUPPORT_LOB_LOCATOR(
+          "supportLobLocator",
+          Boolean.TRUE,
+          "3.1.0",
+          "Lob locator switch for BLOB and CLOB type data",
+          false),
+  USE_OB_CHECKSUM(
+          "useObChecksum",
+          Boolean.TRUE,
+          "5.1.30",
+          "A connection option for protocol v20",
+          false
+  ),
+  USE_OCEANBASE_PROTOCOLV20(
+          "useOceanBaseProtocolV20",
+          Boolean.TRUE,
+          "5.1.40",
+          "Use v20 protocol to transmit data",
+          false
+  ),
+  ALLOW_ALWAYS_SEND_PARAM_TYPES(
+          "allowSendParamTypes",
+          Boolean.FALSE,
+          "5.1.37",
+          "Store types of parameters in first package that is sent to the server",
+          false
+  ),
+  USE_FORMAT_EXCEPTION_MESSAGE(
+          "useFormatExceptionMessage",
+          Boolean.FALSE,
+          "5.1.37",
+          "Error message in ORACLE format used, such as 'ORA-'",
+          false
+  ),
+  COMPLEX_DATA_CACHE_SIZE(
+          "complexDataCacheSize",
+          50,
+          "3.1.1",
+          "Cached complex data size",
+          false
+  ),
+  CACHE_COMPLEX_DATA(
+          "cacheComplexData",
+          Boolean.TRUE,
+          "3.0.10",
+          "Whether to cache complex data",
+          false
+  ),
+  USE_SQL_STRING_CACHE(
+          "useSqlStringCache",
+          Boolean.FALSE,
+          "5.1.37",
+          "Cache sql sql strings into local jdbc memory",
+          false
+
+  ),
+  USE_SERVER_PS_STMT_CHECKSUM(
+          "useServerPsStmtChecksum",
+          Boolean.TRUE,
+          "5.1.37",
+          "Use prepare statement checksum to ensure the correctness of the mysql protocol",
+          false
+
+  );
 
   private final String optionName;
   private final String description;
@@ -699,6 +764,20 @@ public enum DefaultOptions {
     this.required = required;
     objType = String.class;
     this.defaultValue = defaultValue;
+    minValue = null;
+    maxValue = null;
+  }
+  DefaultOptions(
+          final String optionName,
+          final int defaultValue,
+          final String implementationVersion,
+          String description,
+          boolean required) {
+    this.optionName = optionName;
+    this.description = description;
+    this.required = required;
+    objType = String.class;
+    this.defaultValue = Integer.valueOf(defaultValue);
     minValue = null;
     maxValue = null;
   }

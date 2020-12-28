@@ -11,6 +11,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
@@ -223,12 +227,22 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex,
-                new OBStreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
-        } else {
-            setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(),
+        if (this.connection.getProtocol().isOracleMode()
+            && (((OceanBaseBlob) blob).getLocator() != null)
+            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+            byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
+            //            setParameter(parameterIndex, new OBByteArrayParameter(data, noBackslashEscapes));
+            setParameter(parameterIndex, new OBStreamParameter(true, data, blob.length(),
                 noBackslashEscapes));
+
+        } else {
+            if (this.connection.getProtocol().isOracleMode()) {
+                setParameter(parameterIndex, new OBStreamParameter(false, blob.getBinaryStream(),
+                    blob.length(), noBackslashEscapes));
+            } else {
+                setParameter(parameterIndex,
+                    new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+            }
         }
         hasLongData = true;
     }
@@ -259,7 +273,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         }
 
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBStreamParameter(inputStream, length,
+
+            setParameter(parameterIndex, new OBStreamParameter(false, inputStream, length,
                 noBackslashEscapes));
         } else {
             setParameter(parameterIndex, new StreamParameter(inputStream, length,
@@ -316,9 +331,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-
-        setParameter(parameterIndex, new ReaderParameter(clob.getCharacterStream(), clob.length(),
-            noBackslashEscapes));
+        if (this.connection.getProtocol().isOracleMode()
+            && (((OceanBaseBlob) clob).getLocator() != null)
+            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+            byte[] data = ((OceanBaseBlob) clob).getLocator().binaryData;
+            setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
+                noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex,
+                new ReaderParameter(clob.getCharacterStream(), clob.length(), noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -377,7 +399,12 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setArray(final int parameterIndex, final Array array) throws SQLException {
-        throw exceptionFactory.notSupported("Arrays not supported");
+        if (array == null) {
+            setNull(parameterIndex, ColumnType.NULL);
+            return;
+        }
+        this.setParameter(parameterIndex,
+            new OBArrayParameter((ArrayImpl) array, this.protocol.getOptions())); // todo
     }
 
     /**
@@ -961,6 +988,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
                 useFractionalSeconds));
+        } else if (obj instanceof Array) {
+            setArray(parameterIndex, (Array) obj);
+        } else if (obj instanceof Struct) {
+            setStruct(parameterIndex, (Struct) obj);
         } else {
             // fallback to sending serialized object
             setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
@@ -1424,9 +1455,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-
+        byte[] x = bytes;
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBByteArrayParameter(bytes, noBackslashEscapes));
+
+            StringBuilder sb = new StringBuilder();
+            for (byte b : x) {
+                sb.append(String.format("%02x", b));
+            }
+            x = sb.toString().getBytes();
+
+            setParameter(parameterIndex, new OBByteArrayParameter(x, noBackslashEscapes));
 
         } else {
             setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
@@ -1465,6 +1503,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     }
 
     public void setInt(final int column, final int value) throws SQLException {
+        /* TODO need to check this.connection is null when PS is close */
         if (this.connection.getProtocol().isOracleMode()) {
             setNUMBER(column, value);
             return;
@@ -1497,10 +1536,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setFloat(final int parameterIndex, final float value) throws SQLException {
-        if (this.connection.getProtocol().isOracleMode()) {
-            setNUMBER_FLOAT(parameterIndex, value);
-            return;
-        }
+        //        if (this.connection.getProtocol().isOracleMode()) {
+        //            setNUMBER_FLOAT(parameterIndex, value);
+        //            return;
+        //        }
         setParameter(parameterIndex, new FloatParameter(value));
     }
 
@@ -1578,5 +1617,31 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         setParameter(parameterIndex, new OBBINARY_DOUBLEParameter(number.floatValue()));
+    }
+
+    public void setINTERVALDS(final int parameterIndex, final INTERVALDS intervalds)
+                                                                                    throws SQLException {
+        if (intervalds == null) {
+            setNull(parameterIndex, ColumnType.INTERVALDS);
+            return;
+        }
+        setParameter(parameterIndex, new OBINTERVALDSParameter(intervalds));
+    }
+
+    public void setINTERVALYM(final int parameterIndex, final INTERVALYM intervalym)
+                                                                                    throws SQLException {
+        if (intervalym == null) {
+            setNull(parameterIndex, ColumnType.INTERVALDS);
+            return;
+        }
+        setParameter(parameterIndex, new OBINTERVALYMParameter(intervalym));
+    }
+
+    public void setStruct(final int parameterIndex, Struct x) throws SQLException {
+        if (x == null) {
+            setNull(parameterIndex, ColumnType.STRUCT);
+            return;
+        }
+        setParameter(parameterIndex, new OBStructParameter((StructImpl) x)); // todo
     }
 }

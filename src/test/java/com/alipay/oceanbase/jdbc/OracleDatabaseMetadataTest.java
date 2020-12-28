@@ -22,7 +22,7 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("quote_test1", "id int primary key , create_time timestamp");
+        createTable("quote_test", "id int primary key , create_time timestamp");
     }
 
     @Before
@@ -35,7 +35,7 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
         Statement stmt = null;
         ResultSet rs = null;
         stmt = sharedConnection.createStatement();
-        stmt.executeUpdate("insert into quote_test1 values(1,sysdate)");
+        stmt.executeUpdate("insert into quote_test values(1,sysdate)");
         rs = stmt.executeQuery("select ID,CREATE_TIME from quote_test");
         assertEquals("ID", rs.getMetaData().getColumnName(1));
         assertEquals("CREATE_TIME", rs.getMetaData().getColumnName(2));

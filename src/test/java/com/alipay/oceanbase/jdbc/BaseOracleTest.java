@@ -10,6 +10,7 @@ import com.sun.jna.Platform;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
@@ -53,11 +54,20 @@ public class BaseOracleTest {
   protected static boolean testSingleHost;
   protected static Connection sharedConnection;
   protected static Connection sharedPSConnection;
+  protected static Connection sharedPSConnectionWithoutChecksum;
+  protected static Connection sharedPSLobConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
   private static UrlParser urlParser;
 
+  public  Connection getOracleConnection() throws Exception {
+    String oracle_url = "jdbc:oracle:thin:@10.101.163.80:1521/orcl";
+    String oracle_username = "oracle";
+    String oracle_password = "oracle";
+    Class.forName("oracle.jdbc.driver.OracleDriver");
+    return DriverManager.getConnection(oracle_url, oracle_username, oracle_password);
+  }
   @Rule
   public TestRule watcher =
       new TestWatcher() {
@@ -147,7 +157,11 @@ public class BaseOracleTest {
     if (testSingleHost) {
       urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
       UrlParser urlParserPS =
-          UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
+          UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
+      UrlParser urlParserPSLob =
+              UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true");
+      UrlParser urlParserPSWithoutChecksum =
+              UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&useServerPsStmtChecksum=false");
       if (urlParser.getHostAddresses().size() > 0) {
         hostname = urlParser.getHostAddresses().get(0).host;
         port = urlParser.getHostAddresses().get(0).port;
@@ -187,20 +201,39 @@ public class BaseOracleTest {
 
       setUri();
       urlParser.auroraPipelineQuirks();
+      urlParserPS.auroraPipelineQuirks();
 
       try {
+        System.out.println("start ");
         sharedConnection = OceanBaseConnection.newConnection(urlParser, null);
+        System.out.println("1");
         sharedPSConnection = OceanBaseConnection.newConnection(urlParserPS, null);
+        System.out.println(2);
+        sharedPSConnectionWithoutChecksum = OceanBaseConnection.newConnection(urlParserPSWithoutChecksum, null);
+        System.out.println(3);
+        sharedPSLobConnection = OceanBaseConnection.newConnection(urlParserPSLob, null);
+        System.out.println(4);
       } catch (SQLException sqle) {
         System.out.println("Connection from pool fail :" + sqle.getMessage());
         sharedConnection = DriverManager.getConnection(url);
         sharedPSConnection = DriverManager.getConnection(url);
+        sharedPSConnectionWithoutChecksum = DriverManager.getConnection(url);
       }
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
       doPrecisionTest =
           isMariadbServer() || !dbVersion.startsWith("5.5"); // MySQL 5.5 doesn't support precision
     }
+  }
+  public static Connection getObOracleLobConnectionWithCharset(String charset) throws SQLException {
+    String url = System.getProperty("oracleModeDbUrl", mDefUrl);
+    UrlParser urlParserPSLob = null;
+    if (charset != null) {
+      urlParserPSLob = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true" + "&characterEncoding=" + charset);
+    } else {
+      urlParserPSLob = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true");
+    }
+    return  OceanBaseConnection.newConnection(urlParserPSLob, null);
   }
 
   private static void setUri() {
@@ -335,22 +368,22 @@ public class BaseOracleTest {
       Statement stmt = sharedConnection.createStatement();
       /*
       create or replace procedure proc_dropifexists(
-            p_table in varchar2
-        ) is
-            v_count number(10);
-        begin
-           select count(*)
-           into v_count
-           from user_objects
-           where object_name = upper(p_table);
-
-           if v_count > 0 then
-              execute immediate 'drop table ' || p_table ||' purge';
-           end if;
-        end;
+            p_table in varchar2 \
+        ) is \
+            v_count number(10); \
+        begin \
+           select count(*) \
+           into v_count \
+           from user_objects \
+           where object_name = upper(p_table); \
+           if v_count > 0 then \
+              execute immediate 'drop table ' || p_table ||' purge'; \
+           end if; \
+        end; \
        */
-      stmt.execute("call proc_dropifexists('" + tableName + "')");
-      stmt.execute(
+
+     stmt.execute("call proc_dropifexists('" + tableName + "')");
+     stmt.execute(
           "create table "
               + tableName
               + " ("

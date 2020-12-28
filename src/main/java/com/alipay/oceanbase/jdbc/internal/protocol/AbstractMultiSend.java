@@ -310,4 +310,8 @@ public abstract class AbstractMultiSend {
       throw protocol.handleIoException(e);
     }
   }
+
+    public Protocol getProtocol() {
+        return protocol;
+    }
 }
