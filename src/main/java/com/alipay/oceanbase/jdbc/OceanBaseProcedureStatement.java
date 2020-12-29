@@ -221,6 +221,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         StringBuilder selectSB = new StringBuilder();
         selectSB.append("SELECT ");
         afterFirst = false;
+        boolean getResult = false;
         for (int i = 0;i<size;i++) {
             CallParameter inParamInfo = params.get(i);
             if (afterFirst) {
@@ -231,11 +232,14 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
                 inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`","$1");
                 selectSB.append(inOutParameterName);
                 afterFirst = true;
+                getResult = true;
             }
         }
-        ResultSet resultSet = this.connection.createStatement().executeQuery(selectSB.toString());
-        resultSet.next();
-        outputResultSet = (SelectResultSet) resultSet;
+        if (getResult) {
+            ResultSet resultSet = this.connection.createStatement().executeQuery(selectSB.toString());
+            resultSet.next();
+            outputResultSet = (SelectResultSet) resultSet;
+        }
     }
     private void executeProcedureOnServer() throws SQLException{
         int size = this.params.size();
