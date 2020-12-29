@@ -97,6 +97,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
+            if(!this.protocol.isOracleMode()) {
+                name = name.replaceAll("\\`(\\w+)\\`", "$1");
+            }
             if (name != null && name.equalsIgnoreCase(parameterName)) {
                 //return i;
                 return isObFunction ? i + 1 : i; //it will minus by function

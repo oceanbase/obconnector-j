@@ -17,11 +17,11 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
 
   protected int parameterCount = -1;
   private boolean isObFunction = false;
-  private String sql;
+  protected String sql;
   private ServerPrepareResult serverPrepareResult = null;
   private OceanBaseResultSetMetaData metadata;
   private OceanBaseParameterMetaData parameterMetaData;
-  private Map<Integer, ParameterHolder> currentParameterHolder;
+  protected Map<Integer, ParameterHolder> currentParameterHolder;
   private List<ParameterHolder[]> queryParameters = new ArrayList<>();
   private boolean mustExecuteOnMaster;
   private long     checksum = 1;
@@ -59,7 +59,13 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     this.sql = sql;
     currentParameterHolder = Collections.synchronizedMap(new TreeMap<>());
     mustExecuteOnMaster = protocol.isMasterConnection();
-    prepare(this.sql);
+    if (!protocol.isOracleMode()) {
+      if (!sql.startsWith("CALL") && !sql.startsWith("call")) {
+              prepare(this.sql);
+      }
+    } else {
+      prepare(sql);
+    }
   }
 
   /**
@@ -78,7 +84,13 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     clone.mustExecuteOnMaster = mustExecuteOnMaster;
     // force prepare
     try {
-      clone.prepare(sql);
+      if (!protocol.isOracleMode()) {
+        if (!sql.startsWith("CALL") && !sql.startsWith("call")) {
+          clone.prepare(sql);
+        }
+      } else {
+        clone.prepare(sql);
+      }
     } catch (SQLException e) {
       throw new CloneNotSupportedException("PrepareStatement not ");
     }

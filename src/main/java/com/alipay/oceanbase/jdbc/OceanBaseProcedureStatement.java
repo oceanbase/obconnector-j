@@ -1,6 +1,6 @@
 package com.alipay.oceanbase.jdbc;
 
-import java.sql.ResultSetMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -43,6 +43,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         if (!this.connection.getProtocol().isOracleMode()) {
             this.parameterMetadata = new CallableParameterMetaData(connection, database,
                     procedureName, false);
+            this.parameterMetadata.readMetadataFromDbIfRequired(query);
         } else {
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
                     procedureName, isObFunction);
@@ -53,88 +54,12 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         setParametersVariables();
     }
 
-    private void determineParameterTypes(String queryString,String database,String procname) throws SQLException {
-        java.sql.ResultSet paramTypesRs = null;
-
-        try {
-            //Bug#57022, we need to check for db.SPname notation first and pass on only SPname
-//            String procName = extractProcedureName();
-            String procName = procname;
-            String quotedId = "";
-//            try {
-//                quotedId = this.connection.supportsQuotedIdentifiers() ? this.connection
-//                        .getMetaData().getIdentifierQuoteString() : "";
-//            } catch (SQLException sqlEx) {
-//                // Forced by API, never thrown from getIdentifierQuoteString() in
-//                // this implementation.
-////                AssertionFailedException.shouldNotHappen(sqlEx);
-//            }
-
-//            List<?> parseList = StringUtils.splitDBdotName(procName, "", quotedId,
-//                    this.connection.isNoBackslashEscapesSet());
-//            String tmpCatalog = "";
-//            //There *should* be 2 rows, if any.
-//            if (parseList.size() == 2) {
-//                tmpCatalog = (String) parseList.get(0);
-//                procName = (String) parseList.get(1);
-//            } else { // NOPMD
-//                //keep values as they are
-//            }
-
-            java.sql.DatabaseMetaData dbmd = this.connection.getMetaData();
-
-            boolean useCatalog = false;
-
-//            if (tmpCatalog.length() <= 0) {
-//                useCatalog = true;
-//            }
-
-            paramTypesRs = dbmd
-//                    .getProcedureColumns(
-//                            this.connection.versionMeetsMinimum(5, 0, 2) && useCatalog ? this.currentCatalog
-//                                    : tmpCatalog/* null */, null, procName, "%");
-            .getProcedureColumns(
-                           database , null, procName, "%");
-
-            boolean hasResults = false;
-            try {
-                if (paramTypesRs.next()) {
-                    paramTypesRs.previous();
-                    hasResults = true;
-                }
-            } catch (Exception e) {
-                // paramTypesRs is empty, proceed with fake params. swallow, was expected
-            }
-//            if (hasResults) {
-//                convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
-//            } else {
-//                fakeParameterTypes(true);
-//            }
-        } finally {
-            SQLException sqlExRethrow = null;
-
-            if (paramTypesRs != null) {
-                try {
-                    paramTypesRs.close();
-                } catch (SQLException sqlEx) {
-                    sqlExRethrow = sqlEx;
-                }
-
-                paramTypesRs = null;
-            }
-
-            if (sqlExRethrow != null) {
-                throw sqlExRethrow;
-            }
-        }
-
-    }
-
     private void setParamsAccordingToSetArguments() throws SQLException {
         if (parameterCount > this.parameterMetadata.getParameterCount()) {
             System.out.println("SIZE:" + parameterCount + " " + this.parameterMetadata.getParameterCount());
             throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
         }
+        parameterCount = this.parameterMetadata.getParameterCount();
         /*
         OceanBaseResultSetMetaData metaData = (OceanBaseResultSetMetaData)this.getMetaData();
         if (parameterCount != metaData.getColumnCount()) {
@@ -222,10 +147,122 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         super.setParameter(parameterIndex, holder);
     }
 
+    private final  String PARAMETER_NAMESPACE_PREFIX     = "@com_mysql_jdbc_outparam_";
+
+    private  String mangleParameterName(String origParameterName) {
+        //Fixed for 5.5+ in callers
+        if (origParameterName == null) {
+            return null;
+        }
+
+        int offset = 0;
+
+        if (origParameterName.length() > 0 && origParameterName.charAt(0) == '@') {
+            offset = 1;
+        }
+
+        StringBuilder paramNameBuf = new StringBuilder(PARAMETER_NAMESPACE_PREFIX.length()
+                + origParameterName.length());
+        paramNameBuf.append(PARAMETER_NAMESPACE_PREFIX);
+        paramNameBuf.append(origParameterName.substring(offset));
+
+        return paramNameBuf.toString();
+    }
+    private void setInOutParamsOnServer() throws SQLException{
+        int size = this.params.size();
+        setInputOutputParameterMap();
+        for (int i = 0;i<size;i++) {
+            CallParameter inParamInfo = params.get(i);
+            if ( inParamInfo.isInput() && inParamInfo.isOutput()) {
+                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                StringBuilder queryBuf = new StringBuilder(
+                        4 + inOutParameterName.length() + 1 + 1);
+                ParameterHolder  holder = currentParameterHolder.get(i);
+                queryBuf.append("SET ");
+                queryBuf.append(inOutParameterName);
+                queryBuf.append("=");
+                if (holder.toString() == "<null>") {
+                    queryBuf.append("null");
+                } else {
+//                    queryBuf.append("'");
+                    queryBuf.append(holder.toString());
+//                    queryBuf.append("'");
+                }
+
+                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`","$1");
+                this.connection.createStatement().execute(query);
+            }
+        }
+        boolean afterFirst = false;
+        int index = sql.indexOf('?');
+        StringBuilder querySB = new StringBuilder();
+        querySB.append(sql.substring(0,index));
+        for (int i = 0;i<size;i++) {
+            CallParameter inParamInfo = params.get(i);
+            if (afterFirst) {
+                querySB.append(",");
+            }
+            if (inParamInfo.isOutput()) {
+                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`","$1");
+                querySB.append(inOutParameterName);
+            } else {
+                ParameterHolder  holder = currentParameterHolder.get(i);
+                if (holder.toString() == "<null>") {
+                    querySB.append("null");
+                } else {
+                    querySB.append(holder.toString());
+                }
+            }
+            afterFirst = true;
+        }
+        querySB.append(")");
+        this.connection.createStatement().execute(querySB.toString());
+        StringBuilder selectSB = new StringBuilder();
+        selectSB.append("SELECT ");
+        afterFirst = false;
+        for (int i = 0;i<size;i++) {
+            CallParameter inParamInfo = params.get(i);
+            if (afterFirst) {
+                selectSB.append(",");
+            }
+            if (inParamInfo.isOutput()) {
+                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`","$1");
+                selectSB.append(inOutParameterName);
+                afterFirst = true;
+            }
+        }
+        ResultSet resultSet = this.connection.createStatement().executeQuery(selectSB.toString());
+        resultSet.next();
+        outputResultSet = (SelectResultSet) resultSet;
+    }
+    private void executeProcedureOnServer() throws SQLException{
+        int size = this.params.size();
+        for (int i = 0;i<size;i++) {
+            CallParameter inParamInfo = params.get(i);
+            if (inParamInfo.isInput() || inParamInfo.isOutput()) {
+                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                StringBuilder queryBuf = new StringBuilder(
+                        4 + inOutParameterName.length() + 1 + 1);
+                ParameterHolder  holder = currentParameterHolder.get(i);
+                queryBuf.append("call ");
+                queryBuf.append(inOutParameterName);
+                queryBuf.append("");
+                queryBuf.append(holder.toString());
+                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`","$1");
+                this.connection.createStatement().execute(query);
+            }
+        }
+    }
     @Override
     public boolean execute() throws SQLException {
         connection.lock.lock();
         try {
+            if (!protocol.isOracleMode()) {
+                setInOutParamsOnServer();
+                return true;
+            }
             validAllParameters();
             super.executeInternal(fetchSize);
             retrieveOutputResult();

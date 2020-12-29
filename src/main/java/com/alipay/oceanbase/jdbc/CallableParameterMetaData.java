@@ -1,18 +1,16 @@
 package com.alipay.oceanbase.jdbc;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static final Pattern        PARAMETER_PATTERN = Pattern
-                                                              .compile(
-                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                  Pattern.CASE_INSENSITIVE);
+    private static final Pattern PARAMETER_PATTERN = Pattern
+            .compile(
+                    "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                    Pattern.CASE_INSENSITIVE);
     private static final Pattern        RETURN_PATTERN    = Pattern
                                                               .compile(
                                                                   "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
@@ -23,6 +21,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     protected String                    database;
     protected boolean                   valid;
     protected boolean                   isFunction;
+    protected String                    query;
 
     public String getProName() {
         return name;
@@ -62,6 +61,14 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (valid) {
             return;
         }
+        readMetadata();
+        valid = true;
+    }
+    public void readMetadataFromDbIfRequired(String query) throws SQLException {
+        if (valid) {
+            return;
+        }
+        this.query = query;
         readMetadata();
         valid = true;
     }
@@ -193,49 +200,64 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
-    params = new ArrayList<>();
-    if (isFunction) {
-      // output parameter
-      params.add(new CallParameter());
-    }
-
-    Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
-    while (matcher2.find()) {
-      CallParameter callParameter = new CallParameter();
-      String direction = matcher2.group(1);
-      if (direction != null) {
-        direction = direction.trim();
-      }
-
-      callParameter.setName(matcher2.group(2).trim());
-      callParameter.setSigned(matcher2.group(3) == null);
-      callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
-
-      if (direction == null || direction.equalsIgnoreCase("IN")) {
-        callParameter.setInput(true);
-      } else if (direction.equalsIgnoreCase("OUT")) {
-        callParameter.setOutput(true);
-      } else if (direction.equalsIgnoreCase("INOUT")) {
-        callParameter.setInput(true);
-        callParameter.setOutput(true);
-      } else {
-        throw new SQLException(
-            "unknown parameter direction " + direction + "for " + callParameter.getName());
-      }
-
-      callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-
-      String scale = matcher2.group(5);
-      if (scale != null) {
-        scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
-        if (scale.contains(",")) {
-          scale = scale.substring(0, scale.indexOf(","));
+        params = new ArrayList<>();
+        if (isFunction) {
+            // output parameter
+            params.add(new CallParameter());
         }
-        callParameter.setScale(Integer.valueOf(scale));
-      }
-      params.add(callParameter);
+        Vector<Boolean> vec = new Vector<>();
+        String querySql = this.query;
+        int startIndex = querySql.indexOf('(');
+        int endIndex = querySql.lastIndexOf(')');
+        String tmp = querySql.substring(startIndex + 1, endIndex);
+        String[] split = tmp.split(",");
+        for (String s : split) {
+            if (s.matches("\\s*\\?\\s*")) {
+                vec.add(true);
+            } else {
+                vec.add(false);
+            }
+        }
+        int i = 0;
+        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        while (matcher2.find()) {
+            if (vec.get(i) == false) {
+                i++;
+                continue;
+            } else {
+                i++;
+            }
+            CallParameter callParameter = new CallParameter();
+            String direction = matcher2.group(1);
+            if (direction != null) {
+                direction = direction.trim();
+            }
+            callParameter.setName(matcher2.group(2).trim());
+            callParameter.setSigned(matcher2.group(3) == null);
+            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+            if (direction == null || direction.equalsIgnoreCase("IN")) {
+                callParameter.setInput(true);
+            } else if (direction.equalsIgnoreCase("OUT")) {
+                callParameter.setOutput(true);
+            } else if (direction.equalsIgnoreCase("INOUT")) {
+                callParameter.setInput(true);
+                callParameter.setOutput(true);
+            } else {
+                throw new SQLException(
+                        "unknown parameter direction " + direction + "for " + callParameter.getName());
+            }
+            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+            String scale = matcher2.group(5);
+            if (scale != null) {
+                scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
+                if (scale.contains(",")) {
+                    scale = scale.substring(0, scale.indexOf(","));
+                }
+                callParameter.setScale(Integer.valueOf(scale));
+            }
+            params.add(callParameter);
+        }
     }
-  }
 
     /**
      * Read procedure metadata from mysql.proc table(column param_list).
