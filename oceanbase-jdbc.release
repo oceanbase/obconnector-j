@@ -8,8 +8,10 @@ code.language=java
 baseline.jdk=jdk-1.8.0_40
 
 # 构建打包所用的maven版本
-build.tools.maven=maven2.2.1
+build.tools.maven=maven3.2.5
 
 # 构建打包使用的maven settings文件
 build.tools.maven.settings=tao
+
+build.output=target
 

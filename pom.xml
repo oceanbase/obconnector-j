@@ -1,310 +1,237 @@
-<!--
-  ~ /*
-  ~ MariaDB Client for Java
-  ~
-  ~ Copyright (c) 2012-2014 Monty Program Ab.
-  ~ Copyright (c) 2015-2020 MariaDB Corporation Ab.
-  ~
-  ~ This library is free software; you can redistribute it and/or modify it under
-  ~ the terms of the GNU Lesser General Public License as published by the Free
-  ~ Software Foundation; either version 2.1 of the License, or (at your option)
-  ~ any later version.
-  ~
-  ~ This library is distributed in the hope that it will be useful, but
-  ~ WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  ~ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-  ~ for more details.
-  ~
-  ~ You should have received a copy of the GNU Lesser General Public License along
-  ~ with this library; if not, write to Monty Program Ab info@montyprogram.com.
-  ~
-  ~ This particular MariaDB Client for Java file is work
-  ~ derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-  ~ the following copyright and notice provisions:
-  ~
-  ~ Copyright (c) 2009-2011, Marcus Eriksson
-  ~
-  ~ Redistribution and use in source and binary forms, with or without modification,
-  ~ are permitted provided that the following conditions are met:
-  ~ Redistributions of source code must retain the above copyright notice, this list
-  ~ of conditions and the following disclaimer.
-  ~
-  ~ Redistributions in binary form must reproduce the above copyright notice, this
-  ~ list of conditions and the following disclaimer in the documentation and/or
-  ~ other materials provided with the distribution.
-  ~
-  ~ Neither the name of the driver nor the names of its contributors may not be
-  ~ used to endorse or promote products derived from this software without specific
-  ~ prior written permission.
-  ~
-  ~ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-  ~ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  ~ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-  ~ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-  ~ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-  ~ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-  ~ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-  ~ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-  ~ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-  ~ OF SUCH DAMAGE.
-  ~ */
-  -->
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.alipay.oceanbase.jdbc</groupId>
+    <artifactId>oceanbase-client</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>oceanbase-client</name>
+    <description>JDBC driver for OceanBase</description>
+    <url>https://www.oceanbase.com/</url>
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <organization>
+        <name>oceanbase.com</name>
+        <url>https://oceanbase.com</url>
+    </organization>
 
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>org.mariadb.jdbc</groupId>
-  <artifactId>mariadb-java-client</artifactId>
-  <packaging>jar</packaging>
-  <name>mariadb-java-client</name>
-  <version>2.6.2</version>
-  <description>JDBC driver for MariaDB and MySQL</description>
-  <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
+    <licenses>
+        <license>
+            <name>LGPL-2.1</name>
+        </license>
+    </licenses>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jna.version>5.5.0</jna.version>
-    <osgi.version>6.0.0</osgi.version>
-    <osgi.compendium.version>5.0.0</osgi.compendium.version>
-  </properties>
+    <properties>
+        <jna.version>5.5.0</jna.version>
+        <osgi.compendium.version>5.0.0</osgi.compendium.version>
+        <osgi.version>6.0.0</osgi.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
-  <licenses>
-    <license>
-      <name>LGPL-2.1</name>
-    </license>
-  </licenses>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.waffle</groupId>
+            <artifactId>waffle-jna</artifactId>
+            <version>2.2.1</version>
+            <optional>true</optional>
+        </dependency>
 
-  <organization>
-    <name>mariadb.com</name>
-    <url>https://mariadb.com</url>
-  </organization>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>${jna.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>[1.4.0,1.7.25]</version>
+            <optional>true</optional>
+        </dependency>
 
-  <developers>
-    <developer>
-      <id>mariadbJdbcDevelopers</id>
-      <name>mariadb jdbc developers</name>
-      <url>http://mariadb.org/</url>
-    </developer>
-  </developers>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+            <scope>test</scope>
+            <optional>true</optional>
+        </dependency>
 
-  <scm>
-    <connection>scm:git:git://github.com/mariadb-corporation/mariadb-connector-j.git</connection>
-    <url>https://github.com/mariadb-corporation/mariadb-connector-j</url>
-    <developerConnection>scm:git:git@github.com:MariaDB/mariadb-connector-j.git
-    </developerConnection>
-  </scm>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-rds</artifactId>
+            <version>1.11.734</version>
+            <optional>true</optional>
+        </dependency>
 
-  <issueManagement>
-    <system>JIRA</system>
-    <url>https://mariadb.atlassian.net/browse/CONJ</url>
-  </issueManagement>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <version>${osgi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.compendium</artifactId>
+            <version>${osgi.compendium.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
+    <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>com.github.ekryd.sortpom</groupId>
+                <artifactId>sortpom-maven-plugin</artifactId>
+                <version>2.4.0</version>
+                <executions>
+                    <execution>
+                        <id>sort-pom</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>sort</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <nrOfIndentSpace>4</nrOfIndentSpace>
+                    <keepBlankLines>true</keepBlankLines>
+                    <sortProperties>true</sortProperties>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+                <artifactId>maven-java-formatter-plugin</artifactId>
+                <version>0.4</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <configFile>${project.basedir}/formatter.xml</configFile>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-path</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
 
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
-    <plugins>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.5</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.0</version>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <compilerArgs>
-            <arg>-Xlint:all,-options,-path</arg>
-          </compilerArgs>
-        </configuration>
-      </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <source>8</source>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Bundle-Version>${project.version}</Bundle-Version>
+                            <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
+                            <Bundle-Name>oceanbase-client</Bundle-Name>
+                            <Bundle-SymbolicName>com.alipay.oceanbase</Bundle-SymbolicName>
+                            <Automatic-Module-Name>com.alipay.oceanbase</Automatic-Module-Name>
+                            <Export-Package>com.alipay.oceanbase</Export-Package>
+                            <Import-Package>org.osgi.service.jdbc,org.osgi.framework,javax.naming,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional</Import-Package>
+                            <Bundle-Activator>com.alipay.oceanbase.jdbc.internal.osgi.OceanBaseActivator</Bundle-Activator>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <!--package phase-->
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>deploy</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.1.1</version>
-        <configuration>
-          <source>8</source>
-        </configuration>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.0</version>
-        <configuration>
-          <archive>
-            <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-            <manifestEntries>
-              <Bundle-Version>${project.version}</Bundle-Version>
-              <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-              <Bundle-Name>mariadb-java-client</Bundle-Name>
-              <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
-              <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
-              <Export-Package>org.mariadb.jdbc</Export-Package>
-              <Import-Package>
-                org.osgi.service.jdbc,org.osgi.framework,javax.naming,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional
-              </Import-Package>
-              <Bundle-Activator>org.mariadb.jdbc.internal.osgi.MariaDbActivator</Bundle-Activator>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.1</version>
-        <executions>
-          <execution>
-            <!--package phase-->
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
-        <extensions>true</extensions>
-        <executions>
-          <execution>
-            <phase>deploy</phase>
-          </execution>
-        </executions>
-        <configuration>
-          <serverId>ossrh</serverId>
-          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>false</autoReleaseAfterClose>
-        </configuration>
-      </plugin>
-
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.coveo</groupId>
-        <artifactId>fmt-maven-plugin</artifactId>
-        <version>2.9</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>format</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
-  <dependencies>
-    <dependency>
-      <groupId>com.github.waffle</groupId>
-      <artifactId>waffle-jna</artifactId>
-      <version>2.2.1</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.java.dev.jna</groupId>
-      <artifactId>jna</artifactId>
-      <version>${jna.version}</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>net.java.dev.jna</groupId>
-      <artifactId>jna-platform</artifactId>
-      <version>${jna.version}</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>[1.4.0,1.7.25]</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-      <scope>test</scope>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-rds</artifactId>
-      <version>1.11.734</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>${osgi.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <version>${osgi.compendium.version}</version>
-      <scope>provided</scope>
-    </dependency>
-  </dependencies>
+        </plugins>
+    </build>
 </project>
