@@ -344,7 +344,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   @Override
   public ResultSet executeQuery() throws SQLException {
     if (execute()) {
-      if(results.getCallableResultSet() != null) return results.getCallableResultSet();
+      if(results.getCallableResultSet() != null) {
+        return results.getCallableResultSet();
+      }
       return results.getResultSet();
     }
     return SelectResultSet.createEmptyResultSet();
@@ -429,8 +431,11 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
           mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
       protocol.resetChecksum();
       results.commandEnd();
-      if(results.getCallableResultSet() != null) return true;
-      else return results.getResultSet() != null;
+      if (results.getCallableResultSet() != null) {
+        return true;
+      } else {
+        return results.getResultSet() != null;
+      }
 
     } catch (SQLException exception) {
       throw executeExceptionEpilogue(exception);

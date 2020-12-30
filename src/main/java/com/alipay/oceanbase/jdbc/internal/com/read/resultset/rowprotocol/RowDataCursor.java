@@ -295,8 +295,9 @@ public class RowDataCursor {
         }
         if (!curentResultSet.next()) {
             fetchMoreRows();
-            if (!curentResultSet.next())
+            if (!curentResultSet.next()) {
                 return null;
+            }
         }
         return curentResultSet.getCurrentRowData();
     }

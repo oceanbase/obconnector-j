@@ -1742,8 +1742,9 @@ public class OceanBaseConnection implements Connection {
                     ComplexDataType parentType = getComplexDataTypeFromCache(parentTypeName);
                     int attrIndex = rs.getInt(ATTR_NO_INDEX);
                     if (ComplexDataType.TYPE_OBJECT == parentType.getType()
-                            && parentType.getAttrCount() < attrIndex)
+                            && parentType.getAttrCount() < attrIndex) {
                         parentType.setAttrCount(attrIndex);
+                    }
                 }
             }
             // second loop

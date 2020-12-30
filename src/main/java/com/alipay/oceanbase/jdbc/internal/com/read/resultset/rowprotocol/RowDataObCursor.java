@@ -89,8 +89,9 @@ public class RowDataObCursor extends SelectResultSet {
         columnInformationLength = columnsInformation.length;
         this.changeRowProtocol(new BinaryRowProtocol(columnsInformation, columnsInformation.length,
             cursorStatement.getMaxFieldSize(), cursorProtocol.getOptions()));
-        if (buffer == null)
+        if (buffer == null) {
             return false;
+        }
         this.addRowData(buffer);
         total++;
         return true;
@@ -133,8 +134,9 @@ public class RowDataObCursor extends SelectResultSet {
     }
 
     protected RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
-        if (!isOpen)
+        if (!isOpen) {
             throw new SQLException("cursor is not open");
+        }
         return super.getComplexCursor(columnIndex);
     }
 }

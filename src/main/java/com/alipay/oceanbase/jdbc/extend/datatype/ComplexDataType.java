@@ -102,21 +102,28 @@ public class ComplexDataType {
     }
 
     public static int getObComplexType(String attrType) throws SQLException {
-        if (attrType.equalsIgnoreCase("COLLECTION"))
+        if (attrType.equalsIgnoreCase("COLLECTION")) {
             return TYPE_COLLECTION;
-        if (attrType.equalsIgnoreCase("OBJECT"))
+        }
+        if (attrType.equalsIgnoreCase("OBJECT")) {
             return TYPE_OBJECT;
+        }
         if (attrType.equalsIgnoreCase("NUMBER") || attrType.equalsIgnoreCase("INTEGER")
-            || attrType.equalsIgnoreCase("DECIMAL"))
+                || attrType.equalsIgnoreCase("DECIMAL")) {
             return TYPE_NUMBER;
-        if (attrType.equalsIgnoreCase("VARCHAR2") || attrType.equalsIgnoreCase("VARCHAR"))
+        }
+        if (attrType.equalsIgnoreCase("VARCHAR2") || attrType.equalsIgnoreCase("VARCHAR")) {
             return TYPE_VARCHAR2;
-        if (attrType.equalsIgnoreCase("DATE"))
+        }
+        if (attrType.equalsIgnoreCase("DATE")) {
             return TYPE_DATE;
-        if (attrType.equalsIgnoreCase("CURSOR"))
+        }
+        if (attrType.equalsIgnoreCase("CURSOR")) {
             return TYPE_CURSOR;
-        if (attrType.equalsIgnoreCase("RAW"))
+        }
+        if (attrType.equalsIgnoreCase("RAW")) {
             return TYPE_RAW;
+        }
         return TYPE_MAX;
     }
 
