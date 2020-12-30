@@ -507,7 +507,7 @@ public class OceanBaseBlob implements Blob, Serializable {
 
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        cstmt.setBlob(1, this);
+        ((BasePrepareStatement) cstmt).setLobLocator(1, this);
         cstmt.setInt(2, length);
         cstmt.setInt(3, (int) writeAt);
         cstmt.setBytes(4, bytes);
@@ -541,7 +541,7 @@ public class OceanBaseBlob implements Blob, Serializable {
 
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
-        cstmt.setBlob(1, this);
+        ((BasePrepareStatement) cstmt).setLobLocator(1, this);
         cstmt.setInt(2, len);
         cstmt.registerOutParameter(1, Types.BLOB);
         cstmt.execute();

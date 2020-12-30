@@ -29,223 +29,223 @@ import com.alipay.oceanbase.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class OceanBaseConnection implements Connection {
 
-    private static final Logger logger = LoggerFactory
-            .getLogger(OceanBaseConnection.class);
+    private static final Logger      logger                       = LoggerFactory
+                                                                      .getLogger(OceanBaseConnection.class);
 
     /**
      * Pattern to check the correctness of callable statement query string Legal queries, as
      * documented in JDK have the form: {[?=]call[(arg1,..,,argn)]}
      */
-    private static final Pattern CALLABLE_STATEMENT_PATTERN = Pattern
-            .compile(
-                    "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                            + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
-                            + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
-                            + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
-                    Pattern.CASE_INSENSITIVE
-                            | Pattern.DOTALL);
+    private static final Pattern     CALLABLE_STATEMENT_PATTERN   = Pattern
+                                                                      .compile(
+                                                                          "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
+                                                                                  + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+                                                                                  + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
+                                                                                  + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
+                                                                          Pattern.CASE_INSENSITIVE
+                                                                                  | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */
-    private static final Pattern PREPARABLE_STATEMENT_PATTERN = Pattern
-            .compile(
-                    "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
-                    Pattern.CASE_INSENSITIVE);
+    private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
+                                                                      .compile(
+                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
+                                                                          Pattern.CASE_INSENSITIVE);
 
-    public final ReentrantLock lock;
+    public final ReentrantLock       lock;
     /**
      * the protocol to communicate with.
      */
-    private final Protocol protocol;
+    private final Protocol           protocol;
     /**
      * the properties for the client.
      */
-    private final Options options;
+    private final Options            options;
 
     public OceanBasePooledConnection pooledConnection;
-    protected boolean nullCatalogMeansCurrent;
-    private CallableStatementCache callableStatementCache;
-    private volatile int lowercaseTableNames = -1;
-    private boolean canUseServerTimeout;
-    private boolean sessionStateAware;
-    private int stateFlag = 0;
-    private int defaultTransactionIsolation = 0;
-    private ExceptionFactory exceptionFactory;
+    protected boolean                nullCatalogMeansCurrent;
+    private CallableStatementCache   callableStatementCache;
+    private volatile int             lowercaseTableNames          = -1;
+    private boolean                  canUseServerTimeout;
+    private boolean                  sessionStateAware;
+    private int                      stateFlag                    = 0;
+    private int                      defaultTransactionIsolation  = 0;
+    private ExceptionFactory         exceptionFactory;
 
-    private boolean warningsCleared;
+    private boolean                  warningsCleared;
 
-    private LRUCache serverSideStatementCheckCache;
-    private LRUCache serverSideStatementCache;
-    private LRUCache complexDataCache;
-    private UrlParser urlParser;
-    private GlobalStateInfo globalStateInfo;
+    private LRUCache                 serverSideStatementCheckCache;
+    private LRUCache                 serverSideStatementCache;
+    private LRUCache                 complexDataCache;
+    private UrlParser                urlParser;
+    private GlobalStateInfo          globalStateInfo;
 
-    private TimeZone sessionTimeZone = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
-    private static final int DEPTH_INDEX = 1;
-    private static final int PARENT_TYPE_INDEX = 3;
-    private static final int CHILD_TYPE_INDEX = 4;
-    private static final int ATTR_NO_INDEX = 5;
-    private static final int CHILD_OWNER_INDEX = 6;
-    private static final int ATTR_TYPE_INDEX = 7;
-    private String origHostToConnectTo;
+    private TimeZone                 sessionTimeZone              = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
+    private static final int         DEPTH_INDEX                  = 1;
+    private static final int         PARENT_TYPE_INDEX            = 3;
+    private static final int         CHILD_TYPE_INDEX             = 4;
+    private static final int         ATTR_NO_INDEX                = 5;
+    private static final int         CHILD_OWNER_INDEX            = 6;
+    private static final int         ATTR_TYPE_INDEX              = 7;
+    private String                   origHostToConnectTo;
     // we don't want to be able to publicly clone this... // todo
-    private int origPortToConnectTo;
-    private String origDatabaseToConnectTo;
-    private java.sql.Connection complexConnection = null;
-    private static final String complexTypeSql = "SELECT\n"
-            + "  0 DEPTH,\n"
-            + "  NULL PARENT_OWNER,\n"
-            + "  NULL PARENT_TYPE,\n"
-            + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
-            + "  0 ATTR_NO,\n"
-            + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
-            + "  A.TYPECODE ATTR_TYPE_CODE,\n"
-            + "  NULL LENGTH,\n"
-            + "  NULL NUMBER_PRECISION,\n"
-            + "  NULL SCALE,\n"
-            + "  NULL CHARACTER_SET_NAME\n"
-            + "FROM\n"
-            + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
-            + "UNION\n"
-            + "(\n"
-            + "WITH \n"
-            + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
-            + "AS (\n"
-            + "    SELECT\n"
-            + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
-            + "      B.TYPE_NAME PARENT_TYPE,\n"
-            + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
-            + "      0 ATTR_NO,\n"
-            + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-            + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-            + "      B.LENGTH LENGTH,\n"
-            + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-            + "      B.SCALE SCALE,\n"
-            + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-            + "    FROM\n"
-            + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
-            + "    UNION\n"
-            + "    SELECT\n"
-            + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
-            + "      B.TYPE_NAME PARENT_TYPE,\n"
-            + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
-            + "      B.ATTR_NO ATTR_NO,\n"
-            + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-            + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-            + "      B.LENGTH LENGTH,\n"
-            + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-            + "      B.SCALE SCALE,\n"
-            + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-            + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
-            + ") ,\n"
-            + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
-            + "AS (\n"
-            + "  SELECT\n"
-            + "    1 DEPTH,\n"
-            + "    PARENT_OWNER,\n"
-            + "    PARENT_TYPE,\n"
-            + "    CHILD_TYPE,\n"
-            + "    ATTR_NO,\n"
-            + "    CHILD_TYPE_OWNER,\n"
-            + "    ATTR_TYPE_CODE,\n"
-            + "    LENGTH,\n"
-            + "    NUMBER_PRECISION,\n"
-            + "    SCALE, CHARACTER_SET_NAME\n"
-            + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
-            + "  UNION ALL\n"
-            + "  SELECT\n"
-            + "    DEPTH + 1 DEPTH,\n"
-            + "    CTE_RESULT.PARENT_OWNER,\n"
-            + "    CTE_RESULT.PARENT_TYPE,\n"
-            + "    CTE_RESULT.CHILD_TYPE,\n"
-            + "    CTE_RESULT.ATTR_NO,\n"
-            + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
-            + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
-            + "    CTE_RESULT.LENGTH,\n"
-            + "    CTE_RESULT.NUMBER_PRECISION,\n"
-            + "    CTE_RESULT.SCALE,\n"
-            + "    CTE_RESULT.CHARACTER_SET_NAME\n"
-            + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
-            + ")\n" + "SELECT * FROM CTE\n"
-            + ");";
+    private int                      origPortToConnectTo;
+    private String                   origDatabaseToConnectTo;
+    private java.sql.Connection      complexConnection            = null;
+    private static final String      complexTypeSql               = "SELECT\n"
+                                                                    + "  0 DEPTH,\n"
+                                                                    + "  NULL PARENT_OWNER,\n"
+                                                                    + "  NULL PARENT_TYPE,\n"
+                                                                    + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "  0 ATTR_NO,\n"
+                                                                    + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
+                                                                    + "  A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "  NULL LENGTH,\n"
+                                                                    + "  NULL NUMBER_PRECISION,\n"
+                                                                    + "  NULL SCALE,\n"
+                                                                    + "  NULL CHARACTER_SET_NAME\n"
+                                                                    + "FROM\n"
+                                                                    + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
+                                                                    + "UNION\n"
+                                                                    + "(\n"
+                                                                    + "WITH \n"
+                                                                    + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
+                                                                    + "AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      0 ATTR_NO,\n"
+                                                                    + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM\n"
+                                                                    + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
+                                                                    + "    UNION\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      B.ATTR_NO ATTR_NO,\n"
+                                                                    + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
+                                                                    + ") ,\n"
+                                                                    + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "AS (\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    1 DEPTH,\n"
+                                                                    + "    PARENT_OWNER,\n"
+                                                                    + "    PARENT_TYPE,\n"
+                                                                    + "    CHILD_TYPE,\n"
+                                                                    + "    ATTR_NO,\n"
+                                                                    + "    CHILD_TYPE_OWNER,\n"
+                                                                    + "    ATTR_TYPE_CODE,\n"
+                                                                    + "    LENGTH,\n"
+                                                                    + "    NUMBER_PRECISION,\n"
+                                                                    + "    SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
+                                                                    + "  UNION ALL\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    DEPTH + 1 DEPTH,\n"
+                                                                    + "    CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "    CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "    CTE_RESULT.ATTR_NO,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "    CTE_RESULT.LENGTH,\n"
+                                                                    + "    CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "    CTE_RESULT.SCALE,\n"
+                                                                    + "    CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
+                                                                    + ")\n" + "SELECT * FROM CTE\n"
+                                                                    + ");";
 
-    private static final String complexAllTypeSql = "SELECT\n"
-            + "    0 DEPTH,\n"
-            + "    NULL PARENT_OWNER,\n"
-            + "    NULL PARENT_TYPE,\n"
-            + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
-            + "    0 ATTR_NO,\n"
-            + "    OWNER CHILD_TYPE_OWNER,\n"
-            + "    A.TYPECODE ATTR_TYPE_CODE,\n"
-            + "    NULL LENGTH,\n"
-            + "    NULL NUMBER_PRECISION,\n"
-            + "    NULL SCALE,\n"
-            + "    NULL CHARACTER_SET_NAME\n"
-            + "  FROM\n"
-            + "    ALL_TYPES A WHERE TYPE_NAME = ? AND OWNER = ?\n"
-            + "  UNION\n"
-            + "  (\n"
-            + "  WITH\n"
-            + "  CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
-            + "  AS (\n"
-            + "      SELECT\n"
-            + "        B.OWNER PARENT_OWNER,\n"
-            + "        B.TYPE_NAME PARENT_TYPE,\n"
-            + "        B.ELEM_TYPE_NAME CHILD_TYPE,\n"
-            + "        0 ATTR_NO,\n"
-            + "        B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-            + "        NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-            + "        B.LENGTH LENGTH,\n"
-            + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-            + "        B.SCALE SCALE,\n"
-            + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-            + "      FROM\n"
-            + "        ALL_COLL_TYPES B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME AND A.OWNER = B.ELEM_TYPE_OWNER\n"
-            + "      UNION\n"
-            + "      SELECT\n"
-            + "        B.OWNER PARENT_OWNER,\n"
-            + "        B.TYPE_NAME PARENT_TYPE,\n"
-            + "        B.ATTR_TYPE_NAME CHILD_TYPE,\n"
-            + "        B.ATTR_NO ATTR_NO,\n"
-            + "        B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-            + "        NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-            + "        B.LENGTH LENGTH,\n"
-            + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-            + "        B.SCALE SCALE,\n"
-            + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-            + "      FROM ALL_TYPE_ATTRS B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ATTR_TYPE_NAME AND A.OWNER = B.ATTR_TYPE_OWNER ORDER BY ATTR_NO\n"
-            + "  ) ,\n"
-            + "  CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
-            + "  AS (\n"
-            + "    SELECT\n"
-            + "      1 DEPTH,\n"
-            + "      PARENT_OWNER,\n"
-            + "      PARENT_TYPE,\n"
-            + "      CHILD_TYPE,\n"
-            + "      ATTR_NO,\n"
-            + "      CHILD_TYPE_OWNER,\n"
-            + "      ATTR_TYPE_CODE,\n"
-            + "      LENGTH,\n"
-            + "      NUMBER_PRECISION,\n"
-            + "      SCALE, CHARACTER_SET_NAME\n"
-            + "    FROM CTE_RESULT WHERE PARENT_TYPE = ? AND PARENT_OWNER = ?\n"
-            + "    UNION ALL\n"
-            + "    SELECT\n"
-            + "      DEPTH + 1 DEPTH,\n"
-            + "      CTE_RESULT.PARENT_OWNER,\n"
-            + "      CTE_RESULT.PARENT_TYPE,\n"
-            + "      CTE_RESULT.CHILD_TYPE,\n"
-            + "      CTE_RESULT.ATTR_NO,\n"
-            + "      CTE_RESULT.CHILD_TYPE_OWNER,\n"
-            + "      CTE_RESULT.ATTR_TYPE_CODE,\n"
-            + "      CTE_RESULT.LENGTH,\n"
-            + "      CTE_RESULT.NUMBER_PRECISION,\n"
-            + "      CTE_RESULT.SCALE,\n"
-            + "      CTE_RESULT.CHARACTER_SET_NAME\n"
-            + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
-            + "  )\n"
-            + "  SELECT * FROM CTE\n"
-            + "  );";
+    private static final String      complexAllTypeSql            = "SELECT\n"
+                                                                    + "    0 DEPTH,\n"
+                                                                    + "    NULL PARENT_OWNER,\n"
+                                                                    + "    NULL PARENT_TYPE,\n"
+                                                                    + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "    0 ATTR_NO,\n"
+                                                                    + "    OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "    A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "    NULL LENGTH,\n"
+                                                                    + "    NULL NUMBER_PRECISION,\n"
+                                                                    + "    NULL SCALE,\n"
+                                                                    + "    NULL CHARACTER_SET_NAME\n"
+                                                                    + "  FROM\n"
+                                                                    + "    ALL_TYPES A WHERE TYPE_NAME = ? AND OWNER = ?\n"
+                                                                    + "  UNION\n"
+                                                                    + "  (\n"
+                                                                    + "  WITH\n"
+                                                                    + "  CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        0 ATTR_NO,\n"
+                                                                    + "        B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM\n"
+                                                                    + "        ALL_COLL_TYPES B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME AND A.OWNER = B.ELEM_TYPE_OWNER\n"
+                                                                    + "      UNION\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        B.ATTR_NO ATTR_NO,\n"
+                                                                    + "        B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM ALL_TYPE_ATTRS B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ATTR_TYPE_NAME AND A.OWNER = B.ATTR_TYPE_OWNER ORDER BY ATTR_NO\n"
+                                                                    + "  ) ,\n"
+                                                                    + "  CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      1 DEPTH,\n"
+                                                                    + "      PARENT_OWNER,\n"
+                                                                    + "      PARENT_TYPE,\n"
+                                                                    + "      CHILD_TYPE,\n"
+                                                                    + "      ATTR_NO,\n"
+                                                                    + "      CHILD_TYPE_OWNER,\n"
+                                                                    + "      ATTR_TYPE_CODE,\n"
+                                                                    + "      LENGTH,\n"
+                                                                    + "      NUMBER_PRECISION,\n"
+                                                                    + "      SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT WHERE PARENT_TYPE = ? AND PARENT_OWNER = ?\n"
+                                                                    + "    UNION ALL\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      DEPTH + 1 DEPTH,\n"
+                                                                    + "      CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "      CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "      CTE_RESULT.ATTR_NO,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "      CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "      CTE_RESULT.LENGTH,\n"
+                                                                    + "      CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "      CTE_RESULT.SCALE,\n"
+                                                                    + "      CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
+                                                                    + "  )\n"
+                                                                    + "  SELECT * FROM CTE\n"
+                                                                    + "  );";
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -260,7 +260,7 @@ public class OceanBaseConnection implements Connection {
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache
-                    .newInstance(options.callableStmtCacheSize);
+                .newInstance(options.callableStmtCacheSize);
         }
         this.lock = protocol.getLock();
         this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
@@ -272,7 +272,7 @@ public class OceanBaseConnection implements Connection {
     }
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
-            throws SQLException {
+                                                                                             throws SQLException {
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         ;
         this.urlParser = urlParser;
@@ -284,7 +284,7 @@ public class OceanBaseConnection implements Connection {
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache
-                    .newInstance(options.callableStmtCacheSize);
+                .newInstance(options.callableStmtCacheSize);
         }
         this.lock = protocol.getLock();
         this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
@@ -304,7 +304,7 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if any connection error occur
      */
     public static OceanBaseConnection newConnection(UrlParser urlParser, GlobalStateInfo globalInfo)
-            throws SQLException {
+                                                                                                    throws SQLException {
         if (urlParser.getOptions().pool) {
             return Pools.retrievePool(urlParser).getConnection();
         }
@@ -327,7 +327,7 @@ public class OceanBaseConnection implements Connection {
     @Deprecated
     public static String unquoteIdentifier(String string) {
         if (string != null && string.startsWith("`") && string.endsWith("`")
-                && string.length() >= 2) {
+            && string.length() >= 2) {
             return string.substring(1, string.length() - 1).replace("``", "`");
         }
         return string;
@@ -346,7 +346,7 @@ public class OceanBaseConnection implements Connection {
     public Statement createStatement() throws SQLException {
         checkConnection();
         return new OceanBaseStatement(this, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, exceptionFactory);
+            ResultSet.CONCUR_READ_ONLY, exceptionFactory);
     }
 
     /**
@@ -391,7 +391,7 @@ public class OceanBaseConnection implements Connection {
     private void checkConnection() throws SQLException {
         if (protocol.isExplicitClosed()) {
             throw exceptionFactory.create("createStatement() is called on closed connection",
-                    "08000");
+                "08000");
         }
         if (protocol.isClosed() && protocol.getProxy() != null) {
             lock.lock();
@@ -412,7 +412,7 @@ public class OceanBaseConnection implements Connection {
      */
     public ClientSidePreparedStatement clientPrepareStatement(final String sql) throws SQLException {
         return new ClientSidePreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
+            ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
     }
 
     /**
@@ -424,7 +424,7 @@ public class OceanBaseConnection implements Connection {
      */
     public ServerSidePreparedStatement serverPrepareStatement(final String sql) throws SQLException {
         return new ServerSidePreparedStatement(false, this, sql, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
+            ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
     }
 
     /**
@@ -436,7 +436,7 @@ public class OceanBaseConnection implements Connection {
      */
     public PreparedStatement prepareStatement(final String sql) throws SQLException {
         return internalPrepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
+            ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -461,7 +461,7 @@ public class OceanBaseConnection implements Connection {
     public PreparedStatement prepareStatement(final String sql, final int resultSetType,
                                               final int resultSetConcurrency) throws SQLException {
         return internalPrepareStatement(sql, resultSetType, resultSetConcurrency,
-                Statement.NO_GENERATED_KEYS);
+            Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -492,7 +492,7 @@ public class OceanBaseConnection implements Connection {
                                               final int resultSetConcurrency,
                                               final int resultSetHoldability) throws SQLException {
         return internalPrepareStatement(sql, resultSetType, resultSetConcurrency,
-                Statement.NO_GENERATED_KEYS);
+            Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -524,9 +524,9 @@ public class OceanBaseConnection implements Connection {
      *                      whether auto-generated keys should be returned
      */
     public PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys)
-            throws SQLException {
+                                                                                            throws SQLException {
         return internalPrepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, autoGeneratedKeys);
+            ResultSet.CONCUR_READ_ONLY, autoGeneratedKeys);
     }
 
     /**
@@ -562,7 +562,7 @@ public class OceanBaseConnection implements Connection {
      *                      connection
      */
     public PreparedStatement prepareStatement(final String sql, final int[] columnIndexes)
-            throws SQLException {
+                                                                                          throws SQLException {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
@@ -599,7 +599,7 @@ public class OceanBaseConnection implements Connection {
      *                      connection
      */
     public PreparedStatement prepareStatement(final String sql, final String[] columnNames)
-            throws SQLException {
+                                                                                           throws SQLException {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
@@ -635,7 +635,7 @@ public class OceanBaseConnection implements Connection {
                                                        final int resultSetScrollType,
                                                        final int resultSetConcurrency,
                                                        final int autoGeneratedKeys)
-            throws SQLException {
+                                                                                   throws SQLException {
 
         if (sql != null) {
 
@@ -648,8 +648,8 @@ public class OceanBaseConnection implements Connection {
                 checkConnection();
                 try {
                     return new ServerSidePreparedStatement(false, this, sqlQuery,
-                            resultSetScrollType, resultSetConcurrency, autoGeneratedKeys,
-                            exceptionFactory);
+                        resultSetScrollType, resultSetConcurrency, autoGeneratedKeys,
+                        exceptionFactory);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -658,7 +658,7 @@ public class OceanBaseConnection implements Connection {
                 }
             }
             return new ClientSidePreparedStatement(this, sqlQuery, resultSetScrollType,
-                    resultSetConcurrency, autoGeneratedKeys, exceptionFactory);
+                resultSetConcurrency, autoGeneratedKeys, exceptionFactory);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }
@@ -710,8 +710,8 @@ public class OceanBaseConnection implements Connection {
         Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
         if (!matcher.matches()) {
             throw new SQLSyntaxErrorException(
-                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
-                            + sql);
+                "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+                        + sql);
         }
 
         String query = Utils.nativeSql(matcher.group(2), protocol);
@@ -730,7 +730,7 @@ public class OceanBaseConnection implements Connection {
             if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
                 try {
                     CallableStatement callableStatement = callableStatementCache
-                            .get(new CallableStatementCacheKey(database, query));
+                        .get(new CallableStatementCacheKey(database, query));
                     if (callableStatement != null) {
                         // Clone to avoid side effect like having some open resultSet.
                         return ((CloneableCallableStatement) callableStatement).clone(this);
@@ -740,14 +740,14 @@ public class OceanBaseConnection implements Connection {
                 }
             }
             CallableStatement callableStatement = createNewCallableStatement(query, procedureName,
-                    isFunction, databaseAndProcedure, database, arguments, resultSetType,
-                    resultSetConcurrency, exceptionFactory);
+                isFunction, databaseAndProcedure, database, arguments, resultSetType,
+                resultSetConcurrency, exceptionFactory);
             callableStatementCache.put(new CallableStatementCacheKey(database, query),
-                    callableStatement);
+                callableStatement);
             return callableStatement;
         }
         return createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure,
-                database, arguments, resultSetType, resultSetConcurrency, exceptionFactory);
+            database, arguments, resultSetType, resultSetConcurrency, exceptionFactory);
     }
 
     /**
@@ -786,21 +786,21 @@ public class OceanBaseConnection implements Connection {
                                                          int resultSetType,
                                                          final int resultSetConcurrency,
                                                          ExceptionFactory exceptionFactory)
-            throws SQLException {
+                                                                                           throws SQLException {
         if (isFunction) {
             if (!this.getProtocol().isOracleMode()) {
                 return new OceanBaseFunctionStatement(this, database, databaseAndProcedure,
-                        (arguments == null) ? "()" : arguments, resultSetType, resultSetConcurrency,
-                        exceptionFactory);
+                    (arguments == null) ? "()" : arguments, resultSetType, resultSetConcurrency,
+                    exceptionFactory);
             } else {
                 return new OceanBaseProcedureStatement(true, "SELECT " + databaseAndProcedure
-                        + arguments + " FROM DUAL", this,
-                        databaseAndProcedure, database, resultSetType, resultSetConcurrency,
-                        exceptionFactory);
+                                                             + arguments + " FROM DUAL", this,
+                    databaseAndProcedure, database, resultSetType, resultSetConcurrency,
+                    exceptionFactory);
             }
         } else {
             return new OceanBaseProcedureStatement(false, query, this, procedureName, database,
-                    resultSetType, resultSetConcurrency, exceptionFactory);
+                resultSetType, resultSetConcurrency, exceptionFactory);
         }
     }
 
@@ -944,7 +944,7 @@ public class OceanBaseConnection implements Connection {
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
             logger.debug("conn={}({}) - set read-only to value {} {}",
-                    protocol.getServerThreadId(), protocol.isMasterConnection() ? "M" : "S", readOnly);
+                protocol.getServerThreadId(), protocol.isMasterConnection() ? "M" : "S", readOnly);
             stateFlag |= ConnectionState.STATE_READ_ONLY;
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
@@ -1023,7 +1023,7 @@ public class OceanBaseConnection implements Connection {
 
         if (!protocol.isServerMariaDb()) {
             if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-                    || (protocol.getMajorServerVersion() < 8 && protocol
+                || (protocol.getMajorServerVersion() < 8 && protocol
                     .versionGreaterOrEqual(5, 7, 20))) {
                 sql = "SELECT @@transaction_isolation";
             }
@@ -1047,8 +1047,8 @@ public class OceanBaseConnection implements Connection {
 
                 default:
                     throw exceptionFactory.create(String
-                            .format("Could not get transaction isolation level: Invalid value \"%s\"",
-                                    response));
+                        .format("Could not get transaction isolation level: Invalid value \"%s\"",
+                            response));
             }
         }
         throw exceptionFactory.create("Failed to retrieve transaction isolation");
@@ -1136,7 +1136,7 @@ public class OceanBaseConnection implements Connection {
     public void clearWarnings() throws SQLException {
         if (this.isClosed()) {
             throw exceptionFactory
-                    .create("Connection.clearWarnings cannot be called on a closed connection");
+                .create("Connection.clearWarnings cannot be called on a closed connection");
         }
         warningsCleared = true;
     }
@@ -1408,7 +1408,7 @@ public class OceanBaseConnection implements Connection {
                 while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
                     if (charValue == '\'' || charValue == '\\' || charValue == '"'
-                            || charValue == 0) {
+                        || charValue == 0) {
                         escapeQuery.append('\\'); // add escape slash
                     }
                     escapeQuery.append(charValue);
@@ -1617,15 +1617,15 @@ public class OceanBaseConnection implements Connection {
         if (getCacheComplexData()) {
             synchronized (this.complexDataCache) {
                 attrType = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
-                        .get(typeName.toUpperCase());
+                    .get(typeName.toUpperCase());
                 if (null != attrType && attrType.isValid()) {
                     fetchTypeFromRemote = false;
                 } else if (null == attrType
-                        && ComplexDataType.isBaseDataType(ComplexDataType
-                        .getObComplexType(typeName))) {
+                           && ComplexDataType.isBaseDataType(ComplexDataType
+                               .getObComplexType(typeName))) {
                     fetchTypeFromRemote = false;
                     attrType = new ComplexDataType(typeName, this.getSchema(),
-                            ComplexDataType.getObComplexType(typeName));
+                        ComplexDataType.getObComplexType(typeName));
                 }
             }
         }
@@ -1637,7 +1637,7 @@ public class OceanBaseConnection implements Connection {
             throw exceptionFactory.notSupported("array element is still array is not supported");
         }
         ComplexDataType parentType = new ComplexDataType("", this.getSchema(),
-                ComplexDataType.TYPE_COLLECTION);
+            ComplexDataType.TYPE_COLLECTION);
         parentType.setAttrCount(1);
         parentType.setAttrType(0, attrType);
         ArrayImpl array = new ArrayImpl(parentType);
@@ -1671,14 +1671,14 @@ public class OceanBaseConnection implements Connection {
     public ComplexDataType getComplexDataTypeFromCache(String typeName) {
         synchronized (this.complexDataCache) {
             return (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
-                    .get(typeName.toUpperCase());
+                .get(typeName.toUpperCase());
         }
     }
 
     private java.sql.Connection getComplexConnection() throws SQLException {
         if (null == this.complexConnection || this.complexConnection.isClosed()) {
             this.complexConnection = new OceanBaseConnection(this.protocol.getUrlParser(),
-                    this.globalStateInfo, true); // duplicate a new connection todo
+                this.globalStateInfo, true); // duplicate a new connection todo
         }
         return this.complexConnection;
     }
@@ -1686,10 +1686,10 @@ public class OceanBaseConnection implements Connection {
     public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
         try {
             java.sql.Connection conn = this.getComplexConnection(); // NOPMD
-//            java.sql.Connection conn = null;
+            //            java.sql.Connection conn = null;
             //            java.sql.Connection conn = this.getComplexConnection();
             java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
-                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             //
             //            java.sql.PreparedStatement ps = this.prepareStatement(complexTypeSql,
             //                  ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -1705,7 +1705,7 @@ public class OceanBaseConnection implements Connection {
                 ps.close();
 
                 ps = this.prepareStatement(complexAllTypeSql, ResultSet.TYPE_SCROLL_INSENSITIVE,
-                        ResultSet.CONCUR_READ_ONLY);
+                    ResultSet.CONCUR_READ_ONLY);
                 ps.setString(1, typeName.toUpperCase());
                 ps.setString(2, "SYS");
                 ps.setString(3, typeName.toUpperCase());
@@ -1721,7 +1721,7 @@ public class OceanBaseConnection implements Connection {
                     complexType = getComplexDataTypeFromCache(childTypeName);
                     if (null == complexType) {
                         complexType = new ComplexDataType(childTypeName,
-                                rs.getString(CHILD_OWNER_INDEX), type);
+                            rs.getString(CHILD_OWNER_INDEX), type);
                         complexType.setValid(false);
                         recacheComplexDataType(complexType);
                     } else {
@@ -1742,7 +1742,7 @@ public class OceanBaseConnection implements Connection {
                     ComplexDataType parentType = getComplexDataTypeFromCache(parentTypeName);
                     int attrIndex = rs.getInt(ATTR_NO_INDEX);
                     if (ComplexDataType.TYPE_OBJECT == parentType.getType()
-                            && parentType.getAttrCount() < attrIndex) {
+                        && parentType.getAttrCount() < attrIndex) {
                         parentType.setAttrCount(attrIndex);
                     }
                 }
@@ -1758,10 +1758,10 @@ public class OceanBaseConnection implements Connection {
 
                     if (parentComplexType.getType() == ComplexDataType.TYPE_OBJECT) {
                         parentComplexType
-                                .setAttrType(rs.getInt(ATTR_NO_INDEX) - 1, attrComplexType);
+                            .setAttrType(rs.getInt(ATTR_NO_INDEX) - 1, attrComplexType);
                         parentComplexType.incInitAttrCount();
                         if (parentComplexType.getInitAttrCount() == parentComplexType
-                                .getAttrCount()) {
+                            .getAttrCount()) {
                             parentComplexType.setValid(true);
                         }
                     } else if (parentComplexType.getType() == ComplexDataType.TYPE_COLLECTION) {
@@ -1796,7 +1796,7 @@ public class OceanBaseConnection implements Connection {
      *                      on a closed connection
      */
     public Struct createStruct(final String typeName, final Object[] attributes)
-            throws SQLException {
+                                                                                throws SQLException {
         if (!this.getProtocol().isOracleMode()) {
             throw exceptionFactory.notSupported("Struct type is not supported");
         }
@@ -1805,7 +1805,7 @@ public class OceanBaseConnection implements Connection {
         if (getCacheComplexData()) { // todo
             synchronized (this.complexDataCache) {
                 type = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
-                        .get(typeName.toUpperCase());
+                    .get(typeName.toUpperCase());
                 if (null != type && type.isValid()) {
                     fetchTypeFromRemote = false;
                 }
@@ -1843,7 +1843,7 @@ public class OceanBaseConnection implements Connection {
             }
         } catch (Exception e) {
             throw new SQLException(
-                    "The receiver is not a wrapper and does not implement the interface");
+                "The receiver is not a wrapper and does not implement the interface");
         }
     }
 
@@ -1988,11 +1988,11 @@ public class OceanBaseConnection implements Connection {
     public void setNetworkTimeout(Executor executor, final int milliseconds) throws SQLException {
         if (this.isClosed()) {
             throw exceptionFactory
-                    .create("Connection.setNetworkTimeout cannot be called on a closed connection");
+                .create("Connection.setNetworkTimeout cannot be called on a closed connection");
         }
         if (milliseconds < 0) {
             throw exceptionFactory
-                    .create("Connection.setNetworkTimeout cannot be called with a negative timeout");
+                .create("Connection.setNetworkTimeout cannot be called with a negative timeout");
         }
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
         SecurityManager securityManager = System.getSecurityManager();
@@ -2034,12 +2034,12 @@ public class OceanBaseConnection implements Connection {
         // correction.
         // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
         boolean useComReset = options.useResetConnection
-                && protocol.isServerMariaDb()
-                && (protocol.versionGreaterOrEqual(10, 3, 13) || (protocol
-                .getMajorServerVersion() == 10
-                && protocol
-                .getMinorServerVersion() == 2 && protocol
-                .versionGreaterOrEqual(10, 2, 22)));
+                              && protocol.isServerMariaDb()
+                              && (protocol.versionGreaterOrEqual(10, 3, 13) || (protocol
+                                  .getMajorServerVersion() == 10
+                                                                                && protocol
+                                                                                    .getMinorServerVersion() == 2 && protocol
+                                  .versionGreaterOrEqual(10, 2, 22)));
 
         if (useComReset) {
             protocol.reset();

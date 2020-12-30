@@ -11,11 +11,11 @@ import com.alipay.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class OceanBaseProcedureStatement extends CallableProcedureStatement implements
-        CloneableCallableStatement {
+                                                                           CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
 
-    private boolean isObFunction = false;
+    private boolean         isObFunction    = false;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -36,20 +36,20 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
                                        OceanBaseConnection connection, String procedureName,
                                        String database, int resultSetType,
                                        int resultSetConcurrency, ExceptionFactory exceptionFactory)
-            throws SQLException {
+                                                                                                   throws SQLException {
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
-                exceptionFactory);
+            exceptionFactory);
         this.isObFunction = isObFunction;
         if (!this.connection.getProtocol().isOracleMode()) {
             this.parameterMetadata = new CallableParameterMetaData(connection, database,
-                    procedureName, false);
+                procedureName, false);
             this.parameterMetadata.readMetadataFromDbIfRequired(query);
         } else {
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
-                    procedureName, isObFunction);
+                procedureName, isObFunction);
             this.parameterMetadata.readMetadataFromDbIfRequired();
         }
-//        determineParameterTypes(query,database,procedureName);
+        //        determineParameterTypes(query,database,procedureName);
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
@@ -92,7 +92,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
 
             for (int index = 0; index < params.size(); index++) {
                 outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++
-                        : -1;
+                    : -1;
             }
         }
     }
@@ -127,7 +127,7 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
      * @throws CloneNotSupportedException if any error occur.
      */
     public OceanBaseProcedureStatement clone(OceanBaseConnection connection)
-            throws CloneNotSupportedException {
+                                                                            throws CloneNotSupportedException {
         OceanBaseProcedureStatement clone = (OceanBaseProcedureStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
@@ -142,14 +142,14 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
     }
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder)
-            throws SQLException {
+                                                                                    throws SQLException {
         params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
 
-    private final  String PARAMETER_NAMESPACE_PREFIX     = "@com_mysql_jdbc_outparam_";
+    private final String PARAMETER_NAMESPACE_PREFIX = "@com_mysql_jdbc_outparam_";
 
-    private  String mangleParameterName(String origParameterName) {
+    private String mangleParameterName(String origParameterName) {
         //Fixed for 5.5+ in callers
         if (origParameterName == null) {
             return null;
@@ -162,52 +162,52 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         }
 
         StringBuilder paramNameBuf = new StringBuilder(PARAMETER_NAMESPACE_PREFIX.length()
-                + origParameterName.length());
+                                                       + origParameterName.length());
         paramNameBuf.append(PARAMETER_NAMESPACE_PREFIX);
         paramNameBuf.append(origParameterName.substring(offset));
 
         return paramNameBuf.toString();
     }
-    private void setInOutParamsOnServer() throws SQLException{
+
+    private void setInOutParamsOnServer() throws SQLException {
         int size = this.params.size();
         setInputOutputParameterMap();
-        for (int i = 0;i<size;i++) {
+        for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
-            if ( inParamInfo.isInput() && inParamInfo.isOutput()) {
+            if (inParamInfo.isInput() && inParamInfo.isOutput()) {
                 String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                StringBuilder queryBuf = new StringBuilder(
-                        4 + inOutParameterName.length() + 1 + 1);
-                ParameterHolder  holder = currentParameterHolder.get(i);
+                StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
+                ParameterHolder holder = currentParameterHolder.get(i);
                 queryBuf.append("SET ");
                 queryBuf.append(inOutParameterName);
                 queryBuf.append("=");
                 if (holder.toString() == "<null>") {
                     queryBuf.append("null");
                 } else {
-//                    queryBuf.append("'");
+                    //                    queryBuf.append("'");
                     queryBuf.append(holder.toString());
-//                    queryBuf.append("'");
+                    //                    queryBuf.append("'");
                 }
 
-                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`","$1");
+                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
                 this.connection.createStatement().execute(query);
             }
         }
         boolean afterFirst = false;
         int index = sql.indexOf('?');
         StringBuilder querySB = new StringBuilder();
-        querySB.append(sql.substring(0,index));
-        for (int i = 0;i<size;i++) {
+        querySB.append(sql.substring(0, index));
+        for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
             if (afterFirst) {
                 querySB.append(",");
             }
             if (inParamInfo.isOutput()) {
                 String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`","$1");
+                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                 querySB.append(inOutParameterName);
             } else {
-                ParameterHolder  holder = currentParameterHolder.get(i);
+                ParameterHolder holder = currentParameterHolder.get(i);
                 if (holder.toString() == "<null>") {
                     querySB.append("null");
                 } else {
@@ -222,43 +222,45 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         selectSB.append("SELECT ");
         afterFirst = false;
         boolean getResult = false;
-        for (int i = 0;i<size;i++) {
+        for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
             if (afterFirst) {
                 selectSB.append(",");
             }
             if (inParamInfo.isOutput()) {
                 String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`","$1");
+                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                 selectSB.append(inOutParameterName);
                 afterFirst = true;
                 getResult = true;
             }
         }
         if (getResult) {
-            ResultSet resultSet = this.connection.createStatement().executeQuery(selectSB.toString());
+            ResultSet resultSet = this.connection.createStatement().executeQuery(
+                selectSB.toString());
             resultSet.next();
             outputResultSet = (SelectResultSet) resultSet;
         }
     }
-    private void executeProcedureOnServer() throws SQLException{
+
+    private void executeProcedureOnServer() throws SQLException {
         int size = this.params.size();
-        for (int i = 0;i<size;i++) {
+        for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
             if (inParamInfo.isInput() || inParamInfo.isOutput()) {
                 String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                StringBuilder queryBuf = new StringBuilder(
-                        4 + inOutParameterName.length() + 1 + 1);
-                ParameterHolder  holder = currentParameterHolder.get(i);
+                StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
+                ParameterHolder holder = currentParameterHolder.get(i);
                 queryBuf.append("call ");
                 queryBuf.append(inOutParameterName);
                 queryBuf.append("");
                 queryBuf.append(holder.toString());
-                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`","$1");
+                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
                 this.connection.createStatement().execute(query);
             }
         }
     }
+
     @Override
     public boolean execute() throws SQLException {
         connection.lock.lock();

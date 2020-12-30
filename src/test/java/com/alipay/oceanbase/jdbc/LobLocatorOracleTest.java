@@ -434,7 +434,9 @@ public class LobLocatorOracleTest extends BaseOracleTest {
 
             conn = sharedPSLobConnection;
             Statement stmt = conn.createStatement();
-
+            //            if (sharedUsePrepare()) {
+            //                return;
+            //            }
             PreparedStatement pstmt = null;
             PreparedStatement pstmtt = null;
             pstmtt = conn.prepareStatement("");

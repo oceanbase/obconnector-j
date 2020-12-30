@@ -434,8 +434,8 @@ public class SelectResultSet implements ResultSet {
         if (dataSize + 1 >= data.length) {
             growDataArray();
         }
-//        Buffer buffer = new Buffer(buf, buf.length);
-//        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
+        //        Buffer buffer = new Buffer(buf, buf.length);
+        //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
         data[dataSize++] = buf;
         return true;
     }

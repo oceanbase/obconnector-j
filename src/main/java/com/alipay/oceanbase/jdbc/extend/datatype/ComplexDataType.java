@@ -109,7 +109,7 @@ public class ComplexDataType {
             return TYPE_OBJECT;
         }
         if (attrType.equalsIgnoreCase("NUMBER") || attrType.equalsIgnoreCase("INTEGER")
-                || attrType.equalsIgnoreCase("DECIMAL")) {
+            || attrType.equalsIgnoreCase("DECIMAL")) {
             return TYPE_NUMBER;
         }
         if (attrType.equalsIgnoreCase("VARCHAR2") || attrType.equalsIgnoreCase("VARCHAR")) {

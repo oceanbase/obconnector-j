@@ -7,10 +7,10 @@ import java.util.regex.Pattern;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static final Pattern PARAMETER_PATTERN = Pattern
-            .compile(
-                    "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                    Pattern.CASE_INSENSITIVE);
+    private static final Pattern        PARAMETER_PATTERN = Pattern
+                                                              .compile(
+                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                  Pattern.CASE_INSENSITIVE);
     private static final Pattern        RETURN_PATTERN    = Pattern
                                                               .compile(
                                                                   "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
@@ -64,6 +64,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         readMetadata();
         valid = true;
     }
+
     public void readMetadataFromDbIfRequired(String query) throws SQLException {
         if (valid) {
             return;

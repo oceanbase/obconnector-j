@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class FetchSizeTest extends BaseTest {
@@ -183,7 +184,7 @@ public class FetchSizeTest extends BaseTest {
 //    }
   }
 
-    @Test
+    @Ignore
   public void fetchSizePrepareCancel() throws SQLException {
     ifMaxscaleRequireMinimumVersion(2, 2);
     Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);

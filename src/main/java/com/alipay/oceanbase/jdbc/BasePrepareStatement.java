@@ -227,22 +227,34 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        if (this.connection.getProtocol().isOracleMode()
-            && (((OceanBaseBlob) blob).getLocator() != null)
-            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
-            byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
-            //            setParameter(parameterIndex, new OBByteArrayParameter(data, noBackslashEscapes));
-            setParameter(parameterIndex, new OBStreamParameter(true, data, blob.length(),
-                noBackslashEscapes));
-
-        } else {
-            if (this.connection.getProtocol().isOracleMode()) {
+        if (this.connection.getProtocol().isOracleMode()) {
+            if (((OceanBaseBlob) blob).getLocator() != null) {
+                if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
+                    setLobLocator(parameterIndex, blob);
+                } else {
+                    setParameter(parameterIndex, new OBStreamParameter(true,
+                        blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+                }
+            } else {
                 setParameter(parameterIndex, new OBStreamParameter(false, blob.getBinaryStream(),
                     blob.length(), noBackslashEscapes));
-            } else {
-                setParameter(parameterIndex,
-                    new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
             }
+        } else {
+            setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(),
+                noBackslashEscapes));
+        }
+        hasLongData = true;
+    }
+
+    public void setLobLocator(final int parameterIndex, final Blob blob) throws SQLException {
+        if (blob == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+        if (this.connection.getProtocol().isOracleMode()) {
+            byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
+            setParameter(parameterIndex, new OBStreamParameter(true, data, blob.length(),
+                noBackslashEscapes));
         }
         hasLongData = true;
     }

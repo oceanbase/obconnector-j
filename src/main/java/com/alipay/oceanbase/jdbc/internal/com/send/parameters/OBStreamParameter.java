@@ -50,8 +50,8 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        //pos.write(BINARY_INTRODUCER);
-        if (!hasLobLocator && is != null) {
+
+        if (is != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
                 pos.writeHex(is, false, noBackslashEscapes);
