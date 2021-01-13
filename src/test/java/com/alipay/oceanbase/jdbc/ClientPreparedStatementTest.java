@@ -195,7 +195,7 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.executeLargeBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("does not exist"));
+            assertTrue(e.getMessage().contains("doesn't exist"));
         }
     }
 
