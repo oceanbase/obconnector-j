@@ -11,7 +11,7 @@ import com.alipay.oceanbase.jdbc.internal.util.constant.Version;
 import com.alipay.oceanbase.jdbc.util.DefaultOptions;
 import com.alipay.oceanbase.jdbc.util.Options;
 
-public final class Driver implements java.sql.Driver {
+public class Driver implements java.sql.Driver {
 
     static {
         try {
