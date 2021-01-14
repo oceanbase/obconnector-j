@@ -222,13 +222,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     statement; if a database access error occurs or this method is called on a closed <code>
      *     PreparedStatement</code>
      */
-    public void setBlob(final int parameterIndex, final Blob blob) throws SQLException {
+    public void setBlob(final int parameterIndex, final java.sql.Blob blob) throws SQLException {
         if (blob == null) {
             setNull(parameterIndex, Types.BLOB);
             return;
         }
         if (this.connection.getProtocol().isOracleMode()) {
-            if (((OceanBaseBlob) blob).getLocator() != null) {
+            if (((Blob) blob).getLocator() != null) {
                 if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
                     setLobLocator(parameterIndex, blob);
                 } else {
@@ -246,13 +246,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         hasLongData = true;
     }
 
-    public void setLobLocator(final int parameterIndex, final Blob blob) throws SQLException {
+    public void setLobLocator(final int parameterIndex, final java.sql.Blob blob)
+                                                                                 throws SQLException {
         if (blob == null) {
             setNull(parameterIndex, Types.BLOB);
             return;
         }
         if (this.connection.getProtocol().isOracleMode()) {
-            byte[] data = ((OceanBaseBlob) blob).getLocator().binaryData;
+            byte[] data = ((com.alipay.oceanbase.jdbc.Blob) blob).getLocator().binaryData;
             setParameter(parameterIndex, new OBStreamParameter(true, data, blob.length(),
                 noBackslashEscapes));
         }
@@ -338,15 +339,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     statement; if a database access error occurs or this method is called on a closed <code>
      *     PreparedStatement</code>
      */
-    public void setClob(final int parameterIndex, final Clob clob) throws SQLException {
+    public void setClob(final int parameterIndex, final java.sql.Clob clob) throws SQLException {
         if (clob == null) {
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        if (this.connection.getProtocol().isOracleMode()
-            && (((OceanBaseBlob) clob).getLocator() != null)
+        if (this.connection.getProtocol().isOracleMode() && (((Blob) clob).getLocator() != null)
             && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
-            byte[] data = ((OceanBaseBlob) clob).getLocator().binaryData;
+            byte[] data = ((com.alipay.oceanbase.jdbc.Clob) clob).getLocator().binaryData;
             setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
                 noBackslashEscapes));
         } else {
@@ -969,8 +969,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setTimestamp(parameterIndex, new Timestamp(((java.util.Date) obj).getTime()));
         } else if (obj instanceof Boolean) {
             setBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
-            setBlob(parameterIndex, (Blob) obj);
+        } else if (obj instanceof java.sql.Blob) {
+            setBlob(parameterIndex, (java.sql.Blob) obj);
         } else if (obj instanceof InputStream) {
             setBinaryStream(parameterIndex, (InputStream) obj);
         } else if (obj instanceof Reader) {
@@ -979,8 +979,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setBigDecimal(parameterIndex, (BigDecimal) obj);
         } else if (obj instanceof BigInteger) {
             setString(parameterIndex, obj.toString());
-        } else if (obj instanceof Clob) {
-            setClob(parameterIndex, (Clob) obj);
+        } else if (obj instanceof java.sql.Clob) {
+            setClob(parameterIndex, (java.sql.Clob) obj);
         } else if (obj instanceof LocalDateTime) {
             setTimestamp(parameterIndex, Timestamp.valueOf((LocalDateTime) obj));
         } else if (obj instanceof Instant) {
@@ -1184,10 +1184,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
         } else if (obj instanceof Boolean) {
             setBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
-            setBlob(parameterIndex, (Blob) obj);
-        } else if (obj instanceof Clob) {
-            setClob(parameterIndex, (Clob) obj);
+        } else if (obj instanceof java.sql.Blob) {
+            setBlob(parameterIndex, (java.sql.Blob) obj);
+        } else if (obj instanceof java.sql.Clob) {
+            setClob(parameterIndex, (java.sql.Clob) obj);
         } else if (obj instanceof InputStream) {
             setBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
         } else if (obj instanceof Reader) {

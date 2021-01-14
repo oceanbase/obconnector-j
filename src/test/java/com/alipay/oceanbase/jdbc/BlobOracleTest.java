@@ -52,7 +52,7 @@ public class BlobOracleTest extends BaseOracleTest {
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         assertEquals(3, blob.position(pattern, 1));
         pattern = new byte[] { 12, 13 };
         assertEquals(-1, blob.position(pattern, 1));
@@ -66,7 +66,7 @@ public class BlobOracleTest extends BaseOracleTest {
     public void testBadStart() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         blob.position(pattern, 0);
     }
 
@@ -74,7 +74,7 @@ public class BlobOracleTest extends BaseOracleTest {
     public void testBadStart2() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         blob.position(pattern, 44);
     }
 
@@ -379,7 +379,7 @@ public class BlobOracleTest extends BaseOracleTest {
         Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
-        Clob clob = sharedConnection.createClob();
+        java.sql.Clob clob = sharedConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("Øhello", 0, 6);
         writer.flush();
@@ -399,7 +399,7 @@ public class BlobOracleTest extends BaseOracleTest {
     public void testPSClob3() throws Exception {
         PreparedStatement stmt = sharedPSConnection
             .prepareStatement("insert into BlobTestclobtest2_ps (strm) values (?)");
-        Clob clob = sharedPSConnection.createClob();
+        java.sql.Clob clob = sharedPSConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("Øhello", 0, 6);
         writer.flush();
@@ -516,7 +516,7 @@ public class BlobOracleTest extends BaseOracleTest {
         Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
-        Clob clob = sharedConnection.createClob();
+        java.sql.Clob clob = sharedConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
         ostream.write(bytes);
@@ -537,7 +537,7 @@ public class BlobOracleTest extends BaseOracleTest {
     public void testPSClob2() throws SQLException, IOException {
         PreparedStatement stmt = sharedPSConnection
             .prepareStatement("insert into BlobTestclobtest4_ps (id, strm) values (?,?)");
-        Clob clob = sharedPSConnection.createClob();
+        java.sql.Clob clob = sharedPSConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
         ostream.write(bytes);
@@ -553,26 +553,26 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void blobSerialization() throws Exception {
-        Blob blob = new OceanBaseBlob(new byte[] { 1, 2, 3 });
+        java.sql.Blob blob = new Blob(new byte[] { 1, 2, 3 });
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseBlob blob2 = (OceanBaseBlob) ois.readObject();
+        Blob blob2 = (Blob) ois.readObject();
         byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
         assertEquals(3, blobBytes.length);
         assertEquals(1, blobBytes[0]);
         assertEquals(2, blobBytes[1]);
         assertEquals(3, blobBytes[2]);
 
-        Clob clob = new OceanBaseClob(new byte[] { 1, 2, 3 });
+        java.sql.Clob clob = new Clob(new byte[] { 1, 2, 3 });
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
         blobBytes = c2.getBytes(1, (int) c2.length());
         assertEquals(3, blobBytes.length);
         assertEquals(1, blobBytes[0]);
@@ -583,14 +583,14 @@ public class BlobOracleTest extends BaseOracleTest {
     @Test
     public void conj73() throws Exception {
         /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-        Clob clob = new OceanBaseClob(new byte[] { (byte) 0x10, (byte) 0xD0, (byte) 0xA0,
+        java.sql.Clob clob = new Clob(new byte[] { (byte) 0x10, (byte) 0xD0, (byte) 0xA0,
                 (byte) 0xe0, (byte) 0xa1, (byte) 0x8e });
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
 
         assertEquals(3, c2.length());
     }
@@ -646,7 +646,7 @@ public class BlobOracleTest extends BaseOracleTest {
       try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
         int pos = 0;
         while (set.next()) {
-          final Blob blob = set.getBlob("text");
+          final java.sql.Blob blob = set.getBlob("text");
           if (blob != null) {
 
             try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
@@ -715,7 +715,7 @@ public class BlobOracleTest extends BaseOracleTest {
       try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test_ps")) {
         int pos = 0;
         while (set.next()) {
-          final Blob blob = set.getBlob("text");
+          final java.sql.Blob blob = set.getBlob("text");
           if (blob != null) {
 
             try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
@@ -747,7 +747,7 @@ public class BlobOracleTest extends BaseOracleTest {
     //try (Connection conn = setConnection()) {
     //  PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
     try (PreparedStatement ps = sharedConnection.prepareStatement("insert into emptyBlob values(?,?,?)")) {
-      ps.setBlob(1, new OceanBaseBlob(new byte[0]));
+      ps.setBlob(1, new Blob(new byte[0]));
       ps.setString(2, "a 'a ");
       ps.setNull(3, Types.VARCHAR);
       ps.executeUpdate();
@@ -768,7 +768,7 @@ public class BlobOracleTest extends BaseOracleTest {
     //try (Connection conn = setConnection()) {
     //  PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
     try (PreparedStatement ps = sharedPSConnection.prepareStatement("insert into emptyBlob_ps values(?,?,?)")) {
-      ps.setBlob(1, new OceanBaseBlob(new byte[0]));
+      ps.setBlob(1, new Blob(new byte[0]));
       ps.setString(2, "a 'a ");
       ps.setNull(3, Types.VARCHAR);
       ps.executeUpdate();
@@ -784,25 +784,25 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void blobSerializationWithOffset() throws Exception {
-        Blob blob = new OceanBaseBlob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
+        java.sql.Blob blob = new Blob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseBlob blob2 = (OceanBaseBlob) ois.readObject();
+        Blob blob2 = (Blob) ois.readObject();
         byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
         assertEquals(2, blobBytes.length);
         assertEquals(2, blobBytes[0]);
         assertEquals(3, blobBytes[1]);
 
-        Clob clob = new OceanBaseClob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
+        java.sql.Clob clob = new Clob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
         blobBytes = c2.getBytes(1, (int) c2.length());
         assertEquals(2, blobBytes.length);
         assertEquals(2, blobBytes[0]);
@@ -830,7 +830,7 @@ public class BlobOracleTest extends BaseOracleTest {
     for (int i = 0; i < 1000; i++) {
       bb[i] = (byte) i;
     }
-    OceanBaseBlob blob = new OceanBaseBlob(bb, 50, 750);
+    Blob blob = new Blob(bb, 50, 750);
 
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(bos);
@@ -879,7 +879,7 @@ public class BlobOracleTest extends BaseOracleTest {
       setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
     }
 
-    OceanBaseBlob resultBlob = (OceanBaseBlob) ois.readObject();
+    Blob resultBlob = (Blob) ois.readObject();
     assertEquals(750, resultBlob.data.length);
     assertEquals(0, resultBlob.offset);
     assertEquals(750, resultBlob.length);
@@ -892,7 +892,7 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void connectionBlob() throws SQLException {
-        Blob blob = sharedConnection.createBlob();
+        java.sql.Blob blob = sharedConnection.createBlob();
         assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
         blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
         assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
@@ -900,9 +900,110 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void connectionBlobPS() throws SQLException {
-        Blob blob = sharedPSConnection.createBlob();
+        java.sql.Blob blob = sharedPSConnection.createBlob();
         assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
         blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
         assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
+    }
+    public static Connection getObOracleConnection() throws Exception {
+        final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false&useServerPrepStmts=true&serverTimezone=UTC";
+        final String username = "admin@oracle";
+        final String password = "admin";
+        Class.forName("com.alipay.oceanbase.jdbc.Driver");
+        return DriverManager.getConnection(url, username, password);
+    }
+    public java.sql.Blob writeDataToBlob(ResultSet rs, int column, byte[] data)
+            throws SQLException
+    {
+        java.sql.Blob blob = rs.getBlob(column);
+        if (blob == null) {
+            throw new SQLException("Driver's Blob representation is null!");
+        }
+        if ((blob instanceof com.alipay.oceanbase.jdbc.Blob))
+        {
+            ((com.alipay.oceanbase.jdbc.Blob)blob).setBytes(1L, data);
+            return blob;
+        }
+        throw new SQLException("Driver's Blob representation is of an unsupported type: " + blob.getClass().getName());
+    }
+    @Test
+    public void insertJobDetail( ) //, JobDetail job)
+            throws Exception {
+        String tableName = "blobtest";
+        Connection conn = getObOracleConnection();
+        // ByteArrayOutputStream baos = serializeJobData(job.getJobDataMap());
+        //byte[] data = baos.toByteArray()
+                System.out.println("connect success");
+        byte[] data = "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".getBytes();
+        //new byte[] { 'a', 'b', 'c' };
+
+        int res = 0;
+        Statement st = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try
+        {
+            st = conn.createStatement();
+            st.execute("DELETE FROM "+ tableName);
+            st.close();
+            st = conn.createStatement();
+            st.execute("set autocommit=0");
+            st.close();
+
+            ps = conn.prepareStatement(("INSERT INTO " + tableName + " (JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE, IS_VOLATILE, IS_STATEFUL, REQUESTS_RECOVERY, JOB_DATA)  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+            ps.setString(1, "不定期新单信息生效");
+            ps.setString(2, "group1");
+            ps.setString(3, "不定期新单信息生效");
+            ps.setString(4, "com.chinalife.cis.moduals.uw.irregularuw.cooperatereceive.job.IrregularInsuredDataInfoEffetJob");
+            ps.setBoolean(5, false);
+            ps.setBoolean(6, false);
+            ps.setBoolean(7, false);
+            ps.setBoolean(8, false);
+
+            ps.setBinaryStream(9, null, 0);
+            ps.executeUpdate();
+            ps.close();
+
+            ps = conn.prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = EMPTY_BLOB()  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+
+            ps.setString(1, "不定期新单信息生效");
+            ps.setString(2, "group1");
+            ps.executeUpdate();
+            ps.close();
+
+            ps = conn.prepareStatement(("SELECT JOB_DATA FROM "+ tableName + " WHERE JOB_NAME = ? AND JOB_GROUP = ? FOR UPDATE"));
+            ps.setString(1, "不定期新单信息生效");
+            ps.setString(2, "group1");
+
+            rs = ps.executeQuery();
+
+            java.sql.Blob dbBlob = null;
+            if (rs.next()) {
+                dbBlob = writeDataToBlob(rs, 1, data);
+            } else {
+                return ;
+            }
+            rs.close();
+            ps.close();
+
+            ps = conn.prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = ?  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+            ps.setBlob(1, dbBlob);
+            ps.setString(2, "不定期新单信息生效");
+            ps.setString(3, "group1");
+            res = ps.executeUpdate();
+            ps.close();
+
+
+            st = conn.createStatement();
+            st.execute("commit");
+            st.close();
+
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
+        finally
+        {
+            conn.close();
+        }
     }
 }

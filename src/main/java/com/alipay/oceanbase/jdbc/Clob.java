@@ -3,7 +3,6 @@ package com.alipay.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -12,7 +11,7 @@ import java.util.Arrays;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Serializable {
+public class Clob extends Blob implements java.sql.Clob, java.sql.NClob, Serializable {
 
     private static final long serialVersionUID = -3066501059817815286L;
     private static int        maxLength        = 1 * 1024 * 1024 * 1024;
@@ -22,7 +21,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
      *
      * @param bytes the content for the Clob.
      */
-    public OceanBaseClob(byte[] bytes) {
+    public Clob(byte[] bytes) {
         super(bytes);
     }
 
@@ -33,12 +32,12 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
      * @param offset offset
      * @param length length
      */
-    public OceanBaseClob(byte[] bytes, int offset, int length) {
+    public Clob(byte[] bytes, int offset, int length) {
         super(bytes, offset, length);
     }
 
-    public OceanBaseClob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
-                                                                                                    throws SQLException {
+    public Clob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
+                                                                                           throws SQLException {
         if (!hasLocator) {
             this.encoding = encoding;
             try {
@@ -67,14 +66,14 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
                         locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
                         locator.connection = conn;
                         try {
-                            if ((int) locator.payloadSize <= OceanBaseClob.maxLength) {
+                            if ((int) locator.payloadSize <= Clob.maxLength) {
                                 this.charData = new String(
                                     buffer.getBytes(
                                         (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset),
                                         (int) locator.payloadSize), this.encoding);
                             } else {
                                 throw new SQLException("Exceed max length of Clob for support "
-                                                       + OceanBaseClob.maxLength + " current "
+                                                       + Clob.maxLength + " current "
                                                        + locator.payloadSize);
                             }
                         } catch (UnsupportedEncodingException e) {
@@ -91,7 +90,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
     /**
      * Creates an empty Clob.
      */
-    public OceanBaseClob() {
+    public Clob() {
         super();
     }
 
@@ -225,7 +224,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         return toString().indexOf(searchStr, (int) start - 1) + 1;
     }
 
-    public long position(Clob searchStr, long start) {
+    public long position(java.sql.Clob searchStr, long start) {
         return position(searchStr.toString(), start);
     }
 
@@ -435,7 +434,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         cstmt.registerOutParameter(1, Types.CLOB);
         cstmt.execute();
 
-        OceanBaseClob r = (OceanBaseClob) cstmt.getClob(1);
+        Clob r = (Clob) cstmt.getClob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
@@ -473,7 +472,7 @@ public class OceanBaseClob extends OceanBaseBlob implements Clob, NClob, Seriali
         cstmt.registerOutParameter(1, Types.CLOB);
         cstmt.execute();
 
-        OceanBaseClob r = (OceanBaseClob) cstmt.getClob(1);
+        Clob r = (Clob) cstmt.getClob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
