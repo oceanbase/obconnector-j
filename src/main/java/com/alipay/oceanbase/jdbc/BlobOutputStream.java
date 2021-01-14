@@ -6,10 +6,10 @@ import java.io.OutputStream;
 /** Output stream for the blob. */
 class BlobOutputStream extends OutputStream {
 
-    private final OceanBaseBlob blob;
-    private int                 pos;
+    private final Blob blob;
+    private int        pos;
 
-    public BlobOutputStream(OceanBaseBlob blob, int pos) {
+    public BlobOutputStream(Blob blob, int pos) {
         this.blob = blob;
         this.pos = pos;
     }

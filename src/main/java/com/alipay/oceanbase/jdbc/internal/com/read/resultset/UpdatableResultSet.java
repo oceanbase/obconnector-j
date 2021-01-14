@@ -712,7 +712,7 @@ public class UpdatableResultSet extends SelectResultSet {
             }
         } else if (obj instanceof Boolean) {
             updateBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
+        } else if (obj instanceof java.sql.Blob) {
             updateBlob(parameterIndex, (Blob) obj);
         } else if (obj instanceof Clob) {
             updateClob(parameterIndex, (Clob) obj);

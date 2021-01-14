@@ -174,7 +174,7 @@ public class CollationTest extends BaseTest {
         // German Umlaute (ÄÖÜ) U+00C4, U+00D6, U+00DC
         final String latin1String = "ÄÖÜ";
 
-        final Clob insertClob = sharedConnection.createClob();
+        final java.sql.Clob insertClob = sharedConnection.createClob();
 
         insertClob.setString(1, latin1String);
 
@@ -195,7 +195,7 @@ public class CollationTest extends BaseTest {
 
         assertTrue(rs1.next());
         assertEquals(latin1String, rs1.getString(1));
-        Clob clob = rs1.getClob(1);
+        java.sql.Clob clob = rs1.getClob(1);
         assertEquals(latin1String, clob.getSubString(1, (int) clob.length()));
 
         assertFalse(rs1.next());

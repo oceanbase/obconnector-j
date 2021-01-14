@@ -2,10 +2,8 @@ package com.alipay.oceanbase.jdbc;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
 
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -44,7 +42,7 @@ class ObLobLocator {
     protected volatile OceanBaseConnection connection;
 }
 
-public class OceanBaseBlob implements Blob, Serializable {
+public class Blob implements java.sql.Blob, Serializable {
 
     private static final long serialVersionUID = -4736603161284649490L;
     protected byte[]          data;
@@ -55,13 +53,13 @@ public class OceanBaseBlob implements Blob, Serializable {
     protected String          charData         = null;
 
     /** Creates an empty blob. */
-    public OceanBaseBlob() {
+    public Blob() {
         data = new byte[0];
         offset = 0;
         length = 0;
     }
 
-    public OceanBaseBlob(OceanBaseBlob other) {
+    public Blob(Blob other) {
         data = other.data;
         offset = other.offset;
         length = other.length;
@@ -72,7 +70,7 @@ public class OceanBaseBlob implements Blob, Serializable {
      *
      * @param bytes the content for the blob.
      */
-    public OceanBaseBlob(byte[] bytes) {
+    public Blob(byte[] bytes) {
         if (bytes == null) {
             throw new NullPointerException("byte array is null");
         }
@@ -88,7 +86,7 @@ public class OceanBaseBlob implements Blob, Serializable {
      * @param offset offset
      * @param length length
      */
-    public OceanBaseBlob(byte[] bytes, int offset, int length) {
+    public Blob(byte[] bytes, int offset, int length) {
         if (bytes == null) {
             throw new NullPointerException("byte array is null");
         }
@@ -101,7 +99,7 @@ public class OceanBaseBlob implements Blob, Serializable {
      * Create a BLOB with Locator
      * @param data
      */
-    public OceanBaseBlob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) {
+    public Blob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) {
         if (null != conn) {
             this.encoding = "UTF-8";
             /* It only be used by getCharacterStream for Blob, and to decode the byte[] data to char[]
@@ -284,7 +282,7 @@ public class OceanBaseBlob implements Blob, Serializable {
      *     position is 1
      * @return the position at which the pattern begins, else -1
      */
-    public long position(final Blob pattern, final long start) throws SQLException {
+    public long position(final java.sql.Blob pattern, final long start) throws SQLException {
         byte[] blobBytes = pattern.getBytes(1, (int) pattern.length());
         return position(blobBytes, start);
     }
@@ -514,7 +512,7 @@ public class OceanBaseBlob implements Blob, Serializable {
         cstmt.registerOutParameter(1, Types.BLOB);
         cstmt.execute();
 
-        OceanBaseBlob r = (OceanBaseBlob) cstmt.getBlob(1);
+        Blob r = (Blob) cstmt.getBlob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on setBytes for BLOB");
         } else {
@@ -546,7 +544,7 @@ public class OceanBaseBlob implements Blob, Serializable {
         cstmt.registerOutParameter(1, Types.BLOB);
         cstmt.execute();
 
-        OceanBaseBlob r = (OceanBaseBlob) cstmt.getBlob(1);
+        Blob r = (Blob) cstmt.getBlob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on trim() for BLOB");
         } else {

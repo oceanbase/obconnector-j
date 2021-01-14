@@ -1272,8 +1272,8 @@ public class OceanBaseConnection implements Connection {
      *
      * @return An object that implements the <code>Clob</code> interface
      */
-    public Clob createClob() {
-        return new OceanBaseClob();
+    public java.sql.Clob createClob() {
+        return new com.alipay.oceanbase.jdbc.Clob();
     }
 
     /**
@@ -1283,8 +1283,8 @@ public class OceanBaseConnection implements Connection {
      *
      * @return An object that implements the <code>Blob</code> interface
      */
-    public Blob createBlob() {
-        return new OceanBaseBlob();
+    public java.sql.Blob createBlob() {
+        return new Blob();
     }
 
     /**
@@ -1296,7 +1296,7 @@ public class OceanBaseConnection implements Connection {
      * @return An object that implements the <code>NClob</code> interface
      */
     public NClob createNClob() {
-        return new OceanBaseClob();
+        return new Clob();
     }
 
     /**

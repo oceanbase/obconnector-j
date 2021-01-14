@@ -1,7 +1,8 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
-import com.alipay.oceanbase.jdbc.OceanBaseBlob;
-import com.alipay.oceanbase.jdbc.OceanBaseClob;
+import java.sql.Clob;
+import com.alipay.oceanbase.jdbc.Blob;
+import com.alipay.oceanbase.jdbc.OceanBaseConnection;
 import com.alipay.oceanbase.jdbc.OceanBaseResultSetMetaData;
 import com.alipay.oceanbase.jdbc.OceanBaseStatement;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
@@ -9,7 +10,6 @@ import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import com.alipay.oceanbase.jdbc.*;
 import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
@@ -938,7 +938,7 @@ public class SelectResultSet implements ResultSet {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
             .getType()) {
-            Clob clob = getClob(columnIndex);
+            java.sql.Clob clob = getClob(columnIndex);
             if (clob == null) {
                 return null;
             }
@@ -946,7 +946,7 @@ public class SelectResultSet implements ResultSet {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
             .getType()) {
-            Blob blob = getBlob(columnIndex);
+            java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
             }
@@ -961,12 +961,12 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         switch (columnsInformation[columnIndex - 1].getColumnType()) {
             case OBCLOB:
-                Clob clob = getClob(columnIndex);
+                java.sql.Clob clob = getClob(columnIndex);
                 if (clob == null) {
                     return null;
                 }
-                long len = ((OceanBaseClob) clob).length();
-                return ((OceanBaseClob) clob).getSubString(1, (int) len);
+                long len = clob.length();
+                return clob.getSubString(1, (int) len);
             case OBBLOB:
                 throw new SQLFeatureNotSupportedException();
             case TIMESTAMP_TZ:
@@ -1138,11 +1138,11 @@ public class SelectResultSet implements ResultSet {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
             .getType()) {
-            Blob blob = getBlob(columnIndex);
+            java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
             }
-            long len = ((OceanBaseBlob) blob).length();
+            long len = ((Blob) blob).length();
             return blob.getBytes(1, (int) len);
         }
         byte[] data = new byte[row.getLengthMaxFieldSize()];
@@ -1390,7 +1390,8 @@ public class SelectResultSet implements ResultSet {
             return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-            return (T) new OceanBaseClob(row.buf, row.pos, row.getLengthMaxFieldSize());
+            return (T) new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos,
+                row.getLengthMaxFieldSize());
 
         } else if (type.equals(InputStream.class)) {
             return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
@@ -1481,7 +1482,7 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
             .getType()) {
-            Clob clob = getClob(columnIndex);
+            java.sql.Clob clob = getClob(columnIndex);
             if (clob == null) {
                 return null;
             } else {
@@ -1490,11 +1491,11 @@ public class SelectResultSet implements ResultSet {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
             .getType()) {
-            Blob blob = getBlob(columnIndex);
+            java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
             } else {
-                return ((OceanBaseBlob) blob).getCharacterStream();
+                return ((Blob) blob).getCharacterStream();
             }
         }
         String value = row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
@@ -1525,7 +1526,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     /** {inheritDoc}. */
-    public Blob getBlob(int columnIndex) throws SQLException {
+    public java.sql.Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
@@ -1538,18 +1539,18 @@ public class SelectResultSet implements ResultSet {
             }
             byte[] data = new byte[row.length];
             System.arraycopy(row.buf, row.pos, data, 0, row.length);
-            return new OceanBaseBlob(true, data, encoding, this.statement.getConnection());
+            return new Blob(true, data, encoding, this.statement.getConnection());
         }
-        return new OceanBaseBlob(row.buf, row.pos, row.length);
+        return new Blob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
-    public Blob getBlob(String columnLabel) throws SQLException {
+    public java.sql.Blob getBlob(String columnLabel) throws SQLException {
         return getBlob(findColumn(columnLabel));
     }
 
     /** {inheritDoc}. */
-    public Clob getClob(int columnIndex) throws SQLException {
+    public java.sql.Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
@@ -1562,9 +1563,10 @@ public class SelectResultSet implements ResultSet {
             }
             byte[] data = new byte[row.length];
             System.arraycopy(row.buf, row.pos, data, 0, row.length);
-            return new OceanBaseClob(true, data, encoding, this.statement.getConnection());
+            return new com.alipay.oceanbase.jdbc.Clob(true, data, encoding,
+                this.statement.getConnection());
         }
-        return new OceanBaseClob(row.buf, row.pos, row.length);
+        return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
@@ -1687,7 +1689,7 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
-        return new OceanBaseClob(row.buf, row.pos, row.length);
+        return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
@@ -2078,12 +2080,12 @@ public class SelectResultSet implements ResultSet {
     }
 
     /** {inheritDoc}. */
-    public void updateBlob(int columnIndex, Blob blob) throws SQLException {
+    public void updateBlob(int columnIndex, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
     /** {inheritDoc}. */
-    public void updateBlob(String columnLabel, Blob blob) throws SQLException {
+    public void updateBlob(String columnLabel, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 

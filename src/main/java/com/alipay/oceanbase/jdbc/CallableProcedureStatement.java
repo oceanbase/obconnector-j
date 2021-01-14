@@ -385,22 +385,22 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public Blob getBlob(int parameterIndex) throws SQLException {
+    public java.sql.Blob getBlob(int parameterIndex) throws SQLException {
         return getOutputResult().getBlob(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    public Blob getBlob(String parameterName) throws SQLException {
+    public java.sql.Blob getBlob(String parameterName) throws SQLException {
         return getOutputResult().getBlob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(String parameterName) throws SQLException {
+    public java.sql.Clob getClob(String parameterName) throws SQLException {
         return getOutputResult().getClob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(int parameterIndex) throws SQLException {
+    public java.sql.Clob getClob(int parameterIndex) throws SQLException {
         return getOutputResult().getClob(indexToOutputIndex(parameterIndex));
     }
 
@@ -681,7 +681,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public void setClob(String parameterName, Clob clob) throws SQLException {
+    public void setClob(String parameterName, java.sql.Clob clob) throws SQLException {
         setClob(nameToIndex(parameterName), clob);
     }
 
@@ -697,7 +697,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public void setBlob(String parameterName, Blob blob) throws SQLException {
+    public void setBlob(String parameterName, java.sql.Blob blob) throws SQLException {
         setBlob(nameToIndex(parameterName), blob);
     }
 
@@ -992,12 +992,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public void setBlob(int parameterIndex, Blob x) throws SQLException {
+    public void setBlob(int parameterIndex, java.sql.Blob x) throws SQLException {
         super.setBlob(checkAndMinusForObFunction(parameterIndex), x);
     }
 
     @Override
-    public void setClob(int parameterIndex, Clob x) throws SQLException {
+    public void setClob(int parameterIndex, java.sql.Clob x) throws SQLException {
         super.setClob(checkAndMinusForObFunction(parameterIndex), x);
     }
 
