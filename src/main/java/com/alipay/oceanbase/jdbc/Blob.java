@@ -44,13 +44,14 @@ class ObLobLocator {
 
 public class Blob implements java.sql.Blob, Serializable {
 
-    private static final long serialVersionUID = -4736603161284649490L;
-    protected byte[]          data;
-    protected transient int   offset;
-    protected transient int   length;
-    protected ObLobLocator    locator          = null;
-    protected String          encoding         = null;
-    protected String          charData         = null;
+    private static final long      serialVersionUID     = -4736603161284649490L;
+    protected byte[]               data;
+    protected transient int        offset;
+    protected transient int        length;
+    protected ObLobLocator         locator              = null;
+    protected String               encoding             = null;
+    protected String               charData             = null;
+    protected ExceptionInterceptor exceptionInterceptor = null;
 
     /** Creates an empty blob. */
     public Blob() {
@@ -77,6 +78,16 @@ public class Blob implements java.sql.Blob, Serializable {
         data = bytes;
         offset = 0;
         length = bytes.length;
+    }
+
+    public Blob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
+        if (bytes == null) {
+            throw new NullPointerException("byte array is null");
+        }
+        data = bytes;
+        offset = 0;
+        length = bytes.length;
+        this.exceptionInterceptor = exceptionInterceptor;
     }
 
     /**
@@ -306,6 +317,7 @@ public class Blob implements java.sql.Blob, Serializable {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
+        System.out.println("");
         if (this.locator != null) {
             updateBlobToServer(pos, bytes, offset, bytes.length);
             return bytes.length;

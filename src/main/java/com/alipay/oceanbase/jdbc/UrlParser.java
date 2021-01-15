@@ -314,7 +314,8 @@ public class UrlParser implements Cloneable {
         }
 
         if (options.usePipelineAuth == null) {
-            options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+            //            options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+            options.usePipelineAuth = false;
         }
         return this;
     }

@@ -311,6 +311,7 @@ public class OceanBaseConnection implements Connection {
         // ? todo
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         return new OceanBaseConnection(protocol);
+        //        return new OceanBaseConnection(urlParser, globalInfo,true);
     }
 
     public static String quoteIdentifier(String string) {

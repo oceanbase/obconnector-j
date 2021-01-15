@@ -2,6 +2,7 @@ package com.alipay.oceanbase.jdbc;
 
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.NClob;
 import java.sql.SQLException;
@@ -25,6 +26,10 @@ public class Clob extends Blob implements java.sql.Clob, java.sql.NClob, Seriali
         super(bytes);
     }
 
+    public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
+        super(bytes, exceptionInterceptor);
+    }
+
     /**
      * Creates a Clob with content.
      *
@@ -32,8 +37,15 @@ public class Clob extends Blob implements java.sql.Clob, java.sql.NClob, Seriali
      * @param offset offset
      * @param length length
      */
+
     public Clob(byte[] bytes, int offset, int length) {
         super(bytes, offset, length);
+    }
+
+    public Clob(String charDataInit, ExceptionInterceptor exceptionInterceptor) {
+        this.charData = charDataInit;
+        this.exceptionInterceptor = exceptionInterceptor;
+        this.encoding = Charset.defaultCharset().name(); // set default encoding
     }
 
     public Clob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)

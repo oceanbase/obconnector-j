@@ -177,11 +177,17 @@ public class BinaryRowProtocol extends RowProtocol {
                                 length = 8;
                                 this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                 return;
+                                //                            case OBBLOB:
+                                //                            case OBCLOB:
+                                //                                length = this.buf[internalPos++] & 0xff;
+                                //                                this.pos = internalPos;
+                                //                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                //                                return;
 
                             default:
                                 // field with variable length
-                                int type = this.buf[internalPos++] & 0xff;
-                                switch (type) {
+                                int typeOrLength = this.buf[internalPos++] & 0xff;
+                                switch (typeOrLength) {
                                     case 251:
                                         // null length field
                                         // must never occur
@@ -195,12 +201,11 @@ public class BinaryRowProtocol extends RowProtocol {
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
-                                    case 210: // Blob Locator
-                                    case 211: // Clob Locator
                                     case 253:
                                         // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
                                         length = 0xffffff & ((buf[internalPos++] & 0xff)
                                                              + ((buf[internalPos++] & 0xff) << 8) + ((buf[internalPos++] & 0xff) << 16));
+                                        //                                        length = buf[internalPos++] & 0xff;
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
@@ -220,7 +225,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
                                     default:
                                         // length is encoded on 1 bytes (is then less than 251)
-                                        length = type;
+                                        length = typeOrLength;
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;

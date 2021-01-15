@@ -905,6 +905,7 @@ public class BlobOracleTest extends BaseOracleTest {
         blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
         assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
     }
+
     public static Connection getObOracleConnection() throws Exception {
         final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false&useServerPrepStmts=true&serverTimezone=UTC";
         final String username = "admin@oracle";
@@ -912,49 +913,51 @@ public class BlobOracleTest extends BaseOracleTest {
         Class.forName("com.alipay.oceanbase.jdbc.Driver");
         return DriverManager.getConnection(url, username, password);
     }
-    public java.sql.Blob writeDataToBlob(ResultSet rs, int column, byte[] data)
-            throws SQLException
-    {
+
+    public java.sql.Blob writeDataToBlob(ResultSet rs, int column, byte[] data) throws SQLException {
         java.sql.Blob blob = rs.getBlob(column);
         if (blob == null) {
             throw new SQLException("Driver's Blob representation is null!");
         }
-        if ((blob instanceof com.alipay.oceanbase.jdbc.Blob))
-        {
-            ((com.alipay.oceanbase.jdbc.Blob)blob).setBytes(1L, data);
+        if ((blob instanceof com.alipay.oceanbase.jdbc.Blob)) {
+            ((com.alipay.oceanbase.jdbc.Blob) blob).setBytes(1L, data);
             return blob;
         }
-        throw new SQLException("Driver's Blob representation is of an unsupported type: " + blob.getClass().getName());
+        throw new SQLException("Driver's Blob representation is of an unsupported type: "
+                               + blob.getClass().getName());
     }
+
     @Test
-    public void insertJobDetail( ) //, JobDetail job)
-            throws Exception {
+    public void insertJobDetail() //, JobDetail job)
+                                 throws Exception {
         String tableName = "blobtest";
         Connection conn = getObOracleConnection();
         // ByteArrayOutputStream baos = serializeJobData(job.getJobDataMap());
         //byte[] data = baos.toByteArray()
-                System.out.println("connect success");
-        byte[] data = "hU3isX3T3HFDw4Cnv5mDUWUXPkD2+4EP9dsjFcNOeFAqbHCPowiFjaEMoJEhgKpgP0mZ/lYntPmzDZbfCrGq1vcQoKklpmY6TNmXl182YuB5LentSo0qkVgJhlouPcrr+G7OD0tzlyPeghxHfDUu3yeZgj9a7zeAmQJOekSl4/Ds05uZ/U2tOMhe84O/p31SU/MHm/FrR6ZCkkwM5pwiJ8XK6ERM24TtzOQe6DTNDjJ4/wW64baN5a7EHJqwBbcpKQ5lCOfH/dyEJfmlKnCqwQl4b53c4XhjUXhRHcQrg+n0ShpNppjOgdmQtr20aSnW6HgBDPy0IL8vDM6yRxKllLSynGQDC9I6jAwLTSg29s7vudofO5c5J2JeFobizyxEK17LnJwFcFqwWuscopl8MWuZz2j8BkwnlxowHkH7kYLRf0oFsxgEky3QpFaCVDlQm/ZEkICiMnqRWO8Olye6vVBmIZaujmOsP1vFdurnWys23Jt6csAgLqWKyNIZcaJ/Bk8mKpcM5RD22Y0pQWosxeL6d5lcmLPsPbyBOn4Z/tiGCCKrnMKLarTA6Lmya6d4vvNqgS/7z0dWIF1xhjRcwRdl1eCQLDg7shAfIa7qAX3Zcs7cv5tOggHwlg1wZKZQM31Kj2liABV6nsWSZlgHpbgZ14RF57hp5ZhQBoGmCp4Kwhv0wPgR2m6onJVSrYOV1Dkq4dttmHy7O0OxhC+iwP3fmj1Ucb81QL1bV6yNKyIZX4CtA9sax9F60xtFWGfmI3EBSoc7m1J48qPu9X20PGmqHuwhfgyWiJhgLBWaTLbHfxXY30TCq/JqkqtwJw/mF/wwG/xia17W5ej5SZuGOufY61WGGbi5XS2tbKKs9d1t7k66QfoU/sWAXbG7S1tgty6ypcuUdiW9SiQr2A1AYSagtcwAUlDI8mI/MUcRCLMcC6uDnyGTHulUoZahnbAj9E4ATC3eNqcPwF89TwSRVzKSxbMZi5trDSUfplCFKtb7wWluINE9+WG03c04PIt3xxR7wPNcDM4q8oN4e1mE9lSE4DoWBGK4QkO7hesrNDndctzfCtSCXZG397x/vmhai+93JK5vuOagpaPOVQ5oGyxO+YbhXgyQbOswIPkc9+IiBgBObDRlMnzovHDnYkkMnQwLTx+utb81hTHpTmYWCwwezqU5MztBbduevhZ6q9nQqg0TDFW7Hz1ULgUk6auOMlsAQeE1hhobT8mW3BGSqpdesJcY+v09J6aaP+c1KD3y+cU8k6fBs8SjM401AlgJeQnIolUXnF9qPZJIRRMcJpppdvNl3T27uafPiKT5TqYwe60i+ErTQdKXG3mygsey8jaBgs7u9VnixRkCq0nqYiuEMencN4sK/4T8+eXU1OuvxoB1Kh4YzDaEENlWw8ZlDdgQif71K37kDBsPWc6xHgHg+ek60QJeRFItarGjIfAswBEYAhOi4kmmpM7N2zhSBgeSpqEZuJGupzgjTZCQbROeNfOsIrJRSr11eMVWnH5Up8ZvaM0J76hyE1q/owy/AD6oJWjf/Z7XiXv3BtrFSHMOb1t6LwBHfdbPkCGKohJm+Va+xNpcYDI2CtQdppsVYDaTAykoPQEKOrOjkK1ZsWypWTPwvWoZc1VhA9kV3qUMYGFApw1eYEKm+5asciQNbWmX7UUabQUHqtiNzSKPD9t9TICO/J2IqHSC2xuF6wB3KVE6u8nyfC08b/rP+RXWJm6d7FnAOnrYTZbqBjQGpcwQfCtx385+eMC2y3yfkBa5BQFI6EteH/53pgqZ3rFSY7AVYykoUXZQTlUfsaQFOlXq3NsAwo4DXXWZ54hwWnFnBdxgyTre8nBml64T62djLz112MkN50jJ8uhqhe7FcLdLE63bGEmnaUnMA4l5nttvFS1DTgua9S0G3ejLEnXjZaBDJg1fkLEenma1vGACErPKa+0AQILCB72ASZb5ygQ3dBjLsgXh3UZoG92erwRkiQ/x9TQjwCnn+ilNqN3NFinOy5RAsQBS7k55zuB37sL426EFoPaokvOnrm3G5JLr6V3HWdCSgdD0MrJFeuLsevgnGNDiL ogeZi+hJjn8pp5aXmU7odhhjY0VkeQnVNvS9XV/X/lr9ccNTi6gTsUG+xJI+9SWrvhfwE7W2OahffhQLYhaygHBPMgwdtHWkXdK21OYPbPOUvjoE3T0elUcsd7Ee8KcELkYD+N6MKdwU1M1zSHxo6FgoDVOZVXrAbWSZ727npwtye1qDf7uGUoaGtM0t+A175f7LMEY+AOoMB4obDWqWps21PgD6JSJDFqUGjOIPdoe6ykjgao00ipS71KVlF5KEvsT6SQSgtnovw==".getBytes();
+        System.out.println("connect success");
+        byte[] data = "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"
+            .getBytes();
         //new byte[] { 'a', 'b', 'c' };
 
         int res = 0;
         Statement st = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
-        try
-        {
+        try {
             st = conn.createStatement();
-            st.execute("DELETE FROM "+ tableName);
+            st.execute("DELETE FROM " + tableName);
             st.close();
             st = conn.createStatement();
             st.execute("set autocommit=0");
             st.close();
 
-            ps = conn.prepareStatement(("INSERT INTO " + tableName + " (JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE, IS_VOLATILE, IS_STATEFUL, REQUESTS_RECOVERY, JOB_DATA)  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+            ps = conn
+                .prepareStatement(("INSERT INTO " + tableName + " (JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE, IS_VOLATILE, IS_STATEFUL, REQUESTS_RECOVERY, JOB_DATA)  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"));
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
             ps.setString(3, "不定期新单信息生效");
-            ps.setString(4, "com.chinalife.cis.moduals.uw.irregularuw.cooperatereceive.job.IrregularInsuredDataInfoEffetJob");
+            ps.setString(4,
+                "com.chinalife.cis.moduals.uw.irregularuw.cooperatereceive.job.IrregularInsuredDataInfoEffetJob");
             ps.setBoolean(5, false);
             ps.setBoolean(6, false);
             ps.setBoolean(7, false);
@@ -964,14 +967,16 @@ public class BlobOracleTest extends BaseOracleTest {
             ps.executeUpdate();
             ps.close();
 
-            ps = conn.prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = EMPTY_BLOB()  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+            ps = conn
+                .prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = EMPTY_BLOB()  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
 
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
             ps.executeUpdate();
             ps.close();
 
-            ps = conn.prepareStatement(("SELECT JOB_DATA FROM "+ tableName + " WHERE JOB_NAME = ? AND JOB_GROUP = ? FOR UPDATE"));
+            ps = conn
+                .prepareStatement(("SELECT JOB_DATA FROM " + tableName + " WHERE JOB_NAME = ? AND JOB_GROUP = ? FOR UPDATE"));
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
 
@@ -981,28 +986,26 @@ public class BlobOracleTest extends BaseOracleTest {
             if (rs.next()) {
                 dbBlob = writeDataToBlob(rs, 1, data);
             } else {
-                return ;
+                return;
             }
             rs.close();
             ps.close();
 
-            ps = conn.prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = ?  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+            ps = conn
+                .prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = ?  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
             ps.setBlob(1, dbBlob);
             ps.setString(2, "不定期新单信息生效");
             ps.setString(3, "group1");
             res = ps.executeUpdate();
             ps.close();
 
-
             st = conn.createStatement();
             st.execute("commit");
             st.close();
 
-        } catch ( Exception e ) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally
-        {
+        } finally {
             conn.close();
         }
     }
