@@ -1643,21 +1643,14 @@ public class SelectResultSet implements ResultSet {
                 columnsInformation[internalColumnIndex], type);
             complexData[internalColumnIndex] = data;
         }
-        //        if (complexData[internalColumnIndex] instanceof  RowDataObCursor) {
-        //            return (RowDataObCursor)(complexData[internalColumnIndex]);
-        //        }
         Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
         RowObCursorData obCursorData = (RowObCursorData) objects[0];
         if (!obCursorData.isOpen()) {
             throw new SQLException("cursor is not open");
         }
-        //        int cursorId = getInt(columnIndex);
         RowDataObCursor obCursor = new RowDataObCursor(this.columnsInformation, protocol,
             obCursorData, this.statement);
         obCursor.setOwner(this);
-        //        if (this.isBinaryEncoded) {
-        //            obCursor.setBinaryEncoded();
-        //        }
         obCursor.setRowObCursorData(obCursorData);
         complexEndPos[columnIndex - 1] = row.pos;
         return obCursor;

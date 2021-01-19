@@ -45,7 +45,7 @@ class ObLobLocator {
 public class Blob implements java.sql.Blob, Serializable {
 
     private static final long      serialVersionUID     = -4736603161284649490L;
-    protected byte[]               data;
+    protected byte[]               data                 = null;
     protected transient int        offset;
     protected transient int        length;
     protected ObLobLocator         locator              = null;
@@ -72,18 +72,12 @@ public class Blob implements java.sql.Blob, Serializable {
      * @param bytes the content for the blob.
      */
     public Blob(byte[] bytes) {
-        if (bytes == null) {
-            throw new NullPointerException("byte array is null");
-        }
         data = bytes;
         offset = 0;
         length = bytes.length;
     }
 
     public Blob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
-        if (bytes == null) {
-            throw new NullPointerException("byte array is null");
-        }
         data = bytes;
         offset = 0;
         length = bytes.length;
@@ -98,9 +92,6 @@ public class Blob implements java.sql.Blob, Serializable {
      * @param length length
      */
     public Blob(byte[] bytes, int offset, int length) {
-        if (bytes == null) {
-            throw new NullPointerException("byte array is null");
-        }
         data = bytes;
         this.offset = offset;
         this.length = Math.min(bytes.length - offset, length);
@@ -317,7 +308,6 @@ public class Blob implements java.sql.Blob, Serializable {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
-        System.out.println("");
         if (this.locator != null) {
             updateBlobToServer(pos, bytes, offset, bytes.length);
             return bytes.length;
@@ -325,9 +315,7 @@ public class Blob implements java.sql.Blob, Serializable {
         final int arrayPos = (int) pos - 1;
 
         if (length > arrayPos + bytes.length) {
-
             System.arraycopy(bytes, 0, data, offset + arrayPos, bytes.length);
-
         } else {
 
             byte[] newContent = new byte[arrayPos + bytes.length];

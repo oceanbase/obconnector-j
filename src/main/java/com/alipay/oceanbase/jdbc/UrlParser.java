@@ -309,14 +309,13 @@ public class UrlParser implements Cloneable {
         // Aurora has issue with pipelining, depending on network speed.
         // Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
         boolean disablePipeline = isAurora();
-
+        // useBatchMultiSend and usePipelineAuth are  the related configuration of Aurora.
+        // The default value should be  set to off. There is no corresponding configuration in mysql jdbc
         if (options.useBatchMultiSend == null) {
-            //            options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
             options.useBatchMultiSend = false;
         }
 
         if (options.usePipelineAuth == null) {
-            //            options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
             options.usePipelineAuth = false;
         }
         return this;

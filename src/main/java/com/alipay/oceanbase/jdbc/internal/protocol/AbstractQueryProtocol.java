@@ -1101,7 +1101,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.flush();
       getResult(results);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw exceptionWithQuery(
+              " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
     }
   }
   /** Rollback transaction. */

@@ -2168,14 +2168,8 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         int nameIndex = 1;
 
         proceduresStmt.setString(1, procedureNamePattern);
-
-
-        try {
-            results = proceduresStmt.executeQuery();
-            needsClientFiltering = false;
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
+        results = proceduresStmt.executeQuery();
+        needsClientFiltering = false;
 
         String[] data = new String[9];
         List<String[]> list = new ArrayList<>();
@@ -2242,7 +2236,6 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             int startIndex = procedureDef.indexOf('`');
             int endIindex = procedureDef.indexOf('`');
             parameterDef = procedureDef.substring(startIndex, endIindex);
-            System.out.println("parameterDef = " + parameterDef);
 
         }
         //        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);

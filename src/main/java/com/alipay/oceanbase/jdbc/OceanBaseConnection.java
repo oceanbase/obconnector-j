@@ -308,10 +308,9 @@ public class OceanBaseConnection implements Connection {
         if (urlParser.getOptions().pool) {
             return Pools.retrievePool(urlParser).getConnection();
         }
-        // ? todo
+
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         return new OceanBaseConnection(protocol);
-        //        return new OceanBaseConnection(urlParser, globalInfo,true);
     }
 
     public static String quoteIdentifier(String string) {
@@ -1687,14 +1686,8 @@ public class OceanBaseConnection implements Connection {
     public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
         try {
             java.sql.Connection conn = this.getComplexConnection(); // NOPMD
-            //            java.sql.Connection conn = null;
-            //            java.sql.Connection conn = this.getComplexConnection();
             java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            //
-            //            java.sql.PreparedStatement ps = this.prepareStatement(complexTypeSql,
-            //                  ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            //            System.out.println("com = " + complexTypeSql);
 
             ps.setString(1, typeName.toUpperCase());
             ps.setString(2, typeName.toUpperCase());
@@ -1778,8 +1771,6 @@ public class OceanBaseConnection implements Connection {
             conn.close();
         } catch (SQLException e) {
             throw e;
-        } catch (Exception se) {
-            se.printStackTrace();
         }
         return getComplexDataTypeFromCache(typeName);
     }

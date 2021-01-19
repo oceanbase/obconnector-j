@@ -58,30 +58,10 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
 
     private void setParamsAccordingToSetArguments() throws SQLException {
         if (parameterCount > this.parameterMetadata.getParameterCount()) {
-            System.out.println("SIZE:" + parameterCount + " " + this.parameterMetadata.getParameterCount());
             throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
         }
         parameterCount = this.parameterMetadata.getParameterCount();
-        /*
-        OceanBaseResultSetMetaData metaData = (OceanBaseResultSetMetaData)this.getMetaData();
-        if (parameterCount != metaData.getColumnCount()) {
-            //System.out.println("SIZE2:" + parameterCount + " " + metaData.getColumnCount());
-            throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
-        } */
-        //System.out.println("SQL:" + this.originalSql);
         params = new ArrayList<>(parameterCount);
-        /*
-        for (int index = 0; index < parameterCount; index++) {
-            CallParameter addParamMeta = null;
-            if (null != metaData.getColumnName(index + 1)) {
-                addParamMeta = (CallParameter)this.parameterMetadata.getParamByName(metaData.getColumnName(index + 1));
-            }
-            System.out.println(addParamMeta.toString() + " " + addParamMeta.isOutput() + " " + addParamMeta.getName());
-            //params.add(new CallParameter());
-            //if (this.parameterMetadata.getName(index))
-            //params.add(this.parameterMetadata.getParam(index + 1));
-            params.add(addParamMeta);
-        }*/
         for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
             this.params.add(this.parameterMetadata.getParam(index + 1)); //TODO if check registerOutputParamter need to add it by arguments
         }
@@ -147,11 +127,9 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
                 ColumnType columnTypes = ci[i - 1].getColumnType();
                 if (columnTypes == ColumnType.COMPLEX || columnTypes == ColumnType.ARRAY
                     || columnTypes == ColumnType.STRUCT) {
-                    //                    selectResultSet.complexData[i-1] = selectResultSet.getArray(i);
                     selectResultSet.getArray(i);
 
                 } else if (columnTypes == ColumnType.CURSOR) {
-                    //                    selectResultSet.complexData[i-1] = selectResultSet.getComplexCursor(i);
                     selectResultSet.getComplexCursor(i);
                 }
             }

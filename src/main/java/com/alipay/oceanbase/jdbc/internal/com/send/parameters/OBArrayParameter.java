@@ -33,11 +33,6 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
         packet.writeBytes((byte) elementType, 1);
         if (elementType >= ColumnType.COMPLEX.getType()
             && elementType <= ColumnType.STRUCT.getType()) {
-            // element type is also a complex type
-            //            packet.writeLenBytes(StringUtils.getBytes(array.getComplexType().getAttrType(0)
-            //                    .getSchemaName()));
-            //            packet.writeLenBytes(StringUtils.getBytes(array.getComplexType().getAttrType(0)
-            //                    .getTypeName()));
             byte[] tmp = array.getComplexType().getAttrType(0).getSchemaName().getBytes();
             packet.writeFieldLength(tmp.length);
             packet.write(tmp);
@@ -77,7 +72,7 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
             pos.write(nullBitsBuffer); // null bits
             pos.setPosition(endPosition);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new IOException("storeComplexAttrData exception");
         }
     }
 

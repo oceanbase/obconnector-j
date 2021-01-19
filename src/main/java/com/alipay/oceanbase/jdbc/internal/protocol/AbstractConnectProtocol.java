@@ -505,8 +505,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException sqlException) {
             destroySocket();
             throw sqlException;
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         connected = true;
