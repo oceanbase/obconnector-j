@@ -64,6 +64,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 case CURSOR:
                     readFromHead = true;
                     break;
+                default:
+                    break;
             }
         }
 
