@@ -174,7 +174,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
                 Object obj1 = resultSet.getObject(1);
                 Object obj2 = resultSet.getObject(2);
                 Object obj3 = resultSet.getObject(3);
-                System.out.println("OBJECT:" + obj1 + "\t" + obj2 + "\t" + obj3);
+                System.out.println("OBJECT:" + obj1 + " " + obj2 + " " + obj3);
                 //                if (Integer.parseInt((String) obj1) == 15) {
                 //                    //Assert.assertEquals("PJ>PK:ROf\\", obj2);
                 //                    //Assert.assertEquals("PJ>PK?ROf", obj3);
@@ -208,7 +208,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             while (resultSet.next()) {
                 Object obj1 = resultSet.getObject(1);
-                System.out.println("OBJECT: \t" + obj1);
+                System.out.println("OBJECT:  " + obj1);
             }
         } catch (Exception e) {
             fail();
@@ -239,7 +239,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             while (resultSet.next()) {
                 Object obj1 = resultSet.getObject(1);
-                System.out.println("OBJECT: \t" + obj1);
+                System.out.println("OBJECT:  " + obj1);
             }
         } catch (Exception e) {
             //fail();

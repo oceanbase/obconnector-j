@@ -17,6 +17,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.alipay.oceanbase.jdbc.*;
+import com.alipay.oceanbase.jdbc.extend.datatype.ComplexData;
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -1816,7 +1818,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         selectResultSet =
             new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
       }
-
       results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
 
     } catch (IOException e) {

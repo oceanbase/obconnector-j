@@ -58,7 +58,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 if (i < blob.length() - 1)
                     bu.append(',');
             }
-            System.out.println("0:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+            System.out.println("0:--> c1:" + rs.getString("c1") + " " + bu.toString());
         }
     }
 
@@ -88,13 +88,13 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             while (rs.next()) {
                 c1 = rs.getString(1);
                 clob = (Clob) rs.getClob(2);
-                System.out.println("3:--> c1:" + rs.getString("c1") + "\t"
+                System.out.println("3:--> c1:" + rs.getString("c1") + " "
                                    + clob.getSubString(1, (int) clob.length()));
             }
 
             clob.setString(10, "ABC");
 
-            System.out.println("0:--> c1:" + "\t" + clob.getSubString(1, (int) clob.length()));
+            System.out.println("0:--> c1:" + " " + clob.getSubString(1, (int) clob.length()));
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
@@ -105,7 +105,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 c1 = rs.getString(1);
                 clob = (Clob) rs.getClob(2);
 
-                System.out.println("1:--> c1:" + rs.getString("c1") + "\t"
+                System.out.println("1:--> c1:" + rs.getString("c1") + " "
                                    + clob.getSubString(1, (int) clob.length()));
             }
 
@@ -138,13 +138,13 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             while (rs.next()) {
                 c1 = rs.getString(1);
                 clob = (Clob) rs.getClob(2);
-                System.out.println("3:--> c1:" + rs.getString("c1") + "\t"
+                System.out.println("3:--> c1:" + rs.getString("c1") + " "
                                    + clob.getSubString(1, (int) clob.length()));
             }
 
             clob.truncate(10);
 
-            System.out.println("0:--> c1:" + "\t" + clob.getSubString(1, (int) clob.length()));
+            System.out.println("0:--> c1:" + " " + clob.getSubString(1, (int) clob.length()));
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
@@ -154,7 +154,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             while (rs.next()) {
                 c1 = rs.getString(1);
                 clob = (Clob) rs.getClob(2);
-                System.out.println("1:--> c1:" + rs.getString("c1") + "\t"
+                System.out.println("1:--> c1:" + rs.getString("c1") + " "
                                    + clob.getSubString(1, (int) clob.length()));
             }
 
@@ -193,13 +193,13 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     c1 = rs.getString(1);
                     clob = (Clob) rs.getClob(2);
                     System.out.println("clob.length() = " + clob.length());
-                    System.out.println("1:--> c1:" + rs.getString("c1") + "\t"
+                    System.out.println("1:--> c1:" + rs.getString("c1") + " "
                                        + clob.getSubString(1, (int) clob.length()));
                 }
 
                 clob.truncate(9);
-                System.out.println("2:--> c1:112" + "\t"
-                                   + clob.getSubString(1, (int) clob.length()));
+                System.out
+                    .println("2:--> c1:112" + " " + clob.getSubString(1, (int) clob.length()));
                 Assert.assertTrue("CLOB_奥星贝斯".equals(clob.getSubString(1, (int) clob.length())));
 
                 rs = pstmt.executeQuery("SELECT * FROM " + tableClobEncoding
@@ -208,12 +208,12 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 while (rs.next()) {
                     c1 = rs.getString(1);
                     clob = (Clob) rs.getClob(2);
-                    System.out.println("3:--> c1:" + rs.getString("c1") + "\t"
+                    System.out.println("3:--> c1:" + rs.getString("c1") + " "
                                        + clob.getSubString(1, (int) clob.length()));
                 }
                 clob.setString(12, "GOOD 好");
-                System.out.println("4:--> c1:112" + "\t"
-                                   + clob.getSubString(1, (int) clob.length()));
+                System.out
+                    .println("4:--> c1:112" + " " + clob.getSubString(1, (int) clob.length()));
                 Assert.assertTrue("CLOB_奥星贝斯  GOOD 好".equals(clob.getSubString(1,
                     (int) clob.length())));
                 conn.close();
@@ -256,7 +256,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("3:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("3:--> c1:" + rs.getString("c1") + " " + bu.toString());
             }
 
             blob.setBytes(10, "ABC".getBytes());
@@ -270,7 +270,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 if (i < blob.length() - 1)
                     bu_.append(',');
             }
-            System.out.println("0:--> c1:" + "\t" + bu_.toString());
+            System.out.println("0:--> c1:" + " " + bu_.toString());
             //           blob.trimBlobToServer(9);
             //            blob.updateBlobToServer();
 
@@ -289,7 +289,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("1:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("1:--> c1:" + rs.getString("c1") + " " + bu.toString());
             }
 
         } catch (Exception e) {
@@ -330,7 +330,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("0:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("0:--> c1:" + rs.getString("c1") + " " + bu.toString());
             }
 
             blob.truncate(1);
@@ -351,7 +351,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("1:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("1:--> c1:" + rs.getString("c1") + " " + bu.toString());
             }
 
         } catch (Exception e) {
@@ -456,7 +456,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 String id = rs.getString(1);
                 StringBuffer note = new StringBuffer();
                 java.sql.Clob c = rs.getClob(2);
-                System.out.println("id:" + id + "\t" + c.getSubString(1, (int) c.length()));
+                System.out.println("id:" + id + " " + c.getSubString(1, (int) c.length()));
                 Assert.assertTrue((c.getSubString(1, (int) c.length())).equals(c.getSubString(1,
                     (int) (c.length() + 10))));
             }
@@ -486,7 +486,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("0:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("0:--> c1:" + rs.getString("c1") + " " + bu.toString());
             }
 
             try {
@@ -513,7 +513,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                     if (i < blob.length() - 1)
                         bu.append(',');
                 }
-                System.out.println("1:--> c1:" + rs.getString("c1") + "\t" + bu.toString());
+                System.out.println("1:--> c1:" + rs.getString("c1") + " " + bu.toString());
                 System.out.println("tt:" + new String(blob.getBytes(1, 10)));
             }
 

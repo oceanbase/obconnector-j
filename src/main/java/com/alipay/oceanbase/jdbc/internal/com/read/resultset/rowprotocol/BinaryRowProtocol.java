@@ -27,7 +27,6 @@ public class BinaryRowProtocol extends RowProtocol {
 
     private final ColumnDefinition[] columnDefinition;
     private final int                columnInformationLength;
-    private ComplexData[]            complexData;
 
     /**
      * Constructor.
@@ -58,21 +57,41 @@ public class BinaryRowProtocol extends RowProtocol {
             this.lastValueNull = BIT_LAST_FIELD_NULL;
             return;
         }
+        boolean readFromHead = false;
+        for (int i = 0; i < columnDefinition.length; i++) {
+            switch (columnDefinition[i].getColumnType()) {
+                case COMPLEX:
+                case CURSOR:
+                    readFromHead = true;
+                    break;
+            }
+        }
 
         // if not must parse data until reading the desired field
-        if (index != newIndex) {
-            int internalPos = this.pos;
-            if (index == -1 || index > newIndex) {
-                // if there wasn't previous non-null read field, or if last field was after searched index,
-                // position is set on first field position.
-                index = 0;
-                internalPos = 1 + (columnInformationLength + 9) / 8; // 0x00 header + NULL-Bitmap length
+        int internalPos = 0;
+        boolean doRead = true;
+        if (readFromHead) {
+            index = 0;
+            internalPos = 1 + (columnInformationLength + 9) / 8;
+        } else {
+            if (index != newIndex) {
+                internalPos = this.pos;
+                if (index == -1 || index > newIndex) {
+                    // if there wasn't previous non-null read field, or if last field was after searched index,
+                    // position is set on first field position.
+                    index = 0;
+                    internalPos = 1 + (columnInformationLength + 9) / 8; // 0x00 header + NULL-Bitmap length
+                } else {
+                    // start at previous non-null field position if was before searched index
+                    index++;
+                    internalPos += length;
+                }
+                doRead = true;
             } else {
-                // start at previous non-null field position if was before searched index
-                index++;
-                internalPos += length;
+                doRead = false;
             }
-
+        }
+        if (doRead) {
             for (; index <= newIndex; index++) {
                 if ((buf[1 + (index + 2) / 8] & (1 << ((index + 2) % 8))) == 0) {
                     if (index != newIndex) {
@@ -96,6 +115,13 @@ public class BinaryRowProtocol extends RowProtocol {
 
                             case TINYINT:
                                 internalPos += 1;
+                                break;
+                            // add
+                            case COMPLEX:
+                                internalPos = this.complexEndPos[index];
+                                break;
+                            case CURSOR:
+                                internalPos = this.complexEndPos[index];
                                 break;
 
                             default:
@@ -235,6 +261,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
         }
+
         this.lastValueNull = length == NULL_LENGTH ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
     }
 

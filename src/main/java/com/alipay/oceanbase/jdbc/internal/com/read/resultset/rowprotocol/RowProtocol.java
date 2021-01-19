@@ -72,6 +72,7 @@ public abstract class RowProtocol {
   public int pos;
   public int length;
   protected int index;
+  public int[] complexEndPos;
 
   public RowProtocol(int maxFieldSize, Options options) {
     this.maxFieldSize = maxFieldSize;

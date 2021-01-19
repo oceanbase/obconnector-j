@@ -44,6 +44,7 @@ import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.MORE
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
 public class SelectResultSet implements ResultSet {
+
     public class Cursor {
 
     }
@@ -70,7 +71,7 @@ public class SelectResultSet implements ResultSet {
     private boolean                         isEof;
     private boolean                         callableResult;
     private OceanBaseStatement              statement;
-    private RowProtocol                     row;
+    public RowProtocol                      row;
     private int                             dataFetchTime;
     private boolean                         streaming;
     protected byte[][]                      data;
@@ -85,7 +86,8 @@ public class SelectResultSet implements ResultSet {
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
     protected boolean                       forceAlias;
-    private ComplexData[]                   complexData;
+    public ComplexData[]                    complexData;
+    public int[]                            complexEndPos;
     private boolean                         isPsOutParameter;
 
     /**
@@ -113,6 +115,7 @@ public class SelectResultSet implements ResultSet {
 
         this.columnInformationLength = columnDefinition.length;
         this.complexData = new ComplexData[columnInformationLength];
+        this.complexEndPos = new int[columnInformationLength];
         this.reader = reader;
         this.isEof = false;
         timeZone = protocol.getTimeZone();
@@ -1592,7 +1595,9 @@ public class SelectResultSet implements ResultSet {
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            return row.getInternalArray(columnsInformation[columnIndex - 1], type);
+            Array ret = row.getInternalArray(columnsInformation[columnIndex - 1], type);
+            complexEndPos[columnIndex - 1] = row.pos;
+            return ret;
         } else {
             throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
         }
@@ -1614,7 +1619,9 @@ public class SelectResultSet implements ResultSet {
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            return row.getInternalStruct(columnsInformation[columnIndex - 1], type);
+            Struct ret = row.getInternalStruct(columnsInformation[columnIndex - 1], type);
+            complexEndPos[columnIndex - 1] = row.pos;
+            return ret;
         } else {
             throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
         }
@@ -1624,7 +1631,7 @@ public class SelectResultSet implements ResultSet {
         return getStruct(findColumn(columnLabel));
     }
 
-    protected RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
+    public RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
         // after reading the eof packet,the protocol been seted to null,but we need it
 
         checkObjectRange(columnIndex);
@@ -1636,7 +1643,10 @@ public class SelectResultSet implements ResultSet {
                 columnsInformation[internalColumnIndex], type);
             complexData[internalColumnIndex] = data;
         }
-        Object[] objects = complexData[internalColumnIndex].getAttrData();
+        //        if (complexData[internalColumnIndex] instanceof  RowDataObCursor) {
+        //            return (RowDataObCursor)(complexData[internalColumnIndex]);
+        //        }
+        Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
         RowObCursorData obCursorData = (RowObCursorData) objects[0];
         if (!obCursorData.isOpen()) {
             throw new SQLException("cursor is not open");
@@ -1649,6 +1659,7 @@ public class SelectResultSet implements ResultSet {
         //            obCursor.setBinaryEncoded();
         //        }
         obCursor.setRowObCursorData(obCursorData);
+        complexEndPos[columnIndex - 1] = row.pos;
         return obCursor;
     }
 

@@ -4,6 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -138,6 +140,21 @@ public class OceanBaseProcedureStatement extends CallableProcedureStatement impl
         outputResultSet = results.getCallableResultSet();
         if (outputResultSet != null) {
             outputResultSet.next();
+            SelectResultSet selectResultSet = outputResultSet;
+            selectResultSet.row.complexEndPos = selectResultSet.complexEndPos;
+            ColumnDefinition[] ci = selectResultSet.getColumnsInformation();
+            for (int i = 1; i <= ci.length; i++) {
+                ColumnType columnTypes = ci[i - 1].getColumnType();
+                if (columnTypes == ColumnType.COMPLEX || columnTypes == ColumnType.ARRAY
+                    || columnTypes == ColumnType.STRUCT) {
+                    //                    selectResultSet.complexData[i-1] = selectResultSet.getArray(i);
+                    selectResultSet.getArray(i);
+
+                } else if (columnTypes == ColumnType.CURSOR) {
+                    //                    selectResultSet.complexData[i-1] = selectResultSet.getComplexCursor(i);
+                    selectResultSet.getComplexCursor(i);
+                }
+            }
         }
     }
 

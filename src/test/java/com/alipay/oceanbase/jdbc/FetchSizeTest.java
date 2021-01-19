@@ -148,7 +148,7 @@ public class FetchSizeTest extends BaseTest {
      *
      * @throws SQLException sqle
      */
-    @Test
+    @Ignore
   public void fetchSizeCancel() throws SQLException {
     ifMaxscaleRequireMinimumVersion(2, 2);
     Assume.assumeTrue(!sharedOptions().profileSql);

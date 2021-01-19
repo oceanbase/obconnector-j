@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import com.alipay.oceanbase.jdbc.credential.CredentialPlugin;
 import com.alipay.oceanbase.jdbc.credential.CredentialPluginLoader;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -69,10 +70,10 @@ public class UrlParser implements Cloneable {
     /**
      * Constructor.
      *
-     * @param database database
+     * @param database  database
      * @param addresses list of hosts
-     * @param options connection option
-     * @param haMode High availability mode
+     * @param options   connection option
+     * @param haMode    High availability mode
      * @throws SQLException if credential plugin cannot be loaded
      */
     public UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode)
@@ -117,7 +118,7 @@ public class UrlParser implements Cloneable {
     /**
      * Parse url connection string with additional properties.
      *
-     * @param url connection string
+     * @param url  connection string
      * @param prop properties
      * @return UrlParser instance
      * @throws SQLException if parsing exception occur
@@ -135,8 +136,8 @@ public class UrlParser implements Cloneable {
      * Parses the connection URL in order to set the UrlParser instance with all the information
      * provided through the URL.
      *
-     * @param urlParser object instance in which all data from the connection url is stored
-     * @param url connection URL
+     * @param urlParser  object instance in which all data from the connection url is stored
+     * @param url        connection URL
      * @param properties properties
      * @throws SQLException if format is incorrect
      */
@@ -184,9 +185,9 @@ public class UrlParser implements Cloneable {
      * through the additional parameters given in order to extract the database and the options for
      * the connection.
      *
-     * @param urlParser object instance in which all data from the connection URL is stored
-     * @param properties properties
-     * @param hostAddressesString string that holds all the host addresses
+     * @param urlParser            object instance in which all data from the connection URL is stored
+     * @param properties           properties
+     * @param hostAddressesString  string that holds all the host addresses
      * @param additionalParameters string that holds all parameters defined for the connection
      * @throws SQLException if credential plugin cannot be loaded
      */
@@ -310,7 +311,8 @@ public class UrlParser implements Cloneable {
         boolean disablePipeline = isAurora();
 
         if (options.useBatchMultiSend == null) {
-            options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+            //            options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+            options.useBatchMultiSend = false;
         }
 
         if (options.usePipelineAuth == null) {
@@ -463,11 +465,11 @@ public class UrlParser implements Cloneable {
     }
 
     @Override
-  public Object clone() throws CloneNotSupportedException {
-    UrlParser tmpUrlParser = (UrlParser) super.clone();
-    tmpUrlParser.options = (Options) options.clone();
-    tmpUrlParser.addresses = new ArrayList<>();
-    tmpUrlParser.addresses.addAll(addresses);
-    return tmpUrlParser;
-  }
+    public Object clone() throws CloneNotSupportedException {
+        UrlParser tmpUrlParser = (UrlParser) super.clone();
+        tmpUrlParser.options = (Options) options.clone();
+        tmpUrlParser.addresses = new ArrayList<>();
+        tmpUrlParser.addresses.addAll(addresses);
+        return tmpUrlParser;
+    }
 }

@@ -133,7 +133,7 @@ public class RowDataObCursor extends SelectResultSet {
         }
     }
 
-    protected RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
+    public RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
         if (!isOpen) {
             throw new SQLException("cursor is not open");
         }
