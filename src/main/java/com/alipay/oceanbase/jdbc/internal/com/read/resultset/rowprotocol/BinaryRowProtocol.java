@@ -1038,6 +1038,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_DOUBLE:
                 return getInternalDouble(columnInfo);
             case VARCHAR:
+            case VARCHAR2:
             case VARSTRING:
             case STRING:
                 if (columnInfo.isBinary()) {
