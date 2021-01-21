@@ -103,7 +103,7 @@ public class ComplexUtil {
 
     public static void storeComplexStruct(PacketOutputStream pos, ComplexData data, Options options)
                                                                                                     throws Exception {
-        int nullCount = (data.getAttrCount() + 7) / 8; // 最少8位
+        int nullCount = (data.getAttrCount() + 7) / 8; // At least 8 bits
         int nullBitsPosition = pos.getPosition();
         for (int i = 0; i < nullCount; i++) {
             pos.writeBytes((byte) 0, 1);

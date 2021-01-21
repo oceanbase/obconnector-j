@@ -203,7 +203,6 @@ public abstract class RowProtocol {
 
   private TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
     StringBuilder sb = new StringBuilder();
-    // 年份开头不会小于10
     sb.append(buildTimestamp(bytes[pos])); // century
     sb.append(buildTimestamp(bytes[pos + 1])); // year
     sb.append("-");

@@ -15,7 +15,7 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
     private final TIMESTAMPTZ   ts;
 
     private static final byte[] LITERALS_TIMESTAMP = "timestamp ".getBytes();
-    private static final int    ORACLE_TIME_SCALE  = 9;                      // 序列化oracle时间类型时，固定填充scale 9
+    private static final int    ORACLE_TIME_SCALE  = 9;                      // When serializing oracle time type , fixedly fill scale 9 .
 
     /**
      * Constructor.

@@ -978,6 +978,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public String getCatalog() throws SQLException {
         if (this.getProtocol().isOracleMode()) {
+            //In OracleJdbc , this method returns null .
             return null;
         }
         return protocol.getCatalog();
@@ -998,6 +999,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setCatalog(final String catalog) throws SQLException {
         if (this.getProtocol().isOracleMode()) {
+            //In OracleJdbc , this method is not implemented .
             return;
         }
         if (catalog == null) {

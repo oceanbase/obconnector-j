@@ -216,7 +216,7 @@ public class ChecksumOracleTest extends BaseOracleTest {
             }
             ps.close();
 
-            // 中文
+            // Chinese
             ps = conn
                 .prepareStatement("/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into "
                                   + tableName + " values (?, '麓云', ?, ?, ?, ?)");

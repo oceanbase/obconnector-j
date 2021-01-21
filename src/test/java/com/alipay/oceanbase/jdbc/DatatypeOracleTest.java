@@ -181,7 +181,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
             "select * from tt1_char where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
         assertInsertSelect("insert into tt1_char values(3, null)",
             "select * from tt1_char where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
-        // TODO 这块还得考虑字符集
+        // TODO Need to consider the impact of character set .
         // insertAndSelect("insert into tt1_char values(4, '张三')", "select * from tt1_char where id =
         // 4", new TO[]{TO.$n(T.INT, 4),
         //        TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
@@ -195,7 +195,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
             "select * from tt1_nchar where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
         assertInsertSelect("insert into tt1_nchar values(3, null)",
             "select * from tt1_nchar where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
-        // TODO 这块还得考虑字符集
+        // TODO Need to consider the impact of character set .
         assertInsertSelect("insert into tt1_nchar values(4, '张三')",
             "select * from tt1_nchar where id = 4",
             new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, rightPadding("张三", 20)) });

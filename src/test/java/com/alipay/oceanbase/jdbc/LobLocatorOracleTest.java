@@ -537,7 +537,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
                 System.out.println(builder.toString());
             }
 
-            //mysql查询语句
+            //Mysql query string
             String sql = "create or replace PROCEDURE calc_add(a1 IN int, a2 IN OUT int) is "
                          + "begin " + "  a2:=a1+a2; " + "end;";
             stmt.execute(sql);

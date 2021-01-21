@@ -121,8 +121,8 @@ public class TIMESTAMPTZ extends Datum {
         }
 
         i = result[0] * 100 + result[1];
-        // 如果是 LTZ，转成 session timezone
-        // 如果是 TZ，转成 ob 返回的时区
+        // If LTZ, convert to session timezone
+        // If TZ, convert to the time zone returned by ob
         Calendar calendar = Calendar.getInstance(timeZone);
         calendar.clear();
         calendar.set(Calendar.YEAR, i);
@@ -292,7 +292,7 @@ public class TIMESTAMPTZ extends Datum {
         if (timeZoneStr == null || timeZoneStr.isEmpty()) {
             throw new SQLException("illegal time zone");
         }
-        // Timestamp 使用本地时区，需要先转换成 timeZoneStr指定时区
+        // Timestamp uses the local time zone and needs to be converted to the specified time zone of timeZoneStr first
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(timestamp);
         calendar.setTimeZone(TimeZone.getTimeZone(timeZoneStr));

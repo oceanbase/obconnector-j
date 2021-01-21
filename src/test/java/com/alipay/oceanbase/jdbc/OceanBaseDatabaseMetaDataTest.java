@@ -119,7 +119,7 @@ public class OceanBaseDatabaseMetaDataTest extends BaseTest {
         stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into quote_test values(1,now())");
         rs = stmt.executeQuery("select ID,CREATE_TIME from quote_test");
-        assertEquals("id", rs.getMetaData().getColumnName(1)); // oracle 返回大写的字段名 mysql返回小写的。
+        assertEquals("id", rs.getMetaData().getColumnName(1)); // Oracle returns uppercase field names Mysql returns lowercase.
         assertEquals("create_time", rs.getMetaData().getColumnName(2));
         assertEquals(true, rs.next());
         assertEquals("`", sharedConnection.getMetaData().getIdentifierQuoteString());

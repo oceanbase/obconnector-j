@@ -7,7 +7,6 @@ import java.sql.*;
 
 import static org.junit.Assert.*;
 
-//在oracle模式账户下执行本测试类
 public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     private static DatabaseMetaData dbmd;
@@ -27,7 +26,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         if (!rs.next()) {
             hasNext = false;
         }
-        //oracle中此方法返回null
+        //In OracleJdbc , this method returns null .
         assertTrue(!hasNext);
     }
 
