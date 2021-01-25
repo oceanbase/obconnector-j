@@ -344,6 +344,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   @Override
   public ResultSet executeQuery() throws SQLException {
     if (execute()) {
+      if (results == null) {
+        return SelectResultSet.createEmptyResultSet();
+      }
       if(results.getCallableResultSet() != null) {
         return results.getCallableResultSet();
       }
