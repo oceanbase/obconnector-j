@@ -1,16 +1,20 @@
 package com.alipay.oceanbase.jdbc;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.util.Utils;
 
 public class OceanBaseXaResource implements XAResource {
-
+    private static final int          MAX_COMMAND_LENGTH = 300;
     private final OceanBaseConnection connection;
+    private boolean                   isChangedCommit;
 
     public OceanBaseXaResource(OceanBaseConnection connection) {
         this.connection = connection;
@@ -96,11 +100,22 @@ public class OceanBaseXaResource implements XAResource {
      * @throws XAException exception
      */
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        String command = "XA COMMIT " + xidToString(xid);
-        if (onePhase) {
-            command += " ONE PHASE";
+        if (this.connection.getProtocol().isOracleMode()) {
+            StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
+            commandBuf.append("select DBMS_XA.XA_COMMIT(?, ?) from dual");
+            StructImpl xidObj = genOracleXid(xid);
+            try {
+                dispatchOracleCommand(commandBuf.toString(), xidObj, Boolean.valueOf(onePhase));
+            } finally {
+                this.connection.setInGlobalTx(false);
+            }
+        } else {
+            String command = "XA COMMIT " + xidToString(xid);
+            if (onePhase) {
+                command += " ONE PHASE";
+            }
+            execute(command);
         }
-        execute(command);
     }
 
     /**
@@ -123,11 +138,32 @@ public class OceanBaseXaResource implements XAResource {
      *     XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
      */
     public void end(Xid xid, int flags) throws XAException {
-        if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
-            throw new XAException(XAException.XAER_INVAL);
-        }
+        if (this.connection.getProtocol().isOracleMode()) {
+            StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
+            commandBuf.append("select DBMS_XA.XA_END(?, ?) from dual");
+            StructImpl xidObj = genOracleXid(xid);
 
-        execute("XA END " + xidToString(xid) + " " + flagsToString(flags));
+            dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
+
+            /**
+             *   Only when XA END is executed correctly does it need to be reset,
+             *   otherwise the XA transaction is still in the transaction
+             */
+            try {
+                OceanBaseConnection mySQLConnection = this.connection;
+                if (this.isChangedCommit) {
+                    mySQLConnection.setAutoCommit(true);
+                    this.isChangedCommit = false;
+                }
+            } catch (SQLException e) {
+                throw new XAException(XAException.XAER_PROTO);
+            }
+        } else {
+            if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
+                throw new XAException(XAException.XAER_INVAL);
+            }
+            execute("XA END " + xidToString(xid) + " " + flagsToString(flags));
+        }
     }
 
     /**
@@ -177,7 +213,14 @@ public class OceanBaseXaResource implements XAResource {
      *     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
      */
     public int prepare(Xid xid) throws XAException {
-        execute("XA PREPARE " + xidToString(xid));
+        if (this.connection.getProtocol().isOracleMode()) {
+            StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
+            commandBuf.append("select DBMS_XA.XA_PREPARE(?) from dual");
+            StructImpl xidObj = genOracleXid(xid);
+            dispatchOracleCommand(commandBuf.toString(), xidObj);
+        } else {
+            execute("XA PREPARE " + xidToString(xid));
+        }
         return XA_OK;
     }
 
@@ -203,28 +246,74 @@ public class OceanBaseXaResource implements XAResource {
     if ((flags & TMSTARTRSCAN) == 0) {
       return new OceanBaseXid[0];
     }
-
-    try {
-      ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
-      ArrayList<OceanBaseXid> xidList = new ArrayList<>();
-
-      while (rs.next()) {
-        int formatId = rs.getInt(1);
-        int len1 = rs.getInt(2);
-        int len2 = rs.getInt(3);
-        byte[] arr = rs.getBytes(4);
-
-        byte[] globalTransactionId = new byte[len1];
-        byte[] branchQualifier = new byte[len2];
-        System.arraycopy(arr, 0, globalTransactionId, 0, len1);
-        System.arraycopy(arr, len1, branchQualifier, 0, len2);
-        xidList.add(new OceanBaseXid(formatId, globalTransactionId, branchQualifier));
-      }
-      Xid[] xids = new Xid[xidList.size()];
-      xidList.toArray(xids);
-      return xids;
-    } catch (SQLException sqle) {
-      throw mapXaException(sqle);
+    if (this.connection.getProtocol().isOracleMode()) {
+        List<OceanBaseXid> recoveredXidList = new ArrayList<OceanBaseXid>();
+        java.sql.PreparedStatement psStmt = null;
+        ResultSet rs = null;
+        ResultSet arrayRes = null;
+        String command = "declare " + "  x DBMS_XA_XID_ARRAY := DBMS_XA_XID_ARRAY(); "
+                + "BEGIN " + "  x := DBMS_XA.XA_RECOVER(); " + "  ? := x;" + "END;";
+        try {
+            OceanBaseConnection mySQLConnection = this.connection;
+            // TODO: Cache this for lifetime of XAConnection
+            psStmt = mySQLConnection.prepareStatement(command);
+            psStmt.setNull(1, java.sql.Types.NULL);
+            rs = psStmt.executeQuery();
+            while (rs.next()) {
+                java.sql.Array array = rs.getArray(1);
+                arrayRes = array.getResultSet();
+                while (arrayRes.next()) {
+                    java.sql.Struct struct = (java.sql.Struct) arrayRes.getObject(2);
+                    Object[] objArr = struct.getAttributes();
+                    recoveredXidList.add(new OceanBaseXid(((String) objArr[1]).getBytes(),
+                            ((String) objArr[2]).getBytes(), ((BigDecimal) objArr[0]).intValue()));
+                }
+            }
+        } catch (SQLException sqlEx) {
+            throw new XAException(XAException.XAER_RMFAIL);
+        } finally {
+            try {
+                if (arrayRes != null) {
+                    arrayRes.close();
+                }
+                if (rs != null) {
+                    rs.close();
+                }
+                if (psStmt != null) {
+                    psStmt.close();
+                }
+            } catch (SQLException sqlEx) { // NOPMD
+                throw new XAException(XAException.XAER_RMFAIL);
+            }
+        }
+        int numXids = recoveredXidList.size();
+        Xid[] asXids = new Xid[numXids];
+        Object[] asObjects = recoveredXidList.toArray();
+        for (int i = 0; i < numXids; i++) {
+            asXids[i] = (Xid) asObjects[i];
+        }
+        return asXids;
+    } else {
+        try {
+            ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
+            ArrayList<OceanBaseXid> xidList = new ArrayList<>();
+            while (rs.next()) {
+                int formatId = rs.getInt(1);
+                int len1 = rs.getInt(2);
+                int len2 = rs.getInt(3);
+                byte[] arr = rs.getBytes(4);
+                byte[] globalTransactionId = new byte[len1];
+                byte[] branchQualifier = new byte[len2];
+                System.arraycopy(arr, 0, globalTransactionId, 0, len1);
+                System.arraycopy(arr, len1, branchQualifier, 0, len2);
+                xidList.add(new OceanBaseXid(formatId, globalTransactionId, branchQualifier));
+            }
+            Xid[] xids = new Xid[xidList.size()];
+            xidList.toArray(xids);
+            return xids;
+        } catch (SQLException sqle) {
+            throw mapXaException(sqle);
+        }
     }
   }
 
@@ -235,7 +324,18 @@ public class OceanBaseXaResource implements XAResource {
      * @throws XAException An error has occurred.
      */
     public void rollback(Xid xid) throws XAException {
-        execute("XA ROLLBACK " + xidToString(xid));
+        if (this.connection.getProtocol().isOracleMode()) {
+            StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
+            commandBuf.append("select DBMS_XA.XA_ROLLBACK(?) from dual");
+            StructImpl xidObj = genOracleXid(xid);
+            try {
+                dispatchOracleCommand(commandBuf.toString(), xidObj);
+            } finally {
+                this.connection.setInGlobalTx(false);
+            }
+        } else {
+            execute("XA ROLLBACK " + xidToString(xid));
+        }
     }
 
     /**
@@ -269,10 +369,106 @@ public class OceanBaseXaResource implements XAResource {
         if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        execute("XA START "
-                + xidToString(xid)
-                + " "
-                + flagsToString(flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME
-                    : flags));
+        if (this.connection.getProtocol().isOracleMode()) {
+            StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
+            commandBuf.append("select DBMS_XA.XA_START(?, ?) from dual");
+            StructImpl xidObj = genOracleXid(xid);
+
+            try {
+                OceanBaseConnection mySQLConnection = this.connection;
+                boolean isAutoCommit = mySQLConnection.getAutoCommit();
+                if (isAutoCommit) {
+                    mySQLConnection.setAutoCommit(false);
+                    this.isChangedCommit = true;
+                } else {
+                    this.isChangedCommit = false;
+                }
+            } catch (SQLException e) {
+                throw new XAException(XAException.XAER_RMFAIL);
+            }
+            try {
+                dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
+            } catch (XAException e) {
+                try {
+                    OceanBaseConnection mySQLConnection = this.connection;
+                    if (this.isChangedCommit) {
+                        mySQLConnection.setAutoCommit(true);
+                        this.isChangedCommit = false;
+                    }
+                } catch (SQLException se) { // NOPMD
+
+                }
+                throw e;
+            }
+        } else {
+            execute("XA START "
+                    + xidToString(xid)
+                    + " "
+                    + flagsToString(flags == TMJOIN
+                                    && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME
+                        : flags));
+        }
+    }
+
+    private StructImpl genOracleXid(Xid xid) throws XAException {
+        try {
+            OceanBaseConnection mySQLConnection = this.connection;
+            Object[] xidObj = new Object[3];
+            int i = 0;
+            xidObj[i++] = xid.getFormatId();
+            xidObj[i++] = xid.getGlobalTransactionId();
+            xidObj[i++] = xid.getBranchQualifier();
+
+            return (StructImpl) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
+        } catch (SQLException sqlEx) {
+            throw new XAException(XAException.XAER_INVAL);
+        }
+    }
+
+    private ResultSet dispatchOracleCommand(String command, StructImpl xid) throws XAException {
+        return dispatchOracleCommand(command, xid, null);
+    }
+
+    private ResultSet dispatchOracleCommand(String command, StructImpl xid, Object param)
+                                                                                         throws XAException {
+        java.sql.PreparedStatement psStmt = null;
+        try {
+
+            OceanBaseConnection mySQLConnection = this.connection;
+
+            // TODO: Cache this for lifetime of XAConnection
+            psStmt = mySQLConnection.prepareStatement(command);
+
+            psStmt.setObject(1, xid);
+            if (param != null) {
+                psStmt.setObject(2, param);
+            }
+
+            ResultSet rs = psStmt.executeQuery();
+            // Whether the execution succeeds or fails, a result set will be returned
+            if (rs.next()) {
+                int xaRet = rs.getInt(1);
+
+                if (XA_OK != xaRet) {
+                    XAException xaException = new XAException(xaRet);
+                    throw xaException;
+                }
+            } else {
+                throw new XAException(XAException.XAER_RMFAIL);
+            }
+
+            return rs;
+        } catch (SQLException sqlEx) {
+            sqlEx.printStackTrace();
+            throw new XAException(XAException.XAER_RMFAIL);
+        } finally {
+            if (psStmt != null) {
+                try {
+                    psStmt.close();
+                } catch (SQLException sqlEx) { // NOPMD
+                    throw new XAException(XAException.XAER_RMFAIL);
+                }
+            }
+        }
     }
 }

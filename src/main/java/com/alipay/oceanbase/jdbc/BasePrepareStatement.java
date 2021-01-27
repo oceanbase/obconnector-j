@@ -1680,6 +1680,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.STRUCT);
             return;
         }
-        setParameter(parameterIndex, new OBStructParameter((StructImpl) x)); // todo
+        setParameter(parameterIndex,
+            new OBStructParameter((StructImpl) x, this.protocol.getOptions()));
     }
 }

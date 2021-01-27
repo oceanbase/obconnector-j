@@ -107,6 +107,7 @@ public class BinaryRowProtocol extends RowProtocol {
                             case INTEGER:
                             case MEDIUMINT:
                             case FLOAT:
+                            case NUMBER:
                                 internalPos += 4;
                                 break;
 
@@ -170,6 +171,7 @@ public class BinaryRowProtocol extends RowProtocol {
                             case INTEGER:
                             case MEDIUMINT:
                             case FLOAT:
+                            case NUMBER:
                                 this.pos = internalPos;
                                 length = 4;
                                 this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
@@ -401,6 +403,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case INTEGER:
             case MEDIUMINT:
+            case NUMBER:
                 value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
                          + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
                 if (columnInfo.isSigned()) {

@@ -1,14 +1,17 @@
 package com.alipay.oceanbase.jdbc.internal.com.send.parameters;
 
+import com.alipay.oceanbase.jdbc.extend.datatype.ComplexUtil;
 import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.alipay.oceanbase.jdbc.util.Options;
 
 import java.io.IOException;
 import java.sql.SQLException;
 
 public class OBStructParameter implements Cloneable, ParameterHolder {
     StructImpl structValue;
+    Options    options;
 
     /**
      * see complex data type protocol
@@ -16,18 +19,19 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
      */
     public void storeStructTypeInfo(PacketOutputStream packet) throws IOException {
 
-        StructImpl struct = (StructImpl) structValue;
-        //        packet.writeLenBytes(StringUtils.getBytes(struct.getComplexType().getSchemaName()));
-        //        packet.writeLenBytes(StringUtils.getBytes(struct.getComplexType().getTypeName()));
-        byte[] tmp = struct.getComplexType().getAttrType(0).getSchemaName().getBytes();
+        StructImpl struct = structValue;
+        byte[] tmp = struct.getComplexType().getSchemaName().getBytes();
+        packet.writeFieldLength(tmp.length);
         packet.write(tmp);
-        tmp = struct.getComplexType().getAttrType(0).getTypeName().getBytes();
+        tmp = struct.getComplexType().getTypeName().getBytes();
+        packet.writeFieldLength(tmp.length);
         packet.write(tmp);
         packet.writeFieldLength(struct.getComplexType().getVersion());
     }
 
-    public OBStructParameter(StructImpl structImpl) {
+    public OBStructParameter(StructImpl structImpl, Options options) {
         this.structValue = structImpl;
+        this.options = options;
     }
 
     @Override
@@ -37,7 +41,29 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
 
     @Override
     public void writeBinary(PacketOutputStream pos) throws IOException {
-
+        try {
+            int nullCount = (structValue.getAttrCount() + 7) / 8;
+            int nullBitsPosition = pos.getPosition();
+            for (int i = 0; i < nullCount; i++) {
+                pos.writeBytes((byte) 0, 1);
+            }
+            byte[] nullBitsBuffer = new byte[nullCount];
+            for (int i = 0; i < structValue.getAttrCount(); ++i) {
+                if (null != structValue.getAttrData(i)) {
+                    ComplexUtil.storeComplexAttrData(pos,
+                        structValue.getComplexType().getAttrType(i), structValue.getAttrData(i),
+                        options);
+                } else {
+                    nullBitsBuffer[i / 8] |= (1 << (i % 8));
+                }
+            }
+            int endPosition = pos.getPosition();
+            pos.setPosition(nullBitsPosition);
+            pos.write(nullBitsBuffer); // null bits
+            pos.setPosition(endPosition);
+        } catch (Exception e) {
+            throw new IOException("storeComplexAttrData exception");
+        }
     }
 
     @Override

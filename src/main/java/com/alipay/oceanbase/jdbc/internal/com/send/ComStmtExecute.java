@@ -89,7 +89,7 @@ public class ComStmtExecute {
                         Object obj = parameters[i];
                         if (obj instanceof OBArrayParameter) {
                             ((OBArrayParameter) obj).storeArrayTypeInfo(pos);
-                        } else if (obj instanceof Struct) {
+                        } else if (obj instanceof OBStructParameter) {
                             ((OBStructParameter) obj).storeStructTypeInfo(pos);
                         } else {
                             throw new SQLException(

@@ -23,6 +23,19 @@ public class OceanBaseXid implements Xid {
     }
 
     /**
+     * Global transaction identifier.
+     *
+     * @param globalTransactionId the global transaction identifier part of XID as an array of bytes.
+     * @param branchQualifier the transaction branch identifier part of XID as an array of bytes.
+     * @param formatId the format identifier part of the XID.
+     */
+    public OceanBaseXid(byte[] globalTransactionId, byte[] branchQualifier, int formatId) {
+        this.formatId = formatId;
+        this.globalTransactionId = globalTransactionId;
+        this.branchQualifier = branchQualifier;
+    }
+
+    /**
      * Equal implementation.
      *
      * @param obj object to compare

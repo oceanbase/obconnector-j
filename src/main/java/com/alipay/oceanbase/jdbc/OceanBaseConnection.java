@@ -49,7 +49,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
                                                                       .compile(
-                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
+                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE)",
                                                                           Pattern.CASE_INSENSITIVE);
 
     public final ReentrantLock       lock;
@@ -89,6 +89,10 @@ public class OceanBaseConnection implements ConnectionImpl {
     private static final int         ATTR_TYPE_INDEX              = 7;
     private String                   origHostToConnectTo;
     // we don't want to be able to publicly clone this... // todo
+    /**
+     * Is this connection associated with a global tx?
+     */
+    private boolean                  isInGlobalTx                 = false;
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
     private java.sql.Connection      complexConnection            = null;
@@ -2178,5 +2182,11 @@ public class OceanBaseConnection implements ConnectionImpl {
             throw new SQLFeatureNotSupportedException();
         }
 
+    public boolean isInGlobalTx() {
+        return this.isInGlobalTx;
+    }
+
+    public void setInGlobalTx(boolean flag) {
+        this.isInGlobalTx = flag;
     }
 }
