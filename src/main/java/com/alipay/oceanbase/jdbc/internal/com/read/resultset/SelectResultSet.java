@@ -1,6 +1,7 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
 import java.sql.Clob;
+
 import com.alipay.oceanbase.jdbc.Blob;
 import com.alipay.oceanbase.jdbc.OceanBaseConnection;
 import com.alipay.oceanbase.jdbc.OceanBaseResultSetMetaData;
@@ -44,10 +45,6 @@ import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.MORE
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
 public class SelectResultSet implements ResultSet {
-
-    public class Cursor {
-
-    }
 
     public static final int                 TINYINT1_IS_BIT     = 1;
     public static final int                 YEAR_IS_DATE_TYPE   = 2;
@@ -94,12 +91,12 @@ public class SelectResultSet implements ResultSet {
      * Create Streaming resultSet.
      *
      * @param columnDefinition column information
-     * @param results results
-     * @param protocol current protocol
-     * @param reader stream fetcher
-     * @param callableResult is it from a callableStatement ?
-     * @param eofDeprecated is EOF deprecated
-     * @throws IOException if any connection error occur
+     * @param results          results
+     * @param protocol         current protocol
+     * @param reader           stream fetcher
+     * @param callableResult   is it from a callableStatement ?
+     * @param eofDeprecated    is EOF deprecated
+     * @throws IOException  if any connection error occur
      * @throws SQLException if any connection error occur
      */
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
@@ -149,6 +146,75 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
+    public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
+                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
+                                                                                                   throws IOException,
+                                                                                                   SQLException {
+        this.statement = results.getStatement();
+        this.isClosed = false;
+        this.protocol = protocol;
+        this.options = protocol.getOptions();
+        this.noBackslashEscapes = protocol.noBackslashEscapes();
+        this.columnsInformation = columnDefinition;
+        this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
+
+        this.columnInformationLength = columnDefinition.length;
+        this.complexData = new ComplexData[columnInformationLength];
+        this.complexEndPos = new int[columnInformationLength];
+        this.isEof = false;
+        timeZone = protocol.getTimeZone();
+        if (results.isBinaryFormat()) {
+            row = new BinaryRowProtocol(columnsInformation, columnInformationLength,
+                results.getMaxFieldSize(), options);
+        } else {
+            row = new TextRowProtocol(results.getMaxFieldSize(), options);
+        }
+        row.setProtocol(protocol);
+        this.fetchSize = results.getFetchSize();
+        this.resultSetScrollType = results.getResultSetScrollType();
+        this.dataSize = 0;
+        this.dataFetchTime = 0;
+        this.rowPointer = -1;
+        this.callableResult = callableResult;
+        this.eofDeprecated = eofDeprecated;
+        this.isPsOutParameter = isPsOutParameter;
+        this.reader = protocol.getReader();
+        data = new byte[Math.max(10, fetchSize)][];
+    }
+
+    public boolean assign(SelectResultSet opt) {
+        if (opt.data == null || opt.dataSize == 0) {
+            return false;
+        }
+        this.statement = opt.statement;
+        this.isClosed = opt.isClosed;
+        this.protocol = opt.protocol;
+        this.options = opt.options;
+        this.noBackslashEscapes = opt.noBackslashEscapes;
+        this.columnsInformation = opt.columnsInformation;
+        this.columnLabelIndexer = opt.columnLabelIndexer;
+
+        this.columnInformationLength = opt.columnInformationLength;
+        this.complexData = opt.complexData;
+        this.complexEndPos = opt.complexEndPos;
+        ;
+        this.reader = opt.reader;
+        this.isEof = opt.isEof;
+        timeZone = protocol.getTimeZone();
+        this.row = opt.row;
+        this.fetchSize = opt.fetchSize;
+        this.resultSetScrollType = opt.resultSetScrollType;
+        this.dataSize = opt.dataSize;
+        this.dataFetchTime = opt.dataFetchTime;
+        this.rowPointer = opt.rowPointer;
+        this.callableResult = opt.callableResult;
+        this.eofDeprecated = opt.eofDeprecated;
+        this.isPsOutParameter = opt.isPsOutParameter;
+        this.data = opt.data;
+        this.streaming = opt.streaming;
+        return true;
+    }
+
     public void changeRowProtocol(RowProtocol row) {
         this.row = row;
     }
@@ -160,12 +226,12 @@ public class SelectResultSet implements ResultSet {
     /**
      * Create filled result-set.
      *
-     * @param columnDefinition column information
-     * @param resultSet result-set data
-     * @param protocol current protocol
+     * @param columnDefinition    column information
+     * @param resultSet           result-set data
+     * @param protocol            current protocol
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *                            ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
     public SelectResultSet(ColumnDefinition[] columnDefinition, List<byte[]> resultSet,
                            Protocol protocol, int resultSetScrollType) {
@@ -203,35 +269,35 @@ public class SelectResultSet implements ResultSet {
      * Create a result set from given data. Useful for creating "fake" resultsets for
      * DatabaseMetaData, (one example is MariaDbDatabaseMetaData.getTypeInfo())
      *
-     * @param data - each element of this array represents a complete row in the ResultSet. Each value
-     *     is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
-     *     values that are represented as "1" or "0" strings
-     * @param protocol protocol
+     * @param data                 - each element of this array represents a complete row in the ResultSet. Each value
+     *                             is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
+     *                             values that are represented as "1" or "0" strings
+     * @param protocol             protocol
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      * @return resultset
      */
 
     public static ResultSet createGeneratedData(
-      long[] data, Protocol protocol, boolean findColumnReturnsOne) {
-    ColumnDefinition[] columns = new ColumnDefinition[1];
-    columns[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, protocol.isOracleMode());
+            long[] data, Protocol protocol, boolean findColumnReturnsOne) {
+        ColumnDefinition[] columns = new ColumnDefinition[1];
+        columns[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, protocol.isOracleMode());
 
-    List<byte[]> rows = new ArrayList<>();
-    for (long rowData : data) {
-      if (rowData != 0) {
-        rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
-      }
-    }
-    if (findColumnReturnsOne) {
-      return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
-        @Override
-        public int findColumn(String name) {
-          return 1;
+        List<byte[]> rows = new ArrayList<>();
+        for (long rowData : data) {
+            if (rowData != 0) {
+                rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
+            }
         }
-      };
+        if (findColumnReturnsOne) {
+            return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
+                @Override
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
-    return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
-  }
 
     /**
      * Create a result set from given data. Useful for creating "fake" resultSets for
@@ -239,40 +305,40 @@ public class SelectResultSet implements ResultSet {
      *
      * @param columnNames - string array of column names
      * @param columnTypes - column types
-     * @param data - each element of this array represents a complete row in the ResultSet. Each value
-     *     is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
-     *     values that are represented as "1" or "0" strings
-     * @param protocol protocol
+     * @param data        - each element of this array represents a complete row in the ResultSet. Each value
+     *                    is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
+     *                    values that are represented as "1" or "0" strings
+     * @param protocol    protocol
      * @return resultset
      */
     public static ResultSet createResultSet(
-      String[] columnNames, ColumnType[] columnTypes, String[][] data, Protocol protocol) {
-    int columnNameLength = columnNames.length;
-    ColumnDefinition[] columns = new ColumnDefinition[columnNameLength];
+            String[] columnNames, ColumnType[] columnTypes, String[][] data, Protocol protocol) {
+        int columnNameLength = columnNames.length;
+        ColumnDefinition[] columns = new ColumnDefinition[columnNameLength];
 
-    //boolean isOracleMode = this.protocol.isOracleMode();
-    for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode());
-    }
-
-    List<byte[]> rows = new ArrayList<>();
-
-    for (String[] rowData : data) {
-      assert rowData.length == columnNameLength;
-      byte[][] rowBytes = new byte[rowData.length][];
-      for (int i = 0; i < rowData.length; i++) {
-        if (rowData[i] != null) {
-          rowBytes[i] = rowData[i].getBytes();
+        //boolean isOracleMode = this.protocol.isOracleMode();
+        for (int i = 0; i < columnNameLength; i++) {
+            columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode());
         }
-      }
-      rows.add(StandardPacketInputStream.create(rowBytes, columnTypes));
+
+        List<byte[]> rows = new ArrayList<>();
+
+        for (String[] rowData : data) {
+            assert rowData.length == columnNameLength;
+            byte[][] rowBytes = new byte[rowData.length][];
+            for (int i = 0; i < rowData.length; i++) {
+                if (rowData[i] != null) {
+                    rowBytes[i] = rowData[i].getBytes();
+                }
+            }
+            rows.add(StandardPacketInputStream.create(rowBytes, columnTypes));
+        }
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
-    return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
-  }
 
     public static SelectResultSet createEmptyResultSet() {
-    return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null, TYPE_SCROLL_SENSITIVE);
-  }
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null, TYPE_SCROLL_SENSITIVE);
+    }
 
     /**
      * Indicate if result-set is still streaming results from server.
@@ -319,7 +385,7 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    private SQLException handleIoException(IOException ioe) {
+    protected SQLException handleIoException(IOException ioe) {
         return ExceptionFactory.INSTANCE
             .create(
                 "Server has closed the connection. \n"
@@ -338,7 +404,7 @@ public class SelectResultSet implements ResultSet {
     /**
      * This permit to replace current stream results by next ones.
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
     private void nextStreamingValue() throws IOException, SQLException {
@@ -356,7 +422,7 @@ public class SelectResultSet implements ResultSet {
     /**
      * This permit to add next streaming values to existing resultSet.
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
     private void addStreamingValue() throws IOException, SQLException {
@@ -372,12 +438,12 @@ public class SelectResultSet implements ResultSet {
      * Read next value.
      *
      * @return true if have a new value
-     * @throws IOException exception
+     * @throws IOException  exception
      * @throws SQLException exception
      */
 
-    private boolean readNextValue() throws IOException, SQLException {
-        byte[] buf = reader.getPacketArray(false);
+    protected boolean readNextValue() throws IOException, SQLException {
+        byte[] buf = this.reader.getPacketArray(false);
 
         // is error Packet
         if (buf[0] == ERROR) {
@@ -509,7 +575,9 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    /** Grow data array. */
+    /**
+     * Grow data array.
+     */
     private void growDataArray() {
         int newCapacity = data.length + (data.length >> 1);
         if (newCapacity - MAX_ARRAY_SIZE > 0) {
@@ -538,7 +606,9 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    /** Close resultSet. */
+    /**
+     * Close resultSet.
+     */
     public void close() throws SQLException {
         isClosed = true;
         if (!isEof) {
@@ -572,9 +642,6 @@ public class SelectResultSet implements ResultSet {
     }
 
     private void resetVariables() {
-        //        protocol = null;
-        // we need resue this resultset
-        reader = null;
         isEof = true;
     }
 
@@ -923,17 +990,23 @@ public class SelectResultSet implements ResultSet {
         this.statement = statement;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean wasNull() {
         return row.wasNull();
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
         return getAsciiStream(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -959,7 +1032,9 @@ public class SelectResultSet implements ResultSet {
             StandardCharsets.UTF_8).getBytes());
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public String getString(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         switch (columnsInformation[columnIndex - 1].getColumnType()) {
@@ -993,7 +1068,9 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public String getString(String columnLabel) throws SQLException {
         return getString(findColumn(columnLabel));
     }
@@ -1010,7 +1087,9 @@ public class SelectResultSet implements ResultSet {
         return value;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1027,39 +1106,53 @@ public class SelectResultSet implements ResultSet {
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
         return getBinaryStream(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public int getInt(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalInt(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public int getInt(String columnLabel) throws SQLException {
         return getInt(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public long getLong(String columnLabel) throws SQLException {
         return getLong(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public long getLong(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalLong(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public float getFloat(String columnLabel) throws SQLException {
         return getFloat(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public float getFloat(int columnIndex) throws SQLException {
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
         switch (type) {
@@ -1072,12 +1165,16 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalFloat(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public double getDouble(String columnLabel) throws SQLException {
         return getDouble(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public double getDouble(int columnIndex) throws SQLException {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
@@ -1091,18 +1188,24 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalDouble(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
         return getBigDecimal(findColumn(columnLabel), scale);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
         switch (type) {
@@ -1119,17 +1222,23 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
         return getBigDecimal(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public byte[] getBytes(String columnLabel) throws SQLException {
         return getBytes(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public byte[] getBytes(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1153,46 +1262,62 @@ public class SelectResultSet implements ResultSet {
         return data;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Date getDate(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalDate(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Date getDate(String columnLabel) throws SQLException {
         return getDate(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalDate(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
         return getDate(findColumn(columnLabel), cal);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Time getTime(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTime(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Time getTime(String columnLabel) throws SQLException {
         return getTime(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTime(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
         return getTime(findColumn(columnLabel), cal);
     }
@@ -1242,34 +1367,46 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalTIMESTAMPLTZ(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
         return getTimestamp(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTimestamp(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
         return getTimestamp(findColumn(columnLabel), cal);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTimestamp(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
         return getUnicodeStream(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1279,18 +1416,24 @@ public class SelectResultSet implements ResultSet {
             StandardCharsets.UTF_8).getBytes());
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public String getCursorName() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("Cursors not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public ResultSetMetaData getMetaData() {
         return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias, this
             .getProtocol().isOracleMode());
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Object getObject(int columnIndex) throws SQLException {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
@@ -1316,24 +1459,32 @@ public class SelectResultSet implements ResultSet {
         return row.getInternalObject(columnsInformation[columnIndex - 1], timeZone);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Object getObject(String columnLabel) throws SQLException {
         return getObject(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @SuppressWarnings("unchecked")
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
         if (type == null) {
@@ -1470,17 +1621,23 @@ public class SelectResultSet implements ResultSet {
         return type.cast(getObject(findColumn(columnLabel), type));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public int findColumn(String columnLabel) throws SQLException {
         return columnLabelIndexer.getIndex(columnLabel) + 1;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Reader getCharacterStream(String columnLabel) throws SQLException {
         return getCharacterStream(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
@@ -1508,27 +1665,37 @@ public class SelectResultSet implements ResultSet {
         return new StringReader(value);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
         return getCharacterStream(columnIndex);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
         return getCharacterStream(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Ref getRef(int columnIndex) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Ref getRef(String columnLabel) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("Getting REFs not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public java.sql.Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1547,12 +1714,16 @@ public class SelectResultSet implements ResultSet {
         return new Blob(row.buf, row.pos, row.length);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public java.sql.Blob getBlob(String columnLabel) throws SQLException {
         return getBlob(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public java.sql.Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1569,7 +1740,9 @@ public class SelectResultSet implements ResultSet {
         return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public Clob getClob(String columnLabel) throws SQLException {
         return getClob(findColumn(columnLabel));
     }
@@ -1653,7 +1826,9 @@ public class SelectResultSet implements ResultSet {
         return obCursor;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public URL getURL(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
@@ -1668,23 +1843,31 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public URL getURL(String columnLabel) throws SQLException {
         return getURL(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public RowId getRowId(int columnIndex) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public RowId getRowId(String columnLabel) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public NClob getNClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
@@ -1693,555 +1876,765 @@ public class SelectResultSet implements ResultSet {
         return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public NClob getNClob(String columnLabel) throws SQLException {
         return getNClob(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public String getNString(int columnIndex) throws SQLException {
         return getString(columnIndex);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public String getNString(String columnLabel) throws SQLException {
         return getString(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean getBoolean(int index) throws SQLException {
         checkObjectRange(index);
         return row.getInternalBoolean(columnsInformation[index - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean getBoolean(String columnLabel) throws SQLException {
         return getBoolean(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public byte getByte(int index) throws SQLException {
         checkObjectRange(index);
         return row.getInternalByte(columnsInformation[index - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public byte getByte(String columnLabel) throws SQLException {
         return getByte(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public short getShort(int index) throws SQLException {
         checkObjectRange(index);
         return row.getInternalShort(columnsInformation[index - 1]);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public short getShort(String columnLabel) throws SQLException {
         return getShort(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean rowUpdated() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("Detecting row updates are not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean rowInserted() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("Detecting inserts are not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean rowDeleted() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("Row deletes are not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void insertRow() throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void deleteRow() throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("deleteRow are not supported when using ResultSet.CONCUR_READ_ONLY");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void refreshRow() throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("refreshRow are not supported when using ResultSet.CONCUR_READ_ONLY");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void cancelRowUpdates() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void moveToInsertRow() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void moveToCurrentRow() throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNull(int columnIndex) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNull(String columnLabel) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBoolean(String columnLabel, boolean value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateByte(int columnIndex, byte value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateByte(String columnLabel, byte value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateShort(int columnIndex, short value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateShort(String columnLabel, short value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateInt(int columnIndex, int value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateInt(String columnLabel, int value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateFloat(int columnIndex, float value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateFloat(String columnLabel, float value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateDouble(int columnIndex, double value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateDouble(String columnLabel, double value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateString(int columnIndex, String value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateString(String columnLabel, String value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBytes(int columnIndex, byte[] value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBytes(String columnLabel, byte[] value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateDate(int columnIndex, Date date) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateDate(String columnLabel, Date value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateTime(int columnIndex, Time time) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateTime(String columnLabel, Time value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(int columnIndex, InputStream inputStream, int length)
                                                                                        throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(String columnLabel, InputStream value, int length)
                                                                                     throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(int columnIndex, InputStream inputStream, long length)
                                                                                         throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(String columnLabel, InputStream inputStream, long length)
                                                                                            throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(int columnIndex, InputStream inputStream, int length)
                                                                                         throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(int columnIndex, InputStream inputStream, long length)
                                                                                          throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(String columnLabel, InputStream value, int length)
                                                                                      throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(String columnLabel, InputStream inputStream, long length)
                                                                                             throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(int columnIndex, Reader value, int length)
                                                                                 throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(String columnLabel, Reader reader, int length)
                                                                                     throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(int columnIndex, Reader value, long length)
                                                                                  throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(String columnLabel, Reader reader, long length)
                                                                                      throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateObject(int columnIndex, Object value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateObject(String columnLabel, Object value, int scaleOrLength)
                                                                                  throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateObject(String columnLabel, Object value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateLong(String columnLabel, long value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateLong(int columnIndex, long value) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateRow() throws SQLException {
         throw ExceptionFactory.INSTANCE
             .notSupported("updateRow are not supported when using ResultSet.CONCUR_READ_ONLY");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateRef(int columnIndex, Ref ref) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateRef(String columnLabel, Ref ref) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(int columnIndex, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(String columnLabel, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(int columnIndex, InputStream inputStream, long length)
                                                                                  throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateBlob(String columnLabel, InputStream inputStream, long length)
                                                                                     throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(int columnIndex, Clob clob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(String columnLabel, Clob clob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateArray(int columnIndex, Array array) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateArray(String columnLabel, Array array) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNString(int columnIndex, String nstring) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNString(String columnLabel, String nstring) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(int columnIndex, NClob nclob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(String columnLabel, NClob nclob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     @Override
     public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNCharacterStream(int columnIndex, Reader value, long length)
                                                                                   throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNCharacterStream(String columnLabel, Reader reader, long length)
                                                                                       throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public int getHoldability() {
         return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
         try {
             if (isWrapperFor(iface)) {
@@ -2255,12 +2648,16 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    /** {inheritDoc}. */
+    /**
+     * {inheritDoc}.
+     */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
         return iface.isInstance(this);
     }
 
-    /** Force metadata getTableName to return table alias, not original table name. */
+    /**
+     * Force metadata getTableName to return table alias, not original table name.
+     */
     public void setForceTableAlias() {
         this.forceAlias = true;
     }
@@ -2288,5 +2685,11 @@ public class SelectResultSet implements ResultSet {
 
     public boolean isBinaryEncoded() {
         return row.isBinaryEncoded();
+    }
+
+    protected void resetState() {
+        this.dataSize = 0;
+        this.rowPointer = -1;
+        this.lastRowPointer = -1;
     }
 }

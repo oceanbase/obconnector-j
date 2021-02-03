@@ -558,7 +558,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
+    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && this
+    .getFetchSize() > 0) {
+      PreparedStatement pstmt = this.connection.prepareStatement(sql);
+      pstmt.setFetchSize(this.fetchSize);
+      return pstmt.executeQuery();
+    } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
       return results.getResultSet();
     }
     return SelectResultSet.createEmptyResultSet();

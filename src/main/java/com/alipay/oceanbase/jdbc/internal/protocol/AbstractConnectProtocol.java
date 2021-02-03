@@ -125,7 +125,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.lock = lock;
         this.urlParser = urlParser;
         this.options = urlParser.getOptions();
-        this.database = (urlParser.getDatabase() == null ? "" : urlParser.getDatabase());
+        this.database = (urlParser.getDatabase() == null ? "" : urlParser.getDatabase()
+            .toUpperCase(Locale.ROOT));
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.globalInfo = globalInfo;
         if (options.cachePrepStmts && options.useServerPrepStmts) {

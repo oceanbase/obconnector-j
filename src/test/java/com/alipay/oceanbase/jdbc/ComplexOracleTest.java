@@ -288,7 +288,9 @@ public class ComplexOracleTest extends BaseOracleTest {
                                          + " open p_cursor for select * from "
                                          + refcursor1 + ";" + "end;";
                     statement.execute(createPlSql);
-                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)");
+                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)",
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                    csmt.setFetchSize(10);
                     csmt.registerOutParameter(1, Types.REF);
                     csmt.execute();
                     ResultSet resultSet = (ResultSet) csmt.getObject(1);

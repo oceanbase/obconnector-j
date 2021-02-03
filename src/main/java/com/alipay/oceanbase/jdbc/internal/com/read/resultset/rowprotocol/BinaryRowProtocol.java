@@ -1106,9 +1106,9 @@ public class BinaryRowProtocol extends RowProtocol {
             case NUMBER:
                 return getInternalInt(columnInfo);
             case FLOAT:
+                return getInternalFloat(columnInfo);
             case NUMBER_FLOAT:
             case BINARY_FLOAT:
-                //                return getInternalFloat(columnInfo);
                 byte[] b = new byte[length];
                 System.arraycopy(buf, pos, b, 0, length);
                 NUMBER number = new NUMBER(b);

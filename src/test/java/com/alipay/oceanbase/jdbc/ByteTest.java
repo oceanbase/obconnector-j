@@ -35,7 +35,7 @@ public class ByteTest extends BaseTest {
 
     @Test
   public void byteSendingBinary() throws SQLException {
-    try (Connection conn = setConnection("&useServerPrepStmts")) {
+    try (Connection conn = setConnection("&useServerPrepStmts=true")) {
       try (PreparedStatement prep =
           conn.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
         prep.setByte(1, (byte) -6);

@@ -6,6 +6,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
+
+import org.junit.Assume;
 import org.junit.Test;
 
 public class UpdateResultSetTest extends BaseTest {
@@ -355,7 +357,7 @@ public class UpdateResultSetTest extends BaseTest {
       } catch (SQLException sqle) {
         assertTrue(
             sqle.getMessage(),
-            sqle.getMessage().contains("Field 't1' doesn't have a default value"));
+            sqle.getMessage().contains("Field doesn't have a default value"));
       }
 
       rs.absolute(1);
@@ -546,6 +548,7 @@ public class UpdateResultSetTest extends BaseTest {
 
     @Test
   public void updateBlob() throws SQLException, IOException {
+      Assume.assumeFalse(sharedUsePrepare());
     createTable("updateBlob", "id int not null primary key, strm blob");
 
     PreparedStatement stmt =

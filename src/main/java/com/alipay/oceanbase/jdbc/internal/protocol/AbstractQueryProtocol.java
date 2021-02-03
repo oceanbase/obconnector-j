@@ -17,11 +17,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.alipay.oceanbase.jdbc.*;
+import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.send.ComQuery;
@@ -1071,15 +1073,36 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
       writer.setTimeZone(this.getServerTimeZone());
       // send execute query
-      ComStmtExecute.send(
-          writer,
-          serverPrepareResult.getStatementId(),
-          parameters,
-          parameterCount,
-          serverPrepareResult.getParameterTypeHeader(),
-          Packet.CURSOR_TYPE_NO_CURSOR,
-              this);
+      boolean withRefCursor = false;
+      ColumnDefinition[] ci = serverPrepareResult.getColumns();
+      for (int i = 0;i<ci.length;i++) {
+        if (ci[i].getColumnType() == ColumnType.CURSOR) {
+          withRefCursor = true;
+        }
+      }
+      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+        ComStmtExecute.send(
+                writer,
+                serverPrepareResult.getStatementId(),
+                parameters,
+                parameterCount,
+                serverPrepareResult.getParameterTypeHeader(),
+                Packet.CURSOR_TYPE_READ_ONLY,
+                this);
+        results.setStatementId(serverPrepareResult.getStatementId());
+        results.setToCursorFetch(true);
+      } else {
+        ComStmtExecute.send(
+                writer,
+                serverPrepareResult.getStatementId(),
+                parameters,
+                parameterCount,
+                serverPrepareResult.getParameterTypeHeader(),
+                Packet.CURSOR_TYPE_NO_CURSOR,
+                this);
+      }
       getResult(results);
+      results.setToCursorFetch(false);
 
     } catch (SQLException qex) {
       throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
@@ -1101,8 +1124,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw exceptionWithQuery(
               " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
-    }
+     }
   }
+
+    public void sendFechRowViaCursor2(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
+        cmdPrologue();
+        try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_FETCH);
+            writer.writeInt(cursorId);
+            writer.writeInt(fetchSize);
+            writer.flush();
+            if (this.isOracleMode()) {
+                getResultWithoutValue(results);
+            }
+        } catch (IOException e) {
+            throw exceptionWithQuery(
+                    " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
+        }
+    }
   /** Rollback transaction. */
   public void rollback() throws SQLException {
 
@@ -1473,12 +1513,81 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     readPacket(results);
 
-    // load additional results
-//    while (hasMoreResults()) {
     while(hasMoreResults()) {
        readPacket(results);
     }
   }
+
+    public void getResultWithoutValue(Results results) throws SQLException {
+
+        Buffer buffer;
+        try {
+            buffer = reader.getPacket(true);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
+        switch (buffer.getByteAt(0)) {
+
+            // *********************************************************************************************************
+            // * OK response
+            // *********************************************************************************************************
+            case Packet.OK:
+                readOkPacket(buffer, results);
+                break;
+
+            // *********************************************************************************************************
+            // * ERROR response
+            // *********************************************************************************************************
+            case Packet.ERROR:
+                throw readErrorPacket(buffer, results);
+
+                // *********************************************************************************************************
+                // * LOCAL INFILE response
+                // *********************************************************************************************************
+            case Packet.LOCAL_INFILE:
+                readLocalInfilePacket(buffer, results);
+                break;
+
+            // *********************************************************************************************************
+            // * ResultSet
+            // *********************************************************************************************************
+            default:
+                readResultSetColumnDef(buffer, results);
+                break;
+        }
+
+    }
+
+    private void readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
+        long fieldCount = buffer.getLengthEncodedNumeric();
+        // read columns information's
+        try {
+            ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
+            for (int i = 0; i < fieldCount; i++) {
+                ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode());
+            }
+
+            if (!eofDeprecated) {
+                Buffer bufferEof = reader.getPacket(true);
+                if (bufferEof.readByte() != Packet.EOF) {
+                    // using IOException to close connection,
+                    throw new IOException(
+                            "Packets out of order when reading field packets, expected was EOF stream."
+                                    + ((options.enablePacketDebug)
+                                    ? getTraces()
+                                    : "Packet contents (hex) = "
+                                    + Utils.hexdump(
+                                    options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
+                }
+                bufferEof.skipBytes(2);
+                bufferEof.readShort();
+            }
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
+    }
 
   /**
    * Read server response packet.
@@ -1803,12 +1912,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
          * We dont send an ok packet after all result set rows;Ob server send a execution response pacet ,but the PS_OUT_PARAMETERS is set
          */
         callableResult = (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
-//        isPsOutParamter =  (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
       }
 
-      // read resultSet
       SelectResultSet selectResultSet;
-      if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+      if (results.isToCursorFetch()) {
+        selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated,isPsOutParamter);
+      } else if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
         selectResultSet =
             new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
       } else {

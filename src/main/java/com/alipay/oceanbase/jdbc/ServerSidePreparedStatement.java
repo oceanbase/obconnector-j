@@ -356,7 +356,10 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   }
   public  SelectResultSet cursorFetch(int cursorId,int fetchSize) throws SQLException {
     this.protocol.sendFechRowViaCursor(serverPrepareResult,cursorId,fetchSize,results);
-//    if(results.getCallableResultSet() != null) return results.getCallableResultSet();
+    results.commandEnd();
+    return results.getResultSet();
+  }  public  SelectResultSet cursorFetch2(int cursorId,int fetchSize) throws SQLException {
+    this.protocol.sendFechRowViaCursor2(serverPrepareResult,cursorId,fetchSize,results);
     results.commandEnd();
     return results.getResultSet();
   }

@@ -246,4 +246,7 @@ public interface Protocol {
     void resetChecksum();
 
     long getChecksum();
+
+    void sendFechRowViaCursor2(ServerPrepareResult serverPrepareResult, int cursorId,
+                               int fetchSize, Results results) throws SQLException;
 }

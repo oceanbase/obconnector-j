@@ -736,6 +736,13 @@ public enum DefaultOptions {
           "2.0.1",
           "Support mysql url option characterEncoding",
           false
+  ),
+  USE_CURSOR_FETCH(
+          "useCursorFetch",
+          Boolean.FALSE,
+          "NA",
+          "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
+          false
   );
 
   private final String optionName;

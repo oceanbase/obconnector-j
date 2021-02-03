@@ -73,6 +73,19 @@ public class ColumnDefinition {
         this.isOracleMode = other.isOracleMode;
         this.precision = other.precision;
         this.inoutType = other.inoutType;
+        catalogNameLength = other.nameLength;
+        catalogNameStart = other.catalogNameStart;
+        databaseNameStart = other.nameStart;
+        databaseNameLength = other.nameLength;
+        tableNameLength = other.tableNameLength;
+        tableNameStart = other.tableNameStart;
+        originalTableNameStart = other.originalTableNameStart;
+        originalTableNameLength = other.originalTableNameLength;
+        originalColumnNameLength = other.originalColumnNameLength;
+        originalColumnNameStart = other.originalColumnNameStart;
+        nameStart = other.nameStart;
+        nameLength = other.nameLength;
+        longColFlag = other.longColFlag;
     }
 
     /**
