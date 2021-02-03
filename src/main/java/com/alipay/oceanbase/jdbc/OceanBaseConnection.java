@@ -27,7 +27,7 @@ import com.alipay.oceanbase.jdbc.internal.util.pool.Pools;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 @SuppressWarnings("Annotator")
-public class OceanBaseConnection implements Connection {
+public class OceanBaseConnection implements ConnectionImpl {
 
     private static final Logger      logger                       = LoggerFactory
                                                                       .getLogger(OceanBaseConnection.class);
@@ -2080,8 +2080,9 @@ public class OceanBaseConnection implements Connection {
         return options.includeThreadDumpInDeadlockExceptions;
     }
 
+    @Override
     public String getSessionTimeZone() {
-        return protocol.getTimeZone().getID();
+        return sessionTimeZone.getID();
     }
 
     public java.sql.Statement getMetadataSafeStatement() throws SQLException {
@@ -2098,5 +2099,35 @@ public class OceanBaseConnection implements Connection {
         }
 
         return stmt;
+    }
+
+    @Override
+    public void setSessionTimeZone(String zoneID) throws SQLException {
+        checkConnection();
+        if (this.protocol.isOracleMode()) {
+            boolean needSetSessionTimeZone = true;
+            TimeZone targetTimeZone = TimeZone.getTimeZone(zoneID);
+            if (null != sessionTimeZone
+                && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
+                needSetSessionTimeZone = false;
+            }
+            if (needSetSessionTimeZone) {
+                java.sql.Statement stmt = getMetadataSafeStatement();
+                try {
+                    String sql = String.format("alter session set time_zone = '%s'", zoneID);
+                    stmt.execute(sql);
+                    sessionTimeZone = targetTimeZone;
+                } catch (SQLException e) {
+                    throw e;
+                } finally {
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                }
+            }
+        } else {
+            throw new SQLFeatureNotSupportedException();
+        }
+
     }
 }
