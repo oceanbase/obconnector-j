@@ -92,6 +92,8 @@ public class OceanBaseConnection implements ConnectionImpl {
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
     private java.sql.Connection      complexConnection            = null;
+    private boolean                  autoCommit                   = true;
+    private Map<String, Class<?>>    typeMap;
     private static final String      complexTypeSql               = "SELECT\n"
                                                                     + "  0 DEPTH,\n"
                                                                     + "  NULL PARENT_OWNER,\n"
@@ -816,6 +818,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
+        if (autoCommit == false){
+            return false;
+        }
         return protocol.getAutocommit();
     }
 
@@ -833,6 +838,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         try (Statement stmt = createStatement()) {
             stateFlag |= ConnectionState.STATE_AUTOCOMMIT;
             stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
+            this.autoCommit = autoCommit;
         }
     }
 
@@ -860,6 +866,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
+        if (this.getAutoCommit() == true){
+            throw new SQLException("Can't call rollback when autocommit enable");
+        }
         lock.lock();
         try {
             if (protocol.inTransaction()) {
@@ -886,8 +895,15 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #rollback
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
+        if (this.getAutoCommit() == true){
+            throw new SQLException("Can't call rollback when autocommit enable");
+        }
         try (Statement st = createStatement()) {
-            st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            if (!this.protocol.isOracleMode()) {
+                st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            }else {
+                st.execute("ROLLBACK TO "+savepoint.getSavepointName());
+            }
         }
     }
 
@@ -962,7 +978,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public String getCatalog() throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //OracleJdbc中，此方法返回null
             return null;
         }
         return protocol.getCatalog();
@@ -983,7 +998,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setCatalog(final String catalog) throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //OracleJdbc中，此处未作任何实现
             return;
         }
         if (catalog == null) {
@@ -1019,7 +1033,13 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public int getTransactionIsolation() throws SQLException {
         Statement stmt = createStatement();
-        String sql = "SELECT @@tx_isolation";
+//        String sql = "SELECT @@tx_isolation";
+        String sql = "";
+        if (this.getProtocol().isOracleMode()){
+            sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
+        }else {
+            sql = "SELECT @@session.tx_isolation";
+        }
 
         if (!protocol.isServerMariaDb()) {
             if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
@@ -1030,8 +1050,13 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
 
         ResultSet rs = stmt.executeQuery(sql);
+        String response = "";
         if (rs.next()) {
-            final String response = rs.getString(1);
+            if (!this.getProtocol().isOracleMode()) {
+                response = rs.getString(1);
+            }else {
+                response = rs.getString(2);
+            }
             switch (response) {
                 case "REPEATABLE-READ":
                     return Connection.TRANSACTION_REPEATABLE_READ;
@@ -1073,6 +1098,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
+        if (this.protocol.isOracleMode() && (level != Connection.TRANSACTION_READ_COMMITTED && level != Connection.TRANSACTION_SERIALIZABLE)){
+            throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
+        }
         try {
             stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
             protocol.setTransactionIsolation(level);
@@ -1158,7 +1186,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() {
-        return new HashMap<>();
+        return this.typeMap;
     }
 
     /**
@@ -1173,7 +1201,12 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #getTypeMap
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
-        throw exceptionFactory.notSupported("TypeMap are not supported");
+//        throw exceptionFactory.notSupported("TypeMap are not supported");
+        if (this.typeMap != null && this.typeMap.size() != 0){
+            Set<String> set = this.typeMap.keySet();
+            set.forEach(s -> map.put(s,this.typeMap.get(s)));
+        }
+        typeMap = map;
     }
 
     /**
@@ -1223,7 +1256,19 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-        String randomName = UUID.randomUUID().toString();
+//        String randomName = UUID.randomUUID().toString();
+        String randomName = "";
+        if (this.protocol.isOracleMode()){
+            if (this.getAutoCommit()){
+                throw new SQLException("Unable to set a savepoint with auto-commit enabled");
+            }
+            for (int i = 0; i < 10; i++) {
+                char c = (char)((Math.random()*26)+97);
+                randomName += c;
+            }
+        }else {
+            randomName = UUID.randomUUID().toString();
+        }
         return setSavepoint(randomName);
     }
 
@@ -1243,7 +1288,12 @@ public class OceanBaseConnection implements ConnectionImpl {
     public Savepoint setSavepoint(final String name) throws SQLException {
         Savepoint savepoint = new OceanBaseSavepoint(name);
         try (Statement st = createStatement()) {
-            st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            if (this.protocol.isOracleMode()){
+                st.execute("SAVEPOINT " + savepoint.getSavepointName());
+            }else {
+                st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            }
+//            st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
         }
         return savepoint;
     }
@@ -1956,9 +2006,14 @@ public class OceanBaseConnection implements ConnectionImpl {
         return this.protocol.getTimeout();
     }
 
-    public String getSchema() {
+    public String getSchema() throws SQLException {
         // We support only catalog
-        return null;
+//        return null;
+        if (this.protocol.isOracleMode()){
+            return this.getUsername();
+        }else {
+            return this.getCatalog();
+        }
     }
 
     public String getDatabase() {
