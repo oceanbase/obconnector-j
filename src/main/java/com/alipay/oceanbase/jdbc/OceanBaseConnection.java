@@ -818,7 +818,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
-        if (autoCommit == false){
+        if (autoCommit == false) {
             return false;
         }
         return protocol.getAutocommit();
@@ -1033,28 +1033,27 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public int getTransactionIsolation() throws SQLException {
         Statement stmt = createStatement();
-//        String sql = "SELECT @@tx_isolation";
         String sql = "";
-        if (this.getProtocol().isOracleMode()){
+        if (this.getProtocol().isOracleMode()) {
             sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
-        }else {
+        } else {
             sql = "SELECT @@session.tx_isolation";
         }
-
-        if (!protocol.isServerMariaDb()) {
-            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-                || (protocol.getMajorServerVersion() < 8 && protocol
-                    .versionGreaterOrEqual(5, 7, 20))) {
-                sql = "SELECT @@transaction_isolation";
-            }
-        }
+        //      we dont neet it
+        //        if (!protocol.isServerMariaDb()) {
+        //            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
+        //                || (protocol.getMajorServerVersion() < 8 && protocol
+        //                    .versionGreaterOrEqual(5, 7, 20))) {
+        //                sql = "SELECT @@transaction_isolation";
+        //            }
+        //        }
 
         ResultSet rs = stmt.executeQuery(sql);
         String response = "";
         if (rs.next()) {
             if (!this.getProtocol().isOracleMode()) {
                 response = rs.getString(1);
-            }else {
+            } else {
                 response = rs.getString(2);
             }
             switch (response) {
@@ -1098,7 +1097,8 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
-        if (this.protocol.isOracleMode() && (level != Connection.TRANSACTION_READ_COMMITTED && level != Connection.TRANSACTION_SERIALIZABLE)){
+        if (this.protocol.isOracleMode()
+            && (level != Connection.TRANSACTION_READ_COMMITTED && level != Connection.TRANSACTION_SERIALIZABLE)) {
             throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
         }
         try {
@@ -1256,17 +1256,17 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-//        String randomName = UUID.randomUUID().toString();
+        //        String randomName = UUID.randomUUID().toString();
         String randomName = "";
-        if (this.protocol.isOracleMode()){
-            if (this.getAutoCommit()){
+        if (this.protocol.isOracleMode()) {
+            if (this.getAutoCommit()) {
                 throw new SQLException("Unable to set a savepoint with auto-commit enabled");
             }
             for (int i = 0; i < 10; i++) {
-                char c = (char)((Math.random()*26)+97);
+                char c = (char) ((Math.random() * 26) + 97);
                 randomName += c;
             }
-        }else {
+        } else {
             randomName = UUID.randomUUID().toString();
         }
         return setSavepoint(randomName);
@@ -2008,10 +2008,10 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public String getSchema() throws SQLException {
         // We support only catalog
-//        return null;
-        if (this.protocol.isOracleMode()){
+        //        return null;
+        if (this.protocol.isOracleMode()) {
             return this.getUsername();
-        }else {
+        } else {
             return this.getCatalog();
         }
     }

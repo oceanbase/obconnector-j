@@ -376,19 +376,6 @@ public class BaseOracleTest {
            end if; \
         end; \
        */
-//     stmt.execute("      create or replace procedure proc_dropifexists(\n" +
-//             "            p_table in varchar2\n" +
-//             "        ) is\n" +
-//             "            v_count number(10);\n" +
-//             "        begin\n" +
-//             "           select count(*)\n" +
-//             "           into v_count\n" +
-//             "           from user_objects\n" +
-//             "           where object_name = upper(p_table);\n" +
-//             "           if v_count > 0 then\n" +
-//             "              execute immediate 'drop table ' || p_table ||' purge';\n" +
-//             "           end if;\n" +
-//             "        end;");
 
      stmt.execute("call proc_dropifexists('" + tableName + "')");
      stmt.execute(

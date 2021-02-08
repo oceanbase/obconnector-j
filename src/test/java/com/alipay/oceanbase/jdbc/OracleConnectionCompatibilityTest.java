@@ -35,9 +35,6 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         stmt.execute("insert into oracle_conn__test values(11);");
         sharedConnection.commit();
         ResultSet rs = stmt.executeQuery("select * from oracle_conn__test;");
-//        while (rs.next()){
-//            System.out.println(rs.getObject(1));
-//        }
         assertEquals(true, rs.next());
         assertEquals(false, rs.next());
 
@@ -55,9 +52,10 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
             support = false;
         }
 
-        assertEquals(false,support);
+        assertEquals(false, support);
 
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,sharedConnection.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -65,8 +63,9 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         } catch (SQLException e) {
             support = false;
         }
-        assertEquals(false,support);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,sharedConnection.getTransactionIsolation());
+        assertEquals(false, support);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -74,8 +73,9 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         } catch (SQLException e) {
             support = false;
         }
-        assertEquals(false,support);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,sharedConnection.getTransactionIsolation());
+        assertEquals(false, support);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -83,8 +83,9 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         } catch (SQLException e) {
             support = false;
         }
-        assertEquals(true,support);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,sharedConnection.getTransactionIsolation());
+        assertEquals(true, support);
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+            sharedConnection.getTransactionIsolation());
     }
 
     @Test
@@ -141,10 +142,10 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
     public void testCatalog() throws SQLException {
 
         //In Oracle, return null here
-        assertEquals(null,sharedConnection.getCatalog());
+        assertEquals(null, sharedConnection.getCatalog());
 
         //In Oracle,This is not implemented
         sharedConnection.setCatalog("test");
-        assertEquals(null,sharedConnection.getCatalog());
+        assertEquals(null, sharedConnection.getCatalog());
     }
 }
