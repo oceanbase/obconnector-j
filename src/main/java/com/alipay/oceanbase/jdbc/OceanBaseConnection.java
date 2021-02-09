@@ -1039,14 +1039,6 @@ public class OceanBaseConnection implements ConnectionImpl {
         } else {
             sql = "SELECT @@session.tx_isolation";
         }
-        //      we dont neet it
-        //        if (!protocol.isServerMariaDb()) {
-        //            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-        //                || (protocol.getMajorServerVersion() < 8 && protocol
-        //                    .versionGreaterOrEqual(5, 7, 20))) {
-        //                sql = "SELECT @@transaction_isolation";
-        //            }
-        //        }
 
         ResultSet rs = stmt.executeQuery(sql);
         String response = "";
