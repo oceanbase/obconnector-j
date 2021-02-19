@@ -9,6 +9,7 @@ import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,6 +38,7 @@ public class BlobTest extends BaseTest {
         createTable("conj77_test",
             "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)",
             "Engine=InnoDB DEFAULT CHARSET utf8");
+        createTable("mysqlBinary", "c1 int ,blo2 blob,blo3 blob,ca char(20),primary key (c1)");
     }
 
     @Test
@@ -548,5 +550,26 @@ public class BlobTest extends BaseTest {
         assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
         blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
         assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
+    }
+
+    @Test
+    public void insertBinaryInsert() {
+        try {
+            if (sharedUsePrepare()) {
+                return;
+            }
+            String sql = "INSERT INTO mysqlBinary (C1,BLO2,BLO3,CA) VALUES (?,?,?,?);";
+            PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+            String val = "绪平的测试";
+            String val2 = "xupingtest";
+            preparedStatement.setInt(1, 200318);
+            preparedStatement.setBinaryStream(2, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setBinaryStream(3, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setString(4, "11111");
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+
     }
 }

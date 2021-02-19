@@ -122,7 +122,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             ((BasePrepareStatement) pstmt).setINTERVALDS(1, new INTERVALDS("1234 5:12:10.212"));
             pstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(1, new oracle.sql.INTERVALDS(
                 "1234 5:12:10.212"));
             oraclePstmt.execute();
 
@@ -140,6 +140,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             resultSet.close();
         } catch (Exception e) {
             e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -432,7 +433,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             ((BasePrepareStatement) pstmt).setINTERVALYM(1, new INTERVALYM("10-10"));
             pstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(1, new oracle.sql.INTERVALYM(
                 "10-10"));
             oraclePstmt.execute();
 
@@ -449,6 +450,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             rs.close();
         } catch (Exception e) {
             e.printStackTrace();
+            Assert.fail();
         }
     }
 

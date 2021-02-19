@@ -46,6 +46,8 @@ public class BlobOracleTest extends BaseOracleTest {
         createTable("BlobTestblobtest_ps", "id int not null primary key, strm blob");
         createTable("BlobTestblobtest2_ps", "id int not null primary key, strm blob");
         createTable("conj77_test_ps", "Name VARCHAR(100) NOT NULL,Archive BLOB, PRIMARY KEY (Name)");
+        createTable("oracleBinary", "c1 int ,blo2 blob,blo3 blob,ca char(20),primary key (c1)");
+
     }
 
     @Test
@@ -928,13 +930,35 @@ public class BlobOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void insertJobDetail() //, JobDetail job)
-                                 throws Exception {
+    public void insertJobDetail() throws Exception {
         String tableName = "blobtest";
-        Connection conn = getObOracleConnection();
-        // ByteArrayOutputStream baos = serializeJobData(job.getJobDataMap());
-        //byte[] data = baos.toByteArray()
+        Connection conn = sharedConnection;
         System.out.println("connect success");
+        String query = "CREATE TABLE "
+                       + tableName
+                       + " (\n"
+                       + "  \"JOB_NAME\" VARCHAR2(80) NOT NULL,\n"
+                       + "  \"JOB_GROUP\" VARCHAR2(80) NOT NULL,\n"
+                       + "  \"DESCRIPTION\" VARCHAR2(120),\n"
+                       + "  \"JOB_CLASS_NAME\" VARCHAR2(128) NOT NULL,\n"
+                       + "  \"IS_DURABLE\" VARCHAR2(1) NOT NULL,\n"
+                       + "  \"IS_VOLATILE\" VARCHAR2(1) NOT NULL,\n"
+                       + "  \"IS_STATEFUL\" VARCHAR2(1) NOT NULL,\n"
+                       + "  \"REQUESTS_RECOVERY\" VARCHAR2(1) NOT NULL,\n"
+                       + "  \"JOB_DATA\" BLOB,\n"
+                       + "  \"OMS_OBJECT_NUMBER\" NUMBER INVISIBLE,\n"
+                       + "  \"OMS_RELATIVE_FNO\" NUMBER INVISIBLE,\n"
+                       + "  \"OMS_BLOCK_NUMBER\" NUMBER INVISIBLE,\n"
+                       + "  \"OMS_ROW_NUMBER\" NUMBER INVISIBLE,\n"
+                       + "  CONSTRAINT \"SYS_"
+                       + tableName
+                       + "\" PRIMARY KEY (\"JOB_NAME\", \"JOB_GROUP\"),\n"
+                       + "  CONSTRAINT \"UK_"
+                       + tableName
+                       + "_OMS_ROWID\" UNIQUE (\"OMS_OBJECT_NUMBER\", \"OMS_RELATIVE_FNO\", "
+                       + "\"OMS_BLOCK_NUMBER\", \"OMS_ROW_NUMBER\")\n"
+                       + ") COMPRESS FOR ARCHIVE REPLICA_NUM = 3 BLOCK_SIZE = 16384 USE_BLOOM_FILTER = FALSE TABLET_SIZE = 134217728 PCTFREE"
+                       + " = 10";
         byte[] data = "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"
             .getBytes();
         //new byte[] { 'a', 'b', 'c' };
@@ -945,9 +969,14 @@ public class BlobOracleTest extends BaseOracleTest {
         ResultSet rs = null;
         try {
             st = conn.createStatement();
-            st.execute("DELETE FROM " + tableName);
+            try {
+                st.execute("drop table blobtest");
+            } catch (SQLException e) {
+                // eat exception
+            }
             st.close();
             st = conn.createStatement();
+            st.execute(query);
             st.execute("set autocommit=0");
             st.close();
 
@@ -997,16 +1026,32 @@ public class BlobOracleTest extends BaseOracleTest {
             ps.setString(2, "不定期新单信息生效");
             ps.setString(3, "group1");
             res = ps.executeUpdate();
-            ps.close();
 
             st = conn.createStatement();
             st.execute("commit");
-            st.close();
 
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            conn.close();
+            Assert.fail();
+        }
+    }
+    @Test
+    public void insertBinaryInsert() throws SQLException {
+        try {
+            if (sharedUsePrepare()) {
+                return;
+            }
+            String sql = "INSERT INTO oracleBinary (C1,BLO2,BLO3,CA) VALUES (?,?,?,?);";
+            PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+            String val = "绪平的测试";
+            String val2 = "xupingtest";
+            preparedStatement.setInt(1, 200318);
+            preparedStatement.setBinaryStream(2, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setBinaryStream(3, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setString(4, "11111");
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            Assert.fail();
         }
     }
 }

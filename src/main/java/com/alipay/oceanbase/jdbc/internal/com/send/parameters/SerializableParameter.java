@@ -8,9 +8,9 @@ import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class SerializableParameter implements Cloneable, ParameterHolder {
 
-    private final boolean noBackSlashEscapes;
-    private Object        object;
-    private byte[]        loadedStream = null;
+    protected final boolean noBackSlashEscapes;
+    protected Object        object;
+    protected byte[]        loadedStream = null;
 
     public SerializableParameter(Object object, boolean noBackslashEscapes) {
         this.object = object;
@@ -32,7 +32,7 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
         pos.write(QUOTE);
     }
 
-    private void writeObjectToBytes() throws IOException {
+    protected void writeObjectToBytes() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(object);

@@ -39,6 +39,10 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
         this.bytes = bytes;
     }
 
+    public OBStreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
+        this(false, is, length, noBackslashEscapes);
+    }
+
     public OBStreamParameter(InputStream is, boolean noBackSlashEscapes) {
         this(false, is, Long.MAX_VALUE, noBackSlashEscapes);
     }

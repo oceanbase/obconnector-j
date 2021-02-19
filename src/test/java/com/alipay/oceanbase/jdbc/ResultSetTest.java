@@ -759,7 +759,7 @@ public class ResultSetTest extends BaseTest {
         assertEquals("0000000001.1", rs1.getString(21));
         assertEquals("01.100", rs1.getString(22));
         assertEquals("0000001.100", rs1.getString(23));
-        assertEquals("00000000000000000001.1", rs1.getString(24));
+        assertEquals("000000000000000000001.1", rs1.getString(24));
 
         assertTrue(rs1.next());
         assertEquals("020", rs1.getString(1));
@@ -785,7 +785,7 @@ public class ResultSetTest extends BaseTest {
         assertEquals("0000000020.2", rs1.getString(21));
         assertEquals("20.200", rs1.getString(22));
         assertEquals("0000020.200", rs1.getString(23));
-        assertEquals("00000000000000000020.2", rs1.getString(24));
+        assertEquals("000000000000000000020.2", rs1.getString(24));
         assertFalse(rs1.next());
     }
 

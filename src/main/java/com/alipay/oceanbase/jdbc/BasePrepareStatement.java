@@ -1006,7 +1006,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setStruct(parameterIndex, (Struct) obj);
         } else {
             // fallback to sending serialized object
-            setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
+            if (this.connection.getProtocol().isOracleMode()) {
+                setParameter(parameterIndex, new OBSerializableParameter(obj, noBackslashEscapes));
+            } else {
+                setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
+            }
             hasLongData = true;
         }
     }
@@ -1241,7 +1245,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, length, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1273,7 +1281,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1300,7 +1312,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, length, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1326,7 +1342,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, length, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1356,7 +1376,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
+        if (this.connection.getProtocol().isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1382,7 +1406,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(stream, length, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
@@ -1467,17 +1495,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        byte[] x = bytes;
         if (this.connection.getProtocol().isOracleMode()) {
-
-            StringBuilder sb = new StringBuilder();
-            for (byte b : x) {
-                sb.append(String.format("%02x", b));
-            }
-            x = sb.toString().getBytes();
-
-            setParameter(parameterIndex, new OBByteArrayParameter(x, noBackslashEscapes));
-
+            setParameter(parameterIndex, new OBByteArrayParameter(bytes, noBackslashEscapes));
         } else {
             setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
         }
@@ -1510,7 +1529,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length, noBackslashEscapes));
+        if (this.protocol.isOracleMode()) {
+            setParameter(parameterIndex, new OBStreamParameter(x, length, noBackslashEscapes));
+        } else {
+            setParameter(parameterIndex, new StreamParameter(x, length, noBackslashEscapes));
+        }
         hasLongData = true;
     }
 
