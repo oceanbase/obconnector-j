@@ -423,6 +423,30 @@ public class BaseOracleTest {
     }
   }
 
+  public static void dropProcedure(String name) throws  SQLException{
+    if (testSingleHost) {
+      Statement stmt = sharedConnection.createStatement();
+      stmt.execute("drop procedure IF EXISTS " + name);
+      tempProcedureList.add(name);
+    }
+  }
+
+  public static void createProcedureWithPackage(String packageName, String name, String head, String body) throws SQLException {
+    if (testSingleHost) {
+      Statement stmt = sharedConnection.createStatement();
+      stmt.execute("drop procedure IF EXISTS " + packageName+"."+name);
+      //create or replace package test is procedure calc_add_10; end;
+      String headQuery = "create or replace package "+packageName + " is procedure " + name + head;
+      System.out.println(headQuery);
+      stmt.execute(headQuery);
+      String query = "create or replace package body " + packageName + " is procedure " + name + body;
+      System.out.println(query);
+      stmt.execute(query);
+      tempProcedureList.add(name);
+    }
+  }
+
+
   /**
    * Create function that will be delete on end of test.
    *

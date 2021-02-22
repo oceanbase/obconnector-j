@@ -1,7 +1,15 @@
 package com.alipay.oceanbase.jdbc;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +26,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
     protected final OceanBaseConnection con;
     protected final String              name;
     protected List<CallParameter>       params;
+    protected String                    obOraclePackageName;
+    protected String                    obOracleSchema;
     protected String                    database;
     protected boolean                   valid;
     protected boolean                   isFunction;
@@ -45,6 +55,16 @@ public class CallableParameterMetaData implements ParameterMetaData {
         this.con = con;
         if (database != null) {
             this.database = database.replace("`", "");
+            if (this.con.getProtocol().isOracleMode()) {
+                if (this.database.contains(".")) {
+                    //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
+                    String[] databaseAndPackage = this.database.split("\\.");
+                    if (databaseAndPackage.length == 2) {
+                        this.obOraclePackageName = databaseAndPackage[1];
+                        this.obOracleSchema = databaseAndPackage[0];
+                    }
+                }
+            }
         } else {
             this.database = null;
         }

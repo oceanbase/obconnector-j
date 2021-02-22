@@ -1,7 +1,15 @@
 package com.alipay.oceanbase.jdbc;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -153,12 +161,14 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
 
-            String[] objectNameList = name.split("\\.");
-            if (objectNameList.length == 2) {
-                paramMetaSql.append(objectNameList[1].toUpperCase());
-                paramMetaSql.append("' and package_name = '").append(objectNameList[0].toUpperCase());
-            } else {
-                paramMetaSql.append(objectNameList[0].toUpperCase());
+            paramMetaSql.append(name.toUpperCase());
+
+            if (obOraclePackageName != null && obOraclePackageName.trim().length() > 0) {
+                paramMetaSql.append("' and package_name = '").append(this.obOraclePackageName.toUpperCase());
+            }
+
+            if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {
+                paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
             }
 
             paramMetaSql.append("' order by POSITION");
