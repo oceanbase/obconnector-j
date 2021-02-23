@@ -363,7 +363,8 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.STRING);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes);
+        parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes, this
+            .getProtocol().getOptions().characterEncoding);
     }
 
     /** {inheritDoc}. */
@@ -384,6 +385,7 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new ByteArrayParameter(value, noBackslashEscapes);
         }
     }
+
     /** {inheritDoc}. */
     public void updateBytes(String columnLabel, byte[] value) throws SQLException {
         updateBytes(findColumn(columnLabel), value);

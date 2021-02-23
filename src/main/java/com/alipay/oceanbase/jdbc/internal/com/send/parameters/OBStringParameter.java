@@ -4,16 +4,20 @@ import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 public class OBStringParameter implements Cloneable, ParameterHolder {
 
     private final String  stringValue;
     private final boolean noBackslashEscapes;
+    private final String  characterEncoding;
+    private final Charset charset;
 
-    public OBStringParameter(String str, boolean noBackslashEscapes) {
+    public OBStringParameter(String str, boolean noBackslashEscapes, String characterEncoding) {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.characterEncoding = characterEncoding;
+        this.charset = Charset.forName(characterEncoding);
     }
 
     /**
@@ -22,11 +26,9 @@ public class OBStringParameter implements Cloneable, ParameterHolder {
      * @param pos outpustream.
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        //pos.write(stringValue, true, noBackslashEscapes);
         pos.write(QUOTE);
-        //pos.write(stringValue.getBytes(StandardCharsets.UTF_8));
-        pos.writeBytesEscapedQuote(stringValue.getBytes(StandardCharsets.UTF_8),
-            stringValue.getBytes(StandardCharsets.UTF_8).length, noBackslashEscapes);
+        pos.writeBytesEscapedQuote(stringValue.getBytes(charset),
+            stringValue.getBytes(charset).length, noBackslashEscapes);
         pos.write(QUOTE);
     }
 
@@ -41,7 +43,7 @@ public class OBStringParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        byte[] bytes = stringValue.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = stringValue.getBytes(charset);
         pos.writeFieldLength(bytes.length);
         pos.write(bytes);
     }

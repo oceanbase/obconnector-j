@@ -669,55 +669,55 @@ public enum DefaultOptions {
   SUPPORT_LOB_LOCATOR(
           "supportLobLocator",
           Boolean.TRUE,
-          "3.1.0",
+          "2.0.1",
           "Lob locator switch for BLOB and CLOB type data",
           false),
   USE_OB_CHECKSUM(
           "useObChecksum",
           Boolean.TRUE,
-          "5.1.30",
+          "2.0.1",
           "A connection option for protocol v20",
           false
   ),
   USE_OCEANBASE_PROTOCOLV20(
           "useOceanBaseProtocolV20",
           Boolean.TRUE,
-          "5.1.40",
+          "2.0.1",
           "Use v20 protocol to transmit data",
           false
   ),
   ALLOW_ALWAYS_SEND_PARAM_TYPES(
           "allowSendParamTypes",
           Boolean.FALSE,
-          "5.1.37",
+          "2.0.1",
           "Store types of parameters in first package that is sent to the server",
           false
   ),
   USE_FORMAT_EXCEPTION_MESSAGE(
           "useFormatExceptionMessage",
           Boolean.FALSE,
-          "5.1.37",
+          "2.0.1",
           "Error message in ORACLE format used, such as 'ORA-'",
           false
   ),
   COMPLEX_DATA_CACHE_SIZE(
           "complexDataCacheSize",
           50,
-          "3.1.1",
+          "2.0.1",
           "Cached complex data size",
           false
   ),
   CACHE_COMPLEX_DATA(
           "cacheComplexData",
           Boolean.TRUE,
-          "3.0.10",
+          "2.0.1",
           "Whether to cache complex data",
           false
   ),
   USE_SQL_STRING_CACHE(
           "useSqlStringCache",
           Boolean.FALSE,
-          "5.1.37",
+          "2.0.1",
           "Cache sql sql strings into local jdbc memory",
           false
 
@@ -725,10 +725,17 @@ public enum DefaultOptions {
   USE_SERVER_PS_STMT_CHECKSUM(
           "useServerPsStmtChecksum",
           Boolean.TRUE,
-          "5.1.37",
+          "2.0.1",
           "Use prepare statement checksum to ensure the correctness of the mysql protocol",
           false
 
+  ),
+  CHARACTER_ENCODING(
+          "characterEncoding",
+          "utf8",
+          "2.0.1",
+          "Support mysql url option characterEncoding",
+          false
   );
 
   private final String optionName;

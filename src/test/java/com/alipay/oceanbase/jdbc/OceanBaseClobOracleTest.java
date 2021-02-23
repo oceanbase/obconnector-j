@@ -1,5 +1,7 @@
 package com.alipay.oceanbase.jdbc;
 
+import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -7,15 +9,23 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import static org.junit.Assert.*;
 
 public class OceanBaseClobOracleTest extends BaseOracleTest {
 
     private final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    private final String str1  = "以后怎么教育对于然后到了.网站阅读系列那个.这些时候这里运行.";
+    private final String str2  = "jdbc characterEncoding test.";
+    private final String str3  = "手机您的全部.";
+
+    @BeforeClass
+    public static void initClass() throws SQLException {
+        createTable("testGBK", "c1 clob,c2 clob,c3 varchar(200)");
+        createTable("testGB18030", "c1 clob,c2 clob,c3 varchar(200)");
+        createTable("testUTF8", "c1 clob,c2 clob,c3 varchar(200)");
+    }
 
     @Test
     public void length() {
@@ -298,4 +308,72 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
       }
     }
   }
+
+    @Test
+    public void clobSetStringGBK() {
+        try {
+            Connection connection = setConnection("&characterEncoding=GBK");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testGBK values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testGBK");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
+    @Test
+    public void clobSetStringGB18030() {
+        try {
+            Connection connection = setConnection("&characterEncoding=GB18030");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testGB18030 values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testGB18030");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void clobSetStringUTF8() {
+        try {
+            Connection connection = setConnection("&characterEncoding=UTF8");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testUTF8 values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testUTF8");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+
+        }
+    }
 }

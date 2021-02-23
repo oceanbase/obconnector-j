@@ -1560,10 +1560,7 @@ public class SelectResultSet implements ResultSet {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
             .getType()) {
-            String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
-            if (encoding == null) {
-                encoding = "UTF8";
-            }
+            String encoding = this.options.characterEncoding;
             byte[] data = new byte[row.length];
             System.arraycopy(row.buf, row.pos, data, 0, row.length);
             return new com.alipay.oceanbase.jdbc.Clob(true, data, encoding,

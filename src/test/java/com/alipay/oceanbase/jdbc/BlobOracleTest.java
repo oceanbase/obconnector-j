@@ -1035,6 +1035,7 @@ public class BlobOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
     @Test
     public void insertBinaryInsert() throws SQLException {
         try {

@@ -1,7 +1,7 @@
 package com.alipay.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
@@ -9,10 +9,14 @@ public class StringParameter implements Cloneable, ParameterHolder {
 
     private final String  stringValue;
     private final boolean noBackslashEscapes;
+    private final String  characterEncoding;
+    private final Charset charset;
 
-    public StringParameter(String str, boolean noBackslashEscapes) {
+    public StringParameter(String str, boolean noBackslashEscapes, String characterEncoding) {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.characterEncoding = characterEncoding;
+        this.charset = Charset.forName(characterEncoding);
     }
 
     /**
@@ -35,7 +39,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        byte[] bytes = stringValue.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = stringValue.getBytes(charset);
         pos.writeFieldLength(bytes.length);
         pos.write(bytes);
     }

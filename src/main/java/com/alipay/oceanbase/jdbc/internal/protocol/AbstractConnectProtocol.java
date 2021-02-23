@@ -63,6 +63,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                                           + "@@time_zone,"
                                                                           + "@@auto_increment_increment")
                                                                            .getBytes(StandardCharsets.UTF_8);
+    private static final byte[]           SESSION_QUERY_ORACLE         = ("SELECT @@max_allowed_packet,"
+                                                                          + "@@system_time_zone,"
+                                                                          + "@@time_zone,"
+                                                                          + "@@auto_increment_increment from dual")
+                                                                           .getBytes(StandardCharsets.UTF_8);
     private static final byte[]           IS_MASTER_QUERY              = "select @@innodb_read_only"
                                                                            .getBytes(StandardCharsets.UTF_8);
     protected static final String         CHECK_GALERA_STATE_QUERY     = "show status like 'wsrep_local_state'";
@@ -856,6 +861,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         // for aurora, check that connection is master
         sendPipelineCheckMaster();
+        sendCharsetVariables();
     }
 
     private void sendSessionInfos() throws IOException {
@@ -895,7 +901,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void sendRequestSessionVariables() throws IOException {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
-        writer.write(SESSION_QUERY);
+        if (isOracleMode) {
+            writer.write(SESSION_QUERY_ORACLE);
+        } else {
+            writer.write(SESSION_QUERY);
+        }
+        writer.flush();
+    }
+
+    private void sendCharsetVariables() throws IOException {
+        writer.startPacket(0);
+        writer.write(Packet.COM_QUERY);
+        writer.write("set names " + this.getOptions().characterEncoding);
         writer.flush();
     }
 
@@ -1009,11 +1026,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     }
                     serverData.put(resultSet.getString(1), resultSet.getString(2));
                 }
-                if (serverData.size() < 4) {
-                    throw exceptionFactory.create(
-                        "could not load system variables. socket connected: "
-                                + socket.isConnected(), "08000");
-                }
+            }
+
+            if (serverData.size() < 4) {
+                throw exceptionFactory.create("could not load system variables. socket connected: "
+                                              + socket.isConnected(), "08000");
             }
 
         } catch (SQLException sqlException) {
@@ -1027,6 +1044,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         getResult(new Results());
 
         try {
+            sendCharsetVariables();
+            getResult(new Results());
             sendRequestSessionVariables();
             readRequestSessionVariables(serverData);
         } catch (SQLException sqlException) {

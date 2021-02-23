@@ -701,7 +701,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.STRING);
             return;
         }
-        setParameter(parameterIndex, new StringParameter(url.toString(), noBackslashEscapes));
+        setParameter(parameterIndex, new StringParameter(url.toString(), noBackslashEscapes,
+            this.connection.getProtocol().getOptions().characterEncoding));
     }
 
     /**
@@ -1472,9 +1473,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         }
 
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBStringParameter(str, noBackslashEscapes));
+            setParameter(parameterIndex, new OBStringParameter(str, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
         } else {
-            setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes));
+            setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
         }
     }
 

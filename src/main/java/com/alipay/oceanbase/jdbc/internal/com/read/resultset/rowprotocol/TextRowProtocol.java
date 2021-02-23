@@ -2,6 +2,7 @@ package com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
@@ -174,14 +175,13 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-
+        Charset charset = Charset.forName(this.options.characterEncoding);
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return String.valueOf(parseBit());
             case DOUBLE:
             case FLOAT:
-                return zeroFillingIfNeeded(new String(buf, pos, length, StandardCharsets.UTF_8),
-                    columnInfo);
+                return zeroFillingIfNeeded(new String(buf, pos, length, charset), columnInfo);
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
@@ -189,7 +189,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (date == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, StandardCharsets.UTF_8);
+                        return new String(buf, pos, length, charset);
                     }
                     return null;
                 }
@@ -207,7 +207,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, StandardCharsets.UTF_8);
+                        return new String(buf, pos, length, charset);
                     }
                     return null;
                 }
@@ -246,10 +246,10 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Float f = Float.valueOf(new String(buf, pos, length, charset));
                 return Float.toString(f);
             case BINARY_DOUBLE:
-                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Double d = Double.valueOf(new String(buf, pos, length, charset));
                 return Double.toString(d);
             case NULL:
                 return null;
@@ -258,11 +258,11 @@ public class TextRowProtocol extends RowProtocol {
         }
 
         if (maxFieldSize > 0) {
-            return new String(buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
-                .substring(0, Math.min(maxFieldSize, length));
+            return new String(buf, pos, Math.min(maxFieldSize * 3, length), charset).substring(0,
+                Math.min(maxFieldSize, length));
         }
 
-        return new String(buf, pos, length, StandardCharsets.UTF_8);
+        return new String(buf, pos, length, charset);
     }
 
     /**

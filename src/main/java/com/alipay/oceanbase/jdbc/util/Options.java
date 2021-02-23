@@ -129,6 +129,7 @@ public class Options implements Cloneable {
   public boolean cacheComplexData = true;
   public boolean useSqlStringCache = false;
   public boolean useServerPsStmtChecksum = true;
+  public String  characterEncoding   = "utf8";
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -466,6 +467,9 @@ public class Options implements Cloneable {
     if (useServerPsStmtChecksum != opt.useServerPsStmtChecksum) {
       return false;
     }
+    if (characterEncoding != opt.characterEncoding) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -574,6 +578,7 @@ public class Options implements Cloneable {
     result = 31 * result + (cacheComplexData ? 1 : 0);
     result = 31 * result + (useSqlStringCache ? 1 : 0);
     result = 31 * result + (useServerPsStmtChecksum ? 1 : 0);
+    result = 31 * result + (characterEncoding != null ?  characterEncoding.hashCode() : 0);
     return result;
   }
 
