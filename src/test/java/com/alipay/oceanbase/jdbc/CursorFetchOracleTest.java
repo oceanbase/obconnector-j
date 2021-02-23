@@ -28,7 +28,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             }
             System.out.println("query = " + query);
             statement.execute(query);
-            statement.setFetchSize(10);
+            statement.setFetchSize(50);
             ResultSet rs = statement.executeQuery("select * from " + tableName1 + "");
             int count = 1;
             int j = 1;
@@ -39,29 +39,6 @@ public class CursorFetchOracleTest extends BaseOracleTest {
                 count++;
             }
             Assert.assertEquals(count, 100);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Ignore
-    public void testCursorFetchWithReflect() {
-        try {
-            Connection conn = setConnection("&useCursorFetch=true");
-            Statement statement = conn.createStatement();
-            try {
-                statement.execute("drop table executeBatchOneByOne");
-            } catch (SQLException e) {
-                // eat exception
-            }
-            statement.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
-            PreparedStatement preparedStatement = conn
-                .prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
-            preparedStatement.setString(1, "1");
-            preparedStatement.setString(2, "1");
-            preparedStatement.addBatch();
-            preparedStatement.executeBatch();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }

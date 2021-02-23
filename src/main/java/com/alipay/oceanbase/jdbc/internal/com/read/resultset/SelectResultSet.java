@@ -18,7 +18,6 @@ import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
-import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowDataObCursor;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import com.alipay.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -1801,7 +1800,7 @@ public class SelectResultSet implements ResultSet {
         return getStruct(findColumn(columnLabel));
     }
 
-    public RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
+    public RefCursor getComplexCursor(int columnIndex) throws SQLException {
         // after reading the eof packet,the protocol been seted to null,but we need it
 
         checkObjectRange(columnIndex);
@@ -1818,10 +1817,14 @@ public class SelectResultSet implements ResultSet {
         if (!obCursorData.isOpen()) {
             throw new SQLException("cursor is not open");
         }
-        RowDataObCursor obCursor = new RowDataObCursor(this.columnsInformation, protocol,
-            obCursorData, this.statement);
-        obCursor.setOwner(this);
-        obCursor.setRowObCursorData(obCursorData);
+        Results results = this.statement.getResults();
+        RefCursor obCursor = null;
+        try {
+            obCursor = new RefCursor(columnsInformation, results, protocol, false, false, false,
+                obCursorData);
+        } catch (IOException e) {
+            throw new SQLException("io exception:" + e.getMessage());
+        }
         complexEndPos[columnIndex - 1] = row.pos;
         return obCursor;
     }

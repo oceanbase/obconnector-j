@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 public class CursorResultSet extends SelectResultSet {
-    int statementId;
+    int     statementId;
+    boolean isLastRow = false;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
                            Protocol protocol, boolean callableResult, boolean eofDeprecated,
@@ -29,9 +30,21 @@ public class CursorResultSet extends SelectResultSet {
     }
 
     private void cursorFetch() throws SQLException {
+        if (isLastRow) {
+            return;
+        }
         int numToFetch = this.getFetchSize();
-        ((ServerSidePreparedStatement) this.getStatement()).cursorFetch2(this.statementId,
-            numToFetch);
+        try {
+            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
+                numToFetch);
+        } catch (SQLException e) {
+            if (e.getMessage().equals("ORA-01002: fetch out of sequence")) {
+                isLastRow = true;
+                return;
+            } else {
+                throw e;
+            }
+        }
         try {
             getCursorFetchData();
         } catch (IOException e) {

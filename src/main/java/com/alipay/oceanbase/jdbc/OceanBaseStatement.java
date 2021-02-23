@@ -1500,4 +1500,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           .create("Cannot do an operation on a closed statement");
     }
   }
+  public Results getResults() {
+    return results;
+  }
 }

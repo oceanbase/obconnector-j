@@ -47,26 +47,4 @@ public class CursorFetchTest extends BaseTest {
         }
     }
 
-    @Ignore
-    public void testCursorFetchWithReflect() {
-        try {
-            Connection conn = setConnection("&useCursorFetch=true");
-            Statement statement = conn.createStatement();
-            try {
-                statement.execute("drop table executeBatchOneByOne");
-            } catch (SQLException e) {
-                // eat exception
-            }
-            statement.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
-            PreparedStatement preparedStatement = conn
-                .prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
-            preparedStatement.setString(1, "1");
-            preparedStatement.setString(2, "1");
-            preparedStatement.addBatch();
-            preparedStatement.executeBatch();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
 }

@@ -1111,23 +1111,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-  public void sendFechRowViaCursor(ServerPrepareResult serverPrepareResult,int cursorId,int fetchSize,Results results) throws SQLException {
-
-    cmdPrologue();
-    try {
-      writer.startPacket(0);
-      writer.write(Packet.COM_STMT_FETCH);
-      writer.writeInt(cursorId);
-      writer.writeInt(fetchSize);
-      writer.flush();
-      getResult(results);
-    } catch (IOException e) {
-      throw exceptionWithQuery(
-              " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
-     }
-  }
-
-    public void sendFechRowViaCursor2(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
+    public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
         cmdPrologue();
         try {
             writer.startPacket(0);
@@ -1136,7 +1120,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.writeInt(fetchSize);
             writer.flush();
             if (this.isOracleMode()) {
-                getResultWithoutValue(results);
+               return  getResultWithoutValue(results);
+            } else {
+              return null;
             }
         } catch (IOException e) {
             throw exceptionWithQuery(
@@ -1518,9 +1504,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-    public void getResultWithoutValue(Results results) throws SQLException {
+    public ColumnDefinition[]  getResultWithoutValue(Results results) throws SQLException {
 
         Buffer buffer;
+        ColumnDefinition[] ci = null;
         try {
             buffer = reader.getPacket(true);
         } catch (IOException e) {
@@ -1553,13 +1540,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             // * ResultSet
             // *********************************************************************************************************
             default:
-                readResultSetColumnDef(buffer, results);
+               ci = readResultSetColumnDef(buffer, results);
                 break;
         }
+        return ci;
 
     }
 
-    private void readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
+    private ColumnDefinition[] readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
         long fieldCount = buffer.getLengthEncodedNumeric();
         // read columns information's
         try {
@@ -1583,6 +1571,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 bufferEof.skipBytes(2);
                 bufferEof.readShort();
             }
+            return ci;
         } catch (IOException e) {
             throw handleIoException(e);
         }

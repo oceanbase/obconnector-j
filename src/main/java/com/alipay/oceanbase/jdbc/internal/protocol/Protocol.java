@@ -16,6 +16,7 @@ import com.alipay.oceanbase.jdbc.HostAddress;
 import com.alipay.oceanbase.jdbc.OceanBaseConnection;
 import com.alipay.oceanbase.jdbc.UrlParser;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.alipay.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
@@ -127,9 +128,6 @@ public interface Protocol {
                                ServerPrepareResult serverPrepareResult, Results results,
                                String sql, List<ParameterHolder[]> parameterList,
                                boolean hasLongData) throws SQLException;
-
-    void sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize,
-                              Results results) throws SQLException;
 
     void getResult(Results results) throws SQLException;
 
@@ -247,6 +245,6 @@ public interface Protocol {
 
     long getChecksum();
 
-    void sendFechRowViaCursor2(ServerPrepareResult serverPrepareResult, int cursorId,
-                               int fetchSize, Results results) throws SQLException;
+    ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
+                                            int fetchSize, Results results) throws SQLException;
 }

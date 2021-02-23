@@ -3,6 +3,7 @@ package com.alipay.oceanbase.jdbc;
 import java.sql.*;
 import java.util.*;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
@@ -354,14 +355,10 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     }
     return SelectResultSet.createEmptyResultSet();
   }
-  public  SelectResultSet cursorFetch(int cursorId,int fetchSize) throws SQLException {
-    this.protocol.sendFechRowViaCursor(serverPrepareResult,cursorId,fetchSize,results);
+   public ColumnDefinition[]  cursorFetch(int cursorId, int fetchSize) throws SQLException {
+    ColumnDefinition[] ci = this.protocol.sendFechRowViaCursor(serverPrepareResult,cursorId,fetchSize,results);
     results.commandEnd();
-    return results.getResultSet();
-  }  public  SelectResultSet cursorFetch2(int cursorId,int fetchSize) throws SQLException {
-    this.protocol.sendFechRowViaCursor2(serverPrepareResult,cursorId,fetchSize,results);
-    results.commandEnd();
-    return results.getResultSet();
+    return ci;
   }
 
 
