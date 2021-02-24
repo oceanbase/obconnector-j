@@ -1051,7 +1051,7 @@ public class DriverOracleTest extends BaseOracleTest {
         for (byte i = -128; i < 127; i++) {
           bytes[i + 128] = i;
         }
-        OceanBaseBlob blob = new OceanBaseBlob(bytes);
+        Blob blob = new Blob(bytes);
         preparedStatement.setBlob(1, blob);
         int affectedRows = preparedStatement.executeUpdate();
         assertEquals(affectedRows, 1);
@@ -1122,7 +1122,7 @@ public class DriverOracleTest extends BaseOracleTest {
         for (byte i = -128; i < 127; i++) {
           bytes[i + 128] = i;
         }
-        OceanBaseBlob blob = new OceanBaseBlob(bytes);
+        Blob blob = new Blob(bytes);
         preparedStatement.setBlob(1, blob);
         int affectedRows = preparedStatement.executeUpdate();
         assertEquals(affectedRows, 1);

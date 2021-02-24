@@ -1,11 +1,21 @@
 package com.alipay.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
+import java.sql.Array;
+import java.sql.SQLException;
+import java.sql.Struct;
+import java.util.TimeZone;
 
+import com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
+import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
+import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 
 public class ComStmtExecute {
 
@@ -29,13 +39,20 @@ public class ComStmtExecute {
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters,
                                 final int parameterCount, ColumnType[] parameterTypeHeader,
-                                final PacketOutputStream pos, final byte cursorFlag)
-                                                                                    throws IOException {
+                                final PacketOutputStream pos, final byte cursorFlag,
+                                Protocol protocol) throws IOException, SQLException {
         pos.write(Packet.COM_STMT_EXECUTE);
         pos.writeInt(statementId);
         pos.write(cursorFlag);
-        pos.writeInt(1); // Iteration pos
-
+        if (protocol.versionGreaterOrEqual(4, 1, 2)) {
+            if (protocol.isOracleMode() && protocol.getOptions().useServerPsStmtChecksum) {
+                pos.writeInt((int) protocol.getChecksum());
+            } else {
+                pos.writeInt(1);
+            }
+        } else {
+            pos.writeInt(1); //Iteration pos
+        }
         // create null bitmap
         if (parameterCount > 0) {
             int nullCount = (parameterCount + 7) / 8;
@@ -68,11 +85,24 @@ public class ComStmtExecute {
                 for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getColumnType();
                     pos.writeShort(parameterTypeHeader[i].getType());
+                    if (parameterTypeHeader[i].getType() == ColumnType.COMPLEX.getType()) {
+                        Object obj = parameters[i];
+                        if (obj instanceof OBArrayParameter) {
+                            ((OBArrayParameter) obj).storeArrayTypeInfo(pos);
+                        } else if (obj instanceof Struct) {
+                            ((OBStructParameter) obj).storeStructTypeInfo(pos);
+                        } else {
+                            throw new SQLException(
+                                "complex param type is not supported， only array is supported");
+                        }
+                    }
                 }
             } else {
                 pos.write((byte) 0x00);
             }
-        }
+        } /* else { // TODO In mysql_JDBC it will write 0x00 if not have any parameter.
+            pos.write((byte) 0x00);
+          } */
 
         for (int i = 0; i < parameterCount; i++) {
             ParameterHolder holder = parameters[i];
@@ -102,9 +132,12 @@ public class ComStmtExecute {
      */
     public static void send(final PacketOutputStream pos, final int statementId,
                             final ParameterHolder[] parameters, final int parameterCount,
-                            ColumnType[] parameterTypeHeader, byte cursorFlag) throws IOException {
+                            ColumnType[] parameterTypeHeader, byte cursorFlag, Protocol protocol)
+                                                                                                 throws IOException,
+                                                                                                 SQLException {
         pos.startPacket(0);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag,
+            protocol);
         pos.flush();
     }
 }

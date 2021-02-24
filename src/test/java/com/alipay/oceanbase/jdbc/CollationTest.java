@@ -7,7 +7,10 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
+
+import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CollationTest extends BaseTest {
@@ -71,6 +74,7 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void test4BytesUtf8() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
         if (rs.next()) {
@@ -160,14 +164,17 @@ public class CollationTest extends BaseTest {
      *
      * @throws SQLException if connection error occur.
      */
-    @Test
+    /*
+     No supported  character set latin1 now
+     */
+    @Ignore
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
         createTable("fooLatin1", "x longtext", "DEFAULT CHARSET=latin1");
 
         // German Umlaute (ÄÖÜ) U+00C4, U+00D6, U+00DC
         final String latin1String = "ÄÖÜ";
 
-        final Clob insertClob = sharedConnection.createClob();
+        final java.sql.Clob insertClob = sharedConnection.createClob();
 
         insertClob.setString(1, latin1String);
 
@@ -188,7 +195,7 @@ public class CollationTest extends BaseTest {
 
         assertTrue(rs1.next());
         assertEquals(latin1String, rs1.getString(1));
-        Clob clob = rs1.getClob(1);
+        java.sql.Clob clob = rs1.getClob(1);
         assertEquals(latin1String, clob.getSubString(1, (int) clob.length()));
 
         assertFalse(rs1.next());

@@ -128,6 +128,9 @@ public interface Protocol {
                                String sql, List<ParameterHolder[]> parameterList,
                                boolean hasLongData) throws SQLException;
 
+    void sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize,
+                              Results results) throws SQLException;
+
     void getResult(Results results) throws SQLException;
 
     void cancelCurrentQuery() throws SQLException;
@@ -237,4 +240,10 @@ public interface Protocol {
     boolean isInterrupted();
 
     void stopIfInterrupted() throws SQLTimeoutException;
+
+    void setChecksum(long checksum);
+
+    void resetChecksum();
+
+    long getChecksum();
 }

@@ -20,15 +20,36 @@ import com.alipay.oceanbase.jdbc.util.Options;
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
-    private static final Supplier<String> pidRequest      = PidFactory.getInstance();
-    private static final byte[]           _CLIENT_NAME    = "_client_name".getBytes();
-    private static final byte[]           _CLIENT_VERSION = "_client_version".getBytes();
-    private static final byte[]           _SERVER_HOST    = "_server_host".getBytes();
-    private static final byte[]           _OS             = "_os".getBytes();
-    private static final byte[]           _PID            = "_pid".getBytes();
-    private static final byte[]           _THREAD         = "_thread".getBytes();
-    private static final byte[]           _JAVA_VENDOR    = "_java_vendor".getBytes();
-    private static final byte[]           _JAVA_VERSION   = "_java_version".getBytes();
+    private static final Supplier<String> pidRequest                        = PidFactory
+                                                                                .getInstance();
+    private static final byte[]           _CLIENT_NAME                      = "_client_name"
+                                                                                .getBytes();
+    private static final byte[]           _CLIENT_VERSION                   = "_client_version"
+                                                                                .getBytes();
+    private static final byte[]           _SERVER_HOST                      = "_server_host"
+                                                                                .getBytes();
+    private static final byte[]           _OS                               = "_os".getBytes();
+    private static final byte[]           _PID                              = "_pid".getBytes();
+    private static final byte[]           _THREAD                           = "_thread".getBytes();
+    private static final byte[]           _JAVA_VENDOR                      = "_java_vendor"
+                                                                                .getBytes();
+    private static final byte[]           _JAVA_VERSION                     = "_java_version"
+                                                                                .getBytes();
+
+    private static final String           OB_PROXY_PARTITION_HIT            = "ob_proxy_partition_hit";
+    private static final String           OB_STATEMENT_TRACE_ID             = "ob_statement_trace_id";
+    private static final String           OB_CAPABILITY_FLAG                = "ob_capability_flag";                                            // tell which features ob supports
+    private static final String           OB_CLIENT_FEEDBACK                = "ob_client_feedback";
+    private static final long             OB_CAP_VIRTUAL_COMPRESS           = (1 << 3);
+    private static final long             OB_CAP_USE_OCEANBASE_2_0_PROTOCOL = (1 << 8);
+    private static final long             OB_CAP_VIRTUAL_COMPRESS_SWITCH    = (1 << 6);
+    // whether OCJ read extra ok package from server like obproxy, then we can bring more information to client
+    private static final long             OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET = (1 << 7);
+    private static final long             OB_CAP_ABUNDANT_FEEDBACK          = (1 << 10);
+    private static final long             OB_CAPABILITY_FLAG_VALUE          = (OB_CAP_VIRTUAL_COMPRESS
+                                                                               | OB_CAP_VIRTUAL_COMPRESS_SWITCH
+                                                                               | OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
+                                                                               | OB_CAP_USE_OCEANBASE_2_0_PROTOCOL | OB_CAP_ABUNDANT_FEEDBACK);
 
     /**
      * Send handshake response packet.
@@ -125,7 +146,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos, options.connectionAttributes, host);
+            writeConnectAttributes(pos, options.connectionAttributes, host, options);
         }
 
         pos.flush();
@@ -133,7 +154,7 @@ public class SendHandshakeResponsePacket {
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-                                               String host) throws IOException {
+                                               String host, Options options) throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
         buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -176,6 +197,19 @@ public class SendHandshakeResponsePacket {
                 }
             }
         }
+        long capFlag = OB_CAPABILITY_FLAG_VALUE;
+
+        if (!options.useObChecksum) {
+            capFlag &= (~OB_CAP_VIRTUAL_COMPRESS);
+            capFlag &= (~OB_CAP_VIRTUAL_COMPRESS_SWITCH);
+        }
+        if (!options.useOceanBaseProtocolV20) {
+            capFlag &= (~OB_CAP_USE_OCEANBASE_2_0_PROTOCOL);
+        }
+        // add ob_connector_capability_flag for oceanbase server
+        buffer.writeStringSmallLength("__proxy_capability_flag".getBytes());
+        buffer.writeStringLength(String.valueOf(capFlag));
+        // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);
         pos.write(buffer.buf, 0, buffer.position);
     }

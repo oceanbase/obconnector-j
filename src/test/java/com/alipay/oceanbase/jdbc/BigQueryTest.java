@@ -138,8 +138,8 @@ public class BigQueryTest extends BaseTest {
 
         PreparedStatement ps = sharedConnection
             .prepareStatement("insert into bigblob3 values(null, ?,?,?)");
-        ps.setBlob(1, new OceanBaseBlob(arr));
-        ps.setBlob(2, new OceanBaseBlob(arr2));
+        ps.setBlob(1, new Blob(arr));
+        ps.setBlob(2, new Blob(arr2));
         ps.setString(3, "bob");
         ps.executeUpdate();
         Statement stmt = sharedConnection.createStatement();

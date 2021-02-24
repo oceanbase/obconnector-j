@@ -38,7 +38,7 @@ public class UpdatableResultSet extends SelectResultSet {
     private String                      exceptionInsertMsg;
     private int                         state                    = STATE_STANDARD;
     private ParameterHolder[]           parameterHolders;
-    private OceanBaseConnection         connection;
+    protected OceanBaseConnection       connection;
     private PreparedStatement           refreshPreparedStatement = null;
     private ClientSidePreparedStatement insertPreparedStatement  = null;
     private ClientSidePreparedStatement deletePreparedStatement  = null;
@@ -57,8 +57,10 @@ public class UpdatableResultSet extends SelectResultSet {
      */
     public UpdatableResultSet(ColumnDefinition[] columnsInformation, Results results,
                               Protocol protocol, PacketInputStream reader, boolean callableResult,
-                              boolean eofDeprecated) throws IOException, SQLException {
-        super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated);
+                              boolean eofDeprecated, boolean isPsOutParamter) throws IOException,
+                                                                             SQLException {
+        super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated,
+            isPsOutParamter);
         checkIfUpdatable(results);
         parameterHolders = new ParameterHolder[columnInformationLength];
     }
@@ -361,7 +363,8 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.STRING);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes);
+        parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes, this
+            .getProtocol().getOptions().characterEncoding);
     }
 
     /** {inheritDoc}. */
@@ -376,7 +379,11 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
             return;
         }
-        parameterHolders[columnIndex - 1] = new ByteArrayParameter(value, noBackslashEscapes);
+        if (this.getProtocol().isOracleMode()) {
+            parameterHolders[columnIndex - 1] = new OBByteArrayParameter(value, noBackslashEscapes);
+        } else {
+            parameterHolders[columnIndex - 1] = new ByteArrayParameter(value, noBackslashEscapes);
+        }
     }
 
     /** {inheritDoc}. */
@@ -461,8 +468,13 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-            noBackslashEscapes);
+        if (this.getProtocol().isOracleMode()) {
+            parameterHolders[columnIndex - 1] = new OBStreamParameter(inputStream, length,
+                noBackslashEscapes);
+        } else {
+            parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
+                noBackslashEscapes);
+        }
     }
 
     /** {inheritDoc}. */
@@ -485,8 +497,13 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-            noBackslashEscapes);
+        if (this.getProtocol().isOracleMode()) {
+            parameterHolders[columnIndex - 1] = new OBStreamParameter(inputStream, length,
+                noBackslashEscapes);
+        } else {
+            parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
+                noBackslashEscapes);
+        }
     }
 
     /** {inheritDoc}. */
@@ -710,7 +727,7 @@ public class UpdatableResultSet extends SelectResultSet {
             }
         } else if (obj instanceof Boolean) {
             updateBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
+        } else if (obj instanceof java.sql.Blob) {
             updateBlob(parameterIndex, (Blob) obj);
         } else if (obj instanceof Clob) {
             updateClob(parameterIndex, (Clob) obj);
@@ -796,8 +813,13 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StreamParameter(blob.getBinaryStream(),
-            blob.length(), noBackslashEscapes);
+        if (this.getProtocol().isOracleMode()) {
+            parameterHolders[columnIndex - 1] = new OBStreamParameter(blob.getBinaryStream(),
+                blob.length(), noBackslashEscapes);
+        } else {
+            parameterHolders[columnIndex - 1] = new StreamParameter(blob.getBinaryStream(),
+                blob.length(), noBackslashEscapes);
+        }
     }
 
     /** {inheritDoc}. */
@@ -823,8 +845,13 @@ public class UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
             return;
         }
-        parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-            noBackslashEscapes);
+        if (this.getProtocol().isOracleMode()) {
+            parameterHolders[columnIndex - 1] = new OBStreamParameter(inputStream, length,
+                noBackslashEscapes);
+        } else {
+            parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
+                noBackslashEscapes);
+        }
     }
 
     /** {inheritDoc}. */

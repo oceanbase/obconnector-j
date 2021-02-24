@@ -302,6 +302,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
+        if (getResult().getProtocol() == null) {
+            getResult().setProtocol(this.protocol);
+        }
         return getResult().getObject(indexToOutputIndex(parameterIndex));
     }
 
@@ -346,22 +349,22 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public Blob getBlob(int parameterIndex) throws SQLException {
+    public java.sql.Blob getBlob(int parameterIndex) throws SQLException {
         return getResult().getBlob(parameterIndex);
     }
 
     @Override
-    public Blob getBlob(String parameterName) throws SQLException {
+    public java.sql.Blob getBlob(String parameterName) throws SQLException {
         return getResult().getBlob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(String parameterName) throws SQLException {
+    public java.sql.Clob getClob(String parameterName) throws SQLException {
         return getResult().getClob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(int parameterIndex) throws SQLException {
+    public java.sql.Clob getClob(int parameterIndex) throws SQLException {
         return getResult().getClob(indexToOutputIndex(parameterIndex));
     }
 
@@ -619,7 +622,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setClob(String parameterName, Clob clob) throws SQLException {
+    public void setClob(String parameterName, java.sql.Clob clob) throws SQLException {
         setClob(nameToIndex(parameterName), clob);
     }
 
@@ -635,7 +638,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setBlob(String parameterName, Blob blob) throws SQLException {
+    public void setBlob(String parameterName, java.sql.Blob blob) throws SQLException {
         setBlob(nameToIndex(parameterName), blob);
     }
 

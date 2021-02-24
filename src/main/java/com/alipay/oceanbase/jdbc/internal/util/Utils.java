@@ -351,6 +351,7 @@ public class Utils {
     }
   }
 
+  // TODO need to check resolveEscapes for Oracle Mode
   private static String resolveEscapes(String escaped, Protocol protocol) throws SQLException {
     if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}') {
       throw new SQLException("unexpected escaped string");
@@ -424,6 +425,7 @@ public class Utils {
    */
   @SuppressWarnings("ConstantConditions")
   public static String nativeSql(String sql, Protocol protocol) throws SQLException {
+    //TODO check meanings of '{}' in Oracle
     if (!sql.contains("{")) {
       return sql;
     }
@@ -438,10 +440,11 @@ public class Utils {
     boolean inComment = false;
     boolean isSlashSlashComment = false;
     int inEscapeSeq = 0;
+    boolean isOracleMode = protocol.isOracleMode();
 
     for (int i = 0; i < charArray.length; i++) {
       char car = charArray[i];
-      if (lastChar == '\\' && !protocol.noBackslashEscapes()) {
+      if ((!isOracleMode) && lastChar == '\\' && !protocol.noBackslashEscapes()) {
         sqlBuffer.append(car);
         // avoid considering escaped backslash as a futur escape character
         lastChar = ' ';

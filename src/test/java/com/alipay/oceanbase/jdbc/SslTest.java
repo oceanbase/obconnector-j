@@ -60,11 +60,11 @@ public class SslTest extends BaseTest {
     // Skip SSL test on java 7 since SSL stream size JDK-6521495).
     Assume.assumeFalse(isJava7);
     try {
-      InetAddress.getByName("mariadb.example.com").isReachable(3);
+      InetAddress.getByName("oceanbase.com").isReachable(3);
     } catch (UnknownHostException hostException) {
       throw new SQLException(
           "SSL test canceled, database host must be set has "
-              + "\"mariadb.example.com\" to permit SSL certificate Host verification");
+              + "\"oceanbase.com\" to permit SSL certificate Host verification");
     } catch (IOException ioe) {
       throw new SQLException("unexpected exception :" + ioe.getMessage());
     }

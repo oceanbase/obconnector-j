@@ -1,18 +1,23 @@
 package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
-import com.alipay.oceanbase.jdbc.OceanBaseBlob;
-import com.alipay.oceanbase.jdbc.OceanBaseClob;
+import java.sql.Clob;
+import com.alipay.oceanbase.jdbc.Blob;
+import com.alipay.oceanbase.jdbc.OceanBaseConnection;
 import com.alipay.oceanbase.jdbc.OceanBaseResultSetMetaData;
 import com.alipay.oceanbase.jdbc.OceanBaseStatement;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
+import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowDataObCursor;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import com.alipay.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -38,9 +43,11 @@ import static com.alipay.oceanbase.jdbc.internal.com.Packet.ERROR;
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
-@SuppressWarnings({ "deprecation", "BigDecimalMethodWithoutRoundingCalled",
-                   "StatementWithEmptyBody", "SynchronizationOnLocalVariableOrMethodParameter" })
 public class SelectResultSet implements ResultSet {
+
+    public class Cursor {
+
+    }
 
     public static final int                 TINYINT1_IS_BIT     = 1;
     public static final int                 YEAR_IS_DATE_TYPE   = 2;
@@ -64,21 +71,24 @@ public class SelectResultSet implements ResultSet {
     private boolean                         isEof;
     private boolean                         callableResult;
     private OceanBaseStatement              statement;
-    private RowProtocol                     row;
+    public RowProtocol                      row;
     private int                             dataFetchTime;
     private boolean                         streaming;
-    private byte[][]                        data;
-    private int                             dataSize;
+    protected byte[][]                      data;
+    protected int                           dataSize;
     private int                             fetchSize;
     private int                             resultSetScrollType;
-    private int                             rowPointer;
+    protected int                           rowPointer;
     private int                             discardedRows       = 0;
     private ColumnLabelIndexer              columnLabelIndexer;
     private int                             lastRowPointer      = -1;
     private boolean                         isClosed;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
-    private boolean                         forceAlias;
+    protected boolean                       forceAlias;
+    public ComplexData[]                    complexData;
+    public int[]                            complexEndPos;
+    private boolean                         isPsOutParameter;
 
     /**
      * Create Streaming resultSet.
@@ -93,9 +103,8 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if any connection error occur
      */
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
-                                                                                                   throws IOException,
-                                                                                                   SQLException {
+                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
+                           boolean isPsOutParameter) throws IOException, SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -105,6 +114,8 @@ public class SelectResultSet implements ResultSet {
         this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
 
         this.columnInformationLength = columnDefinition.length;
+        this.complexData = new ComplexData[columnInformationLength];
+        this.complexEndPos = new int[columnInformationLength];
         this.reader = reader;
         this.isEof = false;
         timeZone = protocol.getTimeZone();
@@ -114,6 +125,7 @@ public class SelectResultSet implements ResultSet {
         } else {
             row = new TextRowProtocol(results.getMaxFieldSize(), options);
         }
+        row.setProtocol(protocol);
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
         this.dataSize = 0;
@@ -121,6 +133,7 @@ public class SelectResultSet implements ResultSet {
         this.rowPointer = -1;
         this.callableResult = callableResult;
         this.eofDeprecated = eofDeprecated;
+        this.isPsOutParameter = isPsOutParameter;
 
         if (fetchSize == 0 || callableResult) {
             this.data = new byte[10][];
@@ -134,6 +147,14 @@ public class SelectResultSet implements ResultSet {
             nextStreamingValue();
             streaming = true;
         }
+    }
+
+    public void changeRowProtocol(RowProtocol row) {
+        this.row = row;
+    }
+
+    public void setProtocol(Protocol protocol) {
+        this.protocol = protocol;
     }
 
     /**
@@ -157,8 +178,9 @@ public class SelectResultSet implements ResultSet {
             this.options = new Options();
             this.timeZone = TimeZone.getDefault();
         }
+
         this.row = new TextRowProtocol(0, this.options);
-        this.protocol = null;
+        this.protocol = protocol;
         this.columnsInformation = columnDefinition;
         this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
         this.columnInformationLength = columnDefinition.length;
@@ -173,6 +195,10 @@ public class SelectResultSet implements ResultSet {
         this.streaming = false;
     }
 
+    public Protocol getProtocol() {
+        return protocol;
+    }
+
     /**
      * Create a result set from given data. Useful for creating "fake" resultsets for
      * DatabaseMetaData, (one example is MariaDbDatabaseMetaData.getTypeInfo())
@@ -184,6 +210,7 @@ public class SelectResultSet implements ResultSet {
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      * @return resultset
      */
+
     public static ResultSet createGeneratedData(
       long[] data, Protocol protocol, boolean findColumnReturnsOne) {
     ColumnDefinition[] columns = new ColumnDefinition[1];
@@ -304,6 +331,10 @@ public class SelectResultSet implements ResultSet {
                 "08000", ioe);
     }
 
+    public ColumnDefinition[] getColumnsInformation() {
+        return columnsInformation;
+    }
+
     /**
      * This permit to replace current stream results by next ones.
      *
@@ -344,6 +375,7 @@ public class SelectResultSet implements ResultSet {
      * @throws IOException exception
      * @throws SQLException exception
      */
+
     private boolean readNextValue() throws IOException, SQLException {
         byte[] buf = reader.getPacketArray(false);
 
@@ -377,8 +409,9 @@ public class SelectResultSet implements ResultSet {
                 //
                 // - after a callable resultSet, a OK packet is send,
                 //   but mysql before 5.7.4 doesn't send MORE_RESULTS_EXISTS flag
-                if (callableResult) {
-                    serverStatus |= MORE_RESULTS_EXISTS;
+
+                if (callableResult) { //TODO check it set MORE_RESULTS_EXISTS in callableResult,
+                    //serverStatus |= MORE_RESULTS_EXISTS;
                 }
 
             } else {
@@ -404,6 +437,8 @@ public class SelectResultSet implements ResultSet {
         if (dataSize + 1 >= data.length) {
             growDataArray();
         }
+        //        Buffer buffer = new Buffer(buf, buf.length);
+        //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
         data[dataSize++] = buf;
         return true;
     }
@@ -413,7 +448,7 @@ public class SelectResultSet implements ResultSet {
      *
      * @return row's raw bytes
      */
-    protected byte[] getCurrentRowData() {
+    public byte[] getCurrentRowData() {
         return data[rowPointer];
     }
 
@@ -442,7 +477,7 @@ public class SelectResultSet implements ResultSet {
         previous();
     }
 
-    protected void addRowData(byte[] rawData) {
+    public void addRowData(byte[] rawData) {
         if (dataSize + 1 >= data.length) {
             growDataArray();
         }
@@ -537,7 +572,8 @@ public class SelectResultSet implements ResultSet {
     }
 
     private void resetVariables() {
-        protocol = null;
+        //        protocol = null;
+        // we need resue this resultset
         reader = null;
         isEof = true;
     }
@@ -871,6 +907,10 @@ public class SelectResultSet implements ResultSet {
         return callableResult;
     }
 
+    public boolean isPsOutParameter() {
+        return isPsOutParameter;
+    }
+
     public boolean isClosed() {
         return isClosed;
     }
@@ -899,6 +939,22 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            java.sql.Clob clob = getClob(columnIndex);
+            if (clob == null) {
+                return null;
+            }
+            return clob.getAsciiStream();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            java.sql.Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            }
+            return blob.getBinaryStream();
+        }
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(),
             StandardCharsets.UTF_8).getBytes());
     }
@@ -906,6 +962,34 @@ public class SelectResultSet implements ResultSet {
     /** {inheritDoc}. */
     public String getString(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
+        switch (columnsInformation[columnIndex - 1].getColumnType()) {
+            case OBCLOB:
+                java.sql.Clob clob = getClob(columnIndex);
+                if (clob == null) {
+                    return null;
+                }
+                long len = clob.length();
+                return clob.getSubString(1, (int) len);
+            case OBBLOB:
+                throw new SQLFeatureNotSupportedException();
+            case TIMESTAMP_TZ:
+                TIMESTAMPTZ timestamptz = row.getInternalTIMESTAMPTZ(
+                    columnsInformation[columnIndex - 1], null, timeZone);
+                if (timestamptz == null) {
+                    return null;
+                }
+                return timestamptz.toResultSetString(this.statement.getConnection());
+            case TIMESTAMP_LTZ:
+                TIMESTAMPLTZ timestampltz = row.getInternalTIMESTAMPLTZ(
+                    columnsInformation[columnIndex - 1], null, timeZone);
+                if (timestampltz == null) {
+                    return null;
+                }
+                return timestampltz.toResultSetString(this.statement.getConnection());
+            default:
+                break;
+        }
+
         return row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
@@ -931,6 +1015,14 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            return getClob(columnIndex).getAsciiStream();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            return getBlob(columnIndex).getBinaryStream();
         }
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
@@ -969,6 +1061,13 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public float getFloat(int columnIndex) throws SQLException {
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+            case BINARY_DOUBLE:
+                return (float) getDouble(columnIndex);
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalFloat(columnsInformation[columnIndex - 1]);
     }
@@ -980,6 +1079,14 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public double getDouble(int columnIndex) throws SQLException {
+
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+        //            case BINARY_FLOAT:
+        //                return (double) getFloat(columnIndex);
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalDouble(columnsInformation[columnIndex - 1]);
     }
@@ -997,6 +1104,17 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+        //            case BINARY_FLOAT:
+        //                Float f = getFloat(columnIndex);
+        //                return new BigDecimal(Float.toString(f));
+        //            case BINARY_DOUBLE:
+        //                Double d = getDouble(columnIndex);
+        //                return new BigDecimal(Double.toString(d));
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
@@ -1016,6 +1134,19 @@ public class SelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            throw new SQLFeatureNotSupportedException();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            java.sql.Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            }
+            long len = ((Blob) blob).length();
+            return blob.getBytes(1, (int) len);
         }
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
@@ -1073,6 +1204,24 @@ public class SelectResultSet implements ResultSet {
     public TIMESTAMP getTIMESTAMP(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalTIMESTAMP(columnsInformation[columnIndex - 1], null, timeZone);
+    }
+
+    public INTERVALDS getINTERVALDS(String columnLabel) throws SQLException {
+        return getINTERVALDS(findColumn(columnLabel));
+    }
+
+    public INTERVALDS getINTERVALDS(int columnIndex) throws SQLException {
+        checkObjectRange(columnIndex);
+        return row.getInternalINTERVALDS(columnsInformation[columnIndex - 1]);
+    }
+
+    public INTERVALYM getINTERVALYM(String columnLabel) throws SQLException {
+        return getINTERVALYM(findColumn(columnLabel));
+    }
+
+    public INTERVALYM getINTERVALYM(int columnIndex) throws SQLException {
+        checkObjectRange(columnIndex);
+        return row.getInternalINTERVALYM(columnsInformation[columnIndex - 1]);
     }
 
     public TIMESTAMPTZ getTIMESTAMPTZ(String columnLabel) throws SQLException {
@@ -1137,11 +1286,32 @@ public class SelectResultSet implements ResultSet {
 
     /** {inheritDoc}. */
     public ResultSetMetaData getMetaData() {
-        return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias);
+        return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias, this
+            .getProtocol().isOracleMode());
     }
 
     /** {inheritDoc}. */
     public Object getObject(int columnIndex) throws SQLException {
+
+        ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
+        switch (type) {
+            case STRUCT:
+                return getStruct(columnIndex);
+            case ARRAY:
+                return getArray(columnIndex);
+            case CURSOR:
+                return getComplexCursor(columnIndex);
+            case OBBLOB:
+                return getBlob(columnIndex);
+            case OBCLOB:
+                return getClob(columnIndex);
+                //            case BINARY_FLOAT:
+                //                return getFloat(columnIndex);
+                //            case BINARY_DOUBLE:
+                //                return getDouble(columnIndex);
+            default:
+                break;
+        }
         checkObjectRange(columnIndex);
         return row.getInternalObject(columnsInformation[columnIndex - 1], timeZone);
     }
@@ -1223,7 +1393,8 @@ public class SelectResultSet implements ResultSet {
             return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-            return (T) new OceanBaseClob(row.buf, row.pos, row.getLengthMaxFieldSize());
+            return (T) new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos,
+                row.getLengthMaxFieldSize());
 
         } else if (type.equals(InputStream.class)) {
             return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
@@ -1312,6 +1483,24 @@ public class SelectResultSet implements ResultSet {
     /** {inheritDoc}. */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            java.sql.Clob clob = getClob(columnIndex);
+            if (clob == null) {
+                return null;
+            } else {
+                return clob.getCharacterStream();
+            }
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            java.sql.Blob blob = getBlob(columnIndex);
+            if (blob == null) {
+                return null;
+            } else {
+                return ((Blob) blob).getCharacterStream();
+            }
+        }
         String value = row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
         if (value == null) {
             return null;
@@ -1340,26 +1529,44 @@ public class SelectResultSet implements ResultSet {
     }
 
     /** {inheritDoc}. */
-    public Blob getBlob(int columnIndex) throws SQLException {
+    public java.sql.Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
         }
-        return new OceanBaseBlob(row.buf, row.pos, row.length);
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+            .getType()) {
+            String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
+            if (encoding == null) {
+                encoding = "UTF8";
+            }
+            byte[] data = new byte[row.length];
+            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            return new Blob(true, data, encoding, this.statement.getConnection());
+        }
+        return new Blob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
-    public Blob getBlob(String columnLabel) throws SQLException {
+    public java.sql.Blob getBlob(String columnLabel) throws SQLException {
         return getBlob(findColumn(columnLabel));
     }
 
     /** {inheritDoc}. */
-    public Clob getClob(int columnIndex) throws SQLException {
+    public java.sql.Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (row.lastValueWasNull()) {
             return null;
         }
-        return new OceanBaseClob(row.buf, row.pos, row.length);
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            .getType()) {
+            String encoding = this.options.characterEncoding;
+            byte[] data = new byte[row.length];
+            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            return new com.alipay.oceanbase.jdbc.Clob(true, data, encoding,
+                this.statement.getConnection());
+        }
+        return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
@@ -1367,14 +1574,83 @@ public class SelectResultSet implements ResultSet {
         return getClob(findColumn(columnLabel));
     }
 
-    /** {inheritDoc}. */
-    public Array getArray(int columnIndex) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("Arrays are not supported");
+    public void setComplexData(ComplexData[] complexData) {
+        this.complexData = complexData;
     }
 
-    /** {inheritDoc}. */
+    public Array getArray(int columnIndex) throws SQLException {
+        if (!this.getProtocol().isOracleMode()) {
+            throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
+        }
+        checkObjectRange(columnIndex);
+        int internalColumnIndex = columnIndex - 1;
+        ArrayImpl array = null;
+        Connection conn = this.statement.getConnection(); // fixme to be the complex connection
+        if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
+            String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
+                throw new SQLException("the field complex type is not TYPE_COLLECTION");
+            }
+            Array ret = row.getInternalArray(columnsInformation[columnIndex - 1], type);
+            complexEndPos[columnIndex - 1] = row.pos;
+            return ret;
+        } else {
+            throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
+        }
+    }
+
     public Array getArray(String columnLabel) throws SQLException {
         return getArray(findColumn(columnLabel));
+    }
+
+    public Struct getStruct(int columnIndex) throws SQLException {
+
+        checkObjectRange(columnIndex);
+        int internalColumnIndex = columnIndex - 1;
+        ArrayImpl array = null;
+        Connection conn = this.statement.getConnection(); // fixme to be the complex connection
+        if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
+            String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            if (type.getType() != ComplexDataType.TYPE_OBJECT) {
+                throw new SQLException("the field complex type is not TYPE_COLLECTION");
+            }
+            Struct ret = row.getInternalStruct(columnsInformation[columnIndex - 1], type);
+            complexEndPos[columnIndex - 1] = row.pos;
+            return ret;
+        } else {
+            throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
+        }
+    }
+
+    public Struct getStruct(String columnLabel) throws SQLException {
+        return getStruct(findColumn(columnLabel));
+    }
+
+    public RowDataObCursor getComplexCursor(int columnIndex) throws SQLException {
+        // after reading the eof packet,the protocol been seted to null,but we need it
+
+        checkObjectRange(columnIndex);
+        int internalColumnIndex = columnIndex - 1;
+        String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+        ComplexDataType type = new ComplexDataType(typeName, typeName, ColumnType.CURSOR.getType());
+        if (complexData[internalColumnIndex] == null) {
+            ComplexData data = (ComplexData) row.getInternalComplexCursor(
+                columnsInformation[internalColumnIndex], type);
+            complexData[internalColumnIndex] = data;
+        }
+        Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
+        RowObCursorData obCursorData = (RowObCursorData) objects[0];
+        if (!obCursorData.isOpen()) {
+            throw new SQLException("cursor is not open");
+        }
+        RowDataObCursor obCursor = new RowDataObCursor(this.columnsInformation, protocol,
+            obCursorData, this.statement);
+        obCursor.setOwner(this);
+        obCursor.setRowObCursorData(obCursorData);
+        complexEndPos[columnIndex - 1] = row.pos;
+        return obCursor;
     }
 
     /** {inheritDoc}. */
@@ -1414,7 +1690,7 @@ public class SelectResultSet implements ResultSet {
         if (row.lastValueWasNull()) {
             return null;
         }
-        return new OceanBaseClob(row.buf, row.pos, row.length);
+        return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
     /** {inheritDoc}. */
@@ -1805,12 +2081,12 @@ public class SelectResultSet implements ResultSet {
     }
 
     /** {inheritDoc}. */
-    public void updateBlob(int columnIndex, Blob blob) throws SQLException {
+    public void updateBlob(int columnIndex, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 
     /** {inheritDoc}. */
-    public void updateBlob(String columnLabel, Blob blob) throws SQLException {
+    public void updateBlob(String columnLabel, java.sql.Blob blob) throws SQLException {
         throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
     }
 

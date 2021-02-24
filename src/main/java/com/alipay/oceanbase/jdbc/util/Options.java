@@ -119,6 +119,17 @@ public class Options implements Cloneable {
   public String serverRsaPublicKeyFile;
   public boolean allowPublicKeyRetrieval;
 
+  // OceanBase extended options
+  public boolean supportLobLocator = true;
+  public boolean useObChecksum = true;
+  public boolean useOceanBaseProtocolV20 = true;
+  public boolean useFormatExceptionMessage = false;
+  public boolean allowSendParamTypes = false;
+  public int     complexDataCacheSize = 50;
+  public boolean cacheComplexData = true;
+  public boolean useSqlStringCache = false;
+  public boolean useServerPsStmtChecksum = true;
+  public String  characterEncoding   = "utf8";
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -429,6 +440,36 @@ public class Options implements Cloneable {
     if (!Objects.equals(tlsSocketType, opt.tlsSocketType)) {
       return false;
     }
+    if (supportLobLocator != opt.supportLobLocator) {
+      return false;
+    }
+    if (useObChecksum != opt.useObChecksum) {
+      return false;
+    }
+    if (useOceanBaseProtocolV20 != opt.useOceanBaseProtocolV20) {
+      return false;
+    }
+    if (useFormatExceptionMessage != opt.useFormatExceptionMessage) {
+      return false;
+    }
+    if (allowSendParamTypes != opt.allowSendParamTypes) {
+      return false;
+    }
+    if (complexDataCacheSize != opt.complexDataCacheSize) {
+      return false;
+    }
+    if (cacheComplexData != opt.cacheComplexData) {
+      return false;
+    }
+    if (useSqlStringCache != opt.useSqlStringCache) {
+      return false;
+    }
+    if (useServerPsStmtChecksum != opt.useServerPsStmtChecksum) {
+      return false;
+    }
+    if (characterEncoding != opt.characterEncoding) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -527,6 +568,17 @@ public class Options implements Cloneable {
     result = 31 * result + (credentialType != null ? credentialType.hashCode() : 0);
     result = 31 * result + (nonMappedOptions != null ? nonMappedOptions.hashCode() : 0);
     result = 31 * result + (tlsSocketType != null ? tlsSocketType.hashCode() : 0);
+    // Add Oceanbase extended options
+    result = 31 * result + (supportLobLocator ? 1 : 0);
+    result = 31 * result + (useObChecksum ? 1 : 0);
+    result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
+    result = 31 * result + (useFormatExceptionMessage ? 1 : 0);
+    result = 31 * result + (allowSendParamTypes ? 1 : 0);
+    result = 31 * result + complexDataCacheSize;
+    result = 31 * result + (cacheComplexData ? 1 : 0);
+    result = 31 * result + (useSqlStringCache ? 1 : 0);
+    result = 31 * result + (useServerPsStmtChecksum ? 1 : 0);
+    result = 31 * result + (characterEncoding != null ?  characterEncoding.hashCode() : 0);
     return result;
   }
 

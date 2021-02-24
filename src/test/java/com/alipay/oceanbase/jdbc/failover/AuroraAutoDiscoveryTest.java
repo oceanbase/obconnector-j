@@ -7,10 +7,7 @@ import java.util.List;
 
 import com.alipay.oceanbase.jdbc.HostAddress;
 import com.alipay.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
@@ -33,7 +30,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      *
      * @throws Throwable if error occur
      */
-    @Test
+    @Ignore
   public void testTimeZoneDiscovery() throws Throwable {
 
     try (Connection connection =
