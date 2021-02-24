@@ -67,8 +67,9 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
 
-        conn = sharedConnection;
-        sharedConnection.createStatement().execute(" insert into " + tableName2 + "  values(1,2)");
+        conn = setConnection();
+        ;
+        conn.createStatement().execute(" insert into " + tableName2 + "  values(1,2)");
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
             (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one_phase";
@@ -106,7 +107,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
     public void obOracleXAWithError() throws Exception {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
-        conn = sharedConnection;
+        conn = setConnection();
+        ;
         conn.setAutoCommit(false);
 
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
@@ -152,7 +154,7 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
 
-        conn = sharedConnection;
+        conn = setConnection();
 
         OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection(
             (OceanBaseConnection) conn);
@@ -182,7 +184,7 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
 
-        conn = sharedConnection;
+        conn = setConnection();
 
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
             (OceanBaseConnection) conn);
@@ -240,7 +242,7 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
     public void obOracleXARecover() throws Exception {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
-        conn = sharedConnection;
+        conn = setConnection();
         OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection(
             (OceanBaseConnection) conn);
         XAResource xaResource = mysqlXAConnection.getXAResource();

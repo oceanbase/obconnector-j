@@ -918,7 +918,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void close() throws SQLException {
         if (pooledConnection != null) {
-            rollback();
+            if (!getAutoCommit()) {
+                rollback();
+            }
             pooledConnection.fireConnectionClosed();
             return;
         }

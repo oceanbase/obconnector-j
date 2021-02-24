@@ -155,7 +155,7 @@ public class BaseOracleTest {
     testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
     if (testSingleHost) {
-      urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
+      urlParser = UrlParser.parse(url);
       UrlParser urlParserPS =
           UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
       UrlParser urlParserPSLob =
