@@ -2182,6 +2182,8 @@ public class OceanBaseConnection implements ConnectionImpl {
             throw new SQLFeatureNotSupportedException();
         }
 
+    }
+
     public boolean isInGlobalTx() {
         return this.isInGlobalTx;
     }
