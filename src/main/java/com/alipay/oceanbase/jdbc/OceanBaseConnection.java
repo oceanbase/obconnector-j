@@ -7,11 +7,17 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
+import com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.internal.util.CallableStatementCache;
 import com.alipay.oceanbase.jdbc.internal.util.ConnectionState;
+import com.alipay.oceanbase.jdbc.internal.util.StringCacheUtil;
+import com.alipay.oceanbase.jdbc.internal.util.LRUCache;
 import com.alipay.oceanbase.jdbc.internal.util.Utils;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.alipay.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
@@ -21,7 +27,7 @@ import com.alipay.oceanbase.jdbc.internal.util.pool.Pools;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 @SuppressWarnings("Annotator")
-public class OceanBaseConnection implements Connection {
+public class OceanBaseConnection implements ConnectionImpl {
 
     private static final Logger      logger                       = LoggerFactory
                                                                       .getLogger(OceanBaseConnection.class);
@@ -38,16 +44,22 @@ public class OceanBaseConnection implements Connection {
                                                                                   + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
                                                                           Pattern.CASE_INSENSITIVE
                                                                                   | Pattern.DOTALL);
-    /** Check that query can be executed with PREPARE. */
+    /**
+     * Check that query can be executed with PREPARE.
+     */
     private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
                                                                       .compile(
                                                                           "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
                                                                           Pattern.CASE_INSENSITIVE);
 
     public final ReentrantLock       lock;
-    /** the protocol to communicate with. */
+    /**
+     * the protocol to communicate with.
+     */
     private final Protocol           protocol;
-    /** the properties for the client. */
+    /**
+     * the properties for the client.
+     */
     private final Options            options;
 
     public OceanBasePooledConnection pooledConnection;
@@ -62,7 +74,180 @@ public class OceanBaseConnection implements Connection {
 
     private boolean                  warningsCleared;
 
+    private LRUCache                 serverSideStatementCheckCache;
+    private LRUCache                 serverSideStatementCache;
+    private LRUCache                 complexDataCache;
+    private UrlParser                urlParser;
+    private GlobalStateInfo          globalStateInfo;
+
     private TimeZone                 sessionTimeZone              = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
+    private static final int         DEPTH_INDEX                  = 1;
+    private static final int         PARENT_TYPE_INDEX            = 3;
+    private static final int         CHILD_TYPE_INDEX             = 4;
+    private static final int         ATTR_NO_INDEX                = 5;
+    private static final int         CHILD_OWNER_INDEX            = 6;
+    private static final int         ATTR_TYPE_INDEX              = 7;
+    private String                   origHostToConnectTo;
+    // we don't want to be able to publicly clone this... // todo
+    private int                      origPortToConnectTo;
+    private String                   origDatabaseToConnectTo;
+    private java.sql.Connection      complexConnection            = null;
+    private boolean                  autoCommit                   = true;
+    private Map<String, Class<?>>    typeMap;
+    private static final String      complexTypeSql               = "SELECT\n"
+                                                                    + "  0 DEPTH,\n"
+                                                                    + "  NULL PARENT_OWNER,\n"
+                                                                    + "  NULL PARENT_TYPE,\n"
+                                                                    + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "  0 ATTR_NO,\n"
+                                                                    + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
+                                                                    + "  A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "  NULL LENGTH,\n"
+                                                                    + "  NULL NUMBER_PRECISION,\n"
+                                                                    + "  NULL SCALE,\n"
+                                                                    + "  NULL CHARACTER_SET_NAME\n"
+                                                                    + "FROM\n"
+                                                                    + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
+                                                                    + "UNION\n"
+                                                                    + "(\n"
+                                                                    + "WITH \n"
+                                                                    + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
+                                                                    + "AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      0 ATTR_NO,\n"
+                                                                    + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM\n"
+                                                                    + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
+                                                                    + "    UNION\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "      B.ATTR_NO ATTR_NO,\n"
+                                                                    + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "      B.LENGTH LENGTH,\n"
+                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "      B.SCALE SCALE,\n"
+                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
+                                                                    + ") ,\n"
+                                                                    + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "AS (\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    1 DEPTH,\n"
+                                                                    + "    PARENT_OWNER,\n"
+                                                                    + "    PARENT_TYPE,\n"
+                                                                    + "    CHILD_TYPE,\n"
+                                                                    + "    ATTR_NO,\n"
+                                                                    + "    CHILD_TYPE_OWNER,\n"
+                                                                    + "    ATTR_TYPE_CODE,\n"
+                                                                    + "    LENGTH,\n"
+                                                                    + "    NUMBER_PRECISION,\n"
+                                                                    + "    SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
+                                                                    + "  UNION ALL\n"
+                                                                    + "  SELECT\n"
+                                                                    + "    DEPTH + 1 DEPTH,\n"
+                                                                    + "    CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "    CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "    CTE_RESULT.ATTR_NO,\n"
+                                                                    + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "    CTE_RESULT.LENGTH,\n"
+                                                                    + "    CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "    CTE_RESULT.SCALE,\n"
+                                                                    + "    CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
+                                                                    + ")\n" + "SELECT * FROM CTE\n"
+                                                                    + ");";
+
+    private static final String      complexAllTypeSql            = "SELECT\n"
+                                                                    + "    0 DEPTH,\n"
+                                                                    + "    NULL PARENT_OWNER,\n"
+                                                                    + "    NULL PARENT_TYPE,\n"
+                                                                    + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                    + "    0 ATTR_NO,\n"
+                                                                    + "    OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "    A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                    + "    NULL LENGTH,\n"
+                                                                    + "    NULL NUMBER_PRECISION,\n"
+                                                                    + "    NULL SCALE,\n"
+                                                                    + "    NULL CHARACTER_SET_NAME\n"
+                                                                    + "  FROM\n"
+                                                                    + "    ALL_TYPES A WHERE TYPE_NAME = ? AND OWNER = ?\n"
+                                                                    + "  UNION\n"
+                                                                    + "  (\n"
+                                                                    + "  WITH\n"
+                                                                    + "  CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        0 ATTR_NO,\n"
+                                                                    + "        B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM\n"
+                                                                    + "        ALL_COLL_TYPES B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME AND A.OWNER = B.ELEM_TYPE_OWNER\n"
+                                                                    + "      UNION\n"
+                                                                    + "      SELECT\n"
+                                                                    + "        B.OWNER PARENT_OWNER,\n"
+                                                                    + "        B.TYPE_NAME PARENT_TYPE,\n"
+                                                                    + "        B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                    + "        B.ATTR_NO ATTR_NO,\n"
+                                                                    + "        B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                    + "        NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                    + "        B.LENGTH LENGTH,\n"
+                                                                    + "        B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                    + "        B.SCALE SCALE,\n"
+                                                                    + "        B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                    + "      FROM ALL_TYPE_ATTRS B LEFT JOIN ALL_TYPES A ON A.TYPE_NAME = B.ATTR_TYPE_NAME AND A.OWNER = B.ATTR_TYPE_OWNER ORDER BY ATTR_NO\n"
+                                                                    + "  ) ,\n"
+                                                                    + "  CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                    + "  AS (\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      1 DEPTH,\n"
+                                                                    + "      PARENT_OWNER,\n"
+                                                                    + "      PARENT_TYPE,\n"
+                                                                    + "      CHILD_TYPE,\n"
+                                                                    + "      ATTR_NO,\n"
+                                                                    + "      CHILD_TYPE_OWNER,\n"
+                                                                    + "      ATTR_TYPE_CODE,\n"
+                                                                    + "      LENGTH,\n"
+                                                                    + "      NUMBER_PRECISION,\n"
+                                                                    + "      SCALE, CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT WHERE PARENT_TYPE = ? AND PARENT_OWNER = ?\n"
+                                                                    + "    UNION ALL\n"
+                                                                    + "    SELECT\n"
+                                                                    + "      DEPTH + 1 DEPTH,\n"
+                                                                    + "      CTE_RESULT.PARENT_OWNER,\n"
+                                                                    + "      CTE_RESULT.PARENT_TYPE,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE,\n"
+                                                                    + "      CTE_RESULT.ATTR_NO,\n"
+                                                                    + "      CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                    + "      CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                    + "      CTE_RESULT.LENGTH,\n"
+                                                                    + "      CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                    + "      CTE_RESULT.SCALE,\n"
+                                                                    + "      CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                    + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
+                                                                    + "  )\n"
+                                                                    + "  SELECT * FROM CTE\n"
+                                                                    + "  );";
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -81,12 +266,41 @@ public class OceanBaseConnection implements Connection {
         }
         this.lock = protocol.getLock();
         this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
+        //        if (getCacheComplexData()) {
+        //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
+        //        }
+        //todo add connection propertis in the future
+        this.complexDataCache = new LRUCache(50);
+    }
+
+    public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
+                                                                                             throws SQLException {
+        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+        ;
+        this.urlParser = urlParser;
+        this.globalStateInfo = globalInfo;
+        this.protocol = protocol;
+        options = protocol.getOptions();
+        canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
+        sessionStateAware = protocol.sessionStateAware();
+        nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
+        if (options.cacheCallableStmts) {
+            callableStatementCache = CallableStatementCache
+                .newInstance(options.callableStmtCacheSize);
+        }
+        this.lock = protocol.getLock();
+        this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
+        //        if (getCacheComplexData()) {
+        //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
+        //        }
+        //todo add connection propertis in the future
+        this.complexDataCache = new LRUCache(50);
     }
 
     /**
      * Create new connection Object.
      *
-     * @param urlParser parser
+     * @param urlParser  parser
      * @param globalInfo global info
      * @return connection object
      * @throws SQLException if any connection error occur
@@ -143,12 +357,12 @@ public class OceanBaseConnection implements Connection {
      * method above, but it allows the default result set type and concurrency to be overridden. The
      * holdability of the created result sets can be determined by calling {@link #getHoldability}.
      *
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
-     *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
-     *     with the given type and concurrency
+     * with the given type and concurrency
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
         return new OceanBaseStatement(this, resultSetType, resultSetConcurrency, exceptionFactory);
@@ -160,15 +374,15 @@ public class OceanBaseConnection implements Connection {
      * createStatement</code> method above, but it allows the default result set type, concurrency,
      * and holdability to be overridden.
      *
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetType        one of the following <code>ResultSet</code> constants: <code>
+     *                             ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     *                             ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
-     *     with the given type, concurrency, and holdability
+     * with the given type, concurrency, and holdability
      * @see ResultSet
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency,
@@ -211,7 +425,7 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if there is a problem preparing the statement.
      */
     public ServerSidePreparedStatement serverPrepareStatement(final String sql) throws SQLException {
-        return new ServerSidePreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY,
+        return new ServerSidePreparedStatement(false, this, sql, ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
     }
 
@@ -234,17 +448,17 @@ public class OceanBaseConnection implements Connection {
      * to be overridden. The holdability of the created result sets can be determined by calling
      * {@link #getHoldability}.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database;
-     *     may contain one or more '?' IN parameters
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
-     *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain one or more '?' IN parameters
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new PreparedStatement object containing the pre-compiled SQL statement that will
-     *     produce <code>ResultSet</code> objects with the given type and concurrency
+     * produce <code>ResultSet</code> objects with the given type and concurrency
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameters are not<code>ResultSet</code> constants indicating type
-     *     and concurrency
+     *                      connection or the given parameters are not<code>ResultSet</code> constants indicating type
+     *                      and concurrency
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType,
                                               final int resultSetConcurrency) throws SQLException {
@@ -259,21 +473,21 @@ public class OceanBaseConnection implements Connection {
      * <p>This method is the same as the <code>prepareStatement</code> method above, but it allows the
      * default result set type, concurrency, and holdability to be overridden.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database;
-     *     may contain one or more '?' IN parameters
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain one or more '?' IN parameters
+     * @param resultSetType        one of the following <code>ResultSet</code> constants: <code>
+     *                             ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     *                             ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement,
-     *     that will generate <code>ResultSet</code> objects with the given type, concurrency, and
-     *     holdability
+     * that will generate <code>ResultSet</code> objects with the given type, concurrency, and
+     * holdability
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameters are not <code>ResultSet</code> constants indicating
-     *     type, concurrency, and holdability
+     *                      connection or the given parameters are not <code>ResultSet</code> constants indicating
+     *                      type, concurrency, and holdability
      * @see ResultSet
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType,
@@ -302,14 +516,14 @@ public class OceanBaseConnection implements Connection {
      * </code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param sql               an SQL statement that may contain one or more '?' IN parameter placeholders
      * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be returned; one
-     *     of <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
+     *                          of <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement,
-     *     that will have the capability of returning auto-generated keys
+     * that will have the capability of returning auto-generated keys
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameter is not a <code>Statement</code> constant indicating
-     *     whether auto-generated keys should be returned
+     *                      connection or the given parameter is not a <code>Statement</code> constant indicating
+     *                      whether auto-generated keys should be returned
      */
     public PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys)
                                                                                             throws SQLException {
@@ -340,14 +554,14 @@ public class OceanBaseConnection implements Connection {
      * </code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param sql           an SQL statement that may contain one or more '?' IN parameter placeholders
      * @param columnIndexes an array of column indexes indicating the columns that should be returned
-     *     from the inserted row or rows
+     *                      from the inserted row or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement,
-     *     that is capable of returning the auto-generated keys designated by the given array of
-     *     column indexes
+     * that is capable of returning the auto-generated keys designated by the given array of
+     * column indexes
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      */
     public PreparedStatement prepareStatement(final String sql, final int[] columnIndexes)
                                                                                           throws SQLException {
@@ -377,18 +591,30 @@ public class OceanBaseConnection implements Connection {
      * </code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param sql         an SQL statement that may contain one or more '?' IN parameter placeholders
      * @param columnNames an array of column names indicating the columns that should be returned from
-     *     the inserted row or rows
+     *                    the inserted row or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement,
-     *     that is capable of returning the auto-generated keys designated by the given array of
-     *     column names
+     * that is capable of returning the auto-generated keys designated by the given array of
+     * column names
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      */
     public PreparedStatement prepareStatement(final String sql, final String[] columnNames)
                                                                                            throws SQLException {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+    }
+
+    private String getCachedSql(String originSql) throws SQLException {
+        if (StringCacheUtil.sqlStringCache == null) {
+            return originSql;
+        }
+        String sqlCache = StringCacheUtil.sqlStringCache.getIfPresent(originSql);
+        if (sqlCache == null) {
+            StringCacheUtil.sqlStringCache.put(originSql, originSql);
+            sqlCache = originSql;
+        }
+        return sqlCache;
     }
 
     /**
@@ -396,14 +622,14 @@ public class OceanBaseConnection implements Connection {
      * server side and PREPARE can be delayed, a facade will be return, to have a fallback on client
      * prepareStatement.
      *
-     * @param sql sql query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                  sql query
+     * @param resultSetScrollType  one of the following <code>ResultSet</code> constants: <code>
+     *                             ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be returned; one
-     *     of <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
+     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param autoGeneratedKeys    a flag indicating whether auto-generated keys should be returned; one
+     *                             of <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
      * @return PrepareStatement
      * @throws SQLException if a connection error occur during the server preparation.
      */
@@ -416,13 +642,16 @@ public class OceanBaseConnection implements Connection {
         if (sql != null) {
 
             String sqlQuery = Utils.nativeSql(sql, protocol);
-
+            if (options.useSqlStringCache) {
+                sqlQuery = getCachedSql(sqlQuery);
+            }
             if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new ServerSidePreparedStatement(this, sqlQuery, resultSetScrollType,
-                        resultSetConcurrency, autoGeneratedKeys, exceptionFactory);
+                    return new ServerSidePreparedStatement(false, this, sqlQuery,
+                        resultSetScrollType, resultSetConcurrency, autoGeneratedKeys,
+                        exceptionFactory);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -447,11 +676,11 @@ public class OceanBaseConnection implements Connection {
      * <p><b>Note:</b> This method is optimized for handling stored procedure call statements.
      *
      * @param sql an SQL statement that may contain one or more '?' parameter placeholders. Typically
-     *     this statement is specified using JDBC call escape syntax.
+     *            this statement is specified using JDBC call escape syntax.
      * @return a new default <code>CallableStatement</code> object containing the pre-compiled SQL
-     *     statement
+     * statement
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      */
     public CallableStatement prepareCall(final String sql) throws SQLException {
         return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
@@ -464,17 +693,17 @@ public class OceanBaseConnection implements Connection {
      * overridden. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database;
-     *     may contain on or more '?' parameters
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
-     *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain on or more '?' parameters
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new <code>CallableStatement</code> object containing the pre-compiled SQL statement
-     *     that will produce <code>ResultSet</code> objects with the given type and concurrency
+     * that will produce <code>ResultSet</code> objects with the given type and concurrency
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameters are not <code>ResultSet</code> constants indicating type
-     *     and concurrency
+     *                      connection or the given parameters are not <code>ResultSet</code> constants indicating type
+     *                      and concurrency
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType,
                                          final int resultSetConcurrency) throws SQLException {
@@ -529,21 +758,21 @@ public class OceanBaseConnection implements Connection {
      * </code> method above, but it allows the default result set type, result set concurrency type
      * and holdability to be overridden.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database;
-     *     may contain on or more '?' parameters
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain on or more '?' parameters
+     * @param resultSetType        one of the following <code>ResultSet</code> constants: <code>
+     *                             ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
+     *                             ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>
-     *     ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     *                             ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement,
-     *     that will generate <code>ResultSet</code> objects with the given type, concurrency, and
-     *     holdability
+     * that will generate <code>ResultSet</code> objects with the given type, concurrency, and
+     * holdability
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameters are not <code>ResultSet</code> constants indicating
-     *     type, concurrency, and holdability
+     *                      connection or the given parameters are not <code>ResultSet</code> constants indicating
+     *                      type, concurrency, and holdability
      * @see ResultSet
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType,
@@ -561,11 +790,18 @@ public class OceanBaseConnection implements Connection {
                                                          ExceptionFactory exceptionFactory)
                                                                                            throws SQLException {
         if (isFunction) {
-            return new OceanBaseFunctionStatement(this, database, databaseAndProcedure,
-                (arguments == null) ? "()" : arguments, resultSetType, resultSetConcurrency,
-                exceptionFactory);
+            if (!this.getProtocol().isOracleMode()) {
+                return new OceanBaseFunctionStatement(this, database, databaseAndProcedure,
+                    (arguments == null) ? "()" : arguments, resultSetType, resultSetConcurrency,
+                    exceptionFactory);
+            } else {
+                return new OceanBaseProcedureStatement(true, "SELECT " + databaseAndProcedure
+                                                             + arguments + " FROM DUAL", this,
+                    databaseAndProcedure, database, resultSetType, resultSetConcurrency,
+                    exceptionFactory);
+            }
         } else {
-            return new OceanBaseProcedureStatement(query, this, procedureName, database,
+            return new OceanBaseProcedureStatement(false, query, this, procedureName, database,
                 resultSetType, resultSetConcurrency, exceptionFactory);
         }
     }
@@ -582,6 +818,9 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
+        if (autoCommit == false) {
+            return false;
+        }
         return protocol.getAutocommit();
     }
 
@@ -592,15 +831,16 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-    if (autoCommit == getAutoCommit()) {
-      return;
-    }
+        if (autoCommit == getAutoCommit()) {
+            return;
+        }
 
-    try (Statement stmt = createStatement()) {
-      stateFlag |= ConnectionState.STATE_AUTOCOMMIT;
-      stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
+        try (Statement stmt = createStatement()) {
+            stateFlag |= ConnectionState.STATE_AUTOCOMMIT;
+            stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
+            this.autoCommit = autoCommit;
+        }
     }
-  }
 
     /**
      * Sends commit to the server.
@@ -608,17 +848,17 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-    lock.lock();
-    try {
-      if (protocol.inTransaction()) {
-        try (Statement st = createStatement()) {
-          st.execute("COMMIT");
+        lock.lock();
+        try {
+            if (protocol.inTransaction()) {
+                try (Statement st = createStatement()) {
+                    st.execute("COMMIT");
+                }
+            }
+        } finally {
+            lock.unlock();
         }
-      }
-    } finally {
-      lock.unlock();
     }
-  }
 
     /**
      * Rolls back a transaction.
@@ -626,17 +866,20 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-    lock.lock();
-    try {
-      if (protocol.inTransaction()) {
-        try (Statement st = createStatement()) {
-          st.execute("ROLLBACK");
+        if (this.getAutoCommit() == true){
+            throw new SQLException("Can't call rollback when autocommit enable");
         }
-      }
-    } finally {
-      lock.unlock();
+        lock.lock();
+        try {
+            if (protocol.inTransaction()) {
+                try (Statement st = createStatement()) {
+                    st.execute("ROLLBACK");
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
     }
-  }
 
     /**
      * Undoes all changes made after the given <code>Savepoint</code> object was set.
@@ -645,17 +888,24 @@ public class OceanBaseConnection implements Connection {
      *
      * @param savepoint the <code>Savepoint</code> object to roll back to
      * @throws SQLException if a database access error occurs, this method is called while
-     *     participating in a distributed transaction, this method is called on a closed connection,
-     *     the <code>Savepoint</code> object is no longer valid, or this <code>Connection</code>
-     *     object is currently in auto-commit mode
+     *                      participating in a distributed transaction, this method is called on a closed connection,
+     *                      the <code>Savepoint</code> object is no longer valid, or this <code>Connection</code>
+     *                      object is currently in auto-commit mode
      * @see Savepoint
      * @see #rollback
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-    try (Statement st = createStatement()) {
-      st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
+        if (this.getAutoCommit() == true){
+            throw new SQLException("Can't call rollback when autocommit enable");
+        }
+        try (Statement st = createStatement()) {
+            if (!this.protocol.isOracleMode()) {
+                st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            }else {
+                st.execute("ROLLBACK TO "+savepoint.getSavepointName());
+            }
+        }
     }
-  }
 
     /**
      * close the connection.
@@ -693,9 +943,9 @@ public class OceanBaseConnection implements Connection {
      * Retrieves whether this <code>Connection</code> object is in read-only mode.
      *
      * @return <code>true</code> if this <code>Connection</code> object is read-only; <code>false
-     *     </code> otherwise
+     * </code> otherwise
      * @throws SQLException SQLException if a database access error occurs or this method is called on
-     *     a closed connection
+     *                      a closed connection
      */
     public boolean isReadOnly() throws SQLException {
         return protocol.getReadonly();
@@ -723,12 +973,11 @@ public class OceanBaseConnection implements Connection {
      *
      * @return the current catalog name or <code>null</code> if there is none
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //OracleJdbc中，此方法返回null
             return null;
         }
         return protocol.getCatalog();
@@ -742,14 +991,13 @@ public class OceanBaseConnection implements Connection {
      * treats catalogs and databases as equivalent
      *
      * @param catalog the name of a catalog (subspace in this <code>Connection</code> object's
-     *     database) in which to work
+     *                database) in which to work
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      * @see #getCatalog
      */
     public void setCatalog(final String catalog) throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //OracleJdbc中，此处未作任何实现
             return;
         }
         if (catalog == null) {
@@ -775,29 +1023,31 @@ public class OceanBaseConnection implements Connection {
      * Retrieves this <code>Connection</code> object's current transaction isolation level.
      *
      * @return the current transaction isolation level, which will be one of the following constants:
-     *     <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>
-     *     Connection.TRANSACTION_READ_COMMITTED</code>, <code>Connection.TRANSACTION_REPEATABLE_READ
-     *     </code>, <code>Connection.TRANSACTION_SERIALIZABLE</code>, or <code>
-     *     Connection.TRANSACTION_NONE</code>.
+     * <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>
+     * Connection.TRANSACTION_READ_COMMITTED</code>, <code>Connection.TRANSACTION_REPEATABLE_READ
+     * </code>, <code>Connection.TRANSACTION_SERIALIZABLE</code>, or <code>
+     * Connection.TRANSACTION_NONE</code>.
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
         Statement stmt = createStatement();
-        String sql = "SELECT @@tx_isolation";
-
-        if (!protocol.isServerMariaDb()) {
-            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-                || (protocol.getMajorServerVersion() < 8 && protocol
-                    .versionGreaterOrEqual(5, 7, 20))) {
-                sql = "SELECT @@transaction_isolation";
-            }
+        String sql = "";
+        if (this.getProtocol().isOracleMode()) {
+            sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
+        } else {
+            sql = "SELECT @@session.tx_isolation";
         }
 
         ResultSet rs = stmt.executeQuery(sql);
+        String response = "";
         if (rs.next()) {
-            final String response = rs.getString(1);
+            if (!this.getProtocol().isOracleMode()) {
+                response = rs.getString(1);
+            } else {
+                response = rs.getString(2);
+            }
             switch (response) {
                 case "REPEATABLE-READ":
                     return Connection.TRANSACTION_REPEATABLE_READ;
@@ -829,16 +1079,20 @@ public class OceanBaseConnection implements Connection {
      * implementation-defined.
      *
      * @param level one of the following <code>Connection</code> constants: <code>
-     *     Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>Connection.TRANSACTION_READ_COMMITTED
-     *     </code>, <code>Connection.TRANSACTION_REPEATABLE_READ</code>, or <code>
-     *     Connection.TRANSACTION_SERIALIZABLE</code>. (Note that <code>Connection.TRANSACTION_NONE
-     *     </code> cannot be used because it specifies that transactions are not supported.)
+     *              Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>Connection.TRANSACTION_READ_COMMITTED
+     *              </code>, <code>Connection.TRANSACTION_REPEATABLE_READ</code>, or <code>
+     *              Connection.TRANSACTION_SERIALIZABLE</code>. (Note that <code>Connection.TRANSACTION_NONE
+     *              </code> cannot be used because it specifies that transactions are not supported.)
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameter is not one of the <code>Connection</code> constants
+     *                      connection or the given parameter is not one of the <code>Connection</code> constants
      * @see DatabaseMetaData#supportsTransactionIsolationLevel
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
+        if (this.protocol.isOracleMode()
+            && (level != Connection.TRANSACTION_READ_COMMITTED && level != Connection.TRANSACTION_SERIALIZABLE)) {
+            throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
+        }
         try {
             stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
             protocol.setTransactionIsolation(level);
@@ -860,36 +1114,36 @@ public class OceanBaseConnection implements Connection {
      *
      * @return the first <code>SQLWarning</code> object or <code>null</code> if there are none
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *     connection
+     *                      connection
      * @see SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-    if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
-      return null;
-    }
-
-    SQLWarning last = null;
-    SQLWarning first = null;
-
-    try (Statement st = this.createStatement()) {
-      try (ResultSet rs = st.executeQuery("show warnings")) {
-        // returned result set has 'level', 'code' and 'message' columns, in this order.
-        while (rs.next()) {
-          int code = rs.getInt(2);
-          String message = rs.getString(3);
-          SQLWarning warning = new SQLWarning(message, null, code);
-          if (first == null) {
-            first = warning;
-            last = warning;
-          } else {
-            last.setNextWarning(warning);
-            last = warning;
-          }
+        if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
+            return null;
         }
-      }
+
+        SQLWarning last = null;
+        SQLWarning first = null;
+
+        try (Statement st = this.createStatement()) {
+            try (ResultSet rs = st.executeQuery("show warnings")) {
+                // returned result set has 'level', 'code' and 'message' columns, in this order.
+                while (rs.next()) {
+                    int code = rs.getInt(2);
+                    String message = rs.getString(3);
+                    SQLWarning warning = new SQLWarning(message, null, code);
+                    if (first == null) {
+                        first = warning;
+                        last = warning;
+                    } else {
+                        last.setNextWarning(warning);
+                        last = warning;
+                    }
+                }
+            }
+        }
+        return first;
     }
-    return first;
-  }
 
     /**
      * Clears all warnings reported for this <code>Connection</code> object. After a call to this
@@ -897,7 +1151,7 @@ public class OceanBaseConnection implements Connection {
      * reported for this <code>Connection</code> object.
      *
      * @throws SQLException SQLException if a database access error occurs or this method is called on
-     *     a closed connection
+     *                      a closed connection
      */
     public void clearWarnings() throws SQLException {
         if (this.isClosed()) {
@@ -907,7 +1161,9 @@ public class OceanBaseConnection implements Connection {
         warningsCleared = true;
     }
 
-    /** Reenable warnings, when next statement is executed. */
+    /**
+     * Reenable warnings, when next statement is executed.
+     */
     public void reenableWarnings() {
         warningsCleared = false;
     }
@@ -917,13 +1173,13 @@ public class OceanBaseConnection implements Connection {
      * Unless the application has added an entry, the type map returned will be empty.
      *
      * @return the <code>java.util.Map</code> object associated with this <code>Connection</code>
-     *     object
+     * object
      * @see #setTypeMap
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() {
-    return new HashMap<>();
-  }
+        return this.typeMap;
+    }
 
     /**
      * Installs the given <code>TypeMap</code> object as the type map for this <code>Connection</code>
@@ -931,13 +1187,18 @@ public class OceanBaseConnection implements Connection {
      * types.
      *
      * @param map the <code>java.util.Map</code> object to install as the replacement for this <code>
-     *     Connection</code> object's default type map
+     *            Connection</code> object's default type map
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given parameter is not a <code>java.util.Map</code> object
+     *                      connection or the given parameter is not a <code>java.util.Map</code> object
      * @see #getTypeMap
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
-        throw exceptionFactory.notSupported("TypeMap are not supported");
+//        throw exceptionFactory.notSupported("TypeMap are not supported");
+        if (this.typeMap != null && this.typeMap.size() != 0){
+            Set<String> set = this.typeMap.keySet();
+            set.forEach(s -> map.put(s,this.typeMap.get(s)));
+        }
+        typeMap = map;
     }
 
     /**
@@ -945,7 +1206,7 @@ public class OceanBaseConnection implements Connection {
      * Connection</code> object.
      *
      * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>
-     *     ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @see #setHoldability
      * @see DatabaseMetaData#getResultSetHoldability
      * @see ResultSet
@@ -962,7 +1223,7 @@ public class OceanBaseConnection implements Connection {
      * DatabaseMetaData#getResultSetHoldability}.
      *
      * @param holdability a <code>ResultSet</code> holdability constant; one of <code>
-     *     ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     *                    ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @see #getHoldability
      * @see DatabaseMetaData#getResultSetHoldability
      * @see ResultSet
@@ -974,20 +1235,32 @@ public class OceanBaseConnection implements Connection {
 
     /**
      * Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint
-     *    * </code> object that represents it.
+     * * </code> object that represents it.
      *
      * <p>if setSavepoint is invoked outside of an active transaction, a transaction will be started
      * at this newly created savepoint.
      *
      * @return the new <code>Savepoint</code> object
      * @throws SQLException if a database access error occurs, this method is called while
-     *     participating in a distributed transaction, this method is called on a closed connection or
-     *     this <code>Connection</code> object is currently in auto-commit mode
+     *                      participating in a distributed transaction, this method is called on a closed connection or
+     *                      this <code>Connection</code> object is currently in auto-commit mode
      * @see Savepoint
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-        String randomName = UUID.randomUUID().toString();
+        //        String randomName = UUID.randomUUID().toString();
+        String randomName = "";
+        if (this.protocol.isOracleMode()) {
+            if (this.getAutoCommit()) {
+                throw new SQLException("Unable to set a savepoint with auto-commit enabled");
+            }
+            for (int i = 0; i < 10; i++) {
+                char c = (char) ((Math.random() * 26) + 97);
+                randomName += c;
+            }
+        } else {
+            randomName = UUID.randomUUID().toString();
+        }
         return setSavepoint(randomName);
     }
 
@@ -999,18 +1272,23 @@ public class OceanBaseConnection implements Connection {
      * @param name a <code>String</code> containing the name of the savepoint
      * @return the new <code>Savepoint</code> object
      * @throws SQLException if a database access error occurs, this method is called while
-     *     participating in a distributed transaction, this method is called on a closed connection or
-     *     this <code>Connection</code> object is currently in auto-commit mode
+     *                      participating in a distributed transaction, this method is called on a closed connection or
+     *                      this <code>Connection</code> object is currently in auto-commit mode
      * @see Savepoint
      * @since 1.4
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
-    Savepoint savepoint = new OceanBaseSavepoint(name);
-    try (Statement st = createStatement()) {
-      st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
+        Savepoint savepoint = new OceanBaseSavepoint(name);
+        try (Statement st = createStatement()) {
+            if (this.protocol.isOracleMode()){
+                st.execute("SAVEPOINT " + savepoint.getSavepointName());
+            }else {
+                st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
+            }
+//            st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
+        }
+        return savepoint;
     }
-    return savepoint;
-  }
 
     /**
      * Removes the specified <code>Savepoint</code> and subsequent <code>Savepoint</code> objects from
@@ -1019,14 +1297,14 @@ public class OceanBaseConnection implements Connection {
      *
      * @param savepoint the <code>Savepoint</code> object to be removed
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *     connection or the given <code>Savepoint</code> object is not a valid savepoint in the
-     *     current transaction
+     *                      connection or the given <code>Savepoint</code> object is not a valid savepoint in the
+     *                      current transaction
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-    try (Statement st = createStatement()) {
-      st.execute("RELEASE SAVEPOINT `" + savepoint.getSavepointName() + "`");
+        try (Statement st = createStatement()) {
+            st.execute("RELEASE SAVEPOINT `" + savepoint.getSavepointName() + "`");
+        }
     }
-  }
 
     /**
      * Constructs an object that implements the <code>Clob</code> interface. The object returned
@@ -1036,8 +1314,8 @@ public class OceanBaseConnection implements Connection {
      *
      * @return An object that implements the <code>Clob</code> interface
      */
-    public Clob createClob() {
-        return new OceanBaseClob();
+    public java.sql.Clob createClob() {
+        return new com.alipay.oceanbase.jdbc.Clob();
     }
 
     /**
@@ -1047,8 +1325,8 @@ public class OceanBaseConnection implements Connection {
      *
      * @return An object that implements the <code>Blob</code> interface
      */
-    public Blob createBlob() {
-        return new OceanBaseBlob();
+    public java.sql.Blob createBlob() {
+        return new Blob();
     }
 
     /**
@@ -1060,7 +1338,7 @@ public class OceanBaseConnection implements Connection {
      * @return An object that implements the <code>NClob</code> interface
      */
     public NClob createNClob() {
-        return new OceanBaseClob();
+        return new Clob();
     }
 
     /**
@@ -1071,8 +1349,8 @@ public class OceanBaseConnection implements Connection {
      *
      * @return An object that implements the <code>SQLXML</code> interface
      * @throws SQLException if an object that implements the <code>SQLXML</code> interface can not be
-     *     constructed, this method is called on a closed connection or a database access error
-     *     occurs.
+     *                      constructed, this method is called on a closed connection or a database access error
+     *                      occurs.
      */
     @Override
     public SQLXML createSQLXML() throws SQLException {
@@ -1088,9 +1366,9 @@ public class OceanBaseConnection implements Connection {
      * context of the current transaction.
      *
      * @param timeout - The time in seconds to wait for the database operation used to validate the
-     *     connection to complete. If the timeout period expires before the operation completes, this
-     *     method returns false. A value of 0 indicates a timeout is not applied to the database
-     *     operation.
+     *                connection to complete. If the timeout period expires before the operation completes, this
+     *                method returns false. A value of 0 indicates a timeout is not applied to the database
+     *                operation.
      * @return true if the connection is valid, false otherwise
      * @throws SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see DatabaseMetaData#getClientInfoProperties
@@ -1113,42 +1391,42 @@ public class OceanBaseConnection implements Connection {
     }
 
     private void checkClientClose(final String name) throws SQLClientInfoException {
-    if (protocol.isExplicitClosed()) {
-      Map<String, ClientInfoStatus> failures = new HashMap<>();
-      failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-      throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
+        if (protocol.isExplicitClosed()) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
+        }
     }
-  }
 
     private void checkClientReconnect(final String name) throws SQLClientInfoException {
-    if (protocol.isClosed() && protocol.getProxy() != null) {
-      lock.lock();
-      try {
-        protocol.getProxy().reconnect();
-      } catch (SQLException sqle) {
-        Map<String, ClientInfoStatus> failures = new HashMap<>();
-        failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-        throw new SQLClientInfoException("Connection closed", failures, sqle);
-      } finally {
-        lock.unlock();
-      }
+        if (protocol.isClosed() && protocol.getProxy() != null) {
+            lock.lock();
+            try {
+                protocol.getProxy().reconnect();
+            } catch (SQLException sqle) {
+                Map<String, ClientInfoStatus> failures = new HashMap<>();
+                failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+                throw new SQLClientInfoException("Connection closed", failures, sqle);
+            } finally {
+                lock.unlock();
+            }
+        }
     }
-  }
 
     private void checkClientValidProperty(final String name) throws SQLClientInfoException {
-    if (name == null
-        || (!"ApplicationName".equals(name)
-            && !"ClientUser".equals(name)
-            && !"ClientHostname".equals(name))) {
-      Map<String, ClientInfoStatus> failures = new HashMap<>();
-      failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
-      throw new SQLClientInfoException(
-          "setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
-              + "but was : "
-              + name,
-          failures);
+        if (name == null
+                || (!"ApplicationName".equals(name)
+                && !"ClientUser".equals(name)
+                && !"ClientHostname".equals(name))) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+            throw new SQLClientInfoException(
+                    "setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
+                            + "but was : "
+                            + name,
+                    failures);
+        }
     }
-  }
 
     private String buildClientQuery(final String name, final String value) {
         StringBuilder escapeQuery = new StringBuilder("SET @").append(name).append("=");
@@ -1219,27 +1497,27 @@ public class OceanBaseConnection implements Connection {
      *       running on.
      * </ul>
      *
-     * @param name The name of the client info property to set
+     * @param name  The name of the client info property to set
      * @param value The value to set the client info property to. If the value is null, the current
-     *     value of the specified property is cleared.
+     *              value of the specified property is cleared.
      * @throws SQLClientInfoException if the database server returns an error while setting the client
-     *     info value on the database server or this method is called on a closed connection
+     *                                info value on the database server or this method is called on a closed connection
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
-    checkClientClose(name);
-    checkClientReconnect(name);
-    checkClientValidProperty(name);
+        checkClientClose(name);
+        checkClientReconnect(name);
+        checkClientValidProperty(name);
 
-    try {
-      Statement statement = createStatement();
-      statement.execute(buildClientQuery(name, value));
-    } catch (SQLException sqle) {
-      Map<String, ClientInfoStatus> failures = new HashMap<>();
-      failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-      throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
+        try {
+            Statement statement = createStatement();
+            statement.execute(buildClientQuery(name, value));
+        } catch (SQLException sqle) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
+        }
     }
-  }
 
     /**
      * Returns a list containing the name and current value of each client info property supported by
@@ -1247,35 +1525,35 @@ public class OceanBaseConnection implements Connection {
      * and does not have a default value.
      *
      * @return A <code>Properties</code> object that contains the name and current value of each of
-     *     the client info properties supported by the driver.
+     * the client info properties supported by the driver.
      * @throws SQLException if the database server returns an error when fetching the client info
-     *     values from the database or this method is called on a closed connection
+     *                      values from the database or this method is called on a closed connection
      */
     public Properties getClientInfo() throws SQLException {
-    checkConnection();
-    Properties properties = new Properties();
-    try (Statement statement = createStatement()) {
-      try (ResultSet rs =
-          statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
-        if (rs.next()) {
-          if (rs.getString(1) != null) {
-            properties.setProperty("ApplicationName", rs.getString(1));
-          }
-          if (rs.getString(2) != null) {
-            properties.setProperty("ClientUser", rs.getString(2));
-          }
-          if (rs.getString(3) != null) {
-            properties.setProperty("ClientHostname", rs.getString(3));
-          }
-          return properties;
+        checkConnection();
+        Properties properties = new Properties();
+        try (Statement statement = createStatement()) {
+            try (ResultSet rs =
+                         statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
+                if (rs.next()) {
+                    if (rs.getString(1) != null) {
+                        properties.setProperty("ApplicationName", rs.getString(1));
+                    }
+                    if (rs.getString(2) != null) {
+                        properties.setProperty("ClientUser", rs.getString(2));
+                    }
+                    if (rs.getString(3) != null) {
+                        properties.setProperty("ClientHostname", rs.getString(3));
+                    }
+                    return properties;
+                }
+            }
         }
-      }
+        properties.setProperty("ApplicationName", null);
+        properties.setProperty("ClientUser", null);
+        properties.setProperty("ClientHostname", null);
+        return properties;
     }
-    properties.setProperty("ApplicationName", null);
-    properties.setProperty("ClientUser", null);
-    properties.setProperty("ClientHostname", null);
-    return properties;
-  }
 
     /**
      * Sets the value of the connection's client info properties. The <code>Properties</code> object
@@ -1295,27 +1573,27 @@ public class OceanBaseConnection implements Connection {
      *
      * @param properties the list of client info properties to set
      * @throws SQLClientInfoException if the database server returns an error while setting the
-     *     clientInfo values on the database server or this method is called on a closed connection
+     *                                clientInfo values on the database server or this method is called on a closed connection
      * @see Connection#setClientInfo(String, String) setClientInfo(String, String)
      * @since 1.6
      */
     public void setClientInfo(final Properties properties) throws SQLClientInfoException {
-    Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
-    for (String name : new String[] {"ApplicationName", "ClientUser", "ClientHostname"}) {
-      try {
-        setClientInfo(name, properties.getProperty(name));
-      } catch (SQLClientInfoException e) {
-        propertiesExceptions.putAll(e.getFailedProperties());
-      }
-    }
+        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
+        for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
+            try {
+                setClientInfo(name, properties.getProperty(name));
+            } catch (SQLClientInfoException e) {
+                propertiesExceptions.putAll(e.getFailedProperties());
+            }
+        }
 
-    if (!propertiesExceptions.isEmpty()) {
-      String errorMsg =
-          "setClientInfo errors : the following properties where not set : "
-              + propertiesExceptions.keySet();
-      throw new SQLClientInfoException(errorMsg, propertiesExceptions);
+        if (!propertiesExceptions.isEmpty()) {
+            String errorMsg =
+                    "setClientInfo errors : the following properties where not set : "
+                            + propertiesExceptions.keySet();
+            throw new SQLClientInfoException(errorMsg, propertiesExceptions);
+        }
     }
-  }
 
     /**
      * Returns the value of the client info property specified by name. This method may return null if
@@ -1327,29 +1605,29 @@ public class OceanBaseConnection implements Connection {
      * @param name The name of the client info property to retrieve
      * @return The value of the client info property specified
      * @throws SQLException if the database server returns an error when fetching the client info
-     *     value from the database or this method is called on a closed connection
+     *                      value from the database or this method is called on a closed connection
      * @see DatabaseMetaData#getClientInfoProperties
      * @since 1.6
      */
     public String getClientInfo(final String name) throws SQLException {
-    checkConnection();
-    if (!"ApplicationName".equals(name)
-        && !"ClientUser".equals(name)
-        && !"ClientHostname".equals(name)) {
-      throw new SQLException(
-          "name must be \"ApplicationName\", \"ClientUser\" or \"ClientHostname\", but was \""
-              + name
-              + "\"");
-    }
-    try (Statement statement = createStatement()) {
-      try (ResultSet rs = statement.executeQuery("SELECT @" + name)) {
-        if (rs.next()) {
-          return rs.getString(1);
+        checkConnection();
+        if (!"ApplicationName".equals(name)
+                && !"ClientUser".equals(name)
+                && !"ClientHostname".equals(name)) {
+            throw new SQLException(
+                    "name must be \"ApplicationName\", \"ClientUser\" or \"ClientHostname\", but was \""
+                            + name
+                            + "\"");
         }
-      }
+        try (Statement statement = createStatement()) {
+            try (ResultSet rs = statement.executeQuery("SELECT @" + name)) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return null;
     }
-    return null;
-  }
 
     /**
      * Factory method for creating Array objects. <b>Note: </b>When <code>createArrayOf</code> is used
@@ -1363,34 +1641,216 @@ public class OceanBaseConnection implements Connection {
      * supports the resulting conversion.
      *
      * @param typeName the SQL name of the type the elements of the array map to. The typeName is a
-     *     database-specific name which may be the name of a built-in type, a user-defined type or a
-     *     standard SQL type supported by this database. This is the value returned by <code>
-     *     Array.getBaseTypeName</code>
+     *                 database-specific name which may be the name of a built-in type, a user-defined type or a
+     *                 standard SQL type supported by this database. This is the value returned by <code>
+     *                 Array.getBaseTypeName</code>
      * @param elements the elements that populate the returned object
      * @return an Array object whose elements map to the specified SQL type
      * @throws SQLException if a database error occurs, the JDBC type is not appropriate for the
-     *     typeName and the conversion is not supported, the typeName is null or this method is called
-     *     on a closed connection
+     *                      typeName and the conversion is not supported, the typeName is null or this method is called
+     *                      on a closed connection
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
-        throw exceptionFactory.notSupported("Array type is not supported");
+        if (!this.getProtocol().isOracleMode()) {
+            throw exceptionFactory.notSupported("Array type is not supported");
+        }
+        boolean fetchTypeFromRemote = true;
+        ComplexDataType attrType = null;
+        if (getCacheComplexData()) {
+            synchronized (this.complexDataCache) {
+                attrType = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                    .get(typeName.toUpperCase());
+                if (null != attrType && attrType.isValid()) {
+                    fetchTypeFromRemote = false;
+                } else if (null == attrType
+                           && ComplexDataType.isBaseDataType(ComplexDataType
+                               .getObComplexType(typeName))) {
+                    fetchTypeFromRemote = false;
+                    attrType = new ComplexDataType(typeName, this.getSchema(),
+                        ComplexDataType.getObComplexType(typeName));
+                }
+            }
+        }
+        if (fetchTypeFromRemote) {
+            attrType = getComplexDataTypeFromRemote(typeName);
+        }
+        if (attrType.getType() == ComplexDataType.TYPE_COLLECTION) {
+            // array element is still array is not supported
+            throw exceptionFactory.notSupported("array element is still array is not supported");
+        }
+        ComplexDataType parentType = new ComplexDataType("", this.getSchema(),
+            ComplexDataType.TYPE_COLLECTION);
+        parentType.setAttrCount(1);
+        parentType.setAttrType(0, attrType);
+        ArrayImpl array = new ArrayImpl(parentType);
+        array.setAttrData(elements);
+        return array;
+    }
+
+    public boolean getCacheComplexData() { // todo connection properties
+        // todo
+        return true;
+    }
+
+    public void recacheComplexDataType(ComplexDataType type) {
+        synchronized (this.protocol) { // todo don't know
+            synchronized (this.complexDataCache) {
+                this.complexDataCache.put(type.getTypeName().toUpperCase(), type);
+            }
+        }
+    }
+
+    public ComplexDataType getComplexDataType(String typeName) throws SQLException {
+        ComplexDataType type = null;
+        type = getComplexDataTypeFromCache(typeName);
+        if (null != type && type.isValid()) {
+            return type;
+        }
+        type = getComplexDataTypeFromRemote(typeName);
+        return type;
+    }
+
+    public ComplexDataType getComplexDataTypeFromCache(String typeName) {
+        synchronized (this.complexDataCache) {
+            return (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                .get(typeName.toUpperCase());
+        }
+    }
+
+    private java.sql.Connection getComplexConnection() throws SQLException {
+        if (null == this.complexConnection || this.complexConnection.isClosed()) {
+            this.complexConnection = new OceanBaseConnection(this.protocol.getUrlParser(),
+                this.globalStateInfo, true); // duplicate a new connection todo
+        }
+        return this.complexConnection;
+    }
+
+    public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
+        try {
+            java.sql.Connection conn = this.getComplexConnection(); // NOPMD
+            java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            ps.setString(1, typeName.toUpperCase());
+            ps.setString(2, typeName.toUpperCase());
+            java.sql.ResultSet rs = ps.executeQuery(); // NOPMD
+            if (rs.next()) {
+                rs.beforeFirst();
+            } else {
+                rs.close();
+                ps.close();
+
+                ps = this.prepareStatement(complexAllTypeSql, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                    ResultSet.CONCUR_READ_ONLY);
+                ps.setString(1, typeName.toUpperCase());
+                ps.setString(2, "SYS");
+                ps.setString(3, typeName.toUpperCase());
+                ps.setString(4, "SYS");
+                rs = ps.executeQuery(); // NOPMD
+            }
+
+            while (rs.next()) {
+                ComplexDataType complexType = null;
+                String childTypeName = rs.getString(CHILD_TYPE_INDEX);
+                int type = ComplexDataType.getObComplexType(rs.getString(ATTR_TYPE_INDEX));
+                if (ComplexDataType.TYPE_OBJECT == type || ComplexDataType.TYPE_COLLECTION == type) {
+                    complexType = getComplexDataTypeFromCache(childTypeName);
+                    if (null == complexType) {
+                        complexType = new ComplexDataType(childTypeName,
+                            rs.getString(CHILD_OWNER_INDEX), type);
+                        complexType.setValid(false);
+                        recacheComplexDataType(complexType);
+                    } else {
+                        complexType.setValid(false);
+                    }
+                } else {
+                    // for base data type
+                    complexType = getComplexDataTypeFromCache(childTypeName);
+                    if (null == complexType) {
+                        complexType = new ComplexDataType(childTypeName, "", type);
+                        complexType.setValid(true);
+                        recacheComplexDataType(complexType);
+                    }
+                }
+                if (rs.getInt(DEPTH_INDEX) > 0) {
+                    // depth > 0 means parent is object  or collection
+                    String parentTypeName = rs.getString(PARENT_TYPE_INDEX);
+                    ComplexDataType parentType = getComplexDataTypeFromCache(parentTypeName);
+                    int attrIndex = rs.getInt(ATTR_NO_INDEX);
+                    if (ComplexDataType.TYPE_OBJECT == parentType.getType()
+                        && parentType.getAttrCount() < attrIndex) {
+                        parentType.setAttrCount(attrIndex);
+                    }
+                }
+            }
+            // second loop
+            rs.first();
+            do {
+                if (rs.getInt(DEPTH_INDEX) > 0) {
+                    String parentTypeName = rs.getString(PARENT_TYPE_INDEX);
+                    ComplexDataType parentComplexType = getComplexDataTypeFromCache(parentTypeName);
+                    String attrTypeName = rs.getString(CHILD_TYPE_INDEX);
+                    ComplexDataType attrComplexType = getComplexDataTypeFromCache(attrTypeName);
+
+                    if (parentComplexType.getType() == ComplexDataType.TYPE_OBJECT) {
+                        parentComplexType
+                            .setAttrType(rs.getInt(ATTR_NO_INDEX) - 1, attrComplexType);
+                        parentComplexType.incInitAttrCount();
+                        if (parentComplexType.getInitAttrCount() == parentComplexType
+                            .getAttrCount()) {
+                            parentComplexType.setValid(true);
+                        }
+                    } else if (parentComplexType.getType() == ComplexDataType.TYPE_COLLECTION) {
+                        parentComplexType.setAttrCount(1);
+                        parentComplexType.setAttrType(0, attrComplexType);
+                        parentComplexType.setValid(true);
+                    }
+                }
+            } while (rs.next());
+
+            rs.close();
+            ps.close();
+            conn.close();
+        } catch (SQLException e) {
+            throw e;
+        }
+        return getComplexDataTypeFromCache(typeName);
     }
 
     /**
      * Factory method for creating Struct objects.
      *
-     * @param typeName the SQL type name of the SQL structured type that this <code>Struct</code>
-     *     object maps to. The typeName is the name of a user-defined type that has been defined for
-     *     this database. It is the value returned by <code>Struct.getSQLTypeName</code>.
+     * @param typeName   the SQL type name of the SQL structured type that this <code>Struct</code>
+     *                   object maps to. The typeName is the name of a user-defined type that has been defined for
+     *                   this database. It is the value returned by <code>Struct.getSQLTypeName</code>.
      * @param attributes the attributes that populate the returned object
      * @return a Struct object that maps to the given SQL type and is populated with the given
-     *     attributes
+     * attributes
      * @throws SQLException if a database error occurs, the typeName is null or this method is called
-     *     on a closed connection
+     *                      on a closed connection
      */
     public Struct createStruct(final String typeName, final Object[] attributes)
                                                                                 throws SQLException {
-        throw exceptionFactory.notSupported("Struct type is not supported");
+        if (!this.getProtocol().isOracleMode()) {
+            throw exceptionFactory.notSupported("Struct type is not supported");
+        }
+        boolean fetchTypeFromRemote = true;
+        ComplexDataType type = null;
+        if (getCacheComplexData()) { // todo
+            synchronized (this.complexDataCache) {
+                type = (com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType) this.complexDataCache
+                    .get(typeName.toUpperCase());
+                if (null != type && type.isValid()) {
+                    fetchTypeFromRemote = false;
+                }
+            }
+        }
+        if (fetchTypeFromRemote) {
+            type = getComplexDataTypeFromRemote(typeName);
+        }
+        StructImpl struct = new StructImpl(type);
+        struct.setAttrData(attributes);
+        return struct;
     }
 
     /**
@@ -1404,7 +1864,7 @@ public class OceanBaseConnection implements Connection {
      *
      * @param iface A Class defining an interface that the result must implement.
      * @return an object that implements the interface. May be a proxy for the actual implementing
-     *     object.
+     * object.
      * @throws SQLException If no object found that implements the interface
      * @since 1.6
      */
@@ -1433,7 +1893,7 @@ public class OceanBaseConnection implements Connection {
      *
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that
-     *     does.
+     * does.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> iface) {
@@ -1474,7 +1934,9 @@ public class OceanBaseConnection implements Connection {
         return protocol.getPinGlobalTxToPhysicalConnection();
     }
 
-    /** If failover is not activated, will close connection when a connection error occur. */
+    /**
+     * If failover is not activated, will close connection when a connection error occur.
+     */
     public void setHostFailed() {
         if (protocol.getProxy() == null) {
             protocol.setHostFailedWithoutProxy();
@@ -1492,16 +1954,16 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if a connection error occur
      */
     public int getLowercaseTableNames() throws SQLException {
-    if (lowercaseTableNames == -1) {
-      try (Statement st = createStatement()) {
-        try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
-          rs.next();
-          lowercaseTableNames = rs.getInt(1);
+        if (lowercaseTableNames == -1) {
+            try (Statement st = createStatement()) {
+                try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
+                    rs.next();
+                    lowercaseTableNames = rs.getInt(1);
+                }
+            }
         }
-      }
+        return lowercaseTableNames;
     }
-    return lowercaseTableNames;
-  }
 
     /**
      * Abort connection.
@@ -1510,21 +1972,21 @@ public class OceanBaseConnection implements Connection {
      * @throws SQLException if security manager doesn't permit it.
      */
     public void abort(Executor executor) throws SQLException {
-    if (this.isClosed()) {
-      return;
-    }
+        if (this.isClosed()) {
+            return;
+        }
 
-    SQLPermission sqlPermission = new SQLPermission("callAbort");
-    SecurityManager securityManager = System.getSecurityManager();
-    if (securityManager != null) {
-      securityManager.checkPermission(sqlPermission);
-    }
-    if (executor == null) {
-      throw exceptionFactory.create("Cannot abort the connection: null executor passed");
-    }
+        SQLPermission sqlPermission = new SQLPermission("callAbort");
+        SecurityManager securityManager = System.getSecurityManager();
+        if (securityManager != null) {
+            securityManager.checkPermission(sqlPermission);
+        }
+        if (executor == null) {
+            throw exceptionFactory.create("Cannot abort the connection: null executor passed");
+        }
 
-    executor.execute(protocol::abort);
-  }
+        executor.execute(protocol::abort);
+    }
 
     /**
      * Get network timeout.
@@ -1536,9 +1998,18 @@ public class OceanBaseConnection implements Connection {
         return this.protocol.getTimeout();
     }
 
-    public String getSchema() {
+    public String getSchema() throws SQLException {
         // We support only catalog
-        return null;
+        //        return null;
+        if (this.protocol.isOracleMode()) {
+            return this.getUsername();
+        } else {
+            return this.getCatalog();
+        }
+    }
+
+    public String getDatabase() {
+        return urlParser.getDatabase();
     }
 
     public void setSchema(String arg0) {
@@ -1549,7 +2020,7 @@ public class OceanBaseConnection implements Connection {
     /**
      * Change network timeout.
      *
-     * @param executor executor (can be null)
+     * @param executor     executor (can be null)
      * @param milliseconds network timeout in milliseconds.
      * @throws SQLException if security manager doesn't permit it.
      */
@@ -1656,7 +2127,54 @@ public class OceanBaseConnection implements Connection {
         return options.includeThreadDumpInDeadlockExceptions;
     }
 
-    public TimeZone getSessionTimeZone() {
-        return protocol.getTimeZone();
+    @Override
+    public String getSessionTimeZone() {
+        return sessionTimeZone.getID();
+    }
+
+    public java.sql.Statement getMetadataSafeStatement() throws SQLException {
+        java.sql.Statement stmt = createStatement();
+
+        if (stmt.getMaxRows() != 0) {
+            stmt.setMaxRows(0);
+        }
+
+        stmt.setEscapeProcessing(false);
+
+        if (stmt.getFetchSize() != 0) {
+            stmt.setFetchSize(0);
+        }
+
+        return stmt;
+    }
+
+    @Override
+    public void setSessionTimeZone(String zoneID) throws SQLException {
+        checkConnection();
+        if (this.protocol.isOracleMode()) {
+            boolean needSetSessionTimeZone = true;
+            TimeZone targetTimeZone = TimeZone.getTimeZone(zoneID);
+            if (null != sessionTimeZone
+                && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
+                needSetSessionTimeZone = false;
+            }
+            if (needSetSessionTimeZone) {
+                java.sql.Statement stmt = getMetadataSafeStatement();
+                try {
+                    String sql = String.format("alter session set time_zone = '%s'", zoneID);
+                    stmt.execute(sql);
+                    sessionTimeZone = targetTimeZone;
+                } catch (SQLException e) {
+                    throw e;
+                } finally {
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                }
+            }
+        } else {
+            throw new SQLFeatureNotSupportedException();
+        }
+
     }
 }

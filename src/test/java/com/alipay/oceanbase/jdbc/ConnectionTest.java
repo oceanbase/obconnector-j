@@ -377,7 +377,11 @@ public class ConnectionTest extends BaseTest {
   public void retrieveCatalogTest() throws SQLException {
     final String db = sharedConnection.getCatalog();
     Statement stmt = sharedConnection.createStatement();
-
+    try {
+      stmt.execute("DROP DATABASE gogogo");
+    } catch (SQLException throwables) {
+//      throwables.printStackTrace();
+    }
     stmt.execute("CREATE DATABASE gogogo");
     stmt.execute("USE gogogo");
     String db2 = sharedConnection.getCatalog();
@@ -531,8 +535,8 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
-    Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
+//    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+//    Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
     try {
@@ -599,15 +603,15 @@ public class ConnectionTest extends BaseTest {
         2000,
         3200);
     // aurora - no cluster end point
-    checkConnection(
-        "jdbc:oceanbase:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        2000,
-        3200);
-    // aurora - using cluster end point
-    checkConnection(
-        "jdbc:oceanbase:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        4500,
-        10000);
+//    checkConnection(
+//        "jdbc:oceanbase:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
+//        2000,
+//        3200);
+//    // aurora - using cluster end point
+//    checkConnection(
+//        "jdbc:oceanbase:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20",
+//        4500,
+//        10000);
   }
 
   private void checkConnection(String conUrl, int min, int max) {
@@ -658,7 +662,7 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void multiAuthPlugin() throws Throwable {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
-    Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
+//    Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
       stmt.execute("INSTALL SONAME 'auth_ed25519'");
@@ -868,7 +872,7 @@ public class ConnectionTest extends BaseTest {
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     // only mariadb return a specific error when connection has explicitly been killed
-    Assume.assumeTrue(isMariadbServer());
+//    Assume.assumeTrue(isMariadbServer());
 
     try (Connection connection =
         DriverManager.getConnection(
@@ -956,7 +960,7 @@ public class ConnectionTest extends BaseTest {
     stmt.execute("DROP TABLE testReadOnly");
   }
 
-  @Test
+  @Ignore
   public void connectionAttributes() throws SQLException {
 
     try (OceanBaseConnection conn =

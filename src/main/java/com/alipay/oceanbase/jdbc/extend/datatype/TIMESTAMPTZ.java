@@ -1,5 +1,6 @@
 package com.alipay.oceanbase.jdbc.extend.datatype;
 
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -80,8 +81,22 @@ public class TIMESTAMPTZ extends Datum {
         return time;
     }
 
+    public static TIMESTAMP toTIMESTAMP(Protocol protocol, byte[] bytes) throws SQLException {
+        return new TIMESTAMP(toTimestamp(protocol, bytes));
+    }
+
     public static TIMESTAMP toTIMESTAMP(Connection connection, byte[] bytes) throws SQLException {
         return new TIMESTAMP(toTimestamp(connection, bytes));
+    }
+
+    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes) throws SQLException {
+        if (bytes.length < 14) {
+            throw new SQLException("invalid bytes length");
+        }
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
+        Timestamp timestamp = new Timestamp(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
+        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
+        return timestamp;
     }
 
     public static Timestamp toTimestamp(Connection connection, byte[] bytes) throws SQLException {
@@ -157,14 +172,14 @@ public class TIMESTAMPTZ extends Datum {
                 ;
             }
             temp = temp.substring(0, index);
-            if (scale > temp.length()) {
-                int x = scale - temp.length();
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < x; i++) {
-                    sb.append("0");
-                }
-                temp += sb.toString();
-            }
+            //            if (scale > temp.length()) {
+            //                int x = scale - temp.length();
+            //                StringBuilder sb = new StringBuilder();
+            //                for (int i = 0; i < x; i++) {
+            //                    sb.append("0");
+            //                }
+            //                temp += sb.toString();
+            //            }
 
             time = time + "." + temp;
         }

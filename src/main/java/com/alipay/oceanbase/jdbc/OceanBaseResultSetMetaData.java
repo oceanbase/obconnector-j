@@ -4,6 +4,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.ObOracleDefs;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.util.constant.ColumnFlags;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -14,6 +15,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     private final ColumnDefinition[] fieldPackets;
     private final Options            options;
     private final boolean            forceAlias;
+    private final boolean            isOracleMode;
 
     /**
      * Constructor.
@@ -27,6 +29,16 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         this.fieldPackets = fieldPackets;
         this.options = options;
         this.forceAlias = forceAlias;
+        this.isOracleMode = false;
+    }
+
+    public OceanBaseResultSetMetaData(final ColumnDefinition[] fieldPackets, final Options options,
+                                      final boolean forceAlias, boolean isOracleMode) {
+        this.fieldPackets = fieldPackets;
+        this.options = options;
+        this.forceAlias = forceAlias;
+        this.isOracleMode = isOracleMode;
+
     }
 
     /**
@@ -57,7 +69,51 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(final int column) throws SQLException {
-        return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
+        //        return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
+        ColumnDefinition columnInformation = getColumnInformation(column);
+
+        if (isOracleMode) {
+            switch (columnInformation.getColumnType().getSqlType()) {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.NCHAR:
+                case Types.NVARCHAR:
+                    return true;
+                default:
+                    return false;
+            }
+        } else {
+            switch (columnInformation.getColumnType().getSqlType()) {
+                case Types.BIT:
+                case Types.TINYINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                case Types.BIGINT:
+                case Types.FLOAT:
+                case Types.REAL:
+                case Types.DOUBLE:
+                case Types.DATE:
+                case Types.TIME:
+                case Types.TIMESTAMP:
+                    return false;
+
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    if (columnInformation.isBinary()) {
+                        return true;
+                    }
+                    return true;
+                    // fixme collation
+                    //                    String collationName = columnInformation.();
+                    //
+                    //                    return ((collationName != null) && !collationName.endsWith("_ci"));
+                default:
+                    return true;
+            }
+        }
     }
 
     /**
@@ -129,7 +185,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getColumnLabel(final int column) throws SQLException {
-        return getColumnInformation(column).getName();
+        return getColumnInformation(column).getOriginalName();
     }
 
     /**
@@ -140,7 +196,10 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getColumnName(final int column) throws SQLException {
-        String columnName = getColumnInformation(column).getOriginalName();
+        if (isOracleMode) {
+            return getColumnInformation(column).getOriginalName();
+        }
+        String columnName = getColumnInformation(column).getName();
         if ("".equals(columnName) || options.useOldAliasMetadataBehavior || forceAlias) {
             return getColumnLabel(column);
         }
@@ -222,6 +281,25 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      */
     public int getColumnType(final int column) throws SQLException {
         ColumnDefinition ci = getColumnInformation(column);
+        if (isOracleMode) {
+            switch (ci.getColumnType()) {
+                case NVARCHAR2:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_NVARCHAR2;
+                case BINARY_FLOAT:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_BINARY_FLOAT;
+                case BINARY_DOUBLE:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_BINARY_DOUBLE;
+                case OBDECIMAL:
+                case NUMBER_FLOAT:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_NUMBER;
+                case ROWID:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_ROWID;
+                case NCHAR:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_NCHAR;
+                case INTERVALYM:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_INTERVALYM;
+            }
+        }
         switch (ci.getColumnType()) {
             case BIT:
                 if (ci.getLength() == 1) {
@@ -244,12 +322,19 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case VARCHAR:
-            case VARSTRING:
+                if (ci.getSqltype() == 251) {
+                    return Types.LONGVARCHAR;
+                }
                 if (ci.isBinary()) {
                     return Types.VARBINARY;
                 }
-                if (ci.getLength() < 0) {
-                    return Types.LONGVARCHAR;
+                //                if (ci.getLength() > 0) {
+                //                    return Types.LONGVARCHAR;
+                //                }
+                return Types.VARCHAR;
+            case VARSTRING:
+                if (ci.isBinary()) {
+                    return Types.VARBINARY;
                 }
                 return Types.VARCHAR;
             case STRING:
@@ -273,7 +358,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     public String getColumnTypeName(final int column) throws SQLException {
         ColumnDefinition ci = getColumnInformation(column);
         return ColumnType.getColumnTypeName(ci.getColumnType(), ci.getLength(), ci.isSigned(),
-            ci.isBinary());
+            ci.isBinary(), isOracleMode);
     }
 
     /**

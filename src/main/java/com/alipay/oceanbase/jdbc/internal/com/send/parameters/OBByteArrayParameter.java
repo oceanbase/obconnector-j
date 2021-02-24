@@ -12,8 +12,14 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
     private final boolean noBackslashEscapes;
 
     public OBByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
-        this.bytes = bytes;
         this.noBackslashEscapes = noBackslashEscapes;
+        byte[] x = bytes;
+        StringBuilder sb = new StringBuilder();
+        for (byte b : x) {
+            sb.append(String.format("%02x", b));
+        }
+        x = sb.toString().getBytes();
+        this.bytes = x;
     }
 
     /**
@@ -23,14 +29,8 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        //pos.write(BINARY_INTRODUCER);
         pos.write(QUOTE);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        pos.writeBytesEscaped(sb.toString().getBytes(), sb.toString().getBytes().length,
-            noBackslashEscapes);
+        pos.writeBytesEscaped(bytes, bytes.length, noBackslashEscapes);
         pos.write(QUOTE);
     }
 

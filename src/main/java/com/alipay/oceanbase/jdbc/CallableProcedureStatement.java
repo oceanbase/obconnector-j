@@ -19,10 +19,15 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     protected List<CallParameter>       params;
+    protected boolean                   isObFunction          = false;
 
     protected int[]                     outputParameterMapper = null;
+    //protected CallableParameterMetaData parameterMetadata;
     protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
+    protected String                    originalSql;
+
+    //protected CallableStatementParamInfo paramInfo;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -37,11 +42,13 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @param exceptionFactory Exception factory
      * @throws SQLException is prepareStatement connection throw any error
      */
-    public CallableProcedureStatement(OceanBaseConnection connection, String sql,
-                                      int resultSetScrollType, int resultSetConcurrency,
-                                      ExceptionFactory exceptionFactory) throws SQLException {
-        super(connection, sql, resultSetScrollType, resultSetConcurrency,
+    public CallableProcedureStatement(boolean isObFuction, OceanBaseConnection connection,
+                                      String sql, int resultSetScrollType,
+                                      int resultSetConcurrency, ExceptionFactory exceptionFactory)
+                                                                                                  throws SQLException {
+        super(isObFuction, connection, sql, resultSetScrollType, resultSetConcurrency,
             Statement.NO_GENERATED_KEYS, exceptionFactory);
+        this.isObFunction = isObFuction;
     }
 
     /**
@@ -90,8 +97,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
+            if (!this.protocol.isOracleMode()) {
+                name = name.replaceAll("\\`(\\w+)\\`", "$1");
+            }
             if (name != null && name.equalsIgnoreCase(parameterName)) {
-                return i;
+                //return i;
+                return isObFunction ? i + 1 : i; //it will minus by function
             }
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
@@ -131,6 +142,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      */
     private int indexToOutputIndex(int parameterIndex) throws SQLException {
         try {
+            if (this.isObFunction) {
+                return 1; //for ObFunciton only
+            }
             if (outputParameterMapper[parameterIndex - 1] == -1) {
                 // this is not an outputParameter
                 throw new SQLException(
@@ -371,22 +385,22 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public Blob getBlob(int parameterIndex) throws SQLException {
+    public java.sql.Blob getBlob(int parameterIndex) throws SQLException {
         return getOutputResult().getBlob(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    public Blob getBlob(String parameterName) throws SQLException {
+    public java.sql.Blob getBlob(String parameterName) throws SQLException {
         return getOutputResult().getBlob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(String parameterName) throws SQLException {
+    public java.sql.Clob getClob(String parameterName) throws SQLException {
         return getOutputResult().getClob(nameToOutputIndex(parameterName));
     }
 
     @Override
-    public Clob getClob(int parameterIndex) throws SQLException {
+    public java.sql.Clob getClob(int parameterIndex) throws SQLException {
         return getOutputResult().getClob(indexToOutputIndex(parameterIndex));
     }
 
@@ -470,6 +484,16 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         return getOutputResult().getCharacterStream(nameToOutputIndex(parameterName));
     }
 
+    private void checkIsOutputParam(int paramIndex) throws SQLException {
+        if (this.isObFunction && paramIndex == 1) {
+            return;
+        }
+        CallParameter param = this.params.get(paramIndex - 1);
+        if (!param.isOutput()) {
+            throw new SQLException("Parameter number " + paramIndex + "is not an OUT parameter");
+        }
+    }
+
     /**
      * Registers the designated output parameter. This version of the method <code>
      * registerOutParameter</code> should be used for a user-defined or <code>REF</code> output
@@ -500,6 +524,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
                                                                                       throws SQLException {
+        if (this.isObFunction && parameterIndex == 1) {
+            return; //skip first
+        }
+        //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
@@ -508,6 +536,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
+        /*if (this.isObFunction) {
+            //parameterIndex--;
+            return;
+        } */
         registerOutParameter(parameterIndex, sqlType, -1);
     }
 
@@ -533,6 +565,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
+        if (this.isObFunction && parameterIndex == 1) {
+            //parameterIndex --;
+            return;
+        }
+        //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
@@ -644,7 +681,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public void setClob(String parameterName, Clob clob) throws SQLException {
+    public void setClob(String parameterName, java.sql.Clob clob) throws SQLException {
         setClob(nameToIndex(parameterName), clob);
     }
 
@@ -660,7 +697,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     @Override
-    public void setBlob(String parameterName, Blob blob) throws SQLException {
+    public void setBlob(String parameterName, java.sql.Blob blob) throws SQLException {
         setBlob(nameToIndex(parameterName), blob);
     }
 
@@ -844,4 +881,264 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                                                                                   throws SQLException {
         setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
     }
+
+    @Override
+    public void setNull(int parameterIndex, int sqlType) throws SQLException {
+        super.setNull(checkAndMinusForObFunction(parameterIndex), sqlType);
+    }
+
+    @Override
+    public void setBoolean(int parameterIndex, boolean x) throws SQLException {
+        super.setBoolean(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setByte(int parameterIndex, byte x) throws SQLException {
+        super.setByte(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setShort(int parameterIndex, short x) throws SQLException {
+        super.setShort(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setInt(int parameterIndex, int x) throws SQLException {
+        super.setInt(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setLong(int parameterIndex, long x) throws SQLException {
+        super.setLong(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setFloat(int parameterIndex, float x) throws SQLException {
+        super.setFloat(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setDouble(int parameterIndex, double x) throws SQLException {
+        super.setDouble(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
+        super.setBigDecimal(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setString(int parameterIndex, String x) throws SQLException {
+        super.setString(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setBytes(int parameterIndex, byte x[]) throws SQLException {
+        super.setBytes(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
+        super.setDate(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setTime(int parameterIndex, java.sql.Time x) throws SQLException {
+        super.setTime(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, java.sql.Timestamp x) throws SQLException {
+        super.setTimestamp(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex, java.io.InputStream x, int length)
+                                                                                     throws SQLException {
+        super.setAsciiStream(checkAndMinusForObFunction(parameterIndex), x, length);
+    }
+
+    @Override
+    public void setUnicodeStream(int parameterIndex, java.io.InputStream x, int length)
+                                                                                       throws SQLException {
+        super.setUnicodeStream(checkAndMinusForObFunction(parameterIndex), x, length);
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, java.io.InputStream x, int length)
+                                                                                      throws SQLException {
+        super.setBinaryStream(checkAndMinusForObFunction(parameterIndex), x, length);
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
+        super.setObject(checkAndMinusForObFunction(parameterIndex), x, targetSqlType);
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object x) throws SQLException {
+        super.setObject(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, java.io.Reader reader, int length)
+                                                                                         throws SQLException {
+        super.setCharacterStream(checkAndMinusForObFunction(parameterIndex), reader, length);
+    }
+
+    @Override
+    public void setRef(int parameterIndex, Ref x) throws SQLException {
+        super.setRef(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, java.sql.Blob x) throws SQLException {
+        super.setBlob(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setClob(int parameterIndex, java.sql.Clob x) throws SQLException {
+        super.setClob(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setArray(int parameterIndex, Array x) throws SQLException {
+        super.setArray(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setDate(int parameterIndex, java.sql.Date x, Calendar cal) throws SQLException {
+        super.setDate(checkAndMinusForObFunction(parameterIndex), x, cal);
+    }
+
+    @Override
+    public void setTime(int parameterIndex, java.sql.Time x, Calendar cal) throws SQLException {
+        super.setTime(checkAndMinusForObFunction(parameterIndex), x, cal);
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, java.sql.Timestamp x, Calendar cal)
+                                                                                    throws SQLException {
+        super.setTimestamp(checkAndMinusForObFunction(parameterIndex), x, cal);
+    }
+
+    @Override
+    public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
+        super.setNull(checkAndMinusForObFunction(parameterIndex), sqlType, typeName);
+    }
+
+    @Override
+    public void setURL(int parameterIndex, java.net.URL x) throws SQLException {
+        super.setURL(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setRowId(int parameterIndex, RowId x) throws SQLException {
+        super.setRowId(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setNString(int parameterIndex, String value) throws SQLException {
+        super.setNString(checkAndMinusForObFunction(parameterIndex), value);
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex, Reader value, long length)
+                                                                                  throws SQLException {
+        super.setNCharacterStream(checkAndMinusForObFunction(parameterIndex), value, length);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, NClob value) throws SQLException {
+        super.setNClob(checkAndMinusForObFunction(parameterIndex), value);
+    }
+
+    @Override
+    public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
+        super.setClob(checkAndMinusForObFunction(parameterIndex), reader, length);
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, InputStream inputStream, long length)
+                                                                                 throws SQLException {
+        super.setBlob(checkAndMinusForObFunction(parameterIndex), inputStream, length);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
+        super.setNClob(checkAndMinusForObFunction(parameterIndex), reader, length);
+    }
+
+    @Override
+    public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+        super.setSQLXML(checkAndMinusForObFunction(parameterIndex), xmlObject);
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+                                                                                             throws SQLException {
+        super
+            .setObject(checkAndMinusForObFunction(parameterIndex), x, targetSqlType, scaleOrLength);
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex, java.io.InputStream x, long length)
+                                                                                      throws SQLException {
+        super.setAsciiStream(checkAndMinusForObFunction(parameterIndex), x, length);
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, java.io.InputStream x, long length)
+                                                                                       throws SQLException {
+        super.setBinaryStream(checkAndMinusForObFunction(parameterIndex), x, length);
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, java.io.Reader reader, long length)
+                                                                                          throws SQLException {
+        super.setCharacterStream(checkAndMinusForObFunction(parameterIndex), reader, length);
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex, java.io.InputStream x) throws SQLException {
+        super.setAsciiStream(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, java.io.InputStream x) throws SQLException {
+        super.setBinaryStream(checkAndMinusForObFunction(parameterIndex), x);
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, java.io.Reader reader) throws SQLException {
+        super.setCharacterStream(checkAndMinusForObFunction(parameterIndex), reader);
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
+        super.setNCharacterStream(checkAndMinusForObFunction(parameterIndex), value);
+    }
+
+    @Override
+    public void setClob(int parameterIndex, Reader reader) throws SQLException {
+        super.setClob(checkAndMinusForObFunction(parameterIndex), reader);
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+        super.setBlob(checkAndMinusForObFunction(parameterIndex), inputStream);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, Reader reader) throws SQLException {
+        super.setNClob(checkAndMinusForObFunction(parameterIndex), reader);
+    }
+
+    private int checkAndMinusForObFunction(int parameterIndex) {
+        if (this.isObFunction) {
+            parameterIndex--;
+        }
+        return parameterIndex;
+    }
+
 }

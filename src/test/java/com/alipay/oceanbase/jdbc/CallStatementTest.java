@@ -3,10 +3,8 @@ package com.alipay.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.*;
 
 public class CallStatementTest extends BaseTest {
 
@@ -24,8 +22,10 @@ public class CallStatementTest extends BaseTest {
         createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
         createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
         createProcedure("TEST_SP1", "() BEGIN\n" + "SELECT @Something := 'Something';\n"
-                                    + "SIGNAL SQLSTATE '70100'\n"
-                                    + "SET MESSAGE_TEXT = 'Test error from SP'; \n" + "END");
+        //                                    + "SIGNAL SQLSTATE '70100'\n"
+                                    + "SIGNAL SQLSTATE '70100';\n"
+                                    //                                    + "SET MESSAGE_TEXT = 'Test error from SP'; \n" + "END");
+                                    + "END");
     }
 
     @Before
@@ -33,7 +33,8 @@ public class CallStatementTest extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
     public void stmtSimple() throws SQLException {
         createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
         ResultSet rs = sharedConnection.createStatement().executeQuery("{call stmtSimple(2,2)}");
@@ -42,7 +43,8 @@ public class CallStatementTest extends BaseTest {
         assertEquals(result, 4);
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
     public void prepareStmtSimple() throws SQLException {
         createProcedure("prepareStmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
         PreparedStatement preparedStatement = sharedConnection
@@ -89,13 +91,15 @@ public class CallStatementTest extends BaseTest {
     @Test
     public void prepareStmtWithOutParameter() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n" + "BEGIN\n"
-                                                       + "SELECT 1;end\n");
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
-        preparedStatement.setInt(1, 2);
-        preparedStatement.setInt(2, 3);
-        assertTrue(preparedStatement.execute());
+        createProcedure("prepareStmtWithOutParameter", "(IN x int, INOUT y int)\n" + "BEGIN\n"
+                                                       + "SELECT 1;select 10000 into y;end\n");
+        CallableStatement callableStatement = sharedConnection
+            .prepareCall("{call prepareStmtWithOutParameter(?,?)}");
+        callableStatement.setInt(1, 2);
+        callableStatement.registerOutParameter(2, Types.INTEGER);
+        callableStatement.setInt(2, 3);
+        assertTrue(callableStatement.execute());
+        System.out.println("callableStatement.getInt(2) = " + callableStatement.getInt(2));
     }
 
     @Test
@@ -111,7 +115,8 @@ public class CallStatementTest extends BaseTest {
         }
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
     public void stmtMultiResultSets() throws Exception {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("{call multiResultSets()}");
@@ -127,9 +132,10 @@ public class CallStatementTest extends BaseTest {
         assertFalse(stmt.getMoreResults());
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
     public void prepareStmtMultiResultSets() throws Exception {
-        PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
+        PreparedStatement stmt = sharedConnection.prepareStatement("call multiResultSets()");
         stmt.execute();
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());
@@ -151,9 +157,9 @@ public class CallStatementTest extends BaseTest {
       fail("must fail : statement cannot be use when there is out parameter");
     } catch (SQLSyntaxErrorException e) {
       assertTrue(
-          e.getMessage().contains("OUT or INOUT argument 1 for routine")
-              && e.getMessage()
-                  .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
+          e.getMessage().contains("OUT or INOUT argument 0 for routine")
+//              && e.getMessage()
+//                  .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
               && e.getMessage().contains("Query is: call inOutParam(1)"));
     }
   }
@@ -230,7 +236,8 @@ public class CallStatementTest extends BaseTest {
         assertFalse(rs.next());
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
     public void prepareWithNoParameters() throws SQLException {
         createProcedure("prepareWithNoParameters", "()\n" + "begin\n" + "    SELECT 'mike';"
                                                    + "end\n");
@@ -242,7 +249,8 @@ public class CallStatementTest extends BaseTest {
         assertEquals("mike", rs.getString(1));
     }
 
-    @Test
+    //Oceanbase stored procedures do not support returning result sets
+    @Ignore
   public void testCallWithFetchSize() throws SQLException {
     createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
     try (Statement statement = sharedConnection.createStatement()) {

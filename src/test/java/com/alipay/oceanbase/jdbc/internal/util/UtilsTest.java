@@ -60,7 +60,7 @@ public class UtilsTest {
         assertFalse(Utils.validateFileName("LOAD DATA INFILE 'file_name' /**/", null, "file_name"));
 
         ParameterHolder[] goodParameterHolders = new ParameterHolder[] { new StringParameter(
-            "file_name", false) };
+            "file_name", false, "utf8") };
 
         assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE ?", goodParameterHolders,
             "file_name"));
@@ -71,7 +71,7 @@ public class UtilsTest {
         assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE ? /*gni*/",
             goodParameterHolders, "file_name"));
         ParameterHolder[] pathParameterHolders = new ParameterHolder[] { new StringParameter(
-            "/etc/tto/file_name", false) };
+            "/etc/tto/file_name", false, "utf8") };
         assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n?",
             pathParameterHolders, "/etc/tto/file_name"));
 

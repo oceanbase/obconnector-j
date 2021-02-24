@@ -3,10 +3,7 @@ package com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetTime;
@@ -20,6 +17,8 @@ import java.util.regex.Pattern;
 import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 public abstract class RowProtocol {
@@ -37,6 +36,7 @@ public abstract class RowProtocol {
 
   public static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
   protected static final int NULL_LENGTH = -1;
+  private Protocol    protocol;
 
   static {
     TEXT_LOCAL_DATE_TIME =
@@ -72,6 +72,7 @@ public abstract class RowProtocol {
   public int pos;
   public int length;
   protected int index;
+  public int[] complexEndPos;
 
   public RowProtocol(int maxFieldSize, Options options) {
     this.maxFieldSize = maxFieldSize;
@@ -115,6 +116,10 @@ public abstract class RowProtocol {
   public abstract Timestamp getInternalTimestamp(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
+  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+
   public TIMESTAMP getInternalTIMESTAMP(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
@@ -147,7 +152,7 @@ public abstract class RowProtocol {
     }
 
     if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ) {
-      if (length < 16) {
+      if (length < 12) {
         throw new SQLException(
             "timestamp field data length is invalid, expected 12 at least, actual length is "
                 + length);
@@ -272,6 +277,8 @@ public abstract class RowProtocol {
 
   public abstract LocalDate getInternalLocalDate(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
+  public abstract INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException;
+  public abstract INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException;
 
   public abstract boolean isBinaryEncoded();
 
@@ -340,13 +347,21 @@ public abstract class RowProtocol {
     }
     return value;
   }
-
-  protected NUMBER getNUMBER(ColumnDefinition columnInfo) throws Exception {
+  boolean isNUMBERTYPE(ColumnType columnType) {
+    if(columnType == ColumnType.NUMBER || columnType == ColumnType.FLOAT || columnType == ColumnType.DECIMAL || columnType == ColumnType.BINARY_DOUBLE || columnType == ColumnType.BINARY_FLOAT) {
+      return true;
+    }
+    return false;
+  }
+  protected NUMBER zgetNUMBER(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
-    if (columnInfo.getColumnType() == ColumnType.NUMBER) {
-      return new NUMBER(buf);
+//    if (columnInfo.getColumnType() == ColumnType.NUMBER) {
+    if(isNUMBERTYPE(columnInfo.getColumnType())) {
+      byte[] b = new byte[length];
+      System.arraycopy(buf,pos,b,0,length);
+      return new NUMBER(b);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(
@@ -358,7 +373,7 @@ public abstract class RowProtocol {
     }
   }
 
-  protected NUMBER_FLOAT getNUMBER_FLOAT(ColumnDefinition columnInfo) throws Exception {
+  protected NUMBER_FLOAT getNUMBER_FLOAT(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -375,12 +390,12 @@ public abstract class RowProtocol {
     }
   }
 
-  protected BINARY_DOUBLE getBINARY_DOUBLE(ColumnDefinition columnInfo) throws Exception {
+  protected BINARY_DOUBLE getBINARY_DOUBLE(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
     if (columnInfo.getColumnType() == ColumnType.BINARY_DOUBLE) {
-      return new BINARY_DOUBLE(buf);
+      return new BINARY_DOUBLE(buf[pos]);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(
@@ -392,12 +407,12 @@ public abstract class RowProtocol {
     }
   }
 
-  protected BINARY_FLOAT getBINARY_FLOAT(ColumnDefinition columnInfo) throws Exception {
+  protected BINARY_FLOAT getBINARY_FLOAT(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
-    if (columnInfo.getColumnType() == ColumnType.NUMBER_FLOAT) {
-      return new BINARY_FLOAT(buf);
+    if (columnInfo.getColumnType() == ColumnType.BINARY_FLOAT) {
+      return new BINARY_FLOAT(buf[pos]);
     } else {
       String value = new String(buf, pos, length, StandardCharsets.UTF_8);
       throw new SQLException(
@@ -407,6 +422,40 @@ public abstract class RowProtocol {
               + value
               + "\" cannot be parse as BINARY_FLOAT");
     }
+  }
+  protected INTERVALDS getINTERVALDS(ColumnDefinition columnInfo) throws Exception {
+    if (lastValueWasNull()) {
+      return null;
+    }
+    if (columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+      return new INTERVALDS(buf);
+    } else {
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as INTERVALDS");
+    }
+
+  }
+  protected INTERVALYM getINTERVALYM(ColumnDefinition columnInfo) throws Exception {
+    if (lastValueWasNull()) {
+      return null;
+    }
+    if (columnInfo.getColumnType() == ColumnType.INTERVALYM) {
+      return new INTERVALYM(buf);
+    } else {
+      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      throw new SQLException(
+              "Value type \""
+                      + columnInfo.getColumnType().getTypeName()
+                      + "\" with value \""
+                      + value
+                      + "\" cannot be parse as INTERVALYM");
+    }
+
   }
 
   protected void rangeCheck(
@@ -476,5 +525,16 @@ public abstract class RowProtocol {
    */
   public boolean wasNull() {
     return (lastValueNull & BIT_LAST_FIELD_NULL) != 0 || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
+  }
+
+  public Protocol getProtocol() {
+    return protocol;
+  }
+
+  public void setProtocol(Protocol protocol) {
+    this.protocol = protocol;
+	}
+  public SelectResultSet sendFechRowViaCursor(long statementid,int fetchSize) {
+      return SelectResultSet.createEmptyResultSet();
   }
 }

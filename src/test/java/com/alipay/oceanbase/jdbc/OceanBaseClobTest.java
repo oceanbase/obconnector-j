@@ -7,10 +7,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import org.junit.Test;
 
 public class OceanBaseClobTest extends BaseTest {
@@ -19,23 +16,23 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void length() {
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assertEquals(10, clob.length());
 
-        OceanBaseClob clob2 = new OceanBaseClob(bytes, 2, 3);
+        Clob clob2 = new Clob(bytes, 2, 3);
         assertEquals(3, clob2.length());
     }
 
     @Test
     public void getSubString() throws SQLException {
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assertEquals("abcde🙏", clob.getSubString(1, 7));
         assertEquals("abcde🙏fgh", clob.getSubString(1, 20));
         assertEquals("abcde🙏fgh", clob.getSubString(1, (int) clob.length()));
         assertEquals("ab", clob.getSubString(1, 2));
         assertEquals("🙏", clob.getSubString(6, 2));
 
-        OceanBaseClob clob2 = new OceanBaseClob(bytes, 4, 6);
+        Clob clob2 = new Clob(bytes, 4, 6);
 
         assertEquals("e🙏f", clob2.getSubString(1, 20));
         assertEquals("🙏f", clob2.getSubString(2, 3));
@@ -50,7 +47,7 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void getCharacterStream() throws SQLException {
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
         assureReaderEqual("abcde🙏fgh", clob.getCharacterStream(1, 10));
         try {
@@ -61,7 +58,7 @@ public class OceanBaseClobTest extends BaseTest {
         }
         assureReaderEqual("bcde🙏", clob.getCharacterStream(2, 7));
 
-        OceanBaseClob clob2 = new OceanBaseClob(bytes, 2, 9);
+        Clob clob2 = new Clob(bytes, 2, 9);
         assureReaderEqual("cde🙏fg", clob2.getCharacterStream(1, 7));
         try {
             assureReaderEqual("cde🙏fg", clob2.getCharacterStream(1, 20));
@@ -88,7 +85,7 @@ public class OceanBaseClobTest extends BaseTest {
     @Test
     public void setCharacterStream() throws SQLException, IOException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
 
         Writer writer = clob.setCharacterStream(2);
@@ -96,7 +93,7 @@ public class OceanBaseClobTest extends BaseTest {
         writer.flush();
         assertEquals("avxye🙏", clob.getSubString(1, 7));
 
-        clob = new OceanBaseClob(bytes);
+        clob = new Clob(bytes);
 
         writer = clob.setCharacterStream(2);
         writer.write("1234567890lmnopqrstu", 1, 19);
@@ -106,24 +103,24 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void position() {
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assertEquals(4, clob.position("de", 2));
 
-        clob = new OceanBaseClob(bytes, 2, 10);
+        clob = new Clob(bytes, 2, 10);
         assertEquals(4, clob.position("🙏", 2));
     }
 
     @Test
     public void setString() throws SQLException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
         clob.setString(2, "zuv");
         assertEquals("azuve🙏", clob.getSubString(1, 7));
         clob.setString(9, "zzz");
         assertEquals("azuve🙏fgzzz", clob.getSubString(1, 12));
 
-        clob = new OceanBaseClob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
+        clob = new Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
         assureReaderEqual("cde🙏fg", clob.getCharacterStream(1, 7));
         assertEquals("cde🙏fg", clob.getSubString(1, 7));
 
@@ -137,7 +134,7 @@ public class OceanBaseClobTest extends BaseTest {
     @Test
     public void setAsciiStream() throws SQLException, IOException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
 
         OutputStream stream = clob.setAsciiStream(2);
@@ -146,7 +143,7 @@ public class OceanBaseClobTest extends BaseTest {
 
         assertEquals("avxye🙏", clob.getSubString(1, 7));
 
-        clob = new OceanBaseClob(bytes);
+        clob = new Clob(bytes);
 
         stream = clob.setAsciiStream(2);
         stream.write("1234567890lmnopqrstu".getBytes(), 1, 19);
@@ -159,28 +156,28 @@ public class OceanBaseClobTest extends BaseTest {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
         final byte[] otherBytes = new byte[] { 10, 11, 12, 13 };
 
-        OceanBaseClob blob = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 });
+        Clob blob = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out = blob.setBinaryStream(2);
         out.write(otherBytes);
         assertArrayEquals(new byte[] { 0, 10, 11, 12, 13, 5 }, blob.getBytes(1, 6));
 
-        OceanBaseClob blob2 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 });
+        Clob blob2 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes);
         assertArrayEquals(new byte[] { 0, 1, 2, 10, 11, 12, 13 }, blob2.getBytes(1, 7));
 
-        OceanBaseClob blob3 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        Clob blob3 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes);
         assertArrayEquals(new byte[] { 2, 10, 11, 12, 13, 0, 0 }, blob3.getBytes(1, 7));
 
-        OceanBaseClob blob4 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        Clob blob4 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes);
         assertArrayEquals(new byte[] { 2, 3, 4, 10, 11, 12 }, blob4.getBytes(1, 6));
 
         try {
-            OceanBaseClob blob5 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+            Clob blob5 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
             blob5.setBinaryStream(0);
         } catch (SQLException sqle) {
             // normal exception
@@ -192,27 +189,27 @@ public class OceanBaseClobTest extends BaseTest {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
         final byte[] otherBytes = new byte[] { 10, 11, 12, 13 };
 
-        OceanBaseClob blob = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 });
+        Clob blob = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out = blob.setBinaryStream(2);
         out.write(otherBytes, 2, 3);
         assertArrayEquals(new byte[] { 0, 12, 13, 3, 4, 5 }, blob.getBytes(1, 6));
 
-        OceanBaseClob blob2 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 });
+        Clob blob2 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes, 3, 2);
         assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, 0 }, blob2.getBytes(1, 7));
 
-        OceanBaseClob blob3 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
+        Clob blob3 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes, 2, 3);
         assertArrayEquals(new byte[] { 2, 12, 13, 5, 0, 0, 0 }, blob3.getBytes(1, 7));
 
-        OceanBaseClob blob4 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        Clob blob4 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes, 2, 2);
         assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob4.getBytes(1, 6));
 
-        OceanBaseClob blob5 = new OceanBaseClob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        Clob blob5 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out5 = blob5.setBinaryStream(4);
         out5.write(otherBytes, 2, 20);
         assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob5.getBytes(1, 6));
@@ -220,7 +217,7 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void truncate() throws SQLException {
-        OceanBaseClob clob = new OceanBaseClob(bytes);
+        Clob clob = new Clob(bytes);
         clob.truncate(20);
         assertEquals("abcde🙏f", clob.getSubString(1, 8));
         clob.truncate(8);
@@ -235,7 +232,7 @@ public class OceanBaseClobTest extends BaseTest {
         clob.truncate(0);
         assertEquals("", clob.getSubString(1, 7));
 
-        OceanBaseClob clob2 = new OceanBaseClob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 8);
+        Clob clob2 = new Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 8);
         clob2.truncate(20);
         assertEquals("cde🙏f", clob2.getSubString(1, 8));
         clob2.truncate(6);
@@ -250,7 +247,7 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void free() {
-        OceanBaseClob blob = new OceanBaseClob(bytes);
+        Clob blob = new Clob(bytes);
         blob.free();
         assertEquals(0, blob.length);
     }
@@ -263,19 +260,19 @@ public class OceanBaseClobTest extends BaseTest {
         stmt.executeQuery("SELECT 'ab$c', 'ab¢c', 'abहc', 'ab\uD801\uDC37c', 'ab𐍈c' from dual")) {
       while (rs.next()) {
 
-        Clob clob1 = rs.getClob(1);
+        java.sql.Clob clob1 = rs.getClob(1);
         assertEquals(4, clob1.length());
 
-        Clob clob2 = rs.getClob(2);
+        java.sql.Clob clob2 = rs.getClob(2);
         assertEquals(4, clob2.length());
 
-        Clob clob3 = rs.getClob(3);
+        java.sql.Clob clob3 = rs.getClob(3);
         assertEquals(4, clob3.length());
 
-        Clob clob4 = rs.getClob(4);
+        java.sql.Clob clob4 = rs.getClob(4);
         assertEquals(5, clob4.length());
 
-        Clob clob5 = rs.getClob(5);
+        java.sql.Clob clob5 = rs.getClob(5);
         assertEquals(5, clob5.length());
 
         clob1.truncate(3);

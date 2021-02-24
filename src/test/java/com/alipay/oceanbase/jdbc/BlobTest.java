@@ -9,6 +9,7 @@ import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,13 +38,14 @@ public class BlobTest extends BaseTest {
         createTable("conj77_test",
             "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)",
             "Engine=InnoDB DEFAULT CHARSET utf8");
+        createTable("mysqlBinary", "c1 int ,blo2 blob,blo3 blob,ca char(20),primary key (c1)");
     }
 
     @Test
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         assertEquals(3, blob.position(pattern, 1));
         pattern = new byte[] { 12, 13 };
         assertEquals(-1, blob.position(pattern, 1));
@@ -57,7 +59,7 @@ public class BlobTest extends BaseTest {
     public void testBadStart() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         blob.position(pattern, 0);
     }
 
@@ -65,7 +67,7 @@ public class BlobTest extends BaseTest {
     public void testBadStart2() throws SQLException {
         byte[] blobContent = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
         byte[] pattern = new byte[] { 3, 4 };
-        Blob blob = new OceanBaseBlob(blobContent);
+        java.sql.Blob blob = new Blob(blobContent);
         blob.position(pattern, 44);
     }
 
@@ -84,6 +86,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         String toInsert1 = "Øbbcdefgh\njklmn\"";
         String toInsert2 = "Øabcdefgh\njklmn\"";
         PreparedStatement stmt = sharedConnection
@@ -113,6 +116,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacter() throws Throwable {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
@@ -134,6 +138,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testReaderWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
@@ -166,6 +171,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlobWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
@@ -197,6 +203,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
         String clob = "Øclob";
@@ -218,9 +225,10 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClob3() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
-        Clob clob = sharedConnection.createClob();
+        java.sql.Clob clob = sharedConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("Øhello", 0, 6);
         writer.flush();
@@ -236,6 +244,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlob() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
         byte[] theBlob = { 1, 2, 3, 4, 5, 6 };
@@ -263,6 +272,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLength() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
         String clob = "clob";
@@ -279,11 +289,22 @@ public class BlobTest extends BaseTest {
         assertEquals(new String(chars), clob);
     }
 
+    //    @Test
+    //    public void testMy5()  {
+    //        try {
+    //
+    ////            createTable(sharedConnection,"BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
+    //            sharedConnection.createStatement().execute("drop table if exists BlobTeststreamtest3");
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //        }
+    //    }
     @Test
     public void testClob2() throws SQLException, IOException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
-        Clob clob = sharedConnection.createClob();
+        java.sql.Clob clob = sharedConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
         ostream.write(bytes);
@@ -299,26 +320,26 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void blobSerialization() throws Exception {
-        Blob blob = new OceanBaseBlob(new byte[] { 1, 2, 3 });
+        java.sql.Blob blob = new Blob(new byte[] { 1, 2, 3 });
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseBlob blob2 = (OceanBaseBlob) ois.readObject();
+        Blob blob2 = (Blob) ois.readObject();
         byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
         assertEquals(3, blobBytes.length);
         assertEquals(1, blobBytes[0]);
         assertEquals(2, blobBytes[1]);
         assertEquals(3, blobBytes[2]);
 
-        Clob clob = new OceanBaseClob(new byte[] { 1, 2, 3 });
+        java.sql.Clob clob = new Clob(new byte[] { 1, 2, 3 });
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
         blobBytes = c2.getBytes(1, (int) c2.length());
         assertEquals(3, blobBytes.length);
         assertEquals(1, blobBytes[0]);
@@ -329,14 +350,14 @@ public class BlobTest extends BaseTest {
     @Test
     public void conj73() throws Exception {
         /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-        Clob clob = new OceanBaseClob(new byte[] { (byte) 0x10, (byte) 0xD0, (byte) 0xA0,
+        java.sql.Clob clob = new Clob(new byte[] { (byte) 0x10, (byte) 0xD0, (byte) 0xA0,
                 (byte) 0xe0, (byte) 0xa1, (byte) 0x8e });
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
 
         assertEquals(3, c2.length());
     }
@@ -373,7 +394,7 @@ public class BlobTest extends BaseTest {
       try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
         int pos = 0;
         while (set.next()) {
-          final Blob blob = set.getBlob("text");
+          final java.sql.Blob blob = set.getBlob("text");
           if (blob != null) {
 
             try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
@@ -396,10 +417,11 @@ public class BlobTest extends BaseTest {
 
     @Test
   public void sendEmptyBlobPreparedQuery() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
     createTable("emptyBlob", "test longblob, test2 text, test3 text");
     try (Connection conn = setConnection()) {
       PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
-      ps.setBlob(1, new OceanBaseBlob(new byte[0]));
+      ps.setBlob(1, new Blob(new byte[0]));
       ps.setString(2, "a 'a ");
       ps.setNull(3, Types.VARCHAR);
       ps.executeUpdate();
@@ -415,25 +437,26 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void blobSerializationWithOffset() throws Exception {
-        Blob blob = new OceanBaseBlob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
+        java.sql.Blob blob = new Blob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseBlob blob2 = (OceanBaseBlob) ois.readObject();
+        Object obj = ois.readObject();
+        Blob blob2 = (Blob) obj;
         byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
         assertEquals(2, blobBytes.length);
         assertEquals(2, blobBytes[0]);
         assertEquals(3, blobBytes[1]);
 
-        Clob clob = new OceanBaseClob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
+        java.sql.Clob clob = new Clob(new byte[] { 1, 2, 3, 4, 5 }, 1, 2);
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
 
         ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        OceanBaseClob c2 = (OceanBaseClob) ois.readObject();
+        Clob c2 = (Clob) ois.readObject();
         blobBytes = c2.getBytes(1, (int) c2.length());
         assertEquals(2, blobBytes.length);
         assertEquals(2, blobBytes[0]);
@@ -461,7 +484,7 @@ public class BlobTest extends BaseTest {
     for (int i = 0; i < 1000; i++) {
       bb[i] = (byte) i;
     }
-    OceanBaseBlob blob = new OceanBaseBlob(bb, 50, 750);
+    Blob blob = new Blob(bb, 50, 750);
 
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(bos);
@@ -510,7 +533,7 @@ public class BlobTest extends BaseTest {
       setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
     }
 
-    OceanBaseBlob resultBlob = (OceanBaseBlob) ois.readObject();
+    Blob resultBlob = (Blob) ois.readObject();
     assertEquals(750, resultBlob.data.length);
     assertEquals(0, resultBlob.offset);
     assertEquals(750, resultBlob.length);
@@ -523,9 +546,30 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void connectionBlob() throws SQLException {
-        Blob blob = sharedConnection.createBlob();
+        java.sql.Blob blob = sharedConnection.createBlob();
         assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
         blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
         assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
+    }
+
+    @Test
+    public void insertBinaryInsert() {
+        try {
+            if (sharedUsePrepare()) {
+                return;
+            }
+            String sql = "INSERT INTO mysqlBinary (C1,BLO2,BLO3,CA) VALUES (?,?,?,?);";
+            PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+            String val = "绪平的测试";
+            String val2 = "xupingtest";
+            preparedStatement.setInt(1, 200318);
+            preparedStatement.setBinaryStream(2, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setBinaryStream(3, new ByteArrayInputStream(val2.getBytes()));
+            preparedStatement.setString(4, "11111");
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+
     }
 }

@@ -2,6 +2,7 @@ package com.alipay.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
@@ -107,6 +108,59 @@ public class TextRowProtocol extends RowProtocol {
         this.lastValueNull = length == NULL_LENGTH ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
     }
 
+    //
+    //    private final float getFloatFromString(String val, int columnIndex) throws SQLException {
+    //        try {
+    //            if ((val != null)) {
+    //                if (val.length() == 0) {
+    //                    return convertToZeroWithEmptyCheck();
+    //                }
+    //
+    //                float f = Float.parseFloat(val);
+    //
+    //                if (this.jdbcCompliantTruncationForReads) {
+    //                    if (f == Float.MIN_VALUE || f == Float.MAX_VALUE) {
+    //                        double valAsDouble = Double.parseDouble(val);
+    //
+    //                        // Straight comparison is not reliable when at absolute endpoints of Float.MIN_VALUE or  Float.MAX_VALUE, so use epsillons with DOUBLEs
+    //
+    //                        if ((valAsDouble < Float.MIN_VALUE - MIN_DIFF_PREC)
+    //                                || (valAsDouble > Float.MAX_VALUE - MAX_DIFF_PREC)) {
+    //                            throwRangeException(String.valueOf(valAsDouble), columnIndex,
+    //                                    Types.FLOAT);
+    //                        }
+    //                    }
+    //                }
+    //
+    //                return f;
+    //            }
+    //
+    //            return 0; // for NULL
+    //        } catch (NumberFormatException nfe) {
+    //            try {
+    //                Double valueAsDouble = new Double(val);
+    //                float valueAsFloat = valueAsDouble.floatValue();
+    //
+    //                if (this.jdbcCompliantTruncationForReads) {
+    //
+    //                    if (this.jdbcCompliantTruncationForReads
+    //                            && valueAsFloat == Float.NEGATIVE_INFINITY
+    //                            || valueAsFloat == Float.POSITIVE_INFINITY) {
+    //                        throwRangeException(valueAsDouble.toString(), columnIndex, Types.FLOAT);
+    //                    }
+    //                }
+    //
+    //                return valueAsFloat;
+    //            } catch (NumberFormatException newNfe) {
+    //                // ignore, it's not a number
+    //            }
+    //
+    //            throw SQLError.createSQLException(
+    //                    Messages.getString("ResultSet.Invalid_value_for_getFloat()_-____200") + val
+    //                            + Messages.getString("ResultSet.___in_column__201") + columnIndex,
+    //                    SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
+    //        }
+    //    }
     /**
      * Get String from raw text format.
      *
@@ -121,14 +175,13 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-
+        Charset charset = Charset.forName(this.options.characterEncoding);
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return String.valueOf(parseBit());
             case DOUBLE:
             case FLOAT:
-                return zeroFillingIfNeeded(new String(buf, pos, length, StandardCharsets.UTF_8),
-                    columnInfo);
+                return zeroFillingIfNeeded(new String(buf, pos, length, charset), columnInfo);
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
@@ -136,7 +189,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (date == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, StandardCharsets.UTF_8);
+                        return new String(buf, pos, length, charset);
                     }
                     return null;
                 }
@@ -154,16 +207,50 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, StandardCharsets.UTF_8);
+                        return new String(buf, pos, length, charset);
                     }
                     return null;
                 }
                 return timestamp.toString();
+                //            case TIMESTAMP_TZ:
+                //                TIMESTAMPTZ timestamptz = getInternalTIMESTAMPTZ(columnInfo, cal, timeZone);
+                //                return timestamptz.toResultSetString(getProtocol().getTimeZone());
+                //            case TIMESTAMP_LTZ:
+                //                TIMESTAMPLTZ timestampltz = getInternalTIMESTAMPLTZ(columnInfo, cal, timeZone);
+                //                return timestampltz.toResultSetString(getProtocol().getTimeZone());
+            case INTERVALDS:
+                INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
+                return intervalds.toString();
+            case INTERVALYM:
+                INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
+                return intervalym.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
                     columnInfo);
+            case RAW: {
+                byte[] data = new byte[length];
+                System.arraycopy(buf, pos, data, 0, length);
+                boolean wasNullFlag; // todo where to use
+                if (data != null) {
+                    wasNullFlag = false;
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : data) {
+                        sb.append(String.format("%02x", b));
+                    }
+                    return sb.toString();
+                } else {
+                    wasNullFlag = true;
+                    return null;
+                }
+            }
+            case BINARY_FLOAT:
+                Float f = Float.valueOf(new String(buf, pos, length, charset));
+                return Float.toString(f);
+            case BINARY_DOUBLE:
+                Double d = Double.valueOf(new String(buf, pos, length, charset));
+                return Double.toString(d);
             case NULL:
                 return null;
             default:
@@ -171,11 +258,11 @@ public class TextRowProtocol extends RowProtocol {
         }
 
         if (maxFieldSize > 0) {
-            return new String(buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
-                .substring(0, Math.min(maxFieldSize, length));
+            return new String(buf, pos, Math.min(maxFieldSize * 3, length), charset).substring(0,
+                Math.min(maxFieldSize, length));
         }
 
-        return new String(buf, pos, length, StandardCharsets.UTF_8);
+        return new String(buf, pos, length, charset);
     }
 
     /**
@@ -311,6 +398,8 @@ public class TextRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
+            case NUMBER_FLOAT:
+            case BINARY_FLOAT:
                 try {
                     return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -323,6 +412,13 @@ public class TextRowProtocol extends RowProtocol {
                     sqlException.initCause(nfe);
                     throw sqlException;
                 }
+                //            case BINARY_DOUBLE:
+                //                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                //                return (float)d;
+            case OBDECIMAL:
+                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(value);
+                return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -356,6 +452,8 @@ public class TextRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
+                //            case NUMBER_FLOAT:
+            case BINARY_DOUBLE:
                 try {
                     return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -368,6 +466,14 @@ public class TextRowProtocol extends RowProtocol {
                     sqlException.initCause(nfe);
                     throw sqlException;
                 }
+            case BINARY_FLOAT:
+
+                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return (double) f;
+            case OBDECIMAL:
+                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(value);
+                return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -388,7 +494,19 @@ public class TextRowProtocol extends RowProtocol {
         if (columnInfo.getColumnType() == ColumnType.BIT) {
             return BigDecimal.valueOf(parseBit());
         }
-        return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+
+        switch (columnInfo.getColumnType()) {
+            case BINARY_FLOAT:
+                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigDecimal(Float.toString(f));
+            case BINARY_DOUBLE:
+                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigDecimal(Double.toString(d));
+            default:
+                break;
+        }
+        String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+        return new BigDecimal(value);
     }
 
     /**
@@ -557,7 +675,28 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-
+        if (this.getProtocol().isOracleMode()) {
+            Calendar cal;
+            if (userCalendar != null) {
+                cal = userCalendar;
+            } else {
+                cal = Calendar.getInstance(timeZone);
+            }
+            TIMESTAMP timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case TIMESTAMP_TZ:
+                    TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
+                        timeZone);
+                    timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
+                    return timestamp.timestampValue(cal);
+                case TIMESTAMP_LTZ:
+                    TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
+                        userCalendar, timeZone);
+                    timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
+                        oracleTimestampLTZ.getBytes());
+                    return timestamp.timestampValue(cal);
+            }
+        }
         switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
@@ -651,6 +790,25 @@ public class TextRowProtocol extends RowProtocol {
         }
     }
 
+    @Override
+    public Array getInternalArray(ColumnDefinition columnInfo, ComplexDataType complexDataType)
+                                                                                               throws SQLException {
+        return null;
+    }
+
+    @Override
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
+                                                                                                 throws SQLException {
+        return null;
+    }
+
+    @Override
+    public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
+                                                ComplexDataType complexDataType)
+                                                                                throws SQLException {
+        return null;
+    }
+
     /**
      * Get Object from raw text format.
      *
@@ -693,6 +851,7 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR:
             case VARSTRING:
             case STRING:
+            case VARCHAR2:
                 if (columnInfo.isBinary()) {
                     byte[] data = new byte[getLengthMaxFieldSize()];
                     System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
@@ -706,6 +865,7 @@ public class TextRowProtocol extends RowProtocol {
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
+            case OBDECIMAL:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:
@@ -742,13 +902,25 @@ public class TextRowProtocol extends RowProtocol {
             case SET:
                 break;
             case NUMBER:
-                return getInternalNumber(columnInfo);
             case NUMBER_FLOAT:
-                return getInternalNumber_float(columnInfo);
-            case BINARY_DOUBLE:
-                return getInternalBINARY_DOUBLE();
+                return getInternalNumber(columnInfo);
+                //            case NUMBER_FLOAT:
+                //                return getInternalNumber_float(columnInfo);
             case BINARY_FLOAT:
-                return getInternalBINARY_FLOAT();
+                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return f;
+            case BINARY_DOUBLE:
+                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return d;
+            case NVARCHAR2:
+            case NCHAR:
+                return getInternalString(columnInfo, null, timeZone);
+            case TIMESTAMP_TZ:
+                return getInternalTIMESTAMPTZ(columnInfo, null, timeZone);
+            case TIMESTAMP_LTZ:
+                return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
+            case INTERVALYM:
+                return getInternalINTERVALYM(columnInfo);
             default:
                 break;
         }
@@ -1092,27 +1264,53 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new NUMBER("0".getBytes());
         }
-        return new NUMBER(buf);
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new NUMBER(b);
     }
 
     public NUMBER_FLOAT getInternalNumber_float(ColumnDefinition columnInfo) {
         if (lastValueWasNull()) {
             return new NUMBER_FLOAT(0.0f);
         }
-        return new NUMBER_FLOAT(new Float(new String(buf)));
+        return new NUMBER_FLOAT(new Float(new String(buf, pos, length, StandardCharsets.UTF_8)));
     }
 
     public BINARY_DOUBLE getInternalBINARY_DOUBLE() {
         if (lastValueWasNull()) {
             return new BINARY_DOUBLE(0.0d);
         }
-        return new BINARY_DOUBLE(buf);
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new BINARY_DOUBLE(b); // todo fixme
     }
 
     public BINARY_FLOAT getInternalBINARY_FLOAT() {
         if (lastValueWasNull()) {
             return new BINARY_FLOAT(0.0f);
         }
-        return new BINARY_FLOAT(buf);
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new BINARY_FLOAT(buf); // fixme
+    }
+
+    @Override
+    public INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException {
+        if (lastValueWasNull()) {
+            return new INTERVALDS("0 0:0:0.0");
+        }
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new INTERVALDS(b);
+    }
+
+    @Override
+    public INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException {
+        if (lastValueWasNull()) {
+            return new INTERVALYM("0-0");
+        }
+        byte[] b = new byte[length];
+        System.arraycopy(buf, pos, b, 0, length);
+        return new INTERVALYM(b);
     }
 }

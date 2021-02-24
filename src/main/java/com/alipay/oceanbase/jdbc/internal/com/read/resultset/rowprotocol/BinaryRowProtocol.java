@@ -10,8 +10,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
-
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
+import com.alipay.oceanbase.jdbc.OceanBaseConnection;
+import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
+import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.alipay.oceanbase.jdbc.util.Options;
@@ -50,21 +57,43 @@ public class BinaryRowProtocol extends RowProtocol {
             this.lastValueNull = BIT_LAST_FIELD_NULL;
             return;
         }
+        boolean readFromHead = false;
+        for (int i = 0; i < columnDefinition.length; i++) {
+            switch (columnDefinition[i].getColumnType()) {
+                case COMPLEX:
+                case CURSOR:
+                    readFromHead = true;
+                    break;
+                default:
+                    break;
+            }
+        }
 
         // if not must parse data until reading the desired field
-        if (index != newIndex) {
-            int internalPos = this.pos;
-            if (index == -1 || index > newIndex) {
-                // if there wasn't previous non-null read field, or if last field was after searched index,
-                // position is set on first field position.
-                index = 0;
-                internalPos = 1 + (columnInformationLength + 9) / 8; // 0x00 header + NULL-Bitmap length
+        int internalPos = 0;
+        boolean doRead = true;
+        if (readFromHead) {
+            index = 0;
+            internalPos = 1 + (columnInformationLength + 9) / 8;
+        } else {
+            if (index != newIndex) {
+                internalPos = this.pos;
+                if (index == -1 || index > newIndex) {
+                    // if there wasn't previous non-null read field, or if last field was after searched index,
+                    // position is set on first field position.
+                    index = 0;
+                    internalPos = 1 + (columnInformationLength + 9) / 8; // 0x00 header + NULL-Bitmap length
+                } else {
+                    // start at previous non-null field position if was before searched index
+                    index++;
+                    internalPos += length;
+                }
+                doRead = true;
             } else {
-                // start at previous non-null field position if was before searched index
-                index++;
-                internalPos += length;
+                doRead = false;
             }
-
+        }
+        if (doRead) {
             for (; index <= newIndex; index++) {
                 if ((buf[1 + (index + 2) / 8] & (1 << ((index + 2) % 8))) == 0) {
                     if (index != newIndex) {
@@ -88,6 +117,13 @@ public class BinaryRowProtocol extends RowProtocol {
 
                             case TINYINT:
                                 internalPos += 1;
+                                break;
+                            // add
+                            case COMPLEX:
+                                internalPos = this.complexEndPos[index];
+                                break;
+                            case CURSOR:
+                                internalPos = this.complexEndPos[index];
                                 break;
 
                             default:
@@ -151,11 +187,29 @@ public class BinaryRowProtocol extends RowProtocol {
                                 length = 1;
                                 this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                 return;
+                            case COMPLEX:
+                                this.pos = internalPos;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
+                            case CURSOR:
+                                this.pos = internalPos;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
+                            case BINARY_FLOAT:
+                                this.pos = internalPos;
+                                length = 4;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
+                            case BINARY_DOUBLE:
+                                this.pos = internalPos;
+                                length = 8;
+                                this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
+                                return;
 
                             default:
                                 // field with variable length
-                                int type = this.buf[internalPos++] & 0xff;
-                                switch (type) {
+                                int typeOrLength = this.buf[internalPos++] & 0xff;
+                                switch (typeOrLength) {
                                     case 251:
                                         // null length field
                                         // must never occur
@@ -169,11 +223,11 @@ public class BinaryRowProtocol extends RowProtocol {
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
-
                                     case 253:
                                         // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
                                         length = 0xffffff & ((buf[internalPos++] & 0xff)
                                                              + ((buf[internalPos++] & 0xff) << 8) + ((buf[internalPos++] & 0xff) << 16));
+                                        //                                        length = buf[internalPos++] & 0xff;
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
@@ -193,7 +247,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
                                     default:
                                         // length is encoded on 1 bytes (is then less than 251)
-                                        length = type;
+                                        length = typeOrLength;
                                         this.pos = internalPos;
                                         this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                         return;
@@ -203,6 +257,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
         }
+
         this.lastValueNull = length == NULL_LENGTH ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
     }
 
@@ -218,9 +273,15 @@ public class BinaryRowProtocol extends RowProtocol {
     public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                                  throws SQLException {
         if ((lastValueNull & BIT_LAST_FIELD_NULL) != 0) {
-            return null;
+            switch (columnInfo.getColumnType()) {
+                case BINARY_DOUBLE:
+                    return Double.toString(0);
+                case BINARY_FLOAT:
+                    return Float.toString(0);
+                default:
+                    return null;
+            }
         }
-
         switch (columnInfo.getColumnType()) {
             case STRING:
                 if (getMaxFieldSize() > 0) {
@@ -274,6 +335,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     return null;
                 }
                 return timestamp.toString();
+            case INTERVALDS:
+                INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
+                return intervalds.toString();
+            case INTERVALYM:
+                INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
+                return intervalym.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -283,6 +350,22 @@ public class BinaryRowProtocol extends RowProtocol {
                 return new String(buf, pos, length);
             case NULL:
                 return null;
+            case RAW:
+                byte[] returnBytes = new byte[length];
+                System.arraycopy(buf, pos, returnBytes, 0, length);
+                StringBuilder sb = new StringBuilder();
+                for (byte b : returnBytes) {
+                    sb.append(String.format("%02x", b));
+                }
+                return sb.toString();
+            case VARSTRING:
+                return new String(buf, pos, length, StandardCharsets.UTF_8);
+            case BINARY_DOUBLE:
+                Double d = getInternalDouble(columnInfo);
+                return Double.toString(d);
+            case BINARY_FLOAT:
+                Float f = getInternalFloat(columnInfo);
+                return Float.toString(f);
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
@@ -337,6 +420,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case DECIMAL:
             case OLDDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
                     columnInfo);
@@ -481,13 +565,21 @@ public class BinaryRowProtocol extends RowProtocol {
                 int valueFloat = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
                                   + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
                 return Float.intBitsToFloat(valueFloat);
+            case BINARY_FLOAT:
+                int asInt = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8)
+                            | ((buf[pos + 2] & 0xff) << 16) | ((buf[pos + 3] & 0xff) << 24);
+
+                return Float.intBitsToFloat(asInt);
+            case NUMBER_FLOAT:
+                String str = new String(buf, pos, length, StandardCharsets.UTF_8);
+                Float f = Float.valueOf(str);
+                return f;
             case DOUBLE:
                 return (float) getInternalDouble(columnInfo);
             case DECIMAL:
             case VARSTRING:
             case VARCHAR:
             case STRING:
-            case OLDDECIMAL:
                 try {
                     return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -496,6 +588,10 @@ public class BinaryRowProtocol extends RowProtocol {
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
                     throw sqlException;
                 }
+            case OBDECIMAL:
+                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(val);
+                return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -562,7 +658,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-            case OLDDECIMAL:
                 try {
                     return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 } catch (NumberFormatException nfe) {
@@ -573,6 +668,21 @@ public class BinaryRowProtocol extends RowProtocol {
                     sqlException.initCause(nfe);
                     throw sqlException;
                 }
+            case BINARY_DOUBLE:
+                long valueAsLong = (buf[pos + 0] & 0xff) | ((long) (buf[pos + 1] & 0xff) << 8)
+                                   | ((long) (buf[pos + 2] & 0xff) << 16)
+                                   | ((long) (buf[pos + 3] & 0xff) << 24)
+                                   | ((long) (buf[pos + 4] & 0xff) << 32)
+                                   | ((long) (buf[pos + 5] & 0xff) << 40)
+                                   | ((long) (buf[pos + 6] & 0xff) << 48)
+                                   | ((long) (buf[pos + 7] & 0xff) << 56);
+
+                return Double.longBitsToDouble(valueAsLong);
+                //                return Double.parseDouble(new String(buf, pos, length, StandardCharsets.UTF_8));
+            case OBDECIMAL:
+                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                BigDecimal bigDecimal = new BigDecimal(val);
+                return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -628,6 +738,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR:
             case STRING:
             case OLDDECIMAL:
+            case OBDECIMAL:
                 return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
@@ -654,6 +765,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_TZ:
+            case TIMESTAMP_LTZ:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
             case TIME:
@@ -725,6 +838,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_TZ:
+            case TIMESTAMP_LTZ:
                 Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
@@ -782,7 +897,28 @@ public class BinaryRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
-
+        if (this.getProtocol().isOracleMode()) {
+            Calendar cal;
+            if (userCalendar != null) {
+                cal = userCalendar;
+            } else {
+                cal = Calendar.getInstance(timeZone);
+            }
+            TIMESTAMP timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case TIMESTAMP_TZ:
+                    TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
+                        timeZone);
+                    timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
+                    return timestamp.timestampValue(cal);
+                case TIMESTAMP_LTZ:
+                    TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
+                        userCalendar, timeZone);
+                    timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
+                        oracleTimestampLTZ.getBytes());
+                    return timestamp.timestampValue(cal);
+            }
+        }
         if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
             Calendar cal;
             if (userCalendar != null) {
@@ -930,6 +1066,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_DOUBLE:
                 return getInternalDouble(columnInfo);
             case VARCHAR:
+            case VARCHAR2:
             case VARSTRING:
             case STRING:
                 if (columnInfo.isBinary()) {
@@ -945,6 +1082,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
+            case OBDECIMAL:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:
@@ -967,7 +1105,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case FLOAT:
             case NUMBER_FLOAT:
             case BINARY_FLOAT:
-                return getInternalFloat(columnInfo);
+                //                return getInternalFloat(columnInfo);
+                byte[] b = new byte[length];
+                System.arraycopy(buf, pos, b, 0, length);
+                NUMBER number = new NUMBER(b);
+                return number;
             case TIME:
                 return getInternalTime(columnInfo, null, timeZone);
             case OLDDECIMAL:
@@ -983,6 +1125,26 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case SET:
                 break;
+            case TIMESTAMP_TZ:
+                return getInternalTIMESTAMPTZ(columnInfo, null, timeZone);
+            case TIMESTAMP_LTZ:
+                return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
+            case STRUCT: {
+                byte[] structData = new byte[length];
+                System.arraycopy(buf, pos, structData, 0, length);
+                return structData;
+            }
+            //                return getInternalStruct(columnInfo);
+            case ARRAY:
+                byte[] arrayData = new byte[length];
+                System.arraycopy(buf, pos, arrayData, 0, length);
+                return arrayData;
+
+                //                return getInternalArray(columnInfo);
+            case CURSOR:
+                //                return getInternalCursor(columnInfo,null,timeZone);
+                return null;
+                //                break;
             default:
                 break;
         }
@@ -1564,6 +1726,208 @@ public class BinaryRowProtocol extends RowProtocol {
                 throw new SQLException("Cannot read LocalDate using a "
                                        + columnInfo.getColumnType().getJavaTypeName() + " field");
         }
+    }
+
+    private ComplexData getComplexField(Buffer packet, ComplexDataType type) throws SQLException {
+        ComplexData value = null;
+        if (null == type || !type.isValid()) {
+            throw new SQLException(String.format(
+                "invalid complex type, check if exists, typeName=%s", type.getTypeName()));
+        }
+        switch (type.getType()) {
+            case ComplexDataType.TYPE_COLLECTION:
+                value = getComplexArray(packet, type);
+                break;
+            case ComplexDataType.TYPE_OBJECT:
+                value = getComplexStruct(packet, type);
+                break;
+            default:
+                throw new SQLException(String.format(
+                    "invalid complex type, check if exists, typeName=%s", type.getTypeName()));
+        }
+        return value;
+    }
+
+    private ComplexData getComplexArray(Buffer packet, ComplexDataType type) throws SQLException {
+        ComplexData array = new ArrayImpl(type);
+        int attrCount = (int) packet.readFieldLength();
+        array.setAttrCount(attrCount);
+        int curPos = packet.getPosition();
+        // according https://dev.mysql.com/doc/internals/en/null-bitmap.html
+        // result offset is 2
+        byte[] nullBitsBuffer = packet.getBytes(curPos, (attrCount + 7 + 2) / 8);
+        packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
+        for (int i = 0; i < attrCount; ++i) {
+            if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
+                Object value = getComplexAttrData(packet, type.getAttrType(0));
+                array.addAttrData(i, value);
+            } else {
+                array.addAttrData(i, null);
+                // nullmap pos is null
+            }
+        }
+        return array;
+    }
+
+    public ComplexData getComplexStruct(Buffer packet, ComplexDataType type) throws SQLException {
+        ComplexData struct = new StructImpl(type);
+        int attrCount = type.getAttrCount();
+        struct.setAttrCount(attrCount);
+        int curPos = packet.getPosition();
+        byte[] nullBitsBuffer = packet.getBytes(curPos, (attrCount + 7 + 2) / 8);
+        packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
+        for (int i = 0; i < attrCount; ++i) {
+            if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
+                Object value = getComplexAttrData(packet, type.getAttrType(i));
+                struct.addAttrData(i, value);
+            } else {
+                struct.addAttrData(i, null);
+                // nullmap pos is null
+            }
+        }
+        return struct;
+    }
+
+    private java.sql.Timestamp getComplexDate(byte[] bits) {
+        int year = 0;
+        int month = 0;
+        int day = 0;
+
+        int hour = 0;
+        int minute = 0;
+        int seconds = 0;
+
+        int nanos = 0;
+        if (null == bits) {
+            return null;
+        }
+        int length = bits.length;
+        if (length != 0) {
+            year = (bits[0] & 0xff) | ((bits[1] & 0xff) << 8);
+            month = bits[2];
+            day = bits[3];
+
+            if (length > 4) {
+                hour = bits[4];
+                minute = bits[5];
+                seconds = bits[6];
+            }
+
+            if (length > 7) {
+                // MySQL uses microseconds
+                nanos = ((bits[7] & 0xff) | ((bits[8] & 0xff) << 8) | ((bits[9] & 0xff) << 16) | ((bits[10] & 0xff) << 24)) * 1000;
+            }
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month - 1, day, hour, minute, seconds);
+
+        long tsAsMillis = cal.getTimeInMillis();
+
+        Timestamp ts = new Timestamp(tsAsMillis);
+        ts.setNanos(nanos);
+        return ts;
+    }
+
+    private Object getComplexAttrData(Buffer packet, ComplexDataType type) throws SQLException {
+        Object value = null;
+        byte[] b = null;
+        switch (type.getType()) {
+            case ComplexDataType.TYPE_NUMBER:
+                b = packet.readLenByteArray(0);
+                value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8));
+                break;
+            case ComplexDataType.TYPE_VARCHAR2:
+            case ComplexDataType.TYPE_RAW:
+                b = packet.readLenByteArray(0);
+                value = new String(b, 0, b.length, StandardCharsets.UTF_8);
+                break;
+            case ComplexDataType.TYPE_DATE:
+                value = getComplexDate(packet.readLenByteArray(0));
+                break;
+            case ComplexDataType.TYPE_COLLECTION:
+                value = getComplexArray(packet, type);
+                break;
+            case ComplexDataType.TYPE_OBJECT:
+                value = getComplexStruct(packet, type);
+                break;
+            default:
+                throw new SQLException("unsupported complex data type");
+        }
+        return value;
+    }
+
+    /**
+     *
+     * @param columnInf
+     * @param complexDataType
+     * @return
+     * @throws SQLException
+     */
+    public Array getInternalArray(ColumnDefinition columnInf, ComplexDataType complexDataType)
+                                                                                              throws SQLException {
+        Array ret = null;
+        Buffer buffer = new Buffer(buf);
+        buffer.setPosition(pos);
+        ret = (ArrayImpl) getComplexField(buffer, complexDataType);
+        pos = buffer.getPosition();
+        return ret;
+    }
+
+    /**
+     * Get Struct from raw binary format.
+     *
+     * @param columnInfo column information
+     * @return struct value
+     * @throws SQLException exception
+     */
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
+                                                                                                 throws SQLException {
+        StructImpl struct = null;
+        Buffer buffer = new Buffer(buf);
+        buffer.setPosition(pos);
+        struct = (StructImpl) getComplexField(buffer, complexDataType);
+        pos = buffer.getPosition();
+        return struct;
+    }
+
+    public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
+                                                ComplexDataType complexDataType)
+                                                                                throws SQLException {
+
+        ComplexData value = new ComplexData(complexDataType);
+        if (buf.length <= pos) {
+            throw new SQLException("cursor is not open"); //Pretend the cursor is closed
+        }
+
+        Buffer buffer = new Buffer(buf);
+        buffer.setPosition(pos);
+        int id = (int) buffer.readLongV1();
+        value.setAttrCount(1);
+        RowObCursorData rowObCursorData = new RowObCursorData(id, true);
+        value.addAttrData(0, rowObCursorData);
+        pos = buffer.getPosition();
+        return value;
+
+    }
+
+    @Override
+    public INTERVALDS getInternalINTERVALDS(ColumnDefinition columnInfo) throws SQLException {
+        if (columnInfo.getColumnType() != ColumnType.INTERVALDS) {
+            throw new SQLException("the field type is not FIELD_TYPE_INTERVALDS");
+        }
+        byte[] target = new byte[length];
+        System.arraycopy(buf, pos, target, 0, length);
+        return new INTERVALDS(target);
+    }
+
+    @Override
+    public INTERVALYM getInternalINTERVALYM(ColumnDefinition columnInfo) throws SQLException {
+        if (columnInfo.getColumnType() != ColumnType.INTERVALYM) {
+            throw new SQLException("the field type is not FIELD_TYPE_INTERVALYM");
+        }
+        byte[] target = new byte[length];
+        System.arraycopy(buf, pos, target, 0, length);
+        return new INTERVALYM(target);
     }
 
     /**

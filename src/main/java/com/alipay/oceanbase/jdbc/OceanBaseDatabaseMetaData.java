@@ -4,6 +4,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -1134,7 +1135,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return "Oracle";
         } else {
-            return "MYSQL";
+            return "MySQL";
         }
     }
 
@@ -1897,7 +1898,8 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
     private boolean haveInformationSchemaParameters() {
-        return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
+        //        return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
+        return false;
     }
 
     /**
@@ -2073,23 +2075,171 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
              * TODO : figure out what to do with older versions (get info via mysql.proc)
              * For now, just a dummy result set is returned.
              */
-            sql = "SELECT '' PROCEDURE_CAT, '' PROCEDURE_SCHEM , '' PROCEDURE_NAME,'' COLUMN_NAME, 0 COLUMN_TYPE,"
-                  + "0 DATA_TYPE,'' TYPE_NAME, 0 `PRECISION`,0 LENGTH, 0 SCALE,10 RADIX,"
-                  + "0 NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-                  + "0 CHAR_OCTET_LENGTH ,0 ORDINAL_POSITION, '' IS_NULLABLE, '' SPECIFIC_NAME "
-                  + " FROM DUAL " + " WHERE 1=0 ";
+            try {
+                ResultSet procsAndOrFuncsRs = getProcAndFunctions(catalog, procedureNamePattern);
+                return getCallStmtParameterTypes(catalog, procedureNamePattern);
+            } catch (SQLException throwables) {
+                throw throwables;
+            }
+        }
+        return null;
+    }
+
+    ResultSet  getProcAndFunctions(String catalog,String procedureNamePattern) throws SQLException {
+        String[] columnNames = {
+                "PROCEDURE_CAT",
+                "PROCEDURE_SCHEM",
+                "PROCEDURE_NAME",
+                "COLUMN_NAME",
+                "COLUMN_TYPE",
+                "DATA_TYPE",
+                "TYPE_NAME",
+                "PRECISION",
+                "LENGTH",
+                "SCALE",
+                "RADIX",
+                "NULLABLE",
+                "REMARKS",
+                "COLUMN_DEF",
+                "SQL_DATA_TYPE",
+                "SQL_DATETIME_SUB",
+                "CHAR_OCTET_LENGTH",
+                "ORDINAL_POSITION",
+                "IS_NULLABLE",
+                "SPECIFIC_NAME"
+        };
+        ColumnType[] columnTypes = {
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+                ColumnType.SMALLINT,
+                ColumnType.ENUM,
+
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.SMALLINT,
+                ColumnType.SMALLINT,
+                ColumnType.SMALLINT,
+                ColumnType.ENUM,
+                ColumnType.ENUM,
+
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.INTEGER,
+                ColumnType.ENUM,
+                ColumnType.ENUM
+        };
+        // todo for each multi catlogs
+        String db = catalog;
+
+        ResultSet results = null;
+        boolean needsClientFiltering = true;
+
+        StringBuilder selectFromMySQLProcSQL = new StringBuilder();
+
+        selectFromMySQLProcSQL
+                .append("SELECT name, type, comment FROM mysql.proc WHERE ");
+//            if (returnProcedures && !returnFunctions) {
+//                selectFromMySQLProcSQL.append("type = 'PROCEDURE' AND ");
+//            } else if (!returnProcedures && returnFunctions) {
+//                selectFromMySQLProcSQL.append("type = 'FUNCTION' AND ");
+//            }
+        selectFromMySQLProcSQL.append("name LIKE ? AND db <=> ? ORDER BY name, type");
+
+        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(selectFromMySQLProcSQL
+                .toString());
+
+
+        //
+        // Try using system tables first, as this is a little bit more efficient....
+        //
+        if (db != null) {
+//                    if (DatabaseMetaData.this.conn.lowerCaseTableNames()) {
+//                        db = db.toLowerCase();
+//                    }
+            proceduresStmt.setString(2, db);
+        } else {
+            proceduresStmt.setNull(2, Types.VARCHAR);
         }
 
-        try {
-            return executeQuery(sql);
-        } catch (SQLException sqlException) {
-            if (sqlException.getMessage().contains("Unknown column 'DATETIME_PRECISION'")) {
-                datePrecisionColumnExist = false;
-                return getProcedureColumns(catalog, schemaPattern, procedureNamePattern,
-                    columnNamePattern);
-            }
-            throw sqlException;
+        int nameIndex = 1;
+
+        proceduresStmt.setString(1, procedureNamePattern);
+        results = proceduresStmt.executeQuery();
+        needsClientFiltering = false;
+
+        String[] data = new String[9];
+        List<String[]> list = new ArrayList<>();
+        int i = 0;
+        while (results.next()) {
+            data[0] = catalog;
+            data[1] = null;
+            data[2] = results.getString(1);
+            data[3] = null;
+            data[4] = null;
+            data[5] = null;
+            data[6] = results.getString("comment");
+            data[7] = "1";
+            data[8] = procedureNamePattern;
+            i++;
+            String[] tmp = new String[9];
+            System.arraycopy(data, 0, tmp, 0, data.length);
+            list.add(tmp);
         }
+        String[][] val = new String[list.size()][];
+        for (int j = 0; j < list.size(); j++) {
+            val[j] = list.get(j);
+        }
+        results.close();
+        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+    }
+
+    ResultSet getCallStmtParameterTypes(String catalog, String procedureNamePattern)
+                                                                                    throws SQLException {
+        this.connection.setCatalog(catalog);
+        PreparedStatement paramRetrievalStmt = this.connection
+            .clientPrepareStatement("SELECT DATABASE()");
+        ResultSet rs = paramRetrievalStmt.executeQuery();
+        rs.next();
+        catalog = rs.getString(1);
+
+        if (paramRetrievalStmt.getMaxRows() != 0) {
+            paramRetrievalStmt.setMaxRows(0);
+        }
+        boolean isProcedureInAnsiMode = false;
+        String storageDefnDelims = null;
+        String storageDefnClosures = null;
+        StringBuilder procNameBuf = new StringBuilder();
+        procNameBuf.append("`");
+        procNameBuf.append(catalog);
+        procNameBuf.append("`");
+        procNameBuf.append('.');
+        procNameBuf.append("`");
+        procNameBuf.append(procedureNamePattern);
+        procNameBuf.append("`");
+        ResultSet paramRetrievalRs = paramRetrievalStmt.executeQuery("SHOW CREATE PROCEDURE "
+                                                                     + procNameBuf.toString());
+        String fieldName = "Create Procedure";
+        String quote = "`";
+        String parameterDef;
+        if (paramRetrievalRs.next()) {
+            String procedureDef = paramRetrievalRs.getString(fieldName);
+            String sqlMode = paramRetrievalRs.getString("sql_mode");
+            isProcedureInAnsiMode = false;
+            String identifierMarkers = isProcedureInAnsiMode ? "`\"" : "`";
+            String identifierAndStringMarkers = "'" + identifierMarkers;
+            storageDefnDelims = "(" + identifierMarkers;
+            storageDefnClosures = ")" + identifierMarkers;
+            int startIndex = procedureDef.indexOf('`');
+            int endIindex = procedureDef.indexOf('`');
+            parameterDef = procedureDef.substring(startIndex, endIindex);
+
+        }
+        //        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+        return null;
     }
 
     /**
@@ -2242,7 +2392,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return super.getCatalogs();
         }
-        return executeQuery("SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
+        return executeQuery("SELECT SCHEMA_NAME  TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
     }
 
     public ResultSet getTableTypes() throws SQLException {

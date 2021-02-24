@@ -9,6 +9,8 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
+
+import org.junit.Assume;
 import org.junit.Test;
 
 @SuppressWarnings("ALL")
@@ -16,7 +18,7 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetNClob() throws Exception {
-
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetNClob", "id int not null primary key, strm text", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into testSetNClob (id, strm) values (?,?)");
@@ -41,7 +43,7 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetObjectNClob() throws Exception {
-
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetObjectNClob", "id int not null primary key, strm text, strm2 text",
             "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
@@ -110,7 +112,7 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetNCharacter() throws Exception {
-
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
@@ -137,7 +139,7 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetObjectNCharacter() throws Exception {
-
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetObjectNCharacter", "id int not null primary key, strm text",
             "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
