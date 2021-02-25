@@ -534,6 +534,6 @@ public abstract class RowProtocol {
     this.protocol = protocol;
 	}
   public SelectResultSet sendFechRowViaCursor(long statementid,int fetchSize) {
-      return SelectResultSet.createEmptyResultSet();
+      return (SelectResultSet) SelectResultSet.createEmptyResultSet();
   }
 }

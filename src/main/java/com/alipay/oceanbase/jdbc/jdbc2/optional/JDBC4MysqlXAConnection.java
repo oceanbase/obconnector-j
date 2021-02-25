@@ -1,4 +1,7 @@
-package com.alipay.oceanbase.jdbc;
+package com.alipay.oceanbase.jdbc.jdbc2.optional;
+
+import com.alipay.oceanbase.jdbc.OceanBaseConnection;
+import com.alipay.oceanbase.jdbc.OceanBaseXaResource;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -7,12 +10,12 @@ import javax.transaction.xa.Xid;
 /**
  * Compatible with Mysql connector J interface JDBC4MysqlXAConnection
  */
-public class JDBC4MysqlXAConnection extends OceanBaseXaConnection implements XAResource {
+public class JDBC4MysqlXAConnection extends MysqlXAConnection implements XAResource {
     OceanBaseXaResource oceanBaseXaResource;
 
     public JDBC4MysqlXAConnection(OceanBaseConnection connection) {
         super(connection);
-        oceanBaseXaResource = new OceanBaseXaResource(connection);
+        oceanBaseXaResource = new MysqlXAResource(connection);
 
     }
 

@@ -17,7 +17,6 @@ import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import com.alipay.oceanbase.jdbc.OceanBaseConnection;
 import com.alipay.oceanbase.jdbc.extend.datatype.*;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;

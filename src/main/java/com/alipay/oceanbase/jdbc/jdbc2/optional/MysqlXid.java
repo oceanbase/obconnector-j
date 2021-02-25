@@ -1,4 +1,6 @@
-package com.alipay.oceanbase.jdbc;
+package com.alipay.oceanbase.jdbc.jdbc2.optional;
+
+import com.alipay.oceanbase.jdbc.OceanBaseXid;
 
 /**
  * Compatible with Mysql Connector J interface MysqlXid

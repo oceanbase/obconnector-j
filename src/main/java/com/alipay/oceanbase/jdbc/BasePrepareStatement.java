@@ -1681,4 +1681,9 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         setParameter(parameterIndex,
             new OBStructParameter((ObStruct) x, this.protocol.getOptions()));
     }
+
+    public String asSql() throws SQLException {
+        return null;
+    }
+
 }

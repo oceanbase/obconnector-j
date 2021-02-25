@@ -1,5 +1,7 @@
 package com.alipay.oceanbase.jdbc;
 
+import com.alipay.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
+import com.alipay.oceanbase.jdbc.jdbc2.optional.MysqlXid;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -28,8 +30,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
     @Test
     public void obOracleXAOne() throws Exception {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection conn = sharedConnection;
-        sharedConnection.createStatement().execute(" insert into " + tableName1 + "  values(1,2)");
+        Connection conn = setConnection();
+        conn.createStatement().execute(" insert into " + tableName1 + "  values(1,2)");
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
             (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one";
@@ -68,10 +70,10 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Connection conn = null;
 
         conn = setConnection();
-        ;
         conn.createStatement().execute(" insert into " + tableName2 + "  values(1,2)");
+
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
-            (OceanBaseConnection) conn);
+            (com.alipay.oceanbase.jdbc.OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one_phase";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_one_phase";
 
@@ -108,7 +110,6 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
         conn = setConnection();
-        ;
         conn.setAutoCommit(false);
 
         JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
