@@ -38,7 +38,7 @@ public class CursorResultSet extends SelectResultSet {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
                 numToFetch);
         } catch (SQLException e) {
-            if (e.getMessage().equals("ORA-01002: fetch out of sequence")) {
+            if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;
                 return;
             } else {
