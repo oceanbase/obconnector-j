@@ -275,6 +275,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         //        }
         //todo add connection propertis in the future
         this.complexDataCache = new LRUCache(50);
+        this.urlParser = protocol.getUrlParser();
     }
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
@@ -984,7 +985,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public String getCatalog() throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //In OracleJdbc , this method returns null .
             return null;
         }
         return protocol.getCatalog();
@@ -1005,7 +1005,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setCatalog(final String catalog) throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            //In OracleJdbc , this method is not implemented .
             return;
         }
         if (catalog == null) {
@@ -1048,12 +1047,20 @@ public class OceanBaseConnection implements ConnectionImpl {
             sql = "SELECT @@session.tx_isolation";
         }
 
+        if (!protocol.isServerMariaDb()) {
+            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
+                || (protocol.getMajorServerVersion() < 8 && protocol
+                    .versionGreaterOrEqual(5, 7, 20))) {
+                sql = "SELECT @@transaction_isolation";
+            }
+        }
+
         ResultSet rs = stmt.executeQuery(sql);
         String response = "";
         if (rs.next()) {
             if (!this.getProtocol().isOracleMode()) {
                 response = rs.getString(1);
-            } else {
+            }else {
                 response = rs.getString(2);
             }
             switch (response) {
@@ -1256,7 +1263,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-        //        String randomName = UUID.randomUUID().toString();
         String randomName = "";
         if (this.protocol.isOracleMode()) {
             if (this.getAutoCommit()) {
@@ -2010,14 +2016,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         // We support only catalog
         //        return null;
         if (this.protocol.isOracleMode()) {
-            return this.getUsername();
+            return this.getDatabase().toUpperCase();
+//            return this.getUsername();
         } else {
             return this.getCatalog();
         }
     }
 
     public String getDatabase() {
-        return urlParser.getDatabase();
+        return this.urlParser.getDatabase();
     }
 
     public void setSchema(String arg0) {

@@ -2,10 +2,7 @@ package com.alipay.oceanbase.jdbc;
 
 import java.sql.*;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -352,6 +349,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             throw new SQLException("'table' parameter in getImportedKeys cannot be null");
         }
 
+        if (this.connection.getProtocol().isOracleMode()){
+            return this.keysQuery((String)null, (String)null, schema, table, "ORDER BY pktable_schem, pktable_name, key_seq");
+        }
+
         if (database == null && connection.nullCatalogMeansCurrent) {
             /* Treat null catalog as current */
             return getImportedKeysUsingInformationSchema("", table);
@@ -526,6 +527,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table)
                                                                                 throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getPrimaryKeys(catalog, schema, table);
+        }
         // MySQL 8 now use 'PRI' in place of 'pri'
         String sql = "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                      + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
@@ -708,7 +712,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
         if (connection.getProtocol().isOracleMode()) {
-            return super.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+            return super.getColumns(catalog, schemaPattern, tableNamePattern == null ? null : tableNamePattern.toUpperCase(), columnNamePattern == null ? null : columnNamePattern.toUpperCase());
         }
         Options options = urlParser.getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
@@ -832,6 +836,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getExportedKeys(String catalog, String schema, String table)
                                                                                  throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return this.keysQuery(schema, table, (String)null, (String)null, "ORDER BY fktable_schem, fktable_name, key_seq");
+        }
+
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
                      + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
                      + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
@@ -996,22 +1004,24 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (table == null) {
             throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
         }
-
+        if (this.connection.getProtocol().isOracleMode()) {
+            return super.getBestRowIdentifier(catalog, schema, table, scope, nullable);
+        }
         String sql = "SELECT "
-                     + DatabaseMetaData.bestRowUnknown
-                     + " SCOPE, COLUMN_NAME,"
-                     + dataTypeClause("COLUMN_TYPE")
-                     + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
-                     + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
-                     + " NUMERIC_SCALE DECIMAL_DIGITS," + " 1 PSEUDO_COLUMN"
-                     + " FROM INFORMATION_SCHEMA.COLUMNS"
-                     + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" + " AND "
-                     + catalogCond("TABLE_SCHEMA", catalog) + " AND TABLE_NAME = "
-                     + escapeQuote(table);
-
+                + DatabaseMetaData.bestRowUnknown
+                + " SCOPE, COLUMN_NAME,"
+                + dataTypeClause("COLUMN_TYPE")
+                + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
+                + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                + " NUMERIC_SCALE DECIMAL_DIGITS," + " 1 PSEUDO_COLUMN"
+                + " FROM INFORMATION_SCHEMA.COLUMNS"
+                + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" + " AND "
+                + catalogCond("TABLE_SCHEMA", catalog == null ? this.connection.getProtocol().getCatalog() : catalog) + " AND TABLE_NAME = "
+                + escapeQuote(table);
         return executeQuery(sql);
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean generatedKeyAlwaysReturned() {
         return true;
     }
@@ -1088,10 +1098,16 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean allProceduresAreCallable() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.allProceduresAreCallable();
+        }
         return true;
     }
 
     public boolean allTablesAreSelectable() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.allTablesAreSelectable();
+        }
         return true;
     }
 
@@ -1100,7 +1116,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return urlParser.getInitialUrl();
     }
 
-    public String getUserName() {
+    public String getUserName() throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getUserName();
+        }
         return urlParser.getUsername();
     }
 
@@ -1121,6 +1140,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean nullsAreSortedAtEnd() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.nullsAreSortedAtEnd();
+        }
         return !nullsAreSortedAtStart();
     }
 
@@ -1168,18 +1190,30 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsMixedCaseIdentifiers();
+        }
         return (connection.getLowercaseTableNames() == 0);
     }
 
     public boolean storesUpperCaseIdentifiers() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.storesUpperCaseIdentifiers();
+        }
         return false;
     }
 
     public boolean storesLowerCaseIdentifiers() throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.storesLowerCaseIdentifiers();
+        }
         return (connection.getLowercaseTableNames() == 1);
     }
 
     public boolean storesMixedCaseIdentifiers() throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.storesMixedCaseIdentifiers();
+        }
         return (connection.getLowercaseTableNames() == 2);
     }
 
@@ -1324,6 +1358,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsConvert() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsConvert();
+        }
         return true;
     }
 
@@ -1495,6 +1532,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return true;
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean supportsOrderByUnrelated() {
         return true;
     }
@@ -1549,14 +1587,21 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     @Override
     public boolean supportsANSI92IntermediateSQL() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsANSI92IntermediateSQL();
+        }
         return true;
     }
 
     @Override
     public boolean supportsANSI92FullSQL() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsANSI92FullSQL();
+        }
         return true;
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean supportsIntegrityEnhancementFacility() {
         return true;
     }
@@ -1565,6 +1610,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return true;
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean supportsFullOuterJoins() {
         return true;
     }
@@ -1602,6 +1648,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsSchemasInTableDefinitions() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsSchemasInTableDefinitions();
+        }
         return false;
     }
 
@@ -1609,6 +1658,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return false;
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean supportsSchemasInPrivilegeDefinitions() {
         return true;
     }
@@ -1622,6 +1672,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsCatalogsInTableDefinitions() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsCatalogsInTableDefinitions();
+        }
         return true;
     }
 
@@ -1678,18 +1731,30 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsOpenCursorsAcrossCommit() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsOpenCursorsAcrossCommit();
+        }
         return true;
     }
 
     public boolean supportsOpenCursorsAcrossRollback() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsOpenCursorsAcrossRollback();
+        }
         return true;
     }
 
     public boolean supportsOpenStatementsAcrossCommit() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsOpenStatementsAcrossCommit();
+        }
         return true;
     }
 
     public boolean supportsOpenStatementsAcrossRollback() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.supportsOpenStatementsAcrossRollback();
+        }
         return true;
     }
 
@@ -1754,6 +1819,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean doesMaxRowSizeIncludeBlobs() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.doesMaxRowSizeIncludeBlobs();
+        }
         return false;
     }
 
@@ -1814,6 +1882,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
     }
 
+    //todo  there return false in 1.X_OracleModel , return true in oracle-jdbc
     public boolean supportsDataDefinitionAndDataManipulationTransactions() {
         return true;
     }
@@ -2330,7 +2399,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getFunctionColumns(String catalog, String schemaPattern,
                                         String functionNamePattern, String columnNamePattern)
                                                                                              throws SQLException {
-
+        //todo unfinished
+//        if (this.connection.getProtocol().isOracleMode()){
+//            super.getFunctionColumns(catalog,schemaPattern,functionNamePattern,columnNamePattern);
+//        }
         String sql;
         if (haveInformationSchemaParameters()) {
 
@@ -2396,6 +2468,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public ResultSet getTableTypes() throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getTableTypes();
+        }
         return executeQuery("SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
     }
 
@@ -2438,6 +2513,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
         if (table == null) {
             throw new SQLException("'table' parameter must not be null");
+        }
+
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getColumnPrivileges(catalog, schema, table, columnNamePattern);
         }
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME,"
                      + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
@@ -2487,6 +2566,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getTablePrivileges(String catalog, String schemaPattern,
                                         String tableNamePattern) throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getTablePrivileges(catalog,schemaPattern,tableNamePattern);
+        }
+
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT,NULL  TABLE_SCHEM, TABLE_NAME, NULL GRANTOR,"
                      + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
                      + " WHERE " + catalogCond("TABLE_SCHEMA", catalog)
@@ -2624,7 +2707,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                        String parentTable, String foreignCatalog,
                                        String foreignSchema, String foreignTable)
                                                                                  throws SQLException {
-
+        if (this.connection.getProtocol().isOracleMode()) {
+            return this.keysQuery(parentSchema, parentTable, foreignSchema, foreignTable,"ORDER BY fktable_schem, fktable_name, key_seq");
+        }
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
                      + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
                      + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
@@ -2878,6 +2963,13 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
                                   boolean approximate) throws SQLException {
 
+        if (table == null || table.length() == 0){
+            throw new SQLException();
+        }
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.getIndexInfo(catalog,schema,table,unique,approximate);
+        }
+
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
                      + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
                      + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
@@ -3034,6 +3126,7 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return false;
     }
 
+    //todo  there return true in 1.X_OracleModel , return false in oracle-jdbc
     public boolean supportsMultipleOpenResults() {
         return false;
     }
@@ -3192,6 +3285,10 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
                                    String attributeNamePattern) throws SQLException {
 
+        if (this.connection.getProtocol().isOracleMode()){
+            throw new SQLFeatureNotSupportedException("Oracle model Unsupported features");
+        }
+
         String sql = "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
                      + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
                      + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
@@ -3233,6 +3330,9 @@ public class OceanBaseDatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean locatorsUpdateCopy() {
+        if (this.connection.getProtocol().isOracleMode()){
+            return super.locatorsUpdateCopy();
+        }
         return false;
     }
 
