@@ -8,7 +8,6 @@ import java.util.List;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
-import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.util.Utils;
 
 public class OceanBaseXaResource implements XAResource {
@@ -103,7 +102,7 @@ public class OceanBaseXaResource implements XAResource {
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_COMMIT(?, ?) from dual");
-            StructImpl xidObj = genOracleXid(xid);
+            ObStruct xidObj = genOracleXid(xid);
             try {
                 dispatchOracleCommand(commandBuf.toString(), xidObj, Boolean.valueOf(onePhase));
             } finally {
@@ -141,7 +140,7 @@ public class OceanBaseXaResource implements XAResource {
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_END(?, ?) from dual");
-            StructImpl xidObj = genOracleXid(xid);
+            ObStruct xidObj = genOracleXid(xid);
 
             dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
 
@@ -216,7 +215,7 @@ public class OceanBaseXaResource implements XAResource {
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_PREPARE(?) from dual");
-            StructImpl xidObj = genOracleXid(xid);
+            ObStruct xidObj = genOracleXid(xid);
             dispatchOracleCommand(commandBuf.toString(), xidObj);
         } else {
             execute("XA PREPARE " + xidToString(xid));
@@ -327,7 +326,7 @@ public class OceanBaseXaResource implements XAResource {
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_ROLLBACK(?) from dual");
-            StructImpl xidObj = genOracleXid(xid);
+            ObStruct xidObj = genOracleXid(xid);
             try {
                 dispatchOracleCommand(commandBuf.toString(), xidObj);
             } finally {
@@ -372,7 +371,7 @@ public class OceanBaseXaResource implements XAResource {
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_START(?, ?) from dual");
-            StructImpl xidObj = genOracleXid(xid);
+            ObStruct xidObj = genOracleXid(xid);
 
             try {
                 OceanBaseConnection mySQLConnection = this.connection;
@@ -410,7 +409,7 @@ public class OceanBaseXaResource implements XAResource {
         }
     }
 
-    private StructImpl genOracleXid(Xid xid) throws XAException {
+    private ObStruct genOracleXid(Xid xid) throws XAException {
         try {
             OceanBaseConnection mySQLConnection = this.connection;
             Object[] xidObj = new Object[3];
@@ -419,18 +418,18 @@ public class OceanBaseXaResource implements XAResource {
             xidObj[i++] = xid.getGlobalTransactionId();
             xidObj[i++] = xid.getBranchQualifier();
 
-            return (StructImpl) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
+            return (ObStruct) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
         } catch (SQLException sqlEx) {
             throw new XAException(XAException.XAER_INVAL);
         }
     }
 
-    private ResultSet dispatchOracleCommand(String command, StructImpl xid) throws XAException {
+    private ResultSet dispatchOracleCommand(String command, ObStruct xid) throws XAException {
         return dispatchOracleCommand(command, xid, null);
     }
 
-    private ResultSet dispatchOracleCommand(String command, StructImpl xid, Object param)
-                                                                                         throws XAException {
+    private ResultSet dispatchOracleCommand(String command, ObStruct xid, Object param)
+                                                                                       throws XAException {
         java.sql.PreparedStatement psStmt = null;
         try {
 

@@ -1,5 +1,6 @@
 package com.alipay.oceanbase.jdbc.extend.datatype;
 
+import com.alipay.oceanbase.jdbc.ObArray;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -8,7 +9,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
 
-public class ArrayImpl extends ComplexData implements Array, ResultSet {
+public class ArrayImpl extends ComplexData implements ObArray {
 
     private int      cur_pos            = -1;
     public final int COLUMN_INDEX_INDEX = 1;

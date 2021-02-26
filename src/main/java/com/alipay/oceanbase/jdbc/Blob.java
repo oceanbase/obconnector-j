@@ -42,7 +42,7 @@ class ObLobLocator {
     protected volatile OceanBaseConnection connection;
 }
 
-public class Blob implements java.sql.Blob, Serializable {
+public class Blob implements ObBlob, Serializable {
 
     private static final long      serialVersionUID     = -4736603161284649490L;
     protected byte[]               data                 = null;

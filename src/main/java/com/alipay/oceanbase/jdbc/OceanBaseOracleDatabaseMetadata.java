@@ -405,66 +405,57 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public ResultSet getTablePrivileges(String catalog, String schemaPattern,
                                         String tableNamePattern) throws SQLException {
-            PreparedStatement pstmt = this.connection.prepareStatement("SELECT NULL AS table_cat,\n       table_schema AS table_schem,\n       table_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_tab_privs\nWHERE table_schema LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\nORDER BY table_schem, table_name, privilege\n");
-            pstmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
-            pstmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
-            pstmt.closeOnCompletion();
-            ResultSet resultSet = pstmt.executeQuery();
-            return resultSet;
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       table_schema AS table_schem,\n       table_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_tab_privs\nWHERE table_schema LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\nORDER BY table_schem, table_name, privilege\n");
+        pstmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
+        pstmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
+        pstmt.closeOnCompletion();
+        ResultSet resultSet = pstmt.executeQuery();
+        return resultSet;
     }
 
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
                                   boolean approximate) throws SQLException {
 
-            Statement stmt = this.connection.createStatement();
-            String sql = "";
+        Statement stmt = this.connection.createStatement();
+        String sql = "";
 
-            sql = "select null as table_cat,\n" +
-                    "       owner as table_schem,\n" +
-                    "       table_name,\n" +
-                    "       0 as NON_UNIQUE,\n" +
-                    "       null as index_qualifier,\n" +
-                    "       null as index_name, 0 as type,\n" +
-                    "       0 as ordinal_position, null as column_name,\n" +
-                    "       null as asc_or_desc,\n" +
-                    "       num_rows as cardinality,\n" +
-                    "       blocks as pages,\n" +
-                    "       null as filter_condition\n" +
-                    "from all_tables\n" +
-                    "where table_name = '"+table+"'\n";
+        sql = "select null as table_cat,\n" + "       owner as table_schem,\n"
+              + "       table_name,\n" + "       0 as NON_UNIQUE,\n"
+              + "       null as index_qualifier,\n" + "       null as index_name, 0 as type,\n"
+              + "       0 as ordinal_position, null as column_name,\n"
+              + "       null as asc_or_desc,\n" + "       num_rows as cardinality,\n"
+              + "       blocks as pages,\n" + "       null as filter_condition\n"
+              + "from all_tables\n" + "where table_name = '" + table + "'\n";
 
-            String sql2 = "select null as table_cat,\n" +
-                    "       i.owner as table_schem,\n" +
-                    "       i.table_name,\n" +
-                    "       decode (i.uniqueness, 'UNIQUE', 0, 1),\n" +
-                    "       null as index_qualifier,\n" +
-                    "       i.index_name,\n" +
-                    "       1 as type,\n" +
-                    "       c.column_position as ordinal_position,\n" +
-                    "       c.column_name,\n" +
-                    "       null as asc_or_desc,\n" +
-                    "       i.distinct_keys as cardinality,\n" +
-                    "       i.leaf_blocks as pages,\n" +
-                    "       null as filter_condition\n" +
-                    "from all_indexes i, all_ind_columns c\n" +
-                    "where i.table_name = '"+table+"'\n";
-            String sql3 = "";
-            if (unique) {
-                sql3 = "  and i.uniqueness = 'UNIQUE'\n";
-            }
+        String sql2 = "select null as table_cat,\n" + "       i.owner as table_schem,\n"
+                      + "       i.table_name,\n"
+                      + "       decode (i.uniqueness, 'UNIQUE', 0, 1),\n"
+                      + "       null as index_qualifier,\n" + "       i.index_name,\n"
+                      + "       1 as type,\n" + "       c.column_position as ordinal_position,\n"
+                      + "       c.column_name,\n" + "       null as asc_or_desc,\n"
+                      + "       i.distinct_keys as cardinality,\n"
+                      + "       i.leaf_blocks as pages,\n" + "       null as filter_condition\n"
+                      + "from all_indexes i, all_ind_columns c\n" + "where i.table_name = '"
+                      + table + "'\n";
+        String sql3 = "";
+        if (unique) {
+            sql3 = "  and i.uniqueness = 'UNIQUE'\n";
+        }
 
-            String sql4 = "  and i.index_name = c.index_name\n  and i.table_owner = c.table_owner\n  and i.table_name = c.table_name\n  and i.owner = c.index_owner\n";
-            String sql5 = "order by non_unique, type, index_name, ordinal_position\n";
-            String sql6 =  sql +"union\n"+ sql2 + sql3 + sql4 + sql5;
-            stmt.closeOnCompletion();
-            ResultSet resultSet = stmt.executeQuery(sql6);
-            return resultSet;
+        String sql4 = "  and i.index_name = c.index_name\n  and i.table_owner = c.table_owner\n  and i.table_name = c.table_name\n  and i.owner = c.index_owner\n";
+        String sql5 = "order by non_unique, type, index_name, ordinal_position\n";
+        String sql6 = sql + "union\n" + sql2 + sql3 + sql4 + sql5;
+        stmt.closeOnCompletion();
+        ResultSet resultSet = stmt.executeQuery(sql6);
+        return resultSet;
     }
 
     public ResultSet getPrimaryKeys(String catalog, String schema, String table)
-            throws SQLException {
+                                                                                throws SQLException {
 
-        PreparedStatement pstmt = this.connection.prepareStatement("SELECT NULL AS table_cat,\n       c.owner AS table_schem,\n       c.table_name,\n       c.column_name,\n       c.position AS key_seq,\n       c.constraint_name AS pk_name\nFROM all_cons_columns c, all_constraints k\nWHERE k.constraint_type = 'P'\n  AND k.table_name = ?\n  AND k.owner like ? escape '/'\n  AND k.constraint_name = c.constraint_name \n  AND k.table_name = c.table_name \n  AND k.owner = c.owner \nORDER BY column_name\n");
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       c.owner AS table_schem,\n       c.table_name,\n       c.column_name,\n       c.position AS key_seq,\n       c.constraint_name AS pk_name\nFROM all_cons_columns c, all_constraints k\nWHERE k.constraint_type = 'P'\n  AND k.table_name = ?\n  AND k.owner like ? escape '/'\n  AND k.constraint_name = c.constraint_name \n  AND k.table_name = c.table_name \n  AND k.owner = c.owner \nORDER BY column_name\n");
         pstmt.setString(1, table);
         pstmt.setString(2, schema == null ? "%" : schema);
         pstmt.closeOnCompletion();
@@ -566,8 +557,9 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public ResultSet getColumnPrivileges(String catalog, String schema, String table,
-                                    String columnNamePattern) throws SQLException {
-        PreparedStatement pstmt = this.connection.prepareStatement("SELECT NULL AS table_cat,\n       OWNER AS table_schem,\n       table_name,\n       column_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_col_privs\nWHERE OWNER LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\n  AND column_name LIKE ? ESCAPE '/'\nORDER BY column_name, privilege\n");
+                                         String columnNamePattern) throws SQLException {
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       OWNER AS table_schem,\n       table_name,\n       column_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_col_privs\nWHERE OWNER LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\n  AND column_name LIKE ? ESCAPE '/'\nORDER BY column_name, privilege\n");
         pstmt.setString(1, schema == null ? "%" : schema);
         pstmt.setString(2, table == null ? "%" : table.toUpperCase());
         pstmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
@@ -648,13 +640,15 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         return true;
     }
 
-    public ResultSet keysQuery(String var1, String var2, String var3, String var4, String var5) throws SQLException {
+    public ResultSet keysQuery(String var1, String var2, String var3, String var4, String var5)
+                                                                                               throws SQLException {
         int var6 = 1;
         int var7 = var2 != null ? var6++ : 0;
         int var8 = var4 != null ? var6++ : 0;
         int var9 = var1 != null && var1.length() > 0 ? var6++ : 0;
         int var10 = var3 != null && var3.length() > 0 ? var6++ : 0;
-        PreparedStatement var11 = this.connection.prepareStatement("SELECT NULL AS pktable_cat,\n       p.owner as pktable_schem,\n       p.table_name as pktable_name,\n       pc.column_name as pkcolumn_name,\n       NULL as fktable_cat,\n       f.owner as fktable_schem,\n       f.table_name as fktable_name,\n       fc.column_name as fkcolumn_name,\n       fc.position as key_seq,\n       NULL as update_rule,\n       decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,\n       f.constraint_name as fk_name,\n       p.constraint_name as pk_name,\n       decode(f.deferrable,       'DEFERRABLE',5      ,'NOT DEFERRABLE',7      , 'DEFERRED', 6      ) deferrability \n      FROM all_cons_columns pc, all_constraints p,\n      all_cons_columns fc, all_constraints f\nWHERE 1 = 1\n"
+        PreparedStatement var11 = this.connection
+            .prepareStatement("SELECT NULL AS pktable_cat,\n       p.owner as pktable_schem,\n       p.table_name as pktable_name,\n       pc.column_name as pkcolumn_name,\n       NULL as fktable_cat,\n       f.owner as fktable_schem,\n       f.table_name as fktable_name,\n       fc.column_name as fkcolumn_name,\n       fc.position as key_seq,\n       NULL as update_rule,\n       decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,\n       f.constraint_name as fk_name,\n       p.constraint_name as pk_name,\n       decode(f.deferrable,       'DEFERRABLE',5      ,'NOT DEFERRABLE',7      , 'DEFERRED', 6      ) deferrability \n      FROM all_cons_columns pc, all_constraints p,\n      all_cons_columns fc, all_constraints f\nWHERE 1 = 1\n"
                               + (var7 != 0 ? "  AND p.table_name = ?\n" : "")
                               + (var8 != 0 ? "  AND f.table_name = ?\n" : "")
                               + (var9 != 0 ? "  AND p.owner = ?\n" : "")

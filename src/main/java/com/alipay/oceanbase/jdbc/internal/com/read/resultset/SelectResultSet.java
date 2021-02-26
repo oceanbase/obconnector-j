@@ -2,10 +2,8 @@ package com.alipay.oceanbase.jdbc.internal.com.read.resultset;
 
 import java.sql.Clob;
 
+import com.alipay.oceanbase.jdbc.*;
 import com.alipay.oceanbase.jdbc.Blob;
-import com.alipay.oceanbase.jdbc.OceanBaseConnection;
-import com.alipay.oceanbase.jdbc.OceanBaseResultSetMetaData;
-import com.alipay.oceanbase.jdbc.OceanBaseStatement;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
@@ -43,7 +41,7 @@ import static com.alipay.oceanbase.jdbc.internal.com.Packet.ERROR;
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
-public class SelectResultSet implements ResultSet {
+public class SelectResultSet implements ObResultSet {
 
     public static final int                 TINYINT1_IS_BIT     = 1;
     public static final int                 YEAR_IS_DATE_TYPE   = 2;
@@ -1334,6 +1332,16 @@ public class SelectResultSet implements ResultSet {
         return getINTERVALDS(findColumn(columnLabel));
     }
 
+    @Override
+    public NUMBER getNUMBER(int columnIndex) throws SQLException {
+        return null;
+    }
+
+    @Override
+    public NUMBER getNUMBER(String columnName) throws SQLException {
+        return null;
+    }
+
     public INTERVALDS getINTERVALDS(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         return row.getInternalINTERVALDS(columnsInformation[columnIndex - 1]);
@@ -1756,7 +1764,6 @@ public class SelectResultSet implements ResultSet {
         }
         checkObjectRange(columnIndex);
         int internalColumnIndex = columnIndex - 1;
-        ArrayImpl array = null;
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
@@ -1780,7 +1787,6 @@ public class SelectResultSet implements ResultSet {
 
         checkObjectRange(columnIndex);
         int internalColumnIndex = columnIndex - 1;
-        ArrayImpl array = null;
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();

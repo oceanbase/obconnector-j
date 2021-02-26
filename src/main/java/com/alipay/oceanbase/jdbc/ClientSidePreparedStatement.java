@@ -4,11 +4,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
-import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.logging.Logger;
 import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;

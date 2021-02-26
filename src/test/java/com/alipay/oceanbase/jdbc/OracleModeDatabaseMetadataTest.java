@@ -291,28 +291,30 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     @Test
     public void testGetTablesWithParameter() throws SQLException {
-        createTable("test_getTables","a INT NOT NULL primary key, b VARCHAR(32), c INT , "
-                + "d VARCHAR(5)",null);
-        ResultSet rs = sharedConnection.getMetaData().getTables(sharedConnection.getCatalog(), sharedConnection.getSchema(), "test_getTables", null);
+        createTable("test_getTables", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
+                                      + "d VARCHAR(5)", null);
+        ResultSet rs = sharedConnection.getMetaData().getTables(sharedConnection.getCatalog(),
+            sharedConnection.getSchema(), "test_getTables", null);
         rs.next();
 
-        assertEquals(sharedConnection.getSchema(),rs.getString("TABLE_SCHEM"));
-        assertEquals("TEST_GETTABLES",rs.getString("TABLE_NAME"));
-        assertEquals("TABLE",rs.getString("TABLE_TYPE"));
+        assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GETTABLES", rs.getString("TABLE_NAME"));
+        assertEquals("TABLE", rs.getString("TABLE_TYPE"));
     }
 
     @Test
     public void testGetBestRowIdentifier() throws SQLException {
 
-        ResultSet rs = rs = sharedConnection.getMetaData().getBestRowIdentifier(null, sharedConnection.getSchema(), "TEST_GETTABLES",1,false);
-        assertEquals(true,rs.next());
+        ResultSet rs = rs = sharedConnection.getMetaData().getBestRowIdentifier(null,
+            sharedConnection.getSchema(), "TEST_GETTABLES", 1, false);
+        assertEquals(true, rs.next());
     }
 
     @Test
     public void testGetTableTypes() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getTableTypes();
         rs.next();
-        assertEquals("SYNONYM",rs.getString(1));
+        assertEquals("SYNONYM", rs.getString(1));
     }
 
     @Test
@@ -737,5 +739,4 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             }
         }
     }
-
 }

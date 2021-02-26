@@ -1,12 +1,7 @@
 package com.alipay.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
-import java.sql.Array;
 import java.sql.SQLException;
-import java.sql.Struct;
-import java.util.TimeZone;
-
-import com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
@@ -14,8 +9,6 @@ import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
-import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
-import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 
 public class ComStmtExecute {
 

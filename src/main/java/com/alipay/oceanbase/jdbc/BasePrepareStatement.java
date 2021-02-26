@@ -13,15 +13,13 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.alipay.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
-import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public abstract class BasePrepareStatement extends OceanBaseStatement implements PreparedStatement {
+public abstract class BasePrepareStatement extends OceanBaseStatement implements ObPrepareStatement {
 
     /**
      * The ISO-like date-time formatter that formats or parses a date-time with offset and zone, such
@@ -416,7 +414,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         this.setParameter(parameterIndex,
-            new OBArrayParameter((ArrayImpl) array, this.protocol.getOptions())); // todo
+            new OBArrayParameter((ObArray) array, this.protocol.getOptions())); // todo
     }
 
     /**
@@ -1681,6 +1679,6 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         setParameter(parameterIndex,
-            new OBStructParameter((StructImpl) x, this.protocol.getOptions()));
+            new OBStructParameter((ObStruct) x, this.protocol.getOptions()));
     }
 }

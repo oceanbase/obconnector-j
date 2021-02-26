@@ -1,10 +1,8 @@
 package com.alipay.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.alipay.oceanbase.jdbc.extend.datatype.ArrayImpl;
-import com.alipay.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.alipay.oceanbase.jdbc.ObArray;
 import com.alipay.oceanbase.jdbc.extend.datatype.ComplexUtil;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
-import com.alipay.oceanbase.jdbc.internal.io.output.AbstractPacketOutputStream;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.alipay.oceanbase.jdbc.util.Options;
 
@@ -12,10 +10,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 public class OBArrayParameter implements Cloneable, ParameterHolder {
-    ArrayImpl arrayValue;
-    Options   options;
+    ObArray arrayValue;
+    Options options;
 
-    public OBArrayParameter(ArrayImpl arrayImpl, Options options) {
+    public OBArrayParameter(ObArray arrayImpl, Options options) {
         this.arrayValue = arrayImpl;
         this.options = options;
     }
@@ -25,7 +23,7 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
      * https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
      */
     public void storeArrayTypeInfo(PacketOutputStream packet) throws IOException, SQLException {
-        ArrayImpl array = (ArrayImpl) arrayValue;
+        ObArray array = arrayValue;
         packet.writeFieldLength(0);
         packet.writeFieldLength(0);
         packet.writeFieldLength(array.getComplexType().getVersion());

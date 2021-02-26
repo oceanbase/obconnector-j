@@ -12,7 +12,7 @@ import java.util.Arrays;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class Clob extends Blob implements java.sql.Clob, java.sql.NClob, Serializable {
+public class Clob extends Blob implements ObClob, java.sql.NClob, Serializable {
 
     private static final long serialVersionUID = -3066501059817815286L;
     private static int        maxLength        = 1 * 1024 * 1024 * 1024;

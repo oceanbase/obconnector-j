@@ -76,12 +76,12 @@ public class CallStatementTest extends BaseTest {
             createFunction("stmtSimpleFunction",
                 "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
             PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("{call stmtSimpleFunction(?,?,?)}");
-            preparedStatement.setInt(1, 2);
-            preparedStatement.setInt(2, 2);
-            preparedStatement.setInt(3, 2);
-            preparedStatement.execute();
-            fail("call mustn't work for function, use SELECT <function>");
+                .prepareStatement("select stmtSimpleFunction(2,3,4) ");
+            ResultSet result1 = preparedStatement.executeQuery();
+            result1.next();
+            Assert.assertTrue("not equals a ", result1.getInt(1) == 2);
+
+            //            fail("call mustn't work for function, use SELECT <function>");
         } catch (SQLSyntaxErrorException sqle) {
             assertTrue("error : " + sqle.getMessage(),
                 sqle.getMessage().contains("stmtSimpleFunction does not exist"));
@@ -104,12 +104,14 @@ public class CallStatementTest extends BaseTest {
 
     @Test
     public void prepareBatchMultiResultSets() throws Exception {
+        Assume.assumeTrue(!sharedUsePrepare());
         PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
         stmt.addBatch();
         stmt.addBatch();
         try {
             stmt.executeBatch();
         } catch (SQLException e) {
+            e.printStackTrace();
             assertTrue(e.getMessage().contains(
                 "Select command are not permitted via executeBatch() command"));
         }
@@ -158,21 +160,9 @@ public class CallStatementTest extends BaseTest {
     } catch (SQLSyntaxErrorException e) {
       assertTrue(
           e.getMessage().contains("OUT or INOUT argument 0 for routine")
-//              && e.getMessage()
-//                  .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
               && e.getMessage().contains("Query is: call inOutParam(1)"));
     }
   }
-
-    @Test
-    public void prepareStmtInoutParam() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
-        // must work, but out parameter isn't accessible
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("{call inOutParam(?)}");
-        preparedStatement.setInt(1, 1);
-        preparedStatement.execute();
-    }
 
     @Test
     public void getProcedures() throws SQLException {
@@ -194,13 +184,14 @@ public class CallStatementTest extends BaseTest {
         createProcedure("callabletest1", "()\nBEGIN\nSELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "callabletest1");
         if (rs.next()) {
-            assertTrue("callabletest1".equals(rs.getString(3)));
+            assertTrue("callabletest1".equalsIgnoreCase(rs.getString(3)));
         } else {
             fail();
         }
     }
 
-    @Test
+    // fixme
+    @Ignore
     public void testMetaWildcard() throws Exception {
         createProcedure("testMetaWildcard", "(x int, out y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,

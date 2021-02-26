@@ -311,8 +311,7 @@ public class Results {
                 protocol.getLock().unlock();
             }
         }
-
-        if (cmdInformation.moreResults() && !batch) {
+        if (cmdInformation != null && cmdInformation.moreResults() && !batch) {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) {
                 resultSet.close();

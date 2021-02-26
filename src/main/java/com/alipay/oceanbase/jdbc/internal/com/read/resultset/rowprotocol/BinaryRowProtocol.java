@@ -10,6 +10,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
+import com.alipay.oceanbase.jdbc.ObArray;
+import com.alipay.oceanbase.jdbc.ObStruct;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.alipay.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
@@ -1871,7 +1873,7 @@ public class BinaryRowProtocol extends RowProtocol {
         Array ret = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        ret = (ArrayImpl) getComplexField(buffer, complexDataType);
+        ret = (ObArray) getComplexField(buffer, complexDataType);
         pos = buffer.getPosition();
         return ret;
     }
@@ -1885,10 +1887,10 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
                                                                                                  throws SQLException {
-        StructImpl struct = null;
+        ObStruct struct = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        struct = (StructImpl) getComplexField(buffer, complexDataType);
+        struct = (ObStruct) getComplexField(buffer, complexDataType);
         pos = buffer.getPosition();
         return struct;
     }

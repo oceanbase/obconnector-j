@@ -1,17 +1,16 @@
 package com.alipay.oceanbase.jdbc.internal.com.send.parameters;
 
+import com.alipay.oceanbase.jdbc.ObStruct;
 import com.alipay.oceanbase.jdbc.extend.datatype.ComplexUtil;
-import com.alipay.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.alipay.oceanbase.jdbc.util.Options;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 public class OBStructParameter implements Cloneable, ParameterHolder {
-    StructImpl structValue;
-    Options    options;
+    ObStruct structValue;
+    Options  options;
 
     /**
      * see complex data type protocol
@@ -19,7 +18,7 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
      */
     public void storeStructTypeInfo(PacketOutputStream packet) throws IOException {
 
-        StructImpl struct = structValue;
+        ObStruct struct = structValue;
         byte[] tmp = struct.getComplexType().getSchemaName().getBytes();
         packet.writeFieldLength(tmp.length);
         packet.write(tmp);
@@ -29,7 +28,7 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
         packet.writeFieldLength(struct.getComplexType().getVersion());
     }
 
-    public OBStructParameter(StructImpl structImpl, Options options) {
+    public OBStructParameter(ObStruct structImpl, Options options) {
         this.structValue = structImpl;
         this.options = options;
     }

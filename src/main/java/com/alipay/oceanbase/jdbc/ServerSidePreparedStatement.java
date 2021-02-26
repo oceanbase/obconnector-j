@@ -303,7 +303,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
         for (int counter = 0; counter < queryParameterSize; counter++) {
           ParameterHolder[] parameterHolder = queryParameters.get(counter);
           try {
-            serverPrepareResult.resetParameterTypeHeader();
+            if(serverPrepareResult != null){
+              serverPrepareResult.resetParameterTypeHeader();
+            }
             protocol.executePreparedQuery(
                 mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
           } catch (SQLException queryException) {

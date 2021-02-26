@@ -1060,7 +1060,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (rs.next()) {
             if (!this.getProtocol().isOracleMode()) {
                 response = rs.getString(1);
-            }else {
+            } else {
                 response = rs.getString(2);
             }
             switch (response) {
@@ -1696,7 +1696,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             ComplexDataType.TYPE_COLLECTION);
         parentType.setAttrCount(1);
         parentType.setAttrType(0, attrType);
-        ArrayImpl array = new ArrayImpl(parentType);
+        ObArray array = new ArrayImpl(parentType);
         array.setAttrData(elements);
         return array;
     }
@@ -1862,7 +1862,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (fetchTypeFromRemote) {
             type = getComplexDataTypeFromRemote(typeName);
         }
-        StructImpl struct = new StructImpl(type);
+        ObStruct struct = new StructImpl(type);
         struct.setAttrData(attributes);
         return struct;
     }
@@ -2017,7 +2017,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         //        return null;
         if (this.protocol.isOracleMode()) {
             return this.getDatabase().toUpperCase();
-//            return this.getUsername();
+            //            return this.getUsername();
         } else {
             return this.getCatalog();
         }
