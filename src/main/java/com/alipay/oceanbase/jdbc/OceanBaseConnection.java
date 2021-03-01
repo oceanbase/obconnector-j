@@ -1098,15 +1098,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getProtocol().isOracleMode()) {
             sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
         } else {
-            sql = "SELECT @@session.tx_isolation";
-        }
-
-        if (!protocol.isServerMariaDb()) {
-            if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-                || (protocol.getMajorServerVersion() < 8 && protocol
-                    .versionGreaterOrEqual(5, 7, 20))) {
-                sql = "SELECT @@transaction_isolation";
-            }
+            sql = "SELECT @@transaction_isolationn";
         }
 
         ResultSet rs = stmt.executeQuery(sql);
