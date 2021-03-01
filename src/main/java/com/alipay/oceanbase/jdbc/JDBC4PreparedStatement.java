@@ -54,9 +54,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -67,9 +67,9 @@ import com.alipay.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.alipay.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class JDBC4PrepareStatement extends BasePrepareStatement {
+public class JDBC4PreparedStatement extends BasePrepareStatement {
 
-  private static final Logger logger = LoggerFactory.getLogger(JDBC4PrepareStatement.class);
+  private static final Logger logger = LoggerFactory.getLogger(JDBC4PreparedStatement.class);
   private final List<ParameterHolder[]> parameterList = new ArrayList<>();
   private ClientPrepareResult prepareResult;
   private String sqlQuery;
@@ -92,7 +92,7 @@ public class JDBC4PrepareStatement extends BasePrepareStatement {
    * @param exceptionFactory exception factory
    * @throws SQLException exception
    */
-  public JDBC4PrepareStatement(
+  public JDBC4PreparedStatement(
       OceanBaseConnection connection,
       String sql,
       int resultSetScrollType,
@@ -119,9 +119,9 @@ public class JDBC4PrepareStatement extends BasePrepareStatement {
    * @return Clone statement.
    * @throws CloneNotSupportedException if any error occur.
    */
-  public JDBC4PrepareStatement clone(OceanBaseConnection connection)
+  public JDBC4PreparedStatement clone(OceanBaseConnection connection)
       throws CloneNotSupportedException {
-    JDBC4PrepareStatement clone = (JDBC4PrepareStatement) super.clone(connection);
+    JDBC4PreparedStatement clone = (JDBC4PreparedStatement) super.clone(connection);
     clone.sqlQuery = sqlQuery;
     clone.prepareResult = prepareResult;
     clone.parameters = new ParameterHolder[prepareResult.getParamCount()];
@@ -607,7 +607,8 @@ public class JDBC4PrepareStatement extends BasePrepareStatement {
     } catch (IOException e) {
       throw new SQLException("IOException :"+e.getMessage());
     }
-
-    return byteArrayOutputStream.toString();
+    byte[] b  = byteArrayOutputStream.toByteArray();
+    byte[] original = Arrays.copyOfRange(b, 4,b.length); // skip the length
+    return new String(original);
   }
 }

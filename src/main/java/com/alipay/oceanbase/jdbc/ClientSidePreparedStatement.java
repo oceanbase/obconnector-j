@@ -54,7 +54,7 @@ import com.alipay.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.sql.SQLException;
 
-public class ClientSidePreparedStatement extends JDBC4PrepareStatement {
+public class ClientSidePreparedStatement extends JDBC4PreparedStatement {
     /**
      * Constructor.
      *
