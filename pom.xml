@@ -111,6 +111,7 @@
             <artifactId>ojdbc6</artifactId>
             <version>11.2.0.3</version>
             <scope>test</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
