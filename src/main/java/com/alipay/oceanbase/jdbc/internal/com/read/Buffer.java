@@ -50,18 +50,17 @@
  */
 package com.alipay.oceanbase.jdbc.internal.com.read;
 
-import com.alipay.oceanbase.jdbc.internal.util.constant.Constants;
-
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Buffer {
 
-    public byte[]     buf;
-    public int        position;
-    public int        limit;
-    static final long NULL_LENGTH = -1;
+    public byte[]              buf;
+    public int                 position;
+    public int                 limit;
+    static final long          NULL_LENGTH      = -1;
+    public final static byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     public Buffer(final byte[] buf, int limit) {
         this.buf = buf;
@@ -249,7 +248,7 @@ public class Buffer {
         }
 
         if (len == 0) {
-            return Constants.EMPTY_BYTE_ARRAY;
+            return EMPTY_BYTE_ARRAY;
         }
 
         this.position += offset;
