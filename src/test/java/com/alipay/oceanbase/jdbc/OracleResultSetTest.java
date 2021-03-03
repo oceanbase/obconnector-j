@@ -913,6 +913,21 @@ public class OracleResultSetTest extends BaseOracleTest {
         assertTrue(rs.getShort("test") == -1);
         assertTrue(rs.getLong("test") == -1);
         assertTrue(rs.getFloat("test") == -1.3333F);
+
+        createTable("USER2_TEST", "id number(10),username varchar2(200) ");
+        stmt.execute("insert into USER2_TEST values(1,'tom')");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ID as test FROM USER2_TEST WHERE ID = 1 ");
+        rs = preparedStatement.executeQuery();
+        assertTrue(rs.next());
+        assertTrue(rs.getInt("test") == 1);
+        assertTrue(rs.getByte("test") == 1);
+        assertTrue(rs.getShort("test") == 1);
+        assertTrue(rs.getLong("test") == 1);
+        assertTrue(rs.getDouble("test") == 1.0);
+        assertTrue(rs.getFloat("test") == 1.0);
+        assertTrue(rs.getBoolean("test") == true);
+        assertTrue(rs.getString("test").equals("1"));
     }
 
     @Test

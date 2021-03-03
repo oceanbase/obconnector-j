@@ -1040,4 +1040,55 @@ public class ConnectionTest extends BaseTest {
       assertEquals(sharedConnection.getCatalog(), "SYS");
     }
   }
+
+
+  @Test
+  public void testTransactionIsolation() throws SQLException {
+    boolean support = true;
+
+    assertEquals(2, sharedConnection.getTransactionIsolation());
+
+    try {
+      sharedConnection.setTransactionIsolation(Connection.TRANSACTION_NONE);
+    } catch (SQLException e) {
+      support = false;
+    }
+
+    assertEquals(false, support);
+
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
+
+    support = true;
+    try {
+      sharedConnection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+    } catch (SQLException e) {
+      support = false;
+    }
+    assertEquals(false, support);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
+
+    support = true;
+    try {
+      sharedConnection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+    } catch (SQLException e) {
+      support = false;
+    }
+    assertEquals(false, support);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
+
+    support = true;
+    try {
+      sharedConnection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    } catch (SQLException e) {
+      support = false;
+      System.out.println("support:"+support);
+    }
+    assertEquals(false, support);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+            sharedConnection.getTransactionIsolation());
+  }
+
 }

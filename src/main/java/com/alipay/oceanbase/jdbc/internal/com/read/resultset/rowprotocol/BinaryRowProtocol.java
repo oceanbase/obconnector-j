@@ -563,6 +563,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.longValue();
             case VARSTRING:
             case VARCHAR:
+            case OBDECIMAL:
             case STRING:
                 return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
             default:
@@ -1286,6 +1287,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.byteValue();
             case VARSTRING:
             case VARCHAR:
+            case OBDECIMAL:
             case STRING:
                 value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
                 break;
@@ -1345,6 +1347,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.shortValue();
             case VARSTRING:
             case VARCHAR:
+            case OBDECIMAL:
             case STRING:
                 value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
                 break;
@@ -1475,6 +1478,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case DOUBLE:
                 return BigInteger.valueOf((long) getInternalDouble(columnInfo));
             case DECIMAL:
+            case OBDECIMAL:
             case OLDDECIMAL:
                 return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
