@@ -52,9 +52,9 @@ package com.alipay.oceanbase.jdbc;
 
 import java.sql.*;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -66,15 +66,21 @@ import com.alipay.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.util.Options;
 
-public class
-
-JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
+public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     public static final String        DRIVER_NAME              = "OceanBase Connector/J";
     private final UrlParser           urlParser;
     private final OceanBaseConnection connection;
     private boolean                   datePrecisionColumnExist = true;
     Protocol                          protocol                 = null;
+    private static final Pattern      RETURN_PATTERN           = Pattern
+                                                                   .compile(
+                                                                       "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                       Pattern.CASE_INSENSITIVE);
+    private static final Pattern      PARAMETER_PATTERN        = Pattern
+                                                                   .compile(
+                                                                       "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                       Pattern.CASE_INSENSITIVE);
 
     /**
      * Constructor.
@@ -2200,8 +2206,22 @@ JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
              * For now, just a dummy result set is returned.
              */
             try {
-                ResultSet procsAndOrFuncsRs = getProcAndFunctions(catalog, procedureNamePattern);
-                return getCallStmtParameterTypes(catalog, procedureNamePattern);
+                String[] columnNames = { "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME",
+                        "COLUMN_NAME", "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION",
+                        "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF",
+                        "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH",
+                        "ORDINAL_POSITION", "IS_NULLABLE", "SPECIFIC_NAME" };
+                ColumnType[] columnTypes = { ColumnType.ENUM, ColumnType.ENUM, ColumnType.ENUM,
+                        ColumnType.ENUM, ColumnType.ENUM, ColumnType.SMALLINT, ColumnType.ENUM,
+
+                        ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT,
+                        ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.ENUM, ColumnType.ENUM,
+
+                        ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
+                        ColumnType.INTEGER, ColumnType.ENUM, ColumnType.ENUM };
+                ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
+                    true, columnNames, columnTypes);
+                return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
             }
@@ -2209,107 +2229,344 @@ JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return null;
     }
 
-    ResultSet  getProcAndFunctions(String catalog,String procedureNamePattern) throws SQLException {
-        String[] columnNames = {
-                "PROCEDURE_CAT",
-                "PROCEDURE_SCHEM",
-                "PROCEDURE_NAME",
-                "COLUMN_NAME",
-                "COLUMN_TYPE",
-                "DATA_TYPE",
-                "TYPE_NAME",
-                "PRECISION",
-                "LENGTH",
-                "SCALE",
-                "RADIX",
-                "NULLABLE",
-                "REMARKS",
-                "COLUMN_DEF",
-                "SQL_DATA_TYPE",
-                "SQL_DATETIME_SUB",
-                "CHAR_OCTET_LENGTH",
-                "ORDINAL_POSITION",
-                "IS_NULLABLE",
-                "SPECIFIC_NAME"
-        };
-        ColumnType[] columnTypes = {
-                ColumnType.ENUM,
-                ColumnType.ENUM,
-                ColumnType.ENUM,
-                ColumnType.ENUM,
-                ColumnType.ENUM,
-                ColumnType.SMALLINT,
-                ColumnType.ENUM,
+    ResultSet getProcAndFuncs(String catalog, String procedureNamePattern,boolean isProcedure,boolean isFunction,String[] columnNames,ColumnType[] columnTypes) throws SQLException {
 
-                ColumnType.INTEGER,
-                ColumnType.INTEGER,
-                ColumnType.SMALLINT,
-                ColumnType.SMALLINT,
-                ColumnType.SMALLINT,
-                ColumnType.ENUM,
-                ColumnType.ENUM,
-
-                ColumnType.INTEGER,
-                ColumnType.INTEGER,
-                ColumnType.INTEGER,
-                ColumnType.INTEGER,
-                ColumnType.ENUM,
-                ColumnType.ENUM
-        };
-        // todo for each multi catlogs
         String db = catalog;
 
         ResultSet results = null;
-        boolean needsClientFiltering = true;
 
-        StringBuilder selectFromMySQLProcSQL = new StringBuilder();
+        StringBuilder mysqlProceSql = new StringBuilder();
 
-        selectFromMySQLProcSQL
+        mysqlProceSql
                 .append("SELECT name, type, comment FROM mysql.proc WHERE ");
-//            if (returnProcedures && !returnFunctions) {
-//                selectFromMySQLProcSQL.append("type = 'PROCEDURE' AND ");
-//            } else if (!returnProcedures && returnFunctions) {
-//                selectFromMySQLProcSQL.append("type = 'FUNCTION' AND ");
-//            }
-        selectFromMySQLProcSQL.append("name LIKE ? AND db <=> ? ORDER BY name, type");
+        if (isProcedure && !isFunction) {
+            mysqlProceSql.append("type = 'PROCEDURE' AND ");
+        } else if (!isProcedure && isFunction) {
+            mysqlProceSql.append("type = 'FUNCTION' AND ");
+        }
+        mysqlProceSql.append("name LIKE ? AND db <=> ? ORDER BY name, type");
 
-        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(selectFromMySQLProcSQL
+        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(mysqlProceSql
                 .toString());
 
-
-        //
-        // Try using system tables first, as this is a little bit more efficient....
-        //
-        if (db != null) {
-//                    if (DatabaseMetaData.this.conn.lowerCaseTableNames()) {
-//                        db = db.toLowerCase();
-//                    }
+        if (db != null || this.protocol.getDatabase() != null) {
+            db = (db == null) ? this.protocol.getDatabase() : db;
             proceduresStmt.setString(2, db);
         } else {
             proceduresStmt.setNull(2, Types.VARCHAR);
         }
-
-        int nameIndex = 1;
-
         proceduresStmt.setString(1, procedureNamePattern);
         results = proceduresStmt.executeQuery();
-        needsClientFiltering = false;
 
         String[] data = new String[9];
         List<String[]> list = new ArrayList<>();
-        int i = 0;
-        while (results.next()) {
+        return getCallStmtParameterTypes(catalog, results,columnNames,columnTypes);
+    }
+
+    class TypeInfo {
+        int    bufferLength;
+        int    columnSize;
+        String decimalDigits = null;
+        String isNullable;
+        int    nullability;
+        int    numPrecRadix  = 10;
+        String typeName;
+
+        TypeInfo(String fullTypeName) {
+            bufferLength = 65535;
+            boolean isUnsigned = false;
+            this.nullability = java.sql.DatabaseMetaData.columnNullable;
+            this.isNullable = "YES";
+            int indexUnsigned = fullTypeName.toLowerCase(Locale.ROOT).indexOf("unsigned");
+            if (indexUnsigned != -1) {
+                fullTypeName = fullTypeName.substring(0, indexUnsigned - 1);
+                isUnsigned = true;
+            }
+            this.typeName = fullTypeName;
+
+            if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("enum")) {
+                String sub = fullTypeName.substring(fullTypeName.indexOf("("),
+                    fullTypeName.indexOf(")"));
+                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(sub, ",");
+                int length = 0;
+                while (tokenizer.hasMoreTokens()) {
+                    length = Math.max(length, (tokenizer.nextToken().length() - 2));
+                }
+                this.columnSize = length;
+            }
+            if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("set")) {
+                String sub = fullTypeName.substring(fullTypeName.indexOf("("),
+                    fullTypeName.indexOf(")"));
+                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(sub, ",");
+                int length = 0;
+                this.columnSize = 0;
+                int num = tokenizer.countTokens();
+                if (num > 0) {
+                    length += (num - 1);
+                }
+                while (tokenizer.hasMoreTokens()) {
+                    String setMember = tokenizer.nextToken().trim();
+
+                    if (setMember.startsWith("'") && setMember.endsWith("'")) {
+                        length += setMember.length() - 2;
+                    } else {
+                        length += setMember.length();
+                    }
+                }
+                this.columnSize = length;
+            } else if (fullTypeName.indexOf(",") != -1) {
+                this.columnSize = Integer.valueOf(fullTypeName.substring(
+                    fullTypeName.indexOf("(") + 1, fullTypeName.indexOf(",")));
+                this.decimalDigits = fullTypeName.substring(fullTypeName.indexOf(",") + 1,
+                    fullTypeName.indexOf(")"));
+
+            } else {
+                if ((fullTypeName.toLowerCase(Locale.ROOT).indexOf("char") != -1
+                     || fullTypeName.toLowerCase(Locale.ROOT).indexOf("text") != -1
+                     || fullTypeName.toLowerCase(Locale.ROOT).indexOf("binary") != -1
+                     || fullTypeName.toLowerCase(Locale.ROOT).indexOf("blob") != -1 || fullTypeName
+                    .toLowerCase(Locale.ROOT).indexOf("bit") != -1)
+                    && fullTypeName.indexOf("(") != -1) {
+                    int endIndex = fullTypeName.indexOf(")");
+                    if (endIndex != -1) {
+                        endIndex = fullTypeName.length();
+                    }
+                    this.columnSize = Integer.valueOf(fullTypeName.substring(
+                        fullTypeName.indexOf("(") + 1, endIndex));
+                    // Adjust for pseudo-boolean  todo
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("tinyint")) {
+                    // Adjust for pseudo-boolean  todo
+                    this.columnSize = 5;
+                    this.decimalDigits = "0";
+                }
+                if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("smallint")) {
+                    this.columnSize = 5;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("mediumint")) {
+                    this.columnSize = isUnsigned ? 8 : 7;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("int")) {
+                    this.columnSize = 10;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("integer")) {
+                    this.columnSize = 10;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("bigint")) {
+                    this.columnSize = isUnsigned ? 20 : 19;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("int24")) {
+                    this.columnSize = 19;
+                    this.decimalDigits = "0";
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("real")) {
+                    this.columnSize = 12;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("float")) {
+                    this.columnSize = 12;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("decimal")) {
+                    this.columnSize = 12;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("numeric")) {
+                    this.columnSize = 12;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("double")) {
+                    this.columnSize = 12;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("char")) {
+                    this.columnSize = 1;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("varchar")) {
+                    this.columnSize = 255;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("timestamp")) {
+                    this.columnSize = 19;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("datetime")) {
+                    this.columnSize = 19;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("date")) {
+                    this.columnSize = 10;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("time")) {
+                    this.columnSize = 8;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("tinyblob")) {
+                    this.columnSize = 255;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("blob")) {
+                    this.columnSize = 65535;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("mediumblob")) {
+                    this.columnSize = 16777215;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("longblob")) {
+                    this.columnSize = Integer.MAX_VALUE;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("tinytext")) {
+                    this.columnSize = 255;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("text")) {
+                    this.columnSize = 65535;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("mediumtext")) {
+                    this.columnSize = 16777215;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("longtext")) {
+                    this.columnSize = Integer.MAX_VALUE;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("enum")) {
+                    this.columnSize = 255;
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("set")) {
+                    this.columnSize = 255;
+                }
+            }
+        }
+    }
+
+    private int mapMariaDbTypeToJdbc(String str) {
+        switch (str.toUpperCase(Locale.ROOT)) {
+            case "BIT":
+                return Types.BIT;
+            case "TINYINT":
+                return Types.TINYINT;
+            case "SMALLINT":
+                return Types.SMALLINT;
+            case "MEDIUMINT":
+                return Types.INTEGER;
+            case "INT":
+                return Types.INTEGER;
+            case "INTEGER":
+                return Types.INTEGER;
+            case "LONG":
+                return Types.INTEGER;
+            case "BIGINT":
+                return Types.BIGINT;
+            case "INT24":
+                return Types.INTEGER;
+            case "REAL":
+                return Types.DOUBLE;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DECIMAL":
+                return Types.DECIMAL;
+            case "NUMERIC":
+                return Types.NUMERIC;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "CHAR":
+                return Types.CHAR;
+            case "VARCHAR":
+                return Types.VARCHAR;
+            case "DATE":
+                return Types.DATE;
+            case "TIME":
+                return Types.TIME;
+            case "YEAR":
+                return Types.SMALLINT;
+            case "TIMESTAMP":
+                return Types.TIMESTAMP;
+            case "DATETIME":
+                return Types.TIMESTAMP;
+            case "TINYBLOB":
+                return Types.BINARY;
+            case "BLOB":
+                return Types.LONGVARBINARY;
+            case "MEDIUMBLOB":
+                return Types.LONGVARBINARY;
+            case "LONGBLOB":
+                return Types.LONGVARBINARY;
+            case "TINYTEXT":
+                return Types.VARCHAR;
+            case "TEXT":
+                return Types.LONGVARCHAR;
+            case "MEDIUMTEXT":
+                return Types.LONGVARCHAR;
+            case "LONGTEXT":
+                return Types.LONGVARCHAR;
+            case "ENUM":
+                return Types.VARCHAR;
+            case "SET":
+                return Types.VARCHAR;
+            case "GEOMETRY":
+                return Types.LONGVARBINARY;
+            case "VARBINARY":
+                return Types.VARBINARY;
+            default:
+                return Types.OTHER;
+        }
+    }
+
+    protected int getColumnType(boolean isOutParam, boolean isInParam, boolean isReturnParam,
+                                boolean forGetFunctionColumns) {
+        if (isInParam && isOutParam) {
+            return procedureColumnInOut;
+        } else if (isInParam) {
+            return procedureColumnIn;
+        } else if (isOutParam) {
+            return procedureColumnOut;
+        } else if (isReturnParam) {
+            return procedureColumnReturn;
+        } else {
+            return procedureColumnUnknown;
+        }
+    }
+
+    private ResultSet parseParamListProc(boolean isFunction, String paramList,String catalog,String procName,String[] columnNames,ColumnType[] columnTypes) throws SQLException {
+
+        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        String[] data = new String[20];
+        List<String[]> list = new ArrayList<>();
+        while (matcher2.find()) {
+            String direction = matcher2.group(1);
+            if (direction != null) {
+                direction = direction.trim();
+            }
+            boolean isInParam = false;
+            boolean isOutParam = false;
+            boolean isReturnParam = false;
+            boolean forGetFunctionColumns = false;
+            if (direction == null || direction.equalsIgnoreCase("IN")) {
+                isInParam = true;
+            } else if (direction.equalsIgnoreCase("OUT")) {
+                isOutParam = true;
+            } else if (direction.equalsIgnoreCase("INOUT")) {
+                isInParam = true;
+                isOutParam = true;
+            } else {
+                throw new SQLException(
+                        "unknown parameter direction " + direction + "for "); // todo
+            }
+            String paramName = matcher2.group(2).trim();
+            TypeInfo typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+            int sqlType = mapMariaDbTypeToJdbc(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+            if (paramName.startsWith("`") && paramName.endsWith("`")) {
+                paramName = paramName.substring(1, paramName.length() - 1);
+            }
             data[0] = catalog;
             data[1] = null;
-            data[2] = results.getString(1);
-            data[3] = null;
-            data[4] = null;
-            data[5] = null;
-            data[6] = results.getString("comment");
-            data[7] = "1";
-            data[8] = procedureNamePattern;
-            i++;
-            String[] tmp = new String[9];
+            data[2] = procName;
+            data[3] = paramName;
+            data[4] = String.valueOf(getColumnType(isOutParam, isInParam, isReturnParam,
+                    forGetFunctionColumns));
+            data[5] = Integer.toString(sqlType);
+            data[6] = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
+            data[7] = String.valueOf(typeInfo.columnSize);
+            data[8] = data[7];
+            data[9] = typeInfo.decimalDigits;
+            data[10] = String.valueOf(typeInfo.numPrecRadix);
+            switch(typeInfo.nullability) {
+                case columnNoNulls:
+                    data[11] = String.valueOf(procedureNoNulls);
+                    break;
+
+                case columnNullable:
+                    data[11] = String.valueOf(procedureNullable); //NULLABLE
+                    break;
+
+                case columnNullableUnknown:
+                    data[11] = String.valueOf(procedureNullableUnknown); //NULLABLE
+                    break;
+
+                default:
+                    throw  new SQLException("Internal error while parsing callable statement metadata (unknown nullability value fount");
+            }
+            data[12] = null;
+            if (forGetFunctionColumns) {
+                data[13] = null;
+                data[14] = null;
+                data[15] = typeInfo.isNullable;
+                data[16] = procName;
+            } else {
+                data[13] = null;
+                data[14] = null;
+                data[15] = null;
+                data[16] = null;
+                data[17] = String.valueOf(0);
+                data[18] = typeInfo.isNullable;
+                data[19] = procName;
+            }
+            String[] tmp = new String[20];
             System.arraycopy(data, 0, tmp, 0, data.length);
             list.add(tmp);
         }
@@ -2317,13 +2574,14 @@ JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         for (int j = 0; j < list.size(); j++) {
             val[j] = list.get(j);
         }
-        results.close();
         return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
     }
 
-    ResultSet getCallStmtParameterTypes(String catalog, String procedureNamePattern)
-                                                                                    throws SQLException {
-        this.connection.setCatalog(catalog);
+    ResultSet getCallStmtParameterTypes(String catalog, ResultSet procsAndOrFuncsRs,
+                                        String[] columnNames, ColumnType[] columnTypes)
+                                                                                       throws SQLException {
+
+        procsAndOrFuncsRs.next();
         PreparedStatement paramRetrievalStmt = this.connection
             .clientPrepareStatement("SELECT DATABASE()");
         ResultSet rs = paramRetrievalStmt.executeQuery();
@@ -2333,37 +2591,17 @@ JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (paramRetrievalStmt.getMaxRows() != 0) {
             paramRetrievalStmt.setMaxRows(0);
         }
-        boolean isProcedureInAnsiMode = false;
-        String storageDefnDelims = null;
-        String storageDefnClosures = null;
-        StringBuilder procNameBuf = new StringBuilder();
-        procNameBuf.append("`");
-        procNameBuf.append(catalog);
-        procNameBuf.append("`");
-        procNameBuf.append('.');
-        procNameBuf.append("`");
-        procNameBuf.append(procedureNamePattern);
-        procNameBuf.append("`");
-        ResultSet paramRetrievalRs = paramRetrievalStmt.executeQuery("SHOW CREATE PROCEDURE "
-                                                                     + procNameBuf.toString());
-        String fieldName = "Create Procedure";
-        String quote = "`";
-        String parameterDef;
-        if (paramRetrievalRs.next()) {
-            String procedureDef = paramRetrievalRs.getString(fieldName);
-            String sqlMode = paramRetrievalRs.getString("sql_mode");
-            isProcedureInAnsiMode = false;
-            String identifierMarkers = isProcedureInAnsiMode ? "`\"" : "`";
-            String identifierAndStringMarkers = "'" + identifierMarkers;
-            storageDefnDelims = "(" + identifierMarkers;
-            storageDefnClosures = ")" + identifierMarkers;
-            int startIndex = procedureDef.indexOf('`');
-            int endIindex = procedureDef.indexOf('`');
-            parameterDef = procedureDef.substring(startIndex, endIindex);
-
+        PreparedStatement preparedStatement = this.connection
+            .prepareStatement("select param_list, returns, db, type from mysql.proc where name=? and db =?");
+        preparedStatement.setString(1, procsAndOrFuncsRs.getString("name"));
+        if (catalog != null) {
+            preparedStatement.setString(2, catalog);
         }
-        //        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
-        return null;
+        ResultSet paramRetrievalRs = preparedStatement.executeQuery();
+        paramRetrievalRs.next();
+        String paramList = paramRetrievalRs.getString(1);
+        return parseParamListProc(false, paramList, catalog, procsAndOrFuncsRs.getString("name"),
+            columnNames, columnTypes);
     }
 
     /**

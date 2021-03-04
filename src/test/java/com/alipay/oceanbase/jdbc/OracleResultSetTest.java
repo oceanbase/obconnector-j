@@ -1146,16 +1146,11 @@ public class OracleResultSetTest extends BaseOracleTest {
             conn = setConnection();
 
             String cSql = "drop table test_callable";
-            String dropProc = "drop PROCEDURE test_callable_open ";
+            String dropProc = "drop PROCEDURE test_callable_proc";
             try {
                 conn.createStatement().execute(cSql);
             } catch (SQLException e) {
 
-            }
-            try {
-                conn.createStatement().execute(dropProc);
-            } catch (SQLException e) {
-                //skip
             }
             cSql = "create table test_callable(c1 int, c2 varchar2(200), c3 varchar2(200))";
 
@@ -1170,11 +1165,11 @@ public class OracleResultSetTest extends BaseOracleTest {
 
             conn.createStatement()
                 .execute(
-                    "CREATE OR REPLACE PROCEDURE test_callable_open(p_c1 IN int, pC2 OUT VARCHAR2, p_c3 OUT varchar2) is BEGIN  \n"
+                    "CREATE OR REPLACE PROCEDURE test_callable_porc(p_c1 IN int, pC2 OUT VARCHAR2, p_c3 OUT varchar2) is BEGIN  \n"
                             + "            select c2,c3 into pC2,p_c3 from test_callable ;\n"
-                            + "                    end test_callable_open ;");
+                            + "                    end ;");
 
-            CallableStatement cstmt = conn.prepareCall("call test111(?,?,?)");
+            CallableStatement cstmt = conn.prepareCall("call test_callable_porc(?,?,?)");
             cstmt.setInt(1, 112);
             cstmt.registerOutParameter(2, Types.VARCHAR);
             cstmt.registerOutParameter(3, Types.VARCHAR);

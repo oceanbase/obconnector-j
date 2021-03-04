@@ -72,7 +72,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   private static final Logger logger = LoggerFactory.getLogger(JDBC4PreparedStatement.class);
   private final List<ParameterHolder[]> parameterList = new ArrayList<>();
   private ClientPrepareResult prepareResult;
-  private String sqlQuery;
+  protected String sqlQuery;
   private ParameterHolder[] parameters;
   private ResultSetMetaData resultSetMetaData = null;
   private ParameterMetaData parameterMetaData = null;

@@ -140,7 +140,7 @@ public class CallStatementTest extends BaseTest {
 
     @Test
     public void prepareStmtWithOutParameter() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
+        //        Assume.assumeTrue(sharedUsePrepare());
         createProcedure("prepareStmtWithOutParameter", "(IN x int, INOUT y int)\n" + "BEGIN\n"
                                                        + "SELECT 1;select 10000 into y;end\n");
         CallableStatement callableStatement = sharedConnection
@@ -219,9 +219,8 @@ public class CallStatementTest extends BaseTest {
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "testGetProc%");
         ResultSetMetaData md = rs.getMetaData();
         for (int i = 1; i <= md.getColumnCount(); i++) {
-            md.getColumnLabel(i);
+            System.out.println("i = " + md.getColumnLabel(i));
         }
-
         while (rs.next()) {
             for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
                 rs.getObject(i);
@@ -240,8 +239,7 @@ public class CallStatementTest extends BaseTest {
         }
     }
 
-    // fixme
-    @Ignore
+    @Test
     public void testMetaWildcard() throws Exception {
         createProcedure("testMetaWildcard", "(x int, out y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,

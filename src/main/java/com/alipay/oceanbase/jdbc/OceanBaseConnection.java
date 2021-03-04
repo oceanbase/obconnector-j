@@ -1098,7 +1098,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getProtocol().isOracleMode()) {
             sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
         } else {
-            sql = "SELECT @@transaction_isolationn";
+            sql = "SELECT @@transaction_isolation";
         }
 
         ResultSet rs = stmt.executeQuery(sql);
