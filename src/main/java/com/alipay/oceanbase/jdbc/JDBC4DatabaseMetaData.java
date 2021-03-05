@@ -68,19 +68,23 @@ import com.alipay.oceanbase.jdbc.util.Options;
 
 public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
-    public static final String        DRIVER_NAME              = "OceanBase Connector/J";
+    public static final String        DRIVER_NAME               = "OceanBase Connector/J";
     private final UrlParser           urlParser;
     private final OceanBaseConnection connection;
-    private boolean                   datePrecisionColumnExist = true;
-    Protocol                          protocol                 = null;
-    private static final Pattern      RETURN_PATTERN           = Pattern
-                                                                   .compile(
-                                                                       "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
-                                                                       Pattern.CASE_INSENSITIVE);
-    private static final Pattern      PARAMETER_PATTERN        = Pattern
-                                                                   .compile(
-                                                                       "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                       Pattern.CASE_INSENSITIVE);
+    private boolean                   datePrecisionColumnExist  = true;
+    Protocol                          protocol                  = null;
+    private static final Pattern      RETURN_PATTERN            = Pattern
+                                                                    .compile(
+                                                                        "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                        Pattern.CASE_INSENSITIVE);
+    private static final Pattern      PARAMETER_PATTERN         = Pattern
+                                                                    .compile(
+                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                        Pattern.CASE_INSENSITIVE);
+    private static final Pattern      ORALCLE_PARAMETER_PATTERN = Pattern
+                                                                    .compile(
+                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\"[\\w\\d]+\")\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                        Pattern.CASE_INSENSITIVE);
 
     /**
      * Constructor.
@@ -2229,38 +2233,46 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return null;
     }
 
-    ResultSet getProcAndFuncs(String catalog, String procedureNamePattern,boolean isProcedure,boolean isFunction,String[] columnNames,ColumnType[] columnTypes) throws SQLException {
+    ResultSet getProcAndFuncs(String catalog, String procedureNamePattern, boolean isProcedure,
+                              boolean isFunction, String[] columnNames, ColumnType[] columnTypes)
+                                                                                                 throws SQLException {
 
         String db = catalog;
 
         ResultSet results = null;
 
-        StringBuilder mysqlProceSql = new StringBuilder();
-
-        mysqlProceSql
-                .append("SELECT name, type, comment FROM mysql.proc WHERE ");
-        if (isProcedure && !isFunction) {
-            mysqlProceSql.append("type = 'PROCEDURE' AND ");
-        } else if (!isProcedure && isFunction) {
-            mysqlProceSql.append("type = 'FUNCTION' AND ");
+        StringBuilder procSql = new StringBuilder();
+        if (this.protocol.isOracleMode()) {
+            procSql.append("select object_name,object_type from  all_objects where ");
+            if (isProcedure && !isFunction) {
+                procSql.append("object_type = 'PROCEDURE' AND ");
+            } else if (!isProcedure && isFunction) {
+                procSql.append("object_type = 'FUNCTION' AND ");
+            }
+            procSql.append("object_name LIKE ? AND owner = ? ORDER BY object_name, object_type");
+        } else {
+            procSql.append("SELECT name, type, comment  FROM mysql.proc WHERE ");
+            if (isProcedure && !isFunction) {
+                procSql.append("type = 'PROCEDURE' AND ");
+            } else if (!isProcedure && isFunction) {
+                procSql.append("type = 'FUNCTION' AND ");
+            }
+            procSql.append("name LIKE ? AND db <=> ? ORDER BY name, type");
         }
-        mysqlProceSql.append("name LIKE ? AND db <=> ? ORDER BY name, type");
 
-        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(mysqlProceSql
-                .toString());
+        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(procSql
+            .toString());
+        proceduresStmt.setString(1, procedureNamePattern);
 
         if (db != null || this.protocol.getDatabase() != null) {
             db = (db == null) ? this.protocol.getDatabase() : db;
             proceduresStmt.setString(2, db);
+            catalog = db;
         } else {
             proceduresStmt.setNull(2, Types.VARCHAR);
         }
-        proceduresStmt.setString(1, procedureNamePattern);
         results = proceduresStmt.executeQuery();
-
-        String[] data = new String[9];
-        List<String[]> list = new ArrayList<>();
-        return getCallStmtParameterTypes(catalog, results,columnNames,columnTypes);
+        return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes);
     }
 
     class TypeInfo {
@@ -2494,7 +2506,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     private ResultSet parseParamListProc(boolean isFunction, String paramList,String catalog,String procName,String[] columnNames,ColumnType[] columnTypes) throws SQLException {
 
-        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        Matcher matcher2 ;
+        if(protocol.isOracleMode()) {
+            matcher2 = ORALCLE_PARAMETER_PATTERN.matcher(paramList);
+        } else {
+            matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        }
         String[] data = new String[20];
         List<String[]> list = new ArrayList<>();
         while (matcher2.find()) {
@@ -2521,6 +2538,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             TypeInfo typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
             int sqlType = mapMariaDbTypeToJdbc(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
             if (paramName.startsWith("`") && paramName.endsWith("`")) {
+                paramName = paramName.substring(1, paramName.length() - 1);
+            } else if (paramName.startsWith("") && paramName.endsWith("")) {
                 paramName = paramName.substring(1, paramName.length() - 1);
             }
             data[0] = catalog;
@@ -2582,26 +2601,26 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                                                                        throws SQLException {
 
         procsAndOrFuncsRs.next();
-        PreparedStatement paramRetrievalStmt = this.connection
-            .clientPrepareStatement("SELECT DATABASE()");
-        ResultSet rs = paramRetrievalStmt.executeQuery();
-        rs.next();
-        catalog = rs.getString(1);
-
-        if (paramRetrievalStmt.getMaxRows() != 0) {
-            paramRetrievalStmt.setMaxRows(0);
+        String name = procsAndOrFuncsRs.getString(1);
+        StringBuilder procNameBuf = new StringBuilder();
+        if (this.protocol.isOracleMode()) {
+            procNameBuf.append("\"");
+            procNameBuf.append(name);
+            procNameBuf.append("\"");
+        } else {
+            procNameBuf.append("`");
+            procNameBuf.append(catalog);
+            procNameBuf.append("`.`");
+            procNameBuf.append(name);
+            procNameBuf.append("`");
         }
-        PreparedStatement preparedStatement = this.connection
-            .prepareStatement("select param_list, returns, db, type from mysql.proc where name=? and db =?");
-        preparedStatement.setString(1, procsAndOrFuncsRs.getString("name"));
-        if (catalog != null) {
-            preparedStatement.setString(2, catalog);
-        }
-        ResultSet paramRetrievalRs = preparedStatement.executeQuery();
+        ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
+            "SHOW CREATE PROCEDURE " + procNameBuf.toString());
         paramRetrievalRs.next();
-        String paramList = paramRetrievalRs.getString(1);
-        return parseParamListProc(false, paramList, catalog, procsAndOrFuncsRs.getString("name"),
-            columnNames, columnTypes);
+        String procedureDDl = paramRetrievalRs.getString("Create Procedure");
+        String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1,
+            procedureDDl.length());
+        return parseParamListProc(false, paramList, catalog, name, columnNames, columnTypes);
     }
 
     /**

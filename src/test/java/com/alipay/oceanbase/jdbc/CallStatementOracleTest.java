@@ -253,21 +253,39 @@ public class CallStatementOracleTest extends BaseOracleTest {
         }
     }
 
-    // not support for oracle mode
-    @Ignore
+    @Test
     public void testMetaWildcard() throws Exception {
         createProcedure("testMetaWildcard", "(x int, y out int)\n" + "is BEGIN\n"
                                             + "SELECT 1 from dual ;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
+            "TESTMETAWILDCARD%", "%");
+
+        if (rs.next()) {
+            assertEquals("TESTMETAWILDCARD", rs.getString(3));
+            assertEquals("X", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("TESTMETAWILDCARD", rs.getString(3));
+            assertEquals("Y", rs.getString(4));
+            assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testMetaWildcard2() throws Exception {
+        createProcedure("\"testMetaWildcard\"", "(x int, y out int)\n" + "is BEGIN\n"
+                                                + "SELECT 1 from dual ;end\n");
+        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
             "testMetaWildcard%", "%");
 
-        int count = rs.getMetaData().getColumnCount();
-        System.out.println(count);
-        while (rs.next()) {
-            for (int i = 1; i <= count; i++) {
-                System.out.println("11");
-                System.out.println("rs[i " + i + "] = " + rs.getString(i));
-            }
+        if (rs.next()) {
+            assertEquals("testMetaWildcard", rs.getString(3));
+            assertEquals("X", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("testMetaWildcard", rs.getString(3));
+            assertEquals("Y", rs.getString(4));
+            assertFalse(rs.next());
         }
     }
 
