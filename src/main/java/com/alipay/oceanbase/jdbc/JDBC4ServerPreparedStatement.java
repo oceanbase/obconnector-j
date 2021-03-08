@@ -135,7 +135,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     clone.mustExecuteOnMaster = mustExecuteOnMaster;
     // force prepare
     try {
-      if (!protocol.isOracleMode()) {
+      if (!clone.protocol.isOracleMode()) {
         if (!sql.startsWith("CALL") && !sql.startsWith("call")) {
           clone.prepare(sql);
         }
