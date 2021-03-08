@@ -428,7 +428,7 @@ public class BaseOracleTest {
        */
 
      stmt.execute("call proc_dropifexists('" + tableName + "')");
-     stmt.execute(
+      stmt.execute(
           "create table "
               + tableName
               + " ("

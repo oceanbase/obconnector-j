@@ -172,7 +172,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
     @Test
     public void testGetSchema() throws SQLException {
         String schema = sharedConnection.getSchema();
-        assertEquals(schema, sharedConnection.getMetaData().getUserName());
+        assertEquals(schema, "UNITTESTS");
     }
 
     @Test

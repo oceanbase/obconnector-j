@@ -562,7 +562,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
         //sharedConnection.setCatalog("testj2");
         try (CallableStatement callableStatement =
-                     sharedConnection.prepareCall("{ call sys.testSameProcedureWithDifferentParameters1(?, ?) }")) {
+                     sharedConnection.prepareCall("{ call unittests.testSameProcedureWithDifferentParameters1(?, ?) }")) {
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             try {
@@ -1521,7 +1521,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         sharedConnection.createStatement().executeUpdate("CREATE TABLESPACE testProcMultiDb");
 
-        createProcedure("sys.testProcMultiDbProc",
+        createProcedure("unittests.testProcMultiDbProc",
             "(x int, y out int)\n is  z int:=0;\n begin\n z:= x+1, y:= z;\nend;\n");
 
         CallableStatement callableStatement = null;

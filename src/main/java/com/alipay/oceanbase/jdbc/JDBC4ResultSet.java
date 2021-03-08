@@ -360,7 +360,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @param protocol    protocol
      * @return resultset
      */
-    public static ResultSet createResultSet(
+    public static JDBC4ResultSet createResultSet(
             String[] columnNames, ColumnType[] columnTypes, String[][] data, Protocol protocol) {
         int columnNameLength = columnNames.length;
         ColumnDefinition[] columns = new ColumnDefinition[columnNameLength];
@@ -373,7 +373,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         List<byte[]> rows = new ArrayList<>();
 
         for (String[] rowData : data) {
-            assert rowData.length == columnNameLength;
             byte[][] rowBytes = new byte[rowData.length][];
             for (int i = 0; i < rowData.length; i++) {
                 if (rowData[i] != null) {

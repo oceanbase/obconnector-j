@@ -273,7 +273,7 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.assertEquals(2, rs.getMetaData().getColumnCount());
             Assert.assertEquals("C2", rs.getMetaData().getColumnLabel(2));
             Assert.assertEquals(100, rs.getMetaData().getColumnDisplaySize(2));
-            Assert.assertEquals("SYS", rs.getMetaData().getCatalogName(2));
+            Assert.assertEquals("UNITTESTS", rs.getMetaData().getCatalogName(2));
             Assert.assertEquals("C2", rs.getMetaData().getColumnName(2));
             Assert.assertEquals(0, rs.getMetaData().getScale(2));
             Assert.assertEquals("TEST_RAW1", rs.getMetaData().getTableName(2));

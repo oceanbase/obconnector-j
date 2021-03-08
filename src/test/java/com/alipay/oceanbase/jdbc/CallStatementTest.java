@@ -241,15 +241,18 @@ public class CallStatementTest extends BaseTest {
 
     @Test
     public void testMetaWildcard() throws Exception {
-        createProcedure("testMetaWildcard", "(x int, out y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
+        createProcedure("testMetaWildcard", "(x int, out y varchar(200))\n" + "BEGIN\n"
+                                            + "SELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
             "testMetaWildcard%", "%");
-        int count = rs.getMetaData().getColumnCount();
-        while (rs.next()) {
-            for (int i = 1; i <= count; i++) {
-                System.out.println("11");
-                System.out.println("rs[i " + i + "] = " + rs.getString(i));
-            }
+        if (rs.next()) {
+            assertEquals("testMetaWildcard", rs.getString(3));
+            assertEquals("x", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("testMetaWildcard", rs.getString(3));
+            assertEquals("y", rs.getString(4));
+            assertFalse(rs.next());
         }
     }
 

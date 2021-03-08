@@ -92,7 +92,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         {
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("A", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
@@ -117,7 +117,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("B", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
@@ -142,7 +142,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("C", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
@@ -165,7 +165,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("SYS", rs.getString(2)); // OWNER
+            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("D", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
@@ -320,9 +320,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     @Test
     public void getUserNameTest() throws SQLException {
         String userName = sharedConnection.getMetaData().getUserName();
-        String url = System.getProperty("oracleModeDbUrl", mDefUrl);
-        UrlParser parse = UrlParser.parse(url);
-        assertEquals(userName, sharedConnection.getSchema());
+        assertEquals(userName, "TESTER");
 
     }
 

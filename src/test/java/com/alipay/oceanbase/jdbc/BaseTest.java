@@ -668,6 +668,19 @@ public class BaseTest {
   protected Connection setConnection(String parameters) throws SQLException {
     return openConnection(connUri + parameters, null);
   }
+  static  String getRandomString(int length){
+    String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    Random random=new Random();
+    StringBuffer sb=new StringBuffer();
+    for(int i=0;i<length;i++){
+      int number=random.nextInt(62);
+      sb.append(str.charAt(number));
+    }
+    return sb.toString();
+  }
+  static String randomTableName(String name){
+    return name + getRandomString(10);
+  }
 
   protected Connection setConnection(String additionalParameters, String database)
       throws SQLException {

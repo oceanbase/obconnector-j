@@ -65,6 +65,9 @@ import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
 import com.alipay.oceanbase.jdbc.util.Options;
+import com.sun.jna.StringArray;
+
+import javax.xml.transform.Result;
 
 public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
@@ -85,6 +88,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                                                     .compile(
                                                                         "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\"[\\w\\d]+\")\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                         Pattern.CASE_INSENSITIVE);
+    String[]                          exportKeysColumnNames     = { "PKTABLE_CAT", "PKTABLE_SCHEM",
+            "PKTABLE_NAME", "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME",
+            "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE", "FK_NAME", "PK_NAME",
+            "DEFERRABILITY"                                    };
+    ColumnType[]                      exportKeysColumnTypes     = { ColumnType.VARCHAR,
+            ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
+            ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.SMALLINT,
+            ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR, ColumnType.VARCHAR,
+            ColumnType.SMALLINT                                };
 
     /**
      * Constructor.
@@ -405,40 +417,134 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table)
                                                                                  throws SQLException {
-
         String database = catalog;
         // We avoid using information schema queries by default, because this appears to be an expensive
         // query (CONJ-41).
-        if (table == null) {
-            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-        }
 
         if (this.connection.getProtocol().isOracleMode()) {
             return this.keysQuery((String) null, (String) null, schema, table,
                 "ORDER BY pktable_schem, pktable_name, key_seq");
         }
-
-        if (database == null && connection.nullCatalogMeansCurrent) {
-            /* Treat null catalog as current */
-            return getImportedKeysUsingInformationSchema("", table);
-        }
-
-        if (database == null) {
-            return getImportedKeysUsingInformationSchema(null, table);
-        }
-
-        if (database.isEmpty()) {
-            database = connection.getCatalog();
-            if (database == null || database.isEmpty()) {
-                return getImportedKeysUsingInformationSchema(database, table);
-            }
-        }
-
+        ArrayList<String> tableNameList;
         try {
-            return getImportedKeysUsingShowCreateTable(database, table);
-        } catch (Exception e) {
-            // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(database, table);
+            tableNameList = getALlTableNames(catalog);
+            ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog);
+            ArrayList<String[]> list = new ArrayList<>();
+            while (allTableRS.next()) {
+                String[] data = new String[14];
+                String tableType = allTableRS.getString("Type");
+                if (tableType != null && (tableType.toUpperCase(Locale.ROOT).equals("INNODB") || tableType.toUpperCase(Locale.ROOT).equals("SUPPORTS_FK"))) {
+                    String tableComment = allTableRS.getString("Comment").trim();
+                    String fkTableName = allTableRS.getString("Name");
+                    if (tableComment != null) {
+                        StringTokenizer stringTokenizer = new StringTokenizer(tableComment, ";", false);
+                        if (stringTokenizer.hasMoreTokens()) {
+                            String dummy = stringTokenizer.nextToken();
+                            // Skip InnoDB comment
+                        }
+                        while (stringTokenizer.hasMoreTokens()) {
+                            String keys = stringTokenizer.nextToken();
+                            int fkParamOpenIndex = keys.indexOf("(");
+                            if (fkParamOpenIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String constraintName = keys.substring(1, fkParamOpenIndex - 1);
+                            keys = keys.substring(fkParamOpenIndex + 1);
+                            int fkParamCloseIndex = keys.indexOf(")");
+                            if (fkParamCloseIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String fkParamNames = keys.substring(1, fkParamCloseIndex - 1);
+                            int refIndex = keys.indexOf("REFER");
+                            if (refIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");
+                            }
+                            int refParamOpenIndex = keys.indexOf("(", refIndex);
+                            if (refParamOpenIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced columns list");
+                            }
+                            String refCatalogAndTable = keys.substring(refIndex + "REFER".length() + 1, refParamOpenIndex);
+                            int slashIndex = refCatalogAndTable.indexOf("/");
+                            if (slashIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find name of referenced catalog.");
+                            }
+                            String refCatalog = refCatalogAndTable.substring(0, slashIndex);
+                            refCatalog = removeQuoted(refCatalog);
+                            String refTableName = refCatalogAndTable.substring(slashIndex + 1);
+                            refTableName = removeQuoted(refTableName);
+                            if (fkTableName.compareTo(table) != 0) {
+                                continue;
+                            }
+                            int refParamCloseIndex = keys.indexOf(")", refParamOpenIndex);
+                            if (refParamCloseIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find end of referenced columns list.");
+                            }
+                            String refParamNames = keys.substring(refParamOpenIndex + 1, refParamCloseIndex);
+                            String[] refParamList = refParamNames.split(",");
+                            String[] fkParamList = fkParamNames.split(",");
+                            int fkCur = 0;
+                            int refCur = 0;
+                            int keySeq = 1;
+                            while (fkCur < fkParamList.length) {
+                                String lColumnName = removeQuoted(fkParamList[fkCur++]);
+                                String rColumnName = null;
+                                if (refCur < refParamList.length) {
+                                    rColumnName = removeQuoted(refParamList[refCur++]);
+                                }
+                                int updateRuleAction = importedKeyNoAction;
+                                int deleteRuleAction = importedKeyNoAction;
+                                int lastIndex = keys.lastIndexOf(")");
+                                if (lastIndex != keys.length() - 1) {
+                                    String options = keys.substring(lastIndex + 1);
+                                    String optionsForUpdate = options.substring(options.indexOf("ON UPDATE"));
+                                    if (optionsForUpdate.startsWith("ON UPDATE CASCADE")) {
+                                        updateRuleAction = importedKeyCascade;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE SET NUL")) {
+                                        updateRuleAction = importedKeySetNull;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE RESTRICT")) {
+                                        updateRuleAction = importedKeyRestrict;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE NO ACTION")) {
+                                        updateRuleAction = importedKeyNoAction;
+                                    }
+                                    String optionsForDelete = options.substring(options.indexOf("ON DELETE"));
+                                    if (optionsForDelete.startsWith("ON DELETE CASCADE")) {
+                                        deleteRuleAction = importedKeyCascade;
+                                    } else if (optionsForDelete.startsWith("ON DELETE SET NUL")) {
+                                        deleteRuleAction = importedKeySetNull;
+                                    } else if (optionsForDelete.startsWith("ON DELETE RESTRICT")) {
+                                        deleteRuleAction = importedKeyRestrict;
+                                    } else if (optionsForDelete.startsWith("ON DELETE NO ACTIO")) {
+                                        deleteRuleAction = importedKeyNoAction;
+                                    }
+                                }
+                                data[0] = refCatalog;
+                                data[1] = null;
+                                data[2] = refTableName;
+                                data[3] = rColumnName;
+                                data[4] = catalog == null ? this.protocol.getCatalog(): catalog;
+                                data[5] = null;
+                                data[6] = table;
+                                data[7] = lColumnName;
+                                data[8] = Integer.toString(keySeq++);
+                                data[9] = Integer.toString(updateRuleAction);
+                                data[10] = Integer.toString(deleteRuleAction);
+                                data[11] = constraintName;
+                                data[12] = null;
+                                data[13] = Integer.toString(importedKeyNotDeferrable);
+                                list.add(data);
+                            }
+                        }
+                    }
+                }
+
+            }
+            String[][] val = new String[list.size()][];
+            for (int j = 0; j < list.size(); j++) {
+                val[j] = list.get(j);
+            }
+            return SelectResultSet.createResultSet(exportKeysColumnNames, exportKeysColumnTypes, val, this.protocol);
+        } catch (SQLException e) {
+            throw  e;
         }
     }
 
@@ -656,33 +762,181 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return super.getTables(catalog, schemaPattern, tableNamePattern, types);
         }
 
-        StringBuilder sql = new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                    + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
-                    + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
-                    + " NULL REF_GENERATION" + " FROM INFORMATION_SCHEMA.TABLES " + " WHERE "
-                    + catalogCond("TABLE_SCHEMA", catalog)
-                    + patternCond("TABLE_NAME", tableNamePattern));
+        String[] columnNames = { "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS",
+                "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME",
+                "REF_GENERATION" };
 
-        if (types != null && types.length > 0) {
-            sql.append(" AND TABLE_TYPE IN (");
+        ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, };
+        ResultSet rs = getTablesImpl(columnTypes, columnNames, tableNamePattern, types, catalog);
+        return rs;
+    }
+
+    ResultSet getTablesImpl(ColumnType[] columnTypes, String[] columnNames,
+                            String tableNamePattern, String[] types, String catalog)
+                                                                                    throws SQLException {
+        boolean isSystemDb = "information_schema".equalsIgnoreCase(catalog)
+                             || "mysql".equalsIgnoreCase(catalog)
+                             || "performance_schema".equalsIgnoreCase(catalog);
+        if (catalog == null || catalog.length() == 0) {
+            catalog = this.connection.getCatalog();
+        }
+        StringBuilder getTablesSql = new StringBuilder();
+        getTablesSql.append("SHOW FULL TABLES FROM ");
+        getTablesSql.append("`");
+        getTablesSql.append(catalog);
+        getTablesSql.append("` LIKE '");
+        if (tableNamePattern == null) {
+            getTablesSql.append("%");
+        } else {
+            getTablesSql.append(tableNamePattern);
+        }
+        getTablesSql.append("'");
+        ResultSet rs = executeQuery(getTablesSql.toString());
+        boolean isTables = false;
+        boolean isViews = false;
+        boolean isSystemTables = false;
+        boolean isSystemViews = false;
+        boolean isLocalTemporaries = false;
+        if (types == null || types.length == 0) {
+            isTables = true;
+            isViews = true;
+            isSystemTables = true;
+            isSystemViews = true;
+            isLocalTemporaries = true;
+        } else {
             for (int i = 0; i < types.length; i++) {
-                if (types[i] == null) {
-                    continue;
-                }
-                String type = "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'"
-                    : escapeQuote(types[i]);
-                if (i == types.length - 1) {
-                    sql.append(type).append(")");
-                } else {
-                    sql.append(type).append(",");
+                if (types[i].equals("TABLE") || types[i].equals("BASE TABLE")) {
+                    isTables = true;
+                } else if (types[i].equals("VIEW")) {
+                    isViews = true;
+                } else if (types[i].equals("SYSTEM TABLE")) {
+                    isSystemTables = true;
+                } else if (types[i].equals("SYSTEM VIEW")) {
+                    isSystemViews = true;
+                } else if (types[i].equals("LOCAL TEMPORARY")) {
+                    isLocalTemporaries = true;
                 }
             }
         }
+        int columnIndex = 1;
+        boolean hasTableType = true;
+        columnIndex = rs.findColumn("table_type");
+        SortedMap<TableMetaData, String[]> map = new TreeMap<TableMetaData, String[]>();
+        while (rs.next()) {
+            String[] data = new String[10];
+            boolean shouldPut = false;
+            data[0] = catalog;
+            data[1] = null;
+            data[2] = rs.getString(1);
+            data[4] = new byte[0].toString();
+            data[5] = null;
+            data[6] = null;
+            data[7] = null;
+            data[8] = null;
+            data[9] = null;
+            TableMetaData key = null;
+            if (hasTableType) {
+                String tableType = rs.getString(columnIndex);
+                String typeName = null;
+                if (tableType.equals("TABLE") || tableType.equals("BASE TABLE")) {
 
-        sql.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
+                    if (isSystemDb && isSystemTables) {
+                        shouldPut = true;
+                        key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
+                    } else if (!isSystemDb && isTables) {
+                        shouldPut = true;
+                        key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
+                    }
+                    if (shouldPut) {
+                        data[3] = "TABLE";
+                        map.put(key, data);
+                    }
+                } else if (tableType.equals("VIEW")) {
+                    if (isViews) {
+                        key = new TableMetaData("VIEW", catalog, null, rs.getString(1));
+                        data[3] = "VIEW";
+                        map.put(key, data);
+                    }
+                } else if (tableType.equals("SYSTEM VIEW")) {
+                    if (isSystemViews) {
+                        key = new TableMetaData("SYSTEM VIEW", catalog, null, rs.getString(1));
+                        data[3] = "SYSTEM VIEW";
+                        map.put(key, data);
+                    }
+                } else if (tableType.equals("SYSTEM TABLE")) {
+                    if (isSystemTables) {
+                        key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
+                        data[3] = "SYSTEM TABLE";
+                        map.put(key, data);
+                    }
+                } else if (tableType.equals("LOCAL TEMPORARY")) {
+                    if (isLocalTemporaries) {
+                        key = new TableMetaData("LOCAL TEMPORARY", catalog, null, rs.getString(1));
+                        data[3] = "LOCAL TEMPORARY";
+                        map.put(key, data);
+                    }
+                } else {
+                    key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
+                    data[3] = "TABLE";
+                    map.put(key, data);
+                }
+            } else {
+                key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
+                data[3] = "TABLE";
+                map.put(key, data);
+            }
+        }
+        Object[] a = map.values().toArray();
+        String[][] val = new String[map.size()][];
 
-        return executeQuery(sql.toString());
+        for (int j = 0; j < a.length; j++) {
+            val[j] = (String[]) a[j];
+        }
+        return JDBC4ResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+    }
+
+    protected class TableMetaData implements Comparable<TableMetaData> {
+        String type;
+        String catalog;
+        String schema;
+        String name;
+
+        TableMetaData(String type, String catalog, String schema, String name) {
+            this.type = type == null ? "" : type;
+            this.catalog = catalog == null ? "" : catalog;
+            this.schema = schema == null ? "" : schema;
+            this.name = name == null ? "" : name;
+        }
+
+        public int compareTo(TableMetaData tablesKey) {
+            int ret;
+            if ((ret = this.type.compareTo(tablesKey.type)) != 0) {
+                return ret;
+            }
+            if ((ret = this.catalog.compareTo(tablesKey.catalog)) != 0) {
+                return ret;
+            }
+            if ((ret = this.schema.compareTo(tablesKey.schema)) != 0) {
+                return ret;
+            }
+            return this.name.compareTo(tablesKey.name);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof TableMetaData)) {
+                return false;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (obj == this) {
+                return true;
+            }
+            return compareTo((TableMetaData) obj) == 0;
+        }
     }
 
     /**
@@ -907,7 +1161,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return this.keysQuery(schema, table, (String) null, (String) null,
                 "ORDER BY fktable_schem, fktable_name, key_seq");
         }
-
+        ArrayList<String> tableNameList;
+        if (table == null) {
+            throw  new SQLException("Table not specified.");
+        }
         String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
                      + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
                      + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
@@ -938,7 +1195,268 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + patternCond("KCU.REFERENCED_TABLE_NAME", table)
                      + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
-        return executeQuery(sql);
+        // not suppport multi catalogs
+        try {
+            tableNameList= getALlTableNames(catalog);
+            ResultSet allTableRS = getAllTablesResultSet(tableNameList,catalog);
+            ArrayList<String[]> list = new ArrayList<>();
+            while(allTableRS.next()) {
+                String[] data = new String[14];
+                String tableType = allTableRS.getString("Type");
+                if (tableType!= null && (tableType.toUpperCase(Locale.ROOT).equals("INNODB") || tableType.toUpperCase(Locale.ROOT).equals("SUPPORTS_FK"))) {
+                    String tableComment  = allTableRS.getString("Comment").trim();
+                    String fkTableName = allTableRS.getString("Name");
+                    if(tableComment != null) {
+                        StringTokenizer stringTokenizer = new StringTokenizer(tableComment,";",false);
+                        if (stringTokenizer.hasMoreTokens()) {
+                            String dummy = stringTokenizer.nextToken();
+                            // Skip InnoDB comment
+                        }
+                        while(stringTokenizer.hasMoreTokens()) {
+                            String keys = stringTokenizer.nextToken();
+                            int fkParamOpenIndex = keys.indexOf("(");
+                            if (fkParamOpenIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String constraintName = keys.substring(1,fkParamOpenIndex - 1);
+                            keys = keys.substring(fkParamOpenIndex + 1);
+                            int fkParamCloseIndex = keys.indexOf(")");
+                            if (fkParamCloseIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String fkParamNames =  keys.substring(1,fkParamCloseIndex-1);
+                            int refIndex = keys.indexOf("REFER");
+                            if (refIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");
+                            }
+                            int refParamOpenIndex = keys.indexOf("(",refIndex);
+                            if (refParamOpenIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced columns list");
+                            }
+                            String refCatalogAndTable = keys.substring(refIndex + "REFER".length() + 1,refParamOpenIndex);
+                            int slashIndex = refCatalogAndTable.indexOf("/");
+                            if(slashIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find name of referenced catalog.");
+                            }
+                            String refCatalog = refCatalogAndTable.substring(0,slashIndex);
+                            refCatalog = removeQuoted(refCatalog);
+                            String refTableName = refCatalogAndTable.substring(slashIndex + 1);
+                            refTableName = removeQuoted(refTableName);
+                            boolean isExportKeys = true;
+                            if(!refTableName.equals(table) && isExportKeys) {
+                                continue;
+                            }
+                            int refParamCloseIndex = keys.indexOf(")",refParamOpenIndex);
+                            if (refParamCloseIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find end of referenced columns list.");
+                            }
+                            String refParamNames = keys.substring(refParamOpenIndex + 1,refParamCloseIndex );
+                            String[] refParamList = refParamNames.split(",");
+                            String[] fkParamList = fkParamNames.split(",");
+                            int fkCur = 0;
+                            int refCur = 0;
+                            int keySeq = 1;
+                            while(fkCur < fkParamList.length) {
+                                String lColumnName = removeQuoted(fkParamList[fkCur++]);
+                                String rColumnName = null;
+                                if (refCur < refParamList.length) {
+                                    rColumnName = removeQuoted(refParamList[refCur++]);
+                                }
+                                int updateRuleAction  = importedKeyNoAction;
+                                int deleteRuleAction  = importedKeyNoAction;
+                                int lastIndex = keys.lastIndexOf(")");
+                                if (lastIndex != keys.length() - 1) {
+                                    String options = keys.substring(lastIndex + 1);
+                                    String optionsForUpdate = options.substring(options.indexOf("ON UPDATE"));
+                                    if (optionsForUpdate.startsWith("ON UPDATE CASCADE")){
+                                        updateRuleAction = importedKeyCascade;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE SET NUL")) {
+                                        updateRuleAction = importedKeySetNull;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE RESTRICT")) {
+                                        updateRuleAction = importedKeyRestrict;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE NO ACTION")) {
+                                        updateRuleAction = importedKeyNoAction;
+                                    }
+                                    String optionsForDelete = options.substring(options.indexOf("ON DELETE"));
+                                    if (optionsForDelete.startsWith("ON DELETE CASCADE")) {
+                                        deleteRuleAction = importedKeyCascade;
+                                    } else if (optionsForDelete.startsWith("ON DELETE SET NUL")) {
+                                        deleteRuleAction = importedKeySetNull;
+                                    } else if (optionsForDelete.startsWith("ON DELETE RESTRICT")) {
+                                        deleteRuleAction = importedKeyRestrict;
+                                    } else if (optionsForDelete.startsWith("ON DELETE NO ACTIO")) {
+                                        deleteRuleAction = importedKeyNoAction;
+                                    }
+                                }
+
+                                data[0] = refCatalog;
+                                data[1] = null;
+                                data[2] = isExportKeys ? refTableName : table;
+                                data[3] = rColumnName;
+                                data[4] = catalog;
+                                data[5] = null;
+                                data[6] = isExportKeys ? fkTableName : table;
+                                data[7] = lColumnName;
+                                data[8] = Integer.toString(keySeq++);
+                                data[9] = Integer.toString(updateRuleAction);
+                                data[10] = Integer.toString(deleteRuleAction);
+                                data[11] = constraintName;
+                                data[12] = null;
+                                data[13] = Integer.toString(importedKeyNotDeferrable);
+                                list.add(data);
+                            }
+                        }
+                    }
+                }
+
+            }
+            String[][] val = new String[list.size()][];
+            for (int j = 0; j < list.size(); j++) {
+                val[j] = list.get(j);
+            }
+            return SelectResultSet.createResultSet(exportKeysColumnNames,exportKeysColumnTypes,val,this.protocol);
+        } catch (SQLException e) {
+            throw e;
+        }
+    }
+
+    String removeQuoted(String str) {
+        if (str.startsWith("`") && str.endsWith("`")) {
+            return str.substring(1, str.length() - 1);
+        } else {
+            return str;
+        }
+    }
+
+    ArrayList<String>   getALlTableNames(String catalog) throws SQLException {
+        ResultSet rs = getTables(catalog, "", "%", new String[] { "TABLE" });
+        ArrayList<String> tableNameList = new ArrayList<>();
+        while (rs.next()) {
+            tableNameList.add(rs.getString("TABLE_NAME"));
+        }
+        return tableNameList;
+    }
+
+    ResultSet getAllTablesResultSet(ArrayList<String> tableNameList,String catalog) throws SQLException {
+        String[] columnNames = {"Name", "Type", "Comment"};
+        ColumnType[] columnTypes = {ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR};
+        ArrayList<String[]> list = new ArrayList<>();
+        if (catalog == null || catalog.length() == 0) {
+            catalog = this.connection.getCatalog();
+        }
+        for(int i = 0 ;i <tableNameList.size() ; i++) {
+            StringBuilder query = new StringBuilder();
+            query.append("SHOW CREATE TABLE ");
+            query.append("`");
+            query.append(catalog);
+            query.append("`.");
+            String name = OceanBaseConnection.quoteIdentifier(tableNameList.get(i));
+            query.append(name);
+            ResultSet rs = executeQuery(query.toString());
+            String[] data = new String[3];
+            StringBuilder sb  = new StringBuilder("comment; ");
+            while(rs.next()) {
+                String constraintName = null;
+                String columnName = null;
+                String refColumnName = null;
+                String refTableName;
+                String referencedCatalog = null;
+                String referencedTable = null;
+                data[0] = rs.getString(1);
+                data[1] = "SUPPORTS_FK";
+                String createTableString  = rs.getString(2);
+                StringTokenizer stringTokenizer = new StringTokenizer(createTableString, "\n");
+                boolean firstTime = true;
+                while(stringTokenizer.hasMoreTokens()) {
+                    String str = stringTokenizer.nextToken().trim();
+                    if(str.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")) {
+                        int beginIndex = str.indexOf("`");
+                        int endIndex = 0;
+
+                        boolean useBackTicks = false;
+                        if(beginIndex == -1) {
+                            beginIndex = str.indexOf("\"");
+                            useBackTicks = true;
+                        }
+                        if (beginIndex != -1) {
+                            if (!useBackTicks) {
+                                endIndex = str.indexOf("`", beginIndex + 1);
+                            } else {
+                                endIndex = str.indexOf("\"", beginIndex + 1);
+                            }
+                            if (endIndex != -1) {
+                                constraintName = str.substring(beginIndex+1,endIndex);
+                                str =  str.substring(endIndex+1 ,str.length()).trim();
+                            }
+                        }
+                    }
+                    if(str.toUpperCase(Locale.ROOT).startsWith("FOREIGN KEY")) {
+                        if(str.endsWith(",")) {
+                            str = str.substring(0,str.length()-1);
+                        }
+                        int fkIndex = str.indexOf("FOREIGN KEY");
+                        if(fkIndex !=  -1 ) {
+                            int startIndex = fkIndex + "FOREIGN KEY".length();
+                            int refIndex = str.toUpperCase(Locale.ROOT).indexOf("REFERENCES",startIndex);
+                            if (refIndex != -1 ) {
+                                int paramOpenIndex = str.indexOf("(",startIndex);
+                                int paramCloseIndex = str.indexOf(")",paramOpenIndex);
+                                if (paramCloseIndex ==-1 || paramOpenIndex == -1)  {
+                                    throw new SQLException("Parsing REFERENCES failed !");
+                                }
+                                columnName = str.substring(paramOpenIndex+1,paramCloseIndex);
+                                int afterRefIndex = refIndex+"REFERENCES".length();
+                                int referenceParamOpenIndex = str.indexOf("(",afterRefIndex);
+                                if (referenceParamOpenIndex != -1 ) {
+                                    refTableName = str.substring(afterRefIndex,referenceParamOpenIndex);
+                                    int referenceParamCloseIndex = str.indexOf(")",referenceParamOpenIndex);
+                                    refColumnName = str.substring(referenceParamOpenIndex+1,referenceParamCloseIndex);
+                                    int catalogEndIndex = refTableName.indexOf(".");
+                                    if (catalogEndIndex != -1) {
+                                         referencedCatalog = refTableName.substring(0,catalogEndIndex);
+                                         referencedTable  = refTableName.substring(catalogEndIndex+1);
+                                    }
+                                }
+                            }
+                        }
+                        if (!firstTime) {
+                            sb.append("comment; ");
+                        } else {
+                            firstTime = false;
+                        }
+                        if(constraintName != null){
+                            sb.append(constraintName);
+                        } else {
+                            sb.append("not_availabl");
+                        }
+                        sb.append("(");
+                        sb.append(columnName);
+                        sb.append(") REFER");
+                        sb.append(referencedCatalog);
+                        sb.append("/");
+                        sb.append(referencedTable);
+                        sb.append("(");
+                        sb.append(refColumnName);
+                        sb.append(")");
+                        int lastParenIndex = str.lastIndexOf(")");
+
+                        if (lastParenIndex != (str.length() - 1)) {
+                            String cascadeOptions = str.substring(lastParenIndex + 1);
+                            sb.append(" ");
+                            sb.append(cascadeOptions);
+                        }
+                    }
+
+                }
+                data[2] = sb.toString();
+            }
+            list.add(data);
+        }
+        String[][] val = new String[list.size()][];
+        for (int j = 0; j < list.size(); j++) {
+            val[j] = list.get(j);
+        }
+        return SelectResultSet.createResultSet(columnNames,columnTypes,val,this.protocol);
     }
 
     /**
@@ -2215,16 +2733,18 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                         "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF",
                         "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH",
                         "ORDINAL_POSITION", "IS_NULLABLE", "SPECIFIC_NAME" };
-                ColumnType[] columnTypes = { ColumnType.ENUM, ColumnType.ENUM, ColumnType.ENUM,
-                        ColumnType.ENUM, ColumnType.ENUM, ColumnType.SMALLINT, ColumnType.ENUM,
+                ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.VARCHAR,
+                        ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.NUMBER,
+                        ColumnType.SMALLINT, ColumnType.VARCHAR,
 
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT,
-                        ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.ENUM, ColumnType.ENUM,
+                        ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR,
+                        ColumnType.VARCHAR,
 
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
-                        ColumnType.INTEGER, ColumnType.ENUM, ColumnType.ENUM };
+                        ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR };
                 ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
-                    true, columnNames, columnTypes);
+                    true, columnNames, columnTypes, false);
                 return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
@@ -2234,14 +2754,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     ResultSet getProcAndFuncs(String catalog, String procedureNamePattern, boolean isProcedure,
-                              boolean isFunction, String[] columnNames, ColumnType[] columnTypes)
-                                                                                                 throws SQLException {
+                              boolean isFunction, String[] columnNames, ColumnType[] columnTypes,
+                              boolean forGetFunctionColumns) throws SQLException {
 
         String db = catalog;
 
         ResultSet results = null;
 
         StringBuilder procSql = new StringBuilder();
+
         if (this.protocol.isOracleMode()) {
             procSql.append("select object_name,object_type from  all_objects where ");
             if (isProcedure && !isFunction) {
@@ -2262,6 +2783,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
         java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(procSql
             .toString());
+        if (procedureNamePattern == null || procedureNamePattern.length() == 0) {
+            procedureNamePattern = "%";
+        }
         proceduresStmt.setString(1, procedureNamePattern);
 
         if (db != null || this.protocol.getDatabase() != null) {
@@ -2272,7 +2796,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             proceduresStmt.setNull(2, Types.VARCHAR);
         }
         results = proceduresStmt.executeQuery();
-        return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes);
+        return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes,
+            forGetFunctionColumns);
     }
 
     class TypeInfo {
@@ -2283,23 +2808,39 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         int    nullability;
         int    numPrecRadix  = 10;
         String typeName;
+        int    sqlType;
 
         TypeInfo(String fullTypeName) {
+
             bufferLength = 65535;
             boolean isUnsigned = false;
-            this.nullability = java.sql.DatabaseMetaData.columnNullable;
+            this.nullability = DatabaseMetaData.columnNullable;
             this.isNullable = "YES";
+            String mysqlType;
+            if (fullTypeName.indexOf("(") != -1) {
+                mysqlType = fullTypeName.substring(0, fullTypeName.indexOf("(")).trim();
+            } else {
+                mysqlType = fullTypeName;
+            }
+            int indexOfUnsignedInMysqlType = mysqlType.toLowerCase((Locale.ROOT)).indexOf(
+                "unsigned");
+
+            if (indexOfUnsignedInMysqlType != -1) {
+                mysqlType = mysqlType.substring(0, (indexOfUnsignedInMysqlType - 1));
+            }
+            this.typeName = mysqlType;
+            sqlType = mapMariaDbTypeToJdbc(mysqlType);
+
             int indexUnsigned = fullTypeName.toLowerCase(Locale.ROOT).indexOf("unsigned");
             if (indexUnsigned != -1) {
                 fullTypeName = fullTypeName.substring(0, indexUnsigned - 1);
                 isUnsigned = true;
             }
-            this.typeName = fullTypeName;
 
             if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("enum")) {
                 String sub = fullTypeName.substring(fullTypeName.indexOf("("),
                     fullTypeName.indexOf(")"));
-                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(sub, ",");
+                StringTokenizer tokenizer = new StringTokenizer(sub, ",");
                 int length = 0;
                 while (tokenizer.hasMoreTokens()) {
                     length = Math.max(length, (tokenizer.nextToken().length() - 2));
@@ -2309,7 +2850,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("set")) {
                 String sub = fullTypeName.substring(fullTypeName.indexOf("("),
                     fullTypeName.indexOf(")"));
-                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(sub, ",");
+                StringTokenizer tokenizer = new StringTokenizer(sub, ",");
                 int length = 0;
                 this.columnSize = 0;
                 int num = tokenizer.countTokens();
@@ -2340,7 +2881,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     .toLowerCase(Locale.ROOT).indexOf("bit") != -1)
                     && fullTypeName.indexOf("(") != -1) {
                     int endIndex = fullTypeName.indexOf(")");
-                    if (endIndex != -1) {
+                    if (endIndex == -1) {
                         endIndex = fullTypeName.length();
                     }
                     this.columnSize = Integer.valueOf(fullTypeName.substring(
@@ -2350,8 +2891,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     // Adjust for pseudo-boolean  todo
                     this.columnSize = 5;
                     this.decimalDigits = "0";
-                }
-                if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("smallint")) {
+                } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("smallint")) {
                     this.columnSize = 5;
                     this.decimalDigits = "0";
                 } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("mediumint")) {
@@ -2491,136 +3031,231 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     protected int getColumnType(boolean isOutParam, boolean isInParam, boolean isReturnParam,
                                 boolean forGetFunctionColumns) {
+
         if (isInParam && isOutParam) {
-            return procedureColumnInOut;
+            return forGetFunctionColumns ? functionColumnInOut : procedureColumnInOut;
         } else if (isInParam) {
-            return procedureColumnIn;
+            return forGetFunctionColumns ? functionColumnIn : procedureColumnIn;
         } else if (isOutParam) {
-            return procedureColumnOut;
+            return forGetFunctionColumns ? functionColumnOut : procedureColumnOut;
         } else if (isReturnParam) {
-            return procedureColumnReturn;
+            return forGetFunctionColumns ? functionReturn : procedureColumnReturn;
         } else {
-            return procedureColumnUnknown;
+            return forGetFunctionColumns ? functionColumnUnknown : procedureColumnUnknown;
         }
     }
 
-    private ResultSet parseParamListProc(boolean isFunction, String paramList,String catalog,String procName,String[] columnNames,ColumnType[] columnTypes) throws SQLException {
-
-        Matcher matcher2 ;
-        if(protocol.isOracleMode()) {
-            matcher2 = ORALCLE_PARAMETER_PATTERN.matcher(paramList);
-        } else {
-            matcher2 = PARAMETER_PATTERN.matcher(paramList);
-        }
-        String[] data = new String[20];
+    private ResultSet parseParamListProc(boolean isFunction, ArrayList<String> paramListArray,String catalog,ArrayList<String> nameArray,String[] columnNames,ColumnType[] columnTypes,boolean forGetFunctionColumns) throws SQLException {
         List<String[]> list = new ArrayList<>();
-        while (matcher2.find()) {
-            String direction = matcher2.group(1);
-            if (direction != null) {
-                direction = direction.trim();
+        int origin = 1;
+        for (int i = 0;i<paramListArray.size();i++) {
+            String paramList = paramListArray.get(i);
+            String procName = nameArray.get(i);
+            Matcher matcher2;
+            Matcher matcher1;
+            if (protocol.isOracleMode()) {
+                matcher1 = ORALCLE_PARAMETER_PATTERN.matcher(paramList);
+            } else {
+                matcher1 = PARAMETER_PATTERN.matcher(paramList);
             }
+            TypeInfo typeInfo = null;
             boolean isInParam = false;
             boolean isOutParam = false;
             boolean isReturnParam = false;
-            boolean forGetFunctionColumns = false;
-            if (direction == null || direction.equalsIgnoreCase("IN")) {
-                isInParam = true;
-            } else if (direction.equalsIgnoreCase("OUT")) {
-                isOutParam = true;
-            } else if (direction.equalsIgnoreCase("INOUT")) {
-                isInParam = true;
-                isOutParam = true;
+            String[] data = new String[20];
+            if ( paramList != null && paramList.indexOf("(") != 0 && !matcher1.find()) {
+                String[] tokens = new String[] { "LANGUAGE", "NOT", "DETERMINISTIC", "CONTAINS", "NO",
+                        "READ", "MODIFIES", "SQL", "COMMENT", "BEGIN", "RETURN" };
+                int startIndex = 0;
+                int endIndex = -1;
+                for(int j = 0 ;j<tokens.length;j++) {
+                    endIndex = paramList.substring(startIndex).toUpperCase(Locale.ROOT).indexOf(tokens[j]);
+                    if(endIndex != -1) {
+                        startIndex = endIndex +1;
+                    }
+                }
+                if(endIndex != -1) {
+                    paramList = paramList.substring(0,endIndex);
+                }
+                isInParam = false;
+                isOutParam = false;
+                isReturnParam = true;
+                typeInfo = new TypeInfo(paramList.toUpperCase(Locale.ROOT));
+                String[] tmp = getRowData(catalog,"",procName,forGetFunctionColumns,isInParam,isOutParam,isReturnParam,typeInfo,0);
+                list.add(tmp);
+
             } else {
-                throw new SQLException(
-                        "unknown parameter direction " + direction + "for "); // todo
-            }
-            String paramName = matcher2.group(2).trim();
-            TypeInfo typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
-            int sqlType = mapMariaDbTypeToJdbc(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
-            if (paramName.startsWith("`") && paramName.endsWith("`")) {
-                paramName = paramName.substring(1, paramName.length() - 1);
-            } else if (paramName.startsWith("") && paramName.endsWith("")) {
-                paramName = paramName.substring(1, paramName.length() - 1);
-            }
-            data[0] = catalog;
-            data[1] = null;
-            data[2] = procName;
-            data[3] = paramName;
-            data[4] = String.valueOf(getColumnType(isOutParam, isInParam, isReturnParam,
-                    forGetFunctionColumns));
-            data[5] = Integer.toString(sqlType);
-            data[6] = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
-            data[7] = String.valueOf(typeInfo.columnSize);
-            data[8] = data[7];
-            data[9] = typeInfo.decimalDigits;
-            data[10] = String.valueOf(typeInfo.numPrecRadix);
-            switch(typeInfo.nullability) {
-                case columnNoNulls:
-                    data[11] = String.valueOf(procedureNoNulls);
-                    break;
+                if (protocol.isOracleMode()) {
+                    matcher2 = ORALCLE_PARAMETER_PATTERN.matcher(paramList);
+                } else {
+                    matcher2 = PARAMETER_PATTERN.matcher(paramList);
+                }
+                while (matcher2.find()) {
+                    String direction = matcher2.group(1);
+                    if (direction != null) {
+                        direction = direction.trim();
+                    }
+                    isInParam = false;
+                    isOutParam = false;
+                    isReturnParam = false;
+                    if (direction == null || direction.equalsIgnoreCase("IN")) {
+                        isInParam = true;
+                    } else if (direction.equalsIgnoreCase("OUT")) {
+                        isOutParam = true;
+                    } else if (direction.equalsIgnoreCase("INOUT")) {
+                        isInParam = true;
+                        isOutParam = true;
+                    } else {
+                        throw new SQLException(
+                                "unknown parameter direction " + direction + "for "); // todo
+                    }
+                    String paramName = matcher2.group(2).trim();
+                    if (this.protocol.isOracleMode()) {
+                        typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+                    } else {
+                        if(matcher2.group(5) != null) {
+                            typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT) + matcher2.group(5).trim().toUpperCase(Locale.ROOT));
+                        } else {
+                            typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+                        }
 
-                case columnNullable:
-                    data[11] = String.valueOf(procedureNullable); //NULLABLE
-                    break;
-
-                case columnNullableUnknown:
-                    data[11] = String.valueOf(procedureNullableUnknown); //NULLABLE
-                    break;
-
-                default:
-                    throw  new SQLException("Internal error while parsing callable statement metadata (unknown nullability value fount");
+                    }
+                    if (paramName.startsWith("`") && paramName.endsWith("`")) {
+                        paramName = paramName.substring(1, paramName.length() - 1);
+                    } else if (paramName.startsWith("") && paramName.endsWith("")) {
+                        paramName = paramName.substring(1, paramName.length() - 1);
+                    }
+                    String[] tmp = getRowData(catalog,paramName,procName,forGetFunctionColumns,isInParam,isOutParam,isReturnParam,typeInfo,origin++);
+                    list.add(tmp);
+                }
             }
-            data[12] = null;
-            if (forGetFunctionColumns) {
-                data[13] = null;
-                data[14] = null;
-                data[15] = typeInfo.isNullable;
-                data[16] = procName;
-            } else {
-                data[13] = null;
-                data[14] = null;
-                data[15] = null;
-                data[16] = null;
-                data[17] = String.valueOf(0);
-                data[18] = typeInfo.isNullable;
-                data[19] = procName;
-            }
-            String[] tmp = new String[20];
-            System.arraycopy(data, 0, tmp, 0, data.length);
-            list.add(tmp);
+
         }
         String[][] val = new String[list.size()][];
         for (int j = 0; j < list.size(); j++) {
             val[j] = list.get(j);
         }
-        return SelectResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+        return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+
+    }
+
+    String[] getRowData(String catalog, String paramName, String procName,
+                        boolean forGetFunctionColumns, boolean isInParam, boolean isOutParam,
+                        boolean isReturnParam, TypeInfo typeInfo, int origin) throws SQLException {
+        String[] data = new String[20];
+        if (paramName.startsWith("`") && paramName.endsWith("`")) {
+            paramName = paramName.substring(1, paramName.length() - 1);
+        } else if (paramName.startsWith("'") && paramName.endsWith("'")) {
+            paramName = paramName.substring(1, paramName.length() - 1);
+        }
+        data[0] = catalog;
+        data[1] = null;
+        data[2] = procName;
+        data[3] = paramName;
+        data[4] = String.valueOf(getColumnType(isOutParam, isInParam, isReturnParam,
+            forGetFunctionColumns));
+        data[5] = Integer.toString(typeInfo.sqlType);
+        data[6] = typeInfo.typeName;
+        data[7] = String.valueOf(typeInfo.columnSize);
+        data[8] = data[7];
+        data[9] = typeInfo.decimalDigits;
+        data[10] = String.valueOf(typeInfo.numPrecRadix);
+        switch (typeInfo.nullability) {
+            case columnNoNulls:
+                data[11] = String.valueOf(procedureNoNulls);
+                break;
+
+            case columnNullable:
+                data[11] = String.valueOf(procedureNullable); //NULLABLE
+                break;
+
+            case columnNullableUnknown:
+                data[11] = String.valueOf(procedureNullableUnknown); //NULLABLE
+                break;
+
+            default:
+                throw new SQLException(
+                    "Internal error while parsing callable statement metadata (unknown nullability value fount");
+        }
+        data[12] = null;
+        if (forGetFunctionColumns) {
+            data[13] = null;
+            data[14] = Integer.toString(origin);
+            data[15] = typeInfo.isNullable; // todo
+            data[16] = procName;
+        } else {
+            data[13] = null;
+            data[14] = null;
+            data[15] = null;
+            data[16] = null;
+            data[17] = String.valueOf(0);
+            data[18] = typeInfo.isNullable;
+            data[19] = procName;
+        }
+        String[] tmp = new String[20];
+        System.arraycopy(data, 0, tmp, 0, data.length);
+        return tmp;
+
     }
 
     ResultSet getCallStmtParameterTypes(String catalog, ResultSet procsAndOrFuncsRs,
-                                        String[] columnNames, ColumnType[] columnTypes)
-                                                                                       throws SQLException {
+                                        String[] columnNames, ColumnType[] columnTypes, boolean forGetFunctionColumns)
+            throws SQLException {
+        ArrayList<String> paramListArray = new ArrayList<>();
+        ArrayList<String> nameArray = new ArrayList<>();
+        while(procsAndOrFuncsRs.next()) {
+            String name = procsAndOrFuncsRs.getString(1);
 
-        procsAndOrFuncsRs.next();
-        String name = procsAndOrFuncsRs.getString(1);
-        StringBuilder procNameBuf = new StringBuilder();
-        if (this.protocol.isOracleMode()) {
-            procNameBuf.append("\"");
-            procNameBuf.append(name);
-            procNameBuf.append("\"");
-        } else {
-            procNameBuf.append("`");
-            procNameBuf.append(catalog);
-            procNameBuf.append("`.`");
-            procNameBuf.append(name);
-            procNameBuf.append("`");
+            StringBuilder procNameBuf = new StringBuilder();
+            String type = procsAndOrFuncsRs.getString(2);
+            if (this.protocol.isOracleMode()) {
+                procNameBuf.append("\"");
+                procNameBuf.append(name);
+                procNameBuf.append("\"");
+            } else {
+                procNameBuf.append("`");
+                procNameBuf.append(catalog);
+                procNameBuf.append("`.`");
+                procNameBuf.append(name);
+                procNameBuf.append("`");
+            }
+            if(type.equals("FUNCTION")) {
+                ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
+                        "SHOW CREATE FUNCTION " + procNameBuf.toString());
+                paramRetrievalRs.next();
+                String procedureDDl = paramRetrievalRs.getString("Create Function");
+                int startIndex = procedureDDl.indexOf("(");
+                int returnIndex = procedureDDl.indexOf("RETURNS");
+                if (returnIndex != -1 && returnIndex > startIndex) {
+                    String returnList = procedureDDl.substring(returnIndex + "RESTURNS".length()
+                    );
+                    paramListArray.add(returnList);
+                    nameArray.add(name);
+                    String paramList  = procedureDDl.substring(startIndex - 1,
+                            returnIndex-1);
+                    paramListArray.add(paramList);
+                    nameArray.add(name);
+                } else {
+                    String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1
+                    );
+                    paramListArray.add(paramList);
+                    nameArray.add(name);
+                }
+            } else {
+                ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
+                        "SHOW CREATE PROCEDURE " + procNameBuf.toString());
+                paramRetrievalRs.next();
+                String procedureDDl = paramRetrievalRs.getString("Create Procedure");
+
+                String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1
+                );
+                paramListArray.add(paramList);
+                nameArray.add(name);
+
+            }
         }
-        ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
-            "SHOW CREATE PROCEDURE " + procNameBuf.toString());
-        paramRetrievalRs.next();
-        String procedureDDl = paramRetrievalRs.getString("Create Procedure");
-        String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1,
-            procedureDDl.length());
-        return parseParamListProc(false, paramList, catalog, name, columnNames, columnTypes);
+
+        return parseParamListProc(false, paramListArray, catalog, nameArray, columnNames, columnTypes,forGetFunctionColumns);
     }
 
     /**
@@ -2755,7 +3390,19 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                   + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, "
                   + " '' IS_NULLABLE, '' SPECIFIC_NAME " + " FROM DUAL WHERE 1=0 ";
         }
-        return executeQuery(sql);
+        String[] columnNames = { "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "COLUMN_NAME",
+                "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX",
+                "NULLABLE", "REMARKS", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+                "SPECIFIC_NAME" };
+        ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.NUMBER, ColumnType.SMALLINT, ColumnType.VARCHAR,
+
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT, ColumnType.SMALLINT,
+                ColumnType.SMALLINT, ColumnType.VARCHAR, ColumnType.NUMBER, ColumnType.NUMBER,
+                ColumnType.VARCHAR, ColumnType.VARCHAR };
+        ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, functionNamePattern, true, true,
+            columnNames, columnTypes, true);
+        return procsAndOrFuncsRs;
     }
 
     public ResultSet getSchemas() throws SQLException {
@@ -3059,8 +3706,130 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + " KCU.TABLE_NAME = "
                      + escapeQuote(foreignTable)
                      + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        ArrayList<String> tableNameList;
+        try {
+            tableNameList = getALlTableNames(parentCatalog);
+            ResultSet allTableRS = getAllTablesResultSet(tableNameList, parentCatalog);
+            ArrayList<String[]> list = new ArrayList<>();
+            while(allTableRS.next()) {
+                String[] data = new String[14];
+                String tableType = allTableRS.getString("Type");
+                if (tableType!= null && (tableType.toUpperCase(Locale.ROOT).equals("INNODB") || tableType.toUpperCase(Locale.ROOT).equals("SUPPORTS_FK"))) {
+                    String tableComment  = allTableRS.getString("Comment").trim();
+                    String fkTableName = allTableRS.getString("Name");
+                    if(tableComment != null) {
+                        StringTokenizer stringTokenizer = new StringTokenizer(tableComment,";",false);
+                        if (stringTokenizer.hasMoreTokens()) {
+                            String dummy = stringTokenizer.nextToken();
+                            // Skip InnoDB comment
+                        }
+                        while(stringTokenizer.hasMoreTokens()) {
+                            String keys = stringTokenizer.nextToken();
+                            int fkParamOpenIndex = keys.indexOf("(");
+                            if (fkParamOpenIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String constraintName = keys.substring(1,fkParamOpenIndex - 1);
+                            keys = keys.substring(fkParamOpenIndex + 1);
+                            int fkParamCloseIndex = keys.indexOf(")");
+                            if (fkParamCloseIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
+                            }
+                            String fkParamNames =  keys.substring(1,fkParamCloseIndex-1);
+                            int refIndex = keys.indexOf("REFER");
+                            if (refIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");
+                            }
+                            int refParamOpenIndex = keys.indexOf("(",refIndex);
+                            if (refParamOpenIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced columns list");
+                            }
+                            String refCatalogAndTable = keys.substring(refIndex + "REFER".length() + 1,refParamOpenIndex);
+                            int slashIndex = refCatalogAndTable.indexOf("/");
+                            if(slashIndex == -1) {
+                                throw  new SQLException("Error parsing foreign keys definition, couldn't find name of referenced catalog.");
+                            }
+                            String refCatalog = refCatalogAndTable.substring(0,slashIndex);
+                            refCatalog = removeQuoted(refCatalog);
+                            String refTableName = refCatalogAndTable.substring(slashIndex + 1);
+                            refTableName = removeQuoted(refTableName);
+                            if(fkTableName.compareTo(foreignTable) != 0)  {
+                                continue;
+                            }
+                            int refParamCloseIndex = keys.indexOf(")",refParamOpenIndex);
+                            if (refParamCloseIndex == -1) {
+                                throw new SQLException("Error parsing foreign keys definition, couldn't find end of referenced columns list.");
+                            }
+                            String refParamNames = keys.substring(refParamOpenIndex + 1,refParamCloseIndex );
+                            String[] refParamList = refParamNames.split(",");
+                            String[] fkParamList = fkParamNames.split(",");
+                            int fkCur = 0;
+                            int refCur = 0;
+                            int keySeq = 0;
+                            while(fkCur < fkParamList.length) {
+                                String lColumnName = removeQuoted(fkParamList[fkCur++]);
+                                String rColumnName = null;
+                                if (refCur < refParamList.length) {
+                                    rColumnName = removeQuoted(refParamList[refCur++]);
+                                }
+                                if(refTableName.compareTo(parentTable) !=  0) {
+                                    continue;
+                                }
+                                int updateRuleAction  = importedKeyNoAction;
+                                int deleteRuleAction  = importedKeyNoAction;
+                                int lastIndex = keys.lastIndexOf(")");
+                                if (lastIndex != keys.length() - 1) {
+                                    String options = keys.substring(lastIndex + 1);
+                                    String optionsForUpdate = options.substring(options.indexOf("ON UPDATE"));
+                                    if (optionsForUpdate.startsWith("ON UPDATE CASCADE")){
+                                        updateRuleAction = importedKeyCascade;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE SET NUL")) {
+                                        updateRuleAction = importedKeySetNull;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE RESTRICT")) {
+                                        updateRuleAction = importedKeyRestrict;
+                                    } else if (optionsForUpdate.startsWith("ON UPDATE NO ACTION")) {
+                                        updateRuleAction = importedKeyNoAction;
+                                    }
+                                    String optionsForDelete = options.substring(options.indexOf("ON DELETE"));
+                                    if (optionsForDelete.startsWith("ON DELETE CASCADE")) {
+                                        deleteRuleAction = importedKeyCascade;
+                                    } else if (optionsForDelete.startsWith("ON DELETE SET NUL")) {
+                                        deleteRuleAction = importedKeySetNull;
+                                    } else if (optionsForDelete.startsWith("ON DELETE RESTRICT")) {
+                                        deleteRuleAction = importedKeyRestrict;
+                                    } else if (optionsForDelete.startsWith("ON DELETE NO ACTIO")) {
+                                        deleteRuleAction = importedKeyNoAction;
+                                    }
+                                }
+                                data[0] = parentCatalog;
+                                data[1] = parentSchema;
+                                data[2] = refTableName;
+                                data[3] = rColumnName;
+                                data[4] = foreignCatalog;
+                                data[5] = foreignSchema;
+                                data[6] = fkTableName;
+                                data[7] = lColumnName;
+                                data[8] = Integer.toString(keySeq++);
+                                data[9] = Integer.toString(updateRuleAction);
+                                data[10] = Integer.toString(deleteRuleAction);
+                                data[11] = null;
+                                data[12] = null;
+                                data[13] = Integer.toString(importedKeyNotDeferrable);
+                                list.add(data);
+                            }
+                        }
+                    }
+                }
 
-        return executeQuery(sql);
+            }
+            String[][] val = new String[list.size()][];
+            for (int j = 0; j < list.size(); j++) {
+                val[j] = list.get(j);
+            }
+            return SelectResultSet.createResultSet(exportKeysColumnNames,exportKeysColumnTypes,val,this.protocol);
+        } catch (SQLException e) {
+            throw e;
+        }
     }
 
     /**

@@ -255,7 +255,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void testMetaWildcard() throws Exception {
-        createProcedure("testMetaWildcard", "(x int, y out int)\n" + "is BEGIN\n"
+        createProcedure("testMetaWildcard", "(x int, y out varchar2(200))\n" + "is BEGIN\n"
                                             + "SELECT 1 from dual ;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
             "TESTMETAWILDCARD%", "%");
