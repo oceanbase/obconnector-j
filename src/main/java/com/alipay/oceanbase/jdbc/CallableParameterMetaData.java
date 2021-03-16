@@ -50,6 +50,9 @@
  */
 package com.alipay.oceanbase.jdbc;
 
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.alipay.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
+
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -132,6 +135,23 @@ public class CallableParameterMetaData implements ParameterMetaData {
             return;
         }
         readMetadata();
+        valid = true;
+    }
+
+    public void generateMetadataFromPrepareResultSet(ServerPrepareResult serverPrepareResult) throws SQLException {
+        if (valid) {
+            return;
+        }
+        // Initialize params
+        params = new ArrayList<>();
+        ColumnDefinition[] parameters = serverPrepareResult.getParameters();
+        for (int i = 0; i<parameters.length ; i++) {
+            CallParameter callParameter = new CallParameter();
+            callParameter.setName("");
+            callParameter.setOutput(false);
+            callParameter.setInput(false);
+            params.add(callParameter);
+        }
         valid = true;
     }
 

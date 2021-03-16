@@ -1200,6 +1200,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 //                return getInternalCursor(columnInfo,null,timeZone);
                 return null;
                 //                break;
+            case RAW:
+                byte[] returnBytes = new byte[length];
+                System.arraycopy(buf, pos, returnBytes, 0, length);
+                return returnBytes;
             default:
                 break;
         }

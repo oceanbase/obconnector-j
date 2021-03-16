@@ -770,47 +770,58 @@ public class OceanBaseConnection implements ConnectionImpl {
     public CallableStatement prepareCall(final String sql, final int resultSetType,
                                          final int resultSetConcurrency) throws SQLException {
         checkConnection();
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
-        if (!matcher.matches()) {
-            throw new SQLSyntaxErrorException(
-                "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
-                        + sql);
-        }
-
-        String query = Utils.nativeSql(matcher.group(2), protocol);
-
-        boolean isFunction = (matcher.group(3) != null);
-        String databaseAndProcedure = matcher.group(8);
-        String database = matcher.group(10);
-        String procedureName = matcher.group(13);
-        String arguments = matcher.group(16);
-        if (database == null && sessionStateAware) {
-            database = protocol.getDatabase();
-        }
-
-        if (database != null && options.cacheCallableStmts) {
-
-            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                try {
-                    CallableStatement callableStatement = callableStatementCache
-                        .get(new CallableStatementCacheKey(database, query));
-                    if (callableStatement != null) {
-                        // Clone to avoid side effect like having some open resultSet.
-                        return ((CloneableCallableStatement) callableStatement).clone(this);
-                    }
-                } catch (CloneNotSupportedException cloneNotSupportedException) {
-                    cloneNotSupportedException.printStackTrace();
-                }
+        // Support for Oracle anonymous block
+        String upperSql = sql.replaceAll("--.*\n", "").replaceAll("\\/\\*.*\\*\\/", "")
+            .toUpperCase(Locale.ROOT).trim();
+        if (this.protocol.isOracleMode()
+            && (upperSql.startsWith("BEGIN") || upperSql.startsWith("DECLARE"))) {
+            return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
+                null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+        } else {
+            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
+            if (!matcher.matches()) {
+                throw new SQLSyntaxErrorException(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + sql);
             }
-            CallableStatement callableStatement = createNewCallableStatement(query, procedureName,
-                isFunction, databaseAndProcedure, database, arguments, resultSetType,
-                resultSetConcurrency, exceptionFactory);
-            callableStatementCache.put(new CallableStatementCacheKey(database, query),
-                callableStatement);
-            return callableStatement;
+
+            String query = Utils.nativeSql(matcher.group(2), protocol);
+
+            boolean isFunction = (matcher.group(3) != null);
+            String databaseAndProcedure = matcher.group(8);
+            String database = matcher.group(10);
+            String procedureName = matcher.group(13);
+            String arguments = matcher.group(16);
+            if (database == null && sessionStateAware) {
+                database = protocol.getDatabase();
+            }
+
+            if (database != null && options.cacheCallableStmts) {
+
+                if (callableStatementCache.containsKey(new CallableStatementCacheKey(database,
+                    query))) {
+                    try {
+                        CallableStatement callableStatement = callableStatementCache
+                            .get(new CallableStatementCacheKey(database, query));
+                        if (callableStatement != null) {
+                            // Clone to avoid side effect like having some open resultSet.
+                            return ((CloneableCallableStatement) callableStatement).clone(this);
+                        }
+                    } catch (CloneNotSupportedException cloneNotSupportedException) {
+                        cloneNotSupportedException.printStackTrace();
+                    }
+                }
+                CallableStatement callableStatement = createNewCallableStatement(query,
+                    procedureName, isFunction, databaseAndProcedure, database, arguments,
+                    resultSetType, resultSetConcurrency, exceptionFactory);
+                callableStatementCache.put(new CallableStatementCacheKey(database, query),
+                    callableStatement);
+                return callableStatement;
+            }
+            return createNewCallableStatement(query, procedureName, isFunction,
+                databaseAndProcedure, database, arguments, resultSetType, resultSetConcurrency,
+                exceptionFactory);
         }
-        return createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure,
-            database, arguments, resultSetType, resultSetConcurrency, exceptionFactory);
     }
 
     /**
@@ -1400,7 +1411,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @return An object that implements the <code>NClob</code> interface
      */
     public NClob createNClob() {
-        return new Clob();
+        return new JDBC4NClob("", null);
     }
 
     /**

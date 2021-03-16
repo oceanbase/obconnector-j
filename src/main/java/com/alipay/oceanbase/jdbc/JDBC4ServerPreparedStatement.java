@@ -69,7 +69,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   protected int parameterCount = -1;
   private boolean isObFunction = false;
   protected String sql;
-  private ServerPrepareResult serverPrepareResult = null;
+  protected ServerPrepareResult serverPrepareResult = null;
   private OceanBaseResultSetMetaData metadata;
   private OceanBaseParameterMetaData parameterMetaData;
   protected Map<Integer, ParameterHolder> currentParameterHolder;

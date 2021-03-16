@@ -971,6 +971,10 @@ public class TextRowProtocol extends RowProtocol {
                 return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
             case INTERVALYM:
                 return getInternalINTERVALYM(columnInfo);
+            case RAW:
+                byte[] returnBytes = new byte[length];
+                System.arraycopy(buf, pos, returnBytes, 0, length);
+                return returnBytes;
             default:
                 break;
         }

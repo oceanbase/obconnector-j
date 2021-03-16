@@ -225,7 +225,7 @@ public class Blob implements ObBlob, Serializable {
      *
      * @param pos the ordinal position of the first byte in the <code>BLOB</code> value to be
      *     extracted; the first byte is at position 1
-     * @param length the number of consecutive bytes to be copied; the value for length must be 0 or
+     * @param length  the number of consecutive bytes to be copied; the value for length must be 0 or
      *     greater
      * @return a byte array containing up to <code>length</code> consecutive bytes from the <code>BLOB
      *     </code> value designated by this <code>Blob</code> object, starting with the byte at
@@ -241,7 +241,8 @@ public class Blob implements ObBlob, Serializable {
                 "Out of range (position should be > 0, but is %s)", pos));
         }
         final int offset = this.offset + (int) (pos - 1);
-        byte[] result = new byte[length];
+        int len = length > this.length ? this.length : length;
+        byte[] result = new byte[len];
         System.arraycopy(data, offset, result, 0, Math.min(this.length - (int) (pos - 1), length));
         return result;
     }

@@ -595,14 +595,6 @@ public class BlobTest extends BaseTest {
   }
 
     @Test
-    public void connectionBlob() throws SQLException {
-        java.sql.Blob blob = sharedConnection.createBlob();
-        assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
-        blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
-        assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
-    }
-
-    @Test
     public void insertBinaryInsert() {
         try {
             if (sharedUsePrepare()) {

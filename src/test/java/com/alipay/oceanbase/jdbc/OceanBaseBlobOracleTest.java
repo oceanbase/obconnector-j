@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
@@ -76,15 +77,15 @@ public class OceanBaseBlobOracleTest {
     public void getBytes() throws SQLException {
         Blob blob = new Blob(bytes);
         assertArrayEquals(bytes, blob.getBytes(1, 6));
-        assertArrayEquals(new byte[] { 0, 1, 2, 3, 4, 5, 0 }, blob.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 7));
         assertArrayEquals(new byte[] { 0, 1 }, blob.getBytes(1, 2));
 
         Blob blob2 = new Blob(bytes, 2, 3);
         assertArrayEquals(new byte[] { 2, 3, 4 }, blob2.getBytes(1, 3));
-        assertArrayEquals(new byte[] { 2, 3, 4, 0, 0, 0 }, blob2.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4 }, blob2.getBytes(1, 6));
         assertArrayEquals(new byte[] { 2, 3 }, blob2.getBytes(1, 2));
         assertArrayEquals(new byte[] { 3, 4, 0 }, blob2.getBytes(2, 3));
-        assertArrayEquals(new byte[] { 3, 4, 0, 0, 0, 0 }, blob2.getBytes(2, 6));
+        assertArrayEquals(new byte[] { 3, 4, 0 }, blob2.getBytes(2, 6));
         assertArrayEquals(new byte[] { 3, 4 }, blob2.getBytes(2, 2));
 
         try {
@@ -167,9 +168,9 @@ public class OceanBaseBlobOracleTest {
         blob2.setBytes(4, otherBytes);
         assertArrayEquals(new byte[] { 0, 1, 2, 10, 11, 12, 13 }, blob2.getBytes(1, 7));
 
-        Blob blob3 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        Blob blob3 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 });
         blob3.setBytes(2, otherBytes);
-        assertArrayEquals(new byte[] { 2, 10, 11, 12, 13, 0, 0 }, blob3.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 10, 11, 12, 13, 5 }, blob3.getBytes(1, 7));
 
         Blob blob4 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         blob4.setBytes(4, otherBytes);
@@ -194,19 +195,19 @@ public class OceanBaseBlobOracleTest {
 
         Blob blob2 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 });
         blob2.setBytes(4, otherBytes, 3, 2);
-        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, 0 }, blob2.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5 }, blob2.getBytes(1, 7));
 
         Blob blob3 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
         blob3.setBytes(2, otherBytes, 2, 3);
-        assertArrayEquals(new byte[] { 2, 12, 13, 5, 0, 0, 0 }, blob3.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 2, 12, 13, 5 }, blob3.getBytes(1, 7));
 
         Blob blob4 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         blob4.setBytes(4, otherBytes, 2, 2);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob4.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob4.getBytes(1, 6));
 
         Blob blob5 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         blob5.setBytes(4, otherBytes, 2, 20);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob5.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob5.getBytes(1, 6));
 
         try {
             Blob blob6 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
@@ -234,7 +235,8 @@ public class OceanBaseBlobOracleTest {
         Blob blob3 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes);
-        assertArrayEquals(new byte[] { 2, 10, 11, 12, 13, 0, 0 }, blob3.getBytes(1, 7));
+
+        assertArrayEquals(new byte[] { 2, 10, 11, 12, 13 }, blob3.getBytes(1, 7));
 
         Blob blob4 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
@@ -262,22 +264,22 @@ public class OceanBaseBlobOracleTest {
         Blob blob2 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes, 3, 2);
-        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, 0 }, blob2.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5 }, blob2.getBytes(1, 7));
 
         Blob blob3 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes, 2, 3);
-        assertArrayEquals(new byte[] { 2, 12, 13, 5, 0, 0, 0 }, blob3.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 2, 12, 13, 5 }, blob3.getBytes(1, 7));
 
         Blob blob4 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes, 2, 2);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob4.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob4.getBytes(1, 6));
 
         Blob blob5 = new Blob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out5 = blob5.setBinaryStream(4);
         out5.write(otherBytes, 2, 20);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob5.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob5.getBytes(1, 6));
     }
 
     @Test
@@ -286,18 +288,18 @@ public class OceanBaseBlobOracleTest {
         blob.truncate(20);
         assertArrayEquals(bytes, blob.getBytes(1, 6));
         blob.truncate(5);
-        assertArrayEquals(new byte[] { 0, 1, 2, 3, 4, 0, 0 }, blob.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 3, 4 }, blob.getBytes(1, 7));
         blob.truncate(0);
-        assertArrayEquals(new byte[] { 0, 0 }, blob.getBytes(1, 2));
+        assertArrayEquals(new byte[] {}, blob.getBytes(1, 2));
 
         Blob blob2 = new Blob(bytes, 2, 3);
         blob2.truncate(20);
         assertArrayEquals(new byte[] { 2, 3, 4 }, blob2.getBytes(1, 3));
         blob2.truncate(2);
-        assertArrayEquals(new byte[] { 2, 3, 0, 0, 0, 0 }, blob2.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3 }, blob2.getBytes(1, 6));
 
         blob2.truncate(1);
-        assertArrayEquals(new byte[] { 2, 0 }, blob2.getBytes(1, 2));
+        assertArrayEquals(new byte[] { 2 }, blob2.getBytes(1, 2));
     }
 
     @Test

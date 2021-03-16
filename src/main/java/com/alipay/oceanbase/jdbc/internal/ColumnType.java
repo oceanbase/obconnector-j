@@ -217,7 +217,6 @@ public enum ColumnType {
             case Types.NCHAR:
             case Types.LONGVARCHAR:
             case Types.LONGNVARCHAR:
-            case Types.CLOB:
             case Types.NCLOB:
                 //TODO need to update
                 return String.class;
@@ -229,16 +228,18 @@ public enum ColumnType {
             case Types.VARBINARY:
             case Types.BINARY:
             case Types.LONGVARBINARY:
-            case Types.BLOB:
+
             case Types.JAVA_OBJECT:
                 return byte[].class;
 
             case Types.NULL:
                 return null;
-
             case Types.TIME:
                 return Time.class;
-
+            case Types.BLOB:
+                return com.alipay.oceanbase.jdbc.Blob.class;
+            case Types.CLOB:
+                return com.alipay.oceanbase.jdbc.Clob.class;
             default:
                 // DISTINCT
                 // STRUCT

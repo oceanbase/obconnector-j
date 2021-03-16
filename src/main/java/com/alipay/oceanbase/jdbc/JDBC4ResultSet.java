@@ -86,6 +86,8 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.alipay.oceanbase.jdbc.internal.ColumnType.OBBLOB;
+import static com.alipay.oceanbase.jdbc.internal.ColumnType.OBCLOB;
 import static com.alipay.oceanbase.jdbc.internal.com.Packet.EOF;
 import static com.alipay.oceanbase.jdbc.internal.com.Packet.ERROR;
 import static com.alipay.oceanbase.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
@@ -1067,8 +1069,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return clob.getAsciiStream();
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
-            .getType()) {
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == OBBLOB.getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
@@ -1146,8 +1147,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             .getType()) {
             return getClob(columnIndex).getAsciiStream();
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
-            .getType()) {
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == OBBLOB.getType()) {
             return getBlob(columnIndex).getBinaryStream();
         }
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
@@ -1295,8 +1295,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             .getType()) {
             throw new SQLFeatureNotSupportedException();
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
-            .getType()) {
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == OBBLOB.getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
@@ -1668,6 +1667,21 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return null;
             }
             return type.cast(offsetTime);
+        } else if (type.equals(com.alipay.oceanbase.jdbc.Blob.class)) {
+            if (col.getColumnType() == OBBLOB) {
+                return (T) getBlob(columnIndex);
+            } else {
+                return (T) new com.alipay.oceanbase.jdbc.Blob(row.buf, row.pos,
+                    row.getLengthMaxFieldSize());
+            }
+
+        } else if (type.equals(com.alipay.oceanbase.jdbc.Clob.class)) {
+            if (col.getColumnType() == OBCLOB) {
+                return (T) getClob(columnIndex);
+            } else {
+                return (T) new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos,
+                    row.getLengthMaxFieldSize());
+            }
         }
         throw ExceptionFactory.INSTANCE.notSupported("Type class '" + type.getName()
                                                      + "' is not supported");
@@ -1706,8 +1720,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return clob.getCharacterStream();
             }
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
-            .getType()) {
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == OBBLOB.getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
@@ -1758,8 +1771,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
-            .getType()) {
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == OBBLOB.getType()) {
             String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
             if (encoding == null) {
                 encoding = "UTF8";
@@ -1932,7 +1944,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        return new com.alipay.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
+        return new com.alipay.oceanbase.jdbc.JDBC4NClob(getString(columnIndex), null);
     }
 
     /**

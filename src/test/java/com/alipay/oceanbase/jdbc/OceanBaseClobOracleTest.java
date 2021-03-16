@@ -232,7 +232,7 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
         Clob blob3 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes);
-        assertArrayEquals(new byte[] { 2, 10, 11, 12, 13, 0, 0 }, blob3.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 2, 10, 11, 12, 13 }, blob3.getBytes(1, 7));
 
         Clob blob4 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
@@ -260,22 +260,22 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
         Clob blob2 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes, 3, 2);
-        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, 0 }, blob2.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5 }, blob2.getBytes(1, 7));
 
         Clob blob3 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes, 2, 3);
-        assertArrayEquals(new byte[] { 2, 12, 13, 5, 0, 0, 0 }, blob3.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 2, 12, 13, 5 }, blob3.getBytes(1, 7));
 
         Clob blob4 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes, 2, 2);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob4.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob4.getBytes(1, 6));
 
         Clob blob5 = new Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out5 = blob5.setBinaryStream(4);
         out5.write(otherBytes, 2, 20);
-        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13, 0 }, blob5.getBytes(1, 6));
+        assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob5.getBytes(1, 6));
     }
 
     @Test

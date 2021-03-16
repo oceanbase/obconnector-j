@@ -79,4 +79,13 @@ public class OceanBaseProcedureStatement extends JDBC4ServerCallableStatement {
         super(isObFunction, query, connection, procedureName, database, resultSetType,
             resultSetConcurrency, exceptionFactory);
     }
+
+    public OceanBaseProcedureStatement(boolean isObFunction, String query,
+                                       OceanBaseConnection connection, String procedureName,
+                                       String database, int resultSetType,
+                                       int resultSetConcurrency, ExceptionFactory exceptionFactory,
+                                       boolean isAnoymousBlock) throws SQLException {
+        super(isObFunction, query, connection, procedureName, database, resultSetType,
+            resultSetConcurrency, exceptionFactory, isAnoymousBlock);
+    }
 }

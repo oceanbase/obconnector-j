@@ -942,30 +942,6 @@ public class BlobOracleTest extends BaseOracleTest {
     }
   }
 
-    @Test
-    public void connectionBlob() throws SQLException {
-        java.sql.Blob blob = sharedConnection.createBlob();
-        assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
-        blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
-        assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
-    }
-
-    @Test
-    public void connectionBlobPS() throws SQLException {
-        java.sql.Blob blob = sharedPSConnection.createBlob();
-        assertArrayEquals(new byte[] { 0 }, blob.getBytes(1, 1));
-        blob.setBytes(5, new byte[] { 1, 2, 3, 4, 5, 6 });
-        assertArrayEquals(new byte[] { 0, 0, 0, 0, 1, 2, 3, 4, 5 }, blob.getBytes(1, 9));
-    }
-
-    public static Connection getObOracleConnection() throws Exception {
-        final String url = "jdbc:oceanbase://100.88.109.130:18817/SYS?useSSL=false&useServerPrepStmts=true&serverTimezone=UTC";
-        final String username = "admin@oracle";
-        final String password = "admin";
-        Class.forName("com.alipay.oceanbase.jdbc.Driver");
-        return DriverManager.getConnection(url, username, password);
-    }
-
     public java.sql.Blob writeDataToBlob(ResultSet rs, int column, byte[] data) throws SQLException {
         java.sql.Blob blob = rs.getBlob(column);
         if (blob == null) {

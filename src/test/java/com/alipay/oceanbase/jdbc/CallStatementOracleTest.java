@@ -340,4 +340,104 @@ public class CallStatementOracleTest extends BaseOracleTest {
             statement.execute("SELECT 1 from dual ");
         }
     }
+
+    @Test
+    public void testAnonymousBlock() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            createProcedure("outstring_pl1",
+                "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend;");
+            CallableStatement callableStatement = sharedConnection
+                .prepareCall("begin \n outstring_pl1(?,?,?); end;");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+            callableStatement.setString(2, "1212121");
+            callableStatement.executeUpdate();
+            String str1 = callableStatement.getString(1);
+            String str2 = callableStatement.getString(3);
+            System.out.println("str1 = " + str1);
+            System.out.println("str2 = " + str2);
+            Assert.assertEquals("wfsfsfs", str1);
+            Assert.assertEquals("1212121", str2);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAnonymousBlock2() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            createProcedure("outstring_pl2",
+                "/* comment 1*/ -- comment 2 \n(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend");
+            CallableStatement callableStatement = sharedConnection
+                .prepareCall("begin \n outstring_pl2(?,'121',?); end;");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.executeUpdate();
+            String str1 = callableStatement.getString(1);
+            String str2 = callableStatement.getString(2);
+            System.out.println("str1 = " + str1);
+            System.out.println("str2 = " + str2);
+            Assert.assertEquals("wfsfsfs", str1);
+            Assert.assertEquals("121", str2);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAnonymousBlock3() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            createProcedure("outstring_pl3",
+                "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR,P4 IN VARCHAR ) is begin \n p1:= p4; p3:=p2;\nend;");
+
+            CallableStatement callableStatement = sharedConnection
+                .prepareCall("begin \n outstring_pl3(?,?,?,?); end;");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+            callableStatement.setString(2, "1212121");
+            callableStatement.setString(4, "p4string");
+            callableStatement.executeUpdate();
+            String str1 = callableStatement.getString(1);
+            String str2 = callableStatement.getString(3);
+            System.out.println("str1 = " + str1);
+            System.out.println("str2 = " + str2);
+            Assert.assertEquals("p4string", str1);
+            Assert.assertEquals("1212121", str2);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAnonymousBlock4() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            createProcedure(
+                "outstring_pl4",
+                "(P1 OUT VARCHAR,P2 IN OUT VARCHAR,P3 OUT VARCHAR) is begin \n p1:='p1string';p2:='p2string';p3:=p2;\nend;");
+
+            CallableStatement callableStatement = sharedConnection
+                .prepareCall("begin \n outstring_pl4(?,?,?); end;");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+            callableStatement.setString(2, "p2string");
+            callableStatement.executeUpdate();
+            String str1 = callableStatement.getString(1);
+            String str2 = callableStatement.getString(2);
+            String str3 = callableStatement.getString(3);
+            System.out.println("str1 = " + str1);
+            System.out.println("str2 = " + str2);
+            System.out.println("str3 = " + str3);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

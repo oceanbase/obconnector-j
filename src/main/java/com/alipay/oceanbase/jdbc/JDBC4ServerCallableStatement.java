@@ -101,7 +101,22 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 procedureName, isObFunction);
             this.parameterMetadata.readMetadataFromDbIfRequired();
         }
-        //        determineParameterTypes(query,database,procedureName);
+        setParamsAccordingToSetArguments();
+        setParametersVariables();
+    }
+
+    public JDBC4ServerCallableStatement(boolean isObFunction, String query,
+                                        OceanBaseConnection connection, String procedureName,
+                                        String database, int resultSetType,
+                                        int resultSetConcurrency,
+                                        ExceptionFactory exceptionFactory, boolean isAnonymousBlock)
+                                                                                                    throws SQLException {
+        super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
+            exceptionFactory);
+        this.isObFunction = isObFunction;
+        this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
+            procedureName, isObFunction);
+        this.parameterMetadata.generateMetadataFromPrepareResultSet(this.serverPrepareResult);
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
