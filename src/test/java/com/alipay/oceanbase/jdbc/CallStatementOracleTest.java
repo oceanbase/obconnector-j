@@ -369,7 +369,8 @@ public class CallStatementOracleTest extends BaseOracleTest {
     public void testAnonymousBlock2() {
         try {
             Statement stmt = sharedConnection.createStatement();
-            createProcedure("outstring_pl2",
+            createProcedure(
+                "outstring_pl2",
                 "/* comment 1*/ -- comment 2 \n(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend");
             CallableStatement callableStatement = sharedConnection
                 .prepareCall("begin \n outstring_pl2(?,'121',?); end;");

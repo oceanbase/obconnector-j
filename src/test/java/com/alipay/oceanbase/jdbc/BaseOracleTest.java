@@ -704,6 +704,17 @@ public class BaseOracleTest {
     return openConnection(connUri, null);
   }
 
+  static  String getRandomString(int length){
+    String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    Random random=new Random();
+    StringBuffer sb=new StringBuffer();
+    for(int i=0;i<length;i++){
+      int number=random.nextInt(62);
+      sb.append(str.charAt(number));
+    }
+    return sb.toString();
+  }
+
   protected Connection setConnection(Map<String, String> props) throws SQLException {
     Properties info = new Properties();
     for (String key : props.keySet()) {
