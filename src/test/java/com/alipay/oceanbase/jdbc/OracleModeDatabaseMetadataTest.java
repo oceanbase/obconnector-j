@@ -1,13 +1,65 @@
+/**
+ *  OceanBase Client for Java
+ *
+ *  Copyright (c) 2012-2014 Monty Program Ab.
+ *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *
+ *  This library is free software; you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License along
+ *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ *  This particular MariaDB Client for Java file is work
+ *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ *  the following copyright and notice provisions:
+ *
+ *  Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ *  Redistribution and use in source and binary forms, with or without modification,
+ *  are permitted provided that the following conditions are met:
+ *  Redistributions of source code must retain the above copyright notice, this list
+ *  of conditions and the following disclaimer.
+ *
+ *  Redistributions in binary form must reproduce the above copyright notice, this
+ *  list of conditions and the following disclaimer in the documentation and/or
+ *  other materials provided with the distribution.
+ *
+ *  Neither the name of the driver nor the names of its contributors may not be
+ *  used to endorse or promote products derived from this software without specific
+ *  prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ */
 package com.alipay.oceanbase.jdbc;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.*;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
-//在oracle模式账户下执行本测试类
 public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     private static DatabaseMetaData dbmd;
@@ -27,7 +79,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         if (!rs.next()) {
             hasNext = false;
         }
-        //oracle中此方法返回null
+        //there return null in oracle
         assertTrue(!hasNext);
     }
 
@@ -36,7 +88,6 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         createTable("GETCOLUMNS_TEST", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
                                        + "d VARCHAR(5)", null);
 
-        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "GETCOLUMNS_TEST", null);
         {
             assertTrue(rs.next());
@@ -271,7 +322,8 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         String userName = sharedConnection.getMetaData().getUserName();
         String url = System.getProperty("oracleModeDbUrl", mDefUrl);
         UrlParser parse = UrlParser.parse(url);
-        assertEquals(userName, parse.getUsername());
+        assertEquals(userName, sharedConnection.getSchema());
+
     }
 
     private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
@@ -285,48 +337,456 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             int type = rsmd.getColumnType(i);
             System.out.println("type = " + type);
         }
-        //        for (int i = 0; i < tokens.length; i++) {
-        //            String[] splitTokens = tokens[i].trim().split(" ");
-        //            String label = splitTokens[0];
-        //            String type = splitTokens[1];
-        //
-        //            int col = i + 1;
-        //            assertEquals(label, rsmd.getColumnLabel(col));
-        //            int columnType = rsmd.getColumnType(col);
-        //            switch (type) {
-        //                case "String":
-        //                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col)
-        //                               + ",expected String", columnType == Types.VARCHAR
-        //                                                     || columnType == Types.NULL
-        //                                                     || columnType == Types.LONGVARCHAR);
-        //                    break;
-        //                case "decimal":
-        //                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
-        //                               + " ) for " + rsmd.getColumnLabel(col) + ",expected decimal",
-        //                        columnType == Types.DECIMAL);
-        //                    break;
-        //                case "int":
-        //                case "short":
-        //                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
-        //                               + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",
-        //                        columnType == Types.BIGINT || columnType == Types.INTEGER
-        //                                || columnType == Types.SMALLINT || columnType == Types.TINYINT);
-        //
-        //                    break;
-        //                case "boolean":
-        //                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
-        //                               + " ) for " + rsmd.getColumnLabel(col) + ",expected boolean",
-        //                        columnType == Types.BOOLEAN || columnType == Types.BIT);
-        //
-        //                    break;
-        //                case "null":
-        //                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col)
-        //                               + ",expected null", columnType == Types.NULL);
-        //                    break;
-        //                default:
-        //                    fail("invalid type '" + type + "'");
-        //                    break;
-        //            }
-        //        }
+    }
+
+    @Test
+    public void testGetTablesWithParameter() throws SQLException {
+        createTable("test_getTables", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
+                                      + "d VARCHAR(5)", null);
+        ResultSet rs = sharedConnection.getMetaData().getTables(sharedConnection.getCatalog(),
+            sharedConnection.getSchema(), "test_getTables", null);
+        rs.next();
+
+        assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GETTABLES", rs.getString("TABLE_NAME"));
+        assertEquals("TABLE", rs.getString("TABLE_TYPE"));
+    }
+
+    @Test
+    public void testGetBestRowIdentifier() throws SQLException {
+
+        ResultSet rs = rs = sharedConnection.getMetaData().getBestRowIdentifier(null,
+            sharedConnection.getSchema(), "TEST_GETTABLES", 1, false);
+        assertEquals(true, rs.next());
+    }
+
+    @Test
+    public void testGetTableTypes() throws SQLException {
+        ResultSet rs = sharedConnection.getMetaData().getTableTypes();
+        rs.next();
+        assertEquals("SYNONYM", rs.getString(1));
+    }
+
+    @Test
+    public void testReturnBooleanMethodsWithOutParameter() throws SQLException, IOException {
+
+        DatabaseMetaData metaData = sharedConnection.getMetaData();
+        HashMap<String, Boolean> map = new HashMap<>();
+        HashMap<String, String> mapBy1X = new HashMap<>();
+
+        //result of OceanBase-client1.X
+        String s = "supportsMinimumSQLGrammar:true\n" +
+                "supportsPositionedDelete:false\n" +
+                "autoCommitFailureClosesAllResultSets:false\n" +
+                "supportsSubqueriesInComparisons:true\n" +
+                "supportsANSI92IntermediateSQL:false\n" +
+                "nullPlusNonNullIsNull:true\n" +
+                "supportsCatalogsInDataManipulation:true\n" +
+                "supportsMultipleTransactions:true\n" +
+                "supportsCatalogsInTableDefinitions:false\n" +
+                "supportsOpenCursorsAcrossRollback:false\n" +
+                "supportsStatementPooling:false\n" +
+                "supportsDataDefinitionAndDataManipulationTransactions:false\n" +
+                "supportsTableCorrelationNames:true\n" +
+                "usesLocalFiles:false\n" +
+                "supportsFullOuterJoins:false\n" +
+                "supportsExpressionsInOrderBy:true\n" +
+                "allProceduresAreCallable:false\n" +
+                "storesMixedCaseQuotedIdentifiers:false\n" +
+                "supportsSchemasInProcedureCalls:false\n" +
+                "nullsAreSortedAtStart:false\n" +
+                "supportsLikeEscapeClause:true\n" +
+                "supportsDataManipulationTransactionsOnly:false\n" +
+                "supportsSchemasInDataManipulation:false\n" +
+                "supportsPositionedUpdate:false\n" +
+                "supportsGetGeneratedKeys:true\n" +
+                "supportsGroupBy:true\n" +
+                "supportsOuterJoins:true\n" +
+                "supportsBatchUpdates:true\n" +
+                "supportsLimitedOuterJoins:true\n" +
+                "allTablesAreSelectable:false\n" +
+                "supportsSchemasInIndexDefinitions:false\n" +
+                "supportsConvert1:false\n" +
+                "supportsDifferentTableCorrelationNames:true\n" +
+                "supportsMultipleOpenResults:true\n" +
+                "supportsTransactions:true\n" +
+                "supportsUnion:true\n" +
+                "supportsOpenCursorsAcrossCommit:false\n" +
+                "storesLowerCaseQuotedIdentifiers:true\n" +
+                "supportsANSI92EntryLevelSQL:true\n" +
+                "supportsStoredProcedures:true\n" +
+                "supportsCatalogsInPrivilegeDefinitions:true\n" +
+                "supportsAlterTableWithDropColumn:true\n" +
+                "nullsAreSortedHigh:false\n" +
+                "supportsCatalogsInProcedureCalls:true\n" +
+                "supportsNonNullableColumns:true\n" +
+                "supportsSelectForUpdate:true\n" +
+                "supportsSubqueriesInExists:true\n" +
+                "supportsOpenStatementsAcrossRollback:false\n" +
+                "supportsOpenStatementsAcrossCommit:false\n" +
+                "supportsColumnAliasing:true\n" +
+                "supportsSavepoints:true\n" +
+                "dataDefinitionCausesTransactionCommit:true\n" +
+                "supportsMixedCaseIdentifiers:false\n" +
+                "nullsAreSortedAtEnd:false\n" +
+                "supportsAlterTableWithAddColumn:true\n" +
+                "isCatalogAtStart:true\n" +
+                "supportsUnionAll:true\n" +
+                "dataDefinitionIgnoredInTransactions:false\n" +
+                "supportsCoreSQLGrammar:true\n" +
+                "isReadOnly:false\n" +
+                "supportsGroupByUnrelated:true\n" +
+                "nullsAreSortedLow:true\n" +
+                "supportsCorrelatedSubqueries:true\n" +
+                "locatorsUpdateCopy:true\n" +
+                "supportsANSI92FullSQL:false\n" +
+                "storesUpperCaseIdentifiers:true\n" +
+                "supportsMultipleResultSets:true\n" +
+                "supportsSchemasInPrivilegeDefinitions:false\n" +
+                "supportsMixedCaseQuotedIdentifiers:false\n" +
+                "supportsGroupByBeyondSelect:true\n" +
+                "supportsCatalogsInIndexDefinitions:true\n" +
+                "supportsOrderByUnrelated:false\n" +
+                "supportsNamedParameters:false\n" +
+                "doesMaxRowSizeIncludeBlobs:true\n" +
+                "supportsSubqueriesInQuantifieds:true\n" +
+                "supportsStoredFunctionsUsingCallSyntax:true\n" +
+                "usesLocalFilePerTable:false\n" +
+                "supportsIntegrityEnhancementFacility:false\n" +
+                "storesLowerCaseIdentifiers:true\n" +
+                "supportsSubqueriesInIns:true\n" +
+                "supportsExtendedSQLGrammar:false\n" +
+                "storesUpperCaseQuotedIdentifiers:true\n" +
+                "supportsSchemasInTableDefinitions:true\n" +
+                "storesMixedCaseIdentifiers:false\n" +
+                "supportsConvert:false\n" +
+                "generatedKeyAlwaysReturned:false";
+
+        String[] split = s.split("\n");
+        for (String s1 : split) {
+            String[] s2 = s1.split(":");
+            mapBy1X.put(s2[0],s2[1]);
+        }
+
+        boolean allProceduresAreCallable = metaData.allProceduresAreCallable();
+        map.put("allProceduresAreCallable", allProceduresAreCallable);
+
+        boolean allTablesAreSelectable = metaData.allTablesAreSelectable();
+        map.put("allTablesAreSelectable", allTablesAreSelectable);
+
+        boolean isReadOnly = metaData.isReadOnly();
+        map.put("isReadOnly", isReadOnly);
+
+        boolean nullsAreSortedHigh = metaData.nullsAreSortedHigh();
+        map.put("nullsAreSortedHigh", nullsAreSortedHigh);
+
+        boolean nullsAreSortedLow = metaData.nullsAreSortedLow();
+        map.put("nullsAreSortedLow", nullsAreSortedLow);
+
+        boolean nullsAreSortedAtStart = metaData.nullsAreSortedAtStart();
+        map.put("nullsAreSortedAtStart", nullsAreSortedAtStart);
+
+        boolean nullsAreSortedAtEnd = metaData.nullsAreSortedAtEnd();
+        map.put("nullsAreSortedAtEnd", nullsAreSortedAtEnd);
+
+        boolean usesLocalFiles = metaData.usesLocalFiles();
+        map.put("usesLocalFiles", usesLocalFiles);
+
+        boolean usesLocalFilePerTable = metaData.usesLocalFilePerTable();
+        map.put("usesLocalFilePerTable", usesLocalFilePerTable);
+
+        boolean supportsMixedCaseIdentifiers = metaData.supportsMixedCaseIdentifiers();
+        map.put("supportsMixedCaseIdentifiers", supportsMixedCaseIdentifiers);
+
+        boolean storesUpperCaseIdentifiers = metaData.storesUpperCaseIdentifiers();
+        map.put("storesUpperCaseIdentifiers", storesUpperCaseIdentifiers);
+
+        boolean storesLowerCaseIdentifiers = metaData.storesLowerCaseIdentifiers();
+        map.put("storesLowerCaseIdentifiers", storesLowerCaseIdentifiers);
+
+        boolean storesMixedCaseIdentifiers = metaData.storesMixedCaseIdentifiers();
+        map.put("storesMixedCaseIdentifiers", storesMixedCaseIdentifiers);
+
+        boolean supportsMixedCaseQuotedIdentifiers = metaData.supportsMixedCaseQuotedIdentifiers();
+        map.put("supportsMixedCaseQuotedIdentifiers", supportsMixedCaseQuotedIdentifiers);
+
+        boolean storesUpperCaseQuotedIdentifiers = metaData.storesUpperCaseQuotedIdentifiers();
+        map.put("storesUpperCaseQuotedIdentifiers", storesUpperCaseQuotedIdentifiers);
+
+        boolean storesLowerCaseQuotedIdentifiers = metaData.storesLowerCaseQuotedIdentifiers();
+        map.put("storesLowerCaseQuotedIdentifiers", storesLowerCaseQuotedIdentifiers);
+
+        boolean storesMixedCaseQuotedIdentifiers = metaData.storesMixedCaseQuotedIdentifiers();
+        map.put("storesMixedCaseQuotedIdentifiers", storesMixedCaseQuotedIdentifiers);
+
+        boolean supportsAlterTableWithAddColumn = metaData.supportsAlterTableWithAddColumn();
+        map.put("supportsAlterTableWithAddColumn", supportsAlterTableWithAddColumn);
+
+        boolean supportsAlterTableWithDropColumn = metaData.supportsAlterTableWithDropColumn();
+        map.put("supportsAlterTableWithDropColumn", supportsAlterTableWithDropColumn);
+
+        boolean supportsColumnAliasing = metaData.supportsColumnAliasing();
+        map.put("supportsColumnAliasing", supportsColumnAliasing);
+
+        boolean nullPlusNonNullIsNull = metaData.nullPlusNonNullIsNull();
+        map.put("nullPlusNonNullIsNull", nullPlusNonNullIsNull);
+
+        boolean supportsConvert = metaData.supportsConvert();
+        map.put("supportsConvert", supportsConvert);
+
+        boolean supportsConvert1 = metaData.supportsConvert(0, 0);
+        map.put("supportsConvert1", supportsConvert1);
+
+        boolean supportsTableCorrelationNames = metaData.supportsTableCorrelationNames();
+        map.put("supportsTableCorrelationNames", supportsTableCorrelationNames);
+
+        boolean supportsDifferentTableCorrelationNames = metaData.supportsDifferentTableCorrelationNames();
+        map.put("supportsDifferentTableCorrelationNames", supportsDifferentTableCorrelationNames);
+
+        boolean supportsExpressionsInOrderBy = metaData.supportsExpressionsInOrderBy();
+        map.put("supportsExpressionsInOrderBy", supportsExpressionsInOrderBy);
+
+        boolean supportsOrderByUnrelated = metaData.supportsOrderByUnrelated();
+        map.put("supportsOrderByUnrelated", supportsOrderByUnrelated);
+
+        boolean supportsGroupBy = metaData.supportsGroupBy();
+        map.put("supportsGroupBy", supportsGroupBy);
+
+        boolean supportsGroupByUnrelated = metaData.supportsGroupByUnrelated();
+        map.put("supportsGroupByUnrelated", supportsGroupByUnrelated);
+
+        boolean supportsGroupByBeyondSelect = metaData.supportsGroupByBeyondSelect();
+        map.put("supportsGroupByBeyondSelect", supportsGroupByBeyondSelect);
+
+        boolean supportsLikeEscapeClause = metaData.supportsLikeEscapeClause();
+        map.put("supportsLikeEscapeClause", supportsLikeEscapeClause);
+
+        boolean supportsMultipleResultSets = metaData.supportsMultipleResultSets();
+        map.put("supportsMultipleResultSets", supportsMultipleResultSets);
+
+        boolean supportsMultipleTransactions = metaData.supportsMultipleTransactions();
+        map.put("supportsMultipleTransactions", supportsMultipleTransactions);
+
+        boolean supportsNonNullableColumns = metaData.supportsNonNullableColumns();
+        map.put("supportsNonNullableColumns", supportsNonNullableColumns);
+
+        boolean supportsMinimumSQLGrammar = metaData.supportsMinimumSQLGrammar();
+        map.put("supportsMinimumSQLGrammar", supportsMinimumSQLGrammar);
+
+        boolean supportsCoreSQLGrammar = metaData.supportsCoreSQLGrammar();
+        map.put("supportsCoreSQLGrammar", supportsCoreSQLGrammar);
+
+        boolean supportsExtendedSQLGrammar = metaData.supportsExtendedSQLGrammar();
+        map.put("supportsExtendedSQLGrammar", supportsExtendedSQLGrammar);
+
+        boolean supportsANSI92EntryLevelSQL = metaData.supportsANSI92EntryLevelSQL();
+        map.put("supportsANSI92EntryLevelSQL", supportsANSI92EntryLevelSQL);
+
+        boolean supportsANSI92IntermediateSQL = metaData.supportsANSI92IntermediateSQL();
+        map.put("supportsANSI92IntermediateSQL", supportsANSI92IntermediateSQL);
+
+        boolean supportsANSI92FullSQL = metaData.supportsANSI92FullSQL();
+        map.put("supportsANSI92FullSQL", supportsANSI92FullSQL);
+
+        boolean supportsIntegrityEnhancementFacility = metaData.supportsIntegrityEnhancementFacility();
+        map.put("supportsIntegrityEnhancementFacility", supportsIntegrityEnhancementFacility);
+
+        boolean supportsOuterJoins = metaData.supportsOuterJoins();
+        map.put("supportsOuterJoins", supportsOuterJoins);
+
+        boolean supportsFullOuterJoins = metaData.supportsFullOuterJoins();
+        map.put("supportsFullOuterJoins", supportsFullOuterJoins);
+
+        boolean supportsLimitedOuterJoins = metaData.supportsLimitedOuterJoins();
+        map.put("supportsLimitedOuterJoins", supportsLimitedOuterJoins);
+
+        boolean isCatalogAtStart = metaData.isCatalogAtStart();
+        map.put("isCatalogAtStart", isCatalogAtStart);
+
+        boolean supportsSchemasInDataManipulation = metaData.supportsSchemasInDataManipulation();
+        map.put("supportsSchemasInDataManipulation", supportsSchemasInDataManipulation);
+
+        boolean supportsSchemasInProcedureCalls = metaData.supportsSchemasInProcedureCalls();
+        map.put("supportsSchemasInProcedureCalls", supportsSchemasInProcedureCalls);
+
+        boolean supportsSchemasInTableDefinitions = metaData.supportsSchemasInTableDefinitions();
+        map.put("supportsSchemasInTableDefinitions", supportsSchemasInTableDefinitions);
+
+        boolean supportsSchemasInIndexDefinitions = metaData.supportsSchemasInIndexDefinitions();
+        map.put("supportsSchemasInIndexDefinitions", supportsSchemasInIndexDefinitions);
+
+        boolean supportsSchemasInPrivilegeDefinitions = metaData.supportsSchemasInPrivilegeDefinitions();
+        map.put("supportsSchemasInPrivilegeDefinitions", supportsSchemasInPrivilegeDefinitions);
+
+        boolean supportsCatalogsInDataManipulation = metaData.supportsCatalogsInDataManipulation();
+        map.put("supportsCatalogsInDataManipulation", supportsCatalogsInDataManipulation);
+
+        boolean supportsCatalogsInProcedureCalls = metaData.supportsCatalogsInProcedureCalls();
+        map.put("supportsCatalogsInProcedureCalls", supportsCatalogsInProcedureCalls);
+
+        boolean supportsCatalogsInTableDefinitions = metaData.supportsCatalogsInTableDefinitions();
+        map.put("supportsCatalogsInTableDefinitions", supportsCatalogsInTableDefinitions);
+
+        boolean supportsCatalogsInIndexDefinitions = metaData.supportsCatalogsInIndexDefinitions();
+        map.put("supportsCatalogsInIndexDefinitions", supportsCatalogsInIndexDefinitions);
+
+        boolean supportsCatalogsInPrivilegeDefinitions = metaData.supportsCatalogsInPrivilegeDefinitions();
+        map.put("supportsCatalogsInPrivilegeDefinitions", supportsCatalogsInPrivilegeDefinitions);
+
+        boolean supportsPositionedDelete = metaData.supportsPositionedDelete();
+        map.put("supportsPositionedDelete", supportsPositionedDelete);
+
+        boolean supportsPositionedUpdate = metaData.supportsPositionedUpdate();
+        map.put("supportsPositionedUpdate", supportsPositionedUpdate);
+
+        boolean supportsSelectForUpdate = metaData.supportsSelectForUpdate();
+        map.put("supportsSelectForUpdate", supportsSelectForUpdate);
+
+        boolean supportsStoredProcedures = metaData.supportsStoredProcedures();
+        map.put("supportsStoredProcedures", supportsStoredProcedures);
+
+        boolean supportsSubqueriesInComparisons = metaData.supportsSubqueriesInComparisons();
+        map.put("supportsSubqueriesInComparisons", supportsSubqueriesInComparisons);
+
+        boolean supportsSubqueriesInExists = metaData.supportsSubqueriesInExists();
+        map.put("supportsSubqueriesInExists", supportsSubqueriesInExists);
+
+        boolean supportsSubqueriesInIns = metaData.supportsSubqueriesInIns();
+        map.put("supportsSubqueriesInIns", supportsSubqueriesInIns);
+
+        boolean supportsSubqueriesInQuantifieds = metaData.supportsSubqueriesInQuantifieds();
+        map.put("supportsSubqueriesInQuantifieds", supportsSubqueriesInQuantifieds);
+
+        boolean supportsCorrelatedSubqueries = metaData.supportsCorrelatedSubqueries();
+        map.put("supportsCorrelatedSubqueries", supportsCorrelatedSubqueries);
+
+        boolean supportsUnion = metaData.supportsUnion();
+        map.put("supportsUnion", supportsUnion);
+
+        boolean supportsUnionAll = metaData.supportsUnionAll();
+        map.put("supportsUnionAll", supportsUnionAll);
+
+        boolean supportsOpenCursorsAcrossCommit = metaData.supportsOpenCursorsAcrossCommit();
+        map.put("supportsOpenCursorsAcrossCommit", supportsOpenCursorsAcrossCommit);
+
+        boolean supportsOpenCursorsAcrossRollback = metaData.supportsOpenCursorsAcrossRollback();
+        map.put("supportsOpenCursorsAcrossRollback", supportsOpenCursorsAcrossRollback);
+
+        boolean supportsOpenStatementsAcrossCommit = metaData.supportsOpenStatementsAcrossCommit();
+        map.put("supportsOpenStatementsAcrossCommit", supportsOpenStatementsAcrossCommit);
+
+        boolean supportsOpenStatementsAcrossRollback = metaData.supportsOpenStatementsAcrossRollback();
+        map.put("supportsOpenStatementsAcrossRollback", supportsOpenStatementsAcrossRollback);
+
+        boolean doesMaxRowSizeIncludeBlobs = metaData.doesMaxRowSizeIncludeBlobs();
+        map.put("doesMaxRowSizeIncludeBlobs", doesMaxRowSizeIncludeBlobs);
+
+        boolean supportsTransactions = metaData.supportsTransactions();
+        map.put("supportsTransactions", supportsTransactions);
+
+        boolean supportsDataDefinitionAndDataManipulationTransactions = metaData.supportsDataDefinitionAndDataManipulationTransactions();
+        map.put("supportsDataDefinitionAndDataManipulationTransactions", supportsDataDefinitionAndDataManipulationTransactions);
+
+        boolean supportsDataManipulationTransactionsOnly = metaData.supportsDataManipulationTransactionsOnly();
+        map.put("supportsDataManipulationTransactionsOnly", supportsDataManipulationTransactionsOnly);
+
+        boolean dataDefinitionCausesTransactionCommit = metaData.dataDefinitionCausesTransactionCommit();
+        map.put("dataDefinitionCausesTransactionCommit", dataDefinitionCausesTransactionCommit);
+
+        boolean dataDefinitionIgnoredInTransactions = metaData.dataDefinitionIgnoredInTransactions();
+        map.put("dataDefinitionIgnoredInTransactions", dataDefinitionIgnoredInTransactions);
+
+/**
+ * todo with out parameter
+
+        boolean supportsTransactionIsolationLevel = metaData.supportsTransactionIsolationLevel(1);
+        map.put("supportsTransactionIsolationLevel", supportsTransactionIsolationLevel);
+
+        boolean supportsResultSetType = metaData.supportsResultSetType(1);
+        map.put("supportsResultSetType", supportsResultSetType);
+
+        boolean updatesAreDetected = metaData.updatesAreDetected(1);
+        map.put("updatesAreDetected", updatesAreDetected);
+
+        boolean othersDeletesAreVisible = metaData.othersDeletesAreVisible(1);
+        map.put("othersDeletesAreVisible", othersDeletesAreVisible);
+
+        boolean othersInsertsAreVisible = metaData.othersInsertsAreVisible(1);
+        map.put("othersInsertsAreVisible", othersInsertsAreVisible);
+
+        boolean supportsResultSetConcurrency = metaData.supportsResultSetConcurrency(1,2);
+        map.put("supportsResultSetConcurrency", supportsResultSetConcurrency);
+
+        boolean ownUpdatesAreVisible = metaData.ownUpdatesAreVisible(1);
+        map.put("ownUpdatesAreVisible", ownUpdatesAreVisible);
+
+        boolean ownDeletesAreVisible = metaData.ownDeletesAreVisible(1);
+        map.put("ownDeletesAreVisible", ownDeletesAreVisible);
+
+        boolean ownInsertsAreVisible = metaData.ownInsertsAreVisible(1);
+        map.put("ownInsertsAreVisible", ownInsertsAreVisible);
+
+        boolean othersUpdatesAreVisible = metaData.othersUpdatesAreVisible(1);
+        map.put("othersUpdatesAreVisible", othersUpdatesAreVisible);
+
+        boolean deletesAreDetected = metaData.deletesAreDetected(1);
+        map.put("deletesAreDetected", deletesAreDetected);
+
+        boolean insertsAreDetected = metaData.insertsAreDetected(1);
+        map.put("insertsAreDetected", insertsAreDetected);
+
+        boolean supportsResultSetHoldability = metaData.supportsResultSetHoldability(1);
+        map.put("supportsResultSetHoldability", supportsResultSetHoldability);
+*/
+
+        boolean supportsBatchUpdates = metaData.supportsBatchUpdates();
+        map.put("supportsBatchUpdates", supportsBatchUpdates);
+
+        boolean supportsSavepoints = metaData.supportsSavepoints();
+        map.put("supportsSavepoints", supportsSavepoints);
+
+        boolean supportsNamedParameters = metaData.supportsNamedParameters();
+        map.put("supportsNamedParameters", supportsNamedParameters);
+
+        boolean supportsMultipleOpenResults = metaData.supportsMultipleOpenResults();
+        map.put("supportsMultipleOpenResults", supportsMultipleOpenResults);
+
+        boolean supportsGetGeneratedKeys = metaData.supportsGetGeneratedKeys();
+        map.put("supportsGetGeneratedKeys", supportsGetGeneratedKeys);
+
+        boolean locatorsUpdateCopy = metaData.locatorsUpdateCopy();
+        map.put("locatorsUpdateCopy", locatorsUpdateCopy);
+
+        boolean supportsStatementPooling = metaData.supportsStatementPooling();
+        map.put("supportsStatementPooling", supportsStatementPooling);
+
+        boolean supportsStoredFunctionsUsingCallSyntax = metaData.supportsStoredFunctionsUsingCallSyntax();
+        map.put("supportsStoredFunctionsUsingCallSyntax", supportsStoredFunctionsUsingCallSyntax);
+
+        boolean autoCommitFailureClosesAllResultSets = metaData.autoCommitFailureClosesAllResultSets();
+        map.put("autoCommitFailureClosesAllResultSets", autoCommitFailureClosesAllResultSets);
+
+        boolean generatedKeyAlwaysReturned = metaData.generatedKeyAlwaysReturned();
+        map.put("generatedKeyAlwaysReturned", generatedKeyAlwaysReturned);
+
+        Set<String> keys = map.keySet();
+        for (String k : keys) {
+            try {
+                assertEquals(map.get(k).toString(),mapBy1X.get(k));
+            } catch (AssertionError e) {
+                if ("supportsDataDefinitionAndDataManipulationTransactions".equals(k)
+                ||"supportsFullOuterJoins".equals(k)
+                ||"supportsMultipleOpenResults".equals(k)
+                ||"generatedKeyAlwaysReturned".equals(k)
+                ||"supportsSchemasInPrivilegeDefinitions".equals(k)
+                ||"supportsOrderByUnrelated".equals(k)
+                ||"supportsIntegrityEnhancementFacility".equals(k)
+                ){
+                    // ignore , Here 1.X isn't consistent with 2.X , but 2.X is consistent with Oracle-JDBC
+                }else {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

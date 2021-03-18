@@ -1,3 +1,53 @@
+/**
+ *  OceanBase Client for Java
+ *
+ *  Copyright (c) 2012-2014 Monty Program Ab.
+ *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *
+ *  This library is free software; you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License along
+ *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ *  This particular MariaDB Client for Java file is work
+ *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ *  the following copyright and notice provisions:
+ *
+ *  Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ *  Redistribution and use in source and binary forms, with or without modification,
+ *  are permitted provided that the following conditions are met:
+ *  Redistributions of source code must retain the above copyright notice, this list
+ *  of conditions and the following disclaimer.
+ *
+ *  Redistributions in binary form must reproduce the above copyright notice, this
+ *  list of conditions and the following disclaimer in the documentation and/or
+ *  other materials provided with the distribution.
+ *
+ *  Neither the name of the driver nor the names of its contributors may not be
+ *  used to endorse or promote products derived from this software without specific
+ *  prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ */
 package com.alipay.oceanbase.jdbc;
 
 import java.net.SocketException;
@@ -49,7 +99,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
                                                                       .compile(
-                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
+                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE)",
                                                                           Pattern.CASE_INSENSITIVE);
 
     public final ReentrantLock       lock;
@@ -89,6 +139,10 @@ public class OceanBaseConnection implements ConnectionImpl {
     private static final int         ATTR_TYPE_INDEX              = 7;
     private String                   origHostToConnectTo;
     // we don't want to be able to publicly clone this... // todo
+    /**
+     * Is this connection associated with a global tx?
+     */
+    private boolean                  isInGlobalTx                 = false;
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
     private java.sql.Connection      complexConnection            = null;
@@ -271,6 +325,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         //        }
         //todo add connection propertis in the future
         this.complexDataCache = new LRUCache(50);
+        this.urlParser = protocol.getUrlParser();
     }
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
@@ -347,7 +402,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public Statement createStatement() throws SQLException {
         checkConnection();
-        return new OceanBaseStatement(this, ResultSet.TYPE_FORWARD_ONLY,
+        return new OceanBaseStatement((OceanBaseConnection) this, ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY, exceptionFactory);
     }
 
@@ -365,7 +420,8 @@ public class OceanBaseConnection implements ConnectionImpl {
      * with the given type and concurrency
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
-        return new OceanBaseStatement(this, resultSetType, resultSetConcurrency, exceptionFactory);
+        return new OceanBaseStatement((OceanBaseConnection) this, resultSetType,
+            resultSetConcurrency, exceptionFactory);
     }
 
     /**
@@ -387,7 +443,8 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency,
                                      final int resultSetHoldability) {
-        return new OceanBaseStatement(this, resultSetType, resultSetConcurrency, exceptionFactory);
+        return new OceanBaseStatement((OceanBaseConnection) this, resultSetType,
+            resultSetConcurrency, exceptionFactory);
     }
 
     private void checkConnection() throws SQLException {
@@ -413,8 +470,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is a problem preparing the statement.
      */
     public ClientSidePreparedStatement clientPrepareStatement(final String sql) throws SQLException {
-        return new ClientSidePreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
+        return new ClientSidePreparedStatement((OceanBaseConnection) this, sql,
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+            Statement.RETURN_GENERATED_KEYS, exceptionFactory);
     }
 
     /**
@@ -425,8 +483,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is a problem preparing the statement.
      */
     public ServerSidePreparedStatement serverPrepareStatement(final String sql) throws SQLException {
-        return new ServerSidePreparedStatement(false, this, sql, ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_READ_ONLY, Statement.RETURN_GENERATED_KEYS, exceptionFactory);
+        return new ServerSidePreparedStatement(false, (OceanBaseConnection) this, sql,
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+            Statement.RETURN_GENERATED_KEYS, exceptionFactory);
     }
 
     /**
@@ -645,12 +704,14 @@ public class OceanBaseConnection implements ConnectionImpl {
             if (options.useSqlStringCache) {
                 sqlQuery = getCachedSql(sqlQuery);
             }
-            if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
+            // Oracle mode don't determine sql string, so that anonymous blocks can be executed through PS . Maybe ORACLE_PREPARABLE_STATEMENT_PATTERN  should be added (todo).
+            if ((options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery)
+                .find()) || (options.useServerPrepStmts && this.protocol.isOracleMode())) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new ServerSidePreparedStatement(false, this, sqlQuery,
-                        resultSetScrollType, resultSetConcurrency, autoGeneratedKeys,
+                    return new ServerSidePreparedStatement(false, (OceanBaseConnection) this,
+                        sqlQuery, resultSetScrollType, resultSetConcurrency, autoGeneratedKeys,
                         exceptionFactory);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
@@ -659,8 +720,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                     // will use clientPreparedStatement
                 }
             }
-            return new ClientSidePreparedStatement(this, sqlQuery, resultSetScrollType,
-                resultSetConcurrency, autoGeneratedKeys, exceptionFactory);
+
+            return new ClientSidePreparedStatement((OceanBaseConnection) this, sqlQuery,
+                resultSetScrollType, resultSetConcurrency, autoGeneratedKeys, exceptionFactory);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }
@@ -708,48 +770,58 @@ public class OceanBaseConnection implements ConnectionImpl {
     public CallableStatement prepareCall(final String sql, final int resultSetType,
                                          final int resultSetConcurrency) throws SQLException {
         checkConnection();
-
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
-        if (!matcher.matches()) {
-            throw new SQLSyntaxErrorException(
-                "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
-                        + sql);
-        }
-
-        String query = Utils.nativeSql(matcher.group(2), protocol);
-
-        boolean isFunction = (matcher.group(3) != null);
-        String databaseAndProcedure = matcher.group(8);
-        String database = matcher.group(10);
-        String procedureName = matcher.group(13);
-        String arguments = matcher.group(16);
-        if (database == null && sessionStateAware) {
-            database = protocol.getDatabase();
-        }
-
-        if (database != null && options.cacheCallableStmts) {
-
-            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                try {
-                    CallableStatement callableStatement = callableStatementCache
-                        .get(new CallableStatementCacheKey(database, query));
-                    if (callableStatement != null) {
-                        // Clone to avoid side effect like having some open resultSet.
-                        return ((CloneableCallableStatement) callableStatement).clone(this);
-                    }
-                } catch (CloneNotSupportedException cloneNotSupportedException) {
-                    cloneNotSupportedException.printStackTrace();
-                }
+        // Support for Oracle anonymous block
+        String upperSql = sql.replaceAll("--.*\n", "").replaceAll("\\/\\*.*\\*\\/", "")
+            .toUpperCase(Locale.ROOT).trim();
+        if (this.protocol.isOracleMode()
+            && (upperSql.startsWith("BEGIN") || upperSql.startsWith("DECLARE"))) {
+            return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
+                null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+        } else {
+            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
+            if (!matcher.matches()) {
+                throw new SQLSyntaxErrorException(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + sql);
             }
-            CallableStatement callableStatement = createNewCallableStatement(query, procedureName,
-                isFunction, databaseAndProcedure, database, arguments, resultSetType,
-                resultSetConcurrency, exceptionFactory);
-            callableStatementCache.put(new CallableStatementCacheKey(database, query),
-                callableStatement);
-            return callableStatement;
+
+            String query = Utils.nativeSql(matcher.group(2), protocol);
+
+            boolean isFunction = (matcher.group(3) != null);
+            String databaseAndProcedure = matcher.group(8);
+            String database = matcher.group(10);
+            String procedureName = matcher.group(13);
+            String arguments = matcher.group(16);
+            if (database == null && sessionStateAware) {
+                database = protocol.getDatabase();
+            }
+
+            if (database != null && options.cacheCallableStmts) {
+
+                if (callableStatementCache.containsKey(new CallableStatementCacheKey(database,
+                    query))) {
+                    try {
+                        CallableStatement callableStatement = callableStatementCache
+                            .get(new CallableStatementCacheKey(database, query));
+                        if (callableStatement != null) {
+                            // Clone to avoid side effect like having some open resultSet.
+                            return ((CloneableCallableStatement) callableStatement).clone(this);
+                        }
+                    } catch (CloneNotSupportedException cloneNotSupportedException) {
+                        cloneNotSupportedException.printStackTrace();
+                    }
+                }
+                CallableStatement callableStatement = createNewCallableStatement(query,
+                    procedureName, isFunction, databaseAndProcedure, database, arguments,
+                    resultSetType, resultSetConcurrency, exceptionFactory);
+                callableStatementCache.put(new CallableStatementCacheKey(database, query),
+                    callableStatement);
+                return callableStatement;
+            }
+            return createNewCallableStatement(query, procedureName, isFunction,
+                databaseAndProcedure, database, arguments, resultSetType, resultSetConcurrency,
+                exceptionFactory);
         }
-        return createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure,
-            database, arguments, resultSetType, resultSetConcurrency, exceptionFactory);
     }
 
     /**
@@ -791,18 +863,18 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                                            throws SQLException {
         if (isFunction) {
             if (!this.getProtocol().isOracleMode()) {
-                return new OceanBaseFunctionStatement(this, database, databaseAndProcedure,
-                    (arguments == null) ? "()" : arguments, resultSetType, resultSetConcurrency,
-                    exceptionFactory);
+                return new OceanBaseFunctionStatement((OceanBaseConnection) this, database,
+                    databaseAndProcedure, (arguments == null) ? "()" : arguments, resultSetType,
+                    resultSetConcurrency, exceptionFactory);
             } else {
                 return new OceanBaseProcedureStatement(true, "SELECT " + databaseAndProcedure
-                                                             + arguments + " FROM DUAL", this,
-                    databaseAndProcedure, database, resultSetType, resultSetConcurrency,
-                    exceptionFactory);
+                                                             + arguments + " FROM DUAL",
+                    (OceanBaseConnection) this, databaseAndProcedure, database, resultSetType,
+                    resultSetConcurrency, exceptionFactory);
             }
         } else {
-            return new OceanBaseProcedureStatement(false, query, this, procedureName, database,
-                resultSetType, resultSetConcurrency, exceptionFactory);
+            return new OceanBaseProcedureStatement(false, query, (OceanBaseConnection) this,
+                procedureName, database, resultSetType, resultSetConcurrency, exceptionFactory);
         }
     }
 
@@ -914,7 +986,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void close() throws SQLException {
         if (pooledConnection != null) {
-            rollback();
+            if (!getAutoCommit()) {
+                rollback();
+            }
             pooledConnection.fireConnectionClosed();
             return;
         }
@@ -1037,7 +1111,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getProtocol().isOracleMode()) {
             sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
         } else {
-            sql = "SELECT @@session.tx_isolation";
+            sql = "SELECT @@transaction_isolation";
         }
 
         ResultSet rs = stmt.executeQuery(sql);
@@ -1248,7 +1322,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-        //        String randomName = UUID.randomUUID().toString();
         String randomName = "";
         if (this.protocol.isOracleMode()) {
             if (this.getAutoCommit()) {
@@ -1338,7 +1411,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @return An object that implements the <code>NClob</code> interface
      */
     public NClob createNClob() {
-        return new Clob();
+        return new JDBC4NClob("", null);
     }
 
     /**
@@ -1682,7 +1755,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             ComplexDataType.TYPE_COLLECTION);
         parentType.setAttrCount(1);
         parentType.setAttrType(0, attrType);
-        ArrayImpl array = new ArrayImpl(parentType);
+        ObArray array = new ArrayImpl(parentType);
         array.setAttrData(elements);
         return array;
     }
@@ -1848,7 +1921,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (fetchTypeFromRemote) {
             type = getComplexDataTypeFromRemote(typeName);
         }
-        StructImpl struct = new StructImpl(type);
+        ObStruct struct = new StructImpl(type);
         struct.setAttrData(attributes);
         return struct;
     }
@@ -2002,14 +2075,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         // We support only catalog
         //        return null;
         if (this.protocol.isOracleMode()) {
-            return this.getUsername();
+            return this.getDatabase().toUpperCase();
+            //            return this.getUsername();
         } else {
             return this.getCatalog();
         }
     }
 
     public String getDatabase() {
-        return urlParser.getDatabase();
+        return this.urlParser.getDatabase();
     }
 
     public void setSchema(String arg0) {
@@ -2176,5 +2250,13 @@ public class OceanBaseConnection implements ConnectionImpl {
             throw new SQLFeatureNotSupportedException();
         }
 
+    }
+
+    public boolean isInGlobalTx() {
+        return this.isInGlobalTx;
+    }
+
+    public void setInGlobalTx(boolean flag) {
+        this.isInGlobalTx = flag;
     }
 }

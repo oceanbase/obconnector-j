@@ -1,3 +1,53 @@
+/**
+ *  OceanBase Client for Java
+ *
+ *  Copyright (c) 2012-2014 Monty Program Ab.
+ *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *
+ *  This library is free software; you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License along
+ *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ *  This particular MariaDB Client for Java file is work
+ *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ *  the following copyright and notice provisions:
+ *
+ *  Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ *  Redistribution and use in source and binary forms, with or without modification,
+ *  are permitted provided that the following conditions are met:
+ *  Redistributions of source code must retain the above copyright notice, this list
+ *  of conditions and the following disclaimer.
+ *
+ *  Redistributions in binary form must reproduce the above copyright notice, this
+ *  list of conditions and the following disclaimer in the documentation and/or
+ *  other materials provided with the distribution.
+ *
+ *  Neither the name of the driver nor the names of its contributors may not be
+ *  used to endorse or promote products derived from this software without specific
+ *  prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ */
 package com.alipay.oceanbase.jdbc.internal.protocol;
 
 import java.io.FileInputStream;
@@ -17,13 +67,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.alipay.oceanbase.jdbc.*;
-import com.alipay.oceanbase.jdbc.extend.datatype.ComplexData;
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
 import com.alipay.oceanbase.jdbc.internal.com.Packet;
 import com.alipay.oceanbase.jdbc.internal.com.read.Buffer;
 import com.alipay.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.alipay.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.alipay.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import com.alipay.oceanbase.jdbc.internal.com.send.ComQuery;
@@ -1073,15 +1123,36 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
       writer.setTimeZone(this.getServerTimeZone());
       // send execute query
-      ComStmtExecute.send(
-          writer,
-          serverPrepareResult.getStatementId(),
-          parameters,
-          parameterCount,
-          serverPrepareResult.getParameterTypeHeader(),
-          Packet.CURSOR_TYPE_NO_CURSOR,
-              this);
+      boolean withRefCursor = false;
+      ColumnDefinition[] ci = serverPrepareResult.getColumns();
+      for (int i = 0;i<ci.length;i++) {
+        if (ci[i].getColumnType() == ColumnType.CURSOR) {
+          withRefCursor = true;
+        }
+      }
+      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+        ComStmtExecute.send(
+                writer,
+                serverPrepareResult.getStatementId(),
+                parameters,
+                parameterCount,
+                serverPrepareResult.getParameterTypeHeader(),
+                Packet.CURSOR_TYPE_READ_ONLY,
+                this);
+        results.setStatementId(serverPrepareResult.getStatementId());
+        results.setToCursorFetch(true);
+      } else {
+        ComStmtExecute.send(
+                writer,
+                serverPrepareResult.getStatementId(),
+                parameters,
+                parameterCount,
+                serverPrepareResult.getParameterTypeHeader(),
+                Packet.CURSOR_TYPE_NO_CURSOR,
+                this);
+      }
       getResult(results);
+      results.setToCursorFetch(false);
 
     } catch (SQLException qex) {
       throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
@@ -1090,21 +1161,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-  public void sendFechRowViaCursor(ServerPrepareResult serverPrepareResult,int cursorId,int fetchSize,Results results) throws SQLException {
-
-    cmdPrologue();
-    try {
-      writer.startPacket(0);
-      writer.write(Packet.COM_STMT_FETCH);
-      writer.writeInt(cursorId);
-      writer.writeInt(fetchSize);
-      writer.flush();
-      getResult(results);
-    } catch (IOException e) {
-      throw exceptionWithQuery(
-              " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
+    public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
+        cmdPrologue();
+        try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_FETCH);
+            writer.writeInt(cursorId);
+            writer.writeInt(fetchSize);
+            writer.flush();
+            if (this.isOracleMode()) {
+               return  getResultWithoutValue(results);
+            } else {
+              return null;
+            }
+        } catch (IOException e) {
+            throw exceptionWithQuery(
+                    " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
+        }
     }
-  }
   /** Rollback transaction. */
   public void rollback() throws SQLException {
 
@@ -1475,12 +1549,84 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     readPacket(results);
 
-    // load additional results
-//    while (hasMoreResults()) {
     while(hasMoreResults()) {
        readPacket(results);
     }
   }
+
+    public ColumnDefinition[]  getResultWithoutValue(Results results) throws SQLException {
+
+        Buffer buffer;
+        ColumnDefinition[] ci = null;
+        try {
+            buffer = reader.getPacket(true);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
+        switch (buffer.getByteAt(0)) {
+
+            // *********************************************************************************************************
+            // * OK response
+            // *********************************************************************************************************
+            case Packet.OK:
+                readOkPacket(buffer, results);
+                break;
+
+            // *********************************************************************************************************
+            // * ERROR response
+            // *********************************************************************************************************
+            case Packet.ERROR:
+                throw readErrorPacket(buffer, results);
+
+                // *********************************************************************************************************
+                // * LOCAL INFILE response
+                // *********************************************************************************************************
+            case Packet.LOCAL_INFILE:
+                readLocalInfilePacket(buffer, results);
+                break;
+
+            // *********************************************************************************************************
+            // * ResultSet
+            // *********************************************************************************************************
+            default:
+               ci = readResultSetColumnDef(buffer, results);
+                break;
+        }
+        return ci;
+
+    }
+
+    private ColumnDefinition[] readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
+        long fieldCount = buffer.getLengthEncodedNumeric();
+        // read columns information's
+        try {
+            ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
+            for (int i = 0; i < fieldCount; i++) {
+                ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode());
+            }
+
+            if (!eofDeprecated) {
+                Buffer bufferEof = reader.getPacket(true);
+                if (bufferEof.readByte() != Packet.EOF) {
+                    // using IOException to close connection,
+                    throw new IOException(
+                            "Packets out of order when reading field packets, expected was EOF stream."
+                                    + ((options.enablePacketDebug)
+                                    ? getTraces()
+                                    : "Packet contents (hex) = "
+                                    + Utils.hexdump(
+                                    options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
+                }
+                bufferEof.skipBytes(2);
+                bufferEof.readShort();
+            }
+            return ci;
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
+    }
 
   /**
    * Read server response packet.
@@ -1805,12 +1951,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
          * We dont send an ok packet after all result set rows;Ob server send a execution response pacet ,but the PS_OUT_PARAMETERS is set
          */
         callableResult = (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
-//        isPsOutParamter =  (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
       }
 
-      // read resultSet
       SelectResultSet selectResultSet;
-      if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+      if (results.isToCursorFetch()) {
+        selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated,isPsOutParamter);
+      } else if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
         selectResultSet =
             new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
       } else {

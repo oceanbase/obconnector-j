@@ -1,7 +1,58 @@
+/**
+ *  OceanBase Client for Java
+ *
+ *  Copyright (c) 2012-2014 Monty Program Ab.
+ *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *
+ *  This library is free software; you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License along
+ *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ *  This particular MariaDB Client for Java file is work
+ *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ *  the following copyright and notice provisions:
+ *
+ *  Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ *  Redistribution and use in source and binary forms, with or without modification,
+ *  are permitted provided that the following conditions are met:
+ *  Redistributions of source code must retain the above copyright notice, this list
+ *  of conditions and the following disclaimer.
+ *
+ *  Redistributions in binary form must reproduce the above copyright notice, this
+ *  list of conditions and the following disclaimer in the documentation and/or
+ *  other materials provided with the distribution.
+ *
+ *  Neither the name of the driver nor the names of its contributors may not be
+ *  used to endorse or promote products derived from this software without specific
+ *  prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ */
 package com.alipay.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.sql.*;
 
 import org.junit.*;
@@ -45,7 +96,9 @@ public class ResultSetTest extends BaseTest {
      */
     @Test
   public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
-    createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml MEDIUMTEXT");
+
+
+    createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml varchar(2000)");
     String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
 
     for (int i = 0; i < 2; i++) {
@@ -972,7 +1025,6 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void nullField() throws SQLException {
-        //        Assume.assumeTrue(isMariadbServer()); // '0000-00-00' doesn't work anymore on mysql 5.7.
         createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
@@ -1074,7 +1126,6 @@ public class ResultSetTest extends BaseTest {
 
     @Ignore
   public void invisibleColumn() throws SQLException {
-
     // since 10.3.3
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
     cancelForVersion(10, 3, 0);
@@ -1103,9 +1154,6 @@ public class ResultSetTest extends BaseTest {
 
     @Ignore
     public void checkInvisibleMetaData() throws SQLException {
-
-        // since 10.3.3
-        //        Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
         cancelForVersion(10, 3, 0);
         cancelForVersion(10, 3, 1);
         cancelForVersion(10, 3, 2);
@@ -1176,4 +1224,89 @@ public class ResultSetTest extends BaseTest {
       Assert.assertEquals("", meta.getColumnName(1));
     }
   }
+
+    @Test
+    public void getMethodTest() throws SQLException {
+        createTable("getMethodTest",
+            "ID INT NOT NULL PRIMARY KEY ,NAME varchar(100) ,CREATE_TIMESTAMP TIMESTAMP,"
+                    + " CRATE_TIME TIMESTAMP,CREATE_DATE DATE,weight number(12,6) ");
+        PreparedStatement stmt = sharedConnection
+            .prepareStatement("INSERT INTO getMethodTest VALUES (?,?,?,?,?,?)");
+        long time = System.currentTimeMillis();
+        Timestamp timestamp = new Timestamp(time);
+        Time time1 = new Time(time);
+        Date date = new Date(time);
+
+        stmt.setInt(1, 1);
+        stmt.setString(2, "TOM");
+        stmt.setTimestamp(3, timestamp);
+        stmt.setTimestamp(4, timestamp);
+        stmt.setDate(5, date);
+        stmt.setBigDecimal(6, new BigDecimal(134254.3342));
+        stmt.execute();
+        //        stmt.setArray(6,sharedConnection.createArrayOf("varchar2", new Object[]{"1","cc"}));
+        ResultSet resultSet = stmt.executeQuery("select * from getMethodTest");
+        while (resultSet.next()) {
+            System.out.println("into while loop");
+            Assert.assertTrue("not equals", 1 == resultSet.getInt(1));
+            Assert.assertTrue("not equals", "TOM".equals(resultSet.getString(2)));
+            Assert
+                .assertTrue("not equals", 134254.3342 == resultSet.getBigDecimal(6).doubleValue());
+        }
+    }
+
+    @Test
+    public void testCallable() {
+        Connection conn = null;
+        try {
+            conn = sharedConnection;
+
+            String cSql = "drop table test_callable";
+            String dropProc = "drop PROCEDURE test_callable_open ";
+            PreparedStatement pstmt = conn.prepareStatement(cSql);
+            PreparedStatement pstmt2 = conn.prepareStatement(dropProc);
+            try {
+                pstmt.execute();
+            } catch (SQLException e) {
+            }
+            try {
+                pstmt2.execute();
+            } catch (SQLException e) {
+                //skip
+            }
+
+            cSql = "create table test_callable(c1 int, c2 varchar(200), c3 Timestamp)";
+
+            pstmt = conn.prepareStatement(cSql);
+            pstmt.execute();
+
+            pstmt = conn.prepareStatement("insert into test_callable values(?, ?, ?)");
+            pstmt.setInt(1, 112);
+            pstmt.setString(2, "CLOB_abcdefg");
+            pstmt.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            pstmt.executeUpdate();
+
+            conn.prepareStatement(
+                " CREATE PROCEDURE test_callable_open(in p_c1 int ,out p_c2 varchar(200) ,out p_c3 timestamp )  BEGIN  \n"
+                        + "      select c2 ,c3 into p_c2,p_c3 from test_callable ;\n"
+                        + "      end ").execute();
+
+            CallableStatement cstmt = conn.prepareCall("{call test_callable_open(?,?,?)}");
+            cstmt.setInt(1, 112);
+            cstmt.registerOutParameter(2, Types.VARCHAR);
+            cstmt.registerOutParameter(3, Types.TIMESTAMP);
+
+            cstmt.execute();
+            System.out.println("2: " + cstmt.getString(2) + "3: " + cstmt.getTimestamp(3));
+            System.out.println("updateCount: " + cstmt.getUpdateCount()); // 1
+            System.out.println("getMoreResults: " + cstmt.getMoreResults()); // false
+            ResultSet resultSet = cstmt.getResultSet(); //null
+            System.out.println("resultSet: " + resultSet);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+        }
+    }
 }

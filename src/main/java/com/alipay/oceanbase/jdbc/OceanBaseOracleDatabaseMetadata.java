@@ -1,14 +1,53 @@
+/*
+ *
+ * OceanBase Client for Java
+ *
+ * Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 package com.alipay.oceanbase.jdbc;
 
 import com.alipay.oceanbase.jdbc.internal.ColumnType;
-import com.alipay.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.alipay.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import com.alipay.oceanbase.jdbc.internal.protocol.Protocol;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
@@ -99,9 +138,9 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
                                String[] types) throws SQLException {
         String var1 = "SELECT NULL AS table_cat,\n       o.owner AS table_schem,\n       o.object_name AS table_name,\n       o.object_type AS table_type,\n";
-        String var2 = "       NULL AS remarks\n";
-        String var3 = "  FROM all_objects o\n";
-        String var4 = "  WHERE o.owner LIKE ? \n    AND o.object_name LIKE ? \n";
+        String var2 = "  c.comments AS remarks\n";
+        String var3 = "  FROM all_objects o, all_tab_comments c\n";
+        String var4 = "  WHERE o.owner LIKE ? ESCAPE '/'\n    AND o.object_name LIKE ? ESCAPE '/'\n      AND o.owner = c.owner (+)\n    AND o.object_name = c.table_name (+)\n  AND o.owner != '__recyclebin'\n";
         String var5 = "";
         String var6 = "";
         if (types != null) {
@@ -128,7 +167,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         sql = sql + var7;
         PreparedStatement stmt = this.connection.prepareStatement(sql);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
-        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
+        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
         ResultSet resultSet = stmt.executeQuery();
         if (stmt != null) {
             stmt.close();
@@ -394,5 +433,289 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             stmt.close();
         }
         return rs;
+    }
+
+    public String getUserName() throws SQLException {
+        ResultSet rs = executeQuery("SELECT USER FROM DUAL");
+        rs.next();
+        String userName = rs.getString(1);
+        return userName;
+    }
+
+    public ResultSet getTableTypes() throws SQLException {
+        return executeQuery("select 'TABLE' as table_type from dual\nunion select 'VIEW' as table_type from dual\nunion select 'SYNONYM' as table_type from dual\n");
+    }
+
+    public ResultSet getTablePrivileges(String catalog, String schemaPattern,
+                                        String tableNamePattern) throws SQLException {
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       table_schema AS table_schem,\n       table_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_tab_privs\nWHERE table_schema LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\nORDER BY table_schem, table_name, privilege\n");
+        pstmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
+        pstmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
+        pstmt.closeOnCompletion();
+        ResultSet resultSet = pstmt.executeQuery();
+        return resultSet;
+    }
+
+    public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
+                                  boolean approximate) throws SQLException {
+
+        Statement stmt = this.connection.createStatement();
+        String sql = "";
+
+        sql = "select null as table_cat,\n" + "       owner as table_schem,\n"
+              + "       table_name,\n" + "       0 as NON_UNIQUE,\n"
+              + "       null as index_qualifier,\n" + "       null as index_name, 0 as type,\n"
+              + "       0 as ordinal_position, null as column_name,\n"
+              + "       null as asc_or_desc,\n" + "       num_rows as cardinality,\n"
+              + "       blocks as pages,\n" + "       null as filter_condition\n"
+              + "from all_tables\n" + "where table_name = '" + table + "'\n";
+
+        String sql2 = "select null as table_cat,\n" + "       i.owner as table_schem,\n"
+                      + "       i.table_name,\n"
+                      + "       decode (i.uniqueness, 'UNIQUE', 0, 1),\n"
+                      + "       null as index_qualifier,\n" + "       i.index_name,\n"
+                      + "       1 as type,\n" + "       c.column_position as ordinal_position,\n"
+                      + "       c.column_name,\n" + "       null as asc_or_desc,\n"
+                      + "       i.distinct_keys as cardinality,\n"
+                      + "       i.leaf_blocks as pages,\n" + "       null as filter_condition\n"
+                      + "from all_indexes i, all_ind_columns c\n" + "where i.table_name = '"
+                      + table + "'\n";
+        String sql3 = "";
+        if (unique) {
+            sql3 = "  and i.uniqueness = 'UNIQUE'\n";
+        }
+
+        String sql4 = "  and i.index_name = c.index_name\n  and i.table_owner = c.table_owner\n  and i.table_name = c.table_name\n  and i.owner = c.index_owner\n";
+        String sql5 = "order by non_unique, type, index_name, ordinal_position\n";
+        String sql6 = sql + "union\n" + sql2 + sql3 + sql4 + sql5;
+        stmt.closeOnCompletion();
+        ResultSet resultSet = stmt.executeQuery(sql6);
+        return resultSet;
+    }
+
+    public ResultSet getPrimaryKeys(String catalog, String schema, String table)
+                                                                                throws SQLException {
+
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       c.owner AS table_schem,\n       c.table_name,\n       c.column_name,\n       c.position AS key_seq,\n       c.constraint_name AS pk_name\nFROM all_cons_columns c, all_constraints k\nWHERE k.constraint_type = 'P'\n  AND k.table_name = ?\n  AND k.owner like ? escape '/'\n  AND k.constraint_name = c.constraint_name \n  AND k.table_name = c.table_name \n  AND k.owner = c.owner \nORDER BY column_name\n");
+        pstmt.setString(1, table);
+        pstmt.setString(2, schema == null ? "%" : schema);
+        pstmt.closeOnCompletion();
+        ResultSet resultSet = pstmt.executeQuery();
+        return resultSet;
+    }
+
+    public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope,
+                                          final boolean nullable) throws SQLException {
+
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
+                              + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
+                              + "       0 AS decimal_digits, 2 AS pseudo_column\n"
+                              + "FROM DUAL\n"
+                              + "WHERE ? = 1\n"
+                              + "UNION\n"
+                              + "SELECT 2 AS scope,\n"
+                              + " t.column_name,\n"
+                              + "  DECODE(substr(t.data_type, 1, 9), \n"
+                              + "    'TIMESTAMP', \n"
+                              + "      DECODE(substr(t.data_type, 10, 1), \n"
+                              + "        '(', \n"
+                              + "          DECODE(substr(t.data_type, 19, 5), \n"
+                              + "            'LOCAL', -102, 'TIME ', -101, 93), \n"
+                              + "        DECODE(substr(t.data_type, 16, 5), \n"
+                              + "          'LOCAL', -102, 'TIME ', -101, 93)), \n"
+                              + "    'INTERVAL ', \n"
+                              + "      DECODE(substr(t.data_type, 10, 3), \n"
+                              + "       'DAY', -104, 'YEA', -103), \n"
+                              + "    DECODE(t.data_type, \n"
+                              + "      'BINARY_DOUBLE', 101, \n"
+                              + "      'BINARY_FLOAT', 100, \n"
+                              + "      'BFILE', -13, \n"
+                              + "      'BLOB', 2004, \n"
+                              + "      'CHAR', 1, \n"
+                              + "      'CLOB', 2005, \n"
+                              + "      'COLLECTION', 2003, \n"
+                              + "      'DATE', 93, \n"
+                              + "      'FLOAT', 6, \n"
+                              + "      'LONG', -1, \n"
+                              + "      'LONG RAW', -4, \n"
+                              + "      'NCHAR', -15, \n"
+                              + "      'NCLOB', 2011, \n"
+                              + "      'NUMBER', 2, \n"
+                              + "      'NVARCHAR', -9, \n"
+                              + "      'NVARCHAR2', -9, \n"
+                              + "      'OBJECT', 2002, \n"
+                              + "      'OPAQUE/XMLTYPE', 2009, \n"
+                              + "      'RAW', -3, \n"
+                              + "      'REF', 2006, \n"
+                              + "      'ROWID', -8, \n"
+                              + "      'SQLXML', 2009, \n"
+                              + "      'UROWID', -8, \n"
+                              + "      'VARCHAR2', 12, \n"
+                              + "      'VARRAY', 2003, \n"
+                              + "      'XMLTYPE', 2009, \n"
+                              + "      DECODE((SELECT a.typecode \n"
+                              + "        FROM ALL_TYPES a \n"
+                              + "        WHERE a.type_name = t.data_type\n"
+                              + "       AND ((a.owner IS NULL AND \n"
+                              + "t.data_type_owner IS NULL)\n"
+                              + "         OR (a.owner = t.data_type_owner))\n"
+                              + "        ), \n"
+                              + "        'OBJECT', 2002, \n"
+                              + "        'COLLECTION', 2003, 1111))) \n"
+                              + " AS data_type,\n"
+                              + " t.data_type AS type_name,\n"
+                              + " DECODE (t.data_precision, null,  DECODE (t.data_type, 'CHAR', t.char_length, 'VARCHAR', t.char_length, 'VARCHAR2', t.char_length, 'NVARCHAR2', t.char_length, 'NCHAR', t.char_length, t.data_length), t.data_precision)\n"
+                              + "  AS column_size,\n" + "  0 AS buffer_length,\n"
+                              + "  t.data_scale AS decimal_digits,\n"
+                              + "       1 AS pseudo_column\n"
+                              + "FROM all_tab_columns t, all_ind_columns i\n" + "WHERE ? = 1\n"
+                              + "  AND t.table_name = ?\n" + "  AND t.owner like ? escape '/'\n"
+                              + "  AND t.nullable != ?\n" + "  AND t.owner = i.table_owner\n"
+                              + "  AND t.table_name = i.table_name\n"
+                              + "  AND t.column_name = i.column_name\n");
+        switch (scope) {
+            case 1:
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 1);
+                break;
+            case 2:
+                pstmt.setInt(1, 0);
+                pstmt.setInt(2, 1);
+                break;
+            case 0:
+            default:
+                pstmt.setInt(1, 0);
+                pstmt.setInt(2, 0);
+                break;
+        }
+        pstmt.setString(3, table);
+        pstmt.setString(4, schema == null ? "%" : schema);
+        pstmt.setString(5, nullable ? "X" : "Y");
+        pstmt.closeOnCompletion();
+        ResultSet resultSet = pstmt.executeQuery();
+        return resultSet;
+    }
+
+    public ResultSet getColumnPrivileges(String catalog, String schema, String table,
+                                         String columnNamePattern) throws SQLException {
+        PreparedStatement pstmt = this.connection
+            .prepareStatement("SELECT NULL AS table_cat,\n       OWNER AS table_schem,\n       table_name,\n       column_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_col_privs\nWHERE OWNER LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\n  AND column_name LIKE ? ESCAPE '/'\nORDER BY column_name, privilege\n");
+        pstmt.setString(1, schema == null ? "%" : schema);
+        pstmt.setString(2, table == null ? "%" : table.toUpperCase());
+        pstmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
+        pstmt.closeOnCompletion();
+        return pstmt.executeQuery();
+    }
+
+    public boolean supportsMixedCaseIdentifiers() throws SQLException {
+        return false;
+    }
+
+    public boolean storesLowerCaseIdentifiers() throws SQLException {
+        //there return true in 1.X,but oracle-jdbc return false
+        return true;
+    }
+
+    public boolean storesMixedCaseIdentifiers() throws SQLException {
+        return false;
+    }
+
+    public boolean supportsANSI92IntermediateSQL() {
+        return false;
+    }
+
+    public boolean supportsOpenCursorsAcrossRollback() {
+        return false;
+    }
+
+    public boolean allProceduresAreCallable() {
+        return false;
+    }
+
+    public boolean allTablesAreSelectable() {
+        return false;
+    }
+
+    public boolean supportsOpenCursorsAcrossCommit() {
+        return false;
+    }
+
+    public boolean supportsOpenStatementsAcrossRollback() {
+        return false;
+    }
+
+    public boolean supportsOpenStatementsAcrossCommit() {
+        return false;
+    }
+
+    public boolean nullsAreSortedAtEnd() {
+        return false;
+    }
+
+    public boolean locatorsUpdateCopy() {
+        return true;
+    }
+
+    public boolean supportsANSI92FullSQL() {
+        return false;
+    }
+
+    public boolean storesUpperCaseIdentifiers() {
+        return true;
+    }
+
+    public boolean doesMaxRowSizeIncludeBlobs() {
+        return true;
+    }
+
+    public boolean supportsConvert() {
+        return false;
+    }
+
+    public boolean supportsCatalogsInTableDefinitions() {
+        return false;
+    }
+
+    public boolean supportsSchemasInTableDefinitions() {
+        return true;
+    }
+
+    public ResultSet keysQuery(String var1, String var2, String var3, String var4, String var5)
+                                                                                               throws SQLException {
+        int var6 = 1;
+        int var7 = var2 != null ? var6++ : 0;
+        int var8 = var4 != null ? var6++ : 0;
+        int var9 = var1 != null && var1.length() > 0 ? var6++ : 0;
+        int var10 = var3 != null && var3.length() > 0 ? var6++ : 0;
+        PreparedStatement var11 = this.connection
+            .prepareStatement("SELECT NULL AS pktable_cat,\n       p.owner as pktable_schem,\n       p.table_name as pktable_name,\n       pc.column_name as pkcolumn_name,\n       NULL as fktable_cat,\n       f.owner as fktable_schem,\n       f.table_name as fktable_name,\n       fc.column_name as fkcolumn_name,\n       fc.position as key_seq,\n       NULL as update_rule,\n       decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,\n       f.constraint_name as fk_name,\n       p.constraint_name as pk_name,\n       decode(f.deferrable,       'DEFERRABLE',5      ,'NOT DEFERRABLE',7      , 'DEFERRED', 6      ) deferrability \n      FROM all_cons_columns pc, all_constraints p,\n      all_cons_columns fc, all_constraints f\nWHERE 1 = 1\n"
+                              + (var7 != 0 ? "  AND p.table_name = ?\n" : "")
+                              + (var8 != 0 ? "  AND f.table_name = ?\n" : "")
+                              + (var9 != 0 ? "  AND p.owner = ?\n" : "")
+                              + (var10 != 0 ? "  AND f.owner = ?\n" : "")
+                              + "  AND f.constraint_type = 'R'\n  AND p.owner = f.r_owner\n  AND p.constraint_name = f.r_constraint_name\n  AND p.constraint_type = 'P'\n  AND pc.owner = p.owner\n  AND pc.constraint_name = p.constraint_name\n  AND pc.table_name = p.table_name\n  AND fc.owner = f.owner\n  AND fc.constraint_name = f.constraint_name\n  AND fc.table_name = f.table_name\n  AND fc.position = pc.position\n"
+                              + var5);
+        if (var7 != 0) {
+            var11.setString(var7, var2);
+        }
+
+        if (var8 != 0) {
+            var11.setString(var8, var4);
+        }
+
+        if (var9 != 0) {
+            var11.setString(var9, var1);
+        }
+
+        if (var10 != 0) {
+            var11.setString(var10, var3);
+        }
+
+        var11.closeOnCompletion();
+        ResultSet resultSet = var11.executeQuery();
+        return resultSet;
     }
 }
