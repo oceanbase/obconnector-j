@@ -807,15 +807,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             isLocalTemporaries = true;
         } else {
             for (int i = 0; i < types.length; i++) {
-                if (types[i].equals("TABLE") || types[i].equals("BASE TABLE")) {
+                if ("TABLE".equals(types[i]) || "BASE TABLE".equals(types[i])) {
                     isTables = true;
-                } else if (types[i].equals("VIEW")) {
+                } else if ("VIEW".equals(types[i])) {
                     isViews = true;
-                } else if (types[i].equals("SYSTEM TABLE")) {
+                } else if ("SYSTEM TABLE".equals(types[i])) {
                     isSystemTables = true;
-                } else if (types[i].equals("SYSTEM VIEW")) {
+                } else if ("SYSTEM VIEW".equals(types[i])) {
                     isSystemViews = true;
-                } else if (types[i].equals("LOCAL TEMPORARY")) {
+                } else if ("LOCAL TEMPORARY".equals(types[i])) {
                     isLocalTemporaries = true;
                 }
             }
@@ -840,7 +840,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             if (hasTableType) {
                 String tableType = rs.getString(columnIndex);
                 String typeName = null;
-                if (tableType.equals("TABLE") || tableType.equals("BASE TABLE")) {
+                if ("TABLE".equals(tableType) || "BASE TABLE".equals(tableType)) {
 
                     if (isSystemDb && isSystemTables) {
                         shouldPut = true;
@@ -853,25 +853,25 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                         data[3] = "TABLE";
                         map.put(key, data);
                     }
-                } else if (tableType.equals("VIEW")) {
+                } else if ("VIEW".equals(tableType)) {
                     if (isViews) {
                         key = new TableMetaData("VIEW", catalog, null, rs.getString(1));
                         data[3] = "VIEW";
                         map.put(key, data);
                     }
-                } else if (tableType.equals("SYSTEM VIEW")) {
+                } else if ("SYSTEM VIEW".equals(tableType)) {
                     if (isSystemViews) {
                         key = new TableMetaData("SYSTEM VIEW", catalog, null, rs.getString(1));
                         data[3] = "SYSTEM VIEW";
                         map.put(key, data);
                     }
-                } else if (tableType.equals("SYSTEM TABLE")) {
+                } else if ("SYSTEM TABLE".equals(tableType)) {
                     if (isSystemTables) {
                         key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
                         data[3] = "SYSTEM TABLE";
                         map.put(key, data);
                     }
-                } else if (tableType.equals("LOCAL TEMPORARY")) {
+                } else if ("LOCAL TEMPORARY".equals(tableType)) {
                     if (isLocalTemporaries) {
                         key = new TableMetaData("LOCAL TEMPORARY", catalog, null, rs.getString(1));
                         data[3] = "LOCAL TEMPORARY";
@@ -3219,7 +3219,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 procNameBuf.append(name);
                 procNameBuf.append("`");
             }
-            if(type.equals("FUNCTION")) {
+            if("FUNCTION".equals(type)) {
                 ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
                         "SHOW CREATE FUNCTION " + procNameBuf.toString());
                 paramRetrievalRs.next();
