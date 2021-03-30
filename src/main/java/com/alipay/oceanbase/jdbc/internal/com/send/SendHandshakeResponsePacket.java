@@ -51,6 +51,7 @@
 package com.alipay.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.StringTokenizer;
 import java.util.function.Supplier;
@@ -77,6 +78,8 @@ public class SendHandshakeResponsePacket {
     private static final byte[]           _CLIENT_VERSION                   = "_client_version"
                                                                                 .getBytes();
     private static final byte[]           _SERVER_HOST                      = "_server_host"
+                                                                                .getBytes();
+    private static final byte[]           _CLIENT_IP                        = "__client_ip"
                                                                                 .getBytes();
     private static final byte[]           _OS                               = "_os".getBytes();
     private static final byte[]           _PID                              = "_pid".getBytes();
@@ -124,7 +127,8 @@ public class SendHandshakeResponsePacket {
                             final String host, final String database,
                             final long clientCapabilities, final long serverCapabilities,
                             final byte serverLanguage, final byte packetSeq, final Options options,
-                            String authenticationPluginType, final byte[] seed) throws IOException {
+                            String authenticationPluginType, final byte[] seed, String clientIp)
+                                                                                                throws IOException {
 
         pos.startPacket(packetSeq);
 
@@ -196,7 +200,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos, options.connectionAttributes, host, options);
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
         }
 
         pos.flush();
@@ -204,7 +208,8 @@ public class SendHandshakeResponsePacket {
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-                                               String host, Options options) throws IOException {
+                                               String host, Options options, String clientIp)
+                                                                                             throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
         buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -215,6 +220,9 @@ public class SendHandshakeResponsePacket {
 
         buffer.writeStringSmallLength(_SERVER_HOST);
         buffer.writeStringLength((host != null) ? host : "");
+
+        buffer.writeStringSmallLength(_CLIENT_IP);
+        buffer.writeStringLength((clientIp != null) ? clientIp : "");
 
         buffer.writeStringSmallLength(_OS);
         buffer.writeStringLength(System.getProperty("os.name"));
