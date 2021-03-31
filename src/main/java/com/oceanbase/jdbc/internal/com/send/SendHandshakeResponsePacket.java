@@ -72,20 +72,20 @@ public class SendHandshakeResponsePacket {
 
     private static final Supplier<String> pidRequest                        = PidFactory
                                                                                 .getInstance();
-    private static final byte[]           _CLIENT_NAME                      = "_client_name"
+    private static final byte[]           _CLIENT_NAME                      = "__client_name"
                                                                                 .getBytes();
-    private static final byte[]           _CLIENT_VERSION                   = "_client_version"
+    private static final byte[]           _CLIENT_VERSION                   = "__client_version"
                                                                                 .getBytes();
-    private static final byte[]           _SERVER_HOST                      = "_server_host"
+    private static final byte[]           _SERVER_HOST                      = "__server_host"
                                                                                 .getBytes();
     private static final byte[]           _CLIENT_IP                        = "__client_ip"
                                                                                 .getBytes();
-    private static final byte[]           _OS                               = "_os".getBytes();
-    private static final byte[]           _PID                              = "_pid".getBytes();
-    private static final byte[]           _THREAD                           = "_thread".getBytes();
-    private static final byte[]           _JAVA_VENDOR                      = "_java_vendor"
+    private static final byte[]           _OS                               = "__os".getBytes();
+    private static final byte[]           _PID                              = "__pid".getBytes();
+    private static final byte[]           _THREAD                           = "__thread".getBytes();
+    private static final byte[]           _JAVA_VENDOR                      = "__java_vendor"
                                                                                 .getBytes();
-    private static final byte[]           _JAVA_VERSION                     = "_java_version"
+    private static final byte[]           _JAVA_VERSION                     = "__java_version"
                                                                                 .getBytes();
 
     private static final String           OB_PROXY_PARTITION_HIT            = "ob_proxy_partition_hit";
