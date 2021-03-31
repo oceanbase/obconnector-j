@@ -274,7 +274,8 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[6] = (byte) (0);
             TIMESTAMP.setNanos(resultBytes, 7, 0);
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
-            resultBytes[13] = (byte) (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND);
+            resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
+                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             return resultBytes;
         } else {
             throw new SQLException(String.format("error format, timestamp = %s", date.toString()),
@@ -315,7 +316,8 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[6] = (byte) (localCalendar.get(Calendar.SECOND));
             TIMESTAMP.setNanos(resultBytes, 7, 0);
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
-            resultBytes[13] = (byte) (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND);
+            resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
+                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             return resultBytes;
         } else {
             throw new SQLException(String.format("error format, timestamp = %s", time.toString()),
@@ -353,7 +355,8 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[6] = (byte) (calendar.get(Calendar.SECOND));
             TIMESTAMP.setNanos(resultBytes, 7, timestamp.getNanos());
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
-            resultBytes[13] = (byte) (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND);
+            resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
+                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
         } else {
             throw new SQLException(String.format("error format, timestamp = %s",
                 timestamp.toString()), "268");
@@ -385,7 +388,8 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[6] = (byte) (localCalendar.get(Calendar.SECOND));
             TIMESTAMP.setNanos(resultBytes, 7, timestamp.getNanos());
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
-            resultBytes[13] = (byte) (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND);
+            resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
+                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             return resultBytes;
         } else {
             throw new SQLException(String.format("error format, timestamp = %s",

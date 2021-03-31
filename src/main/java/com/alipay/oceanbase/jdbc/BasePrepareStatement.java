@@ -974,6 +974,23 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         setInternalObject(parameterIndex, obj, targetSqlType, Long.MAX_VALUE);
     }
 
+    private Timestamp getTimeStamp(ZonedDateTime obj) {
+        StringBuilder stringBuilder = new StringBuilder();
+        String nanoString = Integer.toString(obj.getNano());
+        if (nanoString.length() < 9) {
+            StringBuilder sb = new StringBuilder();
+            int x = 9 - nanoString.length();
+            for (int i = 0; i < x; i++) {
+                sb.append("0");
+            }
+            nanoString = sb.toString() + nanoString;
+        }
+        return java.sql.Timestamp.valueOf(stringBuilder.append(obj.getYear()).append("-")
+            .append(obj.getMonthValue()).append("-").append(obj.getDayOfMonth()).append(" ")
+            .append(obj.getHour()).append(":").append(obj.getMinute()).append(":")
+            .append(obj.getSecond()).append(".").append(nanoString).toString());
+    }
+
     /**
      * Sets the value of the designated parameter using the given object. The second parameter must be
      * of type <code>Object</code>; therefore, the <code>java.lang</code> equivalent objects should be
@@ -1044,8 +1061,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setParameter(parameterIndex, new OffsetTimeParameter((OffsetTime) obj, protocol
                 .getTimeZone().toZoneId(), useFractionalSeconds, options));
         } else if (obj instanceof ZonedDateTime) {
-            setParameter(parameterIndex, new ZonedDateTimeParameter((ZonedDateTime) obj, protocol
-                .getTimeZone().toZoneId(), useFractionalSeconds, options));
+            String zoneId = ((ZonedDateTime) obj).getZone().getId();
+            TimeZone tz;
+            if (zoneId == null || zoneId.isEmpty()) {
+                tz = TimeZone.getDefault();
+            } else if (zoneId.charAt(0) == '+' || zoneId.charAt(0) == '-') {
+                tz = TimeZone.getTimeZone("GMT" + zoneId);
+            } else {
+                tz = TimeZone.getTimeZone(zoneId);
+            }
+            TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+            setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
                 useFractionalSeconds));
@@ -1259,8 +1286,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setParameter(parameterIndex, new OffsetTimeParameter((OffsetTime) obj, protocol
                 .getTimeZone().toZoneId(), useFractionalSeconds, options));
         } else if (obj instanceof ZonedDateTime) {
-            setParameter(parameterIndex, new ZonedDateTimeParameter((ZonedDateTime) obj, protocol
-                .getTimeZone().toZoneId(), useFractionalSeconds, options));
+            String zoneId = ((ZonedDateTime) obj).getZone().getId();
+            TimeZone tz;
+            if (zoneId == null || zoneId.isEmpty()) {
+                tz = TimeZone.getDefault();
+            } else if (zoneId.charAt(0) == '+' || zoneId.charAt(0) == '-') {
+                tz = TimeZone.getTimeZone("GMT" + zoneId);
+            } else {
+                tz = TimeZone.getTimeZone(zoneId);
+            }
+            TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+            setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
                 useFractionalSeconds));
