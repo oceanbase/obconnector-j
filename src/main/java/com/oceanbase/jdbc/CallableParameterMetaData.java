@@ -359,11 +359,23 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (valid) {
             return;
         }
-
-        String[] metaInfos = queryMetaInfos(isFunction);
-        String paramList = metaInfos[0];
-        String functionReturn = metaInfos[1];
-
+        String paramList = null;
+        String functionReturn = null;
+        PreparedStatement pstmt = null;
+        ResultSet resultSet = null;
+        if (isFunction) {
+            resultSet = con.createStatement().executeQuery("SHOW CREATE FUNCTION " + name);
+            resultSet.next();
+            String procedureDDl = resultSet.getString("Create Function");
+            paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);
+            functionReturn = "null";
+        } else {
+            resultSet = con.createStatement().executeQuery("SHOW CREATE PROCEDURE " + name);
+            resultSet.next();
+            String procedureDDl = resultSet.getString("Create Procedure");
+            paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);
+            functionReturn = "null";
+        }
         parseParamList(isFunction, paramList);
 
         // parse type of the return value (for functions)

@@ -2741,7 +2741,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
                         ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR };
                 ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
-                    true, columnNames, columnTypes, false);
+                    false, columnNames, columnTypes, false);
                 return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
@@ -2761,7 +2761,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         StringBuilder procSql = new StringBuilder();
 
         if (this.protocol.isOracleMode()) {
-            procSql.append("select object_name,object_type from  all_objects where ");
+            procSql
+                .append("select object_name as name,object_type as type  from  all_objects where ");
             if (isProcedure && !isFunction) {
                 procSql.append("object_type = 'PROCEDURE' AND ");
             } else if (!isProcedure && isFunction) {
@@ -2778,21 +2779,37 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             procSql.append("name LIKE ? AND db <=> ? ORDER BY name, type");
         }
 
-        java.sql.PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(procSql
-            .toString());
-        if (procedureNamePattern == null || procedureNamePattern.length() == 0) {
-            procedureNamePattern = "%";
-        }
-        proceduresStmt.setString(1, procedureNamePattern);
+        try {
+            PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(procSql
+                .toString());
+            if (procedureNamePattern == null || procedureNamePattern.length() == 0) {
+                procedureNamePattern = "%";
+            }
+            proceduresStmt.setString(1, procedureNamePattern);
 
-        if (db != null || this.protocol.getDatabase() != null) {
-            db = (db == null) ? this.protocol.getDatabase() : db;
-            proceduresStmt.setString(2, db);
-            catalog = db;
-        } else {
-            proceduresStmt.setNull(2, Types.VARCHAR);
+            if (db != null || this.protocol.getDatabase() != null) {
+                db = (db == null) ? this.protocol.getDatabase() : db;
+                proceduresStmt.setString(2, db);
+                catalog = db;
+            } else {
+                proceduresStmt.setNull(2, Types.VARCHAR);
+            }
+            results = proceduresStmt.executeQuery();
+        } catch (SQLException e) {
+            PreparedStatement proceduresStmt = null;
+            if (isFunction) {
+                proceduresStmt = this.connection
+                    .clientPrepareStatement("SHOW FUNCTION STATUS LIKE ?");
+            } else if (isProcedure) {
+                proceduresStmt = this.connection
+                    .clientPrepareStatement("SHOW PROCEDURE STATUS LIKE ?");
+            }
+            if (procedureNamePattern == null || procedureNamePattern.length() == 0) {
+                procedureNamePattern = "%";
+            }
+            proceduresStmt.setString(1, procedureNamePattern);
+            results = proceduresStmt.executeQuery();
         }
-        results = proceduresStmt.executeQuery();
         return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes,
             forGetFunctionColumns);
     }
@@ -3201,10 +3218,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         ArrayList<String> paramListArray = new ArrayList<>();
         ArrayList<String> nameArray = new ArrayList<>();
         while(procsAndOrFuncsRs.next()) {
-            String name = procsAndOrFuncsRs.getString(1);
+            String name = procsAndOrFuncsRs.getString("name");
 
             StringBuilder procNameBuf = new StringBuilder();
-            String type = procsAndOrFuncsRs.getString(2);
+            String type = procsAndOrFuncsRs.getString("type");
             if (this.protocol.isOracleMode()) {
                 procNameBuf.append("\"");
                 procNameBuf.append(name);
@@ -3397,7 +3414,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT, ColumnType.SMALLINT,
                 ColumnType.SMALLINT, ColumnType.VARCHAR, ColumnType.NUMBER, ColumnType.NUMBER,
                 ColumnType.VARCHAR, ColumnType.VARCHAR };
-        ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, functionNamePattern, true, true,
+        ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, functionNamePattern, false, true,
             columnNames, columnTypes, true);
         return procsAndOrFuncsRs;
     }

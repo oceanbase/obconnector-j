@@ -245,15 +245,16 @@ public class CallStatementTest extends BaseTest {
                                             + "SELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
             "testMetaWildcard%", "%");
-        if (rs.next()) {
-            assertEquals("testMetaWildcard", rs.getString(3));
-            assertEquals("x", rs.getString(4));
+        Assert.assertTrue(rs.next());
+        System.out.println("1");
+        assertEquals("testMetaWildcard", rs.getString(3));
+        assertEquals("x", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("testMetaWildcard", rs.getString(3));
-            assertEquals("y", rs.getString(4));
-            assertFalse(rs.next());
-        }
+        assertTrue(rs.next());
+        assertEquals("testMetaWildcard", rs.getString(3));
+        assertEquals("y", rs.getString(4));
+        assertFalse(rs.next());
+
     }
 
     @Test
