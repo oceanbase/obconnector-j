@@ -43,15 +43,16 @@
  */
 package com.alipay.oceanbase.obproxy.mysql.jdbc;
 
-import java.sql.*;
+import com.oceanbase.jdbc.internal.util.DeRegister;
 
-import com.alipay.oceanbase.jdbc.internal.util.DeRegister;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
-public class Driver extends com.alipay.oceanbase.jdbc.Driver {
+public class Driver extends com.oceanbase.jdbc.Driver {
 
     static {
         try {
-            DriverManager.registerDriver(new com.alipay.oceanbase.jdbc.Driver(), new DeRegister());
+            DriverManager.registerDriver(new com.oceanbase.jdbc.Driver(), new DeRegister());
         } catch (SQLException e) {
             throw new RuntimeException("Could not register driver", e);
         }

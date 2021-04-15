@@ -4,31 +4,39 @@
   </a>
 </p>
 
-# Oceanbase Java Connector
+# Oceanbase Client for Java
+OceanBase Client for Java is a JDBC 4.2 compatible driver, used to connect applications developed in Java to OceanBase Database Server.
 
-OceanBase java connector is a JDBC 4.2 compatible driver, used to connect applications developed in Java to OceanBase databases. 
-
-OceanBase Connector/J is LGPL licensed.
-
+# Compatibility
+## Server Compatibility
+OceanBase Client for Java is compatible with all OceanBase Database Server versions.
+## Java Compatibility
+OceanBase Client for Java is developed based on java 8, please confirm your java version.
 ## Obtaining the driver
+**For users who upgrade from version prior to 2.2.0:**
 
-For java 8 or more :
-(maintenance branch for java 7 is 1.x)
+- Upgrade to JDK 8 if you are running any lower version.
+- Change package path to `com.oceanbase.jdbc` .
+- Change Maven groupId to `com.oceanbase` .
 
 maven : 
 ```script
 <dependency>
-	<groupId>com.alipay.oceanbase</groupId>
-	<artifactId>oceanbase-client</artifactId>
+    <groupId>com.oceanbase</groupId>
+    <artifactId>oceanbase-client</artifactId>
 </dependency>
 ```
-
+## Build from source
+```script
+ mvn clean package -DskipTests
+ ```
 ## Documentation
-
-For a Getting started guide, API docs, recipes, etc. see the 
+For more information about this project, please refer to: 
 * [About OceanBase](https://www.oceanbase.com/)
 * [OceanBase documents](https://www.oceanbase.com/docs)
+## License
 
+Distributed under the LGPL License. See `LICENSE` for more information.
 ## Acknowledgement
 
 OceanBase Connector/J was ported from MariaDB Connector/J with some OceanBase protocol support and improvement. Thanks to the MariaDB for opening up such a great Database Connector implementation.
