@@ -119,6 +119,11 @@ public class ComplexOracleTest extends BaseOracleTest {
             conn = sharedPSConnection;
             PreparedStatement ps = null;
             Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop type my_obj");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
             stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c1 int, c3 date)");
             stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj");
 

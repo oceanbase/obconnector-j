@@ -89,7 +89,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 "(a1 IN int, a2 IN int, a3 OUT int) is "
                         + "begin " + "  a3:=a1+a2; " + "end;end;"
         );
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("call unittests.test." + procedureName + "(?, ?, ?)")) {
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("call test." + procedureName + "(?, ?, ?)")) {
             callableStatement.setInt(1, 1);
             callableStatement.setInt(2, 2);
             callableStatement.registerOutParameter(3, Types.INTEGER);

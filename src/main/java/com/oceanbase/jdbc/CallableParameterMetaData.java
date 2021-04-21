@@ -107,14 +107,23 @@ public class CallableParameterMetaData implements ParameterMetaData {
         this.params = null;
         this.con = con;
         if (database != null) {
-            this.database = database.replace("`", "");
+            String tmp = database.replace("`", "");
             if (this.con.getProtocol().isOracleMode()) {
-                if (this.database.contains(".")) {
-                    //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
-                    String[] databaseAndPackage = this.database.split("\\.");
-                    if (databaseAndPackage.length == 2) {
-                        this.obOraclePackageName = databaseAndPackage[1];
-                        this.obOracleSchema = databaseAndPackage[0];
+                if (tmp.equals(this.con.getProtocol().getDatabase())) {
+                    this.database = tmp;
+                    this.obOracleSchema = tmp;
+                } else {
+                    if (tmp.contains(".")) {
+                        //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
+                        String[] databaseAndPackage = tmp.split("\\.");
+                        if (databaseAndPackage.length == 2) {
+                            this.obOraclePackageName = databaseAndPackage[1];
+                            this.obOracleSchema = databaseAndPackage[0];
+                            this.database = databaseAndPackage[0];
+                        }
+                    } else {
+                        this.obOraclePackageName = tmp;
+                        this.database = tmp;
                     }
                 }
             }

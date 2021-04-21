@@ -205,7 +205,6 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     private void queryMetaInfos(boolean isFunction) throws SQLException {
 
         this.mapNameToParamter = new HashMap<>();
-
         try (Statement stmt = con.createStatement()) {
             String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
@@ -219,9 +218,16 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
 
             if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {
                 paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
+                paramMetaSql.append("' order by POSITION");
+            } else{
+                if(!this.obOraclePackageName.equals("DBMS_LOB") ){
+                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                } else {
+                    paramMetaSql.append("' and owner = 'SYS'");
+                }
+                paramMetaSql.append(" order by POSITION");
             }
 
-            paramMetaSql.append("' order by POSITION");
             ResultSet rs = stmt.executeQuery(paramMetaSql.toString());
             addParametersFromDBOD(rs);
 
