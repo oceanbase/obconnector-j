@@ -536,7 +536,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             sslWrapper(host, socket, options, greetingPacket.getServerCapabilities(),
                 clientCapabilities, exchangeCharset, serverThreadId);
+            if (Boolean.TRUE.equals(options.useSsl)) {
 
+                if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
+                    exceptionFactory.create(
+                            "Trying to connect with ssl, but ssl not enabled in the server", "08000");
+                }
+                clientCapabilities |= OceanBaseServerCapabilities.SSL;
+            }
             String authenticationPluginType = greetingPacket.getAuthenticationPluginType();
             if (credentialPlugin != null
                 && credentialPlugin.defaultAuthenticationPluginType() != null) {
