@@ -65,15 +65,15 @@ public class ProcTest extends BaseTest {
                     + "  out v_result1 varchar(10)\n"
                     + ")\n"
                     + "BEGIN    \n"
-                    + "DELETE FROM USER ;      \n"
-                    + "INSERT INTO USER(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
-                    + "select name INTO v_result1 from USER;   \n" + "END;");
+                    + "DELETE FROM "+tableUser+";      \n"
+                    + "INSERT INTO "+tableUser+"(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
+                    + "select name INTO v_result1 from "+tableUser+";   \n" + "END;");
     }
 
     @Test
     public void procTest() {
         try {
-            String sql = "call test_procedure1(?,?,?,?)";
+            String sql = "call "+procName+"(?,?,?,?)";
             CallableStatement cs = sharedConnection.prepareCall(sql);
             cs.setString(1, "0");
             cs.setString(2, "teststring");

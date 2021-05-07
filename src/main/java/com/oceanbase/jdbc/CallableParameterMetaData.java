@@ -113,24 +113,62 @@ public class CallableParameterMetaData implements ParameterMetaData {
                     this.database = tmp;
                     this.obOracleSchema = tmp;
                 } else {
-                    if (tmp.contains(".")) {
+                    if (tmp.contains(".")) { // schema.package
                         //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
                         String[] databaseAndPackage = tmp.split("\\.");
                         if (databaseAndPackage.length == 2) {
-                            this.obOraclePackageName = databaseAndPackage[1];
-                            this.obOracleSchema = databaseAndPackage[0];
-                            this.database = databaseAndPackage[0];
+                            if (databaseAndPackage[1].startsWith("\"")
+                                && databaseAndPackage[1].endsWith("\"")) {
+                                this.obOraclePackageName = databaseAndPackage[1].replace("\"", "");
+                            } else {
+                                this.obOraclePackageName = databaseAndPackage[1]
+                                    .toUpperCase(Locale.ROOT);
+                            }
+                            if (databaseAndPackage[0].startsWith("\"")
+                                && databaseAndPackage[0].endsWith("\"")) {
+                                this.obOracleSchema = databaseAndPackage[0].replace("\"", "");
+                            } else {
+                                this.obOracleSchema = databaseAndPackage[0]
+                                    .toUpperCase(Locale.ROOT);
+                            }
+                            this.database = databaseAndPackage[0]; // ?
                         }
                     } else {
-                        this.obOraclePackageName = tmp;
-                        this.database = tmp;
+                        // shcema or poackage
+                        if (tmp.startsWith("\"") && tmp.startsWith("\"")) {
+                            if (tmp.replace("\"", "").equals(this.con.getProtocol().getDatabase())) {
+                                // is schema
+                                this.obOracleSchema = tmp.replace("\"", "");
+                                this.obOraclePackageName = null;
+                            } else {
+                                // is package
+                                this.obOracleSchema = null;
+                                this.obOraclePackageName = tmp.replace("\"", "");
+                            }
+                        } else if (tmp.equals(this.con.getProtocol().getDatabase())
+                                   || tmp.toUpperCase(Locale.ROOT).equals(
+                                       this.con.getProtocol().getDatabase())) {
+                            // schema.proc
+                            this.obOraclePackageName = null;
+                            this.obOracleSchema = tmp.toUpperCase(Locale.ROOT);
+                        } else {
+                            // package.proc
+                            this.obOraclePackageName = tmp.toUpperCase(Locale.ROOT);
+                            this.obOracleSchema = null;
+                        }
+                        this.database = this.con.getProtocol().getDatabase();
+
                     }
                 }
             }
         } else {
             this.database = null;
         }
-        this.name = name.replace("`", "");
+        if (name.startsWith("\"") && name.endsWith("\"")) {
+            this.name = name.replace("`", "").replace("\"", "");
+        } else {
+            this.name = name.replace("`", "").toUpperCase(Locale.ROOT);
+        }
         this.isFunction = isFunction;
     }
 

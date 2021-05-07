@@ -210,10 +210,10 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
 
-            paramMetaSql.append(name.toUpperCase());
+            paramMetaSql.append(name);
 
             if (obOraclePackageName != null && obOraclePackageName.trim().length() > 0) {
-                paramMetaSql.append("' and package_name = '").append(this.obOraclePackageName.toUpperCase());
+                paramMetaSql.append("' and package_name = '").append(this.obOraclePackageName);
             }
 
             if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {

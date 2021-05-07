@@ -43,11 +43,10 @@
  */
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -104,6 +103,297 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
 
         } finally {
             dropProcedure("test." + procedureName);
+        }
+    }
+
+    @Test
+    public void packageAndProcDoubleuotes1() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call \"test_pkg\".\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void packageAndProcDoubleuotes2() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n" + "END test_pkg;";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call test_pkg.\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void packageAndProcDoubleuotes3() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
+                             + "FUNCTION fun_example (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
+                             + "function fun_example (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call \"test_pkg\".proc_example(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndProcDoubleuotes() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgBody = "CREATE OR REPLACE procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;";
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call \"UNITTESTS\".\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndProcDoubleuotes2() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgBody = "CREATE OR REPLACE procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;";
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndProcDoubleuotes3() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgBody = "CREATE OR REPLACE procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;";
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.proc_example(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndPackageAndProc1() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call \"UNITTESTS\".\"test_pkg\".\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndPackageAndProc2() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.\"test_pkg\".\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndPackageAndProc3() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.test_pkg.\"proc_example\"(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndPackageAndProc4() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.test_pkg.proc_example(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void schemaAndPackageAndProc5() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+            String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+            stmt.execute(pkgHead);
+            stmt.execute(pkgBody);
+            CallableStatement callableStatement = conn
+                .prepareCall("call UNITTESTS.\"test_pkg\".proc_example(?)");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(1, 10);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(1);
+            Assert.assertEquals(20, a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }
