@@ -128,7 +128,10 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         parameterCount = this.parameterMetadata.getParameterCount();
         params = new ArrayList<>(parameterCount);
         for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
-            this.params.add(this.parameterMetadata.getParam(index + 1)); //TODO if check registerOutputParamter need to add it by arguments
+            CallParameter parameter = this.parameterMetadata.getParam(index + 1);
+            if(parameter.getIndex() != -1) {
+                this.params.add(parameter); //TODO if check registerOutputParamter need to add it by arguments
+            }
         }
     }
 
@@ -244,9 +247,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 if (holder.toString() == "<null>") {
                     queryBuf.append("null");
                 } else {
-                    //                    queryBuf.append("'");
                     queryBuf.append(holder.toString());
-                    //                    queryBuf.append("'");
                 }
 
                 String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
@@ -256,38 +257,37 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         boolean afterFirst = false;
         int index = sql.indexOf('?');
         StringBuilder querySB = new StringBuilder();
-        querySB.append(sql.substring(0, index));
-        for (int i = 0; i < size; i++) {
-            CallParameter inParamInfo = params.get(i);
-            if (afterFirst) {
-                querySB.append(",");
-            }
-            if (inParamInfo.isOutput()) {
-                String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
-                querySB.append(inOutParameterName);
-            } else {
-                ParameterHolder holder = currentParameterHolder.get(i);
-                if (holder.toString() == "<null>") {
-                    querySB.append("null");
+        String sqlString = sql;
+        if (index == -1) {
+            querySB.append(sql);
+        } else {
+            for (int i = 0; i < size; i++) {
+                CallParameter inParamInfo = params.get(i);
+                if (inParamInfo.isOutput()) {
+                    String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                    inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
+                    sqlString = sqlString.replaceFirst("\\?", inOutParameterName);
                 } else {
-                    querySB.append(holder.toString());
+                    ParameterHolder holder = currentParameterHolder.get(i);
+                    if (holder.toString() == "<null>") {
+                        sqlString = sqlString.replaceFirst("\\?", "null");
+                    } else {
+                        sqlString = sqlString.replaceFirst("\\?", holder.toString());
+                    }
                 }
             }
-            afterFirst = true;
         }
-        querySB.append(")");
-        this.connection.createStatement().execute(querySB.toString());
+        this.connection.createStatement().execute(sqlString);
         StringBuilder selectSB = new StringBuilder();
         selectSB.append("SELECT ");
         afterFirst = false;
         boolean getResult = false;
         for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
-            if (afterFirst) {
-                selectSB.append(",");
-            }
             if (inParamInfo.isOutput()) {
+                if (afterFirst) {
+                    selectSB.append(",");
+                }
                 String inOutParameterName = mangleParameterName(inParamInfo.getName());
                 inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                 selectSB.append(inOutParameterName);

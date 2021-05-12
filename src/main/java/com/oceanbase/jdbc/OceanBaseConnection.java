@@ -693,14 +693,23 @@ public class OceanBaseConnection implements ConnectionImpl {
                                          final int resultSetConcurrency) throws SQLException {
         checkConnection();
         // Support for Oracle anonymous block
-        String upperSql = sql.replaceAll("--.*\n", "").replaceAll("\\/\\*.*\\*\\/", "")
+
+        String queryString = sql;
+        if (!this.protocol.isOracleMode()) {
+            // support mysql comment format
+            queryString = sql.replaceAll("\\#(.*?)\n", "").replaceAll("-- (.*?)\n", "")
+                .replaceAll("\\/\\*(.*?)\\*\\/", "").replaceAll("\n", " ");
+        }
+        queryString = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
+            .replace("\n", "").trim();
+        String uppserSQL = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
             .toUpperCase(Locale.ROOT).trim();
         if (this.protocol.isOracleMode()
-            && (upperSql.startsWith("BEGIN") || upperSql.startsWith("DECLARE"))) {
+            && (uppserSQL.startsWith("BEGIN") || uppserSQL.startsWith("DECLARE"))) {
             return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
                 null, resultSetType, resultSetConcurrency, exceptionFactory, true);
         } else {
-            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
+            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(queryString);
             if (!matcher.matches()) {
                 throw new SQLSyntaxErrorException(
                     "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "

@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
@@ -396,4 +397,134 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void odcProcedureCommandTest1() {
+        try {
+            Connection conn = sharedConnection;
+            conn.createStatement().execute(
+                "create or replace procedure pl_test (p1 in int, p2 in int, p3 in out int) is begin \n"
+                        + "p3 := p1 + p2;" + "end ;");
+            System.out.println("index  binding");
+            CallableStatement callableStatement = conn.prepareCall("call \npl_test\n\n(?,?,?)");
+            callableStatement.setInt(1, 1);
+            callableStatement.setInt(2, 2);
+            callableStatement.setInt(3, 3);
+            callableStatement.registerOutParameter(3, Types.INTEGER);
+            ResultSet rs = callableStatement.executeQuery();
+            int a = callableStatement.getInt(3);
+            System.out.println("a = " + a);
+            System.out.println("name binding");
+            callableStatement.setInt("p1", 1);
+            callableStatement.setInt("p2", 2);
+            callableStatement.setInt("p3", 3);
+            callableStatement.registerOutParameter("p3", Types.INTEGER);
+            rs = callableStatement.executeQuery();
+            a = callableStatement.getInt("p3");
+            System.out.println("a = " + a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void odcProcedureCommandTest2() {
+        try {
+            Connection conn = sharedConnection;
+            conn.createStatement().execute(
+                "create or replace procedure pl_t (listing in out varchar2) is begin \n"
+                        + "listing := 'abc';" + "end pl_t;");
+            System.out.println("index binding");
+            CallableStatement callableStatement = conn.prepareCall("call PL_T\n(?)");
+            callableStatement.setString(1, "woshilize");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            ResultSet rs = callableStatement.executeQuery();
+            String a = callableStatement.getString(1);
+            System.out.println("a = " + a);
+
+            System.out.println("index binding");
+            callableStatement = conn.prepareCall("call PL_T(?)");
+            callableStatement.setString("listing", "woshilize");
+            callableStatement.registerOutParameter("listing", Types.VARCHAR);
+            rs = callableStatement.executeQuery();
+            a = callableStatement.getString("listing");
+            System.out.println("a = " + a);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void odcFcuntionCommandTest1() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop function func_test");
+            } catch (SQLException e) {
+                //
+            }
+            conn.createStatement().execute(
+                "create or replace function func_test(p1 int, p2 int) return int as v_result int; begin\n"
+                        + " return p1+p2;end;");
+            CallableStatement callableStatement = conn.prepareCall("{? = call \nfunc_test\n(?,?)}");
+            System.out.println("index binding");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt(2, 10);
+            callableStatement.setInt(3, 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+            System.out.println("name binding");
+            callableStatement = conn.prepareCall("{? = call func_test(?,?)}");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setInt("p1", 10);
+            callableStatement.setInt("p2", 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // function name has out arguments not supported
+    @Ignore
+    public void odcFcuntionCommandTest2() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop function func_test2");
+            } catch (SQLException e) {
+                //
+            }
+            conn.createStatement()
+                .execute(
+                    "create or replace function func_test2\n(p1 int, p2 int, total out int) return int as v_result int; begin\n"
+                            + " total := p1+p2; return total; end;");
+            CallableStatement callableStatement = conn
+                .prepareCall("{? = call \nfunc_test2\n(?,?,?)}");
+            System.out.println("index binding");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.registerOutParameter(4, Types.INTEGER);
+            callableStatement.setInt(2, 10);
+            callableStatement.setInt(3, 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+            System.out.println("name binding");
+            callableStatement = conn.prepareCall("{? = call func_test2(?,?,?)}");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.registerOutParameter(4, Types.INTEGER);
+            callableStatement.setInt("p1", 10);
+            callableStatement.setInt("p2", 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

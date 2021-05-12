@@ -56,24 +56,20 @@ public class ProcTest extends BaseTest {
     @BeforeClass
     public static void initClass() throws SQLException {
         createTable(tableUser, "user_id varchar(10),name varchar(10),age varchar(10)");
-        createProcedure(
-            procName,
-            "(\n"
-                    + "  in v_user_id varchar(10),\n"
-                    + "  in v_name varchar(10),\n"
-                    + "  in v_age varchar(10),\n"
-                    + "  out v_result1 varchar(10)\n"
-                    + ")\n"
-                    + "BEGIN    \n"
-                    + "DELETE FROM "+tableUser+";      \n"
-                    + "INSERT INTO "+tableUser+"(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
-                    + "select name INTO v_result1 from "+tableUser+";   \n" + "END;");
+        createProcedure(procName, "(\n" + "  in v_user_id varchar(10),\n"
+                                  + "  in v_name varchar(10),\n" + "  in v_age varchar(10),\n"
+                                  + "  out v_result1 varchar(10)\n" + ")\n" + "BEGIN    \n"
+                                  + "DELETE FROM " + tableUser + ";      \n" + "INSERT INTO "
+                                  + tableUser
+                                  + "(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
+                                  + "select name INTO v_result1 from " + tableUser + ";   \n"
+                                  + "END;");
     }
 
     @Test
     public void procTest() {
         try {
-            String sql = "call "+procName+"(?,?,?,?)";
+            String sql = "call " + procName + "(?,?,?,?)";
             CallableStatement cs = sharedConnection.prepareCall(sql);
             cs.setString(1, "0");
             cs.setString(2, "teststring");

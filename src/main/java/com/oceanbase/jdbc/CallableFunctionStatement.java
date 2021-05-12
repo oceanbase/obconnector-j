@@ -124,7 +124,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     protected abstract SelectResultSet getResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired();
+        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery);
         return parameterMetadata;
     }
 
@@ -136,9 +136,12 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired();
+        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery);
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
+            if (!this.protocol.isOracleMode() && name != null) {
+                name = name.replaceAll("\\`(\\w+)\\`", "$1");
+            }
             if (name != null && name.equalsIgnoreCase(parameterName)) {
                 return i;
             }

@@ -176,4 +176,12 @@ class CallParameter {
     public void setName(String name) {
         this.name = name;
     }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public int getIndex() {
+        return this.index;
+    }
 }

@@ -169,6 +169,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i + 1);
+            if (!this.protocol.isOracleMode()) {
+                name = name.replaceAll("\\`(\\w+)\\`", "$1");
+            }
             if (name != null && name.equalsIgnoreCase(parameterName)) {
                 if (outputParameterMapper[i] == -1) {
                     // this is not an outputParameter
