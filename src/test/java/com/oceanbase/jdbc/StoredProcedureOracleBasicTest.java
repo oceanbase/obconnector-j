@@ -406,7 +406,8 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 "create or replace procedure pl_test (p1 in int, p2 in int, p3 in out int) is begin \n"
                         + "p3 := p1 + p2;" + "end ;");
             System.out.println("index  binding");
-            CallableStatement callableStatement = conn.prepareCall("call \npl_test\n\n(?,?,?)");
+            CallableStatement callableStatement = conn
+                .prepareCall("call /* comment test */ \npl_test\n\n(?,?,?)");
             callableStatement.setInt(1, 1);
             callableStatement.setInt(2, 2);
             callableStatement.setInt(3, 3);
@@ -436,7 +437,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 "create or replace procedure pl_t (listing in out varchar2) is begin \n"
                         + "listing := 'abc';" + "end pl_t;");
             System.out.println("index binding");
-            CallableStatement callableStatement = conn.prepareCall("call PL_T\n(?)");
+            CallableStatement callableStatement = conn.prepareCall("call \nPL_T\n(?\n)");
             callableStatement.setString(1, "woshilize");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             ResultSet rs = callableStatement.executeQuery();

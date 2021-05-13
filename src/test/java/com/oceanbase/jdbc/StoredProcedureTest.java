@@ -907,8 +907,8 @@ public class StoredProcedureTest extends BaseTest {
 
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall(
-            "{ call /*comment ? */ testProcedureComment(?, "
-                + "/*comment ? */?) #comment ? \n -- comment \n}")) {
+            "{call /*comment ? */ testProcedureComment(?, "
+                + "/*comment ? */?)}  #comment ? \n -- comment \n ")) {
         // without ps ,client dont have server resultset
 //      assertTrue(callableStatement.toString().contains("/*"));
       callableStatement.setInt(1, 1);
@@ -1245,8 +1245,7 @@ public class StoredProcedureTest extends BaseTest {
             "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_3", "(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
 
-        CallableStatement call = sharedConnection
-            .prepareCall("{ call testProcSendNullInOut_1(?) }");
+        CallableStatement call = sharedConnection.prepareCall("{call testProcSendNullInOut_1(?) }");
         call.registerOutParameter(1, Types.INTEGER);
         call.setInt(1, 1);
         call.execute();
@@ -1459,7 +1458,7 @@ public class StoredProcedureTest extends BaseTest {
                 "create  procedure pl_test ( IN `p1` int(11), IN `p2` int(11), OUT `p3` int(11)) begin \n"
                         + "set p3 = p1 + p2;\n" + "end;");
             System.out.println("index  binding");
-            CallableStatement callableStatement = conn.prepareCall("call PL_TEST(?,?,?)");
+            CallableStatement callableStatement = conn.prepareCall("call PL_TEST\n (?,?,?)");
             callableStatement.setInt(1, 1);
             callableStatement.setInt(2, 2);
             callableStatement.setInt(3, 3);
@@ -1493,7 +1492,7 @@ public class StoredProcedureTest extends BaseTest {
         conn.createStatement().execute(
             "create function func_test(p1 int, p2 int) returns int begin return p1+p2;end;");
         System.out.println("index binding");
-        CallableStatement callableStatement = conn.prepareCall("{? = call \nfunc_test\n(?,?)}");
+        CallableStatement callableStatement = conn.prepareCall("{? = call \nfunc_test\n\n(?,?)}");
         callableStatement.registerOutParameter(1, Types.INTEGER);
         callableStatement.setInt(2, 10);
         callableStatement.setInt(3, 10);

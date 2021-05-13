@@ -464,6 +464,7 @@ public class Utils {
     }
     throw new SQLException("unknown escape sequence " + escaped);
   }
+  
 
   /**
    * Escape sql String.
@@ -475,7 +476,6 @@ public class Utils {
    */
   @SuppressWarnings("ConstantConditions")
   public static String nativeSql(String sql, Protocol protocol) throws SQLException {
-    //TODO check meanings of '{}' in Oracle
     if (!sql.contains("{")) {
       return sql;
     }
@@ -584,6 +584,144 @@ public class Utils {
     }
     return sqlBuffer.toString();
   }
+
+
+  public static String getSQLWithoutCommentMysql(String sql) throws SQLException {
+    StringBuilder escapeSequenceBuf = new StringBuilder();
+    StringBuilder sqlBuffer = new StringBuilder();
+
+    char[] charArray = sql.toCharArray();
+    char lastChar = 0;
+    boolean inQuote = false;
+    char quoteChar = 0;
+    boolean inComment = false;
+    boolean isSlashSlashComment = false; // slash and double dash
+    boolean isDoubleDashComment = false;
+    boolean inDoubleDashComment  = false;
+    boolean add = false;
+    boolean skip = false;
+    boolean afterDoubleDash = false;
+    for (int i = 0; i < charArray.length; i++) {
+      char car = charArray[i];
+      if(afterDoubleDash && isDoubleDashComment && inComment) {
+        if(car == 127 || car < 33 ) {
+          inDoubleDashComment = true;
+          afterDoubleDash = false;
+        } else {
+          isDoubleDashComment = false;
+          afterDoubleDash = false;
+          inComment = false;
+          inDoubleDashComment = false;
+        }
+      } else {
+        switch (car) {
+          case '\'':
+          case '"':
+          case '`':
+            if (!inComment) {
+              if (inQuote) {
+                if (quoteChar == car) {
+                  inQuote = false;
+                  add = true;
+                }
+              } else {
+                inQuote = true;
+                quoteChar = car;
+              }
+            }
+            break;
+
+          case '*':
+            if (!inQuote && !inComment && lastChar == '/') {
+              inComment = true;
+              isSlashSlashComment = false;
+              isDoubleDashComment = false;
+            }
+            break;
+          case '/':
+            if (!inQuote) {
+              if (inComment) {
+                if (lastChar == '*' && !isSlashSlashComment && !isDoubleDashComment) {
+                  inComment = false;
+                  skip = true;
+                }
+//                            } else if (lastChar == car && isSlashSlashComment) {
+//                                inComment = false;
+//                                skip = true;
+//                            }
+              } else {
+                inComment = true;
+              }
+            }
+            break;
+          case '-':
+            if (!inQuote) {
+              if (inComment && !isDoubleDashComment) {
+                isDoubleDashComment = false;
+              } else if (inComment && isDoubleDashComment && lastChar == '-') {
+                afterDoubleDash = true;
+                inComment = true;
+                isDoubleDashComment = true;
+              } else if (!inComment) {
+                isDoubleDashComment = true;
+                inComment = true;
+              }
+            }
+            break;
+          case '#':
+            if (!inQuote) {
+              if (inComment) {
+                isSlashSlashComment = false;
+              } else {
+                inComment = true;
+                isSlashSlashComment = true;
+              }
+            }
+            break;
+          case '\n':
+            if ((inComment && isSlashSlashComment) || (inComment && isDoubleDashComment && inDoubleDashComment)) {
+              // slash-slash and dash-dash comments ends with the end of line
+              inComment = false;
+              skip = true;
+              isDoubleDashComment = false;
+              isSlashSlashComment = false;
+              inDoubleDashComment = false;
+              afterDoubleDash = false;
+            } else {
+              car = ' ';
+            }
+            break;
+//          case '}':
+//          case '{':
+//            if (!inComment && !inQuote) {
+//              car = ' ';
+//            }
+//            break;
+          default:
+            if (!inQuote && !inComment && !isSlashSlashComment && !isDoubleDashComment) {
+              add = true;
+            }
+            break;
+        }
+      }
+      lastChar = car;
+      if(i == charArray.length - 1) {
+        add = true;
+      }
+      escapeSequenceBuf.append(car);
+      if(skip) {
+        escapeSequenceBuf.setLength(0);
+        skip = false;
+      }
+      if(add) {
+        sqlBuffer.append(escapeSequenceBuf);
+        add = false;
+        escapeSequenceBuf.setLength(0);
+      }
+    }
+    return sqlBuffer.toString().trim();
+  }
+
 
   /**
    * Retrieve protocol corresponding to the failover options. if no failover option, protocol will

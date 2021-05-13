@@ -1,52 +1,52 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc;
 
@@ -694,14 +694,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         checkConnection();
         // Support for Oracle anonymous block
 
-        String queryString = sql;
-        if (!this.protocol.isOracleMode()) {
-            // support mysql comment format
-            queryString = sql.replaceAll("\\#(.*?)\n", "").replaceAll("-- (.*?)\n", "")
-                .replaceAll("\\/\\*(.*?)\\*\\/", "").replaceAll("\n", " ");
-        }
-        queryString = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
-            .replace("\n", "").trim();
+        String querySetToServer = sql;
         String uppserSQL = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
             .toUpperCase(Locale.ROOT).trim();
         if (this.protocol.isOracleMode()
@@ -709,31 +702,31 @@ public class OceanBaseConnection implements ConnectionImpl {
             return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
                 null, resultSetType, resultSetConcurrency, exceptionFactory, true);
         } else {
-            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(queryString);
+            if (!this.protocol.isOracleMode()) {
+                querySetToServer = Utils.getSQLWithoutCommentMysql(sql);
+            }
+            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
             if (!matcher.matches()) {
                 throw new SQLSyntaxErrorException(
                     "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
                             + sql);
             }
-
-            String query = Utils.nativeSql(matcher.group(2), protocol);
-
+            querySetToServer = matcher.group(2);
             boolean isFunction = (matcher.group(3) != null);
-            String databaseAndProcedure = matcher.group(8);
-            String database = matcher.group(10);
-            String procedureName = matcher.group(13);
-            String arguments = matcher.group(16);
+            String databaseAndProcedure = matcher.group(8) == null ? null : matcher.group(8).trim();
+            String database = matcher.group(10) == null ? null : matcher.group(10).trim();
+            String procedureName = matcher.group(13) == null ? null : matcher.group(13).trim();
+            String arguments = matcher.group(16) == null ? null : matcher.group(16).trim();
             if (database == null && sessionStateAware) {
                 database = protocol.getDatabase();
             }
-
             if (database != null && options.cacheCallableStmts) {
 
                 if (callableStatementCache.containsKey(new CallableStatementCacheKey(database,
-                    query))) {
+                    querySetToServer))) {
                     try {
                         CallableStatement callableStatement = callableStatementCache
-                            .get(new CallableStatementCacheKey(database, query));
+                            .get(new CallableStatementCacheKey(database, querySetToServer));
                         if (callableStatement != null) {
                             // Clone to avoid side effect like having some open resultSet.
                             return ((CloneableCallableStatement) callableStatement).clone(this);
@@ -742,14 +735,14 @@ public class OceanBaseConnection implements ConnectionImpl {
                         cloneNotSupportedException.printStackTrace();
                     }
                 }
-                CallableStatement callableStatement = createNewCallableStatement(query,
+                CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
-                callableStatementCache.put(new CallableStatementCacheKey(database, query),
-                    callableStatement);
+                callableStatementCache.put(
+                    new CallableStatementCacheKey(database, querySetToServer), callableStatement);
                 return callableStatement;
             }
-            return createNewCallableStatement(query, procedureName, isFunction,
+            return createNewCallableStatement(querySetToServer, procedureName, isFunction,
                 databaseAndProcedure, database, arguments, resultSetType, resultSetConcurrency,
                 exceptionFactory);
         }
@@ -869,7 +862,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-        if (this.getAutoCommit() == true){
+        if (this.getAutoCommit() == true) {
             throw new SQLException("Can't call rollback when autocommit enable");
         }
         lock.lock();
@@ -898,14 +891,14 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #rollback
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-        if (this.getAutoCommit() == true){
+        if (this.getAutoCommit() == true) {
             throw new SQLException("Can't call rollback when autocommit enable");
         }
         try (Statement st = createStatement()) {
             if (!this.protocol.isOracleMode()) {
                 st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
-            }else {
-                st.execute("ROLLBACK TO "+savepoint.getSavepointName());
+            } else {
+                st.execute("ROLLBACK TO " + savepoint.getSavepointName());
             }
         }
     }
@@ -1199,9 +1192,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
 //        throw exceptionFactory.notSupported("TypeMap are not supported");
-        if (this.typeMap != null && this.typeMap.size() != 0){
+        if (this.typeMap != null && this.typeMap.size() != 0) {
             Set<String> set = this.typeMap.keySet();
-            set.forEach(s -> map.put(s,this.typeMap.get(s)));
+            set.forEach(s -> map.put(s, this.typeMap.get(s)));
         }
         typeMap = map;
     }
@@ -1284,9 +1277,9 @@ public class OceanBaseConnection implements ConnectionImpl {
     public Savepoint setSavepoint(final String name) throws SQLException {
         Savepoint savepoint = new OceanBaseSavepoint(name);
         try (Statement st = createStatement()) {
-            if (this.protocol.isOracleMode()){
+            if (this.protocol.isOracleMode()) {
                 st.execute("SAVEPOINT " + savepoint.getSavepointName());
-            }else {
+            } else {
                 st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
             }
 //            st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
