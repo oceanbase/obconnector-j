@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2012-2014 Monty Program Ab.
  *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *  Copyright (c) 2021 OceanBase.
  *
  *  This library is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the Free
@@ -205,23 +205,29 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     private void queryMetaInfos(boolean isFunction) throws SQLException {
 
         this.mapNameToParamter = new HashMap<>();
-
         try (Statement stmt = con.createStatement()) {
             String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
 
-            paramMetaSql.append(name.toUpperCase());
+            paramMetaSql.append(name);
 
             if (obOraclePackageName != null && obOraclePackageName.trim().length() > 0) {
-                paramMetaSql.append("' and package_name = '").append(this.obOraclePackageName.toUpperCase());
+                paramMetaSql.append("' and package_name = '").append(this.obOraclePackageName);
             }
 
             if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {
                 paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
+                paramMetaSql.append("' order by POSITION");
+            } else{
+                if(!this.obOraclePackageName.equals("DBMS_LOB") ){
+                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                } else {
+                    paramMetaSql.append("' and owner = 'SYS'");
+                }
+                paramMetaSql.append(" order by POSITION");
             }
 
-            paramMetaSql.append("' order by POSITION");
             ResultSet rs = stmt.executeQuery(paramMetaSql.toString());
             addParametersFromDBOD(rs);
 

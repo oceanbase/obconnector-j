@@ -2,7 +2,7 @@
  *
  * OceanBase Client for Java
  *
- * Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ * Copyright (c) 2021 OceanBase.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
