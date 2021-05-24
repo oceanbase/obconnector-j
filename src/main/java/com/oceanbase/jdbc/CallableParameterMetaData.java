@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2012-2014 Monty Program Ab.
  *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *  Copyright (c) 2021 OceanBase.
  *
  *  This library is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the Free
@@ -107,21 +107,70 @@ public class CallableParameterMetaData implements ParameterMetaData {
         this.params = null;
         this.con = con;
         if (database != null) {
-            this.database = database.replace("`", "");
+            String tmp = database.replace("`", "");
             if (this.con.getProtocol().isOracleMode()) {
-                if (this.database.contains(".")) {
-                    //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
-                    String[] databaseAndPackage = this.database.split("\\.");
-                    if (databaseAndPackage.length == 2) {
-                        this.obOraclePackageName = databaseAndPackage[1];
-                        this.obOracleSchema = databaseAndPackage[0];
+                if (tmp.equals(this.con.getProtocol().getDatabase())) {
+                    this.database = tmp;
+                    this.obOracleSchema = tmp;
+                } else {
+                    if (tmp.contains(".")) { // schema.package
+                        //is support <user>.<package>.<stored procedure> pattern with Oracle Mode.
+                        String[] databaseAndPackage = tmp.split("\\.");
+                        if (databaseAndPackage.length == 2) {
+                            if (databaseAndPackage[1].startsWith("\"")
+                                && databaseAndPackage[1].endsWith("\"")) {
+                                this.obOraclePackageName = databaseAndPackage[1].replace("\"", "");
+                            } else {
+                                this.obOraclePackageName = databaseAndPackage[1]
+                                    .toUpperCase(Locale.ROOT);
+                            }
+                            if (databaseAndPackage[0].startsWith("\"")
+                                && databaseAndPackage[0].endsWith("\"")) {
+                                this.obOracleSchema = databaseAndPackage[0].replace("\"", "");
+                            } else {
+                                this.obOracleSchema = databaseAndPackage[0]
+                                    .toUpperCase(Locale.ROOT);
+                            }
+                            this.database = databaseAndPackage[0]; // ?
+                        }
+                    } else {
+                        // shcema or poackage
+                        if (tmp.startsWith("\"") && tmp.startsWith("\"")) {
+                            if (tmp.replace("\"", "").equals(this.con.getProtocol().getDatabase())) {
+                                // is schema
+                                this.obOracleSchema = tmp.replace("\"", "");
+                                this.obOraclePackageName = null;
+                            } else {
+                                // is package
+                                this.obOracleSchema = null;
+                                this.obOraclePackageName = tmp.replace("\"", "");
+                            }
+                        } else if (tmp.equals(this.con.getProtocol().getDatabase())
+                                   || tmp.toUpperCase(Locale.ROOT).equals(
+                                       this.con.getProtocol().getDatabase())) {
+                            // schema.proc
+                            this.obOraclePackageName = null;
+                            this.obOracleSchema = tmp.toUpperCase(Locale.ROOT);
+                        } else {
+                            // package.proc
+                            this.obOraclePackageName = tmp.toUpperCase(Locale.ROOT);
+                            this.obOracleSchema = null;
+                        }
+                        this.database = this.con.getProtocol().getDatabase();
+
                     }
                 }
+            } else {
+                this.database = database; // for mysql mode
             }
         } else {
             this.database = null;
         }
-        this.name = name.replace("`", "");
+        if (name.startsWith("\"") && name.endsWith("\"")) {
+            this.name = name.replace("`", "").replace("\"", "");
+        } else {
+            this.name = name.replace("`", "").toUpperCase(Locale.ROOT);
+        }
         this.isFunction = isFunction;
     }
 
@@ -270,7 +319,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
   }
 
-    private void parseFunctionReturnParam(String functionReturn) throws SQLException {
+    private CallParameter parseFunctionReturnParam(String functionReturn) throws SQLException {
         if (functionReturn == null || functionReturn.length() == 0) {
             throw new SQLException(name + "is not a function returning value");
         }
@@ -278,7 +327,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (!matcher.matches()) {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
-        CallParameter callParameter = params.get(0);
+        CallParameter callParameter = new CallParameter();
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
         callParameter.setTypeName(matcher.group(2).trim());
@@ -288,17 +337,18 @@ public class CallableParameterMetaData implements ParameterMetaData {
             scale = scale.replace("(", "").replace(")", "").replace(" ", "");
             callParameter.setScale(Integer.valueOf(scale));
         }
+        return callParameter;
     }
 
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
         params = new ArrayList<>();
-        if (isFunction) {
-            // output parameter
-            params.add(new CallParameter());
-        }
         Vector<Boolean> vec = new Vector<>();
         String querySql = this.query;
         int startIndex = querySql.indexOf('(');
+        if(startIndex == -1) { // prepareCall without parenthesi
+            querySql = querySql + "()";
+            startIndex = 0;
+        }
         int endIndex = querySql.lastIndexOf(')');
         String tmp = querySql.substring(startIndex + 1, endIndex);
         String[] split = tmp.split(",");
@@ -309,15 +359,22 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 vec.add(false);
             }
         }
+        int index = 1;
         int i = 0;
+        if(isFunction) {
+            int returnIndex = paramList.indexOf("RETURNS");
+            if(returnIndex != -1) {
+                int bodyStartInedx = paramList.toUpperCase(Locale.ROOT).indexOf("BEGIN");
+                String returnString = paramList.substring(returnIndex+"RETURNS".length(), bodyStartInedx);
+                paramList = paramList.substring(0, returnIndex - 1);
+                CallParameter parameterRetrurn = parseFunctionReturnParam(returnString);
+                parameterRetrurn.setIndex(index++);
+                params.add(parameterRetrurn);
+            }
+        }
         Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
         while (matcher2.find()) {
-            if (vec.get(i) == false) {
-                i++;
-                continue;
-            } else {
-                i++;
-            }
+
             CallParameter callParameter = new CallParameter();
             String direction = matcher2.group(1);
             if (direction != null) {
@@ -347,6 +404,13 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 callParameter.setScale(Integer.valueOf(scale));
             }
             params.add(callParameter);
+            if (vec.get(i) == false) {
+                i++;
+                callParameter.setIndex(-1);
+            } else {
+                callParameter.setIndex(index++);
+                i++;
+            }
         }
     }
 
@@ -364,24 +428,27 @@ public class CallableParameterMetaData implements ParameterMetaData {
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         if (isFunction) {
-            resultSet = con.createStatement().executeQuery("SHOW CREATE FUNCTION " + name);
+            if (database != null) {
+                resultSet = con.createStatement().executeQuery(
+                    "SHOW CREATE FUNCTION " + database + "." + name);
+            } else {
+                resultSet = con.createStatement().executeQuery("SHOW CREATE FUNCTION " + name);
+            }
             resultSet.next();
             String procedureDDl = resultSet.getString("Create Function");
             paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);
-            functionReturn = "null";
         } else {
-            resultSet = con.createStatement().executeQuery("SHOW CREATE PROCEDURE " + name);
+            if (database != null) {
+                resultSet = con.createStatement().executeQuery(
+                    "SHOW CREATE PROCEDURE " + database + "." + name);
+            } else {
+                resultSet = con.createStatement().executeQuery("SHOW CREATE PROCEDURE " + name);
+            }
             resultSet.next();
             String procedureDDl = resultSet.getString("Create Procedure");
             paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);
-            functionReturn = "null";
         }
         parseParamList(isFunction, paramList);
-
-        // parse type of the return value (for functions)
-        if (isFunction) {
-            parseFunctionReturnParam(functionReturn);
-        }
     }
 
     public int getParameterCount() {

@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2012-2014 Monty Program Ab.
  *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *  Copyright (c) 2021 OceanBase.
  *
  *  This library is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the Free
@@ -1048,72 +1048,9 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         sharedConnection
             .prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}").close();
-        //TODO need to support next
-        /*
-        ResultSet rs =
-            sharedConnection
-                .getMetaData()
-                .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser", "%");
-                */
-        //    validateResult(
-        //        rs,
-        //        new String[] {
-        //          "_ACTION",
-        //          "/*dumb-identifier-1*/",
-        //          "#dumb-identifier-2",
-        /*          "--dumb-identifier-3",
-                  "_CLIENT_ID",
-                  "_LOGIN_ID",
-                  "_WHERE",
-                  "_SORT",
-                  "_SQL",
-                  "_SONG_ID",
-                  "_NOTES",
-                  "_RESULT"
-                },
-                new int[] {
-                  Types.VARCHAR,
-                  Types.INTEGER,
-                  Types.INTEGER,
-                  Types.INTEGER,
-                  Types.INTEGER,
-                  Types.INTEGER,
-                  Types.VARCHAR,
-                  Types.VARCHAR,
-                  Types.VARCHAR,
-                  Types.INTEGER,
-                  Types.VARCHAR,
-                  Types.VARCHAR
-                },
-                new int[] {20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10},
-                new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                new int[] {
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnOut,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnIn,
-                  DatabaseMetaData.procedureColumnOut
-                });
-        */
+        //TODO need to support getProcedureColumns
         sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
-        //    rs =
-        //        sharedConnection
-        //            .getMetaData()
-        //            .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser_1", "%");
-        //    validateResult(
-        //        rs,
-        //        new String[] {"/*id*/", "result2"},
-        /*        new int[] {Types.VARCHAR, Types.DECIMAL},
-                new int[] {20, 10},
-                new int[] {0, 2},
-                new int[] {DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut}); */
+
     }
 
     private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes,
@@ -1143,162 +1080,6 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             index++;
         }
         rs.close();
-    }
-
-    @Test
-    public void testCallableNullSetters() throws Throwable {
-        // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10, 2, 2);
-        cancelForVersion(10, 2, 3);
-        cancelForVersion(10, 2, 4);
-
-        createTable("testCallableNullSettersTable", "value_1 NUMBER(20,0) PRIMARY KEY,value_2 VARCHAR2(20)");
-    /*
-    createFunction(
-        "testCallableNullSetters",
-        "(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
-            + "DETERMINISTIC MODIFIES SQL DATA BEGIN "
-            + "INSERT INTO testCallableNullSettersTable VALUES (value_1_v,value_2_v); "
-            + "RETURN value_1_v; "
-            + "END;"); */
-        createProcedure(
-                "testCallableNullSettersProc",
-                "( value_1_v OUT INT,  value_2_v IN INT,  value_3_v IN VARCHAR2) "
-                        + " IS BEGIN "
-                        + "INSERT INTO testCallableNullSettersTable VALUES (value_2_v,value_3_v); "
-                        + " value_1_v := value_2_v; "
-                        + "END;");
-        // Prepare the function call
-        //TODO need to support
-    /*
-    try (CallableStatement callable =
-        sharedConnection.prepareCall("{? = call testCallableNullSetters(?,?)}")) {
-      testSetter(callable);
-    } */
-        sharedConnection.createStatement().execute("TRUNCATE testCallableNullSettersTable");
-        // Prepare the procedure call
-        try (CallableStatement callable =
-                     sharedConnection.prepareCall("{call testCallableNullSettersProc(?,?,?)}")) {
-            testSetter(callable);
-        }
-    }
-
-    private void testSetter(CallableStatement callable) throws Throwable {
-        callable.registerOutParameter(1, Types.BIGINT);
-
-        // Add row with non-null value
-        callable.setLong(2, 1);
-        callable.setString(3, "Non-null value");
-        callable.executeUpdate();
-        assertEquals(1, callable.getLong(1));
-
-        // Add row with null value
-        callable.setLong(2, 2);
-        callable.setNull(3, Types.VARCHAR);
-        callable.executeUpdate();
-        assertEquals(2, callable.getLong(1));
-
-        Method[] setters = CallableStatement.class.getMethods();
-
-        for (Method setter : setters) {
-            if (setter.getName().startsWith("set")) {
-                Class<?>[] args = setter.getParameterTypes();
-
-                if (args.length == 2 && args[0].equals(Integer.TYPE)) {
-                    if (!args[1].isPrimitive()) {
-                        try {
-                            setter.invoke(callable, 2, null);
-                        } catch (InvocationTargetException ive) {
-                            if (!(ive.getCause().getClass().getName()
-                                .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                throw ive;
-                            }
-                        }
-                    } else {
-                        if (args[1].getName().equals("boolean")) {
-                            try {
-                                setter.invoke(callable, 2, Boolean.FALSE);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("byte")) {
-
-                            try {
-                                setter.invoke(callable, 2, (byte) 0);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("double")) {
-
-                            try {
-                                setter.invoke(callable, 2, 0D);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("float")) {
-
-                            try {
-                                setter.invoke(callable, 2, 0f);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("int")) {
-
-                            try {
-                                setter.invoke(callable, 2, 0);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("long")) {
-                            try {
-                                setter.invoke(callable, 2, 0L);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-
-                        if (args[1].getName().equals("short")) {
-                            try {
-                                setter.invoke(callable, 2, (short) 0);
-                            } catch (InvocationTargetException ive) {
-                                if (!(ive.getCause().getClass().getName()
-                                    .equals("java.sql.SQLFeatureNotSupportedException"))) {
-                                    throw ive;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     //@Ignore //TODO function next

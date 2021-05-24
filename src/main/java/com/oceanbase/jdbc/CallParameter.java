@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2012-2014 Monty Program Ab.
  *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ *  Copyright (c) 2021 OceanBase.
  *
  *  This library is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the Free
@@ -175,5 +175,13 @@ class CallParameter {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public int getIndex() {
+        return this.index;
     }
 }

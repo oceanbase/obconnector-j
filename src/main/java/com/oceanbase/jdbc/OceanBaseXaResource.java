@@ -2,7 +2,7 @@
  *
  * OceanBase Client for Java
  *
- * Copyright (c) 2021 OceanBase Technology Co.,Ltd.
+ * Copyright (c) 2021 OceanBase.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -491,7 +491,7 @@ public class OceanBaseXaResource implements XAResource {
             if (rs.next()) {
                 int xaRet = rs.getInt(1);
 
-                if (XA_OK != xaRet) {
+                if (xaRet < 0) {
                     XAException xaException = new XAException(xaRet);
                     throw xaException;
                 }
