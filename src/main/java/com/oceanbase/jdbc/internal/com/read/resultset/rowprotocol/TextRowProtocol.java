@@ -548,10 +548,10 @@ public class TextRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case BINARY_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
-                return new BigDecimal(Float.toString(f));
+                return BigDecimal.valueOf(f);
             case BINARY_DOUBLE:
                 Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
-                return new BigDecimal(Double.toString(d));
+                return BigDecimal.valueOf(d);
             default:
                 break;
         }

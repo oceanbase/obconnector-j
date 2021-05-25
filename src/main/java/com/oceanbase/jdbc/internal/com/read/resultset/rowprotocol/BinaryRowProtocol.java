@@ -780,8 +780,10 @@ public class BinaryRowProtocol extends RowProtocol {
                         .getDecimals());
                 }
             case FLOAT:
+            case BINARY_FLOAT:
                 return BigDecimal.valueOf(getInternalFloat(columnInfo));
             case DOUBLE:
+            case BINARY_DOUBLE:
                 return BigDecimal.valueOf(getInternalDouble(columnInfo));
             case DECIMAL:
             case VARSTRING:
