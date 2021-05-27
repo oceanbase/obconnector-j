@@ -509,7 +509,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (connection.getProtocol().isOracleMode()) {
-            setTimestamp(parameterIndex, new Timestamp(date.getTime()));
+            Timestamp timestamp = new Timestamp(date.getTime());
+            if (timestamp == null) {
+                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
+                return;
+            }
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(timestamp,
+                protocol.getTimeZone(), useFractionalSeconds, true));
         } else {
             setParameter(parameterIndex,
                 new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
