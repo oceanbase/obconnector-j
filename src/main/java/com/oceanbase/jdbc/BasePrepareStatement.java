@@ -800,7 +800,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     is called on a closed <code>PreparedStatement</code>
      */
     public void setNString(final int parameterIndex, final String value) throws SQLException {
-        setString(parameterIndex, value);
+        if (value == null) {
+            setNull(parameterIndex, ColumnType.VARCHAR);
+            return;
+        }
+
+        if (this.connection.getProtocol().isOracleMode()) {
+            setParameter(parameterIndex, new OBNStringParameter(value, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+        } else {
+            setParameter(parameterIndex, new StringParameter(value, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+        }
     }
 
     /**

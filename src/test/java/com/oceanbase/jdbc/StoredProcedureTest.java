@@ -1453,7 +1453,11 @@ public class StoredProcedureTest extends BaseTest {
     public void odcMysqlTest() {
         try {
             Connection conn = sharedConnection;
-            conn.createStatement().execute("drop procedure pl_test");
+            try {
+                conn.createStatement().execute("drop procedure pl_test");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
             conn.createStatement().execute(
                 "create  procedure pl_test ( IN `p1` int(11), IN `p2` int(11), OUT `p3` int(11)) begin \n"
                         + "set p3 = p1 + p2;\n" + "end;");
