@@ -255,6 +255,11 @@ public class ClientPreparedStatementTest extends BaseTest {
         setConnection(
             "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
       Statement stmt = connection.createStatement();
+      try{
+          stmt.execute("drop table executeBatchOneByOne");
+      } catch (SQLException e) {
+          // eat execetion
+      }
       stmt.execute("CREATE TEMPORARY TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
