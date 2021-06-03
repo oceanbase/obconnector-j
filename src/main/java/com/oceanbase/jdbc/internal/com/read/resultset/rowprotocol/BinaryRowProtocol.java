@@ -501,6 +501,7 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         long value;
+        try {
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return parseBit();
@@ -567,6 +568,20 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
         return value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+           String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    return Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                } catch (NumberFormatException nfee) {
+                    // eat exception
+                }
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                    + "' : value " + valueParams, "22003", 1264);
+        }
     }
 
     /**
@@ -791,7 +806,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
-                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -1258,6 +1273,7 @@ public class BinaryRowProtocol extends RowProtocol {
             return 0;
         }
         long value;
+        try{
         switch (columnInfo.getColumnType()) {
             case BIT:
                 value = parseBit();
@@ -1299,6 +1315,22 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
         return (byte) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+                    return (byte) value;
+                } catch (NumberFormatException nfee) {
+                    // eat exception
+                }
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                    + "' : value " + valueParams, "22003", 1264);
+        }
     }
 
     /**
@@ -1314,6 +1346,7 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         long value;
+        try {
         switch (columnInfo.getColumnType()) {
             case BIT:
                 value = parseBit();
@@ -1359,6 +1392,22 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
         return (short) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
+                    return (short) value;
+                } catch (NumberFormatException nfee) {
+                    // eat exception
+                }
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                    + "' : value " + valueParams, "22003", 1264);
+        }
     }
 
     /**
@@ -1484,7 +1533,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
-                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
         }
     }
 
@@ -1894,7 +1943,7 @@ public class BinaryRowProtocol extends RowProtocol {
         switch (type.getType()) {
             case ComplexDataType.TYPE_NUMBER:
                 b = packet.readLenByteArray(0);
-                value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8));
+                value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8).trim());
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
             case ComplexDataType.TYPE_RAW:

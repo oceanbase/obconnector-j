@@ -1300,6 +1300,38 @@ public class JDBC4ResultSet implements ResultSetImpl {
             long len = ((com.oceanbase.jdbc.Blob) blob).length();
             return blob.getBytes(1, (int) len);
         }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.TIMESTAMP_LTZ
+            .getType()) {
+            TIMESTAMPLTZ timestampltz = getTIMESTAMPLTZ(columnIndex);
+            if (timestampltz == null) {
+                return null;
+            }
+            return timestampltz.getBytes();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.TIMESTAMP_TZ
+            .getType()) {
+            TIMESTAMPTZ timestamptz = getTIMESTAMPTZ(columnIndex);
+            if (timestamptz == null) {
+                return null;
+            }
+            return timestamptz.getBytes();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.INTERVALYM
+            .getType()) {
+            INTERVALYM intervalym = getINTERVALYM(columnIndex);
+            if (intervalym == null) {
+                return null;
+            }
+            return intervalym.getBytes();
+        }
+        if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.INTERVALDS
+            .getType()) {
+            INTERVALDS intervalds = getINTERVALDS(columnIndex);
+            if (intervalds == null) {
+                return null;
+            }
+            return intervalds.getBytes();
+        }
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return data;
@@ -1677,6 +1709,22 @@ public class JDBC4ResultSet implements ResultSetImpl {
             } else {
                 return (T) new com.oceanbase.jdbc.Clob(row.buf, row.pos,
                     row.getLengthMaxFieldSize());
+            }
+        } else if (type.equals(TIMESTAMPLTZ.class)) {
+            if (col.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                return (T) getTIMESTAMPLTZ(columnIndex);
+            }
+        } else if (type.equals(TIMESTAMPTZ.class)) {
+            if (col.getColumnType() == ColumnType.TIMESTAMP_TZ) {
+                return (T) getTIMESTAMPTZ(columnIndex);
+            }
+        } else if (type.equals(INTERVALYM.class)) {
+            if (col.getColumnType() == ColumnType.INTERVALYM) {
+                return (T) getINTERVALYM(columnIndex);
+            }
+        } else if (type.equals(INTERVALDS.class)) {
+            if (col.getColumnType() == ColumnType.INTERVALDS) {
+                return (T) getINTERVALDS(columnIndex);
             }
         }
         throw ExceptionFactory.INSTANCE.notSupported("Type class '" + type.getName()
