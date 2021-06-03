@@ -907,19 +907,12 @@ public class StoredProcedureTest extends BaseTest {
 
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall(
-            "{call /*comment ? */ testProcedureComment(?, "
-                + "/*comment ? */?)}  #comment ? \n -- comment \n ")) {
+            "{call /* c1 */ testProcedureComment(?, "
+                + "/*c2 */? #c3  \n -- c4 \n  )}  ")) {
         // without ps ,client dont have server resultset
-//      assertTrue(callableStatement.toString().contains("/*"));
       callableStatement.setInt(1, 1);
       callableStatement.setString(2, " a");
       // ob procedure dont retruen resultset
-//      ResultSet rs = callableStatement.executeQuery();
-//      if (rs.next()) {
-//        assertEquals("1 a", rs.getString(1));
-//      } else {
-//        fail("must have a result !");
-//      }
     }
   }
 

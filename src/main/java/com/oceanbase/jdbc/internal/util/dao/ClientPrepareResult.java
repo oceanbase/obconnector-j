@@ -86,135 +86,195 @@ public class ClientPrepareResult implements PrepareResult {
      * @return ClientPrepareResult
      */
     public static ClientPrepareResult parameterParts(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
-    boolean reWritablePrepare = false;
-    boolean multipleQueriesPrepare = true;
-    List<byte[]> partList = new ArrayList<>();
-    LexState state = LexState.Normal;
-    char lastChar = '\0';
-    boolean endingSemicolon = false;
+        boolean reWritablePrepare = false;
+        boolean multipleQueriesPrepare = true;
+        List<byte[]> partList = new ArrayList<>();
+        LexState state = LexState.Normal;
+        char lastChar = '\0';
+        boolean endingSemicolon = false;
 
-    boolean singleQuotes = false;
-    int lastParameterPosition = 0;
+        boolean singleQuotes = false;
+        int lastParameterPosition = 0;
 
-    char[] query = queryString.toCharArray();
-    int queryLength = query.length;
-    boolean slashend = false;
-    for (int i = 0; i < queryLength; i++) {
+        char[] query = queryString.toCharArray();
+        int queryLength = query.length;
+        boolean slashend = false;
+        boolean endNameBinding = false;
+        StringBuilder paramSb = new StringBuilder();
+        for (int i = 0; i < queryLength; i++) {
+            char car = query[i];
+            if (state == LexState.Escape
+                    && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+                state = LexState.String;
+                lastChar = car;
+                continue;
+            }
+            switch (car) {
+                case '*':
+                    if (state == LexState.Normal && lastChar == '/') {
+                        state = LexState.SlashStarComment;
+                    }
+                    break;
 
-      char car = query[i];
-      if (state == LexState.Escape
-          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
-        state = LexState.String;
-        lastChar = car;
-        continue;
-      }
-      switch (car) {
-        case '*':
-          if (state == LexState.Normal && lastChar == '/') {
-            state = LexState.SlashStarComment;
-          }
-          break;
+                case '/':
+                    if (state == LexState.SlashStarComment && lastChar == '*') {
+                        state = LexState.Normal;
+                        slashend = true;
+                    } else if (state == LexState.Normal && slashend && lastChar == '/') {
+                        slashend = false;
+                        break;
+                    } else if (state == LexState.Normal && lastChar == '/') {
+                        state = LexState.EOLComment;
+                    }
+                    break;
 
-        case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
-              state = LexState.Normal;
-              slashend = true;
-          } else if (state == LexState.Normal && slashend && lastChar == '/') {
-              slashend = false;
-              break;
-          } else if (state == LexState.Normal && lastChar == '/') {
-            state = LexState.EOLComment;
-          }
-          break;
+                case '#':
+                    if ((!isOracleMode) && state == LexState.Normal) {
+                        state = LexState.EOLComment;
+                    }
+                    break;
 
-        case '#':
-          if ((!isOracleMode) && state == LexState.Normal) {
-            state = LexState.EOLComment;
-          }
-          break;
+                case '-':
+                    if (state == LexState.Normal && lastChar == '-') {
+                        state = LexState.EOLComment;
+                        multipleQueriesPrepare = false;
+                    }
+                    break;
 
-        case '-':
-          if (state == LexState.Normal && lastChar == '-') {
-            state = LexState.EOLComment;
-            multipleQueriesPrepare = false;
-          }
-          break;
+                case '\n':
+                    if (state == LexState.EOLComment) {
+                        multipleQueriesPrepare = true;
+                        state = LexState.Normal;
+                    }
+                    if (isOracleMode) {  // such as where c1 = ?
+                        if (state == LexState.NabmeBinding) {
+                            endNameBinding = true;
+                        }
+                    }
+                    break;
+                case '"':
+                    if (state == LexState.Normal) {
+                        state = LexState.String;
+                        singleQuotes = false;
+                    } else if (state == LexState.String && !singleQuotes) {
+                        state = LexState.Normal;
+                    } else if (state == LexState.Escape && !singleQuotes) {
+                        state = LexState.String;
+                    }
+                    break;
 
-        case '\n':
-          if (state == LexState.EOLComment) {
-            multipleQueriesPrepare = true;
-            state = LexState.Normal;
-          }
-          break;
+                case '\'':
+                    if (state == LexState.Normal) {
+                        state = LexState.String;
+                        singleQuotes = true;
+                    } else if (state == LexState.String && singleQuotes) {
+                        state = LexState.Normal;
+                    } else if (state == LexState.Escape && singleQuotes) {
+                        state = LexState.String;
+                    }
+                    break;
 
-        case '"':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = false;
-          } else if (state == LexState.String && !singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape && !singleQuotes) {
-            state = LexState.String;
-          }
-          break;
+                case '\\':
+                    if (noBackslashEscapes) {
+                        break;
+                    }
+                    if ((!isOracleMode) && state == LexState.String) {
+                        state = LexState.Escape;
+                    }
+                    break;
+                case ';':
+                    if (isOracleMode) {
+                        if (state == LexState.NabmeBinding) {
+                            endNameBinding = true;
+                        }
+                    }
+                    if (state == LexState.Normal) {
+                        endingSemicolon = true;
+                        multipleQueriesPrepare = false;
+                    }
+                    break;
+                case '?':
+                    if (state == LexState.Normal) {
+                        partList.add(queryString.substring(lastParameterPosition, i).getBytes(StandardCharsets.UTF_8));
+                        lastParameterPosition = i + 1;
+                    }
+                    break;
+                case '`':
+                    if (state == LexState.Backtick) {
+                        state = LexState.Normal;
+                    } else if (state == LexState.Normal) {
+                        state = LexState.Backtick;
+                    }
+                    break;
+                case ':':
+                    if (isOracleMode) {
+                        if (state == LexState.Normal) {
+                            state = LexState.NabmeBinding;
+                        }
+                        if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) { // do as normal
+                            endingSemicolon = false;
+                            multipleQueriesPrepare = true;
+                        }
+                    }
+                    break;
+                case '=':
+                    if (isOracleMode) {
+                        if (state == LexState.NabmeBinding) {
+                            state = LexState.Normal; // := is not name binding
+                        }
+                        if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) { // do as normal
+                            endingSemicolon = false;
+                            multipleQueriesPrepare = true;
+                        }
+                    }
+                    break;
+                case ' ':
+                case ',':
+                case ')':
+                case '}':
+                    if (isOracleMode) {
+                        if (state == LexState.NabmeBinding) {
+                            endNameBinding = true;
+                        }
+                    }
+                    break;
+                default:
+                    // multiple queries
 
-        case '\'':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = true;
-          } else if (state == LexState.String && singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape && singleQuotes) {
-            state = LexState.String;
-          }
-          break;
+                    if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
+                        endingSemicolon = false;
+                        multipleQueriesPrepare = true;
+                    }
+                    break;
+            }
+            if (isOracleMode && state == LexState.NabmeBinding && ((byte) car >= 40) && endNameBinding != true ) {
+                paramSb.append(car);
+            }
+            if (isOracleMode && state == LexState.NabmeBinding && (endNameBinding || i == queryLength - 1)) {
+                partList.add((queryString.substring(lastParameterPosition, i - paramSb.length() )).getBytes(StandardCharsets.UTF_8));
+                paramSb.setLength(0);
+                state = LexState.Normal;
+                if(endNameBinding) {
+                    lastParameterPosition = i;
 
-        case '\\':
-          if (noBackslashEscapes) {
-            break;
-          }
-          if ((!isOracleMode) && state == LexState.String) {
-            state = LexState.Escape;
-          }
-          break;
-        case ';':
-          if (state == LexState.Normal) {
-            endingSemicolon = true;
-            multipleQueriesPrepare = false;
-          }
-          break;
-        case '?':
-          if (state == LexState.Normal) {
-            partList.add(
-                queryString.substring(lastParameterPosition, i).getBytes(StandardCharsets.UTF_8));
-            lastParameterPosition = i + 1;
-          }
-          break;
-        case '`':
-          if (state == LexState.Backtick) {
-            state = LexState.Normal;
-          } else if (state == LexState.Normal) {
-            state = LexState.Backtick;
-          }
-          break;
-        default:
-          // multiple queries
-          if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
-            endingSemicolon = false;
-            multipleQueriesPrepare = true;
-          }
-          break;
-      }
-      lastChar = car;
-    }
-    if (lastParameterPosition == 0) {
-      partList.add(queryString.getBytes(StandardCharsets.UTF_8));
-    } else {
-      partList.add(
-          queryString
-              .substring(lastParameterPosition, queryLength)
-              .getBytes(StandardCharsets.UTF_8));
-    }
+                } else {
+                    lastParameterPosition = i + 1;
+                }
+                endNameBinding = false;
+
+
+            }
+            lastChar = car;
+        }
+        if (lastParameterPosition == 0) {
+            partList.add(queryString.getBytes(StandardCharsets.UTF_8));
+        } else {
+                partList.add(
+                        queryString
+                                .substring(lastParameterPosition, queryLength)
+                                .getBytes(StandardCharsets.UTF_8));
+
+        }
 
     return new ClientPrepareResult(
         queryString, partList, reWritablePrepare, multipleQueriesPrepare, false);
@@ -393,7 +453,7 @@ public class ClientPrepareResult implements PrepareResult {
     boolean isInsert = false;
     boolean semicolon = false;
     boolean hasParam = false;
-
+    boolean endNameBinding = false;
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
     for (int i = 0; i < queryLength; i++) {
@@ -436,6 +496,11 @@ public class ClientPrepareResult implements PrepareResult {
           if (state == LexState.EOLComment) {
             state = LexState.Normal;
           }
+            if (isOracleMode) {  // such as where c1 = ?
+                if (state == LexState.NabmeBinding) {
+                    endNameBinding = true;
+                }
+            }
           break;
 
         case '"':
@@ -453,6 +518,11 @@ public class ClientPrepareResult implements PrepareResult {
             semicolon = true;
             multipleQueriesPrepare = false;
           }
+            if (isOracleMode) {
+                if (state == LexState.NabmeBinding) {
+                    endNameBinding = true;
+                }
+            }
           break;
         case '\'':
           if (state == LexState.Normal) {
@@ -472,8 +542,7 @@ public class ClientPrepareResult implements PrepareResult {
           if ((!isOracleMode) && state == LexState.String) {
             state = LexState.Escape;
           }
-          break;
-
+            break;
         case '?':
           if (state == LexState.Normal) {
             hasParam = true;
@@ -682,6 +751,6 @@ public class ClientPrepareResult implements PrepareResult {
         SlashStarComment, /* inside slash-star comment */
         Escape, /* found backslash */
         EOLComment, /* # comment, or // comment, or -- comment */
-        Backtick /* found backtick */
+        Backtick /* found backtick */, NabmeBinding /* in name binding such as :name */
     }
 }

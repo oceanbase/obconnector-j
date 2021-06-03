@@ -60,6 +60,8 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
@@ -102,6 +104,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     protected boolean                     hasLongData              = false;
     private boolean                       useFractionalSeconds;
     private boolean                       noBackslashEscapes;
+    protected String                      originString             = null;
+    protected Map<String, Integer>        indexMap;
 
     /**
      * Constructor. Base class that permit setting parameters for client and server PrepareStatement.
@@ -148,6 +152,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     }
 
     protected abstract boolean executeInternal(int fetchSize) throws SQLException;
+
+    public void setIndexMap(Map<String, Integer> indexMap) {
+        this.indexMap = indexMap;
+    }
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given
@@ -509,13 +517,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (connection.getProtocol().isOracleMode()) {
-            Timestamp timestamp = new Timestamp(date.getTime());
-            if (timestamp == null) {
-                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
-                return;
-            }
-            setParameter(parameterIndex, new OBTIMESTAMPParameter(timestamp,
-                protocol.getTimeZone(), useFractionalSeconds, true));
+            setTIMESTAMP(parameterIndex, new Timestamp(date.getTime()));
         } else {
             setParameter(parameterIndex,
                 new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
@@ -1789,5 +1791,4 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     public String asSql() throws SQLException {
         return null;
     }
-
 }
