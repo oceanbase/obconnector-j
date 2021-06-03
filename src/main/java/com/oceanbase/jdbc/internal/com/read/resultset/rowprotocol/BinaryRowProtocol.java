@@ -961,12 +961,13 @@ public class BinaryRowProtocol extends RowProtocol {
                 case TIMESTAMP_TZ:
                     TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
                         timeZone);
-                    timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
+                    timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
+                        oracleTimestampZ.toBytes());
                     return timestamp.timestampValue(cal);
                 case TIMESTAMP_LTZ:
                     TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
                         userCalendar, timeZone);
-                    timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
+                    timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
                         oracleTimestampLTZ.getBytes());
                     return timestamp.timestampValue(cal);
             }

@@ -47,10 +47,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -87,7 +84,7 @@ public class ZonedDateTimeTest extends BaseOracleTest {
                 Timestamp t1 = rs.getTimestamp(1);
                 Timestamp t2 = rs.getTimestamp(2);
                 assertEquals(t1.toString(), "2019-09-13 17:16:17.00000092");
-                assertEquals(t2.toString(), "2019-09-14 06:16:17.00000092");
+                assertEquals(t2.toString(), "2019-09-14 05:16:17.00000092");
             }
 
         } catch (SQLException e) {

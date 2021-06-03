@@ -656,7 +656,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIMESTAMP_TZ);
             return;
         }
-        setParameter(parameterIndex, new OBTIMESTAMPTZParameter(timestamp));
+        setParameter(parameterIndex,
+            new OBTIMESTAMPTZParameter(timestamp, this.protocol.isTZTablesImported()));
     }
 
     /**
@@ -1090,7 +1091,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 tz = TimeZone.getTimeZone(zoneId);
             }
             TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
-                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz),
+                this.protocol.isTZTablesImported());
             setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
@@ -1314,8 +1316,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             } else {
                 tz = TimeZone.getTimeZone(zoneId);
             }
+            this.protocol.isTZTablesImported();
             TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
-                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz),
+                this.protocol.isTZTablesImported());
             setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,

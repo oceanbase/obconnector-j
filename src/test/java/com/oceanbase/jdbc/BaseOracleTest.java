@@ -86,6 +86,7 @@ import com.oceanbase.jdbc.util.Options;
 public class BaseOracleTest {
 
   protected static final String mDefUrl = "jdbc:oceanbase:oracle://localhost:3306/testj?user=root";
+  protected static final String mDefOracleUrl = "jdbc:oracle:thin://localhost:3306/testj?user=root";
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
@@ -111,11 +112,11 @@ public class BaseOracleTest {
   private static UrlParser urlParser;
 
   public  Connection getOracleConnection() throws Exception {
-    String oracle_url = "jdbc:oracle:thin:@10.101.163.80:1521/orcl";
+    String oracleUrl = System.getProperty("oracleConnectionUrl", mDefUrl);
     String oracle_username = "oracle";
     String oracle_password = "oracle";
     Class.forName("oracle.jdbc.driver.OracleDriver");
-    return DriverManager.getConnection(oracle_url, oracle_username, oracle_password);
+    return DriverManager.getConnection(oracleUrl, oracle_username, oracle_password);
   }
   @Rule
   public TestRule watcher =

@@ -603,6 +603,7 @@ public class TextRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_LTZ:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 if (timestamp == null) {
                     return null;
@@ -613,15 +614,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamptz == null) {
                     return null;
                 }
-
-                return new Date(timestamptz.timestampValue().getTime());
-            case TIMESTAMP_LTZ:
-                TIMESTAMPLTZ timestampltz = getInternalTIMESTAMPLTZ(columnInfo, cal, timeZone);
-                if (timestampltz == null) {
-                    return null;
-                }
-
-                return new Date(timestampltz.timestampValue().getTime());
+                return timestamptz.dateValue();
             case TIME:
                 throw new SQLException("Cannot read DATE using a Types.TIME field");
 
@@ -671,7 +664,9 @@ public class TextRowProtocol extends RowProtocol {
 
         if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
             || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
-            || columnInfo.getColumnType() == ColumnType.DATETIME) {
+            || columnInfo.getColumnType() == ColumnType.DATETIME
+            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
             Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
             return (timestamp == null) ? null : new Time(timestamp.getTime());
 
