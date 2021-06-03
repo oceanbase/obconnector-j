@@ -82,10 +82,12 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
         testLargeObjectMethod(testStr, resultSet, type);
     }
 
-    public void executeStatementPublic(String tableName,String body,String testStr,String type) throws Exception{
+    public void executeStatementPublic(String tableName, String body, String testStr, String type)
+                                                                                                  throws Exception {
         createTable(tableName, body);
         Statement statement = sharedConnection.createStatement();
-        statement.execute(new StringBuilder("insert into ").append(tableName).append(" values(1,").append("\'").append(testStr).append("\'").append(")").toString());
+        statement.execute(new StringBuilder("insert into ").append(tableName).append(" values(1,")
+            .append("\'").append(testStr).append("\'").append(")").toString());
         ResultSet resultSet = statement.executeQuery("select * from " + tableName);
         resultSet.next();
         conmmonCall(testStr, resultSet, type);
@@ -95,19 +97,19 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
     @Test
     public void testChar() throws Exception {
         String tableName = "CharTypeTest";
-        String body = "id int not null primary key, strm  char(50)" ;
-        String type = "char" ;
+        String body = "id int not null primary key, strm  char(50)";
+        String type = "char";
         String testStr = "123";
 
-        executeStatementPublic(tableName,body,testStr,type) ;
+        executeStatementPublic(tableName, body, testStr, type);
 
         String testStr2 = "2021-01-14";
-        type = "dateString" ;
-        executeStatementPublic(tableName,body,testStr2,type) ;
+        type = "dateString";
+        executeStatementPublic(tableName, body, testStr2, type);
 
         String testStr3 = "2021-01-14 14:14:55";
-        type = "datetimeString" ;
-        executeStatementPublic(tableName,body,testStr3,type) ;
+        type = "datetimeString";
+        executeStatementPublic(tableName, body, testStr3, type);
 
     }
 
@@ -115,17 +117,17 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
     public void testVarchar() throws Exception {
         String tableName = "CharTypeTest";
         String testStr = "123";
-        String body = "id int not null primary key, strm  varchar2(50)" ;
-        String type = "varchar" ;
-        executeStatementPublic(tableName,body,testStr,type);
+        String body = "id int not null primary key, strm  varchar2(50)";
+        String type = "varchar";
+        executeStatementPublic(tableName, body, testStr, type);
 
         String testStr2 = "2021-01-14";
-        type = "dateString" ;
-        executeStatementPublic(tableName,body,testStr2,type) ;
+        type = "dateString";
+        executeStatementPublic(tableName, body, testStr2, type);
 
         String testStr3 = "2021-01-14 14:14:55";
-        type = "datetimeString" ;
-        executeStatementPublic(tableName,body,testStr3,type) ;
+        type = "datetimeString";
+        executeStatementPublic(tableName, body, testStr3, type);
 
     }
 
@@ -375,10 +377,9 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
         String tableName = "testIntervalYearToMonth";
         createTable(tableName, "id int , strm INTERVAL YEAR(4) TO MONTH ");
         String testStr = "2021-4";
-        Statement statement = sharedConnection
-            .createStatement();
-        statement.execute("insert into " + tableName + " values (1,INTERVAL " + "'" + testStr
-                + "'" + " YEAR(4) TO MONTH )");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("insert into " + tableName + " values (1,INTERVAL " + "'" + testStr + "'"
+                          + " YEAR(4) TO MONTH )");
         ResultSet resultSet = statement.executeQuery("select * from " + tableName);
         if (resultSet.next()) {
             Assert.assertTrue("", resultSet.getInt(1) == 1);
@@ -400,10 +401,9 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
         String tableName = "testIntervalDayToSecond";
         createTable(tableName, "id int , strm INTERVAL DAY(2) TO SECOND(3) ");
         String testStr = "23 12:23:42.234";
-        Statement statement = sharedConnection
-            .createStatement();
-        statement.execute("insert into " + tableName + " values (1,INTERVAL " + "'" + testStr
-                + "'" + " DAY TO SECOND )");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("insert into " + tableName + " values (1,INTERVAL " + "'" + testStr + "'"
+                          + " DAY TO SECOND )");
         ResultSet resultSet = statement.executeQuery("select * from " + tableName);
         if (resultSet.next()) {
             Assert.assertTrue("", resultSet.getInt(1) == 1);
@@ -925,33 +925,37 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
                         Timestamp.valueOf(resultSet.getNString("strm").trim())));
                 break;
             case INTERVALYM:
-                if(resultSet instanceof ObResultSet){
-                    Assert.assertTrue("getINTERVALYM is not equals",testStr.equals ( ((ObResultSet) resultSet).getINTERVALYM(2).stringValue())) ;
-                    Assert.assertTrue("getINTERVALYM is not equals",testStr.equals ( ((ObResultSet) resultSet).getINTERVALYM("strm").stringValue())) ;
-                    Assert.assertTrue(
-                            "getString is not equals value: " + resultSet.getString(2).trim(), String
-                                    .valueOf(testStr).equals(resultSet.getString(2).trim()));
+                if (resultSet instanceof ObResultSet) {
+                    Assert.assertTrue("getINTERVALYM is not equals",
+                        testStr.equals(((ObResultSet) resultSet).getINTERVALYM(2).stringValue()));
+                    Assert.assertTrue("getINTERVALYM is not equals", testStr
+                        .equals(((ObResultSet) resultSet).getINTERVALYM("strm").stringValue()));
+                    Assert.assertTrue("getString is not equals value: "
+                                      + resultSet.getString(2).trim(), String.valueOf(testStr)
+                        .equals(resultSet.getString(2).trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getString("strm").trim()));
+                        String.valueOf(testStr).equals(resultSet.getString("strm").trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getNString(2).trim()));
+                        String.valueOf(testStr).equals(resultSet.getNString(2).trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getNString("strm").trim()));
+                        String.valueOf(testStr).equals(resultSet.getNString("strm").trim()));
                 }
                 break;
             case INTERVALDS:
-                if(resultSet instanceof ObResultSet){
-                   Assert.assertTrue("getINTERVALDS is not equals",testStr.equals ( ((ObResultSet) resultSet).getINTERVALDS(2).stringValue())) ;
-                   Assert.assertTrue("getINTERVALDS is not equals",testStr.equals ( ((ObResultSet) resultSet).getINTERVALDS("strm").stringValue())) ;
-                    Assert.assertTrue(
-                            "getString is not equals value: " + resultSet.getString(2).trim(), String
-                                    .valueOf(testStr).equals(resultSet.getString(2).trim()));
+                if (resultSet instanceof ObResultSet) {
+                    Assert.assertTrue("getINTERVALDS is not equals",
+                        testStr.equals(((ObResultSet) resultSet).getINTERVALDS(2).stringValue()));
+                    Assert.assertTrue("getINTERVALDS is not equals", testStr
+                        .equals(((ObResultSet) resultSet).getINTERVALDS("strm").stringValue()));
+                    Assert.assertTrue("getString is not equals value: "
+                                      + resultSet.getString(2).trim(), String.valueOf(testStr)
+                        .equals(resultSet.getString(2).trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getString("strm").trim()));
+                        String.valueOf(testStr).equals(resultSet.getString("strm").trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getNString(2).trim()));
+                        String.valueOf(testStr).equals(resultSet.getNString(2).trim()));
                     Assert.assertTrue("getString is not equals",
-                            String.valueOf(testStr).equals(resultSet.getNString("strm").trim()));
+                        String.valueOf(testStr).equals(resultSet.getNString("strm").trim()));
                 }
                 break;
             default:

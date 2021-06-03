@@ -113,18 +113,18 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
-                    + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call \"test_pkg\".\"proc_example\"(?)");
+                .prepareCall("call \"test_pkg\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -142,17 +142,17 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n" + "END test_pkg;";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n" + "END test_pkg;";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend test_pkg";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call test_pkg.\"proc_example\"(?)");
+                .prepareCall("call test_pkg.\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -170,17 +170,17 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
-                    + "FUNCTION fun_example (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+                             + "FUNCTION fun_example (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
-                    + "function fun_example (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+                             + "function fun_example (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call \"test_pkg\".proc_example(?)");
+                .prepareCall("call \"test_pkg\".proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -198,10 +198,10 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgBody = "CREATE OR REPLACE procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;";
+                             + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call \"UNITTESTS\".\"proc_example\"(?)");
+                .prepareCall("call \"UNITTESTS\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -219,10 +219,10 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgBody = "CREATE OR REPLACE procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;";
+                             + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.\"proc_example\"(?)");
+                .prepareCall("call UNITTESTS.\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -240,10 +240,10 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgBody = "CREATE OR REPLACE procedure proc_example(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;";
+                             + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.proc_example(?)");
+                .prepareCall("call UNITTESTS.proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -261,18 +261,18 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
-                    + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call \"UNITTESTS\".\"test_pkg\".\"proc_example\"(?)");
+                .prepareCall("call \"UNITTESTS\".\"test_pkg\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -290,18 +290,18 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
-                    + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.\"test_pkg\".\"proc_example\"(?)");
+                .prepareCall("call UNITTESTS.\"test_pkg\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -319,18 +319,18 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
-                    + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE \"proc_example\"(p1 IN out NUMBER);\n"
+                             + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend test_pkg";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure \"proc_example\"(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.test_pkg.\"proc_example\"(?)");
+                .prepareCall("call UNITTESTS.test_pkg.\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -348,17 +348,17 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE test_pkg AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY test_pkg as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend test_pkg";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend test_pkg";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.test_pkg.proc_example(?)");
+                .prepareCall("call UNITTESTS.test_pkg.proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -376,17 +376,17 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
             String pkgHead = "CREATE OR REPLACE PACKAGE \"test_pkg\" AS\n"
-                    + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
-                    + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
+                             + "FUNCTION \"fun_example\" (p1 IN NUMBER) RETURN NUMBER;\n"
+                             + "PROCEDURE proc_example(p1 IN out NUMBER);\n" + "END \"test_pkg\";";
             String pkgBody = "CREATE OR REPLACE PACKAGE BODY \"test_pkg\" as\n"
-                    + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
-                    + "  return p1 + 1; \nEND;\n\n"
-                    + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
-                    + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
+                             + "function \"fun_example\" (p1 in number) return number AS\nBEGIN\n"
+                             + "  return p1 + 1; \nEND;\n\n"
+                             + "procedure proc_example(p1 in out number) AS\nBEGIN\n "
+                             + " p1 := p1 * 2; END;\n\nend \"test_pkg\"";
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                    .prepareCall("call UNITTESTS.\"test_pkg\".proc_example(?)");
+                .prepareCall("call UNITTESTS.\"test_pkg\".proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();

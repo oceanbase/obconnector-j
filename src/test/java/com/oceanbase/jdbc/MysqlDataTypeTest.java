@@ -50,6 +50,7 @@
 package com.oceanbase.jdbc;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
@@ -62,25 +63,24 @@ import static org.junit.Assert.*;
 public class MysqlDataTypeTest extends BaseTest {
 
     private static final Connection conn = sharedConnection;
-    private PreparedStatement ps = null;
-
+    private PreparedStatement       ps   = null;
 
     @BeforeClass
     public static void initClass() throws SQLException {
-        createTable("t_var","id int not null primary key auto_increment, str varchar(20)");
+        createTable("t_var", "id int not null primary key auto_increment, str varchar(20)");
         createTable("t_var_charset", "v varchar(20)");
-        createTable("t_year","id int not null primary key auto_increment, y year(2)");
-        createTable("t_date","d date");
-        createTable("t_timestamp","ts timestamp");
-        createTable("t_time","t time");
-        createTable("t_datetime","dt datetime");
-        createTable("T_Case","id int");
+        createTable("t_year", "id int not null primary key auto_increment, y year(2)");
+        createTable("t_date", "d date");
+        createTable("t_timestamp", "ts timestamp");
+        createTable("t_time", "t time");
+        createTable("t_datetime", "dt datetime");
+        createTable("T_Case", "id int");
     }
 
     @Test
     public void testYear() throws SQLException {
         int i = conn.createStatement().executeUpdate(
-                "insert into t_year (y) values (null), (1901), (70), (69)");
+            "insert into t_year (y) values (null), (1901), (70), (69)");
         assertEquals(4, i);
         ps = conn.prepareStatement("select y from t_year");
         ResultSet rs = ps.executeQuery();
@@ -101,13 +101,13 @@ public class MysqlDataTypeTest extends BaseTest {
     public void testDate() throws SQLException {
         ps = conn.prepareStatement("insert into t_date values (null), (?)");
         Date date = new Date(Timestamp.valueOf("2020-10-05 21:03:15.878879").getTime());
-        ps.setDate(1,date);
-        assertEquals(2,ps.executeUpdate());
+        ps.setDate(1, date);
+        assertEquals(2, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select * from t_date").executeQuery();
         assertTrue(rs.next());
         assertNull(rs.getDate(1));
         assertTrue(rs.next());
-        assertEquals(date.toString(),rs.getDate(1).toString());
+        assertEquals(date.toString(), rs.getDate(1).toString());
         rs.close();
     }
 
@@ -116,10 +116,10 @@ public class MysqlDataTypeTest extends BaseTest {
         ps = conn.prepareStatement("insert into t_time values (?), (null)");
         Time time = new Time(Timestamp.valueOf("2020-10-05 21:03:15.1").getTime());
         ps.setTime(1, time);
-        assertEquals(2,ps.executeUpdate());
+        assertEquals(2, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select * from t_time").executeQuery();
         assertTrue(rs.next());
-        assertEquals(time.toString(),rs.getTime(1).toString());
+        assertEquals(time.toString(), rs.getTime(1).toString());
         assertTrue(rs.next());
         assertNull(rs.getDate(1));
         rs.close();
@@ -129,14 +129,14 @@ public class MysqlDataTypeTest extends BaseTest {
     public void testDatetime() throws SQLException {
         ps = conn.prepareStatement("insert into t_datetime values (?), (?), (null)");
         Timestamp timestamp1 = Timestamp.valueOf("2020-10-05 21:03:15.0");
-        Timestamp timestamp2 =Timestamp.valueOf("1969-01-01 22:00:01.0");
-        ps.setTimestamp(1,timestamp1);
-        ps.setTimestamp(2,timestamp2);
-        assertEquals(3,ps.executeUpdate());
+        Timestamp timestamp2 = Timestamp.valueOf("1969-01-01 22:00:01.0");
+        ps.setTimestamp(1, timestamp1);
+        ps.setTimestamp(2, timestamp2);
+        assertEquals(3, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select * from t_datetime").executeQuery();
-        Timestamp[] t = new Timestamp[] { timestamp1, timestamp2, null};
+        Timestamp[] t = new Timestamp[] { timestamp1, timestamp2, null };
         int i = 0;
-        while (rs.next()){
+        while (rs.next()) {
             assertEquals(t[i], rs.getTimestamp(1));
             i++;
         }
@@ -147,14 +147,14 @@ public class MysqlDataTypeTest extends BaseTest {
     public void testTimeStamp() throws SQLException {
         ps = conn.prepareStatement("insert into t_timestamp values (?), (?), (null)");
         Timestamp timestamp1 = Timestamp.valueOf("2020-10-05 21:03:15.0");
-        Timestamp timestamp2 =Timestamp.valueOf("1970-01-01 22:00:01.0");
-        ps.setTimestamp(1,timestamp1);
-        ps.setTimestamp(2,timestamp2);
-        assertEquals(3,ps.executeUpdate());
+        Timestamp timestamp2 = Timestamp.valueOf("1970-01-01 22:00:01.0");
+        ps.setTimestamp(1, timestamp1);
+        ps.setTimestamp(2, timestamp2);
+        assertEquals(3, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select * from t_timestamp").executeQuery();
-        Timestamp[] t = new Timestamp[] { timestamp1, timestamp2, null};
+        Timestamp[] t = new Timestamp[] { timestamp1, timestamp2, null };
         int i = 0;
-        while (rs.next()){
+        while (rs.next()) {
             assertEquals(t[i], rs.getTimestamp(1));
             i++;
         }
@@ -169,7 +169,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setTimestamp(1, timestamp);
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(1232127661L,rs.getLong(1));
+        assertEquals(1232178061L, rs.getLong(1));
         assertEquals(Types.BIGINT, rs.getMetaData().getColumnType(1));
         assertEquals("java.lang.Long", rs.getMetaData().getColumnClassName(1));
         rs.close();
@@ -181,7 +181,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps = conn.prepareStatement(sql);
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(new BigDecimal("0.000000"),rs.getBigDecimal(1));
+        assertEquals(new BigDecimal("0.000000"), rs.getBigDecimal(1));
         assertEquals(Types.DECIMAL, rs.getMetaData().getColumnType(1));
         assertEquals("java.math.BigDecimal", rs.getMetaData().getColumnClassName(1));
         rs.close();
@@ -194,7 +194,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setLong(1, 1218169800L);
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(Timestamp.valueOf("2008-08-09 01:30:00.0"),rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2008-08-08 12:30:00.0"), rs.getTimestamp(1));
         assertEquals(Types.TIMESTAMP, rs.getMetaData().getColumnType(1));
         rs.close();
     }
@@ -206,12 +206,13 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setLong(1, 1218169800L);
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals("2008 8th August 12:30:00",rs.getObject(1));
+        assertEquals("2008 8th August 12:30:00", rs.getObject(1));
         assertEquals(Types.VARCHAR, rs.getMetaData().getColumnType(1));
         rs.close();
     }
 
-    @Test
+    // OceanBase not support select timestamp('2020-01-01');
+    @Ignore
     public void testTimestampFun() throws SQLException {
         String sql = "select timestamp(?)";
         ps = conn.prepareStatement(sql);
@@ -224,10 +225,10 @@ public class MysqlDataTypeTest extends BaseTest {
 
         sql = "select timestamp(?,'01:00:00')";
         ps = conn.prepareStatement(sql);
-        ps.setTimestamp(1,timestamp);
+        ps.setTimestamp(1, timestamp);
         rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(Timestamp.valueOf("2020-01-01 23:00:01"),rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2020-01-01 23:00:01"), rs.getTimestamp(1));
         assertEquals(Types.TIMESTAMP, rs.getMetaData().getColumnType(1));
         rs.close();
     }
@@ -239,7 +240,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setString(1, "2020-10-20");
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals("2020-10-20",rs.getDate(1).toString());
+        assertEquals("2020-10-20", rs.getDate(1).toString());
         assertEquals(Types.DATE, rs.getMetaData().getColumnType(1));
 
         sql = "select str_to_date(?, '%Y-%m-%d %h:%i:%s')";
@@ -248,7 +249,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setTimestamp(1, timestamp);
         rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(timestamp,rs.getTimestamp(1));
+        assertEquals(timestamp, rs.getTimestamp(1));
         assertEquals(Types.TIMESTAMP, rs.getMetaData().getColumnType(1));
 
         sql = "select str_to_date(?, '%h:%i:%s')";
@@ -257,7 +258,7 @@ public class MysqlDataTypeTest extends BaseTest {
         ps.setTime(1, time);
         rs = ps.executeQuery();
         assertTrue(rs.next());
-        assertEquals(time.toString(),rs.getTime(1).toString());
+        assertEquals(time.toString(), rs.getTime(1).toString());
         assertEquals(Types.TIME, rs.getMetaData().getColumnType(1));
         rs.close();
     }
@@ -287,13 +288,13 @@ public class MysqlDataTypeTest extends BaseTest {
         String str1 = new String(str.getBytes(StandardCharsets.UTF_8), "GB18030");
         ps = conn.prepareStatement(sql);
         ps.setString(1, str1);
-        assertEquals(1,ps.executeUpdate());
+        assertEquals(1, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select v from t_var_charset").executeQuery();
         assertTrue(rs.next());
         assertEquals(str1, rs.getString(1));
         String str2 = new String(rs.getString(1).getBytes("GB18030"), StandardCharsets.UTF_8);
         assertEquals(str, str2);
-        assertEquals(Types.VARCHAR,rs.getMetaData().getColumnType(1));
+        assertEquals(Types.VARCHAR, rs.getMetaData().getColumnType(1));
         rs.close();
     }
 
@@ -304,18 +305,19 @@ public class MysqlDataTypeTest extends BaseTest {
         String str1 = new String(str.getBytes(StandardCharsets.UTF_8), "GBK");
         ps = conn.prepareStatement(sql);
         ps.setString(1, str1);
-        assertEquals(1,ps.executeUpdate());
+        assertEquals(1, ps.executeUpdate());
         ResultSet rs = conn.prepareStatement("select v from t_var_charset").executeQuery();
         assertTrue(rs.next());
         assertTrue(rs.next());
         assertEquals(str1, rs.getString(1));
         String str2 = new String(rs.getString(1).getBytes("GBK"), StandardCharsets.UTF_8);
         assertEquals(str, str2);
-        assertEquals(Types.VARCHAR,rs.getMetaData().getColumnType(1));
+        assertEquals(Types.VARCHAR, rs.getMetaData().getColumnType(1));
         rs.close();
     }
 
-    @Test
+    // 'lower_case_table_names' is a read only variable Can not be dynamically set
+    @Ignore
     public void testLowerCaseTableName() throws SQLException {
         String sql = "show variables like 'lower_case_table_names'";
         ResultSet rs = conn.prepareStatement(sql).executeQuery();

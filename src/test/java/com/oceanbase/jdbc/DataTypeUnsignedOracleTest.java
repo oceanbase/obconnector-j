@@ -563,16 +563,15 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
      * @throws SQLException exception
      */
     public static ResultSet getResultSet(String query, boolean prepared, Connection connection)
-            throws SQLException {
+                                                                                               throws SQLException {
         if (prepared) {
             PreparedStatement preparedStatement = connection.prepareStatement(query
-                    + " WHERE 1 = ?");
+                                                                              + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {
             return connection.createStatement().executeQuery(query);
         }
     }
-
 
 }

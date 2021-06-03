@@ -207,22 +207,14 @@ public class DateOracleTest extends BaseOracleTest {
 
     @Test
     public void timestampZeroTest() {
-//    Assume.assumeTrue(isMariadbServer());
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
-        try{
-            sharedConnection
-                    .createStatement()
-                    .execute(
-                            "insert into timestampzerotest values ('"
-                                    + timestampZero
-                                    + "', '"
-                                    + timestampZero
-                                    + "', '"
-                                    + dateZero
-                                    + "')");
-        }catch(Exception e){
-            Assert.assertTrue("",e.getMessage().contains("year must be between -4713 and +9999"));
+        try {
+            sharedConnection.createStatement().execute(
+                "insert into timestampzerotest values ('" + timestampZero + "', '" + timestampZero
+                        + "', '" + dateZero + "')");
+        } catch (Exception e) {
+            Assert.assertTrue("", e.getMessage().contains("year must be between -4713 and +9999"));
         }
 
     }
@@ -260,7 +252,7 @@ public class DateOracleTest extends BaseOracleTest {
         System.out.println("date: " + new Date(currentTimeStamp.getTime()));
         preparedStatement1.addBatch();
         preparedStatement1.execute();
-//        preparedStatement1.executeBatch();
+        //        preparedStatement1.executeBatch();
 
         Date dateWithoutTime = new Date(cal.getTimeInMillis());
 

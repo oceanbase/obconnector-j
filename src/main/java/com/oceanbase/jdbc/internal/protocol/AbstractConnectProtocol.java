@@ -545,7 +545,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
                 if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
                     exceptionFactory.create(
-                            "Trying to connect with ssl, but ssl not enabled in the server", "08000");
+                        "Trying to connect with ssl, but ssl not enabled in the server", "08000");
                 }
                 clientCapabilities |= OceanBaseServerCapabilities.SSL;
             }

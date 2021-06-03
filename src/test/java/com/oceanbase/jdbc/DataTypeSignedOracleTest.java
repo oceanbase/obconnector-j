@@ -318,8 +318,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                 1000000000000000000000000D);
             assertEquals(123456789012345678901234567890.12345678D, rs.getDouble(1),
                 1000000000000000000000000D);
-            assertEquals(new BigDecimal("123456789012345678901234567890.123"),
-                rs.getBigDecimal(1));
+            assertEquals(new BigDecimal("123456789012345678901234567890.123"), rs.getBigDecimal(1));
             assertEquals("123456789012345678901234567890.123", rs.getString(1));
             if (rs.next()) {
                 byteMustFail(rs);
@@ -341,8 +340,10 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                     assertEquals(1.1D, rs.getDouble(1), .000001);
                     Assert.assertFalse("1.10000000000000000000".equals(rs.getString(1)));
                     Assert.assertTrue("1.1".equals(rs.getString(1)));
-                    Assert.assertTrue(new BigDecimal("1.10000000000000000000").compareTo(rs.getBigDecimal(1))== 0 );
-                    Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs.getBigDecimal(1)) );
+                    Assert.assertTrue(new BigDecimal("1.10000000000000000000").compareTo(rs
+                        .getBigDecimal(1)) == 0);
+                    Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs
+                        .getBigDecimal(1)));
 
                     if (rs.next()) {
                         oneNullNegativeTest(rs, true, false);
@@ -365,11 +366,12 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             rs.getByte(1);
             fail("getByte must have thrown error !");
         } catch (Exception e) {
-            if(e instanceof NumberFormatException){
-                Assert.assertTrue("message: "+e.getMessage(),e.getMessage().contains("For input string"));
-            }else if(e instanceof SQLException){
-                SQLException ee = (SQLException) e  ;
-                assertEquals("sqlstate: "+ee.getSQLState(),"22003", ee.getSQLState());
+            if (e instanceof NumberFormatException) {
+                Assert.assertTrue("message: " + e.getMessage(),
+                    e.getMessage().contains("For input string"));
+            } else if (e instanceof SQLException) {
+                SQLException ee = (SQLException) e;
+                assertEquals("sqlstate: " + ee.getSQLState(), "22003", ee.getSQLState());
             }
 
         }
@@ -380,10 +382,11 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             rs.getShort(1);
             fail("getShort must have thrown error !");
         } catch (Exception e) {
-            if(e instanceof NumberFormatException){
-                Assert.assertTrue("message: "+e.getMessage(),e.getMessage().contains("For input string"));
-            }else if(e instanceof SQLException){
-                SQLException ee = (SQLException) e  ;
+            if (e instanceof NumberFormatException) {
+                Assert.assertTrue("message: " + e.getMessage(),
+                    e.getMessage().contains("For input string"));
+            } else if (e instanceof SQLException) {
+                SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
             }
         }
@@ -394,9 +397,10 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             rs.getInt(1);
             fail("getInt must have thrown error !");
         } catch (Exception e) {
-            if(e instanceof NumberFormatException){
-                Assert.assertTrue("message: "+e.getMessage(),e.getMessage().contains("For input string"));
-            }else if(e instanceof SQLException) {
+            if (e instanceof NumberFormatException) {
+                Assert.assertTrue("message: " + e.getMessage(),
+                    e.getMessage().contains("For input string"));
+            } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
             }
@@ -408,9 +412,10 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             rs.getLong(1);
             fail("getLong must have thrown error !");
         } catch (Exception e) {
-            if(e instanceof NumberFormatException){
-                Assert.assertTrue("message: "+e.getMessage(),e.getMessage().contains("For input string"));
-            }else if(e instanceof SQLException) {
+            if (e instanceof NumberFormatException) {
+                Assert.assertTrue("message: " + e.getMessage(),
+                    e.getMessage().contains("For input string"));
+            } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
             }
@@ -442,7 +447,8 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                     assertEquals("1.0", rs.getString(1));
 
                 } else {
-                    Assert.assertTrue(new BigDecimal("1.00000000000000000000").compareTo(rs.getBigDecimal(1)) == 0 );
+                    Assert.assertTrue(new BigDecimal("1.00000000000000000000").compareTo(rs
+                        .getBigDecimal(1)) == 0);
                     Assert.assertFalse("1.00000000000000000000".equals(rs.getString(1)));
                 }
             } else {
@@ -490,8 +496,8 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                 assertEquals(-1, rs.getDouble(1), .00001);
                 assertEquals(-1, rs.getFloat(1), .00001);
                 if (decimal) {
-                    assertFalse(new BigDecimal("-1.00000000000000000000")
-                        .equals(rs.getBigDecimal(1)));
+                    assertFalse(new BigDecimal("-1.00000000000000000000").equals(rs
+                        .getBigDecimal(1)));
                     Assert.assertFalse("-1.00000000000000000000".equals(rs.getString(1)));
                 } else {
                     assertTrue(new BigDecimal("-1").equals(rs.getBigDecimal(1)));

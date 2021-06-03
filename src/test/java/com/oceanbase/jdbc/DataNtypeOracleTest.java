@@ -156,7 +156,7 @@ public class DataNtypeOracleTest extends BaseOracleTest {
     @Test
     public void testSetNCharacter() throws Exception {
         Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
-        createTable("testSetNCharacter", "id int not null primary key, strm varchar2(50)" );
+        createTable("testSetNCharacter", "id int not null primary key, strm varchar2(50)");
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
         String toInsert = "Øabcdefgh\njklmn\"";
@@ -193,7 +193,7 @@ public class DataNtypeOracleTest extends BaseOracleTest {
     @Test
     public void testSetObjectNCharacter() throws Exception {
         Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
-        createTable("testSetObjectNCharacter", "id int not null primary key, strm varchar2(50)" );
+        createTable("testSetObjectNCharacter", "id int not null primary key, strm varchar2(50)");
         createTable("testSetObjectNCharacter", "id int not null primary key, strm varchar2(50)");
         PreparedStatement stmt = sharedConnection
             .prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
