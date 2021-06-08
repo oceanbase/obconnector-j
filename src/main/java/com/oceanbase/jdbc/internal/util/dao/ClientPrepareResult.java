@@ -222,7 +222,7 @@ public class ClientPrepareResult implements PrepareResult {
                         if (state == LexState.NabmeBinding) {
                             state = LexState.Normal; // := is not name binding
                         }
-                        if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) { // do as normal
+                        if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
                             endingSemicolon = false;
                             multipleQueriesPrepare = true;
                         }
@@ -241,13 +241,13 @@ public class ClientPrepareResult implements PrepareResult {
                 default:
                     // multiple queries
 
-                    if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
+                    if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) {
                         endingSemicolon = false;
                         multipleQueriesPrepare = true;
                     }
                     break;
             }
-            if (isOracleMode && state == LexState.NabmeBinding && ((byte) car >= 40) && endNameBinding != true ) {
+            if (isOracleMode && state == LexState.NabmeBinding && ((int) car >= 40) && endNameBinding != true ) {
                 paramSb.append(car);
             }
             if (isOracleMode && state == LexState.NabmeBinding && (endNameBinding || i == queryLength - 1)) {

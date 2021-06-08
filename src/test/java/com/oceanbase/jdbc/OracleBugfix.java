@@ -43,6 +43,7 @@
  */
 package com.oceanbase.jdbc;
 
+import com.oceanbase.jdbc.internal.util.Utils;
 import oracle.jdbc.OracleCallableStatement;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -239,4 +240,53 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testNameBindingChinese() throws SQLException {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.prepareStatement("drop table ttt_name1").executeUpdate();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.prepareStatement("create table ttt_name1 (c1 number, c2 varchar2(50))")
+                .executeUpdate();
+            String sql = "insert into ttt_name1 values(:b, :张\uE863)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, 1);
+            ps.setString(2, "生僻字占位符");
+            ps.executeUpdate();
+            ResultSet rs = conn.prepareStatement("select c1 from ttt_name1").executeQuery();
+            rs.next();
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testNameBindingChinese2() throws SQLException {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements");
+            try {
+                conn.prepareStatement("drop table ttt_name2").executeUpdate();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.prepareStatement("create table ttt_name2 (c1 number, c2 varchar2(50))")
+                .executeUpdate();
+            String sql = "insert into ttt_name2 values(:b, :张\uE863)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, 1);
+            ps.setString(2, "生僻字占位符");
+            ps.executeUpdate();
+            ResultSet rs = conn.prepareStatement("select c1 from ttt_name2").executeQuery();
+            rs.next();
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
 }

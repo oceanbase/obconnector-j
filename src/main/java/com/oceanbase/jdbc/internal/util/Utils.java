@@ -894,7 +894,7 @@ public class Utils {
             if (state == LexState.Normal) {
               state = LexState.NameBinding;
             }
-            if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) { // do as normal
+            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
               endingSemicolon = false;
               multipleQueriesPrepare = true;
             }
@@ -905,7 +905,7 @@ public class Utils {
             if (state == LexState.NameBinding) {
               state = LexState.Normal; // := is not name binding
             }
-            if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) { // do as normal
+            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
               endingSemicolon = false;
               multipleQueriesPrepare = true;
             }
@@ -925,14 +925,14 @@ public class Utils {
         default:
           // multiple queries
 
-          if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
+          if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) {
             endingSemicolon = false;
             multipleQueriesPrepare = true;
           }
 
           break;
       }
-      if (isOracleMode && state == LexState.NameBinding && ((byte) car >= 40) && !endNameBinding ) {
+      if (isOracleMode && state == LexState.NameBinding && ((int) car >= 40) && !endNameBinding ) {
         paramSb.append(car);
       }
       if (isOracleMode && state == LexState.NameBinding && endNameBinding) {
