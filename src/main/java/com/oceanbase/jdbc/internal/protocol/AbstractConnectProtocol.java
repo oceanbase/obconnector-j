@@ -1144,15 +1144,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private boolean getServerTZTablesImported() throws IOException, SQLException {
-        writer.startPacket(0);
-        writer.write(Packet.COM_QUERY);
-        writer.write("select count(*) from V$TIMEZONE_NAMES;");
-        writer.flush();
-        Results results = new Results();
-        getResult(results);
-        results.commandEnd();
-        ResultSet resultSet = results.getResultSet();
         try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            writer.write("select count(*) from V$TIMEZONE_NAMES;");
+            writer.flush();
+            Results results = new Results();
+            getResult(results);
+            results.commandEnd();
+            ResultSet resultSet = results.getResultSet();
             resultSet.next();
             int count = resultSet.getInt(1);
             return count == 0 ? false : true;
