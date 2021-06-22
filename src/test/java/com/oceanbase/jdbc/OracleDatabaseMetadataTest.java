@@ -50,13 +50,13 @@
  */
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 
@@ -64,6 +64,7 @@ import static org.junit.Assert.assertEquals;
  * @Author : wb-xsy @Description @Date : 2020/9/25 16:48
  */
 public class OracleDatabaseMetadataTest extends BaseOracleTest {
+    static String tableName2 = "getIndexInfoTest" + getRandomString(10);
 
     /**
      * Initialisation.
@@ -73,6 +74,9 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("quote_test", "id int primary key , create_time timestamp");
+        createTable(tableName2, "no INT NOT NULL ,\n" + "    product_category INT NOT NULL,\n"
+                                + "    product_id INT NOT NULL,\n"
+                                + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
     }
 
     @Before
@@ -124,5 +128,30 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
         assertEquals(
             "CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR",
             sharedConnection.getMetaData().getTimeDateFunctions());
+    }
+
+    @Test
+    public void getIndexInfoTest() {
+        try {
+            Connection connection = sharedConnection;
+            ResultSet rs = connection.getMetaData().getIndexInfo(null, null,
+                tableName2.toUpperCase(Locale.ROOT), false, false); // same as oracle driver ,Need to use uppercase table name
+            int columnCount = rs.getMetaData().getColumnCount();
+            Assert.assertEquals(13, columnCount);
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.next());
+            for (int i = 1; i <= columnCount; i++) {
+                System.out.print("column " + resultSetMetaData.getColumnName(i));
+                System.out.println(" value = " + rs.getString(i));
+            }
+            Assert.assertEquals("TABLE_SCHEM", resultSetMetaData.getColumnName(2));
+            Assert.assertEquals("UNITTESTS", rs.getString(2));
+            Assert.assertEquals("TABLE_NAME", resultSetMetaData.getColumnName(3));
+            Assert.assertEquals(tableName2.toUpperCase(Locale.ROOT), rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 }

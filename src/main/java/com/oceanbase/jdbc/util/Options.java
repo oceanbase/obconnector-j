@@ -181,6 +181,7 @@ public class Options implements Cloneable {
   public boolean useServerPsStmtChecksum = true;
   public String  characterEncoding   = "utf8";
   public boolean useCursorFetch = false;
+  public boolean supportNameBinding = true;
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -524,6 +525,9 @@ public class Options implements Cloneable {
     if (useCursorFetch != opt.useCursorFetch) {
 	    return false;
     }
+    if (supportNameBinding != opt.supportNameBinding) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -634,6 +638,7 @@ public class Options implements Cloneable {
     result = 31 * result + (useServerPsStmtChecksum ? 1 : 0);
     result = 31 * result + (characterEncoding != null ?  characterEncoding.hashCode() : 0);
     result = 31 * result + (useCursorFetch ? 1 : 0);
+    result = 31 * result + (supportNameBinding ? 1 : 0);
     return result;
   }
 

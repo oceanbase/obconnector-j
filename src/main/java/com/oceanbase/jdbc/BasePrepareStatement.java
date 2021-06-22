@@ -60,6 +60,8 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
@@ -102,6 +104,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     protected boolean                     hasLongData              = false;
     private boolean                       useFractionalSeconds;
     private boolean                       noBackslashEscapes;
+    protected String                      originString             = null;
+    protected Map<String, Integer>        indexMap;
 
     /**
      * Constructor. Base class that permit setting parameters for client and server PrepareStatement.
@@ -148,6 +152,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     }
 
     protected abstract boolean executeInternal(int fetchSize) throws SQLException;
+
+    public void setIndexMap(Map<String, Integer> indexMap) {
+        this.indexMap = indexMap;
+    }
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given
@@ -509,7 +517,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (connection.getProtocol().isOracleMode()) {
-            setTimestamp(parameterIndex, new Timestamp(date.getTime()));
+            setTIMESTAMP(parameterIndex, new Timestamp(date.getTime()));
         } else {
             setParameter(parameterIndex,
                 new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
@@ -648,7 +656,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIMESTAMP_TZ);
             return;
         }
-        setParameter(parameterIndex, new OBTIMESTAMPTZParameter(timestamp));
+        setParameter(parameterIndex,
+            new OBTIMESTAMPTZParameter(timestamp, this.protocol.isTZTablesImported()));
     }
 
     /**
@@ -794,7 +803,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     is called on a closed <code>PreparedStatement</code>
      */
     public void setNString(final int parameterIndex, final String value) throws SQLException {
-        setString(parameterIndex, value);
+        if (value == null) {
+            setNull(parameterIndex, ColumnType.VARCHAR);
+            return;
+        }
+
+        if (this.connection.getProtocol().isOracleMode()) {
+            setParameter(parameterIndex, new OBNStringParameter(value, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+        } else {
+            setParameter(parameterIndex, new StringParameter(value, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+        }
     }
 
     /**
@@ -1071,7 +1091,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 tz = TimeZone.getTimeZone(zoneId);
             }
             TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
-                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz),
+                this.protocol.isTZTablesImported());
             setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
@@ -1295,8 +1316,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             } else {
                 tz = TimeZone.getTimeZone(zoneId);
             }
+            this.protocol.isTZTablesImported();
             TIMESTAMPTZ timestamptz = new TIMESTAMPTZ(this.connection,
-                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz));
+                getTimeStamp((ZonedDateTime) obj), Calendar.getInstance(tz),
+                this.protocol.isTZTablesImported());
             setTIMESTAMPTZ(parameterIndex, timestamptz);
         } else if (obj instanceof LocalTime) {
             setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj,
@@ -1772,5 +1795,4 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     public String asSql() throws SQLException {
         return null;
     }
-
 }

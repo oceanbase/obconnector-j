@@ -101,13 +101,15 @@ public class ClientPreparedStatementParsingOracleTest extends BaseOracleTest {
 
     @Test
     public void stringEscapeParsingApostrophe() throws Exception {
-        assertTrue(checkParsing(
-            "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')",
-            0,
-            false,
-            true,
-            new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" },
-            new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" }));
+        if (!sharedIsRewrite()) {
+            assertTrue(checkParsing(
+                "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')",
+                0,
+                false,
+                true,
+                new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" },
+                new String[] { "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')" }));
+        }
     }
 
     @Test

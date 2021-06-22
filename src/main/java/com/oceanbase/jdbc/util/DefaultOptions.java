@@ -793,7 +793,13 @@ public enum DefaultOptions {
           "NA",
           "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
           false
-  );
+  ),
+  SUPPORT_NAME_BINDING(
+          "supportNameBinding",
+          Boolean.TRUE,
+          "2.2.2",
+          "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
+          false);
 
   private final String optionName;
   private final String description;

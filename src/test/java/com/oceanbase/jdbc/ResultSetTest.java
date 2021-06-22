@@ -1212,7 +1212,12 @@ public class ResultSetTest extends BaseTest {
   public void emptyColumnName() throws SQLException {
     try (Connection connection = setConnection("")) {
       Statement stmt = connection.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE emptyColumn (id int)");
+        try {
+            stmt.execute("drop table emptyColumnName");
+        } catch (SQLException e) {
+            // eat exception
+        }
+        stmt.execute("CREATE TEMPORARY TABLE emptyColumn (id int)");
       stmt.execute("INSERT INTO emptyColumn value (1)");
       ResultSet rs = stmt.executeQuery("SELECT '' FROM emptyColumn");
       while (rs.next()) {

@@ -45,8 +45,11 @@ package com.oceanbase.jdbc.extend.datatype;
 
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
+import java.io.IOException;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 public class TIMESTAMPTZ extends Datum {
@@ -89,6 +92,11 @@ public class TIMESTAMPTZ extends Datum {
         super(toBytes(connection, timestamp, calendar));
     }
 
+    public TIMESTAMPTZ(Connection connection, Timestamp timestamp, Calendar calendar,
+                       boolean isTZTablesImported) throws SQLException {
+        super(toBytes(connection, timestamp, calendar, isTZTablesImported));
+    }
+
     public TIMESTAMPTZ(Connection connection, String time) throws SQLException {
         super(toBytes(connection, time));
     }
@@ -97,11 +105,11 @@ public class TIMESTAMPTZ extends Datum {
         super(toBytes(connection, time, calendar));
     }
 
-    public static Date toDate(Connection connection, byte[] bytes) throws SQLException {
+    public static Date toDate(byte[] bytes) throws SQLException {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
-        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT", true);
         Calendar targetCalendar = Calendar.getInstance(TimeZone.getTimeZone(tzStr));
 
         Date date = new Date(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
@@ -115,13 +123,8 @@ public class TIMESTAMPTZ extends Datum {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
-        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
-        Calendar targetCalendar = Calendar.getInstance(TimeZone.getTimeZone(tzStr));
-
-        Time time = new Time(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
-        targetCalendar.setTime(time);
-        time.setTime(targetCalendar.getTime().getTime());
-
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT", true);
+        Time time = new Time(getOriginTime(bytes, TimeZone.getTimeZone(tzStr), true));
         return time;
     }
 
@@ -129,16 +132,44 @@ public class TIMESTAMPTZ extends Datum {
         return new TIMESTAMP(toTimestamp(protocol, bytes));
     }
 
+    public static TIMESTAMP resultTIMESTAMP(Protocol protocol, byte[] bytes) throws SQLException {
+        return new TIMESTAMP(toTimestamp(protocol, bytes, true));
+    }
+
     public static TIMESTAMP toTIMESTAMP(Connection connection, byte[] bytes) throws SQLException {
         return new TIMESTAMP(toTimestamp(connection, bytes));
+    }
+
+    public Date dateValue() throws SQLException {
+        return toDate(this.getBytes());
+    }
+
+    public Date dateValue(Connection conn) throws SQLException {
+        return toDate(this.getBytes());
+    }
+
+    public Time timeValue() throws SQLException {
+        return toTime(null, this.getBytes());
     }
 
     public static Timestamp toTimestamp(Protocol protocol, byte[] bytes) throws SQLException {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
-        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT", true);
         Timestamp timestamp = new Timestamp(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
+        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
+        return timestamp;
+    }
+
+    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes, boolean isResult)
+                                                                                          throws SQLException {
+        if (bytes.length < 14) {
+            throw new SQLException("invalid bytes length");
+        }
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT", isResult);
+        Timestamp timestamp = null;
+        timestamp = new Timestamp(getOriginTime(bytes, TimeZone.getTimeZone(tzStr), !isResult));
         timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
         return timestamp;
     }
@@ -147,13 +178,14 @@ public class TIMESTAMPTZ extends Datum {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
-        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
+        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT", true);
         Timestamp timestamp = new Timestamp(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
         timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
         return timestamp;
     }
 
-    public static long getOriginTime(byte[] bytes, TimeZone timeZone) throws SQLException {
+    public static long getOriginTime(byte[] bytes, TimeZone timeZone, boolean isTSResult)
+                                                                                         throws SQLException {
         if (bytes.length < 7) {
             throw new SQLException("invalid bytes length");
         }
@@ -169,23 +201,48 @@ public class TIMESTAMPTZ extends Datum {
         // If TZ, convert to the time zone returned by ob
         Calendar calendar = Calendar.getInstance(timeZone);
         calendar.clear();
-        calendar.set(Calendar.YEAR, i);
-        calendar.set(Calendar.MONTH, result[2] - 1);
-        calendar.set(Calendar.DAY_OF_MONTH, result[3]);
+        if (!isTSResult) {
+            calendar.set(Calendar.YEAR, i);
+            calendar.set(Calendar.MONTH, result[2] - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, result[3]);
+        } else {
+            calendar.set(Calendar.YEAR, 1970);
+            calendar.set(Calendar.MONTH, 0);
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+        }
         calendar.set(Calendar.HOUR_OF_DAY, result[4]);
         calendar.set(Calendar.MINUTE, result[5]);
         calendar.set(Calendar.SECOND, result[6]);
         return calendar.getTimeInMillis();
     }
 
-    public static String toString(Connection connection, byte[] bytes) throws SQLException {
+    public static long getOriginTime(byte[] bytes, TimeZone timeZone) throws SQLException {
+        return getOriginTime(bytes, timeZone, false);
+    }
+
+    public static String toString(Connection connection, byte[] bytes, boolean isResult)
+                                                                                        throws SQLException {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
-        String tzStr = toTimezoneStr(bytes[12], bytes[13], "GMT");
+        String tzStr = null;
+        int tzNameLen = 0;
+        if (bytes.length == 14) {
+            tzNameLen = 0;
+        } else {
+            tzNameLen = bytes[14];
+        }
+        if (tzNameLen != 0) {
+            // with the timezone information
+            byte[] tmp = new byte[tzNameLen];
+            System.arraycopy(bytes, 14 + 1, tmp, 0, tzNameLen);
+            String tzName = new String(tmp);
+            int abbrLen = bytes[14 + 1 + tzNameLen];
+            tzStr = tzName;
+        } else {
+            tzStr = toTimezoneStr(bytes[12], bytes[13], "", isResult);
+        }
 
-        //        Timestamp timestamp = new Timestamp();
-        //        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone(tzStr));
         calendar.setTimeInMillis(getOriginTime(bytes, TimeZone.getTimeZone(tzStr)));
         int year = calendar.get(Calendar.YEAR);
@@ -200,7 +257,7 @@ public class TIMESTAMPTZ extends Datum {
     }
 
     public String toResultSetString(Connection connection) throws SQLException {
-        return toString(connection, getBytes());
+        return toString(connection, getBytes(), true);
     }
 
     public static final String toString(int year, int month, int day, int hour, int minute,
@@ -216,14 +273,6 @@ public class TIMESTAMPTZ extends Datum {
                 ;
             }
             temp = temp.substring(0, index);
-            //            if (scale > temp.length()) {
-            //                int x = scale - temp.length();
-            //                StringBuilder sb = new StringBuilder();
-            //                for (int i = 0; i < x; i++) {
-            //                    sb.append("0");
-            //                }
-            //                temp += sb.toString();
-            //            }
 
             time = time + "." + temp;
         }
@@ -241,6 +290,10 @@ public class TIMESTAMPTZ extends Datum {
 
     public Timestamp timestampValue(Connection connection) throws SQLException {
         return toTimestamp(connection, this.getBytes());
+    }
+
+    public Timestamp timestampValue() throws SQLException {
+        return toTimestamp((Connection) null, this.getBytes());
     }
 
     public byte[] toBytes() {
@@ -367,6 +420,11 @@ public class TIMESTAMPTZ extends Datum {
 
     public static byte[] toBytes(Connection connection, Timestamp timestamp, Calendar calendar)
                                                                                                throws SQLException {
+        return toBytes(connection, timestamp, calendar, false);
+    }
+
+    public static byte[] toBytes(Connection connection, Timestamp timestamp, Calendar calendar,
+                                 boolean isTZTablesImported) throws SQLException {
         if (timestamp == null) {
             return null;
         }
@@ -374,10 +432,21 @@ public class TIMESTAMPTZ extends Datum {
             calendar = Calendar.getInstance();
         }
         Calendar localCalendar = Calendar.getInstance();
-        byte[] resultBytes = new byte[SIZE_TIMESTAMPTZ];
+        String tz = calendar.getTimeZone().getID();
+        boolean isGMT = false;
+        if (tz.startsWith("GMT")) {
+            tz = tz.substring(3);
+            isGMT = true;
+        }
+        int tzLen = tz.length();
+        byte[] resultBytes = null;
+        if (isTZTablesImported) {
+            resultBytes = new byte[SIZE_TIMESTAMPTZ + tzLen + 2];
+        } else {
+            resultBytes = new byte[SIZE_TIMESTAMPTZ];
+        }
         int offset = calendar.getTimeZone().getRawOffset();
         localCalendar.setTime(timestamp);
-
         int year = localCalendar.get(Calendar.YEAR);
         if (year >= -4712 && year <= 9999) {
             resultBytes[0] = (byte) (localCalendar.get(Calendar.YEAR) / 100);
@@ -391,6 +460,11 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
                 : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
+            if (isTZTablesImported && !isGMT) {
+                resultBytes[14] = (byte) (tzLen);
+                System.arraycopy(tz.getBytes(), 0, resultBytes, 15, tzLen);
+                resultBytes[14 + 1 + tzLen] = (byte) (0);
+            }
             return resultBytes;
         } else {
             throw new SQLException(String.format("error format, timestamp = %s",
@@ -408,7 +482,11 @@ public class TIMESTAMPTZ extends Datum {
     }
 
     public String stringValue(Connection connection) throws SQLException {
-        return toString(connection, this.getBytes());
+        return toString(connection, this.getBytes(), false);
+    }
+
+    public String stringValue() throws SQLException {
+        return toString(null, this.getBytes(), false);
     }
 
     public Time timeValue(Connection connection) throws SQLException {
@@ -457,7 +535,7 @@ public class TIMESTAMPTZ extends Datum {
         return (bits & 252) >> 2;
     }
 
-    public static String toTimezoneStr(byte hour, byte minute, String pre) {
+    public static String toTimezoneStr(byte hour, byte minute, String pre, boolean isResult) {
         StringBuilder offsetTimeZone = new StringBuilder();
         boolean isPostive = true;
         if (hour <= -10) { // -12 ~ 10
@@ -465,31 +543,51 @@ public class TIMESTAMPTZ extends Datum {
             offsetTimeZone.append(-hour);
         } else if (hour < 0) { // -9 ~ 0
             isPostive = false;
-            offsetTimeZone.append("0");
             offsetTimeZone.append(-hour);
         } else if (hour < 10) { // 1~9
-            offsetTimeZone.append("0");
             offsetTimeZone.append(hour);
         } else { // 10~12
             offsetTimeZone.append(hour);
         }
 
         offsetTimeZone.append(":");
-        if (minute <= -10) { // -59 ~ 10
-            isPostive = false;
-            offsetTimeZone.append(-minute);
-        } else if (minute < 0) { // -9 ~ 0
-            isPostive = false;
-            offsetTimeZone.append("0");
-            offsetTimeZone.append(-minute);
-        } else if (minute < 10) { // 1~9
-            offsetTimeZone.append("0");
-            offsetTimeZone.append(minute);
-        } else { // 10~59
-            offsetTimeZone.append(minute);
+        if (!isPostive && !isResult) { // not getXXX
+            if (minute != 0) {
+                offsetTimeZone.append("-");
+            }
+            if (minute <= -10) { // -59 ~ 10
+                isPostive = false;
+                offsetTimeZone.append(-minute);
+            } else if (minute < 0) { // -9 ~ 0
+                offsetTimeZone.append("0");
+                offsetTimeZone.append(-minute);
+            } else if (minute < 10) { // 1~9
+                offsetTimeZone.append("0");
+                offsetTimeZone.append(minute);
+            } else { // 10~59
+                offsetTimeZone.append(minute);
+            }
+        } else {
+            if (minute <= -10) { // -59 ~ 10
+                isPostive = false;
+                offsetTimeZone.append(-minute);
+            } else if (minute < 0) { // -9 ~ 0
+                isPostive = false;
+                offsetTimeZone.append("0");
+                offsetTimeZone.append(-minute);
+            } else if (minute < 10) { // 1~9
+                offsetTimeZone.append("0");
+                offsetTimeZone.append(minute);
+            } else { // 10~59
+                offsetTimeZone.append(minute);
+            }
         }
-
-        return (pre == null ? "" : pre) + (isPostive ? "+" + offsetTimeZone : "-" + offsetTimeZone);
+        if (isResult) {
+            return (pre == null ? "" : pre)
+                   + (isPostive ? "+" + offsetTimeZone : "-" + offsetTimeZone);
+        } else {
+            return (pre == null ? "" : pre) + (isPostive ? offsetTimeZone : "-" + offsetTimeZone);
+        }
     }
 
     static {

@@ -139,8 +139,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             keyManager = new KeyManager[] { loadClientCerts(options.keyStore,
                 options.keyStorePassword, options.keyPassword, options.keyStoreType) };
         } else {
-            String keyStore = System.getProperty("javax.net.ssl.keyStore");
-            String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+            String keyStore = System.getProperty("javax.net.ssl.trustStore");
+            String keyStorePassword = System.getProperty("javax.net.ssl.trustStorePassword");
             if (keyStore != null) {
                 try {
                     keyManager = new KeyManager[] { loadClientCerts(keyStore, keyStorePassword,

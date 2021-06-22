@@ -57,6 +57,7 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
     private final Timestamp        ts;
     private final TimeZone         timeZone;
     private final boolean          fractionalSeconds;
+    private final boolean          isDate;
 
     private static final byte[]    LITERALS_TIMESTAMP = "timestamp ".getBytes();
     private static final int       ORACLE_TIME_SCALE  = 9;                                          // When serializing oracle time type , fixedly fill scale9 .
@@ -72,6 +73,15 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
         this.ts = ts;
         this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
+        this.isDate = false;
+    }
+
+    public OBTIMESTAMPParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds,
+                                boolean isDate) {
+        this.ts = ts;
+        this.timeZone = timeZone;
+        this.fractionalSeconds = fractionalSeconds;
+        this.isDate = isDate;
     }
 
     /**
@@ -82,23 +92,36 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
     public void writeTo(final PacketOutputStream pos) throws IOException {
         sdf.setTimeZone(timeZone);
 
-        // oracle literals
-        // timestamp '2020-01-01 00:00:00.000'
-        pos.write(LITERALS_TIMESTAMP);
-        pos.write(QUOTE);
-        pos.write(sdf.format(ts).getBytes());
-        int microseconds = ts.getNanos() / 1000;
-        if (microseconds > 0 && fractionalSeconds) {
-            pos.write('.');
-            int factor = 100000;
-            while (microseconds > 0) {
-                int dig = microseconds / factor;
-                pos.write('0' + dig);
-                microseconds -= dig * factor;
-                factor /= 10;
+        //TO_DATE('2021-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+        if (isDate) {
+            pos.write("TO_DATE(".getBytes());
+            pos.write(QUOTE);
+            pos.write(sdf.format(ts).getBytes());
+            pos.write(QUOTE);
+            pos.write(",".getBytes());
+            pos.write(QUOTE);
+            pos.write("YYYY-MM-DD HH24:MI:SS".getBytes());
+            pos.write(QUOTE);
+            pos.write(")".getBytes());
+        } else {
+            // oracle literals
+            // timestamp '2020-01-01 00:00:00.000'
+            pos.write(LITERALS_TIMESTAMP);
+            pos.write(QUOTE);
+            pos.write(sdf.format(ts).getBytes());
+            int microseconds = ts.getNanos() / 1000;
+            if (microseconds > 0 && fractionalSeconds) {
+                pos.write('.');
+                int factor = 100000;
+                while (microseconds > 0) {
+                    int dig = microseconds / factor;
+                    pos.write('0' + dig);
+                    microseconds -= dig * factor;
+                    factor /= 10;
+                }
             }
+            pos.write(QUOTE);
         }
-        pos.write(QUOTE);
     }
 
     public int getApproximateTextProtocolLength() {

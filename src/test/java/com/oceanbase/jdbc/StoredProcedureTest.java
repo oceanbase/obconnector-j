@@ -907,19 +907,12 @@ public class StoredProcedureTest extends BaseTest {
 
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall(
-            "{call /*comment ? */ testProcedureComment(?, "
-                + "/*comment ? */?)}  #comment ? \n -- comment \n ")) {
+            "{call /* c1 */ testProcedureComment(?, "
+                + "/*c2 */? #c3  \n -- c4 \n  )}  ")) {
         // without ps ,client dont have server resultset
-//      assertTrue(callableStatement.toString().contains("/*"));
       callableStatement.setInt(1, 1);
       callableStatement.setString(2, " a");
       // ob procedure dont retruen resultset
-//      ResultSet rs = callableStatement.executeQuery();
-//      if (rs.next()) {
-//        assertEquals("1 a", rs.getString(1));
-//      } else {
-//        fail("must have a result !");
-//      }
     }
   }
 
@@ -1453,7 +1446,11 @@ public class StoredProcedureTest extends BaseTest {
     public void odcMysqlTest() {
         try {
             Connection conn = sharedConnection;
-            conn.createStatement().execute("drop procedure pl_test");
+            try {
+                conn.createStatement().execute("drop procedure pl_test");
+            } catch (Exception e) {
+                //skip
+            }
             conn.createStatement().execute(
                 "create  procedure pl_test ( IN `p1` int(11), IN `p2` int(11), OUT `p3` int(11)) begin \n"
                         + "set p3 = p1 + p2;\n" + "end;");
