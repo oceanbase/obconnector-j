@@ -55,6 +55,9 @@ import static org.junit.Assert.assertEquals;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import com.oceanbase.jdbc.internal.util.Utils;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class UtilTest extends BaseTest {
@@ -91,4 +94,75 @@ public class UtilTest extends BaseTest {
       stmt.execute("CREATE TEMPORARY TABLE `{tt1}`(`{Document id}` int, tt text)");
     }
   }
+
+    @Test
+    public void testString() throws SQLException {
+        String tableName = "test";
+        String sql1 = "insert /* woshilize */ into t values( 'wo',?,:name) /* c43 */ -- sfs \n";
+        String sql2 = "{:ret = call /* sfs */testproc(?,'test',:name1,:name2)};";
+        String sql3 = "insert /* c1  */ /* c2 */ into t values( 'wo','111') /* c43 */ -- sfs \n ";
+        String sql4 = "select * from test where c1 = ? and c2 = :name and c3 = 10 and c4 = :name2;";
+        String sql5 = "select * /* comment */ from testcolonb4NcQ where  c3 = :col3";
+        String sql6 = "select 1 from dual";
+        String sql7 = "insert into astest1 values(:name1),(:name2)";
+        String sql8 = "insert into astest1 values(?),(?)";
+        String sql9 = "/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into " + tableName
+                      + " values (?, '中文', ?, ?, ?, ?);";
+        String sql10 = "-- t1\n-- t2\n-- t3\n insert into " + tableName
+                       + " values (?, ?, ?, ?, ?, ?)";
+        String sql11 = "insert into test_batch1 values (?, ?, ?, ?, ?, ?)";
+        String sql12 = "SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
+                       + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
+                       + "       0 AS decimal_digits, 2 AS pseudo_column\n" + "FROM DUAL";
+        String sql13 = "SELECT\n" + "  -- Packaged procedures with no arguments\n"
+                       + "  package_name AS procedure_cat,\n" + "  owner AS procedure_schem,\n"
+                       + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
+                       + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
+                       + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
+                       + "FROM all_arguments\n" + "WHERE argument_name IS NULL\n"
+                       + "  AND data_type IS NULL\n" + "  AND package_name LIKE ? \n"
+                       + "  AND owner LIKE ? \n" + "  AND object_name LIKE ? \n"
+                       + "UNION ALL SELECT\n" + "  -- Packaged procedures with arguments\n"
+                       + "  package_name AS procedure_cat,\n" + "  owner AS procedure_schem,\n"
+                       + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
+                       + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
+                       + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
+                       + "FROM all_arguments";
+        Assert.assertEquals("insert  into t values( 'wo',?,?)  ",
+            Utils.trimSQLString(sql1, false, true));
+        Assert.assertEquals("{? = call testproc(?,'test',?,?)};",
+            Utils.trimSQLString(sql2, false, true));
+        Assert.assertEquals("insert   into t values( 'wo','111')   ",
+            Utils.trimSQLString(sql3, false, false));
+        Assert.assertEquals("select * from test where c1 = ? and c2 = ? and c3 = 10 and c4 = ?;",
+            Utils.trimSQLString(sql4, false, true));
+        Assert.assertEquals("select *  from testcolonb4NcQ where  c3 = ?",
+            Utils.trimSQLString(sql5, false, true));
+        Assert.assertEquals("select 1 from dual", Utils.trimSQLString(sql6, false, false));
+        Assert.assertEquals("insert into astest1 values(?),(?)",
+            Utils.trimSQLString(sql7, false, true));
+        Assert.assertEquals("insert into astest1 values(?),(?)",
+            Utils.trimSQLString(sql8, false, false));
+        Assert.assertEquals("  insert into test values (?, '中文', ?, ?, ?, ?);",
+            Utils.trimSQLString(sql9, false, false));
+        Assert.assertEquals(" insert into test values (?, ?, ?, ?, ?, ?)",
+            Utils.trimSQLString(sql10, false, false));
+        Assert.assertEquals("insert into test_batch1 values (?, ?, ?, ?, ?, ?)",
+            Utils.trimSQLString(sql11, false, false));
+        Assert.assertEquals("SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
+                            + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
+                            + "       0 AS decimal_digits, 2 AS pseudo_column\n" + "FROM DUAL",
+            Utils.trimSQLString(sql12, false, true));
+        Assert.assertEquals("SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
+                            + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
+                            + "       0 AS decimal_digits, 2 AS pseudo_column\n" + "FROM DUAL",
+            Utils.trimSQLString(sql12, false, true));
+
+        /* skip the comment tests */
+        Assert.assertEquals("insert /* woshilize */ into t values( 'wo',?,?) /* c43 */ -- sfs \n",
+            Utils.trimSQLString(sql1, false, true, true));
+        Assert.assertEquals("{? = call /* sfs */testproc(?,'test',?,?)};",
+            Utils.trimSQLString(sql2, false, true, true));
+
+    }
 }

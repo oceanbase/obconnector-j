@@ -392,7 +392,11 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         setConnection(
             "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
       Statement stmt = connection.createStatement();
-      stmt.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
+        try {
+            stmt.execute("drop table executeBatchOneByOne");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
       preparedStatement.setString(1, "1");

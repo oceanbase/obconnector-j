@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.sql.ParameterMetaData;
@@ -343,7 +344,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
         params = new ArrayList<>();
         Vector<Boolean> vec = new Vector<>();
-        String querySql = this.query;
+        String querySql = Utils.trimSQLString(this.query,this.con.getProtocol().noBackslashEscapes(),this.con.getProtocol().isOracleMode());
         int startIndex = querySql.indexOf('(');
         if(startIndex == -1) { // prepareCall without parenthesi
             querySql = querySql + "()";

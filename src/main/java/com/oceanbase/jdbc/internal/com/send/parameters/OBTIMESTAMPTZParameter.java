@@ -59,6 +59,7 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
 
     private static final byte[] LITERALS_TIMESTAMP = "timestamp ".getBytes();
     private static final int    ORACLE_TIME_SCALE  = 9;                      // When serializing oracle time type , fixedly fill scale 9 .
+    private boolean             isTZTablesImported = false;
 
     /**
      * Constructor.
@@ -69,34 +70,26 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
         this.ts = ts;
     }
 
+    public OBTIMESTAMPTZParameter(TIMESTAMPTZ ts, boolean isTZTablesImported) {
+        this.ts = ts;
+        this.isTZTablesImported = isTZTablesImported;
+    }
+
     /**
      * Write timestamps to outputStream.
      *
      * @param pos the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        byte[] bytes = ts.getBytes();
-        Timestamp timestamp;
         try {
-            timestamp = new Timestamp(TIMESTAMPTZ.getOriginTime(bytes, TimeZone.getDefault())); // FIXME should not throw SQLException
-        } catch (SQLException ex) {
-            throw new IOException(ex);
+            pos.write(LITERALS_TIMESTAMP);
+            pos.write(QUOTE);
+            String tmString = ts.toResultSetString(null);
+            pos.write(tmString.getBytes());
+            pos.write(QUOTE);
+        } catch (SQLException e) {
+            throw new IOException("get String value error");
         }
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(timestamp);
-        timestamp.setTime(calendar.getTime().getTime());
-        timestamp.setNanos(TIMESTAMP.getNanos(bytes, 7));
-
-        String tzStr = TIMESTAMPTZ.toTimezoneStr(bytes[12], bytes[13], "");
-
-        // oracle literals
-        // timestamp '2020-01-01 00:00:00.000 timezone'
-        pos.write(LITERALS_TIMESTAMP);
-        pos.write(QUOTE);
-        pos.write(timestamp.toString().getBytes());
-        pos.write(' ');
-        pos.write(tzStr.getBytes());
-        pos.write(QUOTE);
     }
 
     public int getApproximateTextProtocolLength() {
@@ -113,11 +106,22 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
         byte[] data = ts.getBytes();
         int length = data.length + 2;
         pos.write((byte) length);
-        pos.write(data, 0, 11);
-        pos.write((byte) ORACLE_TIME_SCALE);
-        pos.write(data, 12, length - 14);
-        pos.write((byte) 0); // tz name len
-        pos.write((byte) 0); // tz abbr len
+        if (!isTZTablesImported) {
+            pos.write(data, 0, data.length);
+            pos.write(data, 0, 11);
+            pos.write((byte) ORACLE_TIME_SCALE);
+            pos.write(data, 12, length - 14);
+            int len = data[14];
+            pos.write((byte) len); // tz name len
+            pos.write(data, 15, len); // tz abbr len
+            pos.write((byte) 0);
+        } else {
+            pos.write(data, 0, 11);
+            pos.write((byte) ORACLE_TIME_SCALE);
+            pos.write(data, 12, length - 14);
+            pos.write((byte) 0); // tz name len
+            pos.write((byte) 0); // tz abbr len
+        }
     }
 
     public ColumnType getColumnType() {

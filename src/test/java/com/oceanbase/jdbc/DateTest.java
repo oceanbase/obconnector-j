@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
 import static org.junit.Assert.*;
 
 import java.sql.*;
@@ -679,20 +680,19 @@ public class DateTest extends BaseTest {
           sharedConnection.prepareStatement("SELECT * from zeroTimestamp")) {
         ResultSet resultSet = preparedStatement.executeQuery();
         assertTrue(resultSet.next());
-        assertEquals(null, resultSet.getDate(1));
-        if (sharedUsePrepare()) {
-          assertEquals(null, resultSet.getString(1));
-          assertTrue(resultSet.wasNull());
-        } else {
-          assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
-          assertFalse(resultSet.wasNull());
-        }
-      }
-
-      ResultSet resultSet = statement.executeQuery("SELECT * from zeroTimestamp");
-      assertTrue(resultSet.next());
+    if (sharedUsePrepare()) {
+        assertFalse(null == resultSet.getDate(1));
+        assertEquals("0002-11-30", resultSet.getDate(1).toString());
+        assertEquals("0002-11-30 00:00:00.0", resultSet.getString(1));
+        Assert.assertFalse("result is null ",null == resultSet.getString(1));
+        assertFalse(resultSet.wasNull());
+    } else {
+      assertTrue(null == resultSet.getDate(1));
       assertEquals(null, resultSet.getDate(1));
       assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+      assertFalse(resultSet.wasNull());
+    }
+      }
     }
   }
 

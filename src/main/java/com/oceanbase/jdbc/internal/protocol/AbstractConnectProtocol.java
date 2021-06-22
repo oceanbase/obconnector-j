@@ -60,6 +60,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -160,6 +164,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode;                                                              /* is server in oracle mode */
+    private boolean                       importedTimeZoneTables;                                                    /* is server time zone impoted */
 
     /**
      * Get a protocol instance.
@@ -536,7 +541,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             sslWrapper(host, socket, options, greetingPacket.getServerCapabilities(),
                 clientCapabilities, exchangeCharset, serverThreadId);
+            if (Boolean.TRUE.equals(options.useSsl)) {
 
+                if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
+                    exceptionFactory.create(
+                        "Trying to connect with ssl, but ssl not enabled in the server", "08000");
+                }
+                clientCapabilities |= OceanBaseServerCapabilities.SSL;
+            }
             String authenticationPluginType = greetingPacket.getAuthenticationPluginType();
             if (credentialPlugin != null
                 && credentialPlugin.defaultAuthenticationPluginType() != null) {
@@ -971,7 +983,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         writer.write(ALTER_SESSION_TIMEZONE_QUERY);
-        writer.write(zoneId.getBytes());
+        if (!this.importedTimeZoneTables && zoneId.startsWith("GMT")) {
+            writer.write(zoneId.substring("GMT".length()).getBytes());
+        } else {
+            writer.write(zoneId.getBytes());
+        }
         writer.write('\'');
         writer.flush();
     }
@@ -1127,6 +1143,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
+    private boolean getServerTZTablesImported() throws IOException, SQLException {
+        try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            writer.write("select count(*) from V$TIMEZONE_NAMES;");
+            writer.flush();
+            Results results = new Results();
+            getResult(results);
+            results.commandEnd();
+            ResultSet resultSet = results.getResultSet();
+            resultSet.next();
+            int count = resultSet.getInt(1);
+            return count == 0 ? false : true;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
     private void loadCalendar(final String srvTimeZone, final String srvSystemTimeZone)
                                                                                        throws SQLException {
         String tz = null;
@@ -1140,6 +1174,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         tz = srvSystemTimeZone;
                     }
                 }
+                this.importedTimeZoneTables = getServerTZTablesImported();
                 // handle custom timezone id
                 if (tz != null && tz.length() >= 2 && (tz.startsWith("+") || tz.startsWith("-"))
                     && Character.isDigit(tz.charAt(1))) {
@@ -1147,19 +1182,29 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
 
                 TimeZone defaultTimezone = TimeZone.getDefault();
+                String offsetId = defaultTimezone.toZoneId().getRules()
+                    .getStandardOffset(Instant.now()).getId();
                 // TODO oracle should alter session to local time_zone, need more test case
                 if (tz != null) {
                     timeZone = Utils.getTimeZone(tz);
                     serverTimeZone = timeZone;
                     if (defaultTimezone.getRawOffset() != timeZone.getRawOffset()) {
-                        sendAlterSessionTimezone(defaultTimezone.getID());
+                        if (!this.importedTimeZoneTables) {
+                            sendAlterSessionTimezone(offsetId);
+                        } else {
+                            sendAlterSessionTimezone(defaultTimezone.getID());
+                        }
                         getResult(new Results());
                         timeZone = defaultTimezone;
                     } else {
                         timeZone = defaultTimezone;
                     }
                 } else {
-                    sendAlterSessionTimezone(defaultTimezone.getID());
+                    if (!this.importedTimeZoneTables) {
+                        sendAlterSessionTimezone(offsetId);
+                    } else {
+                        sendAlterSessionTimezone(defaultTimezone.getID());
+                    }
                     getResult(new Results());
                     timeZone = defaultTimezone;
                 }
@@ -1690,5 +1735,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public void setOracleMode(boolean oracleMode) {
         isOracleMode = oracleMode;
+    }
+
+    @Override
+    public boolean isTZTablesImported() {
+        return this.importedTimeZoneTables;
     }
 }

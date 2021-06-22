@@ -174,7 +174,9 @@ public class UrlParser implements Cloneable {
      * @throws SQLException if parsing exception occur
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
-        if (url != null && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL))) {
+        if (url != null
+            && ((url.startsWith("jdbc:oceanbase:") || url.startsWith("jdbc:mysql:")) && !url
+                .contains(DISABLE_MYSQL_URL))) {
             UrlParser urlParser = new UrlParser();
             parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
             return urlParser;

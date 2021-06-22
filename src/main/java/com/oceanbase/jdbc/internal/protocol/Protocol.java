@@ -92,6 +92,8 @@ public interface Protocol {
 
     boolean isOracleMode();
 
+    boolean isTZTablesImported();
+
     FailoverProxy getProxy();
 
     void setProxy(FailoverProxy proxy);

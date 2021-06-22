@@ -83,7 +83,6 @@ public class OBTIMESTAMPLTZParameter implements Cloneable, ParameterHolder {
             throw new IOException(ex);
         }
         // oracle literals
-        // timestamp '2020-01-01 00:00:00.000 timezone'
         pos.write(LITERALS_TIMESTAMP);
         pos.write(QUOTE);
         pos.write(timestamp.toString().getBytes());

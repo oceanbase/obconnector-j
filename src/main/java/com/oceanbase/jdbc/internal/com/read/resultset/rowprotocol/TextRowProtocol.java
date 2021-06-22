@@ -401,7 +401,8 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     return (negate ? -1 * result : result);
                 default:
-                    return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8)
+                        .trim());
             }
 
         } catch (NumberFormatException nfe) {
@@ -445,6 +446,7 @@ public class TextRowProtocol extends RowProtocol {
             case DECIMAL:
             case VARSTRING:
             case VARCHAR:
+            case VARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
@@ -466,7 +468,7 @@ public class TextRowProtocol extends RowProtocol {
                 //                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 //                return (float)d;
             case OBDECIMAL:
-                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String value = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
                 BigDecimal bigDecimal = new BigDecimal(value);
                 return bigDecimal.floatValue();
             default:
@@ -499,6 +501,7 @@ public class TextRowProtocol extends RowProtocol {
             case DECIMAL:
             case VARSTRING:
             case VARCHAR:
+            case VARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
@@ -548,14 +551,14 @@ public class TextRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case BINARY_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
-                return new BigDecimal(Float.toString(f));
+                return BigDecimal.valueOf(f);
             case BINARY_DOUBLE:
                 Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
-                return new BigDecimal(Double.toString(d));
+                return BigDecimal.valueOf(d);
             default:
                 break;
         }
-        String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String value = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
         return new BigDecimal(value);
     }
 
@@ -603,6 +606,7 @@ public class TextRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+            case TIMESTAMP_LTZ:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 if (timestamp == null) {
                     return null;
@@ -613,15 +617,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamptz == null) {
                     return null;
                 }
-
-                return new Date(timestamptz.timestampValue().getTime());
-            case TIMESTAMP_LTZ:
-                TIMESTAMPLTZ timestampltz = getInternalTIMESTAMPLTZ(columnInfo, cal, timeZone);
-                if (timestampltz == null) {
-                    return null;
-                }
-
-                return new Date(timestampltz.timestampValue().getTime());
+                return timestamptz.dateValue();
             case TIME:
                 throw new SQLException("Cannot read DATE using a Types.TIME field");
 
@@ -671,7 +667,9 @@ public class TextRowProtocol extends RowProtocol {
 
         if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
             || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
-            || columnInfo.getColumnType() == ColumnType.DATETIME) {
+            || columnInfo.getColumnType() == ColumnType.DATETIME
+            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
             Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
             return (timestamp == null) ? null : new Time(timestamp.getTime());
 
@@ -752,6 +750,7 @@ public class TextRowProtocol extends RowProtocol {
             case DATETIME:
             case DATE:
             case VARCHAR:
+            case VARCHAR2:
             case VARSTRING:
             case STRING:
                 int nanoBegin = -1;
@@ -971,6 +970,8 @@ public class TextRowProtocol extends RowProtocol {
                 return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
             case INTERVALYM:
                 return getInternalINTERVALYM(columnInfo);
+            case INTERVALDS:
+                return getInternalINTERVALDS(columnInfo);
             case RAW:
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
@@ -997,7 +998,7 @@ public class TextRowProtocol extends RowProtocol {
         if (columnInfo.getColumnType() == ColumnType.BIT) {
             return parseBit() != 0;
         }
-        final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
+        final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
         return !("false".equals(rawVal) || "0".equals(rawVal));
     }
 
@@ -1066,7 +1067,7 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-        return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
     }
 
     /**

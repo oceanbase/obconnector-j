@@ -501,72 +501,88 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         long value;
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                return parseBit();
-            case TINYINT:
-                value = getInternalTinyInt(columnInfo);
-                break;
-            case SMALLINT:
-            case YEAR:
-                value = getInternalSmallInt(columnInfo);
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-                value = getInternalMediumInt(columnInfo);
-                break;
-            case BIGINT:
-                value = ((buf[pos] & 0xff) + ((long) (buf[pos + 1] & 0xff) << 8)
-                         + ((long) (buf[pos + 2] & 0xff) << 16)
-                         + ((long) (buf[pos + 3] & 0xff) << 24)
-                         + ((long) (buf[pos + 4] & 0xff) << 32)
-                         + ((long) (buf[pos + 5] & 0xff) << 40)
-                         + ((long) (buf[pos + 6] & 0xff) << 48) + ((long) (buf[pos + 7] & 0xff) << 56));
-                if (columnInfo.isSigned()) {
-                    return value;
+        try {
+            switch (columnInfo.getColumnType()) {
+                case BIT:
+                    return parseBit();
+                case TINYINT:
+                    value = getInternalTinyInt(columnInfo);
+                    break;
+                case SMALLINT:
+                case YEAR:
+                    value = getInternalSmallInt(columnInfo);
+                    break;
+                case INTEGER:
+                case MEDIUMINT:
+                    value = getInternalMediumInt(columnInfo);
+                    break;
+                case BIGINT:
+                    value = ((buf[pos] & 0xff) + ((long) (buf[pos + 1] & 0xff) << 8)
+                             + ((long) (buf[pos + 2] & 0xff) << 16)
+                             + ((long) (buf[pos + 3] & 0xff) << 24)
+                             + ((long) (buf[pos + 4] & 0xff) << 32)
+                             + ((long) (buf[pos + 5] & 0xff) << 40)
+                             + ((long) (buf[pos + 6] & 0xff) << 48) + ((long) (buf[pos + 7] & 0xff) << 56));
+                    if (columnInfo.isSigned()) {
+                        return value;
+                    }
+                    BigInteger unsignedValue = new BigInteger(1, new byte[] { (byte) (value >> 56),
+                            (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
+                            (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
+                            (byte) value });
+                    if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
+                        throw new SQLException("Out of range value for column '"
+                                               + columnInfo.getName() + "' : value "
+                                               + unsignedValue + " is not in Long range", "22003",
+                            1264);
+                    }
+                    return unsignedValue.longValue();
+                case FLOAT:
+                    Float floatValue = getInternalFloat(columnInfo);
+                    if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
+                        throw new SQLException("Out of range value for column '"
+                                               + columnInfo.getName() + "' : value " + floatValue
+                                               + " is not in Long range", "22003", 1264);
+                    }
+                    return floatValue.longValue();
+                case DOUBLE:
+                    Double doubleValue = getInternalDouble(columnInfo);
+                    if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
+                        throw new SQLException("Out of range value for column '"
+                                               + columnInfo.getName() + "' : value " + doubleValue
+                                               + " is not in Long range", "22003", 1264);
+                    }
+                    return doubleValue.longValue();
+                case DECIMAL:
+                case OLDDECIMAL:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, bigDecimal, columnInfo);
+                    return bigDecimal.longValue();
+                case VARSTRING:
+                case VARCHAR:
+                case OBDECIMAL:
+                case STRING:
+                    return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                default:
+                    throw new SQLException("getLong not available for data field type "
+                                           + columnInfo.getColumnType().getJavaTypeName());
+            }
+            rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
+            return value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    return Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                } catch (NumberFormatException nfee) {
+                    // eat exception
                 }
-                BigInteger unsignedValue = new BigInteger(1, new byte[] { (byte) (value >> 56),
-                        (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
-                        (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                        (byte) value });
-                if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
-                    throw new SQLException(
-                        "Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + unsignedValue + " is not in Long range", "22003", 1264);
-                }
-                return unsignedValue.longValue();
-            case FLOAT:
-                Float floatValue = getInternalFloat(columnInfo);
-                if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
-                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                           + "' : value " + floatValue + " is not in Long range",
-                        "22003", 1264);
-                }
-                return floatValue.longValue();
-            case DOUBLE:
-                Double doubleValue = getInternalDouble(columnInfo);
-                if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                           + "' : value " + doubleValue + " is not in Long range",
-                        "22003", 1264);
-                }
-                return doubleValue.longValue();
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, bigDecimal, columnInfo);
-                return bigDecimal.longValue();
-            case VARSTRING:
-            case VARCHAR:
-            case OBDECIMAL:
-            case STRING:
-                return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
-            default:
-                throw new SQLException("getLong not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                   + "' : value " + valueParams, "22003", 1264);
         }
-        rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
-        return value;
     }
 
     /**
@@ -780,8 +796,10 @@ public class BinaryRowProtocol extends RowProtocol {
                         .getDecimals());
                 }
             case FLOAT:
+            case BINARY_FLOAT:
                 return BigDecimal.valueOf(getInternalFloat(columnInfo));
             case DOUBLE:
+            case BINARY_DOUBLE:
                 return BigDecimal.valueOf(getInternalDouble(columnInfo));
             case DECIMAL:
             case VARSTRING:
@@ -789,7 +807,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
-                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -959,12 +977,13 @@ public class BinaryRowProtocol extends RowProtocol {
                 case TIMESTAMP_TZ:
                     TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
                         timeZone);
-                    timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
+                    timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
+                        oracleTimestampZ.toBytes());
                     return timestamp.timestampValue(cal);
                 case TIMESTAMP_LTZ:
                     TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
                         userCalendar, timeZone);
-                    timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
+                    timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
                         oracleTimestampLTZ.getBytes());
                     return timestamp.timestampValue(cal);
             }
@@ -1255,47 +1274,64 @@ public class BinaryRowProtocol extends RowProtocol {
             return 0;
         }
         long value;
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                value = parseBit();
-                break;
-            case TINYINT:
-                value = getInternalTinyInt(columnInfo);
-                break;
-            case SMALLINT:
-            case YEAR:
-                value = getInternalSmallInt(columnInfo);
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-                value = getInternalMediumInt(columnInfo);
-                break;
-            case BIGINT:
-                value = getInternalLong(columnInfo);
-                break;
-            case FLOAT:
-                value = (long) getInternalFloat(columnInfo);
-                break;
-            case DOUBLE:
-                value = (long) getInternalDouble(columnInfo);
-                break;
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal, columnInfo);
-                return bigDecimal.byteValue();
-            case VARSTRING:
-            case VARCHAR:
-            case OBDECIMAL:
-            case STRING:
-                value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
-                break;
-            default:
-                throw new SQLException("getByte not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+        try {
+            switch (columnInfo.getColumnType()) {
+                case BIT:
+                    value = parseBit();
+                    break;
+                case TINYINT:
+                    value = getInternalTinyInt(columnInfo);
+                    break;
+                case SMALLINT:
+                case YEAR:
+                    value = getInternalSmallInt(columnInfo);
+                    break;
+                case INTEGER:
+                case MEDIUMINT:
+                    value = getInternalMediumInt(columnInfo);
+                    break;
+                case BIGINT:
+                    value = getInternalLong(columnInfo);
+                    break;
+                case FLOAT:
+                    value = (long) getInternalFloat(columnInfo);
+                    break;
+                case DOUBLE:
+                    value = (long) getInternalDouble(columnInfo);
+                    break;
+                case DECIMAL:
+                case OLDDECIMAL:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal, columnInfo);
+                    return bigDecimal.byteValue();
+                case VARSTRING:
+                case VARCHAR:
+                case OBDECIMAL:
+                case STRING:
+                    value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    break;
+                default:
+                    throw new SQLException("getByte not available for data field type "
+                                           + columnInfo.getColumnType().getJavaTypeName());
+            }
+            rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+            return (byte) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+                    return (byte) value;
+                } catch (NumberFormatException nfee) {
+                    // eat exception
+                }
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                   + "' : value " + valueParams, "22003", 1264);
         }
-        rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
-        return (byte) value;
     }
 
     /**
@@ -1311,51 +1347,69 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         long value;
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                value = parseBit();
-                break;
-            case TINYINT:
-                value = getInternalTinyInt(columnInfo);
-                break;
-            case SMALLINT:
-            case YEAR:
-                value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8));
-                if (columnInfo.isSigned()) {
+        try {
+            switch (columnInfo.getColumnType()) {
+                case BIT:
+                    value = parseBit();
+                    break;
+                case TINYINT:
+                    value = getInternalTinyInt(columnInfo);
+                    break;
+                case SMALLINT:
+                case YEAR:
+                    value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8));
+                    if (columnInfo.isSigned()) {
+                        return (short) value;
+                    }
+                    value = value & 0xffff;
+                    break;
+                case INTEGER:
+                case MEDIUMINT:
+                    value = getInternalMediumInt(columnInfo);
+                    break;
+                case BIGINT:
+                    value = getInternalLong(columnInfo);
+                    break;
+                case FLOAT:
+                    value = (long) getInternalFloat(columnInfo);
+                    break;
+                case DOUBLE:
+                    value = (long) getInternalDouble(columnInfo);
+                    break;
+                case DECIMAL:
+                case OLDDECIMAL:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal,
+                        columnInfo);
+                    return bigDecimal.shortValue();
+                case VARSTRING:
+                case VARCHAR:
+                case OBDECIMAL:
+                case STRING:
+                    value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    break;
+                default:
+                    throw new SQLException("getShort not available for data field type "
+                                           + columnInfo.getColumnType().getJavaTypeName());
+            }
+            rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
+            return (short) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            if (isIntegerRegex.matcher(valueParams).find()) {
+                try {
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
                     return (short) value;
+                } catch (NumberFormatException nfee) {
+                    // eat exception
                 }
-                value = value & 0xffff;
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-                value = getInternalMediumInt(columnInfo);
-                break;
-            case BIGINT:
-                value = getInternalLong(columnInfo);
-                break;
-            case FLOAT:
-                value = (long) getInternalFloat(columnInfo);
-                break;
-            case DOUBLE:
-                value = (long) getInternalDouble(columnInfo);
-                break;
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal, columnInfo);
-                return bigDecimal.shortValue();
-            case VARSTRING:
-            case VARCHAR:
-            case OBDECIMAL:
-            case STRING:
-                value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
-                break;
-            default:
-                throw new SQLException("getShort not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                   + "' : value " + valueParams, "22003", 1264);
         }
-        rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
-        return (short) value;
     }
 
     /**
@@ -1481,7 +1535,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
-                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
         }
     }
 
@@ -1891,7 +1945,7 @@ public class BinaryRowProtocol extends RowProtocol {
         switch (type.getType()) {
             case ComplexDataType.TYPE_NUMBER:
                 b = packet.readLenByteArray(0);
-                value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8));
+                value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8).trim());
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
             case ComplexDataType.TYPE_RAW:

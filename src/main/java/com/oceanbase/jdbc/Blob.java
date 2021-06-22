@@ -377,6 +377,8 @@ public class Blob implements ObBlob, Serializable {
             data = newContent;
             length = arrayPos + bytes.length;
             offset = 0;
+            charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
+                : this.encoding));
         }
         return bytes.length;
     }
@@ -433,6 +435,8 @@ public class Blob implements ObBlob, Serializable {
             data = newContent;
             length = arrayPos + byteToWrite;
             this.offset = 0;
+            charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
+                : this.encoding));
         }
 
         return byteToWrite;

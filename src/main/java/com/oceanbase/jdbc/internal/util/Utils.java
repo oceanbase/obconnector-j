@@ -60,8 +60,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import javax.net.SocketFactory;
@@ -721,6 +720,250 @@ public class Utils {
     }
     return sqlBuffer.toString().trim();
   }
+
+  enum LexState {
+    Normal, /* inside  query */
+    String, /* inside string */
+    SlashStarComment, /* inside slash-star comment */
+    Escape, /* found backslash */
+    EOLComment, /* # comment, or // comment, or -- comment */
+    Backtick /* found backtick */,
+    NameBinding /* in name binding such as :name */
+  }
+
+  /**
+   *  Adjust the string to have no comments and the name binding  parameters to ? format
+   * @param queryString  original sql string
+   * @param noBackslashEscapes  must backslash be escaped
+   * @param isOracleMode  oracle mode
+   * @param skipComment  don not remove the comment 
+   * @return
+   */
+  public static String   trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode,boolean skipComment){
+    StringBuilder trimedSqlString = new StringBuilder();
+    boolean multipleQueriesPrepare = true;
+    LexState state = LexState.Normal;
+    char lastChar = '\0';
+    boolean endingSemicolon = false;
+
+    boolean singleQuotes = false;
+    int lastParameterPosition = 0;
+
+    char[] query = queryString.toCharArray();
+    int queryLength = query.length;
+    boolean slashend = false;
+    boolean endNameBinding = false;
+    StringBuilder paramSb = new StringBuilder();
+    boolean includeCurChar = false;
+    int commentStart = 0;
+    for (int i = 0; i < queryLength; i++) {
+      if(i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
+        endNameBinding = true;
+        includeCurChar = true;
+      }
+      char car = query[i];
+      if (state == LexState.Escape
+              && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+        state =LexState.String;
+        lastChar = car;
+        continue;
+      }
+      switch (car) {
+        case '*':
+          if (state == LexState.Normal && lastChar == '/') {
+            state = LexState.SlashStarComment;
+            commentStart = i - 1;
+          }
+          break;
+
+        case '/':
+          if (state == LexState.SlashStarComment && lastChar == '*') {
+            state = LexState.Normal;
+            slashend = true;
+            if(skipComment) {
+              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1 ));
+            } else {
+              if (commentStart != 0) {
+                trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
+              }
+            }
+            lastParameterPosition = i + 1;
+          } else if (state == LexState.Normal && slashend && lastChar == '/') {
+            slashend = false;
+            break;
+          } else if (state == LexState.Normal && lastChar == '/') {
+            state = LexState.EOLComment;
+            lastParameterPosition = i + 1;
+            commentStart = i - 1;
+          }
+          break;
+
+        case '#':
+          if ((!isOracleMode) && state == LexState.Normal) {
+            state = LexState.EOLComment;
+            commentStart = i;
+          }
+          break;
+
+        case '-':
+          if (state == LexState.Normal && lastChar == '-') {
+            state = LexState.EOLComment;
+            multipleQueriesPrepare = false;
+            commentStart = i - 1;
+          }
+          break;
+
+        case '\n':
+          if (state == LexState.EOLComment) {
+            multipleQueriesPrepare = true;
+            state = LexState.Normal;
+            if(skipComment) {
+              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1 ));
+            } else {
+              if (commentStart != 0) {
+                trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
+              }
+            }
+            lastParameterPosition = i + 1;
+          }
+          if (isOracleMode) {
+            if (state == LexState.NameBinding) {
+              endNameBinding = true;
+              includeCurChar = false;
+            }
+          }
+          break;
+        case '"':
+          if (state == LexState.Normal) {
+            state = LexState.String;
+            singleQuotes = false;
+          } else if (state == LexState.String && !singleQuotes) {
+            state = LexState.Normal;
+          } else if (state == LexState.Escape && !singleQuotes) {
+            state = LexState.String;
+          }
+          break;
+
+        case '\'':
+          if (state == LexState.Normal) {
+            state = LexState.String;
+            singleQuotes = true;
+          } else if (state == LexState.String && singleQuotes) {
+            state = LexState.Normal;
+          } else if (state == LexState.Escape && singleQuotes) {
+            state = LexState.String;
+          }
+          break;
+
+        case '\\':
+          if (noBackslashEscapes) {
+            break;
+          }
+          if ((!isOracleMode) && state == LexState.String) {
+            state = LexState.Escape;
+          }
+          break;
+        case ';':
+          if (isOracleMode) {
+            if (state == LexState.NameBinding) {
+              endNameBinding = true;
+              includeCurChar = false;
+            }
+          }
+          if (state == LexState.Normal) {
+            endingSemicolon = true;
+            multipleQueriesPrepare = false;
+          }
+          break;
+        case '?':
+          if (state == LexState.Normal) {
+            trimedSqlString.append(queryString.substring(lastParameterPosition, i));
+            trimedSqlString.append("?");
+            lastParameterPosition = i + 1;
+          }
+          break;
+        case '`':
+          if (state == LexState.Backtick) {
+            state = LexState.Normal;
+          } else if (state == LexState.Normal) {
+            state = LexState.Backtick;
+          }
+          break;
+        case ':':
+          if (isOracleMode) {
+            if (state == LexState.Normal) {
+              state = LexState.NameBinding;
+            }
+            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
+              endingSemicolon = false;
+              multipleQueriesPrepare = true;
+            }
+          }
+          break;
+        case '=':
+          if (isOracleMode) {
+            if (state == LexState.NameBinding) {
+              state = LexState.Normal; // := is not name binding
+            }
+            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
+              endingSemicolon = false;
+              multipleQueriesPrepare = true;
+            }
+          }
+          break;
+        case ' ':
+        case ',':
+        case ')':
+        case '}':
+          if (isOracleMode) {
+            if (state == LexState.NameBinding) {
+              endNameBinding = true;
+              includeCurChar = false;
+            }
+          }
+          break;
+        default:
+          // multiple queries
+
+          if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) {
+            endingSemicolon = false;
+            multipleQueriesPrepare = true;
+          }
+
+          break;
+      }
+      if (isOracleMode && state == LexState.NameBinding && ((int) car >= 40) && !endNameBinding ) {
+        paramSb.append(car);
+      }
+      if (isOracleMode && state == LexState.NameBinding && endNameBinding) {
+        if(!includeCurChar) {
+          trimedSqlString.append(queryString.substring(lastParameterPosition, i - paramSb.length()));
+          trimedSqlString.append("?");
+          lastParameterPosition = i;
+        } else {
+          paramSb.append(car);
+          trimedSqlString.append(queryString.substring(lastParameterPosition, i - paramSb.length() + 1));
+          trimedSqlString.append("?");
+          lastParameterPosition = i + 1;
+          includeCurChar = false;
+        }
+        paramSb.setLength(0);
+        endNameBinding = false;
+        state = LexState.Normal;
+      }
+      lastChar = car;
+    }
+    if (lastParameterPosition == 0) {
+      trimedSqlString.append(queryString);
+    } else {
+      trimedSqlString.append(queryString.substring(lastParameterPosition, queryLength));
+    }
+    return trimedSqlString.toString();
+  }
+  public static String   trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
+    return trimSQLString(queryString,noBackslashEscapes,isOracleMode,false);
+  }
+
 
 
   /**
