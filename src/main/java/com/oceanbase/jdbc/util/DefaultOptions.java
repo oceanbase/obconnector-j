@@ -810,6 +810,13 @@ public enum DefaultOptions {
           "Port of SOCKS server.",
           false
   ),
+  CONNECT_PROXY(
+          "connectProxy",
+          Boolean.FALSE,
+          "2.2.3",
+          "Indicate driver to connect to ob proxy ",
+          false
+  ),
   SUPPORT_NAME_BINDING(
           "supportNameBinding",
           Boolean.TRUE,

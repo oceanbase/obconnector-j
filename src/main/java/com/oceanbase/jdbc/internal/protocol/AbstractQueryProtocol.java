@@ -1744,22 +1744,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if cannot retrieve auto increment value
    */
   public int getAutoIncrementIncrement() throws SQLException {
-    if (autoIncrementIncrement == 0) {
-      lock.lock();
-      try {
-        Results results = new Results();
-        executeQuery(true, results, "select @@auto_increment_increment");
-        results.commandEnd();
-        ResultSet rs = results.getResultSet();
-        rs.next();
-        autoIncrementIncrement = rs.getInt(1);
-      } catch (SQLException e) {
-        if (e.getSQLState().startsWith("08")) {
-          throw e;
+    if(!options.connectProxy) {
+      if (autoIncrementIncrement == 0) {
+        lock.lock();
+        try {
+          Results results = new Results();
+          executeQuery(true, results, "select @@auto_increment_increment");
+          results.commandEnd();
+          ResultSet rs = results.getResultSet();
+          rs.next();
+          autoIncrementIncrement = rs.getInt(1);
+        } catch (SQLException e) {
+          if (e.getSQLState().startsWith("08")) {
+            throw e;
+          }
+          autoIncrementIncrement = 1;
+        } finally {
+          lock.unlock();
         }
-        autoIncrementIncrement = 1;
-      } finally {
-        lock.unlock();
       }
     }
     return autoIncrementIncrement;

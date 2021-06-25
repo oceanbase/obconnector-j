@@ -185,6 +185,7 @@ public class Options implements Cloneable {
   public boolean supportNameBinding = true;
   public String socksProxyHost;
   public int  socksProxyPort = 1080;
+  public boolean connectProxy      = false;
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -535,6 +536,9 @@ public class Options implements Cloneable {
       return false;
     }
     if (socksProxyPort != opt.socksProxyPort) {
+       return false;
+    }
+    if (connectProxy != opt.connectProxy) {
       return false;
     }
     return Objects.equals(minPoolSize, opt.minPoolSize);
@@ -650,6 +654,7 @@ public class Options implements Cloneable {
     result = 31 * result + (supportNameBinding ? 1 : 0);
     result = 31 * result + (socksProxyHost != null ? socksProxyHost.hashCode() : 0);
     result = 31 * result + socksProxyPort;
+    result = 31 * result + (connectProxy ? 1 : 0);
     return result;
   }
 

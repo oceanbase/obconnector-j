@@ -851,23 +851,32 @@ public abstract class AbstractConnectProtocol implements Protocol {
         Map<String, String> serverData = new TreeMap<>();
         if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
           try {
-            sendPipelineAdditionalData();
-            readPipelineAdditionalData(serverData);
+              if(!options.connectProxy) {
+                  sendPipelineAdditionalData();
+                  readPipelineAdditionalData(serverData);
+
+              }
           } catch (SQLException sqle) {
             if ("08".equals(sqle.getSQLState())) {
               throw sqle;
             }
             // in case pipeline is not supported
             // (proxy flush socket after reading first packet)
-            additionalData(serverData);
+              if(!options.connectProxy) {
+                  additionalData(serverData);
+              }
           }
         } else {
-          additionalData(serverData);
+            if(!options.connectProxy) {
+                additionalData(serverData);
+            }
         }
 
-        writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-        autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
-        loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
+        if(!options.connectProxy) {
+            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+            autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+            loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
+        }
 
       } else {
 
@@ -1113,8 +1122,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             sendCharsetVariables();
             getResult(new Results());
-            sendRequestSessionVariables();
-            readRequestSessionVariables(serverData);
+            if (!options.connectProxy) {
+                sendRequestSessionVariables();
+                readRequestSessionVariables(serverData);
+            }
         } catch (SQLException sqlException) {
             requestSessionDataWithShow(serverData);
         }
