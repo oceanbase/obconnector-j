@@ -135,6 +135,8 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
             Connection connection = sharedConnection;
             String val = ((ConnectionImpl) sharedConnection).getSessionTimeZone();
             ((ConnectionImpl) sharedConnection).setSessionTimeZone("Asia/Shanghai");
+            val = ((ConnectionImpl) sharedConnection).getSessionTimeZone();
+            System.out.println("set time zone to " + val);
             PreparedStatement ps = connection.prepareStatement("insert into " + tztable3
                                                                + " values(?)");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")

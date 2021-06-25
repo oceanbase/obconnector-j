@@ -2229,9 +2229,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.protocol.isOracleMode()) {
             boolean needSetSessionTimeZone = true;
             TimeZone targetTimeZone = TimeZone.getTimeZone(zoneID);
-            if (null != sessionTimeZone
-                && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
-                needSetSessionTimeZone = false;
+            if (!protocol.isTZTablesImported()) {
+                if (null != sessionTimeZone
+                    && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
+                    needSetSessionTimeZone = false;
+                }
+            } else {
+                if (null != sessionTimeZone && sessionTimeZone.getID().equals(zoneID)) {
+                    needSetSessionTimeZone = false;
+                }
             }
             if (needSetSessionTimeZone) {
                 java.sql.Statement stmt = getMetadataSafeStatement();
