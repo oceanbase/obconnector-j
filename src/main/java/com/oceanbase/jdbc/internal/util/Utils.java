@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -88,15 +89,15 @@ public class Utils {
 
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
   private static final Pattern IP_V4 =
-      Pattern.compile(
-          "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
-              + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
-              + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+          Pattern.compile(
+                  "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
+                          + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
+                          + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
   private static final Pattern IP_V6 = Pattern.compile("^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}$");
   private static final Pattern IP_V6_COMPRESSED =
-      Pattern.compile(
-          "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
-              + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
+          Pattern.compile(
+                  "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
+                          + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
 
   private static final SocketHandlerFunction socketHandler;
 
@@ -106,7 +107,7 @@ public class Utils {
       init = SocketUtility.getSocketHandler();
     } catch (Throwable t) {
       SocketHandlerFunction defaultSocketHandler =
-          (options, host) -> Utils.standardSocket(options, host);
+              (options, host) -> Utils.standardSocket(options, host);
       init = defaultSocketHandler;
     }
     socketHandler = init;
@@ -116,7 +117,7 @@ public class Utils {
    * Use standard socket implementation.
    *
    * @param options url options
-   * @param host host to connect
+   * @param host    host to connect
    * @return socket
    * @throws IOException in case of error establishing socket.
    */
@@ -127,7 +128,7 @@ public class Utils {
       try {
         @SuppressWarnings("unchecked")
         Class<? extends SocketFactory> socketFactoryClass =
-            (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+                (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
         if (socketFactoryClass != null) {
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
@@ -138,15 +139,23 @@ public class Utils {
         }
       } catch (Exception exp) {
         throw new IOException(
-            "Socket factory failed to initialized with option \"socketFactory\" set to \""
-                + options.socketFactory
-                + "\"",
-            exp);
+                "Socket factory failed to initialized with option \"socketFactory\" set to \""
+                        + options.socketFactory
+                        + "\"",
+                exp);
       }
     }
     socketFactory = SocketFactory.getDefault();
     return socketFactory.createSocket();
   }
+
+  public static Socket socksSocket(Options options) {
+    String socksProxyHost = options.socksProxyHost;
+    int socksProxyPort = options.socksProxyPort;
+    return new Socket(new java.net.Proxy(java.net.Proxy.Type.SOCKS, new InetSocketAddress(socksProxyHost,
+            socksProxyPort)));
+  }
+
 
   /**
    * Escape String.

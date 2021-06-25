@@ -83,6 +83,8 @@ public class SocketUtility {
           } catch (RuntimeException re) {
             throw new IOException(re.getMessage(), re.getCause());
           }
+        }  else  if (options.socksProxyHost != null) {
+           return  Utils.socksSocket(options);
         } else {
           return Utils.standardSocket(options, host);
         }

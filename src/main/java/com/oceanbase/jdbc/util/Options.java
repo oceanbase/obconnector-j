@@ -78,6 +78,7 @@ public class Options implements Cloneable {
   public boolean useFractionalSeconds = true;
   public boolean pinGlobalTxToPhysicalConnection;
   public String socketFactory;
+
   public int connectTimeout =
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   public String pipe;
@@ -175,13 +176,15 @@ public class Options implements Cloneable {
   public boolean useOceanBaseProtocolV20 = true;
   public boolean useFormatExceptionMessage = false;
   public boolean allowSendParamTypes = false;
-  public int     complexDataCacheSize = 50;
+  public int  complexDataCacheSize = 50;
   public boolean cacheComplexData = true;
   public boolean useSqlStringCache = false;
   public boolean useServerPsStmtChecksum = true;
   public String  characterEncoding   = "utf8";
   public boolean useCursorFetch = false;
   public boolean supportNameBinding = true;
+  public String socksProxyHost;
+  public int  socksProxyPort = 1080;
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -528,6 +531,12 @@ public class Options implements Cloneable {
     if (supportNameBinding != opt.supportNameBinding) {
       return false;
     }
+    if (!Objects.equals(socksProxyHost,opt.socksProxyHost)) {
+      return false;
+    }
+    if (socksProxyPort != opt.socksProxyPort) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -639,6 +648,8 @@ public class Options implements Cloneable {
     result = 31 * result + (characterEncoding != null ?  characterEncoding.hashCode() : 0);
     result = 31 * result + (useCursorFetch ? 1 : 0);
     result = 31 * result + (supportNameBinding ? 1 : 0);
+    result = 31 * result + (socksProxyHost != null ? socksProxyHost.hashCode() : 0);
+    result = 31 * result + socksProxyPort;
     return result;
   }
 
