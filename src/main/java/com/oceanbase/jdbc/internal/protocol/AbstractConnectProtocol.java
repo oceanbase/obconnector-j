@@ -846,44 +846,36 @@ public abstract class AbstractConnectProtocol implements Protocol {
           mustLoadAdditionalInfo = false;
         }
       }
-
-      if (mustLoadAdditionalInfo) {
-        Map<String, String> serverData = new TreeMap<>();
-        if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
-          try {
-              if(!options.connectProxy) {
-                  sendPipelineAdditionalData();
-                  readPipelineAdditionalData(serverData);
-
-              }
-          } catch (SQLException sqle) {
-            if ("08".equals(sqle.getSQLState())) {
-              throw sqle;
-            }
-            // in case pipeline is not supported
-            // (proxy flush socket after reading first packet)
-              if(!options.connectProxy) {
-                  additionalData(serverData);
-              }
-          }
-        } else {
+        if (mustLoadAdditionalInfo) {
             if(!options.connectProxy) {
-                additionalData(serverData);
+                Map<String, String> serverData = new TreeMap<>();
+                if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
+                    try {
+                        sendPipelineAdditionalData();
+                        readPipelineAdditionalData(serverData);
+                    } catch (SQLException sqle) {
+                        if ("08".equals(sqle.getSQLState())) {
+                            throw sqle;
+                        }
+                        // in case pipeline is not supported
+                        // (proxy flush socket after reading first packet)
+                        additionalData(serverData);
+                    }
+                } else {
+                    additionalData(serverData);
+                }
+
+                writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+                autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+                loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
             }
+        } else {
+
+            writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
+            autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
+            loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
         }
 
-        if(!options.connectProxy) {
-            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-            autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
-            loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
-        }
-
-      } else {
-
-        writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
-        autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
-        loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
-      }
 
       reader.setServerThreadId(this.serverThreadId, isMasterConnection());
       writer.setServerThreadId(this.serverThreadId, isMasterConnection());
