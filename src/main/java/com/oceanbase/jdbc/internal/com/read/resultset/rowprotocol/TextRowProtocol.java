@@ -952,9 +952,7 @@ public class TextRowProtocol extends RowProtocol {
                 break;
             case NUMBER:
             case NUMBER_FLOAT:
-                return getInternalNumber(columnInfo);
-                //            case NUMBER_FLOAT:
-                //                return getInternalNumber_float(columnInfo);
+                return getInternalNumber(columnInfo).bigDecimalValue();
             case BINARY_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 return f;

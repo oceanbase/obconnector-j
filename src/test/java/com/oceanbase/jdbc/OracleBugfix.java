@@ -50,7 +50,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 
 public class OracleBugfix extends BaseOracleTest {
     static String testTMTable               = "test_timestamp" + getRandomString(5);
@@ -60,6 +62,10 @@ public class OracleBugfix extends BaseOracleTest {
     static String testColonIdentifierProc   = "testcolonproc" + getRandomString(5);
     static String testJDBIfunction          = "JDBIfunction1" + getRandomString(5);
     static String testJDBIfunction2         = "JDBIfunction1" + getRandomString(5);
+    static String testNumberCol1            = "testNumberCol1" + getRandomString(5);
+    static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
+    static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
+    static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -90,6 +96,10 @@ public class OracleBugfix extends BaseOracleTest {
                                           + "as\n" + "  ototoal  NUMBER;\n" + "begin\n"
                                           + "ototoal := i1 + i2 + i3;\n" + "return ototoal;\n"
                                           + "end");
+        createTable(testNumberCol1, "c1 int");
+        createTable(testNumberCol2, "c1 float");
+        createTable(testNumberCol3, "c1 decimal");
+        createTable(testNumberCol4, "c1 number");
     }
 
     @Test
@@ -286,6 +296,26 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Exception e) {
             Assert.fail();
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testNumberCol() {
+        try {
+            String nameList[] = { testNumberCol1, testNumberCol2, testNumberCol3, testNumberCol4 };
+            Statement statement = sharedConnection.createStatement();
+            ResultSet rs = null;
+            for (int i = 0; i < nameList.length; i++) {
+                String name = nameList[i];
+                statement.execute("insert into " + name + " values(1) ");
+                rs = statement.executeQuery("select c1 from " + name);
+                Assert.assertTrue(rs.next());
+                Object obj = rs.getObject(1);
+                Assert.assertEquals(obj.getClass(), BigDecimal.class);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
