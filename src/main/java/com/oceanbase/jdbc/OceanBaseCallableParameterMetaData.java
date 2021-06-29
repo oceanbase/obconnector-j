@@ -220,10 +220,14 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
                 paramMetaSql.append("' order by POSITION");
             } else{
-                if(!this.obOraclePackageName.equals("DBMS_LOB") ){
-                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                if(this.obOraclePackageName != null) {
+                    if (!this.obOraclePackageName.equals("DBMS_LOB")) {
+                        paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                    } else {
+                        paramMetaSql.append("' and owner = 'SYS'");
+                    }
                 } else {
-                    paramMetaSql.append("' and owner = 'SYS'");
+                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
                 }
                 paramMetaSql.append(" order by POSITION");
             }
