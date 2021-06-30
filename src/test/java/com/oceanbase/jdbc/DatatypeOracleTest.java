@@ -101,11 +101,15 @@ package com.oceanbase.jdbc;
 
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.Assert.*;
 
 public class DatatypeOracleTest extends BaseOracleTest {
@@ -789,6 +793,69 @@ public class DatatypeOracleTest extends BaseOracleTest {
             }
         } else {
             fail("must have result !");
+        }
+    }
+
+    @Test
+    public void testAllDataType() {
+        Connection conn = null;
+        Map<String, Object> map = new HashMap<String, Object>();
+        for (int i = 0; i <= 1; i++) {
+            try {
+                if (i == 0) {
+                    conn = sharedConnection;
+                } else {
+                    conn = getOracleConnection();
+                }
+
+                Statement statement = conn.createStatement();
+
+                try {
+                    statement.execute("drop table ALL_DATATYPE_TEST");
+                } catch (SQLException e) {
+                }
+
+                statement.execute("create table ALL_DATATYPE_TEST(\n" + " INT_TEST INT,\n"
+                                  + " VARCHAR2_TEST VARCHAR2(32),\n"
+                                  + " NVARCHAR2_TEST NVARCHAR2(32),\n"
+                                  + " NUMBER_TEST NUMBER(9,5),\n" + " FLOAT_TEST FLOAT(32),\n"
+                                  + " DATE_TEST DATE,\n" + " BINARY_FLOAT_TEST BINARY_FLOAT,\n"
+                                  + " BINARY_DOUBLE_TEST BINARY_DOUBLE,\n" + " ROWID_TEST ROWID,\n"
+                                  + " UROWID_TEST UROWID(4000),\n" + " CHAR_TEST CHAR(128),\n"
+                                  + " NCHAR_TEST NCHAR(128),\n" + " CLOB_TEST CLOB,\n"
+                                  + " BLOB_TEST BLOB,\n" + " TIMESTAMP_TEST TIMESTAMP,\n"
+                                  + " TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE,\n"
+                                  + " RAW_TEST RAW(100),\n"
+                                  + " TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE,\n"
+                                  + " INTERVAL_YEAR_TO_MONTH_TEST INTERVAL YEAR TO MONTH\n" + ")");
+
+                ResultSet rs = statement.executeQuery("select * FROM ALL_DATATYPE_TEST");
+
+                for (int p = 1; p <= 19; p++) {
+                    String columnTypeName = rs.getMetaData().getColumnTypeName(p);
+                    int columnType = rs.getMetaData().getColumnType(p);
+                    if (i == 0) {
+                        map.put("columnTypeName" + p, columnTypeName);
+                        map.put("columnType" + p, columnType);
+                    } else {
+                        System.out
+                            .println("column["
+                                     + p
+                                     + "] --------------------------------------------------------------");
+                        System.out.println("Oracle      " + "\t[TypeName|" + columnTypeName
+                                           + "] \t[TypeValue|" + columnType + "] \t");
+                        System.out.println("OB-Oracle   " + "\t[TypeName|"
+                                           + map.get("columnTypeName" + p) + "] \t[TypeValue|"
+                                           + map.get("columnType" + p) + "] \t");
+                        assertEquals(columnTypeName, map.get("columnTypeName" + p));
+                        assertEquals(columnType, map.get("columnType" + p));
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
         }
     }
 
