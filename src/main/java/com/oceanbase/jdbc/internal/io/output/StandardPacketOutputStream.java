@@ -62,11 +62,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
-    private static final Logger logger            = LoggerFactory
-                                                      .getLogger(StandardPacketOutputStream.class);
+    private static final Logger logger               = LoggerFactory
+                                                         .getLogger(StandardPacketOutputStream.class);
 
-    private static final int    MAX_PACKET_LENGTH = 0x00ffffff + 4;
-    private int                 maxPacketLength   = MAX_PACKET_LENGTH;
+    private static final int    MAX_PACKET_LENGTH    = 0x00ffffff + 4;
+    private int                 maxPacketLength      = MAX_PACKET_LENGTH;
+    private long                timestampBeforeFlush = 0;
 
     public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
         super(out, options.maxQuerySizeToLog, threadId);
@@ -93,6 +94,22 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         return 4;
     }
 
+    @Override
+    public void enableNetworkStatistics(boolean flag) {
+        enableNetworkStatistics = flag;
+        timestampBeforeFlush = 0;
+    }
+
+    @Override
+    public long getTimestampBeforeFlush() {
+        return timestampBeforeFlush;
+    }
+
+    @Override
+    public void clearNetworkStatistics() {
+        timestampBeforeFlush = 0;
+    }
+
     /**
      * Flush the internal buffer.
      *
@@ -100,6 +117,9 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException id connection error occur.
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {
+        if (enableNetworkStatistics) {
+            timestampBeforeFlush = System.currentTimeMillis();
+        }
         if (pos > 4) {
             buf[0] = (byte) (pos - 4);
             buf[1] = (byte) ((pos - 4) >>> 8);
@@ -140,6 +160,9 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException if socket error occur.
      */
     public void writeEmptyPacket() throws IOException {
+        if (enableNetworkStatistics) {
+            timestampBeforeFlush = System.currentTimeMillis();
+        }
         buf[0] = (byte) 0x00;
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;

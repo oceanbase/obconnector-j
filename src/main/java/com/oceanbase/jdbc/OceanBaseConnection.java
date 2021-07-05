@@ -143,6 +143,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * Is this connection associated with a global tx?
      */
     private boolean                  isInGlobalTx                 = false;
+    private boolean                  enableNetworkStatistics      = false;
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
     private java.sql.Connection      complexConnection            = null;
@@ -2269,4 +2270,43 @@ public class OceanBaseConnection implements ConnectionImpl {
     public void setInGlobalTx(boolean flag) {
         this.isInGlobalTx = flag;
     }
+
+    /*
+        Get the interactive time of jdbc api to send sql statement and get response in  milliseconds.
+        Throw an exception when the network statistics flag is false.
+     */
+    public long getLastPacketCostTime() throws SQLException {
+        return protocol.getLastPacketCostTime();
+    }
+
+    /*
+      Set the network statistics flag.
+     */
+    public void networkStatistics(boolean flag) {
+        protocol.setNetworkStatisticsFlag(flag);
+    }
+
+    /*
+       Clean up the remnants of the previous interaction time
+     */
+    public void clearNetworkStatistics() {
+        protocol.clearNetworkStatistics();
+    }
+
+    /**
+     *
+     * @return the timestamp of the returned packet that received the previous packet
+     */
+    public long getLastPacketResponseTimestamp() {
+        return protocol.getLastPacketResponseTimestamp();
+    }
+
+    /**
+     *
+     * @return  the timestamp when the last packet was sent
+     */
+    public long getLastPacketSendTimestamp() {
+        return protocol.getLastPacketSendTimestamp();
+    }
+
 }

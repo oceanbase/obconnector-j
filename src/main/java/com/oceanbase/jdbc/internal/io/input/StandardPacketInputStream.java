@@ -67,20 +67,23 @@ import com.oceanbase.jdbc.util.Options;
 
 public class StandardPacketInputStream implements PacketInputStream {
 
-    private static final int    REUSABLE_BUFFER_LENGTH = 1024;
-    private static final int    MAX_PACKET_SIZE        = 0xffffff;
-    private static final Logger logger                 = LoggerFactory
-                                                           .getLogger(StandardPacketInputStream.class);
-    private final byte[]        header                 = new byte[4];
-    private final byte[]        reusableArray          = new byte[REUSABLE_BUFFER_LENGTH];
+    private static final int    REUSABLE_BUFFER_LENGTH  = 1024;
+    private static final int    MAX_PACKET_SIZE         = 0xffffff;
+    private static final Logger logger                  = LoggerFactory
+                                                            .getLogger(StandardPacketInputStream.class);
+    private final byte[]        header                  = new byte[4];
+    private final byte[]        reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
 
     private final InputStream   inputStream;
     private final int           maxQuerySizeToLog;
     private int                 packetSeq;
     private int                 lastPacketLength;
-    private String              serverThreadLog        = "";
+    private String              serverThreadLog         = "";
     private long                threadId;
-    private LruTraceCache       traceCache             = null;
+    private LruTraceCache       traceCache              = null;
+    private boolean             enableNetworkStatistics = false;
+    private boolean             firstRead               = false;
+    private long                timestampAfterRead      = 0;
 
     /**
      * Constructor of standard socket MySQL packet stream reader.
@@ -239,11 +242,18 @@ public class StandardPacketInputStream implements PacketInputStream {
         // ***************************************************
         int remaining = 4;
         int off = 0;
+        boolean first = true;
         do {
             int count = inputStream.read(header, off, remaining);
             if (count < 0) {
                 throw new EOFException("unexpected end of stream, read " + off
                                        + " bytes from 4 (socket was closed by server)");
+            }
+            if (first) {
+                first = false;
+                if (enableNetworkStatistics) {
+                    timestampAfterRead = System.currentTimeMillis();
+                }
             }
             remaining -= count;
             off += count;
@@ -378,5 +388,21 @@ public class StandardPacketInputStream implements PacketInputStream {
 
     public void setTraceCache(LruTraceCache traceCache) {
         this.traceCache = traceCache;
+    }
+
+    @Override
+    public void enableNetworkStatistics(boolean flag) {
+        timestampAfterRead = 0; // clear
+        enableNetworkStatistics = flag;
+    }
+
+    @Override
+    public long getTimestampAfterRead() {
+        return timestampAfterRead;
+    }
+
+    @Override
+    public void clearNetworkStatistics() {
+        timestampAfterRead = 0;
     }
 }

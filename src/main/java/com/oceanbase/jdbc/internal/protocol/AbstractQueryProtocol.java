@@ -118,6 +118,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
   private long checksum = 1;
+  private boolean enableNetworkStatistics = false;
 
   /**
    * Get a protocol instance.
@@ -1182,6 +1183,45 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
         }
     }
+
+  @Override
+  public long getLastPacketCostTime() throws SQLException {
+    if(!enableNetworkStatistics) {
+      throw new SQLException("Cant get network cost info while setNetworkStatisticsFlag(true)");
+    } else {
+      return reader.getTimestampAfterRead() - writer.getTimestampBeforeFlush();
+    }
+  }
+
+  @Override
+  public void setNetworkStatisticsFlag(boolean flag) {
+      enableNetworkStatistics = flag;
+      writer.enableNetworkStatistics(flag);
+      reader.enableNetworkStatistics(flag);
+  }
+
+  @Override
+  public boolean getNetworkStatisticsFlag() {
+    return enableNetworkStatistics;
+  }
+
+  @Override
+  public long getLastPacketResponseTimestamp() {
+    return reader.getTimestampAfterRead();
+  }
+
+  @Override
+  public long getLastPacketSendTimestamp() {
+    return writer.getTimestampBeforeFlush();
+  }
+
+  @Override
+  public void clearNetworkStatistics() {
+      writer.clearNetworkStatistics();
+      reader.clearNetworkStatistics();
+  }
+
+
   /** Rollback transaction. */
   public void rollback() throws SQLException {
 

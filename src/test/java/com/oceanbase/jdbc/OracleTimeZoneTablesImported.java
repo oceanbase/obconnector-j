@@ -53,6 +53,7 @@ import java.sql.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class OracleTimeZoneTablesImported extends BaseOracleTest {
     static String tztable1 = "tztest1";

@@ -82,6 +82,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private boolean           bufferContainDataAfterMark = false;
     protected long            threadId;
     private TimeZone          tm                         = null;
+    protected boolean         enableNetworkStatistics    = false;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
