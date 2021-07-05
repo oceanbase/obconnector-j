@@ -319,4 +319,27 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testStatementWarnings() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table t");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            Statement stmt = conn.createStatement();
+            stmt.execute("create table t(a int)");
+            stmt.execute("create or replace procedure pp\n" + "is\n" + "begin\n"
+                         + "insert into t(a1) values(1);\n" + "end;\n");
+            SQLWarning sqlWarning = stmt.getWarnings();
+            System.out.println("sqlWarning = " + sqlWarning.getMessage());
+            sqlWarning = sqlWarning.getNextWarning();
+            Assert.assertEquals(null, sqlWarning);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

@@ -1120,7 +1120,10 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
             return null;
         }
-
+        // If it is oracle mode and protocol.hasWarnings() , need to return a SQLWarning to inform the user
+        if(protocol.isOracleMode() ){
+            return new SQLWarning("The execution is complete, but with warnings");
+        }
         SQLWarning last = null;
         SQLWarning first = null;
 
