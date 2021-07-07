@@ -342,4 +342,32 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void fixGetColumnsNullable() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table TESTNULLABLE");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table TESTNULLABLE (c1 varchar2(36))");
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            ResultSet resultSet = databaseMetaData.getColumns(null, null, "TESTNULLABLE", null);
+            while (resultSet.next()) {
+                String name = resultSet.getString("COLUMN_NAME");
+                System.out.println("name = " + name);
+                int length = resultSet.getInt("COLUMN_SIZE");
+                System.out.println("length = " + length);
+                int nullable = resultSet.getInt("NULLABLE");
+                System.out.println("nullable = " + nullable);
+                Assert.assertEquals(1, nullable);
+            }
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
 }

@@ -126,14 +126,14 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
             assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
             assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // DATA_DEFAULT
             assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
             assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
             assertEquals(32, rs.getInt(16)); // DATA_LENGTH
             assertEquals(2, rs.getInt(17)); // COLUMN_ID
-            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
             assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
             assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
             assertEquals(null, rs.getString(21)); // SCOPE_TABLE
@@ -150,13 +150,13 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
             assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
             assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
                        || rs.getString(13) == null); // COLUMN_DEF
             assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
             assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
-            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
             assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
             assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
             assertEquals(null, rs.getString(21)); // SCOPE_TABLE
@@ -173,13 +173,13 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
             assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
-            assertEquals(0, rs.getInt(11)); // NULLABLE
+            assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
             assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
                        || rs.getString(13) == null); // COLUMN_DEF
             assertEquals(5, rs.getInt(16)); // CHAR_OCTET_LENGTH
             assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
-            assertEquals("NO", rs.getString(18)); // IS_NULLABLE
+            assertEquals("YES", rs.getString(18)); // IS_NULLABLE
             assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
             assertEquals(null, rs.getString(20)); // SCOPE_SCHEMA
             assertEquals(null, rs.getString(21)); // SCOPE_TABLE
