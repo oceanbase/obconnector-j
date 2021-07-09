@@ -113,10 +113,8 @@ public class BaseOracleTest {
 
   public  Connection getOracleConnection() throws Exception {
     String oracleUrl = System.getProperty("oracleConnectionUrl", mDefUrl);
-    String oracle_username = "oracle";
-    String oracle_password = "oracle";
     Class.forName("oracle.jdbc.driver.OracleDriver");
-    return DriverManager.getConnection(oracleUrl, oracle_username, oracle_password);
+    return DriverManager.getConnection(oracleUrl);
   }
   @Rule
   public TestRule watcher =

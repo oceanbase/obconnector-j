@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.*;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
@@ -149,25 +150,37 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     return clone;
   }
 
-  private void prepare(String sql) throws SQLException {
-    try {
-      ObCrc32C crc32C = new ObCrc32C();
-      crc32C.reset();
-      byte[] b = sql.getBytes(); //  Consider the case of multiple character sets
-      crc32C.update(b, 0, b.length);
-      this.checksum = crc32C.getValue();
-      serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
-      setMetaFromResult(); // Get result for prepare, but the type not precision.
-    } catch (SQLException e) {
-      try {
-        this.close();
-      } catch (Exception ee) {
-        // eat exception.
-      }
-      logger.error("error preparing query", e);
-      throw exceptionFactory.raiseStatementError(connection, this).create(e);
+    private void prepare(String sql) throws SQLException {
+        try {
+            ObCrc32C crc32C = new ObCrc32C();
+            crc32C.reset();
+            byte[] b; //  Consider the case of multiple character set
+            try {
+                b = sql.getBytes(options.characterEncoding);
+            } catch (UnsupportedEncodingException e) {
+                try {
+                    this.close();
+                } catch (Exception ee) {
+                    // eat exception.
+                }
+                SQLException sqlException = new SQLException("sql string getBytes error" + e.getMessage());
+                logger.error("error preparing query", sqlException);
+                throw exceptionFactory.raiseStatementError(connection, this).create(sqlException);
+            }
+            crc32C.update(b, 0, b.length);
+            this.checksum = crc32C.getValue();
+            serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
+            setMetaFromResult(); // Get result for prepare, but the type not precision.
+        } catch (SQLException e) {
+            try {
+                this.close();
+            } catch (Exception ee) {
+                // eat exception.
+            }
+            logger.error("error preparing query", e);
+            throw exceptionFactory.raiseStatementError(connection, this).create(e);
+        }
     }
-  }
 
   private void setMetaFromResult() {
     parameterCount = serverPrepareResult.getParameters().length;
