@@ -140,6 +140,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
         createTable("signedMediumIntTest", "id number(7)");
         createTable("signedIntTest", "id INT");
         createTable("signedBigIntTest", "id number(19)");
+        createTable("testfloat", "id float(10)");
 
     }
 

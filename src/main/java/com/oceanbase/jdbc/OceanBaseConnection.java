@@ -737,6 +737,11 @@ public class OceanBaseConnection implements ConnectionImpl {
                         cloneNotSupportedException.printStackTrace();
                     }
                 }
+                // Convert the arguments string to normal format
+                if (this.protocol.isOracleMode() && options.supportNameBinding && isFunction) {
+                    arguments = Utils.trimSQLString(arguments, protocol.noBackslashEscapes(),
+                        protocol.isOracleMode(), false);
+                }
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
@@ -793,9 +798,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                     databaseAndProcedure, (arguments == null) ? "()" : arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             } else {
-                return new OceanBaseProcedureStatement(true, "SELECT " + databaseAndProcedure
-                                                             + arguments + " FROM DUAL",
-                    (OceanBaseConnection) this, databaseAndProcedure, database, resultSetType,
+                return new OceanBaseProcedureStatement(true, "BEGIN ?:=" + databaseAndProcedure
+                                                             + arguments + ";END;",
+                    (OceanBaseConnection) this, procedureName, database, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             }
         } else {

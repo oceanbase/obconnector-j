@@ -505,7 +505,7 @@ public class TextRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
-                //            case NUMBER_FLOAT:
+
             case BINARY_DOUBLE:
                 try {
                     return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
@@ -520,7 +520,7 @@ public class TextRowProtocol extends RowProtocol {
                     throw sqlException;
                 }
             case BINARY_FLOAT:
-
+            case NUMBER_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
                 return (double) f;
             case OBDECIMAL:

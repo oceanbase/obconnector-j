@@ -491,7 +491,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
     }
 
     // function name has out arguments not supported
-    @Ignore
+    @Test
     public void odcFcuntionCommandTest2() {
         try {
             Connection conn = sharedConnection;
@@ -507,6 +507,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             CallableStatement callableStatement = conn
                 .prepareCall("{? = call \nfunc_test2\n(?,?,?)}");
             System.out.println("index binding");
+
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt(2, 10);
@@ -526,6 +527,31 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testDBPackageFunction1() throws SQLException {
+        String head = "create or replace package t_pack4 as a int;"
+                      + "function t_fun1 (a in int, b in int ,c in int) return int; end;";
+        String body = "create or replace package body t_pack4 as "
+                      + "function t_fun1 (a in int, b in int ,c in int) return int as a_result int ;begin "
+                      + "return a + b + c; end; end;";
+        Statement statement = sharedConnection.createStatement();
+        try {
+            statement.execute("drop package t_pack4");
+        } catch (SQLException e) {
+            //            e.printStackTrace();
+        }
+        statement.execute(head);
+        statement.execute(body);
+
+        CallableStatement cs = sharedConnection.prepareCall("{? = call t_pack4.t_fun1(?,?,?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt(2, 1);
+        cs.setInt(3, 1);
+        cs.setInt(4, 1);
+        cs.execute();
+        assertEquals(3, cs.getInt(1));
     }
 
 }

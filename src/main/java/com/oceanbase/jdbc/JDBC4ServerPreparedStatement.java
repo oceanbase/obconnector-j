@@ -184,9 +184,6 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   private void setMetaFromResult() {
     parameterCount = serverPrepareResult.getParameters().length;
-    if (isObFunction) {
-      //parameterCount++;
-    }
     metadata =
         new OceanBaseResultSetMetaData(
             serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false,this.protocol.isOracleMode());

@@ -426,6 +426,13 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
         int i = 0;
         this.params = new ArrayList<CallParameter>();
+        if (isFunction) {
+            CallParameter callParameter = new CallParameter();
+            callParameter.setOutput(true);
+            callParameter.setInput(false);
+            callParameter.setName("functionreturn");
+            params.add(callParameter);
+        }
         while (paramTypesRs.next()) {
             String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String inOut = paramTypesRs.getString("IN_OUT");

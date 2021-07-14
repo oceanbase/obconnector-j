@@ -151,8 +151,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                 name = name.replaceAll("\\`(\\w+)\\`", "$1");
             }
             if (name != null && name.equalsIgnoreCase(parameterName)) {
-                //return i;
-                return isObFunction ? i + 1 : i; //it will minus by function
+                return i;
             }
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
@@ -618,10 +617,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
-        if (this.isObFunction && parameterIndex == 1) {
-            //parameterIndex --;
-            return;
-        }
         //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
@@ -1188,9 +1183,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     private int checkAndMinusForObFunction(int parameterIndex) {
-        if (this.isObFunction) {
-            parameterIndex--;
-        }
         return parameterIndex;
     }
 
