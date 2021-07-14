@@ -828,6 +828,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
                                   + " TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE,\n"
                                   + " RAW_TEST RAW(100),\n"
                                   + " TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE,\n"
+                                  + " INTERVAL_DAY_TO_SECOND_TEST INTERVAL DAY TO SECOND,\n"
                                   + " INTERVAL_YEAR_TO_MONTH_TEST INTERVAL YEAR TO MONTH\n" + ")");
 
                 ResultSet rs = statement.executeQuery("select * FROM ALL_DATATYPE_TEST");

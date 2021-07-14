@@ -348,6 +348,8 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                     return ObOracleDefs.FIELD_JAVA_TYPE_NCHAR;
                 case INTERVALYM:
                     return ObOracleDefs.FIELD_JAVA_TYPE_INTERVALYM;
+                case INTERVALDS:
+                    return ObOracleDefs.FIELD_JAVA_TYPE_INTERVALDS;
             }
         }
         switch (ci.getColumnType()) {

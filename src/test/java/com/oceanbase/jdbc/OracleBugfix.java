@@ -320,6 +320,28 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testBug35276523() throws Exception {
+        Connection conn = sharedConnection;
+        Statement statement = conn.createStatement();
+        try {
+            statement.execute("drop table test_decimal");
+        } catch (SQLException e) {
+            // e.printStackTrace();
+        }
+        statement
+            .executeUpdate("create table test_decimal (c1 int, c2 float, c3 decimal, c4 number)");
+        String sql = "insert into test_decimal values (1, 1, 1, 1)";
+        Assert.assertEquals(1, conn.prepareStatement(sql).executeUpdate());
+
+        ResultSet rs = conn.prepareStatement("select * from test_decimal").executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(1).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(2).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(3).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(4).getClass());
+    }
+
+    @Test
     public void testStatementWarnings() {
         try {
             Connection conn = sharedConnection;
