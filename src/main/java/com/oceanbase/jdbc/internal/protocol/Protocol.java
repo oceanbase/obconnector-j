@@ -299,4 +299,17 @@ public interface Protocol {
 
     ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
                                             int fetchSize, Results results) throws SQLException;
+
+    long getLastPacketCostTime() throws SQLException;
+
+    void setNetworkStatisticsFlag(boolean flag);
+
+    boolean getNetworkStatisticsFlag();
+
+    long getLastPacketResponseTimestamp();
+
+    long getLastPacketSendTimestamp();
+
+    void clearNetworkStatistics();
+
 }

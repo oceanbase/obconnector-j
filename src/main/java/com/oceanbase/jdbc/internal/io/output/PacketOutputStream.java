@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.sql.SQLException;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
@@ -155,4 +156,10 @@ public interface PacketOutputStream {
     void writeLongV1(long i) throws IOException;
 
     void writeFloatV1(float f) throws IOException;
+
+    void enableNetworkStatistics(boolean flag);
+
+    long getTimestampBeforeFlush();
+
+    void clearNetworkStatistics();
 }

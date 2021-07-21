@@ -70,4 +70,10 @@ public interface PacketInputStream {
     void setServerThreadId(long serverThreadId, Boolean isMaster);
 
     void setTraceCache(LruTraceCache traceCache);
+
+    void enableNetworkStatistics(boolean flag);
+
+    long getTimestampAfterRead();
+
+    void clearNetworkStatistics();
 }

@@ -272,7 +272,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             data[7] = results.getString("BUFFER_LENGTH");
             data[8] = results.getString("DECIMAL_DIGITS");
             data[9] = results.getString("NUM_PREC_RADIX");
-            String nullabilityInfo = results.getString("NULLABLE");
+            String nullabilityInfo = results.getString("IS_NULLABLE");
             String isNullable = null;
             int  nullability = 0;
             if (nullabilityInfo != null) {

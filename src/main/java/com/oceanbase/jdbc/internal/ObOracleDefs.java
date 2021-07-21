@@ -63,5 +63,6 @@ public class ObOracleDefs {
     public static final int FIELD_JAVA_TYPE_CLOB          = 2005;
 
     public static final int FIELD_JAVA_TYPE_INTERVALYM    = -103;
+    public static final int FIELD_JAVA_TYPE_INTERVALDS    = -104;
 
 }

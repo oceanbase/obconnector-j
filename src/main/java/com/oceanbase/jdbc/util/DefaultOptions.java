@@ -669,7 +669,7 @@ public enum DefaultOptions {
           + "connector will use this value, ignoring server information",
       false),
   DEFAULT_FETCH_SIZE(
-      "defaultFetchSize",
+          "defaultFetchSize",
       0,
       0,
       "2.4.2",
@@ -753,6 +753,7 @@ public enum DefaultOptions {
   COMPLEX_DATA_CACHE_SIZE(
           "complexDataCacheSize",
           50,
+          0,
           "2.0.1",
           "Cached complex data size",
           false
@@ -792,6 +793,28 @@ public enum DefaultOptions {
           Boolean.FALSE,
           "NA",
           "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
+          false
+  ),
+  SOCKS_PROXY_HOST(
+          "socksProxyHost",
+          (String) null,
+          "2.2.3",
+          "Name or IP address of SOCKS host to connect through.",
+          false
+  ),
+  SOCKS_PROXY_PORT(
+          "socksProxyPort",
+          1080,
+          0,
+          "2.2.3",
+          "Port of SOCKS server.",
+          false
+  ),
+  CONNECT_PROXY(
+          "connectProxy",
+          Boolean.FALSE,
+          "2.2.3",
+          "Indicate driver to connect to ob proxy ",
           false
   ),
   SUPPORT_NAME_BINDING(

@@ -66,23 +66,25 @@ import com.oceanbase.jdbc.internal.util.Utils;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
-    private static final int    REUSABLE_BUFFER_LENGTH = 1024;
-    private static final int    MAX_PACKET_SIZE        = 0xffffff;
-    private static final Logger logger                 = LoggerFactory
-                                                           .getLogger(DecompressPacketInputStream.class);
-    private final byte[]        header                 = new byte[7];
-    private final byte[]        reusableArray          = new byte[REUSABLE_BUFFER_LENGTH];
+    private static final int    REUSABLE_BUFFER_LENGTH  = 1024;
+    private static final int    MAX_PACKET_SIZE         = 0xffffff;
+    private static final Logger logger                  = LoggerFactory
+                                                            .getLogger(DecompressPacketInputStream.class);
+    private final byte[]        header                  = new byte[7];
+    private final byte[]        reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
     private final InputStream   inputStream;
     private final int           maxQuerySizeToLog;
     // compress packet can contain multiple standard packet
-    private byte[]              cacheData              = new byte[0];
+    private byte[]              cacheData               = new byte[0];
     private int                 cachePos;
     private int                 cacheEnd;
     private int                 packetSeq;
     private int                 compressPacketSeq;
-    private String              serverThreadLog        = "";
-    private LruTraceCache       traceCache             = null;
+    private String              serverThreadLog         = "";
+    private LruTraceCache       traceCache              = null;
     private long                threadId;
+    private boolean             enableNetworkStatistics = false;
+    private long                timestampAfterRead      = 0;
 
     public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog, long threadId) {
         inputStream = in;
@@ -110,9 +112,16 @@ public class DecompressPacketInputStream implements PacketInputStream {
         }
 
         // loop until having the whole packet
+        boolean first = true;
         do {
             // Read 7 byte header
             readBlocking(header, 7);
+            if (first) {
+                first = false;
+                if (enableNetworkStatistics) {
+                    timestampAfterRead = System.currentTimeMillis();
+                }
+            }
 
             int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8)
                                    + ((header[2] & 0xff) << 16);
@@ -302,5 +311,21 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
     public void setTraceCache(LruTraceCache traceCache) {
         this.traceCache = traceCache;
+    }
+
+    @Override
+    public void enableNetworkStatistics(boolean flag) {
+        timestampAfterRead = 0; // clear
+        enableNetworkStatistics = flag;
+    }
+
+    @Override
+    public long getTimestampAfterRead() {
+        return timestampAfterRead;
+    }
+
+    @Override
+    public void clearNetworkStatistics() {
+        timestampAfterRead = 0;
     }
 }

@@ -76,6 +76,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private int                 compressSeqNo;
     private byte[]              remainingData                  = new byte[0];
     private boolean             lastPacketExactMaxPacketLength = false;
+    private long                timestampBeforeFlush           = 0;
 
     public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
         super(out, maxQuerySizeToLog, threadId);
@@ -103,6 +104,22 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
     public int initialPacketPos() {
         return 0;
+    }
+
+    @Override
+    public void enableNetworkStatistics(boolean flag) {
+        timestampBeforeFlush = 0;
+        enableNetworkStatistics = flag;
+    }
+
+    @Override
+    public long getTimestampBeforeFlush() {
+        return timestampBeforeFlush;
+    }
+
+    @Override
+    public void clearNetworkStatistics() {
+        timestampBeforeFlush = 0;
     }
 
     /**
@@ -142,6 +159,9 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException id connection error occur.
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {
+        if (enableNetworkStatistics) {
+            timestampBeforeFlush = System.currentTimeMillis();
+        }
     if (pos > 0) {
       if (pos + remainingData.length > MIN_COMPRESSION_SIZE) {
 
@@ -444,6 +464,9 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException if socket error occur.
      */
     public void writeEmptyPacket() throws IOException {
+        if (enableNetworkStatistics) {
+            timestampBeforeFlush = System.currentTimeMillis();
+        }
         buf[0] = (byte) 4;
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;
