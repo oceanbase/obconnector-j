@@ -140,7 +140,6 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
             Assert.assertEquals(13, columnCount);
             ResultSetMetaData resultSetMetaData = rs.getMetaData();
             Assert.assertTrue(rs.next());
-            Assert.assertTrue(rs.next());
             for (int i = 1; i <= columnCount; i++) {
                 System.out.print("column " + resultSetMetaData.getColumnName(i));
                 System.out.println(" value = " + rs.getString(i));

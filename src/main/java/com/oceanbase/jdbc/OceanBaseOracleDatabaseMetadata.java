@@ -480,8 +480,9 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                       + "       c.column_name,\n" + "       null as asc_or_desc,\n"
                       + "       i.distinct_keys as cardinality,\n"
                       + "       i.leaf_blocks as pages,\n" + "       null as filter_condition\n"
-                      + "from all_indexes i, all_ind_columns c\n" + "where i.table_name = '"
-                      + table + "'\n";
+                      + "from (select /*+no_merge*/ * from all_indexes i where i.table_name = '"
+                      + table + "') i, all_ind_columns c\n" + "where i.table_name = '" + table
+                      + "'\n";
         String sql3 = "";
         if (unique) {
             sql3 = "  and i.uniqueness = 'UNIQUE'\n";
