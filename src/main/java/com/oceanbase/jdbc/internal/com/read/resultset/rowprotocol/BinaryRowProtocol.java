@@ -1178,7 +1178,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 byte[] b = new byte[length];
                 System.arraycopy(buf, pos, b, 0, length);
                 NUMBER number = new NUMBER(b);
-                return number;
+                return number.bigDecimalValue();
             case TIME:
                 return getInternalTime(columnInfo, null, timeZone);
             case OLDDECIMAL:

@@ -220,10 +220,14 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
                 paramMetaSql.append("' order by POSITION");
             } else{
-                if(!this.obOraclePackageName.equals("DBMS_LOB") ){
-                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                if(this.obOraclePackageName != null) {
+                    if (!this.obOraclePackageName.equals("DBMS_LOB")) {
+                        paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
+                    } else {
+                        paramMetaSql.append("' and owner = 'SYS'");
+                    }
                 } else {
-                    paramMetaSql.append("' and owner = 'SYS'");
+                    paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
                 }
                 paramMetaSql.append(" order by POSITION");
             }
@@ -422,6 +426,13 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
         int i = 0;
         this.params = new ArrayList<CallParameter>();
+        if (isFunction) {
+            CallParameter callParameter = new CallParameter();
+            callParameter.setOutput(true);
+            callParameter.setInput(false);
+            callParameter.setName("functionreturn");
+            params.add(callParameter);
+        }
         while (paramTypesRs.next()) {
             String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String inOut = paramTypesRs.getString("IN_OUT");

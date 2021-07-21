@@ -143,6 +143,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * Is this connection associated with a global tx?
      */
     private boolean                  isInGlobalTx                 = false;
+    private boolean                  enableNetworkStatistics      = false;
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
     private java.sql.Connection      complexConnection            = null;
@@ -736,6 +737,11 @@ public class OceanBaseConnection implements ConnectionImpl {
                         cloneNotSupportedException.printStackTrace();
                     }
                 }
+                // Convert the arguments string to normal format
+                if (this.protocol.isOracleMode() && options.supportNameBinding && isFunction) {
+                    arguments = Utils.trimSQLString(arguments, protocol.noBackslashEscapes(),
+                        protocol.isOracleMode(), false);
+                }
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
@@ -792,9 +798,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                     databaseAndProcedure, (arguments == null) ? "()" : arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             } else {
-                return new OceanBaseProcedureStatement(true, "SELECT " + databaseAndProcedure
-                                                             + arguments + " FROM DUAL",
-                    (OceanBaseConnection) this, databaseAndProcedure, database, resultSetType,
+                return new OceanBaseProcedureStatement(true, "BEGIN ?:=" + databaseAndProcedure
+                                                             + arguments + ";END;",
+                    (OceanBaseConnection) this, procedureName, database, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             }
         } else {
@@ -1120,7 +1126,10 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
             return null;
         }
-
+        // If it is oracle mode and protocol.hasWarnings() , need to return a SQLWarning to inform the user
+        if(protocol.isOracleMode() ){
+            return new SQLWarning("The execution is complete, but with warnings");
+        }
         SQLWarning last = null;
         SQLWarning first = null;
 
@@ -2229,9 +2238,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.protocol.isOracleMode()) {
             boolean needSetSessionTimeZone = true;
             TimeZone targetTimeZone = TimeZone.getTimeZone(zoneID);
-            if (null != sessionTimeZone
-                && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
-                needSetSessionTimeZone = false;
+            if (!protocol.isTZTablesImported()) {
+                if (null != sessionTimeZone
+                    && targetTimeZone.getRawOffset() == sessionTimeZone.getRawOffset()) {
+                    needSetSessionTimeZone = false;
+                }
+            } else {
+                if (null != sessionTimeZone && sessionTimeZone.getID().equals(zoneID)) {
+                    needSetSessionTimeZone = false;
+                }
             }
             if (needSetSessionTimeZone) {
                 java.sql.Statement stmt = getMetadataSafeStatement();
@@ -2260,4 +2275,43 @@ public class OceanBaseConnection implements ConnectionImpl {
     public void setInGlobalTx(boolean flag) {
         this.isInGlobalTx = flag;
     }
+
+    /*
+        Get the interactive time of jdbc api to send sql statement and get response in  milliseconds.
+        Throw an exception when the network statistics flag is false.
+     */
+    public long getLastPacketCostTime() throws SQLException {
+        return protocol.getLastPacketCostTime();
+    }
+
+    /*
+      Set the network statistics flag.
+     */
+    public void networkStatistics(boolean flag) {
+        protocol.setNetworkStatisticsFlag(flag);
+    }
+
+    /*
+       Clean up the remnants of the previous interaction time
+     */
+    public void clearNetworkStatistics() {
+        protocol.clearNetworkStatistics();
+    }
+
+    /**
+     *
+     * @return the timestamp of the returned packet that received the previous packet
+     */
+    public long getLastPacketResponseTimestamp() {
+        return protocol.getLastPacketResponseTimestamp();
+    }
+
+    /**
+     *
+     * @return  the timestamp when the last packet was sent
+     */
+    public long getLastPacketSendTimestamp() {
+        return protocol.getLastPacketSendTimestamp();
+    }
+
 }

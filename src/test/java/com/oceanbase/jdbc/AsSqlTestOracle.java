@@ -55,13 +55,18 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class AsSqlTestOracle extends BaseOracleTest {
+    static String tableName2 = "sqlcost" + getRandomString(5);
+
     @BeforeClass
     public static void initClass() throws SQLException {
         createTable("astest1", "c1 int");
+        createTable(tableName2, "c1 int");
+
     }
 
     @Test
@@ -81,5 +86,36 @@ public class AsSqlTestOracle extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testCostTime() {
+        try {
+            Connection conn = sharedConnection;
+            ((OceanBaseConnection) conn).networkStatistics(true);
+            PreparedStatement ps = conn
+                .prepareStatement("insert into " + tableName2 + " values(?)");
+            long ms = ((OceanBaseConnection) conn).getLastPacketCostTime();
+            System.out.println("prepareStatement  cost info  = " + ms + "ms");
+            /*  getNetWorkCostInfo gets the information of the last network transmission, setInt will not perform network transmission, so it needs to be cleaned up*/
+            ((OceanBaseConnection) conn).clearNetworkStatistics();
+            ms = ((OceanBaseConnection) conn).getLastPacketCostTime();
+            ps.setInt(1, 1);
+
+            System.out.println("setInt   cost info  = " + ms + "ms");
+            ps.execute();
+            ms = ((OceanBaseConnection) conn).getLastPacketCostTime();
+            long sendTs = ((OceanBaseConnection) conn).getLastPacketSendTimestamp();
+            long responseTs = ((OceanBaseConnection) conn).getLastPacketResponseTimestamp();
+            System.out
+                .println(" (responseTs - sendTs) + \"m's\" = " + (responseTs - sendTs) + "ms");
+            System.out.println("execute  cost info  = " + ms + "ms");
+            ((OceanBaseConnection) conn).networkStatistics(false);
+            ms = ((OceanBaseConnection) conn).getLastPacketCostTime();
+        } catch (SQLException e) {
+            Assert.assertEquals("Cant get network cost info while setNetworkStatisticsFlag(true)",
+                e.getMessage());
+        }
+
     }
 }

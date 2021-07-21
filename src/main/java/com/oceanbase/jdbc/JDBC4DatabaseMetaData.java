@@ -3259,13 +3259,19 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
                         "SHOW CREATE PROCEDURE " + procNameBuf.toString());
                 paramRetrievalRs.next();
-                String procedureDDl = paramRetrievalRs.getString("Create Procedure");
 
-                String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1
-                );
+                String procedureDDl = paramRetrievalRs.getString("Create Procedure");
+                int startIndex = procedureDDl.indexOf("(");
+                int endIdex = procedureDDl.indexOf("BEGIN");
+                String paramList = null;
+                if (endIdex != -1 && endIdex > startIndex) {
+                    paramList  = procedureDDl.substring(startIndex - 1,
+                            endIdex -1);
+                } else {
+                    paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);
+                }
                 paramListArray.add(paramList);
                 nameArray.add(name);
-
             }
         }
 

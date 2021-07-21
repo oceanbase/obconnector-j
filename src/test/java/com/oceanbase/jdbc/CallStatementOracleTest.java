@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import org.junit.*;
 
 import java.sql.*;
@@ -440,5 +441,25 @@ public class CallStatementOracleTest extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testUrlWithoutDatabase() {
+        try {
+            String url = System.getProperty("urlWithoutDatabase");
+            Class.forName("com.oceanbase.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(url);
+            conn.createStatement().execute(
+                "create or replace  procedure proctest35 (x out int)\n is BEGIN\n x :=1 ;end\n ");
+            CallableStatement callableStatement = conn.prepareCall("call proctest35(?) ");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.execute();
+            System.out.println("callableStatement = " + callableStatement.getInt(1));
+            Assert.assertEquals(1, callableStatement.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
     }
 }

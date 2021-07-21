@@ -53,6 +53,7 @@ import java.sql.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class OracleTimeZoneTablesImported extends BaseOracleTest {
     static String tztable1 = "tztest1";
@@ -133,6 +134,10 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
     public void insertTSLTZ() {
         try {
             Connection connection = sharedConnection;
+            String val = ((ConnectionImpl) sharedConnection).getSessionTimeZone();
+            ((ConnectionImpl) sharedConnection).setSessionTimeZone("Asia/Shanghai");
+            val = ((ConnectionImpl) sharedConnection).getSessionTimeZone();
+            System.out.println("set time zone to " + val);
             PreparedStatement ps = connection.prepareStatement("insert into " + tztable3
                                                                + " values(?)");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")
@@ -151,7 +156,7 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
             Assert.assertTrue(rs.next());
             System.out.println("rs.getString(1) = " + rs.getString(1));
             Assert.assertEquals("2019-04-01 23:24:11.125201 Asia/Shanghai", rs.getString(1));
-
+            ((ConnectionImpl) sharedConnection).setSessionTimeZone(val);
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();

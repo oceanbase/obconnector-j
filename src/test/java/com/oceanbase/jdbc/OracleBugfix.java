@@ -50,7 +50,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 
 public class OracleBugfix extends BaseOracleTest {
     static String testTMTable               = "test_timestamp" + getRandomString(5);
@@ -60,6 +62,10 @@ public class OracleBugfix extends BaseOracleTest {
     static String testColonIdentifierProc   = "testcolonproc" + getRandomString(5);
     static String testJDBIfunction          = "JDBIfunction1" + getRandomString(5);
     static String testJDBIfunction2         = "JDBIfunction1" + getRandomString(5);
+    static String testNumberCol1            = "testNumberCol1" + getRandomString(5);
+    static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
+    static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
+    static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -90,6 +96,10 @@ public class OracleBugfix extends BaseOracleTest {
                                           + "as\n" + "  ototoal  NUMBER;\n" + "begin\n"
                                           + "ototoal := i1 + i2 + i3;\n" + "return ototoal;\n"
                                           + "end");
+        createTable(testNumberCol1, "c1 int");
+        createTable(testNumberCol2, "c1 float");
+        createTable(testNumberCol3, "c1 decimal");
+        createTable(testNumberCol4, "c1 number");
     }
 
     @Test
@@ -283,6 +293,99 @@ public class OracleBugfix extends BaseOracleTest {
             ps.executeUpdate();
             ResultSet rs = conn.prepareStatement("select c1 from ttt_name2").executeQuery();
             rs.next();
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testNumberCol() {
+        try {
+            String nameList[] = { testNumberCol1, testNumberCol2, testNumberCol3, testNumberCol4 };
+            Statement statement = sharedConnection.createStatement();
+            ResultSet rs = null;
+            for (int i = 0; i < nameList.length; i++) {
+                String name = nameList[i];
+                statement.execute("insert into " + name + " values(1) ");
+                rs = statement.executeQuery("select c1 from " + name);
+                Assert.assertTrue(rs.next());
+                Object obj = rs.getObject(1);
+                Assert.assertEquals(obj.getClass(), BigDecimal.class);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testBug35276523() throws Exception {
+        Connection conn = sharedConnection;
+        Statement statement = conn.createStatement();
+        try {
+            statement.execute("drop table test_decimal");
+        } catch (SQLException e) {
+            // e.printStackTrace();
+        }
+        statement
+            .executeUpdate("create table test_decimal (c1 int, c2 float, c3 decimal, c4 number)");
+        String sql = "insert into test_decimal values (1, 1, 1, 1)";
+        Assert.assertEquals(1, conn.prepareStatement(sql).executeUpdate());
+
+        ResultSet rs = conn.prepareStatement("select * from test_decimal").executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(1).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(2).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(3).getClass());
+        Assert.assertEquals(BigDecimal.class, rs.getObject(4).getClass());
+    }
+
+    @Test
+    public void testStatementWarnings() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table t");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            Statement stmt = conn.createStatement();
+            stmt.execute("create table t(a int)");
+            stmt.execute("create or replace procedure pp\n" + "is\n" + "begin\n"
+                         + "insert into t(a1) values(1);\n" + "end;\n");
+            SQLWarning sqlWarning = stmt.getWarnings();
+            System.out.println("sqlWarning = " + sqlWarning.getMessage());
+            sqlWarning = sqlWarning.getNextWarning();
+            Assert.assertEquals(null, sqlWarning);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void fixGetColumnsNullable() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table TESTNULLABLE");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table TESTNULLABLE (c1 varchar2(36))");
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            ResultSet resultSet = databaseMetaData.getColumns(null, null, "TESTNULLABLE", null);
+            while (resultSet.next()) {
+                String name = resultSet.getString("COLUMN_NAME");
+                System.out.println("name = " + name);
+                int length = resultSet.getInt("COLUMN_SIZE");
+                System.out.println("length = " + length);
+                int nullable = resultSet.getInt("NULLABLE");
+                System.out.println("nullable = " + nullable);
+                Assert.assertEquals(1, nullable);
+            }
         } catch (Exception e) {
             Assert.fail();
             e.printStackTrace();
