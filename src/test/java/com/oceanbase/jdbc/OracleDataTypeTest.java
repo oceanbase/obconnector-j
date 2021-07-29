@@ -84,6 +84,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
         createTable("t_timestamp_with_timezone", "twtz timestamp with time zone");
         createTable("t_timestamp_with_local_timezone", "twltz timestamp with local time zone");
         createTable("t_interval_year_to_month", "ym interval year(3) to month");
+        createTable("t_interval_year_to_month2", "ym interval year(0) to month");
         createTable("t_interval_day_to_second", "ds interval day(3) to second");
         createTable("t_nested_array", "id1 number, id2 number");
     }
@@ -273,6 +274,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertEquals(Types.NVARCHAR, rs.getMetaData().getColumnType(1));
         rs.close();
     }
+
     @Test
     public void testIntervalYear3ToMonth() throws Exception {
         try {
