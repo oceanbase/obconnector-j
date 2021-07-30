@@ -128,13 +128,11 @@ public class INTERVALYM extends Datum {
                 throw new NumberFormatException("month should not exceed " + MAXMONTH + ", now is "
                                                 + month);
             }
-            String format, result;
+            String result;
             if (year_scale != 0) {
-                format = String.format("%%%dd-%%2d", year_scale);
-                result = String.format(format, year, month);
+                result = String.format("%" + year_scale + "d-%2d", year, month);
             } else {
-                format = String.format("0-%%2d");
-                result = String.format(format, month);
+                result = String.format("0-%2d", month);
             }
             String[] s = result.split(" ");
             if (s.length > 1) {
