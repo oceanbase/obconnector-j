@@ -139,13 +139,6 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
     }
 
     @Test
-    public void testReadOnly() throws SQLException {
-        assertEquals(false, sharedConnection.isReadOnly());
-        sharedConnection.setReadOnly(true);
-        assertEquals(true, sharedConnection.isReadOnly());
-    }
-
-    @Test
     public void testSavePoint() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
 

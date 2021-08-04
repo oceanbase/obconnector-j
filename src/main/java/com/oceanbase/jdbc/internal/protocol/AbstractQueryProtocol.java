@@ -111,7 +111,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       new HashSet<>(Arrays.asList(1205, 1213, 1614));
 
   private ThreadPoolExecutor readScheduler = null;
-  private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
   private long maxRows; /* max rows returned by a statement */
   private volatile int statementIdToRelease = -1;
@@ -1452,7 +1451,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   @Override
   public boolean getAutocommit() {
-    return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
+    return this.autoCommit;
+  }
+
+  @Override
+  public void setAutoCommit(boolean autoCommit) throws SQLException {
+    if (this.autoCommit != autoCommit) {
+      executeQuery("set autocommit = " + (autoCommit ? "1" : "0"));
+    } else {
+      return ;
+    }
+    this.autoCommit = autoCommit;
   }
 
   @Override
@@ -1552,6 +1561,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTransactionIsolation(final int level) throws SQLException {
     cmdPrologue();
     lock.lock();
+    if(transactionIsolationLevel == level) {
+      return ;
+    }
     try {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (level) {

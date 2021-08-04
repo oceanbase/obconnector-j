@@ -91,4 +91,76 @@ public class NewFeatureTest extends BaseTest {
 
         }
     }
+
+    // SET SESSION TRANSACTION xxx twice
+    @Test
+    public void testReadOnly() {
+        try {
+            boolean isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+            sharedConnection.setReadOnly(isReadOnly);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+            sharedConnection.setReadOnly(!isReadOnly);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, true);
+            sharedConnection.setReadOnly(false);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAutoCommit() {
+        try {
+            boolean autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, true);
+            sharedConnection.setAutoCommit(false);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, false);
+            sharedConnection.setAutoCommit(false);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, false);
+            sharedConnection.setAutoCommit(true);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTransactionIsolation() {
+        try {
+            int level = sharedConnection.getTransactionIsolation();
+            Assert.assertEquals(level, 2);
+            sharedConnection.setTransactionIsolation(level);
+            level = sharedConnection.getTransactionIsolation();
+            Assert.assertEquals(level, 2);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCatalog() {
+        try {
+            String catalog = sharedConnection.getCatalog();
+            System.out.println("catalog = " + catalog);
+            sharedConnection.setCatalog("sys");
+            sharedConnection.setCatalog("sys");
+            catalog = sharedConnection.getCatalog();
+            System.out.println("catalog = " + catalog);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

@@ -58,6 +58,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -110,17 +111,24 @@ import com.oceanbase.jdbc.tls.TlsSocketPlugin;
 import com.oceanbase.jdbc.tls.TlsSocketPluginLoader;
 import com.oceanbase.jdbc.util.Options;
 
+import static java.sql.Connection.*;
+
 public abstract class AbstractConnectProtocol implements Protocol {
 
     private static final byte[]           SESSION_QUERY                = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
-                                                                          + "@@auto_increment_increment")
+                                                                          + "@@auto_increment_increment,"
+                                                                          + "@@tx_isolation AS tx_isolation,"
+                                                                          + "@@session.tx_read_only AS tx_read_only")
                                                                            .getBytes(StandardCharsets.UTF_8);
     private static final byte[]           SESSION_QUERY_ORACLE         = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
-                                                                          + "@@auto_increment_increment from dual")
+                                                                          + "@@auto_increment_increment,"
+                                                                          + "@@tx_isolation AS tx_isolation,"
+                                                                          + "@@session.tx_read_only AS tx_read_only "
+                                                                          + "from dual")
                                                                            .getBytes(StandardCharsets.UTF_8);
     private static final byte[]           IS_MASTER_QUERY              = "select @@innodb_read_only"
                                                                            .getBytes(StandardCharsets.UTF_8);
@@ -165,6 +173,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode;                                                              /* is server in oracle mode */
     private boolean                       importedTimeZoneTables;                                                    /* is server time zone impoted */
+    public boolean                        autoCommit;
+    public int                            transactionIsolationLevel    = 0;
 
     /**
      * Get a protocol instance.
@@ -847,7 +857,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
       }
         if (mustLoadAdditionalInfo) {
-            if(!options.connectProxy) {
+            if (!options.connectProxy) {
                 Map<String, String> serverData = new TreeMap<>();
                 if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
                     try {
@@ -864,13 +874,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 } else {
                     additionalData(serverData);
                 }
-
                 writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
                 autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+                readOnly = Integer.parseInt(serverData.get("tx_read_only")) == 0 ? false : true;
+                Map<String, Integer> mapTransIsolationNameToValue = new HashMap<String, Integer>(8);
+                mapTransIsolationNameToValue.put("READ-UNCOMMITED", TRANSACTION_READ_UNCOMMITTED);
+                mapTransIsolationNameToValue.put("READ-UNCOMMITTED", TRANSACTION_READ_UNCOMMITTED);
+                mapTransIsolationNameToValue.put("READ-COMMITTED", TRANSACTION_READ_COMMITTED);
+                mapTransIsolationNameToValue.put("REPEATABLE-READ", TRANSACTION_REPEATABLE_READ);
+                mapTransIsolationNameToValue.put("SERIALIZABLE", TRANSACTION_SERIALIZABLE);
+                this.transactionIsolationLevel = mapTransIsolationNameToValue.get(serverData.get("tx_isolation"));
                 loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
             }
         } else {
-
             writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
             autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
             loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
@@ -937,6 +953,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // after setting autocommit, we can rely on serverStatus value
         StringBuilder sessionOption = new StringBuilder("autocommit=")
             .append(options.autocommit ? "1" : "0");
+        this.autoCommit = options.autocommit;
         /* FIXME oceanbase not suppport client session track yet
         if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
           if (options.trackSchema) {
@@ -1001,11 +1018,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         ResultSet resultSet = results.getResultSet();
         if (resultSet != null) {
             resultSet.next();
-
             serverData.put("max_allowed_packet", resultSet.getString(1));
             serverData.put("system_time_zone", resultSet.getString(2));
             serverData.put("time_zone", resultSet.getString(3));
             serverData.put("auto_increment_increment", resultSet.getString(4));
+            serverData.put("tx_isolation", resultSet.getString(5));
+            serverData.put("tx_read_only", resultSet.getString(6));
 
         } else {
             throw exceptionFactory.create(

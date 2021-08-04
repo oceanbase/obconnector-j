@@ -333,7 +333,7 @@ public enum DefaultOptions {
       false),
   ASSURE_READONLY(
       "assureReadOnly",
-      Boolean.FALSE,
+      Boolean.TRUE,
       "1.3.0",
       "Ensure that when Connection.setReadOnly(true) is called, host is in read-only mode by "
           + "setting the session transaction to read-only.",

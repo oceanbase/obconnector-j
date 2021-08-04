@@ -226,6 +226,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                     + ")\n" + "SELECT * FROM CTE\n"
                                                                     + ");";
     private Map<String, Integer>     indexMap;
+    private int                      isolationLevel               = 2;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -821,9 +822,6 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
-        if (autoCommit == false) {
-            return false;
-        }
         return protocol.getAutocommit();
     }
 
@@ -834,15 +832,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        if (autoCommit == getAutoCommit()) {
-            return;
-        }
-
-        try (Statement stmt = createStatement()) {
-            stateFlag |= ConnectionState.STATE_AUTOCOMMIT;
-            stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
-            this.autoCommit = autoCommit;
-        }
+        this.protocol.setAutoCommit(autoCommit);
     }
 
     /**
@@ -1008,6 +998,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (catalog == null) {
             throw new SQLException("The catalog name may not be null", "XAE05");
         }
+        if (catalog.equals(this.protocol.getCatalog())) {
+            return;
+        }
         try {
             stateFlag |= ConnectionState.STATE_DATABASE;
             protocol.setCatalog(catalog);
@@ -1037,42 +1030,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
-        Statement stmt = createStatement();
-        String sql = "";
-        if (this.getProtocol().isOracleMode()) {
-            sql = "SHOW VARIABLES WHERE Variable_name = 'tx_isolation'";
-        } else {
-            sql = "SELECT @@transaction_isolation";
-        }
-
-        ResultSet rs = stmt.executeQuery(sql);
-        String response = "";
-        if (rs.next()) {
-            if (!this.getProtocol().isOracleMode()) {
-                response = rs.getString(1);
-            } else {
-                response = rs.getString(2);
-            }
-            switch (response) {
-                case "REPEATABLE-READ":
-                    return TRANSACTION_REPEATABLE_READ;
-
-                case "READ-UNCOMMITTED":
-                    return TRANSACTION_READ_UNCOMMITTED;
-
-                case "READ-COMMITTED":
-                    return TRANSACTION_READ_COMMITTED;
-
-                case "SERIALIZABLE":
-                    return TRANSACTION_SERIALIZABLE;
-
-                default:
-                    throw exceptionFactory.create(String
-                        .format("Could not get transaction isolation level: Invalid value \"%s\"",
-                            response));
-            }
-        }
-        throw exceptionFactory.create("Failed to retrieve transaction isolation");
+        return protocol.getTransactionIsolationLevel();
     }
 
     /**

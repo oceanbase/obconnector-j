@@ -82,6 +82,8 @@ public interface Protocol {
 
     boolean getAutocommit() throws SQLException;
 
+    void setAutoCommit(boolean autoCommit) throws SQLException;
+
     boolean noBackslashEscapes();
 
     void connect() throws SQLException;

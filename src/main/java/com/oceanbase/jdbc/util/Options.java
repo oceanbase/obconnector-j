@@ -144,7 +144,7 @@ public class Options implements Cloneable {
   public Long slowQueryThresholdNanos;
 
   // HA options
-  public boolean assureReadOnly;
+  public boolean assureReadOnly = true;
   public boolean autoReconnect;
   public boolean failOnReadOnly;
   public int retriesAllDown = 120;
