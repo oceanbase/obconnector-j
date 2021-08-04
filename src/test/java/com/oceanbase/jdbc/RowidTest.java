@@ -66,12 +66,16 @@ public class RowidTest extends BaseOracleTest {
             while (resultSet.next()) {
                 int count = resultSet.getMetaData().getColumnCount();
                 for (int i = 1; i <= count; i++) {
-                    System.out.println(resultSet.getMetaData().getColumnName(i) + ":"
-                                       + resultSet.getString("id"));
+                    RowId rowId1 = (RowId) resultSet.getObject("id");
+                    RowId rowId2 = resultSet.getRowId("id");
+                    Assert.assertTrue(rowId1.equals(rowId2));
+                    Assert.assertEquals(rowId1.toString(), rowId2.toString());
+                    Assert.assertEquals(rowId1.toString(), resultSet.getString("id"));
                 }
             }
-        } catch (SQLException e) {
-            Assert.assertNull(e);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }

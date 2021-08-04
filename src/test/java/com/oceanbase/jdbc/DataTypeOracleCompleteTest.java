@@ -1191,16 +1191,6 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
                     e.getClass().getName().contains("SQLFeatureNotSupportedException"));
             }
         }
-
-        try {
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId(2).getBytes()).trim()));
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId("strm").getBytes()).trim()));
-        } catch (Exception e) {
-            Assert.assertTrue("", e.getClass().getName()
-                .contains("SQLFeatureNotSupportedException"));
-        }
     }
 
 }

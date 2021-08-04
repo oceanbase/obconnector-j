@@ -76,16 +76,6 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void testRowId() throws SQLException {
-        rs.getRowId(1);
-    }
-
-    @Test(expected = SQLFeatureNotSupportedException.class)
-    public void testRowId2() throws SQLException {
-        rs.getRowId("");
-    }
-
-    @Test(expected = SQLFeatureNotSupportedException.class)
     public void testGetArray() throws SQLException {
         rs.getArray(1);
     }

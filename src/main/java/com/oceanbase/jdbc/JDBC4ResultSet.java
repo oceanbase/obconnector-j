@@ -1536,7 +1536,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             case OBCLOB:
                 return getClob(columnIndex);
             case ROWID:
-                return getString(columnIndex);
+                return new RowIdImpl(getString(columnIndex));
             default:
                 break;
         }
@@ -1995,14 +1995,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public RowId getRowId(int columnIndex) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
+        return new RowIdImpl(getString(columnIndex));
     }
 
     /**
      * {inheritDoc}.
      */
     public RowId getRowId(String columnLabel) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
+        return getRowId(findColumn(columnLabel));
     }
 
     /**
