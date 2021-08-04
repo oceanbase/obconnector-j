@@ -53,6 +53,8 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 public class OceanBaseDatabaseMetaDataTest extends BaseTest {
@@ -243,5 +245,46 @@ public class OceanBaseDatabaseMetaDataTest extends BaseTest {
                     + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
                     + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK",
             sharedConnection.getMetaData().getTimeDateFunctions());
+    }
+
+    @Test
+    public void getGeneratedKeysTest() {
+        try {
+            ResultSet rs;
+            ResultSetMetaData rsmd;
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table testupdate");
+            } catch (SQLException e) {
+                //            e.printStackTrace();
+            }
+            stmt.execute("create table testupdate(c1 int AUTO_INCREMENT,c2 int)");
+            stmt.execute("insert into testupdate values(null,20)", Statement.RETURN_GENERATED_KEYS);
+            rs = stmt.getGeneratedKeys();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            rsmd = rs.getMetaData();
+            Assert.assertEquals("BIGINT", rsmd.getColumnTypeName(1));
+            Assert.assertEquals(-5, rsmd.getColumnType(1));
+
+            stmt.execute("insert into testupdate values(null,20)", Statement.RETURN_GENERATED_KEYS);
+            rs = stmt.getGeneratedKeys();
+            Assert.assertTrue(rs.next());
+            rsmd = rs.getMetaData();
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertEquals("BIGINT", rsmd.getColumnTypeName(1));
+            Assert.assertEquals(-5, rsmd.getColumnType(1));
+            stmt.execute("update testupdate set c2 = 20  where c1 = 1",
+                Statement.RETURN_GENERATED_KEYS);
+            rs = stmt.getGeneratedKeys();
+            rsmd = rs.getMetaData();
+            Assert.assertFalse(rs.next());
+            Assert.assertEquals("BIGINT", rsmd.getColumnTypeName(1));
+            Assert.assertEquals(-5, rsmd.getColumnType(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
     }
 }

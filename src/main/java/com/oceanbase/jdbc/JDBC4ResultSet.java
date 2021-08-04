@@ -324,7 +324,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, protocol.isOracleMode());
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode());
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
