@@ -277,68 +277,60 @@ public class OracleDataTypeTest extends BaseOracleTest {
 
     @Test
     public void testIntervalYear3ToMonth() throws Exception {
+        Statement stmt = conn.createStatement();
+
+        // insert different data types, some expected to succeed, others expected to fail
+        String sql1 = "insert into t_interval_year_to_month values ('0-1'), ('-0-2'), ('1-3'), ('-1-4')" +
+                ", (interval '123-6' year(3) to month), (interval '8' month)";
+        assertEquals(6, stmt.executeUpdate(sql1));
         try {
-            Statement stmt = conn.createStatement();
-
-            // insert different data types, some expected to succeed, others expected to fail
-            String sql1 = "insert into t_interval_year_to_month values ('0-1'), ('-0-2'), ('1-3'), ('-1-4')" +
-                    ", (interval '123-6' year(3) to month), (interval '8' month)";
-            assertEquals(6, stmt.executeUpdate(sql1));
-            try {
-                String sql = "insert into t_interval_year_to_month values ('1234-5'), (interval '321-7' year(0) to month)";
-                stmt.execute(sql);
-                fail("inserting is expected to fail");
-            } catch (SQLException e) {
-                // ignore, should continue this test
-            }
-
-            String[] str = new String[] { "0-1", "-0-2", "1-3", "-1-4", "123-6", "0-8" };
-            int i = 0;
-            ResultSet rs = stmt.executeQuery("select ym from t_interval_year_to_month");
-            assertTrue(rs.next());
-            do {
-                //System.out.println(rs.getString(1));
-                assertEquals(str[i++], rs.getString(1));
-            } while (rs.next());
-
-            assertEquals("INTERVALYM", rs.getMetaData().getColumnTypeName(1));
-            rs.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            String sql = "insert into t_interval_year_to_month values ('1234-5'), (interval '321-7' year(0) to month)";
+            stmt.execute(sql);
+            fail("inserting is expected to fail");
+        } catch (SQLException e) {
+            // ignore, should continue this test
         }
+
+        String[] str = new String[] { "0-1", "-0-2", "1-3", "-1-4", "123-6", "0-8" };
+        int i = 0;
+        ResultSet rs = stmt.executeQuery("select ym from t_interval_year_to_month");
+        assertTrue(rs.next());
+        do {
+            //System.out.println(rs.getString(1));
+            assertEquals(str[i++], rs.getString(1));
+        } while (rs.next());
+
+        assertEquals("INTERVALYM", rs.getMetaData().getColumnTypeName(1));
+        rs.close();
     }
 
     @Test
     public void testIntervalYear0ToMonth() throws Exception {
+        Statement stmt = conn.createStatement();
+
+        // insert different data types, some expected to succeed, others expected to fail
+        String sql1 = "insert into t_interval_year_to_month2 values ('0-8'), ('-0-7'), ('0-1')";
+        assertEquals(3, stmt.executeUpdate(sql1));
         try {
-            Statement stmt = conn.createStatement();
-
-            // insert different data types, some expected to succeed, others expected to fail
-            String sql1 = "insert into t_interval_year_to_month2 values ('0-8'), ('-0-7'), ('0-1')";
-            assertEquals(3, stmt.executeUpdate(sql1));
-            try {
-                String sql = "insert into t_interval_year_to_month2 values ('1-6'), ('-1-5'), ('1234-4')" +
-                        ", (interval '123-3' year(3) to month), (interval '321-2' year(0) to month)";
-                stmt.execute(sql);
-                fail("inserting is expected to fail");
-            } catch (SQLException e) {
-                // ignore, should continue this test
-            }
-
-            String[] str = new String[] { "0-8", "-0-7", "0-1" };
-            int i = 0;
-            ResultSet rs = stmt.executeQuery("select ym from t_interval_year_to_month2");
-            assertTrue(rs.next());
-            do {
-                //System.out.println(rs.getString(1));
-                assertEquals(str[i++], rs.getString(1));
-            } while (rs.next());
-
-            assertEquals("INTERVALYM", rs.getMetaData().getColumnTypeName(1));
-            rs.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            String sql = "insert into t_interval_year_to_month2 values ('1-6'), ('-1-5'), ('1234-4')" +
+                    ", (interval '123-3' year(3) to month), (interval '321-2' year(0) to month)";
+            stmt.execute(sql);
+            fail("inserting is expected to fail");
+        } catch (SQLException e) {
+            // ignore, should continue this test
         }
+
+        String[] str = new String[] { "0-8", "-0-7", "0-1" };
+        int i = 0;
+        ResultSet rs = stmt.executeQuery("select ym from t_interval_year_to_month2");
+        assertTrue(rs.next());
+        do {
+            //System.out.println(rs.getString(1));
+            assertEquals(str[i++], rs.getString(1));
+        } while (rs.next());
+
+        assertEquals("INTERVALYM", rs.getMetaData().getColumnTypeName(1));
+        rs.close();
     }
 
     @Test
