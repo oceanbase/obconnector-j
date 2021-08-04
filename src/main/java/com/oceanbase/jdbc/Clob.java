@@ -75,6 +75,10 @@ public class Clob extends Blob implements ObClob, Serializable {
         super(bytes);
     }
 
+    public static Clob getEmptyCLOB() throws SQLException {
+        return null;
+    }
+
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
         super(bytes, exceptionInterceptor);
     }

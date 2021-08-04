@@ -1081,4 +1081,29 @@ public class BlobOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testEmpty() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table emptylob ");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create  table emptylob(c1 blob,c2 clob)");
+            PreparedStatement preparedStatement = conn
+                .prepareStatement("insert into emptylob values(?,?)");
+            preparedStatement.setBlob(1, com.oceanbase.jdbc.Blob.getEmptyBLOB());
+            preparedStatement.setClob(2, com.oceanbase.jdbc.Clob.getEmptyCLOB());
+            preparedStatement.execute();
+            ResultSet resultSet = stmt.executeQuery("select count(*) from emptylob ");
+            Assert.assertTrue(resultSet.next());
+            System.out.println("resultSet.getInt(1) = " + resultSet.getInt(1));
+            Assert.assertEquals(1, resultSet.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
