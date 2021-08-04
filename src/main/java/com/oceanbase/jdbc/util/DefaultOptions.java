@@ -138,7 +138,7 @@ public enum DefaultOptions {
           + " permits activating the legacy code that sends the table alias if set.",
       false),
   ALLOW_LOCAL_INFILE(
-      "allowLocalInfile", Boolean.TRUE, "1.2.1", "Permit loading data from file", false),
+      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
   SESSION_VARIABLES(
       "sessionVariables",
       "1.1.0",
