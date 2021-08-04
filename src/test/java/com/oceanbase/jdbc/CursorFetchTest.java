@@ -68,7 +68,6 @@ public class CursorFetchTest extends BaseTest {
             for (i = 2; i < 100; i++) {
                 query += ",(" + i + ",'" + i + "+string')";
             }
-            System.out.println("query = " + query);
             statement.execute(query);
 
             PreparedStatement preparedStatement = conn.prepareStatement("select * from "

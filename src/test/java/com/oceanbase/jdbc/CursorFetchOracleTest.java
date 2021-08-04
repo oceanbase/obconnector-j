@@ -68,7 +68,6 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             for (i = 2; i < 100; i++) {
                 query += ",(" + i + ",'" + i + "+string')";
             }
-            System.out.println("query = " + query);
             statement.execute(query);
             statement.setFetchSize(50);
             ResultSet rs = statement.executeQuery("select * from " + tableName1 + "");
