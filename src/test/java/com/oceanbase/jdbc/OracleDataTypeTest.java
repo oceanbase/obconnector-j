@@ -458,7 +458,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
 
     @Test
     public void testNestedArray() throws SQLException {
-        String sql = "create or replace type t_array is table of number";
+        String sql = "create or replace type  t_array is table of number";
         ps = conn.prepareStatement(sql);
         assertEquals(0, ps.executeUpdate());
 

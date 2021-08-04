@@ -62,6 +62,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
+import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;

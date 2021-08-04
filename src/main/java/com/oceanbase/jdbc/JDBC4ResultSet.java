@@ -1523,6 +1523,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
         switch (type) {
+            case COMPLEX:
+                return getComplex(columnIndex);
             case STRUCT:
                 return getStruct(columnIndex);
             case ARRAY:
@@ -1533,10 +1535,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return getBlob(columnIndex);
             case OBCLOB:
                 return getClob(columnIndex);
-                //            case BINARY_FLOAT:
-                //                return getFloat(columnIndex);
-                //            case BINARY_DOUBLE:
-                //                return getDouble(columnIndex);
+            case ROWID:
+                return getString(columnIndex);
             default:
                 break;
         }
@@ -1880,6 +1880,30 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             Array ret = row.getInternalArray(columnsInformation[columnIndex - 1], type);
             complexEndPos[columnIndex - 1] = row.pos;
+            return ret;
+        } else {
+            throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
+        }
+    }
+
+    public Object getComplex(int columnIndex) throws SQLException {
+        if (!this.getProtocol().isOracleMode()) {
+            throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
+        }
+        checkObjectRange(columnIndex);
+        int internalColumnIndex = columnIndex - 1;
+        Connection conn = this.statement.getConnection(); // fixme to be the complex connection
+        if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
+            String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            Object ret = null;
+            if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
+                ret = row.getInternalArray(columnsInformation[columnIndex - 1], type);
+                complexEndPos[columnIndex - 1] = row.pos;
+            } else if (type.getType() == ComplexDataType.TYPE_OBJECT) {
+                ret = row.getInternalStruct(columnsInformation[columnIndex - 1], type);
+                complexEndPos[columnIndex - 1] = row.pos;
+            }
             return ret;
         } else {
             throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");

@@ -68,6 +68,9 @@ public class ComplexData {
     }
 
     public Object[] getAttrData() {
+        if (attrCount == 0) {
+            this.attrData = new Object[0];
+        }
         return this.attrData;
     }
 
