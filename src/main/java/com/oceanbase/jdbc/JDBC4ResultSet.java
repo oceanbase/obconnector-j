@@ -121,7 +121,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private int                             resultSetScrollType;
     protected int                           rowPointer;
     private int                             discardedRows       = 0;
-    private ColumnLabelIndexer              columnLabelIndexer;
+    protected ColumnLabelIndexer            columnLabelIndexer;
     private int                             lastRowPointer      = -1;
     private boolean                         isClosed;
     private boolean                         eofDeprecated;

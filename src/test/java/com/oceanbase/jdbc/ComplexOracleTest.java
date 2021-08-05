@@ -587,4 +587,51 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void cursorGetValeByName() {
+        Connection conn = null;
+        CallableStatement cstmt = null;
+        ResultSet cursor;
+        try {
+            conn = sharedConnection;
+            {
+                String[] sqls = {
+                        "drop table t1 cascade constraints purge;",
+                        "create table t1(c1 binary_double);",
+                        "insert into t1 values(1);",
+                        "insert into t1 values(2);",
+                        "create or replace procedure get_jobs(tcur out sys_refcursor)\n" + "is\n"
+                                + "BEGIN\n" + "  open tcur for SELECT * from t1;\n" + "END;", };
+                for (int i = 0; i < sqls.length; i++) {
+                    try {
+                        conn.createStatement().execute(sqls[i]);
+                    } catch (SQLException e) {
+                        //
+                    }
+                }
+            }
+            PreparedStatement pstmt;
+            String sql;
+            sql = "select c1 from t1";
+            pstmt = conn.prepareStatement(sql);
+            cursor = pstmt.executeQuery();
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("1.0", cursor.getString("c1"));
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("2.0", cursor.getString("c1"));
+            sql = "{call get_jobs(?)}";
+            cstmt = conn.prepareCall(sql);
+            cstmt.registerOutParameter(1, Types.REF);
+            cstmt.execute();
+            cursor = (ResultSet) cstmt.getObject(1);
+            cursor.setFetchSize(2);
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("1.0", cursor.getString("c1"));
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("2.0", cursor.getString("c1"));
+        } catch (Throwable te) {
+            te.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
