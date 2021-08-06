@@ -109,7 +109,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected boolean                       noBackslashEscapes;
     private Protocol                        protocol;
     private PacketInputStream               reader;
-    private boolean                         isEof;
+    protected boolean                       isEof;
+    protected boolean                       isLastRow = false;
     private boolean                         callableResult;
     private OceanBaseStatement              statement;
     public RowProtocol                      row;
@@ -241,7 +242,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.columnInformationLength = opt.columnInformationLength;
         this.complexData = opt.complexData;
         this.complexEndPos = opt.complexEndPos;
-        ;
+
         this.reader = opt.reader;
         this.isEof = opt.isEof;
         timeZone = protocol.getTimeZone();
@@ -320,7 +321,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      * @return resultset
      */
-
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
@@ -409,7 +409,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException if any error occur
      */
     public void fetchRemaining() throws SQLException {
-        if (!isEof) {
+        if (streaming && !isEof) {
             lock.lock();
             try {
                 lastRowPointer = -1;
@@ -484,7 +484,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-
     protected boolean readNextValue() throws IOException, SQLException {
         byte[] buf = this.reader.getPacketArray(false);
 
@@ -522,9 +521,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 if (callableResult) { //TODO check it set MORE_RESULTS_EXISTS in callableResult,
                     //serverStatus |= MORE_RESULTS_EXISTS;
                 }
-
             } else {
-
                 // OK_Packet with a 0xFE header
                 int pos = skipLengthEncodedValue(buf, 1); // skip update count
                 pos = skipLengthEncodedValue(buf, pos); // skip insert id
@@ -537,7 +534,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
                 protocol.removeActiveStreamingResult();
             }
-
+            if ((serverStatus & ServerStatus.LAST_ROW_SENT) != 0) {
+                isLastRow = true;
+            }
             resetVariables();
             return false;
         }
@@ -653,8 +652,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * Close resultSet.
      */
     public void close() throws SQLException {
-        isClosed = true;
-        if (!isEof) {
+        if (streaming && !isEof) {
             lock.lock();
             try {
                 while (!isEof) {
@@ -670,8 +668,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 resetVariables();
                 lock.unlock();
             }
+            resetVariables();
         }
-        resetVariables();
 
         // keep garbage easy
         for (int i = 0; i < data.length; i++) {
@@ -682,6 +680,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
             statement.checkCloseOnCompletion(this);
             statement = null;
         }
+
+        isClosed = true;
     }
 
     private void resetVariables() {
@@ -905,7 +905,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         fetchRemaining();
 
         if (row >= 0) {
-
             if (row <= dataSize) {
                 rowPointer = row - 1;
                 return true;
@@ -913,9 +912,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
             rowPointer = dataSize; // go to afterLast() position
             return false;
-
         } else {
-
             if (dataSize + row >= 0) {
                 // absolute position reverse from ending resultSet
                 rowPointer = dataSize + row;

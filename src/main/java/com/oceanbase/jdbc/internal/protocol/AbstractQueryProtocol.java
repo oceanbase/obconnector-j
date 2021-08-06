@@ -1134,14 +1134,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           withRefCursor = true;
         }
       }
-      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
         ComStmtExecute.send(
                 writer,
                 serverPrepareResult.getStatementId(),
                 parameters,
                 parameterCount,
                 serverPrepareResult.getParameterTypeHeader(),
-                Packet.CURSOR_TYPE_READ_ONLY,
+                Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
                 this);
         results.setStatementId(serverPrepareResult.getStatementId());
         results.setToCursorFetch(true);

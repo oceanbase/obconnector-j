@@ -50,11 +50,8 @@
  */
 package com.oceanbase.jdbc;
 
-import jdk.nashorn.internal.codegen.CompilerConstants;
 import org.junit.*;
-
 import java.sql.*;
-
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 

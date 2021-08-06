@@ -51,11 +51,12 @@ import java.sql.*;
 
 public class CursorFetchOracleTest extends BaseOracleTest {
     static String tableName1 = "test_cursor_oracle";
+    static String tableName2 = "test_scrollable_cursor_oracle";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tableName1, "c1 int,c2 varchar(30)");
-
+        createTable(tableName2, "c1 int,c2 varchar(30)");
     }
 
     @Test
@@ -82,6 +83,54 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             Assert.assertEquals(count, 100);
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testScrollableCursor() throws Exception {
+        try {
+            Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+
+            String query = "insert all";
+            for (int i = 1; i <= 100; i++) {
+                query += " into " + tableName2 + " values(" + i + ",'" + i + "+string')";
+            }
+            query += "select * from dual";
+            Statement stmt = conn.createStatement();
+            stmt.execute(query);
+
+            PreparedStatement ps = conn.prepareStatement("select * from " + tableName2,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ps.setFetchSize(40);
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.previous());
+
+            Assert.assertTrue(rs.absolute(39));
+            Assert.assertEquals(39, rs.getInt(1));
+            Assert.assertTrue(rs.relative(2));
+            Assert.assertEquals(41, rs.getInt(1));
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals(100, rs.getInt(1));
+            Assert.assertTrue(rs.previous());
+            Assert.assertEquals(99, rs.getInt(1));
+            Assert.assertTrue(rs.first());
+            Assert.assertEquals(1, rs.getInt(1));
+
+            Assert.assertFalse(rs.relative(-3));
+            Assert.assertTrue(rs.isBeforeFirst());
+            rs.afterLast();
+            Assert.assertTrue(rs.isAfterLast());
+            rs.beforeFirst();
+            Assert.assertTrue(rs.isBeforeFirst());
+
+            stmt.close();
+            ps.close();
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }
