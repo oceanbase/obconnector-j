@@ -50,10 +50,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
-import java.sql.*;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+
+import java.sql.*;
+
+import org.junit.*;
 
 /**
  * @Description
@@ -64,19 +66,17 @@ public class CallStatementOracleTest extends BaseOracleTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createProcedure("useParameterName", "(a int) is begin select a from dual ; end");
         createProcedure("useWrongParameterName", "(a int) is begin select a from dual ; end");
-        createProcedure("multiResultSets",
-            "(a int) is begin  SELECT 1 from dual ; SELECT 2 from dual ; end");
+        createProcedure("multiResultSets", "(a int) is begin  SELECT 1 from dual ; SELECT 2 from dual ; end");
         createProcedure("inoutParam", "(p1 in out int ) is begin set p1 = p1 + 1; end\n");
-        createProcedure("testGetProcedures",
-            "(p1 IN OUT number(12) ) is begin set p1 = p1 + 1; end\n");
-        createProcedure("withStrangeParameter",
-            "(a IN number(10,2)) is begin select a from dual ; end");
+        createProcedure("testGetProcedures", "(p1 IN OUT number(12) ) is begin set p1 = p1 + 1; end\n");
+        createProcedure("withStrangeParameter", "(a IN number(10,2)) is begin select a from dual ; end");
 
     }
 
@@ -85,7 +85,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         requireMinimumVersion(5, 0);
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void stmtSimple() throws SQLException {
         createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
@@ -95,12 +95,11 @@ public class CallStatementOracleTest extends BaseOracleTest {
         assertEquals(result, 4);
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void prepareStmtSimple() throws SQLException {
         createProcedure("prepareStmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("{call prepareStmtSimple(?,?)}");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtSimple(?,?)}");
         preparedStatement.setInt(1, 2);
         preparedStatement.setInt(2, 2);
         ResultSet rs = preparedStatement.executeQuery();
@@ -112,66 +111,59 @@ public class CallStatementOracleTest extends BaseOracleTest {
     @Test
     public void stmtSimpleFunction() throws SQLException {
         try {
-            createFunction(
-                "stmtSimpleFunction",
-                "(a float, b int , c int) RETURN number is cc number(12,2) ; \nBEGIN\n select a into cc from dual ; return cc ;\nEND");
-            //            sharedConnection.createStatement().execute("{call stmtSimpleFunction(2.0,2,2) }");
-            ResultSet result = sharedConnection.createStatement().executeQuery(
-                "select stmtSimpleFunction(5,2,2) from dual ");
+            createFunction("stmtSimpleFunction",
+                    "(a float, b int , c int) RETURN number is cc number(12,2) ; \nBEGIN\n select a into cc from dual ; return cc ;\nEND");
+            // sharedConnection.createStatement().execute("{call stmtSimpleFunction(2.0,2,2) }");
+            ResultSet result = sharedConnection.createStatement()
+                    .executeQuery("select stmtSimpleFunction(5,2,2) from dual ");
             result.next();
             System.out.println("result:--> " + result.getInt(1));
-            //            fail("call mustn't work for function, use SELECT <function>");
+            // fail("call mustn't work for function, use SELECT <function>");
         } catch (SQLSyntaxErrorException sqle) {
-            assertTrue("error : " + sqle.getMessage(),
-                sqle.getMessage().contains("stmtSimpleFunction does not exist"));
+            assertTrue("error : " + sqle.getMessage(), sqle.getMessage().contains("stmtSimpleFunction does not exist"));
         }
     }
 
     @Test
     public void prepareStmtSimpleFunction() throws SQLException {
         try {
-            createFunction(
-                "stmtSimpleFunction",
-                "(a float, b int , c int) RETURN INT is num int ; \n  begin select a into num from dual ; \nRETURN num ; \nEND");
+            createFunction("stmtSimpleFunction",
+                    "(a float, b int , c int) RETURN INT is num int ; \n  begin select a into num from dual ; \nRETURN num ; \nEND");
 
             PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("select stmtSimpleFunction(5,2,2) from dual ");
+                    .prepareStatement("select stmtSimpleFunction(5,2,2) from dual ");
             ResultSet result = preparedStatement.executeQuery();
             result.next();
             System.out.println("result:--> " + result.getInt(1));
-            //            fail("call mustn't work for function, use SELECT <function>");
+            // fail("call mustn't work for function, use SELECT <function>");
         } catch (SQLSyntaxErrorException sqle) {
-            assertTrue("error : " + sqle.getMessage(),
-                sqle.getMessage().contains("stmtSimpleFunction does not exist"));
+            assertTrue("error : " + sqle.getMessage(), sqle.getMessage().contains("stmtSimpleFunction does not exist"));
         }
     }
 
     // Consistent with jdbc 1.x, the test failed
     @Ignore
     public void prepareStmtWithOutParameter() throws SQLException {
-        createProcedure(
-            "prepareStmtWithOutParameter",
-            "(x IN int, y OUT int)\n"
-                    + " is BEGIN\n"
-                    + "SELECT 1 into y from dual ;select 10000+y into y from dual ;select y into y from dual ; end\n");
-        CallableStatement callableStatement = sharedConnection
-            .prepareCall("{call prepareStmtWithOutParameter(?,?)}");
+        createProcedure("prepareStmtWithOutParameter", "(x IN int, y OUT int)\n" + " is BEGIN\n"
+                + "SELECT 1 into y from dual ;select 10000+y into y from dual ;select y into y from dual ; end\n");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{call prepareStmtWithOutParameter(?,?)}");
         callableStatement.setInt(1, 2);
         callableStatement.registerOutParameter(2, Types.INTEGER);
         assertFalse(callableStatement.execute());
-        System.out.println("callableStatement.getInt(2) = " + callableStatement.getInt(2)); ///return out parameter
+        System.out.println("callableStatement.getInt(2) = " + callableStatement.getInt(2)); /// return out parameter
     }
 
-    //Consistent with jdbc 1.x, the test failed
+    // Consistent with jdbc 1.x, the test failed
     @Ignore
     public void prepareBatchMultiResultSets() throws Exception {
         PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets(?)}");
         stmt.setInt(1, 1);
         stmt.addBatch();
-        //        stmt.addBatch();
+        // stmt.addBatch();
         try {
             stmt.executeBatch();
-            // java.sql.BatchUpdateException: (conn=-1073309480) ORA-00600: internal error code, arguments: -4007, Not supported feature or function
+            // java.sql.BatchUpdateException: (conn=-1073309480) ORA-00600: internal error code, arguments: -4007, Not
+            // supported feature or function
         } catch (SQLException e) {
             e.printStackTrace();
 
@@ -185,12 +177,11 @@ public class CallStatementOracleTest extends BaseOracleTest {
             stmt.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();
-            assertTrue(e.getMessage().contains(
-                "Select command are not permitted via executeBatch() command"));
+            assertTrue(e.getMessage().contains("Select command are not permitted via executeBatch() command"));
         }
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void stmtMultiResultSets() throws Exception {
         Statement stmt = sharedConnection.createStatement();
@@ -207,7 +198,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         assertFalse(stmt.getMoreResults());
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void prepareStmtMultiResultSets() throws Exception {
         PreparedStatement stmt = sharedConnection.prepareStatement("call multiResultSets()");
@@ -253,10 +244,9 @@ public class CallStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void testMetaWildcard() throws Exception {
-        createProcedure("testMetaWildcard", "(x int, y out varchar2(200))\n" + "is BEGIN\n"
-                                            + "SELECT 1 from dual ;end\n");
-        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
-            "TESTMETAWILDCARD%", "%");
+        createProcedure("testMetaWildcard",
+                "(x int, y out varchar2(200))\n" + "is BEGIN\n" + "SELECT 1 from dual ;end\n");
+        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null, "TESTMETAWILDCARD%", "%");
 
         if (rs.next()) {
             assertEquals("TESTMETAWILDCARD", rs.getString(3));
@@ -271,10 +261,8 @@ public class CallStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void testMetaWildcard2() throws Exception {
-        createProcedure("\"testMetaWildcard\"", "(x int, y out int)\n" + "is BEGIN\n"
-                                                + "SELECT 1 from dual ;end\n");
-        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null,
-            "testMetaWildcard%", "%");
+        createProcedure("\"testMetaWildcard\"", "(x int, y out int)\n" + "is BEGIN\n" + "SELECT 1 from dual ;end\n");
+        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null, "testMetaWildcard%", "%");
 
         if (rs.next()) {
             assertEquals("testMetaWildcard", rs.getString(3));
@@ -289,10 +277,9 @@ public class CallStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void testMetaCatalog() throws Exception {
-        createProcedure("testMetaCatalog",
-            "(x int, y out int) \n is BEGIN\nSELECT 1 from dual ;end\n");
-        ResultSet rs = sharedConnection.getMetaData().getProcedures(sharedConnection.getCatalog(),
-            null, "testMetaCatalog");
+        createProcedure("testMetaCatalog", "(x int, y out int) \n is BEGIN\nSELECT 1 from dual ;end\n");
+        ResultSet rs = sharedConnection.getMetaData().getProcedures(sharedConnection.getCatalog(), null,
+                "testMetaCatalog");
         assertTrue(rs.next());
         System.out.println("rs.getString(3)： " + rs.getString(3));
         assertTrue("testMetaCatalog".equalsIgnoreCase(rs.getString(3)));
@@ -309,20 +296,18 @@ public class CallStatementOracleTest extends BaseOracleTest {
         assertFalse(rs.next());
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void prepareWithNoParameters() throws SQLException {
-        createProcedure("prepareWithNoParameters", "()\n" + "begin\n"
-                                                   + "    SELECT 'mike' from dual ;" + "end\n");
+        createProcedure("prepareWithNoParameters", "()\n" + "begin\n" + "    SELECT 'mike' from dual ;" + "end\n");
 
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("{call prepareWithNoParameters()}");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
         ResultSet rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
         assertEquals("mike", rs.getString(1));
     }
 
-    //Oceanbase stored procedures do not support returning result sets
+    // Oceanbase stored procedures do not support returning result sets
     @Ignore
     public void testCallWithFetchSize() throws SQLException {
         createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1 from dual ;SELECT 2 from dual ;\nEND");
@@ -344,9 +329,8 @@ public class CallStatementOracleTest extends BaseOracleTest {
         try {
             Statement stmt = sharedConnection.createStatement();
             createProcedure("outstring_pl1",
-                "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend;");
-            CallableStatement callableStatement = sharedConnection
-                .prepareCall("begin \n outstring_pl1(?,?,?); end;");
+                    "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend;");
+            CallableStatement callableStatement = sharedConnection.prepareCall("begin \n outstring_pl1(?,?,?); end;");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.registerOutParameter(3, Types.VARCHAR);
             callableStatement.setString(2, "1212121");
@@ -367,11 +351,10 @@ public class CallStatementOracleTest extends BaseOracleTest {
     public void testAnonymousBlock2() {
         try {
             Statement stmt = sharedConnection.createStatement();
-            createProcedure(
-                "outstring_pl2",
-                "/* comment 1*/ -- comment 2 \n(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend");
+            createProcedure("outstring_pl2",
+                    "/* comment 1*/ -- comment 2 \n(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR) is begin \n p1:='wfsfsfs'; p3:=p2;\nend");
             CallableStatement callableStatement = sharedConnection
-                .prepareCall("begin \n outstring_pl2(?,'121',?); end;");
+                    .prepareCall("begin \n outstring_pl2(?,'121',?); end;");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.registerOutParameter(2, Types.VARCHAR);
             callableStatement.executeUpdate();
@@ -392,10 +375,9 @@ public class CallStatementOracleTest extends BaseOracleTest {
         try {
             Statement stmt = sharedConnection.createStatement();
             createProcedure("outstring_pl3",
-                "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR,P4 IN VARCHAR ) is begin \n p1:= p4; p3:=p2;\nend;");
+                    "(P1 OUT VARCHAR2,P2 IN VARCHAR,P3 OUT VARCHAR,P4 IN VARCHAR ) is begin \n p1:= p4; p3:=p2;\nend;");
 
-            CallableStatement callableStatement = sharedConnection
-                .prepareCall("begin \n outstring_pl3(?,?,?,?); end;");
+            CallableStatement callableStatement = sharedConnection.prepareCall("begin \n outstring_pl3(?,?,?,?); end;");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.registerOutParameter(3, Types.VARCHAR);
             callableStatement.setString(2, "1212121");
@@ -417,12 +399,10 @@ public class CallStatementOracleTest extends BaseOracleTest {
     public void testAnonymousBlock4() {
         try {
             Statement stmt = sharedConnection.createStatement();
-            createProcedure(
-                "outstring_pl4",
-                "(P1 OUT VARCHAR,P2 IN OUT VARCHAR,P3 OUT VARCHAR) is begin \n p1:='p1string';p2:='p2string';p3:=p2;\nend;");
+            createProcedure("outstring_pl4",
+                    "(P1 OUT VARCHAR,P2 IN OUT VARCHAR,P3 OUT VARCHAR) is begin \n p1:='p1string';p2:='p2string';p3:=p2;\nend;");
 
-            CallableStatement callableStatement = sharedConnection
-                .prepareCall("begin \n outstring_pl4(?,?,?); end;");
+            CallableStatement callableStatement = sharedConnection.prepareCall("begin \n outstring_pl4(?,?,?); end;");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.registerOutParameter(2, Types.VARCHAR);
             callableStatement.registerOutParameter(3, Types.VARCHAR);
@@ -446,8 +426,8 @@ public class CallStatementOracleTest extends BaseOracleTest {
             String url = System.getProperty("urlWithoutDatabase");
             Class.forName("com.oceanbase.jdbc.Driver");
             Connection conn = DriverManager.getConnection(url);
-            conn.createStatement().execute(
-                "create or replace  procedure proctest35 (x out int)\n is BEGIN\n x :=1 ;end\n ");
+            conn.createStatement()
+                    .execute("create or replace  procedure proctest35 (x out int)\n is BEGIN\n x :=1 ;end\n ");
             CallableStatement callableStatement = conn.prepareCall("call proctest35(?) ");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.execute();

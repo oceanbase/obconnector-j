@@ -50,15 +50,15 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class OracleConnectionCompatibilityTest extends BaseOracleTest {
 
@@ -104,8 +104,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
 
         assertEquals(false, support);
 
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-            sharedConnection.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -114,8 +113,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
             support = false;
         }
         assertEquals(false, support);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-            sharedConnection.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -124,8 +122,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
             support = false;
         }
         assertEquals(false, support);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-            sharedConnection.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, sharedConnection.getTransactionIsolation());
 
         support = true;
         try {
@@ -134,8 +131,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
             support = false;
         }
         assertEquals(true, support);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-            sharedConnection.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE, sharedConnection.getTransactionIsolation());
     }
 
     @Test
@@ -146,7 +142,7 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         try {
             sharedConnection.setSavepoint();
         } catch (SQLException e) {
-            //ignore , autoCommit is true , setSavepoint Is bound to fail
+            // ignore , autoCommit is true , setSavepoint Is bound to fail
             succeed = false;
         }
         assertEquals(false, succeed);
@@ -177,17 +173,17 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
 
         sharedConnection.setTypeMap(map);
         Map<String, Class<?>> typeMap = sharedConnection.getTypeMap();
-        assertEquals(map.size(),typeMap.size());
-        typeMap.keySet().forEach(s -> assertEquals(typeMap.get(s),map.get(s)));
+        assertEquals(map.size(), typeMap.size());
+        typeMap.keySet().forEach(s -> assertEquals(typeMap.get(s), map.get(s)));
     }
 
     @Test
     public void testCatalog() throws SQLException {
 
-        //In Oracle, return null here
+        // In Oracle, return null here
         assertEquals(null, sharedConnection.getCatalog());
 
-        //In Oracle,This is not implemented
+        // In Oracle,This is not implemented
         sharedConnection.setCatalog("test");
         assertEquals(null, sharedConnection.getCatalog());
     }

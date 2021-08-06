@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -61,8 +62,8 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OldPasswordPlugin implements AuthenticationPlugin {
     public static final String TYPE = "mysql_old_password";
-    private String             authenticationData;
-    private byte[]             seed;
+    private String authenticationData;
+    private byte[] seed;
 
     @Override
     public String name() {
@@ -83,14 +84,17 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
      * Process old password plugin authentication. see
      * https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
      *
-     * @param out out stream
-     * @param in in stream
-     * @param sequence packet sequence
+     * @param out
+     *            out stream
+     * @param in
+     *            in stream
+     * @param sequence
+     *            packet sequence
      * @return response packet
-     * @throws IOException if socket error
+     * @throws IOException
+     *             if socket error
      */
-    public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-                                                                                               throws IOException {
+    public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
 
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
@@ -156,8 +160,8 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
     private class RandStruct {
 
         private final long maxValue = 0x3FFFFFFFL;
-        private long       seed1;
-        private long       seed2;
+        private long seed1;
+        private long seed2;
 
         public RandStruct(long seed1, long seed2) {
             this.seed1 = seed1 % maxValue;

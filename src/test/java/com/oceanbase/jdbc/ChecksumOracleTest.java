@@ -43,33 +43,34 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import org.junit.*;
-import java.sql.*;
-
 import static org.junit.Assert.*;
 
+import java.sql.*;
+
+import org.junit.*;
+
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
+
 /**
- * Checksum is a mechanism rather than an interface. Our test case can only test whether it can run normally after being turned on or off
+ * Checksum is a mechanism rather than an interface. Our test case can only test whether it can run normally after being
+ * turned on or off
  */
 public class ChecksumOracleTest extends BaseOracleTest {
     /**
      * Tables initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable(
-            "test_batch1",
-            "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
-        createTable(
-            "test_batch2",
-            "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
-        createTable(
-            "test_batch3",
-            "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
+        createTable("test_batch1",
+                "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
+        createTable("test_batch2",
+                "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
+        createTable("test_batch3",
+                "c1 int, c2 varchar(100), c3 date, c4 timestamp(9), c5 timestamp(9) with time zone, c6 timestamp(9) with local time zone");
     }
 
     public static void testChecksum(Connection conn, String tableName) {
@@ -77,12 +78,12 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ResultSet rs = null;
             PreparedStatement ps = null;
 
-            //            ps = conn
-            //                .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
-            //                                  + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+            // ps = conn
+            // .prepareStatement(" /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//*
+            // table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
+            // + tableName + " values (?, ?, ?, ?, ?, ?) ");
 
-            ps = conn.prepareStatement("insert into " + tableName
-                                       + " values (?,   ?,     ?, ?, ?, ?)    ");
+            ps = conn.prepareStatement("insert into " + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
 
             for (int i = 0; i < 10; ++i) {
                 ps.setInt(1, i);
@@ -124,18 +125,16 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ps.close();
 
             // multi lines comment
-            ps = conn.prepareStatement("-- t1\n-- t2\n-- t3\n insert into " + tableName
-                                       + " values (?, ?, ?, ?, ?, ?)");
+            ps = conn.prepareStatement("-- t1\n-- t2\n-- t3\n insert into " + tableName + " values (?, ?, ?, ?, ?, ?)");
             for (int i = 11; i < 20; ++i) {
                 ps.setInt(1, i);
                 ps.setString(2, "value_" + String.format("%02d", i));
                 ps.setTimestamp(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
-                ((BasePrepareStatement) ps).setTIMESTAMP(4,
-                    Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ((BasePrepareStatement) ps).setTIMESTAMP(4, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
                 ((BasePrepareStatement) ps).setTIMESTAMPTZ(5,
-                    new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ((BasePrepareStatement) ps).setTIMESTAMPLTZ(6,
-                    new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -169,18 +168,17 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ps.close();
 
             // multi kinds of comment
-            ps = conn.prepareStatement("-- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into "
-                                       + tableName + " values (?, ?, ?, ?, ?, ?)");
+            ps = conn.prepareStatement(
+                    "-- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into " + tableName + " values (?, ?, ?, ?, ?, ?)");
             for (int i = 21; i < 30; ++i) {
                 ps.setInt(1, i);
                 ps.setString(2, "value_" + String.format("%02d", i));
                 ps.setTimestamp(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
-                ((BasePrepareStatement) ps).setTIMESTAMP(4,
-                    Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ((BasePrepareStatement) ps).setTIMESTAMP(4, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
                 ((BasePrepareStatement) ps).setTIMESTAMPTZ(5,
-                    new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ((BasePrepareStatement) ps).setTIMESTAMPLTZ(6,
-                    new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -214,19 +212,17 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ps.close();
 
             // multi kinds of comment
-            ps = conn
-                .prepareStatement("/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into "
-                                  + tableName + " values (?, ?, ?, ?, ?, ?)");
+            ps = conn.prepareStatement("/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into " + tableName
+                    + " values (?, ?, ?, ?, ?, ?)");
             for (int i = 31; i < 40; ++i) {
                 ps.setInt(1, i);
                 ps.setString(2, "value_" + String.format("%02d", i));
                 ps.setTimestamp(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
-                ((BasePrepareStatement) ps).setTIMESTAMP(4,
-                    Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ((BasePrepareStatement) ps).setTIMESTAMP(4, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
                 ((BasePrepareStatement) ps).setTIMESTAMPTZ(5,
-                    new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ((BasePrepareStatement) ps).setTIMESTAMPLTZ(6,
-                    new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -260,25 +256,22 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ps.close();
 
             // Chinese
-            ps = conn
-                .prepareStatement("/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into "
-                                  + tableName + " values (?, '麓云', ?, ?, ?, ?)");
+            ps = conn.prepareStatement("/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ insert into " + tableName
+                    + " values (?, '麓云', ?, ?, ?, ?)");
             for (int i = 31; i < 40; ++i) {
                 ps.setInt(1, i);
                 ps.setTimestamp(2, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
-                ((BasePrepareStatement) ps).setTIMESTAMP(3,
-                    Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+                ((BasePrepareStatement) ps).setTIMESTAMP(3, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
                 ((BasePrepareStatement) ps).setTIMESTAMPTZ(4,
-                    new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ((BasePrepareStatement) ps).setTIMESTAMPLTZ(5,
-                    new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
+                        new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879")));
                 ps.addBatch();
             }
             ps.executeBatch();
             ps.close();
 
-            ps = conn
-                .prepareStatement("select * from " + tableName + " where c1 = ? and c2 = '麓云'");
+            ps = conn.prepareStatement("select * from " + tableName + " where c1 = ? and c2 = '麓云'");
             for (int i = 31; i < 40; ++i) {
                 ps.setInt(1, i);
                 rs = ps.executeQuery();
@@ -315,9 +308,9 @@ public class ChecksumOracleTest extends BaseOracleTest {
             ResultSet rs = null;
             PreparedStatement ps = null;
 
-            ps = conn
-                .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
-                                  + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+            ps = conn.prepareStatement(
+                    "  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
+                            + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
             for (int i = 0; i < 10; ++i) {
                 ps.setInt(1, i);
                 ps.setString(2, "value_" + String.format("%02d", i));
@@ -328,9 +321,9 @@ public class ChecksumOracleTest extends BaseOracleTest {
                 ps.addBatch();
             }
             ps.executeBatch();
-            ps = conn
-                .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
-                                  + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
+            ps = conn.prepareStatement(
+                    "  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
+                            + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
             Class psClass = (Class) ps.getClass();
             java.lang.reflect.Field f = psClass.getDeclaredField("checksum");
             f.setAccessible(true);
@@ -353,7 +346,9 @@ public class ChecksumOracleTest extends BaseOracleTest {
 
     /**
      * Test for useServerPsStmtChecksum=true , the default value is true.
-     * @throws SQLException throw sql exception
+     * 
+     * @throws SQLException
+     *             throw sql exception
      */
     @Test
     public void testChecksumOn() throws SQLException {
@@ -364,7 +359,9 @@ public class ChecksumOracleTest extends BaseOracleTest {
 
     /**
      * Test for useServerPsStmtChecksum=false
-     * @throws SQLException throw sql exception
+     * 
+     * @throws SQLException
+     *             throw sql exception
      */
     @Test
     public void testChecksumOff() throws SQLException {

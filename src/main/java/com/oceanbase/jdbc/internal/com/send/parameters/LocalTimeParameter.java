@@ -52,19 +52,22 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.time.LocalTime;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class LocalTimeParameter implements Cloneable, ParameterHolder {
 
     private final LocalTime time;
-    private final boolean   fractionalSeconds;
+    private final boolean fractionalSeconds;
 
     /**
      * Constructor.
      *
-     * @param time time to write
-     * @param fractionalSeconds must fractional seconds be send.
+     * @param time
+     *            time to write
+     * @param fractionalSeconds
+     *            must fractional seconds be send.
      */
     public LocalTimeParameter(LocalTime time, boolean fractionalSeconds) {
         this.time = time;
@@ -74,13 +77,14 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write Time parameter to outputStream.
      *
-     * @param pos the stream to write to
+     * @param pos
+     *            the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         StringBuilder dateString = new StringBuilder(15);
         dateString.append(time.getHour() < 10 ? "0" : "").append(time.getHour())
-            .append(time.getMinute() < 10 ? ":0" : ":").append(time.getMinute())
-            .append(time.getSecond() < 10 ? ":0" : ":").append(time.getSecond());
+                .append(time.getMinute() < 10 ? ":0" : ":").append(time.getMinute())
+                .append(time.getSecond() < 10 ? ":0" : ":").append(time.getSecond());
         int microseconds = time.getNano() / 1000;
         if (microseconds > 0 && fractionalSeconds) {
             dateString.append(".");
@@ -103,8 +107,10 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         int nano = time.getNano();

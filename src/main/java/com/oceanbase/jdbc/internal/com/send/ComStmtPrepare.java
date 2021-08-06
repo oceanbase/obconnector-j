@@ -54,9 +54,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.com.Packet;
+import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
@@ -65,7 +65,7 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 public class ComStmtPrepare {
 
     private final Protocol protocol;
-    private final String   sql;
+    private final String sql;
 
     public ComStmtPrepare(Protocol protocol, String sql) {
         this.protocol = protocol;
@@ -75,8 +75,10 @@ public class ComStmtPrepare {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos the writer
-     * @throws IOException if connection error occur
+     * @param pos
+     *            the writer
+     * @throws IOException
+     *             if connection error occur
      */
     public void send(PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
@@ -88,15 +90,17 @@ public class ComStmtPrepare {
     /**
      * Read COM_PREPARE_RESULT.
      *
-     * @param reader inputStream
-     * @param eofDeprecated are EOF_packet deprecated
+     * @param reader
+     *            inputStream
+     * @param eofDeprecated
+     *            are EOF_packet deprecated
      * @return ServerPrepareResult prepare result
-     * @throws IOException if connection has error
-     * @throws SQLException if server answer with error.
+     * @throws IOException
+     *             if connection has error
+     * @throws SQLException
+     *             if server answer with error.
      */
-    public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated)
-                                                                                    throws IOException,
-                                                                                    SQLException {
+    public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated) throws IOException, SQLException {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
@@ -117,8 +121,7 @@ public class ComStmtPrepare {
 
             if (numParams > 0) {
                 for (int i = 0; i < numParams; i++) {
-                    params[i] = new ColumnDefinition(reader.getPacket(false),
-                        this.protocol.isOracleMode());
+                    params[i] = new ColumnDefinition(reader.getPacket(false), this.protocol.isOracleMode());
                 }
 
                 if (numColumns > 0) {
@@ -126,8 +129,7 @@ public class ComStmtPrepare {
                         protocol.skipEofPacket();
                     }
                     for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            this.protocol.isOracleMode());
+                        columns[i] = new ColumnDefinition(reader.getPacket(false), this.protocol.isOracleMode());
                     }
                 }
                 if (!eofDeprecated) {
@@ -136,8 +138,7 @@ public class ComStmtPrepare {
             } else {
                 if (numColumns > 0) {
                     for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            this.protocol.isOracleMode());
+                        columns[i] = new ColumnDefinition(reader.getPacket(false), this.protocol.isOracleMode());
                     }
                     if (!eofDeprecated) {
                         protocol.readEofPacket();
@@ -150,15 +151,13 @@ public class ComStmtPrepare {
                 }
             }
 
-            ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId,
-                columns, params, protocol);
-            if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts
-                && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
+            ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params,
+                    protocol);
+            if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts && sql != null
+                    && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
                 String key = protocol.getDatabase() + "-" + sql;
-                ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
-                    serverPrepareResult);
-                return cachedServerPrepareResult != null ? cachedServerPrepareResult
-                    : serverPrepareResult;
+                ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key, serverPrepareResult);
+                return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
             }
             return serverPrepareResult;
 
@@ -171,11 +170,10 @@ public class ComStmtPrepare {
         ErrorPacket ep = new ErrorPacket(buffer);
         String message = ep.getMessage();
         if (1054 == ep.getErrorCode()) {
-            return new SQLException(
-                message
-                        + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
-                        + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                ep.getSqlState(), ep.getErrorCode());
+            return new SQLException(message
+                    + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+                    ep.getSqlState(), ep.getErrorCode());
         } else {
             return new SQLException(message, ep.getSqlState(), ep.getErrorCode());
         }

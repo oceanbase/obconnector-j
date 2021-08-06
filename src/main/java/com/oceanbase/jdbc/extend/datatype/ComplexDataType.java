@@ -46,23 +46,23 @@ package com.oceanbase.jdbc.extend.datatype;
 import java.sql.SQLException;
 
 public class ComplexDataType {
-    private String            typeName;
-    private String            schemaName;
-    private long              version         = 0;
-    boolean                   isValid         = false;
-    private int               type;
-    private int               attrCount;
-    private int               initAttrCount   = 0;
-    private ComplexDataType[] attrTypes       = null;
+    private String typeName;
+    private String schemaName;
+    private long version = 0;
+    boolean isValid = false;
+    private int type;
+    private int attrCount;
+    private int initAttrCount = 0;
+    private ComplexDataType[] attrTypes = null;
 
-    public static final int   TYPE_NUMBER     = 0;
-    public static final int   TYPE_VARCHAR2   = 1;
-    public static final int   TYPE_DATE       = 2;
-    public static final int   TYPE_OBJECT     = 3;
-    public static final int   TYPE_COLLECTION = 4;
-    public static final int   TYPE_CURSOR     = 5;
-    public static final int   TYPE_RAW        = 6;
-    public static final int   TYPE_MAX        = 7;
+    public static final int TYPE_NUMBER = 0;
+    public static final int TYPE_VARCHAR2 = 1;
+    public static final int TYPE_DATE = 2;
+    public static final int TYPE_OBJECT = 3;
+    public static final int TYPE_COLLECTION = 4;
+    public static final int TYPE_CURSOR = 5;
+    public static final int TYPE_RAW = 6;
+    public static final int TYPE_MAX = 7;
 
     public ComplexDataType(String typeName, String schemaName, int type) {
         this.schemaName = schemaName;
@@ -152,7 +152,7 @@ public class ComplexDataType {
             return TYPE_OBJECT;
         }
         if (attrType.equalsIgnoreCase("NUMBER") || attrType.equalsIgnoreCase("INTEGER")
-            || attrType.equalsIgnoreCase("DECIMAL")) {
+                || attrType.equalsIgnoreCase("DECIMAL")) {
             return TYPE_NUMBER;
         }
         if (attrType.equalsIgnoreCase("VARCHAR2") || attrType.equalsIgnoreCase("VARCHAR")) {

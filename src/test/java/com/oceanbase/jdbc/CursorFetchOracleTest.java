@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
 
 public class CursorFetchOracleTest extends BaseOracleTest {
     static String tableName1 = "test_cursor_oracle";
@@ -100,7 +100,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             stmt.execute(query);
 
             PreparedStatement ps = conn.prepareStatement("select * from " + tableName2,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ps.setFetchSize(40);
             ResultSet rs = ps.executeQuery();
 

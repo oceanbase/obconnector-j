@@ -43,22 +43,23 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DataTypeUnsignedOracleTest extends BaseOracleTest {
 
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -104,16 +105,12 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
 
     @Test
     public void unsignedMediumIntTest() throws SQLException {
-        try{
-            sharedConnection
-                    .createStatement()
-                    .execute("insert into unsignedMediumIntTest values (16777215)");
-        }catch (Exception e){
+        try {
+            sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (16777215)");
+        } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("value larger than specified precision allowed for this column"));
         }
-        sharedConnection
-                .createStatement()
-                .execute("insert into unsignedMediumIntTest values (8388607)");
+        sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (8388607)");
         sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (1)");
         sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (null)");
 
@@ -195,12 +192,8 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
 
     @Test
     public void unsignedBigIntTest() throws SQLException {
-        sharedConnection
-                .createStatement()
-                .execute("insert into unsignedBigIntTest values (18446744073709551615)");
-        sharedConnection
-                .createStatement()
-                .execute("insert into unsignedBigIntTest values (9223372036854775807)");
+        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (18446744073709551615)");
+        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (9223372036854775807)");
         sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (1)");
         sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (null)");
 
@@ -251,8 +244,9 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
             try {
                 statement.execute(
                         "insert into unsignedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
-            }catch (Exception e){
-                Assert.assertTrue("",e.getMessage().contains("value larger than specified precision allowed for this column"));
+            } catch (Exception e) {
+                Assert.assertTrue("",
+                        e.getMessage().contains("value larger than specified precision allowed for this column"));
             }
             statement.execute("insert into unsignedDecimalTest values (9223372036854)"); // 775806
             statement.execute("insert into unsignedDecimalTest values (1.1)");
@@ -277,11 +271,10 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
             assertEquals(9223372036854L, rs.getLong(1));
             assertEquals(9223372036854F, rs.getFloat(1), .000001);
             assertEquals(9223372036854D, rs.getDouble(1), .000001);
-            Assert
-                .assertTrue("is not equals", new BigDecimal("9223372036854.00000000000000000000")
-                    .compareTo(rs.getBigDecimal(1)) == 0);
+            Assert.assertTrue("is not equals",
+                    new BigDecimal("9223372036854.00000000000000000000").compareTo(rs.getBigDecimal(1)) == 0);
             Assert.assertFalse("is equals",
-                new BigDecimal("9223372036854.00000000000000000000").equals(rs.getBigDecimal(1)));
+                    new BigDecimal("9223372036854.00000000000000000000").equals(rs.getBigDecimal(1)));
             Assert.assertFalse("9223372036854.00000000000000000000".equals(rs.getString(1)));
             if (rs.next()) {
                 assertEquals(1, rs.getByte(1));
@@ -291,8 +284,7 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
                 assertEquals(1.1F, rs.getFloat(1), .000001);
                 assertEquals(1.1D, rs.getDouble(1), .000001);
                 Assert.assertFalse("1.10000000000000000000".equals(rs.getString(1)));
-                Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs
-                    .getBigDecimal(1)));
+                Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs.getBigDecimal(1)));
 
                 if (rs.next()) {
                     oneNullTest(rs, true, false);
@@ -313,8 +305,9 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
             try {
                 statement.execute(
                         "insert into unsignedFloatTest values (123456789012345678901234567890.12345678901234567890)");
-            }catch (Exception e){
-                Assert.assertTrue("",e.getMessage().contains("value larger than specified precision allowed for this column"));
+            } catch (Exception e) {
+                Assert.assertTrue("",
+                        e.getMessage().contains("value larger than specified precision allowed for this column"));
             }
 
             statement.execute("insert into unsignedFloatTest values (9223372036854775806)");
@@ -341,8 +334,8 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
             assertEquals(123456789012345678901234567890F, rs.getFloat(1), 2E25F);
             assertEquals(123456789012345678901234567890D, rs.getDouble(1), 2E25F);
             assertEquals(123456789012345678901234567890F, rs.getBigDecimal(1).floatValue(), 2E25F);
-            assertEquals(binary ? "123456789012345678901234567890.12"
-                : "123456789012345678901234567890.12", rs.getString(1));
+            assertEquals(binary ? "123456789012345678901234567890.12" : "123456789012345678901234567890.12",
+                    rs.getString(1));
             if (rs.next()) {
                 byteMustFail(rs);
                 shortMustFail(rs);
@@ -356,8 +349,7 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
                 assertEquals(9223372036854775806F, rs.getFloat(1), 1E14F);
                 assertEquals(9223372036854775806F, rs.getDouble(1), 1E14F);
                 assertEquals(9223372036854775806F, rs.getBigDecimal(1).floatValue(), 1E14F);
-                assertEquals(binary ? "9223372036854775806" : "9223372036854775806",
-                    rs.getString(1));
+                assertEquals(binary ? "9223372036854775806" : "9223372036854775806", rs.getString(1));
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
                     assertEquals(1, rs.getShort(1));
@@ -428,8 +420,7 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
         oneNullTest(rs, false, false);
     }
 
-    private void oneNullTest(ResultSet rs, boolean decimal, boolean floatingPoint)
-                                                                                  throws SQLException {
+    private void oneNullTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
         try {
             if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));
@@ -447,8 +438,7 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
                         fail("getBigDecimal error : is " + bd.toString());
                     }
                 } else {
-                    Assert.assertFalse(new BigDecimal("1.00000000000000000000").equals(rs
-                        .getBigDecimal(1)));
+                    Assert.assertFalse(new BigDecimal("1.00000000000000000000").equals(rs.getBigDecimal(1)));
                     Assert.assertFalse("1.00000000000000000000".equals(rs.getString(1)));
                 }
             } else {
@@ -544,10 +534,13 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query    query
-     * @param prepared flag must be a prepare statement
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
         return getResultSet(query, prepared, sharedConnection);
@@ -556,17 +549,19 @@ public class DataTypeUnsignedOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query      query
-     * @param prepared   flag must be a prepare statement
-     * @param connection the connection to use
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
+     * @param connection
+     *            the connection to use
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection)
-                                                                                               throws SQLException {
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
         if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query
-                                                                              + " WHERE 1 = ?");
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {

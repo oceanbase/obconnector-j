@@ -65,36 +65,45 @@ import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 
 public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
-    private final ComStmtPrepare          comStmtPrepare;
-    private final BulkStatus              status;
-    private final int                     sendCmdInitialCounter;
-    private final Protocol                protocol;
-    private final boolean                 readPrepareStmtResult;
-    private final AbstractMultiSend       bulkSend;
+    private final ComStmtPrepare comStmtPrepare;
+    private final BulkStatus status;
+    private final int sendCmdInitialCounter;
+    private final Protocol protocol;
+    private final boolean readPrepareStmtResult;
+    private final AbstractMultiSend bulkSend;
     private final List<ParameterHolder[]> parametersList;
-    private final List<String>            queries;
-    private final Results                 results;
-    private final int                     paramCount;
-    private final AsyncMultiReadResult    asyncMultiReadResult;
+    private final List<String> queries;
+    private final Results results;
+    private final int paramCount;
+    private final AsyncMultiReadResult asyncMultiReadResult;
 
     /**
      * Read results async to avoid local and remote networking stack buffer overflow "lock".
      *
-     * @param comStmtPrepare current prepare
-     * @param status bulk status
-     * @param protocol protocol
-     * @param readPrepareStmtResult must read prepare statement result
-     * @param bulkSend bulk sender object
-     * @param paramCount number of parameters
-     * @param results execution result
-     * @param parametersList parameter list
-     * @param queries queries
-     * @param prepareResult prepare result
+     * @param comStmtPrepare
+     *            current prepare
+     * @param status
+     *            bulk status
+     * @param protocol
+     *            protocol
+     * @param readPrepareStmtResult
+     *            must read prepare statement result
+     * @param bulkSend
+     *            bulk sender object
+     * @param paramCount
+     *            number of parameters
+     * @param results
+     *            execution result
+     * @param parametersList
+     *            parameter list
+     * @param queries
+     *            queries
+     * @param prepareResult
+     *            prepare result
      */
     public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status, Protocol protocol,
-                          boolean readPrepareStmtResult, AbstractMultiSend bulkSend,
-                          int paramCount, Results results, List<ParameterHolder[]> parametersList,
-                          List<String> queries, PrepareResult prepareResult) {
+            boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount, Results results,
+            List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
         this.comStmtPrepare = comStmtPrepare;
         this.status = status;
         this.sendCmdInitialCounter = status.sendCmdCounter - 1;
@@ -122,8 +131,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
         if (readPrepareStmtResult) {
             try {
-                asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getReader(),
-                    protocol.isEofDeprecated()));
+                asyncMultiReadResult
+                        .setPrepareResult(comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated()));
             } catch (SQLException queryException) {
                 asyncMultiReadResult.setException(queryException);
             }
@@ -140,22 +149,21 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
                     protocol.getResult(results);
                 } catch (SQLException qex) {
                     if (qex instanceof SQLNonTransientConnectionException
-                        || qex instanceof SQLTransientConnectionException) {
+                            || qex instanceof SQLTransientConnectionException) {
                         asyncMultiReadResult.setException(qex);
                         break outerloop;
                     }
                     if (asyncMultiReadResult.getException() == null) {
-                        asyncMultiReadResult.setException(bulkSend.handleResultException(qex,
-                            results, parametersList, queries, counter, sendCmdInitialCounter,
-                            paramCount, asyncMultiReadResult.getPrepareResult()));
+                        asyncMultiReadResult.setException(
+                                bulkSend.handleResultException(qex, results, parametersList, queries, counter,
+                                        sendCmdInitialCounter, paramCount, asyncMultiReadResult.getPrepareResult()));
                     }
                 }
                 counter++;
 
                 if (Thread.currentThread().isInterrupted()) {
-                    asyncMultiReadResult.setException(new SQLException(
-                        "Interrupted reading responses ", SqlStates.INTERRUPTED_EXCEPTION
-                            .getSqlState(), -1));
+                    asyncMultiReadResult.setException(new SQLException("Interrupted reading responses ",
+                            SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), -1));
                     break;
                 }
             }

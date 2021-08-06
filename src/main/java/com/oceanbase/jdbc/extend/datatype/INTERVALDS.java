@@ -48,19 +48,19 @@ import java.sql.SQLException;
 import java.util.StringTokenizer;
 
 /**
- *  datatype name INTERVAL DAY TO SECOND
+ * datatype name INTERVAL DAY TO SECOND
  */
 public class INTERVALDS extends Datum {
-    private static int       MAXLEADPREC         = 9;
-    private static int       MAXHOUR             = 23;
-    private static int       MAXMINUTE           = 59;
-    private static int       MAXSECOND           = 59;
+    private static int MAXLEADPREC = 9;
+    private static int MAXHOUR = 23;
+    private static int MAXMINUTE = 59;
+    private static int MAXSECOND = 59;
     private final static int INTERVALDS_BYTE_NUM = 14;
-    private static int       INTERVALDSMAXLENGTH = 11;
-    private static int       INTERVALDSOFFSET    = 60;
-    private static int       INTERVALDAYOFFSET   = -2147483648;
+    private static int INTERVALDSMAXLENGTH = 11;
+    private static int INTERVALDSOFFSET = 60;
+    private static int INTERVALDAYOFFSET = -2147483648;
 
-    static final long        serialVersionUID    = 7164731704878764759L;
+    static final long serialVersionUID = 7164731704878764759L;
 
     public INTERVALDS() {
         super(toBytes("0 0:0:0.0"));
@@ -72,7 +72,8 @@ public class INTERVALDS extends Datum {
 
     /**
      *
-     * @param var:+002324 05:12:10.21200
+     * @param var:+002324
+     *            05:12:10.21200
      */
     public INTERVALDS(String var) {
         super(toBytes(var));
@@ -101,7 +102,7 @@ public class INTERVALDS extends Datum {
                 }
             }
             String subStr = trimStr.substring(pos);
-            int index = subStr.indexOf(32); //find pos of blanket
+            int index = subStr.indexOf(32); // find pos of blanket
             String dayStr = subStr.substring(0, index);
             if (dayStr.length() > MAXLEADPREC) {
                 throw new NumberFormatException("invalid daylen " + dayStr);
@@ -138,8 +139,8 @@ public class INTERVALDS extends Datum {
                     } else {
                         if (fracSecondStr != null) {
                             if (fracSecondStr.length() > MAXLEADPREC) {
-                                throw new NumberFormatException("invalid fracsecond length "
-                                                                + fracSecondStr + " in " + var);
+                                throw new NumberFormatException(
+                                        "invalid fracsecond length " + fracSecondStr + " in " + var);
                             }
                             fractional_second = Integer.valueOf(fracSecondStr);
                             int lenDiff = MAXLEADPREC - fracSecondStr.length();
@@ -180,34 +181,28 @@ public class INTERVALDS extends Datum {
             int day_scale = data[12] & 255;
             int fractional_second_scale = data[13] & 255;
             if (day < 0 || day > Math.pow(10, MAXLEADPREC)) {
-                throw new NumberFormatException("day should not exceed "
-                                                + Math.pow(10, MAXLEADPREC) + ", now is " + day);
+                throw new NumberFormatException(
+                        "day should not exceed " + Math.pow(10, MAXLEADPREC) + ", now is " + day);
             }
             if (hour < 0 || hour > MAXHOUR) {
-                throw new NumberFormatException("hour should not exceed " + MAXHOUR + ", now is "
-                                                + hour);
+                throw new NumberFormatException("hour should not exceed " + MAXHOUR + ", now is " + hour);
             }
             if (minute < 0 || minute > MAXMINUTE) {
-                throw new NumberFormatException("minute should not exceed " + MAXMINUTE
-                                                + ", now is " + minute);
+                throw new NumberFormatException("minute should not exceed " + MAXMINUTE + ", now is " + minute);
             }
             if (second < 0 || second > MAXSECOND) {
-                throw new NumberFormatException("second should not exceed " + MAXSECOND
-                                                + ", now is " + second);
+                throw new NumberFormatException("second should not exceed " + MAXSECOND + ", now is " + second);
             }
             if (fractional_second < 0 || fractional_second > Math.pow(10, MAXLEADPREC)) {
-                throw new NumberFormatException("fractional_second should not exceed "
-                                                + Math.pow(10, MAXLEADPREC) + ", now is "
-                                                + fractional_second);
+                throw new NumberFormatException("fractional_second should not exceed " + Math.pow(10, MAXLEADPREC)
+                        + ", now is " + fractional_second);
             }
             if (fractional_second_scale < 0 || fractional_second_scale > MAXLEADPREC) {
-                throw new NumberFormatException("fractional_second_scale should not exceed "
-                                                + MAXLEADPREC + ", now is "
-                                                + fractional_second_scale);
+                throw new NumberFormatException("fractional_second_scale should not exceed " + MAXLEADPREC + ", now is "
+                        + fractional_second_scale);
             }
             if (fractional_second_scale < MAXLEADPREC) {
-                fractional_second = fractional_second
-                                    / (int) Math.pow(10, MAXLEADPREC - fractional_second_scale);
+                fractional_second = fractional_second / (int) Math.pow(10, MAXLEADPREC - fractional_second_scale);
             }
             String format = String.format("%%d %%d:%%d:%%d.%%0%dd", fractional_second_scale);
             String result = String.format(format, day, hour, minute, second, fractional_second);

@@ -65,22 +65,24 @@ import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 
     private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
-    private final HaMode        mode;
+    private final HaMode mode;
 
     /**
      * Initialisation.
      *
-     * @param urlParser url options.
-     * @param globalInfo server global variables information
+     * @param urlParser
+     *            url options.
+     * @param globalInfo
+     *            server global variables information
      */
     public MastersFailoverListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
         super(urlParser, globalInfo);
@@ -91,7 +93,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Connect to database.
      *
-     * @throws SQLException if connection is on error.
+     * @throws SQLException
+     *             if connection is on error.
      */
     @Override
     public void initializeConnection() throws SQLException {
@@ -105,7 +108,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Before executing query, reconnect if connection is closed, and autoReconnect option is set.
      *
-     * @throws SQLException if connection has been explicitly closed.
+     * @throws SQLException
+     *             if connection has been explicitly closed.
      */
     public void preExecute() throws SQLException {
         lastQueryNanos = System.nanoTime();
@@ -146,8 +150,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd,
-                                         boolean alreadyClosed) {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean alreadyClosed) {
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
         if (currentProtocol.isConnected()) {
@@ -163,8 +166,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             }
 
             if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
-                logger
-                    .info(
+                logger.info(
                         "Connection to master lost, new master {} found"
                                 + ", query type permit to be re-execute on new server without throwing exception",
                         currentProtocol.getHostAddress());
@@ -174,7 +176,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         } catch (Exception e) {
             // we will throw a Connection exception that will close connection
             if (e.getCause() != null && proxy.hasToHandleFailover((SQLException) e.getCause())
-                && currentProtocol.isConnected()) {
+                    && currentProtocol.isConnected()) {
                 currentProtocol.close();
             }
             FailoverLoop.removeListener(this);
@@ -185,63 +187,67 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Loop to connect failed hosts.
      *
-     * @param searchFilter search parameters.
-     * @throws SQLException if there is any error during reconnection
+     * @param searchFilter
+     *            search parameters.
+     * @throws SQLException
+     *             if there is any error during reconnection
      */
     @Override
-  public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
-    proxy.lock.lock();
-    try {
-      if (!searchFilter.isInitialConnection() && (isExplicitClosed() || !isMasterHostFail())) {
-        return;
-      }
+    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
+        proxy.lock.lock();
+        try {
+            if (!searchFilter.isInitialConnection() && (isExplicitClosed() || !isMasterHostFail())) {
+                return;
+            }
 
-      currentConnectionAttempts.incrementAndGet();
-      resetOldsBlackListHosts();
+            currentConnectionAttempts.incrementAndGet();
+            resetOldsBlackListHosts();
 
-      List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-      if (HaMode.LOADBALANCE.equals(mode)) {
-        // put the list in the following order
-        // - random order not connected host
-        // - random order blacklist host
-        // - random order connected host
-        loopAddress.removeAll(getBlacklistKeys());
-        Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-        blacklistShuffle.retainAll(urlParser.getHostAddresses());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
-      } else {
-        // order in sequence
-        loopAddress.removeAll(getBlacklistKeys());
-        loopAddress.addAll(getBlacklistKeys());
-        loopAddress.retainAll(urlParser.getHostAddresses());
-      }
+            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+            if (HaMode.LOADBALANCE.equals(mode)) {
+                // put the list in the following order
+                // - random order not connected host
+                // - random order blacklist host
+                // - random order connected host
+                loopAddress.removeAll(getBlacklistKeys());
+                Collections.shuffle(loopAddress);
+                List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+                blacklistShuffle.retainAll(urlParser.getHostAddresses());
+                Collections.shuffle(blacklistShuffle);
+                loopAddress.addAll(blacklistShuffle);
+            } else {
+                // order in sequence
+                loopAddress.removeAll(getBlacklistKeys());
+                loopAddress.addAll(getBlacklistKeys());
+                loopAddress.retainAll(urlParser.getHostAddresses());
+            }
 
-      // put connected at end
-      if (currentProtocol != null && !isMasterHostFail()) {
-        loopAddress.remove(currentProtocol.getHostAddress());
-        // loopAddress.add(currentProtocol.getHostAddress());
-      }
+            // put connected at end
+            if (currentProtocol != null && !isMasterHostFail()) {
+                loopAddress.remove(currentProtocol.getHostAddress());
+                // loopAddress.add(currentProtocol.getHostAddress());
+            }
 
-      MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
-      // close loop if all connection are retrieved
-      if (!isMasterHostFail()) {
-        FailoverLoop.removeListener(this);
-      }
+            MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
+            // close loop if all connection are retrieved
+            if (!isMasterHostFail()) {
+                FailoverLoop.removeListener(this);
+            }
 
-      // if no error, reset failover variables
-      resetMasterFailoverData();
-    } finally {
-      proxy.lock.unlock();
+            // if no error, reset failover variables
+            resetMasterFailoverData();
+        } finally {
+            proxy.lock.unlock();
+        }
     }
-  }
 
     /**
      * Force session to read-only according to options.
      *
-     * @param mustBeReadOnly is read-only flag
-     * @throws SQLException if a connection error occur
+     * @param mustBeReadOnly
+     *            is read-only flag
+     * @throws SQLException
+     *             if a connection error occur
      */
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws SQLException {
         if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked != mustBeReadOnly) {
@@ -261,7 +267,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * method called when a new Master connection is found after a fallback.
      *
-     * @param protocol the new active connection
+     * @param protocol
+     *            the new active connection
      */
     @Override
     public void foundActiveMaster(Protocol protocol) throws SQLException {
@@ -292,7 +299,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Try to reconnect connection.
      *
-     * @throws SQLException if reconnect a new connection but there was an active transaction.
+     * @throws SQLException
+     *             if reconnect a new connection but there was an active transaction.
      */
     public void reconnect() throws SQLException {
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
@@ -300,15 +308,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
         handleFailLoop();
         if (inTransaction) {
             throw new ReconnectDuringTransactionException(
-                "Connection reconnect automatically during an active transaction", 1401, "25S03");
+                    "Connection reconnect automatically during an active transaction", 1401, "25S03");
         }
     }
 
     /**
-     * Add listener to FailoverLoop if master connection is not active, so a reconnection will be
-     * done. (the reconnection will be done by failover or if append before by the next query/method
-     * that will use the failed connection) Remove listener from FailoverLoop is master connection is
-     * active.
+     * Add listener to FailoverLoop if master connection is not active, so a reconnection will be done. (the
+     * reconnection will be done by failover or if append before by the next query/method that will use the failed
+     * connection) Remove listener from FailoverLoop is master connection is active.
      */
     public void handleFailLoop() {
         if (isMasterHostFail()) {
@@ -327,7 +334,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Check master status.
      *
-     * @param searchFilter search filter
+     * @param searchFilter
+     *            search filter
      * @return has some status changed
      */
     public boolean checkMasterStatus(SearchFilter searchFilter) {
@@ -337,15 +345,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
         return false;
     }
 
-    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult,
-                                 boolean mustExecuteOnSlave) {
+    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnSlave) {
         // no slave
     }
 
     /**
      * Reset state of master connection.
      *
-     * @throws SQLException if command fail.
+     * @throws SQLException
+     *             if command fail.
      */
     public void reset() throws SQLException {
 

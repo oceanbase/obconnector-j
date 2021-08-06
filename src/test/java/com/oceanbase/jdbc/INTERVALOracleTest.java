@@ -43,34 +43,37 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
-import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import org.junit.*;
-import java.sql.*;
-import oracle.jdbc.*;
-
 import static org.junit.Assert.*;
 
+import java.sql.*;
+
+import org.junit.*;
+
+import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
+
+import oracle.jdbc.*;
+
 /**
- *  The test depends on the ob version .Version 2.2.52 has no problems, but 2.2.60 has errors !
+ * The test depends on the ob version .Version 2.2.52 has no problems, but 2.2.60 has errors !
  */
 public class INTERVALOracleTest extends BaseOracleTest {
 
     /**
      * Tables initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
-    public static String tableNameDS   = "test_intervalds";
-    public static String tableNameYM   = "test_intervalym";
+    public static String tableNameDS = "test_intervalds";
+    public static String tableNameYM = "test_intervalym";
     public static String tableNameYMDS = "test_intervalymds";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tableNameDS, "c1 int primary key,c2 interval day(6) to second(5)");
         createTable(tableNameYM, " c1 int primary key,c2 interval year(4) to month");
-        createTable(tableNameYMDS,
-            "c1 int primary key,c3 interval day(6) to second(5),c2 interval year(4) to month");
+        createTable(tableNameYMDS, "c1 int primary key,c3 interval day(6) to second(5),c2 interval year(4) to month");
 
     }
 
@@ -105,8 +108,11 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * The basic test of intervalds includes query, insert, update;Due to AONE-30982102,The table contains only one interval column
-     * @throws SQLException exception
+     * The basic test of intervalds includes query, insert, update;Due to AONE-30982102,The table contains only one
+     * interval column
+     * 
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void basicOracleIntervalds() throws SQLException {
@@ -121,10 +127,8 @@ public class INTERVALOracleTest extends BaseOracleTest {
             } catch (SQLException throwables) {
                 // ignore
             }
-            oracleConnection
-                .createStatement()
-                .execute(
-                    "create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
+            oracleConnection.createStatement()
+                    .execute("create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
 
             String sql1 = "insert into " + tableNameDS + "  values(?, ?)";
 
@@ -142,8 +146,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
 
             PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql1);
             oraclePstmt.setInt(1, 1);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
-                "2324 5:12:10.0212"));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS("2324 5:12:10.0212"));
             oraclePstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql2);
             oraclePstmt.execute();
@@ -165,8 +168,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             ((BasePrepareStatement) pstmt).setINTERVALDS(1, new INTERVALDS("1234 5:12:10.212"));
             pstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(1, new oracle.sql.INTERVALDS(
-                "1234 5:12:10.212"));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(1, new oracle.sql.INTERVALDS("1234 5:12:10.212"));
             oraclePstmt.execute();
 
             sql = "select c2 from " + tableNameDS + " where c1 = 1";
@@ -188,10 +190,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Constructor Summary:
-     * INTERVALDS()
-     * INTERVALDS(byte[] intervalDS)
-     * INTERVALDS(String str)
+     * Constructor Summary: INTERVALDS() INTERVALDS(byte[] intervalDS) INTERVALDS(String str)
      */
 
     @Test
@@ -207,10 +206,8 @@ public class INTERVALOracleTest extends BaseOracleTest {
             } catch (SQLException throwables) {
                 // ignore
             }
-            oracleConnection
-                .createStatement()
-                .execute(
-                    "create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
+            oracleConnection.createStatement()
+                    .execute("create table test_intervalds (c1 int primary key,c2 interval day(6) to second(5))");
 
             String intervalStr = "2324 5:12:10.21211111";
             sql = "insert into " + tableNameDS + "  values(?,?)";
@@ -235,13 +232,11 @@ public class INTERVALOracleTest extends BaseOracleTest {
 
             oracle.sql.INTERVALDS oracleVal = new oracle.sql.INTERVALDS(intervalStr);
             oraclePstmt.setInt(1, 2);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
-                oracleVal.toBytes()));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(oracleVal.toBytes()));
             oraclePstmt.addBatch();
 
             oraclePstmt.setInt(1, 3);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(
-                intervalStr));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALDS(2, new oracle.sql.INTERVALDS(intervalStr));
             oraclePstmt.addBatch();
             oraclePstmt.executeBatch();
 
@@ -256,7 +251,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
 
             assertTrue(resultSet.next() && oracleResultSet.next());
             assertEquals(1, resultSet.getInt("c1"));
-            //            assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
+            // assertEquals(oracleResultSet.getString("c2"), resultSet.getString("c2"));
 
             assertTrue(resultSet.next() && oracleResultSet.next());
             assertEquals(2, resultSet.getInt("c1"));
@@ -273,15 +268,9 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Method Summary:
-     * boolean	isConvertibleTo(Class cls)
-     * Object	makeJdbcArray(int arraySize)
-     * String	stringValue()
-     * byte[]	toBytes()
-     * static byte[] toBytes(String str)
-     * Object	toJdbc()
-     * String	toString()
-     * static String	toString(byte[] inparray)
+     * Method Summary: boolean isConvertibleTo(Class cls) Object makeJdbcArray(int arraySize) String stringValue()
+     * byte[] toBytes() static byte[] toBytes(String str) Object toJdbc() String toString() static String
+     * toString(byte[] inparray)
      */
     @Test
     public void methodOracleIntervalds() throws SQLException {
@@ -357,22 +346,18 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Boundary value test of intervalds:
-     * Positive number , negative number and unsigned number
-     * Invalid hour minute and second number
-     * Invalid day length
-     * Invalid fracsecond length
-     * Invalid format
-     * @throws SQLException exception
+     * Boundary value test of intervalds: Positive number , negative number and unsigned number Invalid hour minute and
+     * second number Invalid day length Invalid fracsecond length Invalid format
+     * 
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void boundaryOracleIntervalds() throws SQLException {
         INTERVALDS unsignedIntervalds = new INTERVALDS("2324 5:12:10.012345678");
-        oracle.sql.INTERVALDS oracleUnsignedIntervalds = new oracle.sql.INTERVALDS(
-            "2324 5:12:10.012345678");
+        oracle.sql.INTERVALDS oracleUnsignedIntervalds = new oracle.sql.INTERVALDS("2324 5:12:10.012345678");
         System.out.println("unsignedIntervalds = " + unsignedIntervalds.toString());
-        System.out.println("oracleUnsignedIntervalds.toString() = "
-                           + oracleUnsignedIntervalds.toString());
+        System.out.println("oracleUnsignedIntervalds.toString() = " + oracleUnsignedIntervalds.toString());
         INTERVALDS negIntervalds = new INTERVALDS("-100 10:10:10.010");
         oracle.sql.INTERVALDS oracleNegIntervalds = new oracle.sql.INTERVALDS("-100 10:10:10.010");
         INTERVALDS posIntervalds = new INTERVALDS("+100 10:10:10.010");
@@ -405,8 +390,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
         try {
             INTERVALDS inFraceSecondlen = new INTERVALDS("123 12:11:11.1234567890");
         } catch (Exception e) {
-            assertEquals("invalid fracsecond length 1234567890 in 123 12:11:11.1234567890",
-                e.getMessage());
+            assertEquals("invalid fracsecond length 1234567890 in 123 12:11:11.1234567890", e.getMessage());
         }
 
         try {
@@ -418,7 +402,9 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * The basic test of intervalym includes query, insert, update;Due to AONE-30982102,The table contains only one interval column
+     * The basic test of intervalym includes query, insert, update;Due to AONE-30982102,The table contains only one
+     * interval column
+     * 
      * @throws SQLException
      */
     @Test
@@ -431,8 +417,8 @@ public class INTERVALOracleTest extends BaseOracleTest {
             } catch (SQLException throwables) {
                 // ignore
             }
-            oracleConnection.createStatement().execute(
-                "create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
+            oracleConnection.createStatement()
+                    .execute("create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
 
             String sql = null;
             sql = "delete from " + tableNameYM;
@@ -448,8 +434,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             pstmt.execute();
             PreparedStatement oraclePstmt = oracleConnection.prepareStatement(sql1);
             oraclePstmt.setInt(1, 1);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
-                "123-2"));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM("123-2"));
             oraclePstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql2);
             oraclePstmt.execute();
@@ -476,8 +461,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
             ((BasePrepareStatement) pstmt).setINTERVALYM(1, new INTERVALYM("10-10"));
             pstmt.execute();
             oraclePstmt = oracleConnection.prepareStatement(sql);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(1, new oracle.sql.INTERVALYM(
-                "10-10"));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(1, new oracle.sql.INTERVALYM("10-10"));
             oraclePstmt.execute();
 
             sql = "select c2 from " + tableNameYM + " where c1 = 1";
@@ -498,10 +482,8 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Constructor Summary:
-     * INTERVALYM()
-     * INTERVALYM(byte[] intervalYM)
-     * INTERVALYM(String str)
+     * Constructor Summary: INTERVALYM() INTERVALYM(byte[] intervalYM) INTERVALYM(String str)
+     * 
      * @throws SQLException
      */
     @Test
@@ -514,8 +496,8 @@ public class INTERVALOracleTest extends BaseOracleTest {
             } catch (SQLException throwables) {
                 // ignore
             }
-            oracleConnection.createStatement().execute(
-                "create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
+            oracleConnection.createStatement()
+                    .execute("create table test_intervalym (c1 int primary key,c2 interval year(4) to month)");
 
             String sql = null;
             sql = "delete from " + tableNameYM;
@@ -540,12 +522,10 @@ public class INTERVALOracleTest extends BaseOracleTest {
             oraclePstmt.addBatch();
             oraclePstmt.setInt(1, 2);
             oracle.sql.INTERVALYM val2 = new oracle.sql.INTERVALYM("22-3");
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2,
-                new oracle.sql.INTERVALYM(val2.getBytes()));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(val2.getBytes()));
             oraclePstmt.addBatch();
             oraclePstmt.setInt(1, 3);
-            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM(
-                "21-4"));
+            ((OraclePreparedStatement) oraclePstmt).setINTERVALYM(2, new oracle.sql.INTERVALYM("21-4"));
             oraclePstmt.addBatch();
             oraclePstmt.executeBatch();
 
@@ -577,15 +557,9 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Method Summary:
-     * boolean	isConvertibleTo(Class cls)
-     * Object	makeJdbcArray(int arraySize)
-     * String	stringValue()
-     * byte[]	toBytes()
-     * static byte[] toBytes(String str)
-     * Object	toJdbc()
-     * String	toString()
-     * static String	toString(byte[] inparray)
+     * Method Summary: boolean isConvertibleTo(Class cls) Object makeJdbcArray(int arraySize) String stringValue()
+     * byte[] toBytes() static byte[] toBytes(String str) Object toJdbc() String toString() static String
+     * toString(byte[] inparray)
      */
     @Test
     public void methodOracleIntervalym() throws SQLException {
@@ -602,11 +576,11 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Boundary value test of intervalym:
-     * Positive number , negative number and unsigned number
-     * Invalid year length
+     * Boundary value test of intervalym: Positive number , negative number and unsigned number Invalid year length
      * Invalid month number
-     * @throws SQLException exception
+     * 
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void boundaryOracleIntervalym() throws SQLException {
@@ -631,15 +605,18 @@ public class INTERVALOracleTest extends BaseOracleTest {
     }
 
     /**
-     * Basic tests for intervalds and intervalym both , testing fails now due to AONE-30982102.Ignore this test case now.
-     * @throws SQLException exception
+     * Basic tests for intervalds and intervalym both , testing fails now due to AONE-30982102.Ignore this test case
+     * now.
+     * 
+     * @throws SQLException
+     *             exception
      */
     @Ignore
     public void testOracleIntervalymds() throws SQLException {
         String sql = "insert into " + tableNameYMDS + " values(?,?,?)";
         PreparedStatement pstmt = sharedPSConnection.prepareStatement(sql);
         pstmt.setInt(1, 1);
-        //        ((BasePrepareStatement)pstmt).setINTERVALDS(,new INTERVALDS("2324 5:12:10.212"));
+        // ((BasePrepareStatement)pstmt).setINTERVALDS(,new INTERVALDS("2324 5:12:10.212"));
         pstmt.setString(2, "2324 5:12:10.212");
         ((BasePrepareStatement) pstmt).setINTERVALYM(3, new INTERVALYM("123-2"));
         pstmt.execute();

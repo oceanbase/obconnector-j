@@ -55,21 +55,25 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class TimestampParameter implements Cloneable, ParameterHolder {
 
     private final Timestamp ts;
-    private final TimeZone  timeZone;
-    private final boolean   fractionalSeconds;
+    private final TimeZone timeZone;
+    private final boolean fractionalSeconds;
 
     /**
      * Constructor.
      *
-     * @param ts timestamps
-     * @param timeZone timeZone
-     * @param fractionalSeconds must fractional Seconds be send to database.
+     * @param ts
+     *            timestamps
+     * @param timeZone
+     *            timeZone
+     * @param fractionalSeconds
+     *            must fractional Seconds be send to database.
      */
     public TimestampParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds) {
         this.ts = ts;
@@ -80,7 +84,8 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos the stream to write to
+     * @param pos
+     *            the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -110,8 +115,10 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         Calendar calendar = Calendar.getInstance(timeZone);

@@ -43,13 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class OracleNcharNvarcharTest extends BaseOracleTest {
     static String dateTest = "dateTest" + getRandomString(10);
@@ -67,7 +67,7 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
             stmt.execute("insert into " + dateTest + " values('我是123abc','我是abc123')");
             ResultSet resultSet = stmt.executeQuery("select * from " + dateTest);
             Assert.assertTrue(resultSet.next());
-            // return value length  of  getNString  is 200
+            // return value length of getNString is 200
             Assert.assertTrue(resultSet.getNString(1).contains("我是123abc"));
             Assert.assertTrue(resultSet.getNString(2).contains("我是abc123"));
             Assert.assertTrue(resultSet.next());

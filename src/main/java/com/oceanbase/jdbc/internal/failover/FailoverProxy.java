@@ -58,61 +58,63 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class FailoverProxy implements InvocationHandler {
 
-    private static final String METHOD_IS_EXPLICIT_CLOSED         = "isExplicitClosed";
-    private static final String METHOD_GET_OPTIONS                = "getOptions";
-    private static final String METHOD_GET_URLPARSER              = "getUrlParser";
-    private static final String METHOD_GET_PROXY                  = "getProxy";
-    private static final String METHOD_EXECUTE_QUERY              = "executeQuery";
-    private static final String METHOD_SET_READ_ONLY              = "setReadonly";
-    private static final String METHOD_GET_READ_ONLY              = "getReadonly";
-    private static final String METHOD_IS_MASTER_CONNECTION       = "isMasterConnection";
-    private static final String METHOD_VERSION_GREATER_OR_EQUAL   = "versionGreaterOrEqual";
-    private static final String METHOD_SESSION_STATE_AWARE        = "sessionStateAware";
-    private static final String METHOD_CLOSED_EXPLICIT            = "closeExplicit";
-    private static final String METHOD_ABORT                      = "abort";
-    private static final String METHOD_IS_CLOSED                  = "isClosed";
-    private static final String METHOD_EXECUTE_PREPARED_QUERY     = "executePreparedQuery";
+    private static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
+    private static final String METHOD_GET_OPTIONS = "getOptions";
+    private static final String METHOD_GET_URLPARSER = "getUrlParser";
+    private static final String METHOD_GET_PROXY = "getProxy";
+    private static final String METHOD_EXECUTE_QUERY = "executeQuery";
+    private static final String METHOD_SET_READ_ONLY = "setReadonly";
+    private static final String METHOD_GET_READ_ONLY = "getReadonly";
+    private static final String METHOD_IS_MASTER_CONNECTION = "isMasterConnection";
+    private static final String METHOD_VERSION_GREATER_OR_EQUAL = "versionGreaterOrEqual";
+    private static final String METHOD_SESSION_STATE_AWARE = "sessionStateAware";
+    private static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
+    private static final String METHOD_ABORT = "abort";
+    private static final String METHOD_IS_CLOSED = "isClosed";
+    private static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
     private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
-    private static final String METHOD_PROLOG_PROXY               = "prologProxy";
-    private static final String METHOD_RESET                      = "reset";
-    private static final String METHOD_IS_VALID                   = "isValid";
-    private static final String METHOD_GET_LOCK                   = "getLock";
-    private static final String METHOD_GET_NO_BACKSLASH           = "noBackslashEscapes";
-    private static final String METHOD_GET_SERVER_THREAD_ID       = "getServerThreadId";
-    private static final String METHOD_PROLOG                     = "prolog";
-    private static final String METHOD_GET_CATALOG                = "getCatalog";
-    private static final String METHOD_GET_TIMEOUT                = "getTimeout";
-    private static final String METHOD_GET_MAJOR_VERSION          = "getMajorServerVersion";
-    private static final String METHOD_IN_TRANSACTION             = "inTransaction";
-    private static final String METHOD_IS_MARIADB                 = "isServerMariaDb";
+    private static final String METHOD_PROLOG_PROXY = "prologProxy";
+    private static final String METHOD_RESET = "reset";
+    private static final String METHOD_IS_VALID = "isValid";
+    private static final String METHOD_GET_LOCK = "getLock";
+    private static final String METHOD_GET_NO_BACKSLASH = "noBackslashEscapes";
+    private static final String METHOD_GET_SERVER_THREAD_ID = "getServerThreadId";
+    private static final String METHOD_PROLOG = "prolog";
+    private static final String METHOD_GET_CATALOG = "getCatalog";
+    private static final String METHOD_GET_TIMEOUT = "getTimeout";
+    private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
+    private static final String METHOD_IN_TRANSACTION = "inTransaction";
+    private static final String METHOD_IS_MARIADB = "isServerMariaDb";
 
-    private static final Logger logger                            = LoggerFactory
-                                                                      .getLogger(FailoverProxy.class);
-    public final ReentrantLock  lock;
-    public final LruTraceCache  traceCache;
+    private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
+    public final ReentrantLock lock;
+    public final LruTraceCache traceCache;
 
-    private final Listener      listener;
+    private final Listener listener;
 
     /**
      * Proxy constructor.
      *
-     * @param listener failover implementation.
-     * @param lock synchronisation lock
-     * @param traceCache trace cache
-     * @throws SQLException if connection error occur
+     * @param listener
+     *            failover implementation.
+     * @param lock
+     *            synchronisation lock
+     * @param traceCache
+     *            trace cache
+     * @throws SQLException
+     *             if connection error occur
      */
-    public FailoverProxy(Listener listener, ReentrantLock lock, LruTraceCache traceCache)
-                                                                                         throws SQLException {
+    public FailoverProxy(Listener listener, ReentrantLock lock, LruTraceCache traceCache) throws SQLException {
         this.lock = lock;
         this.listener = listener;
         this.listener.setProxy(this);
@@ -123,171 +125,166 @@ public class FailoverProxy implements InvocationHandler {
     /**
      * Add Host information ("on HostAddress...") to exception.
      *
-     * <p>example : java.sql.SQLException: (conn=603) Cannot execute statement in a READ ONLY
-     * transaction.<br>
+     * <p>
+     * example : java.sql.SQLException: (conn=603) Cannot execute statement in a READ ONLY transaction.<br>
      * Query is: INSERT INTO TableX VALUES (21)<br>
      * on HostAddress{host='mydb.example.com', port=3306},master=true
      *
-     * @param exception current exception
-     * @param protocol protocol to have hostname
+     * @param exception
+     *            current exception
+     * @param protocol
+     *            protocol to have hostname
      */
-    private static SQLException addHostInformationToException(SQLException exception,
-                                                              Protocol protocol) {
+    private static SQLException addHostInformationToException(SQLException exception, Protocol protocol) {
         if (protocol != null) {
-            return new SQLException(exception.getMessage() + "\non "
-                                    + protocol.getHostAddress().toString() + ",master="
-                                    + protocol.isMasterConnection(), exception.getSQLState(),
-                exception.getErrorCode(), exception.getCause());
+            return new SQLException(
+                    exception.getMessage() + "\non " + protocol.getHostAddress().toString() + ",master="
+                            + protocol.isMasterConnection(),
+                    exception.getSQLState(), exception.getErrorCode(), exception.getCause());
         }
         return exception;
     }
 
     /**
-     * Proxy that catch Protocol call, to permit to catch errors and handle failover when multiple
-     * hosts.
+     * Proxy that catch Protocol call, to permit to catch errors and handle failover when multiple hosts.
      *
-     * @param proxy the current protocol
-     * @param method the called method on the protocol
-     * @param args methods parameters
+     * @param proxy
+     *            the current protocol
+     * @param method
+     *            the called method on the protocol
+     * @param args
+     *            methods parameters
      * @return protocol method result
-     * @throws Throwable the method throwed error if not catch by failover
+     * @throws Throwable
+     *             the method throwed error if not catch by failover
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
         switch (methodName) {
-            case METHOD_GET_LOCK:
-                return this.lock;
-            case METHOD_GET_NO_BACKSLASH:
-                return listener.noBackslashEscapes();
-            case METHOD_IS_MARIADB:
-                return listener.isServerMariaDb();
-            case METHOD_GET_CATALOG:
-                return listener.getCatalog();
-            case METHOD_GET_TIMEOUT:
-                return listener.getTimeout();
-            case METHOD_VERSION_GREATER_OR_EQUAL:
-                return listener.versionGreaterOrEqual((int) args[0], (int) args[1], (int) args[2]);
-            case METHOD_SESSION_STATE_AWARE:
-                return listener.sessionStateAware();
-            case METHOD_IS_EXPLICIT_CLOSED:
-                return listener.isExplicitClosed();
-            case METHOD_GET_OPTIONS:
-                return listener.getUrlParser().getOptions();
-            case METHOD_GET_MAJOR_VERSION:
-                return listener.getMajorServerVersion();
-            case METHOD_GET_SERVER_THREAD_ID:
-                return listener.getServerThreadId();
-            case METHOD_GET_URLPARSER:
-                return listener.getUrlParser();
-            case METHOD_GET_PROXY:
-                return this;
-            case METHOD_IS_CLOSED:
-                return listener.isClosed();
-            case METHOD_IS_VALID:
-                return listener.isValid((int) args[0]);
-            case METHOD_PROLOG:
-                listener.prolog((long) args[0], (OceanBaseConnection) args[2],
-                    (OceanBaseStatement) args[3]);
-                return null;
-            case METHOD_EXECUTE_QUERY:
-                boolean isClosed = this.listener.isClosed();
-                try {
-                    this.listener.preExecute();
-                } catch (SQLException e) {
-                    // handle failover only if connection error
-                    // normal error can be thrown upon reconnection if there was a transaction in progress.
-                    if (hasToHandleFailover(e)) {
-                        return handleFailOver(e, method, args, listener.getCurrentProtocol(),
-                            isClosed);
-                    }
+        case METHOD_GET_LOCK:
+            return this.lock;
+        case METHOD_GET_NO_BACKSLASH:
+            return listener.noBackslashEscapes();
+        case METHOD_IS_MARIADB:
+            return listener.isServerMariaDb();
+        case METHOD_GET_CATALOG:
+            return listener.getCatalog();
+        case METHOD_GET_TIMEOUT:
+            return listener.getTimeout();
+        case METHOD_VERSION_GREATER_OR_EQUAL:
+            return listener.versionGreaterOrEqual((int) args[0], (int) args[1], (int) args[2]);
+        case METHOD_SESSION_STATE_AWARE:
+            return listener.sessionStateAware();
+        case METHOD_IS_EXPLICIT_CLOSED:
+            return listener.isExplicitClosed();
+        case METHOD_GET_OPTIONS:
+            return listener.getUrlParser().getOptions();
+        case METHOD_GET_MAJOR_VERSION:
+            return listener.getMajorServerVersion();
+        case METHOD_GET_SERVER_THREAD_ID:
+            return listener.getServerThreadId();
+        case METHOD_GET_URLPARSER:
+            return listener.getUrlParser();
+        case METHOD_GET_PROXY:
+            return this;
+        case METHOD_IS_CLOSED:
+            return listener.isClosed();
+        case METHOD_IS_VALID:
+            return listener.isValid((int) args[0]);
+        case METHOD_PROLOG:
+            listener.prolog((long) args[0], (OceanBaseConnection) args[2], (OceanBaseStatement) args[3]);
+            return null;
+        case METHOD_EXECUTE_QUERY:
+            boolean isClosed = this.listener.isClosed();
+            try {
+                this.listener.preExecute();
+            } catch (SQLException e) {
+                // handle failover only if connection error
+                // normal error can be thrown upon reconnection if there was a transaction in progress.
+                if (hasToHandleFailover(e)) {
+                    return handleFailOver(e, method, args, listener.getCurrentProtocol(), isClosed);
                 }
-                break;
-            case METHOD_SET_READ_ONLY:
-                this.listener.switchReadOnlyConnection((Boolean) args[0]);
-                return null;
-            case METHOD_GET_READ_ONLY:
-                return this.listener.isReadOnly();
-            case METHOD_IN_TRANSACTION:
-                return this.listener.inTransaction();
-            case METHOD_IS_MASTER_CONNECTION:
-                return this.listener.isMasterConnection();
-            case METHOD_ABORT:
-                this.listener.preAbort();
-                return null;
-            case METHOD_CLOSED_EXPLICIT:
-                this.listener.preClose();
-                return null;
-            case METHOD_COM_MULTI_PREPARE_EXECUTES:
-            case METHOD_EXECUTE_PREPARED_QUERY:
-                boolean mustBeOnMaster = (Boolean) args[0];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                if (serverPrepareResult != null) {
-                    if (!mustBeOnMaster
-                        && serverPrepareResult.getUnProxiedProtocol().isMasterConnection()
+            }
+            break;
+        case METHOD_SET_READ_ONLY:
+            this.listener.switchReadOnlyConnection((Boolean) args[0]);
+            return null;
+        case METHOD_GET_READ_ONLY:
+            return this.listener.isReadOnly();
+        case METHOD_IN_TRANSACTION:
+            return this.listener.inTransaction();
+        case METHOD_IS_MASTER_CONNECTION:
+            return this.listener.isMasterConnection();
+        case METHOD_ABORT:
+            this.listener.preAbort();
+            return null;
+        case METHOD_CLOSED_EXPLICIT:
+            this.listener.preClose();
+            return null;
+        case METHOD_COM_MULTI_PREPARE_EXECUTES:
+        case METHOD_EXECUTE_PREPARED_QUERY:
+            boolean mustBeOnMaster = (Boolean) args[0];
+            ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+            if (serverPrepareResult != null) {
+                if (!mustBeOnMaster && serverPrepareResult.getUnProxiedProtocol().isMasterConnection()
                         && !this.listener.hasHostFail()) {
-                        // PrepareStatement was to be executed on slave, but since a failover was running on
-                        // master connection. Slave connection is up
-                        // again, so has to be re-prepared on slave
-                        try {
-                            logger.trace("re-prepare query \"{}\" on slave (was "
-                                         + "temporary on master since failover)",
-                                serverPrepareResult.getSql());
-                            this.listener.rePrepareOnSlave(serverPrepareResult, false);
-                        } catch (SQLException q) {
-                            // error during re-prepare, will do executed on master.
-                        }
-                    }
-                    boolean wasClosed = this.listener.isClosed();
+                    // PrepareStatement was to be executed on slave, but since a failover was running on
+                    // master connection. Slave connection is up
+                    // again, so has to be re-prepared on slave
                     try {
-                        return listener.invoke(method, args,
-                            serverPrepareResult.getUnProxiedProtocol());
-                    } catch (InvocationTargetException e) {
-                        if (e.getTargetException() != null) {
-                            if (e.getTargetException() instanceof SQLException
-                                && hasToHandleFailover((SQLException) e.getTargetException())) {
-                                return handleFailOver((SQLException) e.getTargetException(),
-                                    method, args, serverPrepareResult.getUnProxiedProtocol(),
-                                    wasClosed);
-                            }
-                            throw e.getTargetException();
-                        }
-                        throw e;
+                        logger.trace("re-prepare query \"{}\" on slave (was " + "temporary on master since failover)",
+                                serverPrepareResult.getSql());
+                        this.listener.rePrepareOnSlave(serverPrepareResult, false);
+                    } catch (SQLException q) {
+                        // error during re-prepare, will do executed on master.
                     }
                 }
-                break;
-            case METHOD_PROLOG_PROXY:
                 boolean wasClosed = this.listener.isClosed();
                 try {
-                    if (args[0] != null) {
-                        return listener.invoke(method, args,
-                            ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
-                    }
-                    return null;
+                    return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
                         if (e.getTargetException() instanceof SQLException
-                            && hasToHandleFailover((SQLException) e.getTargetException())) {
-                            return handleFailOver((SQLException) e.getTargetException(), method,
-                                args, ((ServerPrepareResult) args[0]).getUnProxiedProtocol(),
-                                wasClosed);
+                                && hasToHandleFailover((SQLException) e.getTargetException())) {
+                            return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                    serverPrepareResult.getUnProxiedProtocol(), wasClosed);
                         }
                         throw e.getTargetException();
                     }
                     throw e;
                 }
-            case METHOD_RESET:
-                // listener will report reset on any active connections (Master/slave)
-                listener.reset();
+            }
+            break;
+        case METHOD_PROLOG_PROXY:
+            boolean wasClosed = this.listener.isClosed();
+            try {
+                if (args[0] != null) {
+                    return listener.invoke(method, args, ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                }
                 return null;
-            default:
+            } catch (InvocationTargetException e) {
+                if (e.getTargetException() != null) {
+                    if (e.getTargetException() instanceof SQLException
+                            && hasToHandleFailover((SQLException) e.getTargetException())) {
+                        return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                ((ServerPrepareResult) args[0]).getUnProxiedProtocol(), wasClosed);
+                    }
+                    throw e.getTargetException();
+                }
+                throw e;
+            }
+        case METHOD_RESET:
+            // listener will report reset on any active connections (Master/slave)
+            listener.reset();
+            return null;
+        default:
         }
 
         return executeInvocation(method, args, false);
     }
 
-    private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution)
-                                                                                             throws Throwable {
+    private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution) throws Throwable {
         boolean isClosed = listener.isClosed();
         try {
             return listener.invoke(method, args);
@@ -301,10 +298,8 @@ public class FailoverProxy implements InvocationHandler {
                     queryException = addHostInformationToException(queryException, protocol);
 
                     // check that failover is due to kill command
-                    boolean killCmd = queryException != null
-                                      && queryException.getSQLState() != null
-                                      && queryException.getSQLState().equals("70100")
-                                      && 1927 == queryException.getErrorCode();
+                    boolean killCmd = queryException != null && queryException.getSQLState() != null
+                            && queryException.getSQLState().equals("70100") && 1927 == queryException.getErrorCode();
 
                     if (killCmd) {
                         handleFailOver(queryException, method, args, protocol, isClosed);
@@ -319,9 +314,8 @@ public class FailoverProxy implements InvocationHandler {
                     // statement"
                     // checking that server was master has not been demote to slave without resetting
                     // connections
-                    if (queryException.getErrorCode() == 1290 && !isSecondExecution
-                        && protocol != null && protocol.isMasterConnection()
-                        && !protocol.checkIfMaster()) {
+                    if (queryException.getErrorCode() == 1290 && !isSecondExecution && protocol != null
+                            && protocol.isMasterConnection() && !protocol.checkIfMaster()) {
 
                         boolean inTransaction = protocol.inTransaction();
                         boolean isReconnected;
@@ -345,8 +339,7 @@ public class FailoverProxy implements InvocationHandler {
                         }
 
                         // throw exception if not reconnected, or was in a transaction
-                        return handleFailOver(queryException, method, args,
-                            listener.getCurrentProtocol(), isClosed);
+                        return handleFailOver(queryException, method, args, listener.getCurrentProtocol(), isClosed);
                     }
                 }
                 throw e.getTargetException();
@@ -358,14 +351,18 @@ public class FailoverProxy implements InvocationHandler {
     /**
      * After a connection exception, launch failover.
      *
-     * @param qe the exception thrown
-     * @param method the method to call if failover works well
-     * @param args the arguments of the method
+     * @param qe
+     *            the exception thrown
+     * @param method
+     *            the method to call if failover works well
+     * @param args
+     *            the arguments of the method
      * @return the object return from the method
-     * @throws Throwable throwable
+     * @throws Throwable
+     *             throwable
      */
-    private Object handleFailOver(SQLException qe, Method method, Object[] args, Protocol protocol,
-                                  boolean isClosed) throws Throwable {
+    private Object handleFailOver(SQLException qe, Method method, Object[] args, Protocol protocol, boolean isClosed)
+            throws Throwable {
         HostAddress failHostAddress = null;
         boolean failIsMaster = true;
         if (protocol != null) {
@@ -373,37 +370,35 @@ public class FailoverProxy implements InvocationHandler {
             failIsMaster = protocol.isMasterConnection();
         }
 
-        HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol,
-            isClosed);
+        HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol, isClosed);
         if (handleErrorResult.mustThrowError) {
-            listener.throwFailoverMessage(failHostAddress, failIsMaster, qe,
-                handleErrorResult.isReconnected);
+            listener.throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);
         }
         return handleErrorResult.resultObject;
     }
 
     /**
-     * Check if this Sqlerror is a connection exception. if that's the case, must be handle by
-     * failover
+     * Check if this Sqlerror is a connection exception. if that's the case, must be handle by failover
      *
-     * <p>error codes : 08000 : connection exception 08001 : SQL client unable to establish SQL
-     * connection 08002 : connection name in use 08003 : connection does not exist 08004 : SQL server
-     * rejected SQL connection 08006 : connection failure 08007 : transaction resolution unknown 70100
-     * : connection was killed if error code is "1927"
+     * <p>
+     * error codes : 08000 : connection exception 08001 : SQL client unable to establish SQL connection 08002 :
+     * connection name in use 08003 : connection does not exist 08004 : SQL server rejected SQL connection 08006 :
+     * connection failure 08007 : transaction resolution unknown 70100 : connection was killed if error code is "1927"
      *
-     * @param exception the Exception
+     * @param exception
+     *            the Exception
      * @return true if there has been a connection error that must be handled by failover
      */
     public boolean hasToHandleFailover(SQLException exception) {
-        return exception.getSQLState() != null
-               && (exception.getSQLState().startsWith("08") || (exception.getSQLState().equals(
-                   "70100") && 1927 == exception.getErrorCode()));
+        return exception.getSQLState() != null && (exception.getSQLState().startsWith("08")
+                || (exception.getSQLState().equals("70100") && 1927 == exception.getErrorCode()));
     }
 
     /**
      * Launch reconnect implementation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     public void reconnect() throws SQLException {
         try {

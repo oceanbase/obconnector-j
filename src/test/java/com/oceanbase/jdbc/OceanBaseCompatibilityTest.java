@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -61,45 +62,46 @@ public class OceanBaseCompatibilityTest extends BaseTest {
     /**
      * Preparation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("datatypesTest", "type_longvarchar TEXT NULL");
-        createTable("mysqlcompatibilitytest",
-            "id int not null primary key auto_increment, test bit(1)");
+        createTable("mysqlcompatibilitytest", "id int not null primary key auto_increment, test bit(1)");
     }
 
     /**
      * Conj-82: data type LONGVARCHAR not supported in setObject().
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @Test
-  public void datatypesTest() throws SQLException {
-    try (Statement stmt = sharedConnection.createStatement()) {
-      try (PreparedStatement preparedStmt =
-          sharedConnection.prepareStatement(
-              "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
-        preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
-        preparedStmt.executeUpdate();
-      }
+    public void datatypesTest() throws SQLException {
+        try (Statement stmt = sharedConnection.createStatement()) {
+            try (PreparedStatement preparedStmt = sharedConnection
+                    .prepareStatement("INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
+                preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
+                preparedStmt.executeUpdate();
+            }
 
-      ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
-      stmt.close();
-      if (rs.next()) {
-        assertEquals("longvarcharTest", rs.getString(1));
-      } else {
-        fail();
-      }
+            ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
+            stmt.close();
+            if (rs.next()) {
+                assertEquals("longvarcharTest", rs.getString(1));
+            } else {
+                fail();
+            }
+        }
     }
-  }
 
     /**
-     * The Mysql connector returns "0" or "1" for BIT(1) with ResultSet.getString(). CONJ-102:
-     * mariadb-java-client returned "false" or "true".
+     * The Mysql connector returns "0" or "1" for BIT(1) with ResultSet.getString(). CONJ-102: mariadb-java-client
+     * returned "false" or "true".
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void testBitConj102() throws SQLException {

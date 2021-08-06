@@ -57,12 +57,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.oceanbase.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
-import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class SchedulerServiceProviderHolderTest {
 
@@ -75,7 +76,7 @@ public class SchedulerServiceProviderHolderTest {
     @Test
     public void getDefaultProviderTest() {
         assertTrue(SchedulerServiceProviderHolder.DEFAULT_PROVIDER == SchedulerServiceProviderHolder
-            .getSchedulerProvider());
+                .getSchedulerProvider());
     }
 
     @Test
@@ -85,53 +86,51 @@ public class SchedulerServiceProviderHolderTest {
     }
 
     private void testRunnable(ScheduledExecutorService scheduler) {
-    try {
-      assertNotNull(scheduler);
-      // verify scheduler works
-      scheduler.execute(
-          () -> {
-            try {
-              Thread.sleep(10);
-            } catch (InterruptedException ie) {
-              // eat
-            }
-          });
-      scheduler.shutdown();
-      Assert.assertTrue(scheduler.awaitTermination(1000, TimeUnit.MILLISECONDS));
-    } catch (InterruptedException ie) {
-      fail();
+        try {
+            assertNotNull(scheduler);
+            // verify scheduler works
+            scheduler.execute(() -> {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ie) {
+                    // eat
+                }
+            });
+            scheduler.shutdown();
+            Assert.assertTrue(scheduler.awaitTermination(1000, TimeUnit.MILLISECONDS));
+        } catch (InterruptedException ie) {
+            fail();
+        }
     }
-  }
 
     @Test
     public void defaultProviderSchedulerShutdownTest() {
         testExecuteAfterShutdown(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
-        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1,
-            "testFixedScheduler"));
+        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
     }
 
     private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
-    scheduler.shutdown();
-    try {
-      scheduler.execute(() -> {});
-      fail("Exception should have thrown");
-    } catch (RejectedExecutionException expected) {
-      // ignore
+        scheduler.shutdown();
+        try {
+            scheduler.execute(() -> {
+            });
+            fail("Exception should have thrown");
+        } catch (RejectedExecutionException expected) {
+            // ignore
+        }
     }
-  }
 
     @Test
     public void setAndGetProviderTest() {
         SchedulerServiceProviderHolder.SchedulerProvider emptyProvider = new SchedulerServiceProviderHolder.SchedulerProvider() {
             @Override
             public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName,
-                                                               int maximumPoolSize) {
+                    int maximumPoolSize) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads,
-                                                                     String poolName) {
+            public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads, String poolName) {
                 throw new UnsupportedOperationException();
             }
 

@@ -43,12 +43,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.regex.Pattern;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class DataTypeMysqlCompleteTest extends BaseTest {
 
@@ -62,20 +62,17 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         testLargeObjectMethod(testStr, resultSet, type);
     }
 
-    public void executePreparedStatementPublic(String tableName, String testStr, String body,
-                                               String type) throws Exception {
+    public void executePreparedStatementPublic(String tableName, String testStr, String body, String type)
+            throws Exception {
         createTable(tableName, body);
         executePreparedStatementPublic(tableName, testStr, type);
     }
 
-    public void executePreparedStatementPublic(String tableName, String testStr, String type)
-                                                                                             throws Exception {
+    public void executePreparedStatementPublic(String tableName, String testStr, String type) throws Exception {
 
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("delete from "
-                                                                                + tableName);
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("delete from " + tableName);
         preparedStatement.execute();
-        preparedStatement = sharedConnection.prepareStatement("insert into " + tableName
-                                                              + " values (1, ?)");
+        preparedStatement = sharedConnection.prepareStatement("insert into " + tableName + " values (1, ?)");
         if ("byte".equals(type)) {
             preparedStatement.setByte(1, Byte.valueOf(testStr));
         } else if ("short".equals(type)) {
@@ -110,8 +107,8 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         try {
             preparedStatement.execute();
         } catch (Exception e) {
-            Assert.assertTrue(" supported feature or function but ...." + e.getMessage(), e
-                .getMessage().contains("Not supported feature or function"));
+            Assert.assertTrue(" supported feature or function but ...." + e.getMessage(),
+                    e.getMessage().contains("Not supported feature or function"));
         }
         ResultSet resultSet2 = preparedStatement.executeQuery("select * from " + tableName);
         if (resultSet2.next()) {
@@ -267,12 +264,11 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
 
         executeStatementPublic(tableName, "2021-04-09 12:12:12.0", body, type);
 
-        //        executeStatementPublic(tableName,"2021-04-09 12:12:12.123",body,type);
+        // executeStatementPublic(tableName,"2021-04-09 12:12:12.123",body,type);
 
     }
 
-    public void executeStatementPublic(String tableName, String testStr, String body, String type)
-                                                                                                  throws Exception {
+    public void executeStatementPublic(String tableName, String testStr, String body, String type) throws Exception {
         createTable(tableName, body);
         Statement statement = sharedConnection.createStatement();
         statement.execute("insert into " + tableName + " values(1," + "'" + testStr + "'" + ")");
@@ -282,8 +278,8 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         executePreparedStatementPublic(tableName, testStr, type);
     }
 
-    public void executeStatementOnlyPublic(String tableName, String testStr, String body,
-                                           String type) throws Exception {
+    public void executeStatementOnlyPublic(String tableName, String testStr, String body, String type)
+            throws Exception {
         createTable(tableName, body);
         Statement statement = sharedConnection.createStatement();
         statement.execute("insert into " + tableName + " values(1," + "'" + testStr + "'" + ")");
@@ -318,11 +314,10 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         String type = "blob";
         executeStatementOnlyPublic(tableName, testStr, body, type);
 
-        //        executeStatementPublic(tableName,testStr,body,type);
+        // executeStatementPublic(tableName,testStr,body,type);
     }
 
-    public void testPrimitiveTypeMethod(String testStr, ResultSet resultSet, String type)
-                                                                                         throws Exception {
+    public void testPrimitiveTypeMethod(String testStr, ResultSet resultSet, String type) throws Exception {
         String pattern = "^(\\-|\\+)?\\d+(\\.\\d+)?$";
         boolean isMatch = Pattern.matches(pattern, testStr);
         if (!isMatch) {
@@ -330,52 +325,47 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         }
 
         switch (type) {
-            case "double":
-                Assert.assertTrue("getBigDecimal is not equals",
+        case "double":
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal(2).doubleValue() + ""));
-                Assert.assertTrue("getBigDecimal is not equals",
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal("strm").doubleValue() + ""));
-                break;
-            case "float":
-                Assert.assertTrue("getBigDecimal is not equals",
+            break;
+        case "float":
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal(2).floatValue() + ""));
-                Assert.assertTrue("getBigDecimal is not equals",
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal("strm").floatValue() + ""));
-                break;
-            default:
-                Assert.assertTrue("getBigDecimal is not equals",
+            break;
+        default:
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal(2).intValue() + ""));
-                Assert.assertTrue("getBigDecimal is not equals",
+            Assert.assertTrue("getBigDecimal is not equals",
                     testStr.equals(resultSet.getBigDecimal("strm").intValue() + ""));
         }
 
-        //        Assert.assertTrue("getByte is not equals",testStr.equals(resultSet.getByte(2)+""));
-        //        Assert.assertTrue("getByte is not equals",testStr.equals(resultSet.getByte("strm")+""));
+        // Assert.assertTrue("getByte is not equals",testStr.equals(resultSet.getByte(2)+""));
+        // Assert.assertTrue("getByte is not equals",testStr.equals(resultSet.getByte("strm")+""));
 
         Assert.assertTrue("getFloat is not equals result: " + resultSet.getFloat(2),
-            Float.valueOf(testStr) == resultSet.getFloat(2));
-        Assert.assertTrue("getFloat is not equals",
-            Float.valueOf(testStr) == resultSet.getFloat("strm"));
+                Float.valueOf(testStr) == resultSet.getFloat(2));
+        Assert.assertTrue("getFloat is not equals", Float.valueOf(testStr) == resultSet.getFloat("strm"));
 
-        Assert.assertTrue("getDouble is not equals",
-            Double.valueOf(testStr) == resultSet.getDouble(2));
-        Assert.assertTrue("getDouble is not equals",
-            Double.valueOf(testStr) == resultSet.getDouble("strm"));
+        Assert.assertTrue("getDouble is not equals", Double.valueOf(testStr) == resultSet.getDouble(2));
+        Assert.assertTrue("getDouble is not equals", Double.valueOf(testStr) == resultSet.getDouble("strm"));
 
         testStr = testStr.contains(".") ? testStr.substring(0, testStr.indexOf(".")) : testStr;
         Assert.assertTrue("getShort is not equals", testStr.equals(resultSet.getShort(2) + ""));
-        Assert
-            .assertTrue("getShort is not equals", testStr.equals(resultSet.getShort("strm") + ""));
+        Assert.assertTrue("getShort is not equals", testStr.equals(resultSet.getShort("strm") + ""));
 
         Assert.assertTrue("getInt is not equals", testStr.equals(resultSet.getInt(2) + ""));
         Assert.assertTrue("getInt is not equals", testStr.equals(resultSet.getInt("strm") + ""));
 
         Assert.assertTrue("getLong is not equals", Long.valueOf(testStr) == resultSet.getLong(2));
-        Assert.assertTrue("getLong is not equals",
-            Long.valueOf(testStr) == resultSet.getLong("strm"));
+        Assert.assertTrue("getLong is not equals", Long.valueOf(testStr) == resultSet.getLong("strm"));
 
         Assert.assertTrue("getBoolean is not equals result: " + resultSet.getBoolean(2),
-            true == resultSet.getBoolean(2));
+                true == resultSet.getBoolean(2));
         Assert.assertTrue("getBoolean is not equals", true == resultSet.getBoolean("strm"));
     }
 
@@ -383,12 +373,10 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         byte[] bytes = new byte[testStr.length()];
         resultSet.getAsciiStream("strm").read(bytes);
 
-        Assert.assertTrue("getObject is not equals result: " + new String(bytes),
-            testStr.equals(new String(bytes)));
+        Assert.assertTrue("getObject is not equals result: " + new String(bytes), testStr.equals(new String(bytes)));
         byte[] bytes2 = new byte[testStr.length()];
         resultSet.getAsciiStream(2).read(bytes2);
-        Assert.assertTrue("getObject is not equals result: " + new String(bytes2),
-            testStr.equals(new String(bytes2)));
+        Assert.assertTrue("getObject is not equals result: " + new String(bytes2), testStr.equals(new String(bytes2)));
 
         char[] chars = new char[testStr.length()];
         resultSet.getCharacterStream(2).read(chars);
@@ -404,7 +392,7 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         resultSet.getNCharacterStream("strm").read(nchars2);
         Assert.assertTrue("getNCharacterStream is not equals", testStr.equals(new String(nchars2)));
 
-        //rowid concurrenty binaryStream
+        // rowid concurrenty binaryStream
         resultSet.getBinaryStream(2).read(bytes);
         Assert.assertTrue("getBinaryStream is not equals", testStr.equals(new String(bytes)));
         resultSet.getBinaryStream("strm").read(bytes2);
@@ -422,17 +410,17 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         resultSet.getAsciiStream(2).read(bytes2);
 
         switch (type) {
-            case "datetime":
-                Assert.assertTrue("getObject is not equals result: " + new String(bytes),
+        case "datetime":
+            Assert.assertTrue("getObject is not equals result: " + new String(bytes),
                     testStr.equals(Timestamp.valueOf(new String(bytes)).toString()));
-                Assert.assertTrue("getObject is not equals result: " + new String(bytes2),
+            Assert.assertTrue("getObject is not equals result: " + new String(bytes2),
                     testStr.equals(Timestamp.valueOf(new String(bytes2)).toString()));
-                break;
-            default:
-                resultSet.getAsciiStream(2).read(bytes2);
-                Assert.assertTrue("getObject is not equals result: " + new String(bytes2),
+            break;
+        default:
+            resultSet.getAsciiStream(2).read(bytes2);
+            Assert.assertTrue("getObject is not equals result: " + new String(bytes2),
                     testStr.equals(new String(bytes2)));
-                break;
+            break;
         }
 
         char[] chars = new char[testStr.length()];
@@ -449,23 +437,23 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         resultSet.getNCharacterStream("strm").read(nchars2);
         Assert.assertTrue("getNCharacterStream is not equals", testStr.equals(new String(nchars2)));
 
-        //rowid concurrenty binaryStream
+        // rowid concurrenty binaryStream
         resultSet.getBinaryStream(2).read(bytes);
         resultSet.getBinaryStream("strm").read(bytes2);
 
         switch (type) {
-            case "datetime":
-                Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes),
+        case "datetime":
+            Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes),
                     testStr.equals(Timestamp.valueOf(new String(bytes)).toString()));
-                Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes2),
+            Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes2),
                     testStr.equals(Timestamp.valueOf(new String(bytes2)).toString()));
-                break;
-            default:
-                Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes2),
+            break;
+        default:
+            Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes2),
                     testStr.equals(new String(bytes)));
-                Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes),
+            Assert.assertTrue("getBinaryStream is not equals result: " + new String(bytes),
                     testStr.equals(new String(bytes2)));
-                break;
+            break;
         }
 
     }
@@ -473,168 +461,136 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
     public void testLargeObjectMethod(String testStr, ResultSet resultSet) throws Exception {
 
         Assert.assertTrue("getBlob is not equals",
-            testStr.equals(new String(resultSet.getBlob(2).getBytes(1, testStr.length()))));
+                testStr.equals(new String(resultSet.getBlob(2).getBytes(1, testStr.length()))));
         Assert.assertTrue("getBlob is not equals",
-            testStr.equals(new String(resultSet.getBlob("strm").getBytes(1, testStr.length()))));
+                testStr.equals(new String(resultSet.getBlob("strm").getBytes(1, testStr.length()))));
 
         Assert.assertTrue("getClob is not equals",
-            testStr.equals(resultSet.getClob("strm").getSubString(1, testStr.length())));
+                testStr.equals(resultSet.getClob("strm").getSubString(1, testStr.length())));
         Assert.assertTrue("getClob is not equals",
-            testStr.equals(resultSet.getClob(2).getSubString(1, testStr.length())));
+                testStr.equals(resultSet.getClob(2).getSubString(1, testStr.length())));
 
         Assert.assertTrue("getNClob is not equals",
-            testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
+                testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
         Assert.assertTrue("getNClob is not equals",
-            testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
+                testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
     }
 
-    public void testLargeObjectMethod(String testStr, ResultSet resultSet, String type)
-                                                                                       throws Exception {
+    public void testLargeObjectMethod(String testStr, ResultSet resultSet, String type) throws Exception {
         if (type == null) {
             testLargeObjectMethod(testStr, resultSet);
             return;
         }
         switch (type) {
-            case "datetime":
-                Assert
-                    .assertTrue("getBlob is not equals", testStr.equals(Timestamp.valueOf(
-                        new String(resultSet.getBlob(2).getBytes(1, testStr.length()))).toString()));
-                Assert.assertTrue("getBlob is not equals", testStr
-                    .equals(Timestamp.valueOf(
-                        new String(resultSet.getBlob("strm").getBytes(1, testStr.length())))
-                        .toString()));
+        case "datetime":
+            Assert.assertTrue("getBlob is not equals", testStr.equals(
+                    Timestamp.valueOf(new String(resultSet.getBlob(2).getBytes(1, testStr.length()))).toString()));
+            Assert.assertTrue("getBlob is not equals", testStr.equals(
+                    Timestamp.valueOf(new String(resultSet.getBlob("strm").getBytes(1, testStr.length()))).toString()));
 
-                Assert.assertTrue(
-                    "getClob is not equals",
-                    testStr.equals(Timestamp.valueOf(
-                        resultSet.getClob("strm").getSubString(1, testStr.length())).toString()));
-                Assert.assertTrue(
-                    "getClob is not equals",
-                    testStr.equals(Timestamp.valueOf(
-                        resultSet.getClob(2).getSubString(1, testStr.length())).toString()));
+            Assert.assertTrue("getClob is not equals", testStr
+                    .equals(Timestamp.valueOf(resultSet.getClob("strm").getSubString(1, testStr.length())).toString()));
+            Assert.assertTrue("getClob is not equals", testStr
+                    .equals(Timestamp.valueOf(resultSet.getClob(2).getSubString(1, testStr.length())).toString()));
 
-                Assert.assertTrue(
-                    "getNClob is not equals",
-                    testStr.equals(Timestamp.valueOf(
-                        resultSet.getNClob(2).getSubString(1, testStr.length())).toString()));
-                Assert.assertTrue(
-                    "getNClob is not equals",
-                    testStr.equals(Timestamp.valueOf(
-                        resultSet.getNClob(2).getSubString(1, testStr.length())).toString()));
-                break;
-            default:
-                Assert.assertTrue("getBlob is not equals",
+            Assert.assertTrue("getNClob is not equals", testStr
+                    .equals(Timestamp.valueOf(resultSet.getNClob(2).getSubString(1, testStr.length())).toString()));
+            Assert.assertTrue("getNClob is not equals", testStr
+                    .equals(Timestamp.valueOf(resultSet.getNClob(2).getSubString(1, testStr.length())).toString()));
+            break;
+        default:
+            Assert.assertTrue("getBlob is not equals",
                     testStr.equals(new String(resultSet.getBlob(2).getBytes(1, testStr.length()))));
-                Assert.assertTrue(
-                    "getBlob is not equals",
-                    testStr.equals(new String(resultSet.getBlob("strm").getBytes(1,
-                        testStr.length()))));
+            Assert.assertTrue("getBlob is not equals",
+                    testStr.equals(new String(resultSet.getBlob("strm").getBytes(1, testStr.length()))));
 
-                Assert.assertTrue("getClob is not equals",
+            Assert.assertTrue("getClob is not equals",
                     testStr.equals(resultSet.getClob("strm").getSubString(1, testStr.length())));
-                Assert.assertTrue("getClob is not equals",
+            Assert.assertTrue("getClob is not equals",
                     testStr.equals(resultSet.getClob(2).getSubString(1, testStr.length())));
 
-                Assert.assertTrue("getNClob is not equals",
+            Assert.assertTrue("getNClob is not equals",
                     testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
-                Assert.assertTrue("getNClob is not equals",
+            Assert.assertTrue("getNClob is not equals",
                     testStr.equals(resultSet.getNClob(2).getSubString(1, testStr.length())));
         }
     }
 
-    public void testRefTypeMethod(String testStr, ResultSet resultSet, String type)
-                                                                                   throws Exception {
+    public void testRefTypeMethod(String testStr, ResultSet resultSet, String type) throws Exception {
 
         switch (type) {
-            case "datetime":
-                Assert.assertTrue("getString is not equals value:" + resultSet.getString(2),
+        case "datetime":
+            Assert.assertTrue("getString is not equals value:" + resultSet.getString(2),
                     testStr.equals(resultSet.getString(2)));
-                Assert.assertTrue("getString is not equals",
-                    testStr.equals(resultSet.getString("strm")));
-                Assert.assertTrue("getString is not equals",
-                    testStr.equals(resultSet.getNString(2)));
-                Assert.assertTrue("getString is not equals",
-                    testStr.equals(resultSet.getNString("strm")));
-                break;
-            default:
-                Assert.assertTrue("getString is not equals",
-                    String.valueOf(testStr).equals(resultSet.getString(2)));
-                Assert.assertTrue("getString is not equals",
-                    String.valueOf(testStr).equals(resultSet.getString("strm")));
-                Assert.assertTrue("getString is not equals",
-                    String.valueOf(testStr).equals(resultSet.getNString(2)));
-                Assert.assertTrue("getString is not equals",
-                    String.valueOf(testStr).equals(resultSet.getNString("strm")));
-                break;
+            Assert.assertTrue("getString is not equals", testStr.equals(resultSet.getString("strm")));
+            Assert.assertTrue("getString is not equals", testStr.equals(resultSet.getNString(2)));
+            Assert.assertTrue("getString is not equals", testStr.equals(resultSet.getNString("strm")));
+            break;
+        default:
+            Assert.assertTrue("getString is not equals", String.valueOf(testStr).equals(resultSet.getString(2)));
+            Assert.assertTrue("getString is not equals", String.valueOf(testStr).equals(resultSet.getString("strm")));
+            Assert.assertTrue("getString is not equals", String.valueOf(testStr).equals(resultSet.getNString(2)));
+            Assert.assertTrue("getString is not equals", String.valueOf(testStr).equals(resultSet.getNString("strm")));
+            break;
         }
 
         switch (type) {
-            case "bigint":
-            case "long":
-            case "int":
-            case "short":
-            case "byte":
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(String.valueOf(resultSet.getObject(2))));
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(String.valueOf(resultSet.getObject("strm"))));
-                break;
+        case "bigint":
+        case "long":
+        case "int":
+        case "short":
+        case "byte":
+            Assert.assertTrue("getObject is not equals", testStr.equals(String.valueOf(resultSet.getObject(2))));
+            Assert.assertTrue("getObject is not equals", testStr.equals(String.valueOf(resultSet.getObject("strm"))));
+            break;
 
-            case "float":
-                Assert.assertTrue("getObject is not equals",
+        case "float":
+            Assert.assertTrue("getObject is not equals",
                     Float.valueOf(testStr).floatValue() == (Float) resultSet.getObject(2));
-                Assert.assertTrue("getObject is not equals",
+            Assert.assertTrue("getObject is not equals",
                     Float.valueOf(testStr).floatValue() == (Float) resultSet.getObject("strm"));
-                break;
-            case "double":
-                Assert.assertTrue("getObject is not equals",
+            break;
+        case "double":
+            Assert.assertTrue("getObject is not equals",
                     Double.valueOf(testStr).doubleValue() == (Double) resultSet.getObject(2));
-                Assert.assertTrue("getObject is not equals",
+            Assert.assertTrue("getObject is not equals",
                     Double.valueOf(testStr).doubleValue() == (Double) resultSet.getObject("strm"));
-                break;
-            case "date":
-                Assert.assertTrue("getObject is not equals", Date.valueOf(testStr).toString()
-                    .equals(((Date) resultSet.getObject(2)).toString()));
-                Assert.assertTrue("getObject is not equals", Date.valueOf(testStr).toString()
-                    .equals(((Date) resultSet.getObject("strm")).toString()));
-                break;
-            case "datetime":
-                Assert.assertTrue("timestamp getObject is not equals", Timestamp.valueOf(testStr)
-                    .equals((Timestamp) resultSet.getObject(2)));
-                Assert.assertTrue("timestamp getObject is not equals", Timestamp.valueOf(testStr)
-                    .equals((Timestamp) resultSet.getObject("strm")));
-                break;
-            case "blob":
-                Assert.assertTrue("", testStr.equals(new String((byte[]) resultSet.getObject(2))));
-                ;
-                Assert.assertTrue("", testStr.equals(new String((byte[]) resultSet.getObject(2))));
-                break;
-            case "clob":
-                Assert.assertTrue(
-                    "",
-                    testStr.equals(new String(((Clob) resultSet.getObject(2)).getBytes(1,
-                        testStr.length()))));
-                Assert.assertTrue("", testStr.equals(new String(
-                    ((Clob) resultSet.getObject("strm")).getBytes(1, testStr.length()))));
-                break;
-            default:
-                Assert
-                    .assertTrue("getObject is not equals", testStr.equals(resultSet.getObject(2)));
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(resultSet.getObject(2, String.class)));
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(resultSet.getObject(2, String.class)));
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(resultSet.getObject("strm", String.class)));
-                Assert.assertTrue("getObject is not equals",
-                    testStr.equals(resultSet.getObject("strm")));
-                break;
+            break;
+        case "date":
+            Assert.assertTrue("getObject is not equals",
+                    Date.valueOf(testStr).toString().equals(((Date) resultSet.getObject(2)).toString()));
+            Assert.assertTrue("getObject is not equals",
+                    Date.valueOf(testStr).toString().equals(((Date) resultSet.getObject("strm")).toString()));
+            break;
+        case "datetime":
+            Assert.assertTrue("timestamp getObject is not equals",
+                    Timestamp.valueOf(testStr).equals((Timestamp) resultSet.getObject(2)));
+            Assert.assertTrue("timestamp getObject is not equals",
+                    Timestamp.valueOf(testStr).equals((Timestamp) resultSet.getObject("strm")));
+            break;
+        case "blob":
+            Assert.assertTrue("", testStr.equals(new String((byte[]) resultSet.getObject(2))));
+            ;
+            Assert.assertTrue("", testStr.equals(new String((byte[]) resultSet.getObject(2))));
+            break;
+        case "clob":
+            Assert.assertTrue("",
+                    testStr.equals(new String(((Clob) resultSet.getObject(2)).getBytes(1, testStr.length()))));
+            Assert.assertTrue("",
+                    testStr.equals(new String(((Clob) resultSet.getObject("strm")).getBytes(1, testStr.length()))));
+            break;
+        default:
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getObject(2)));
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getObject(2, String.class)));
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getObject(2, String.class)));
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getObject("strm", String.class)));
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getObject("strm")));
+            break;
         }
 
         try {
             Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getArray(2)));
-            Assert
-                .assertTrue("getObject is not equals", testStr.equals(resultSet.getArray("strm")));
+            Assert.assertTrue("getObject is not equals", testStr.equals(resultSet.getArray("strm")));
         } catch (Exception e) {
             if (e.getClass().getName().contains("SQLFeatureNotSupportedException"))
                 System.out.println("type " + type + "getArray SQLFeatureNotSupportedException");
@@ -643,41 +599,31 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         }
 
         switch (type) {
-            case "datetime":
-                Assert.assertTrue(
-                    "getBytes is not equals",
-                    Timestamp.valueOf(testStr).equals(
-                        Timestamp.valueOf(new String(resultSet.getBytes("strm")))));
-                Assert.assertTrue(
-                    "getBytes is not equals",
-                    Timestamp.valueOf(testStr).equals(
-                        Timestamp.valueOf(new String(resultSet.getBytes(2)))));
-                break;
-            default:
-                Assert.assertTrue("getBytes is not equals",
-                    testStr.equals(new String(resultSet.getBytes("strm"))));
-                Assert.assertTrue("getBytes is not equals",
-                    testStr.equals(new String(resultSet.getBytes(2))));
+        case "datetime":
+            Assert.assertTrue("getBytes is not equals",
+                    Timestamp.valueOf(testStr).equals(Timestamp.valueOf(new String(resultSet.getBytes("strm")))));
+            Assert.assertTrue("getBytes is not equals",
+                    Timestamp.valueOf(testStr).equals(Timestamp.valueOf(new String(resultSet.getBytes(2)))));
+            break;
+        default:
+            Assert.assertTrue("getBytes is not equals", testStr.equals(new String(resultSet.getBytes("strm"))));
+            Assert.assertTrue("getBytes is not equals", testStr.equals(new String(resultSet.getBytes(2))));
+        }
+
+        try {
+            Assert.assertTrue("getBinaryStream is not equals", testStr.equals(resultSet.getRef(2).getObject()));
+            Assert.assertTrue("getBinaryStream is not equals", testStr.equals(resultSet.getRef("strm").getObject()));
+        } catch (Exception e) {
+            Assert.assertTrue("", e.getClass().getName().contains("SQLFeatureNotSupportedException"));
         }
 
         try {
             Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(resultSet.getRef(2).getObject()));
+                    testStr.equals(new String(resultSet.getRowId(2).getBytes())));
             Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(resultSet.getRef("strm").getObject()));
+                    testStr.equals(new String(resultSet.getRowId("strm").getBytes())));
         } catch (Exception e) {
-            Assert.assertTrue("", e.getClass().getName()
-                .contains("SQLFeatureNotSupportedException"));
-        }
-
-        try {
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId(2).getBytes())));
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId("strm").getBytes())));
-        } catch (Exception e) {
-            Assert.assertTrue("", e.getClass().getName()
-                .contains("SQLFeatureNotSupportedException"));
+            Assert.assertTrue("", e.getClass().getName().contains("SQLFeatureNotSupportedException"));
         }
     }
 

@@ -43,9 +43,7 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.OutputStream;
 import java.io.Reader;
@@ -55,16 +53,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
 
 public class DataNtypeOracleTest extends BaseOracleTest {
 
     @Test
     public void testGetNClob() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         createTable("testGetNClob", "id int not null primary key, str1 VARCHAR2(10)"); // , "CHARSET utf8"
-        PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testGetNClob (id, str1) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into testGetNClob (id, str1) values (?,?)");
         NClob nclob = sharedConnection.createNClob();
         OutputStream stream = nclob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
@@ -74,8 +74,7 @@ public class DataNtypeOracleTest extends BaseOracleTest {
         stmt.setString(2, "hello");
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement()
-            .executeQuery("select * from testGetNClob");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testGetNClob");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -87,23 +86,22 @@ public class DataNtypeOracleTest extends BaseOracleTest {
     @Test
     public void testSetNClob() throws Exception {
         String tableName = "testSetNClob";
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         createTable(tableName, "id int not null primary key, str1 CLOB "); // , "CHARSET utf8"
-        PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testSetNClob (id, str1) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into testSetNClob (id, str1) values (?,?)");
         NClob nclob = sharedConnection.createNClob();
         String str = "hellohello";
         Assert.assertTrue(nclob.length() == 0);
         nclob.setString(1, str);
         Assert.assertTrue("nclob length : " + nclob.length(), nclob.length() == str.length());
         Assert.assertTrue("clob：" + nclob.getSubString(1, str.length()),
-            str.equals(nclob.getSubString(1, str.length())));
+                str.equals(nclob.getSubString(1, str.length())));
         stmt.setInt(1, 1);
         stmt.setNClob(2, nclob);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement()
-            .executeQuery("select * from testSetNClob");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNClob");
         assertTrue(rs.next());
         assertFalse(rs.getObject(2) instanceof String);
         assertTrue(rs.getObject(2) instanceof Clob);
@@ -118,13 +116,12 @@ public class DataNtypeOracleTest extends BaseOracleTest {
 
         createTable("testSetNString", "id int not null primary key, strm varchar(10)");
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testSetNString (id, strm) values (?,?)");
+                .prepareStatement("insert into testSetNString (id, strm) values (?,?)");
         stmt.setInt(1, 1);
         stmt.setNString(2, "hello");
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from testSetNString");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNString");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getNString(2).equals("hello"));
@@ -133,17 +130,15 @@ public class DataNtypeOracleTest extends BaseOracleTest {
     @Test
     public void testSetObjectNString() throws Exception {
 
-        createTable("testSetObjectNString",
-            "id int not null primary key, strm varchar(10), strm2 varchar(10)");
+        createTable("testSetObjectNString", "id int not null primary key, strm varchar(10), strm2 varchar(10)");
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testSetObjectNString (id, strm, strm2) values (?, ?, ?)");
+                .prepareStatement("insert into testSetObjectNString (id, strm, strm2) values (?, ?, ?)");
         stmt.setInt(1, 2);
         stmt.setObject(2, "hello");
         stmt.setObject(3, "hello", Types.NCLOB);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from testSetObjectNString");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNString");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -155,10 +150,11 @@ public class DataNtypeOracleTest extends BaseOracleTest {
 
     @Test
     public void testSetNCharacter() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         createTable("testSetNCharacter", "id int not null primary key, strm varchar2(50)");
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
+                .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
         String toInsert = "Øabcdefgh\njklmn\"";
 
         stmt.setInt(1, 1);
@@ -169,8 +165,7 @@ public class DataNtypeOracleTest extends BaseOracleTest {
         stmt.setNCharacterStream(2, new StringReader(toInsert), 3);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from testSetNCharacter");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNCharacter");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getCharacterStream(2) instanceof Reader);
@@ -192,11 +187,12 @@ public class DataNtypeOracleTest extends BaseOracleTest {
 
     @Test
     public void testSetObjectNCharacter() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         createTable("testSetObjectNCharacter", "id int not null primary key, strm varchar2(50)");
         createTable("testSetObjectNCharacter", "id int not null primary key, strm varchar2(50)");
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
+                .prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
         String toInsert = "Øabcdefgh\njklmn\"";
 
         stmt.setInt(1, 1);
@@ -211,8 +207,7 @@ public class DataNtypeOracleTest extends BaseOracleTest {
         stmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR, 3);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from testSetObjectNCharacter");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
         assertTrue(rs.next());
         Reader reader1 = rs.getObject(2, Reader.class);
         assertNotNull(reader1);

@@ -56,6 +56,7 @@ import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -66,7 +67,8 @@ public class GeometryTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -74,48 +76,45 @@ public class GeometryTest extends BaseTest {
     }
 
     private void geometryTest(String geometryString, String geometryBinary) throws SQLException {
-    try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("TRUNCATE geom_test");
-      String prefix = "";
-      if (!isMariadbServer() && minVersion(8, 0, 3)) {
-        prefix = "ST_";
-      }
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.execute("TRUNCATE geom_test");
+            String prefix = "";
+            if (!isMariadbServer() && minVersion(8, 0, 3)) {
+                prefix = "ST_";
+            }
 
-      String tmpGeometryBinary = geometryBinary;
-      if (tmpGeometryBinary == null) {
-        String sql =
-            "SELECT " + prefix + "AsWKB(" + prefix + "GeomFromText('" + geometryString + "'))";
-        try (ResultSet rs = stmt.executeQuery(sql)) {
-          assertTrue(rs.next());
-          tmpGeometryBinary = printHexBinary(rs.getBytes(1));
+            String tmpGeometryBinary = geometryBinary;
+            if (tmpGeometryBinary == null) {
+                String sql = "SELECT " + prefix + "AsWKB(" + prefix + "GeomFromText('" + geometryString + "'))";
+                try (ResultSet rs = stmt.executeQuery(sql)) {
+                    assertTrue(rs.next());
+                    tmpGeometryBinary = printHexBinary(rs.getBytes(1));
+                }
+            }
+            String sql = "INSERT INTO geom_test VALUES (" + prefix + "GeomFromText('" + geometryString + "'))";
+            stmt.execute(sql);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT " + prefix + "AsText(g), " + prefix + "AsBinary(g), g FROM geom_test")) {
+                assertTrue(rs.next());
+                // as text
+                assertEquals(geometryString, rs.getString(1));
+                // as binary
+                String returnWkb = printHexBinary((byte[]) rs.getObject(2));
+                assertEquals(tmpGeometryBinary, returnWkb);
+                // as object
+                Object geometry = null;
+                try {
+                    geometry = rs.getObject(3);
+                } catch (Exception e) {
+                    fail();
+                }
+                String returnGeometry = printHexBinary((byte[]) geometry);
+                BigInteger returnNumber = new BigInteger(returnGeometry, 16);
+                BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
+                assertEquals(geometryNumber, returnNumber);
+            }
         }
-      }
-      String sql =
-          "INSERT INTO geom_test VALUES (" + prefix + "GeomFromText('" + geometryString + "'))";
-      stmt.execute(sql);
-      try (ResultSet rs =
-          stmt.executeQuery(
-              "SELECT " + prefix + "AsText(g), " + prefix + "AsBinary(g), g FROM geom_test")) {
-        assertTrue(rs.next());
-        // as text
-        assertEquals(geometryString, rs.getString(1));
-        // as binary
-        String returnWkb = printHexBinary((byte[]) rs.getObject(2));
-        assertEquals(tmpGeometryBinary, returnWkb);
-        // as object
-        Object geometry = null;
-        try {
-          geometry = rs.getObject(3);
-        } catch (Exception e) {
-          fail();
-        }
-        String returnGeometry = printHexBinary((byte[]) geometry);
-        BigInteger returnNumber = new BigInteger(returnGeometry, 16);
-        BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
-        assertEquals(geometryNumber, returnNumber);
-      }
     }
-  }
 
     @Test
     public void pointTest() throws SQLException {

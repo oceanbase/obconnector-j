@@ -57,26 +57,26 @@ class CallParameter {
 
     private boolean isInput;
     private boolean isOutput;
-    private int     sqlType;
-    private int     outputSqlType;
-    private int     scale;
-    private String  typeName;
+    private int sqlType;
+    private int outputSqlType;
+    private int scale;
+    private String typeName;
     private boolean isSigned;
-    private int     canBeNull;
-    private int     precision;
-    private String  className;
-    private String  name;
+    private int canBeNull;
+    private int precision;
+    private String className;
+    private String name;
 
     // New add for OceanBase
-    private int     index;
+    private int index;
 
     public CallParameter() {
         sqlType = Types.OTHER;
         outputSqlType = Types.OTHER;
     }
 
-    public CallParameter(String name, int index, boolean isInput, boolean isOutput, int sqlType,
-                         String typeName, int precision, int scale, int canBeNull, int outputSqlType) {
+    public CallParameter(String name, int index, boolean isInput, boolean isOutput, int sqlType, String typeName,
+            int precision, int scale, int canBeNull, int outputSqlType) {
         this.name = name;
         this.index = index;
         this.isInput = isInput;

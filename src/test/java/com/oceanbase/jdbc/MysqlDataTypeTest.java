@@ -49,21 +49,21 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class MysqlDataTypeTest extends BaseTest {
 
     private static final Connection conn = sharedConnection;
-    private PreparedStatement       ps   = null;
+    private PreparedStatement ps = null;
 
     @BeforeClass
     public static void initClass() throws SQLException {
@@ -79,8 +79,7 @@ public class MysqlDataTypeTest extends BaseTest {
 
     @Test
     public void testYear() throws SQLException {
-        int i = conn.createStatement().executeUpdate(
-            "insert into t_year (y) values (null), (1901), (70), (69)");
+        int i = conn.createStatement().executeUpdate("insert into t_year (y) values (null), (1901), (70), (69)");
         assertEquals(4, i);
         ps = conn.prepareStatement("select y from t_year");
         ResultSet rs = ps.executeQuery();

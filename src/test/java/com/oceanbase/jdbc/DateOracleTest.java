@@ -43,10 +43,8 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -56,32 +54,34 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DateOracleTest extends BaseOracleTest {
 
-    private static final String TIMESTAMP_1         = "2015-05-13 08:15:14";
-    private static final String TIMESTAMP_2         = "2015-05-13 08:15:14";
+    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
+    private static final String TIMESTAMP_2 = "2015-05-13 08:15:14";
     private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
 
     /**
      * Initialization.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
 
         createTable("dtest", "d date");
-        createTable(
-            "date_test2",
-            "id int not null primary key , d_from timestamp ,d_to timestamp ,timestamp_local TIMESTAMP WITH LOCAL TIME ZONE ,timestamp_timezone TIMESTAMP WITH TIME ZONE");
+        createTable("date_test2",
+                "id int not null primary key , d_from timestamp ,d_to timestamp ,timestamp_local TIMESTAMP WITH LOCAL TIME ZONE ,timestamp_timezone TIMESTAMP WITH TIME ZONE");
         createTable("timestampzerotest", "ts timestamp, dt timestamp, dd date");
         createTable("dtest", "d timestamp");
         createTable("dtest2", "d date");
         createTable("dtest3", "d date");
-        //        createTable("dtest4", "d  time");
+        // createTable("dtest4", "d time");
         createTable("date_test3", " x date");
         createTable("date_test4", "x date");
         if (doPrecisionTest) {
@@ -102,40 +102,44 @@ public class DateOracleTest extends BaseOracleTest {
     /**
      * Date testing.
      *
-     * @param useLegacy use legacy client side timezone or server side timezone.
-     * @throws SQLException exception
+     * @param useLegacy
+     *            use legacy client side timezone or server side timezone.
+     * @throws SQLException
+     *             exception
      */
     public void dateTest(boolean useLegacy) throws SQLException {
         Assume.assumeFalse(sharedIsRewrite());
-        try (Connection connection =
-                     setConnection(
-                             "&useLegacyDatetimeCode="
-                                     + useLegacy
-                                     + "&serverTimezone=+5:00&maximizeMysqlCompatibility=false&useServerPrepStmts=true")) {
+        try (Connection connection = setConnection("&useLegacyDatetimeCode=" + useLegacy
+                + "&serverTimezone=+5:00&maximizeMysqlCompatibility=false&useServerPrepStmts=true")) {
 
             setSessionTimeZone(connection, "+5:00");
-            createTable(
-                    "date_test",
-                    "id int not null primary key, d_test date,dt_test timestamp , timestamp_local TIMESTAMP WITH LOCAL TIME ZONE ,timestamp_timezone TIMESTAMP WITH TIME ZONE " );
+            createTable("date_test",
+                    "id int not null primary key, d_test date,dt_test timestamp , timestamp_local TIMESTAMP WITH LOCAL TIME ZONE ,timestamp_timezone TIMESTAMP WITH TIME ZONE ");
             Statement stmt = connection.createStatement();
             Date date = Date.valueOf("2009-01-17");
             Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
-            Timestamp localTimestamp = Timestamp.valueOf(LocalDateTime.now()) ;
-            ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDateTime.of(2021,3,23,18,23,23,123456), ZoneId.of("Europe/Paris")) ;
-            System.out.println("zonedDateTime: "+zonedDateTime);
-            String str = new StringBuilder().append(zonedDateTime.getYear()).append("-").append(zonedDateTime.getMonthValue()<10 ? "0"+zonedDateTime.getMonthValue() : zonedDateTime.getMonthValue()).append("-").append(zonedDateTime.getDayOfMonth()).append(" ")
-                    .append(zonedDateTime.getHour()).append(":").append(zonedDateTime.getMinute()).append(":").append(zonedDateTime.getSecond()).append(".").append(zonedDateTime.getNano()).toString() ;
-            System.out.println("datestr: "+str);
-            Timestamp timestamp1 = Timestamp.valueOf(str) ;
-            PreparedStatement ps =
-                    connection.prepareStatement(
-                            "insert into date_test (id,d_test, dt_test, timestamp_local,timestamp_timezone) " + "values (1,?,?,?,?)");
+            Timestamp localTimestamp = Timestamp.valueOf(LocalDateTime.now());
+            ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDateTime.of(2021, 3, 23, 18, 23, 23, 123456),
+                    ZoneId.of("Europe/Paris"));
+            System.out.println("zonedDateTime: " + zonedDateTime);
+            String str = new StringBuilder().append(zonedDateTime.getYear()).append("-")
+                    .append(zonedDateTime.getMonthValue() < 10 ? "0" + zonedDateTime.getMonthValue()
+                            : zonedDateTime.getMonthValue())
+                    .append("-").append(zonedDateTime.getDayOfMonth()).append(" ").append(zonedDateTime.getHour())
+                    .append(":").append(zonedDateTime.getMinute()).append(":").append(zonedDateTime.getSecond())
+                    .append(".").append(zonedDateTime.getNano()).toString();
+            System.out.println("datestr: " + str);
+            Timestamp timestamp1 = Timestamp.valueOf(str);
+            PreparedStatement ps = connection
+                    .prepareStatement("insert into date_test (id,d_test, dt_test, timestamp_local,timestamp_timezone) "
+                            + "values (1,?,?,?,?)");
             ps.setDate(1, date);
             ps.setTimestamp(2, timestamp);
-            ps.setTimestamp(3,localTimestamp);
-            ps.setTimestamp(4,timestamp1);
+            ps.setTimestamp(3, localTimestamp);
+            ps.setTimestamp(4, timestamp1);
             ps.executeUpdate();
-            ResultSet rs = stmt.executeQuery("select id, d_test, dt_test,timestamp_local,timestamp_timezone from date_test");
+            ResultSet rs = stmt
+                    .executeQuery("select id, d_test, dt_test,timestamp_local,timestamp_timezone from date_test");
             assertEquals(true, rs.next());
             Date date2 = rs.getDate(2);
             Date date3 = rs.getDate("d_test");
@@ -146,13 +150,13 @@ public class DateOracleTest extends BaseOracleTest {
             Timestamp timestamp3 = rs.getTimestamp("dt_test");
             assertEquals(timestamp.toString(), timestamp3.toString());
 
-            Timestamp timestamp4 = rs.getTimestamp(4) ;
-            Timestamp timestamp5 = rs.getTimestamp("timestamp_local") ;
-            assertEquals(localTimestamp.toString(),timestamp4.toString());
-            assertEquals(localTimestamp.toString(),timestamp5.toString());
+            Timestamp timestamp4 = rs.getTimestamp(4);
+            Timestamp timestamp5 = rs.getTimestamp("timestamp_local");
+            assertEquals(localTimestamp.toString(), timestamp4.toString());
+            assertEquals(localTimestamp.toString(), timestamp5.toString());
 
-            Timestamp timestamp6 = rs.getTimestamp(5) ;
-            Timestamp timestamp7 = rs.getTimestamp("timestamp_timezone") ;
+            Timestamp timestamp6 = rs.getTimestamp(5);
+            Timestamp timestamp7 = rs.getTimestamp("timestamp_timezone");
             Assert.assertFalse(zonedDateTime.toString().equals(timestamp6));
             Assert.assertFalse(zonedDateTime.toString().equals(timestamp7));
         }
@@ -161,15 +165,14 @@ public class DateOracleTest extends BaseOracleTest {
     @Test
     public void dateRangeTest() throws SQLException {
         PreparedStatement ps = sharedConnection
-            .prepareStatement("insert into date_test2 (id, d_from, d_to) values " + "(1, ?,?)");
+                .prepareStatement("insert into date_test2 (id, d_from, d_to) values " + "(1, ?,?)");
         Timestamp timestamp1 = Timestamp.valueOf("2009-01-17 15:41:01");
         Timestamp timestamp2 = Timestamp.valueOf("2015-01-17 15:41:01");
         ps.setTimestamp(1, timestamp1);
         ps.setTimestamp(2, timestamp2);
         ps.executeUpdate();
         PreparedStatement ps1 = sharedConnection
-            .prepareStatement("select d_from, d_to from date_test2 "
-                              + "where d_from <= ? and d_to >= ?");
+                .prepareStatement("select d_from, d_to from date_test2 " + "where d_from <= ? and d_to >= ?");
         Timestamp timestamp3 = Timestamp.valueOf("2014-01-17 15:41:01");
         ps1.setTimestamp(1, timestamp3);
         ps1.setTimestamp(2, timestamp3);
@@ -210,9 +213,8 @@ public class DateOracleTest extends BaseOracleTest {
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
         try {
-            sharedConnection.createStatement().execute(
-                "insert into timestampzerotest values ('" + timestampZero + "', '" + timestampZero
-                        + "', '" + dateZero + "')");
+            sharedConnection.createStatement().execute("insert into timestampzerotest values ('" + timestampZero
+                    + "', '" + timestampZero + "', '" + dateZero + "')");
         } catch (Exception e) {
             Assert.assertTrue("", e.getMessage().contains("year must be between -4713 and +9999"));
         }
@@ -245,48 +247,41 @@ public class DateOracleTest extends BaseOracleTest {
 
         Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
         PreparedStatement preparedStatement1 = sharedConnection
-            .prepareStatement("/*CLIENT*/ insert into timestampAsDate values (?, ?, ?)");
+                .prepareStatement("/*CLIENT*/ insert into timestampAsDate values (?, ?, ?)");
         preparedStatement1.setTimestamp(1, currentTimeStamp);
         preparedStatement1.setTimestamp(2, currentTimeStamp);
         preparedStatement1.setDate(3, new Date(currentTimeStamp.getTime()));
         System.out.println("date: " + new Date(currentTimeStamp.getTime()));
         preparedStatement1.addBatch();
         preparedStatement1.execute();
-        //        preparedStatement1.executeBatch();
+        // preparedStatement1.executeBatch();
 
         Date dateWithoutTime = new Date(cal.getTimeInMillis());
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from timestampAsDate");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime);
 
-        PreparedStatement pstmt = sharedConnection
-            .prepareStatement("select * from timestampAsDate where 1 = ?");
+        PreparedStatement pstmt = sharedConnection.prepareStatement("select * from timestampAsDate where 1 = ?");
         pstmt.setInt(1, 1);
         pstmt.addBatch();
         rs = pstmt.executeQuery();
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime);
     }
 
-    private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal,
-                             Date dateWithoutTime) throws SQLException {
+    private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal, Date dateWithoutTime)
+            throws SQLException {
         if (rs.next()) {
             assertEquals(rs.getTimestamp(1), currentTimeStamp);
             assertEquals(rs.getTimestamp(2), currentTimeStamp);
-            Assert.assertFalse("is not equals as with hours minutes and seconds", rs
-                .getTimestamp(3).equals(new Timestamp(cal.getTimeInMillis())));
+            Assert.assertFalse("is not equals as with hours minutes and seconds",
+                    rs.getTimestamp(3).equals(new Timestamp(cal.getTimeInMillis())));
 
-            Assert.assertTrue(rs.getDate(1).toString()
-                .equals(new Date(currentTimeStamp.getTime()).toString()));
-            Assert.assertTrue(rs.getDate(2).toString()
-                .equals(new Date(currentTimeStamp.getTime()).toString()));
+            Assert.assertTrue(rs.getDate(1).toString().equals(new Date(currentTimeStamp.getTime()).toString()));
+            Assert.assertTrue(rs.getDate(2).toString().equals(new Date(currentTimeStamp.getTime()).toString()));
             Assert.assertTrue(rs.getDate(3).toString().equals(dateWithoutTime.toString()));
-            Assert.assertTrue(rs.getTime(1).toString()
-                .equals(new Time(currentTimeStamp.getTime()).toString()));
-            Assert.assertTrue(rs.getTime(2).toString()
-                .equals(new Time(currentTimeStamp.getTime()).toString()));
-            Assert.assertTrue("read Time from a Types.DATE field", rs.getTime(3).toString()
-                .contains(":"));
+            Assert.assertTrue(rs.getTime(1).toString().equals(new Time(currentTimeStamp.getTime()).toString()));
+            Assert.assertTrue(rs.getTime(2).toString().equals(new Time(currentTimeStamp.getTime()).toString()));
+            Assert.assertTrue("read Time from a Types.DATE field", rs.getTime(3).toString().contains(":"));
         } else {
             fail("Must have a result");
         }
@@ -309,8 +304,7 @@ public class DateOracleTest extends BaseOracleTest {
     public void nullTimestampTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into dtest2 values(null)");
         ps.executeUpdate();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from dtest2 where d is null");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest2 where d is null");
         assertTrue(rs.next());
         Calendar cal = new GregorianCalendar();
         assertEquals(null, rs.getTimestamp(1, cal));
@@ -334,16 +328,15 @@ public class DateOracleTest extends BaseOracleTest {
     /**
      * Conj-107.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void timestampMillisecondsTest() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         createTable("tt1", "id decimal(10), create_time timestamp(6)");
-        statement
-            .execute("INSERT INTO tt1 (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
-        PreparedStatement ps = sharedConnection
-            .prepareStatement("insert into tt1 (id, create_time) values (?,?)");
+        statement.execute("INSERT INTO tt1 (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into tt1 (id, create_time) values (?,?)");
         ps.setInt(1, 2);
         Timestamp writeTs = new Timestamp(1273017612999L);
         Timestamp writeTsWithoutMilliSec = new Timestamp(1273017612999L);
@@ -363,19 +356,17 @@ public class DateOracleTest extends BaseOracleTest {
     @Test
     public void dateTestWhenServerDifference() throws Throwable {
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
-            try (PreparedStatement pst =
-                         connection.prepareStatement("insert into date_test3 values (?)")) {
+            try (PreparedStatement pst = connection.prepareStatement("insert into date_test3 values (?)")) {
                 Date date = Date.valueOf("2013-02-01");
                 pst.setDate(1, date);
                 pst.execute();
 
-                try (PreparedStatement pst2 =
-                             connection.prepareStatement("select x from date_test3 WHERE x = ?")) {
+                try (PreparedStatement pst2 = connection.prepareStatement("select x from date_test3 WHERE x = ?")) {
                     pst2.setDate(1, date);
                     try (ResultSet rs = pst2.executeQuery()) {
                         assertTrue(rs.next());
                         Date dd = rs.getDate(1);
-                        Assert.assertEquals("dd is not equals to date dd: "+dd ,dd, date);
+                        Assert.assertEquals("dd is not equals to date dd: " + dd, dd, date);
                     }
                 }
             }
@@ -385,19 +376,18 @@ public class DateOracleTest extends BaseOracleTest {
     @Test
     public void dateTestWhenServerDifferenceClient() throws Throwable {
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
-            try (PreparedStatement pst =
-                         connection.prepareStatement("/*CLIENT*/insert into date_test4 values (?)")) {
+            try (PreparedStatement pst = connection.prepareStatement("/*CLIENT*/insert into date_test4 values (?)")) {
                 Date date = Date.valueOf("2013-02-01");
                 pst.setDate(1, date);
                 pst.execute();
 
-                try (PreparedStatement pst2 =
-                             connection.prepareStatement("/*CLIENT*/ select x from date_test4 WHERE x = ?")) {
+                try (PreparedStatement pst2 = connection
+                        .prepareStatement("/*CLIENT*/ select x from date_test4 WHERE x = ?")) {
                     pst2.setDate(1, date);
                     try (ResultSet rs = pst2.executeQuery()) {
                         assertTrue(rs.next());
                         Date dd = rs.getDate(1);
-                        Assert.assertEquals("dd is not equals to date dd: "+dd ,dd, date);
+                        Assert.assertEquals("dd is not equals to date dd: " + dd, dd, date);
                     }
                 }
             }

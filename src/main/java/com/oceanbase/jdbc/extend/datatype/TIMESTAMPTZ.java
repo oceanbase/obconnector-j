@@ -43,14 +43,11 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
-import com.oceanbase.jdbc.internal.protocol.Protocol;
-
-import java.io.IOException;
 import java.sql.*;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.TimeZone;
+
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class TIMESTAMPTZ extends Datum {
     static final long serialVersionUID = 6708361144588335769L;
@@ -87,13 +84,12 @@ public class TIMESTAMPTZ extends Datum {
         super(toBytes(connection, timestamp));
     }
 
-    public TIMESTAMPTZ(Connection connection, Timestamp timestamp, Calendar calendar)
-                                                                                     throws SQLException {
+    public TIMESTAMPTZ(Connection connection, Timestamp timestamp, Calendar calendar) throws SQLException {
         super(toBytes(connection, timestamp, calendar));
     }
 
-    public TIMESTAMPTZ(Connection connection, Timestamp timestamp, Calendar calendar,
-                       boolean isTZTablesImported) throws SQLException {
+    public TIMESTAMPTZ(Connection connection, Timestamp timestamp, Calendar calendar, boolean isTZTablesImported)
+            throws SQLException {
         super(toBytes(connection, timestamp, calendar, isTZTablesImported));
     }
 
@@ -162,8 +158,7 @@ public class TIMESTAMPTZ extends Datum {
         return timestamp;
     }
 
-    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes, boolean isResult)
-                                                                                          throws SQLException {
+    public static Timestamp toTimestamp(Protocol protocol, byte[] bytes, boolean isResult) throws SQLException {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
@@ -184,8 +179,7 @@ public class TIMESTAMPTZ extends Datum {
         return timestamp;
     }
 
-    public static long getOriginTime(byte[] bytes, TimeZone timeZone, boolean isTSResult)
-                                                                                         throws SQLException {
+    public static long getOriginTime(byte[] bytes, TimeZone timeZone, boolean isTSResult) throws SQLException {
         if (bytes.length < 7) {
             throw new SQLException("invalid bytes length");
         }
@@ -220,8 +214,7 @@ public class TIMESTAMPTZ extends Datum {
         return getOriginTime(bytes, timeZone, false);
     }
 
-    public static String toString(Connection connection, byte[] bytes, boolean isResult)
-                                                                                        throws SQLException {
+    public static String toString(Connection connection, byte[] bytes, boolean isResult) throws SQLException {
         if (bytes.length < 14) {
             throw new SQLException("invalid bytes length");
         }
@@ -260,10 +253,10 @@ public class TIMESTAMPTZ extends Datum {
         return toString(connection, getBytes(), true);
     }
 
-    public static final String toString(int year, int month, int day, int hour, int minute,
-                                        int second, int nanos, int scale, String timezone) {
-        String time = "" + year + "-" + toStr(month) + "-" + toStr(day) + " " + toStr(hour) + ":"
-                      + toStr(minute) + ":" + toStr(second);
+    public static final String toString(int year, int month, int day, int hour, int minute, int second, int nanos,
+            int scale, String timezone) {
+        String time = "" + year + "-" + toStr(month) + "-" + toStr(day) + " " + toStr(hour) + ":" + toStr(minute) + ":"
+                + toStr(second);
         if (nanos >= 0) {
             String temp = String.format("%09d", nanos);
             char[] chars = temp.toCharArray();
@@ -304,8 +297,7 @@ public class TIMESTAMPTZ extends Datum {
         return toBytes(connection, date, null);
     }
 
-    public static byte[] toBytes(Connection connection, Date date, Calendar calendar)
-                                                                                     throws SQLException {
+    public static byte[] toBytes(Connection connection, Date date, Calendar calendar) throws SQLException {
         if (date == null) {
             return null;
         }
@@ -329,11 +321,10 @@ public class TIMESTAMPTZ extends Datum {
             TIMESTAMP.setNanos(resultBytes, 7, 0);
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
-                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
+                    : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             return resultBytes;
         } else {
-            throw new SQLException(String.format("error format, timestamp = %s", date.toString()),
-                "268");
+            throw new SQLException(String.format("error format, timestamp = %s", date.toString()), "268");
         }
     }
 
@@ -341,8 +332,7 @@ public class TIMESTAMPTZ extends Datum {
         return toBytes(connection, time, null);
     }
 
-    public static byte[] toBytes(Connection connection, Time time, Calendar calendar)
-                                                                                     throws SQLException {
+    public static byte[] toBytes(Connection connection, Time time, Calendar calendar) throws SQLException {
         if (time == null) {
             return null;
         }
@@ -371,11 +361,10 @@ public class TIMESTAMPTZ extends Datum {
             TIMESTAMP.setNanos(resultBytes, 7, 0);
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
-                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
+                    : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             return resultBytes;
         } else {
-            throw new SQLException(String.format("error format, timestamp = %s", time.toString()),
-                "268");
+            throw new SQLException(String.format("error format, timestamp = %s", time.toString()), "268");
         }
     }
 
@@ -383,8 +372,7 @@ public class TIMESTAMPTZ extends Datum {
         return toBytes(connection, timeStamp, null);
     }
 
-    public static TIMESTAMPTZ toTIMESTAMPTZ(Timestamp timestamp, String timeZoneStr)
-                                                                                    throws SQLException {
+    public static TIMESTAMPTZ toTIMESTAMPTZ(Timestamp timestamp, String timeZoneStr) throws SQLException {
         if (timestamp == null) {
             return null;
         }
@@ -410,21 +398,19 @@ public class TIMESTAMPTZ extends Datum {
             TIMESTAMP.setNanos(resultBytes, 7, timestamp.getNanos());
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
-                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
+                    : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
         } else {
-            throw new SQLException(String.format("error format, timestamp = %s",
-                timestamp.toString()), "268");
+            throw new SQLException(String.format("error format, timestamp = %s", timestamp.toString()), "268");
         }
         return new TIMESTAMPTZ(resultBytes);
     }
 
-    public static byte[] toBytes(Connection connection, Timestamp timestamp, Calendar calendar)
-                                                                                               throws SQLException {
+    public static byte[] toBytes(Connection connection, Timestamp timestamp, Calendar calendar) throws SQLException {
         return toBytes(connection, timestamp, calendar, false);
     }
 
     public static byte[] toBytes(Connection connection, Timestamp timestamp, Calendar calendar,
-                                 boolean isTZTablesImported) throws SQLException {
+            boolean isTZTablesImported) throws SQLException {
         if (timestamp == null) {
             return null;
         }
@@ -459,7 +445,7 @@ public class TIMESTAMPTZ extends Datum {
             TIMESTAMP.setNanos(resultBytes, 7, timestamp.getNanos());
             resultBytes[12] = (byte) (offset / HOUR_MILLISECOND);
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
-                : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
+                    : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             if (isTZTablesImported && !isGMT) {
                 resultBytes[14] = (byte) (tzLen);
                 System.arraycopy(tz.getBytes(), 0, resultBytes, 15, tzLen);
@@ -467,8 +453,7 @@ public class TIMESTAMPTZ extends Datum {
             }
             return resultBytes;
         } else {
-            throw new SQLException(String.format("error format, timestamp = %s",
-                timestamp.toString()), "268");
+            throw new SQLException(String.format("error format, timestamp = %s", timestamp.toString()), "268");
         }
     }
 
@@ -476,8 +461,7 @@ public class TIMESTAMPTZ extends Datum {
         return toBytes(connection, Timestamp.valueOf(time));
     }
 
-    public static byte[] toBytes(Connection connection, String time, Calendar calendar)
-                                                                                       throws SQLException {
+    public static byte[] toBytes(Connection connection, String time, Calendar calendar) throws SQLException {
         return toBytes(connection, Timestamp.valueOf(time), calendar);
     }
 
@@ -521,10 +505,9 @@ public class TIMESTAMPTZ extends Datum {
     }
 
     public boolean isConvertibleTo(Class claz) {
-        return claz.getName().compareTo("java.sql.Date") == 0
-               || claz.getName().compareTo("java.sql.Time") == 0
-               || claz.getName().compareTo("java.sql.Timestamp") == 0
-               || claz.getName().compareTo("java.lang.String") == 0;
+        return claz.getName().compareTo("java.sql.Date") == 0 || claz.getName().compareTo("java.sql.Time") == 0
+                || claz.getName().compareTo("java.sql.Timestamp") == 0
+                || claz.getName().compareTo("java.lang.String") == 0;
     }
 
     private static int getHighOrderbits(int bits) {
@@ -583,8 +566,7 @@ public class TIMESTAMPTZ extends Datum {
             }
         }
         if (isResult) {
-            return (pre == null ? "" : pre)
-                   + (isPostive ? "+" + offsetTimeZone : "-" + offsetTimeZone);
+            return (pre == null ? "" : pre) + (isPostive ? "+" + offsetTimeZone : "-" + offsetTimeZone);
         } else {
             return (pre == null ? "" : pre) + (isPostive ? offsetTimeZone : "-" + offsetTimeZone);
         }

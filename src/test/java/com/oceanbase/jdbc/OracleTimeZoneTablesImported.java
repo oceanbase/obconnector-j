@@ -43,17 +43,17 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.sql.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.TimeZone;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 
 public class OracleTimeZoneTablesImported extends BaseOracleTest {
     static String tztable1 = "tztest1";
@@ -71,18 +71,15 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
     public void testGetStringTSTZ() {
         try {
             Statement stmt = sharedConnection.createStatement();
-            stmt.execute("insert into " + tztable1
-                         + " values('1941-03-16 16:24:11.111101Asia/Shanghai')");
+            stmt.execute("insert into " + tztable1 + " values('1941-03-16 16:24:11.111101Asia/Shanghai')");
             stmt.execute("insert into " + tztable1 + " values('1941-03-16 16:24:11Asia/Calcutta')");
             stmt.execute("insert into " + tztable1 + " values('1941-03-16 16:24:11')");
-            PreparedStatement preparedStatement = sharedConnection.prepareStatement("insert into "
-                                                                                    + tztable1
-                                                                                    + " values(?)");
+            PreparedStatement preparedStatement = sharedConnection
+                    .prepareStatement("insert into " + tztable1 + " values(?)");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")
-                .withLocale(Locale.ENGLISH);
+                    .withLocale(Locale.ENGLISH);
             ZonedDateTime tt1 = ZonedDateTime.parse("2019-03-27 10:15:30 AM +0530", formatter);
-            ZonedDateTime tt2 = ZonedDateTime
-                .parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
+            ZonedDateTime tt2 = ZonedDateTime.parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
             preparedStatement.setObject(1, tt1);
             preparedStatement.execute();
             ResultSet rs = stmt.executeQuery("select c1 from " + tztable1);
@@ -104,19 +101,16 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
     public void insertTSTZ() {
         try {
             Statement stmt = sharedConnection.createStatement();
-            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + tztable2
-                                                                     + " values(?)");
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + tztable2 + " values(?)");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")
-                .withLocale(Locale.ENGLISH);
+                    .withLocale(Locale.ENGLISH);
             ZonedDateTime tt1 = ZonedDateTime.parse("2019-03-27 10:15:30 AM +0530", formatter);
-            ZonedDateTime tt2 = ZonedDateTime
-                .parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
+            ZonedDateTime tt2 = ZonedDateTime.parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
             ps.setObject(1, tt1);
             ps.execute();
             ps.setObject(1, tt2);
             ps.execute();
-            ResultSet rs = sharedConnection.createStatement().executeQuery(
-                "select c1 from " + tztable2);
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select c1 from " + tztable2);
             Assert.assertTrue(rs.next());
             System.out.println("rs.getString(1) = " + rs.getString(1));
             Assert.assertEquals("2019-03-27 10:15:30.0 +5:30", rs.getString(1));
@@ -138,13 +132,11 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
             ((ConnectionImpl) sharedConnection).setSessionTimeZone("Asia/Shanghai");
             val = ((ConnectionImpl) sharedConnection).getSessionTimeZone();
             System.out.println("set time zone to " + val);
-            PreparedStatement ps = connection.prepareStatement("insert into " + tztable3
-                                                               + " values(?)");
+            PreparedStatement ps = connection.prepareStatement("insert into " + tztable3 + " values(?)");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")
-                .withLocale(Locale.ENGLISH);
+                    .withLocale(Locale.ENGLISH);
             ZonedDateTime tt1 = ZonedDateTime.parse("2019-03-27 10:15:30 AM +0530", formatter);
-            ZonedDateTime tt2 = ZonedDateTime
-                .parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
+            ZonedDateTime tt2 = ZonedDateTime.parse("2019-04-01T16:24:11.125201+01:00[Africa/Ndjamena]");
             ps.setObject(1, tt1);
             ps.execute();
             ps.setObject(1, tt2);
@@ -202,27 +194,23 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
                 } catch (SQLException e) {
                     //
                 }
-                conn.createStatement().execute("alter session  set time_zone = 'Asia/Shanghai'"); // make oracle oceanbase session time zone same
-                PreparedStatement ps1 = conn
-                    .prepareStatement("create table "
-                                      + table
-                                      + "(TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE, TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH  LOCAL TIME ZONE)");
+                conn.createStatement().execute("alter session  set time_zone = 'Asia/Shanghai'"); // make oracle
+                                                                                                  // oceanbase session
+                                                                                                  // time zone same
+                PreparedStatement ps1 = conn.prepareStatement("create table " + table
+                        + "(TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE, TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH  LOCAL TIME ZONE)");
                 ps1.execute();
 
-                ps1 = conn
-                    .prepareStatement("insert into " + table
-                                      + "(TIMESTAMP_WTZ_TEST, TIMESTAMP_WLTZ_TEST) values (?, ?)");
+                ps1 = conn.prepareStatement(
+                        "insert into " + table + "(TIMESTAMP_WTZ_TEST, TIMESTAMP_WLTZ_TEST) values (?, ?)");
 
-                String timeStr[] = {
-                        "1941-03-16T16:24:11.00034200+08:00[Asia/Shanghai]",
-                        "2019-04-01T16:24:11.125200+01:00[Africa/Ndjamena]",
-                        now.toString(),
-                        "1941-03-16T16:24:11.252+08:00[Asia/Shanghai]",
-                        "1941-03-16T16:24:11+08:00[Asia/Shanghai]",
+                String timeStr[] = { "1941-03-16T16:24:11.00034200+08:00[Asia/Shanghai]",
+                        "2019-04-01T16:24:11.125200+01:00[Africa/Ndjamena]", now.toString(),
+                        "1941-03-16T16:24:11.252+08:00[Asia/Shanghai]", "1941-03-16T16:24:11+08:00[Asia/Shanghai]",
                         "1941-03-16T16:24:11.000342+08:00[Asia/Shanghai]",
                         "1941-03-16T16:24:11.34200+08:00[Asia/Shanghai]",
                         "2019-04-01T16:24:11.0025200+05:30[Asia/Shanghai]",
-                        "2019-04-01T16:24:11.25200+05:30[Asia/Calcutta]", //not any use for Zone be
+                        "2019-04-01T16:24:11.25200+05:30[Asia/Calcutta]", // not any use for Zone be
                         "2019-04-01T16:24:11.125200-03:00[America/Maceio]",
                         "2019-04-01T16:24:11.125200-03:00[Antarctica/Rothera]",
                         "2019-04-01T16:24:11.125200-03:00[Indian/Mayotte]",
@@ -247,13 +235,12 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
                     ps1.execute();
                 }
 
-                String timeStr2[] = { "2019-03-27 10:15:30 AM -0800",
-                        "2019-03-27 10:15:30 AM +0530", "2019-03-27 10:15:30 AM +0000",
-                        "2019-04-01 16:24:11 PM -0500", "2021-03-16 10:15:30 AM +0000",
+                String timeStr2[] = { "2019-03-27 10:15:30 AM -0800", "2019-03-27 10:15:30 AM +0530",
+                        "2019-03-27 10:15:30 AM +0000", "2019-04-01 16:24:11 PM -0500", "2021-03-16 10:15:30 AM +0000",
                         "2021-03-16 10:15:30 AM +0800", "1941-03-16 10:15:30 AM +0000",
                         "1941-03-16 10:15:30 AM +0800" };
-                DateTimeFormatter formatter = DateTimeFormatter
-                    .ofPattern("yyyy-MM-dd HH:mm:ss a Z").withLocale(Locale.ENGLISH);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss a Z")
+                        .withLocale(Locale.ENGLISH);
                 for (int k = 0; k < timeStr2.length; k++) {
                     ZonedDateTime tt = ZonedDateTime.parse(timeStr2[k], formatter);
                     ps1.setObject(1, tt);
@@ -261,10 +248,9 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
                     ps1.execute();
                 }
 
-                String timeStr3[] = { "Mon, 1 Apr 2019 11:05:30 +0800",
-                        "Sun, 16 Mar 1941 23:59:59 +0800", "Sun, 16 Mar 1941 23:59:59 +0000" };
-                formatter = DateTimeFormatter.ofPattern("E, d MMM yyyy HH:mm:ss Z").withLocale(
-                    Locale.ENGLISH);
+                String timeStr3[] = { "Mon, 1 Apr 2019 11:05:30 +0800", "Sun, 16 Mar 1941 23:59:59 +0800",
+                        "Sun, 16 Mar 1941 23:59:59 +0000" };
+                formatter = DateTimeFormatter.ofPattern("E, d MMM yyyy HH:mm:ss Z").withLocale(Locale.ENGLISH);
                 for (int k = 0; k < timeStr3.length; k++) {
                     ZonedDateTime tt = ZonedDateTime.parse(timeStr3[k], formatter);
                     ps1.setObject(1, tt);
@@ -274,11 +260,10 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
 
                 String timeStr4[] = {
 
-                "2019-03-27 10:15:30.001230000 AM +0530", "2019-03-27 10:15:30.001230000 AM -0530",
+                        "2019-03-27 10:15:30.001230000 AM +0530", "2019-03-27 10:15:30.001230000 AM -0530",
                         "2019-03-27 10:15:30.001230001 AM -0530" };
 
-                formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSSSS a Z")
-                    .withLocale(Locale.ENGLISH);
+                formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSSSS a Z").withLocale(Locale.ENGLISH);
                 for (int k = 0; k < timeStr4.length; k++) {
                     ZonedDateTime tt = ZonedDateTime.parse(timeStr4[k], formatter);
                     ps1.setObject(1, tt);
@@ -342,78 +327,65 @@ public class OracleTimeZoneTablesImported extends BaseOracleTest {
             }
             System.out.println("Comparison for string");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + sResTZ[0][j] + "\tAND "
-                                   + sResLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + sResTZ[1][j] + "\tAND "
-                                   + sResLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + sResTZ[0][j] + "\tAND " + sResLTZ[0][j]);
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + sResTZ[1][j] + "\tAND " + sResLTZ[1][j]);
                 Assert.assertEquals(sResTZ[0][j], sResTZ[1][j]);
                 Assert.assertEquals(sResLTZ[0][j], sResLTZ[1][j]);
             }
             System.out.println("Comparison for timestamp");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + tResTZ[0][j] + "\tAND "
-                                   + tResLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + tResLTZ[1][j] + "\tAND "
-                                   + tResLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + tResTZ[0][j] + "\tAND " + tResLTZ[0][j]);
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + tResLTZ[1][j] + "\tAND " + tResLTZ[1][j]);
                 Assert.assertEquals(tResTZ[0][j], tResTZ[1][j]);
                 Assert.assertEquals(tResLTZ[0][j], tResLTZ[1][j]);
             }
             System.out.println("Comparison for time");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + tmResTZ[0][j] + "\tAND "
-                                   + tmResLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + tmResTZ[1][j] + "\tAND "
-                                   + tmResLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + tmResTZ[0][j] + "\tAND " + tmResLTZ[0][j]);
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + tmResTZ[1][j] + "\tAND " + tmResLTZ[1][j]);
                 Assert.assertEquals(tmResTZ[0][j].toString(), tmResTZ[1][j].toString());
                 Assert.assertEquals(tmResLTZ[0][j].toString(), tmResLTZ[1][j].toString());
             }
 
             System.out.println("Comparison for date");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + dateResTZ[0][j].toString()
-                                   + "\tAND " + dateResTZ[0][j].toString());
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + dateResLTZ[1][j].toString()
-                                   + "\tAND " + dateResLTZ[1][j].toString());
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + dateResTZ[0][j].toString() + "\tAND "
+                        + dateResTZ[0][j].toString());
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + dateResLTZ[1][j].toString() + "\tAND "
+                        + dateResLTZ[1][j].toString());
                 Assert.assertEquals(dateResTZ[0][j].toString(), dateResTZ[1][j].toString());
                 Assert.assertEquals(dateResLTZ[0][j].toString(), dateResLTZ[1][j].toString());
             }
             System.out.println("Comparison for string value");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + stringValTZ[0][j] + "\tAND "
-                                   + stringValLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + stringValTZ[1][j] + "\tAND "
-                                   + stringValLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + stringValTZ[0][j] + "\tAND " + stringValLTZ[0][j]);
+                System.out
+                        .println("Oracle-8.0:" + "\t[" + j + "]\t" + stringValTZ[1][j] + "\tAND " + stringValLTZ[1][j]);
                 Assert.assertEquals(stringValTZ[0][j], stringValTZ[1][j]);
                 Assert.assertEquals(stringValLTZ[0][j], stringValLTZ[1][j]);
             }
             System.out.println("Comparison for time value");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + timeValTZ[0][j] + "\tAND "
-                                   + timeValLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + timeValTZ[1][j] + "\tAND "
-                                   + timeValLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + timeValTZ[0][j] + "\tAND " + timeValLTZ[0][j]);
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + timeValTZ[1][j] + "\tAND " + timeValLTZ[1][j]);
                 Assert.assertEquals(timeValTZ[0][j].toString(), timeValTZ[1][j].toString());
                 Assert.assertEquals(timeValLTZ[0][j].toString(), timeValLTZ[1][j].toString());
             }
 
             System.out.println("Comparison for timestamp value");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + timestampValTZ[0][j]
-                                   + "\tAND " + timestampValLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + timestampValTZ[1][j]
-                                   + "\tAND " + timestampValLTZ[1][j]);
-                Assert.assertEquals(timestampValTZ[0][j].toString(),
-                    timestampValTZ[1][j].toString());
-                Assert.assertEquals(timestampValLTZ[0][j].toString(),
-                    timestampValLTZ[1][j].toString());
+                System.out.println(
+                        "OB-Oracle" + "\t[" + j + "]\t" + timestampValTZ[0][j] + "\tAND " + timestampValLTZ[0][j]);
+                System.out.println(
+                        "Oracle-8.0:" + "\t[" + j + "]\t" + timestampValTZ[1][j] + "\tAND " + timestampValLTZ[1][j]);
+                Assert.assertEquals(timestampValTZ[0][j].toString(), timestampValTZ[1][j].toString());
+                Assert.assertEquals(timestampValLTZ[0][j].toString(), timestampValLTZ[1][j].toString());
             }
 
             System.out.println("Comparison for date value");
             for (int j = 0; j < len; j++) {
-                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + dateValTZ[0][j] + "\tAND "
-                                   + dateValLTZ[0][j]);
-                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + dateValTZ[1][j] + "\tAND "
-                                   + dateValLTZ[1][j]);
+                System.out.println("OB-Oracle" + "\t[" + j + "]\t" + dateValTZ[0][j] + "\tAND " + dateValLTZ[0][j]);
+                System.out.println("Oracle-8.0:" + "\t[" + j + "]\t" + dateValTZ[1][j] + "\tAND " + dateValLTZ[1][j]);
                 Assert.assertEquals(dateValTZ[0][j].toString(), dateValTZ[1][j].toString());
                 Assert.assertEquals(dateValLTZ[0][j].toString(), dateValLTZ[1][j].toString());
             }

@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,12 +65,13 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @Before
     public void before() throws SQLException {
-        rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_UPDATABLE).executeQuery("select 1");
+        rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+                .executeQuery("select 1");
     }
 
     @Test

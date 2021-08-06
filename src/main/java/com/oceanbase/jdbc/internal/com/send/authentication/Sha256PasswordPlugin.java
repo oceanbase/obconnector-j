@@ -61,7 +61,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.Cipher;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -71,26 +73,26 @@ import com.oceanbase.jdbc.util.Options;
 
 public class Sha256PasswordPlugin implements AuthenticationPlugin {
 
-    private String  authenticationData;
+    private String authenticationData;
     private Options options;
-    private byte[]  seed;
+    private byte[] seed;
 
     /**
      * Read public Key from file.
      *
-     * @param serverRsaPublicKeyFile RSA public key file
+     * @param serverRsaPublicKeyFile
+     *            RSA public key file
      * @return public key
-     * @throws SQLException if cannot read file or file content is not a public key.
+     * @throws SQLException
+     *             if cannot read file or file content is not a public key.
      */
-    public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile)
-                                                                                throws SQLException {
+    public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
         byte[] keyBytes;
         try {
             keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
         } catch (IOException ex) {
-            throw new SQLException("Could not read server RSA public key from file : "
-                                   + "serverRsaPublicKeyFile=" + serverRsaPublicKeyFile, "S1009",
-                ex);
+            throw new SQLException("Could not read server RSA public key from file : " + "serverRsaPublicKeyFile="
+                    + serverRsaPublicKeyFile, "S1009", ex);
         }
         return generatePublicKey(keyBytes);
     }
@@ -98,71 +100,78 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
     /**
      * Read public Key from socket.
      *
-     * @param reader input stream reader
-     * @param sequence current exchange sequence
+     * @param reader
+     *            input stream reader
+     * @param sequence
+     *            current exchange sequence
      * @return public key
-     * @throws SQLException if server return an Error packet or public key cannot be parsed.
-     * @throws IOException if error reading socket
+     * @throws SQLException
+     *             if server return an Error packet or public key cannot be parsed.
+     * @throws IOException
+     *             if error reading socket
      */
     public static PublicKey readPublicKeyFromSocket(PacketInputStream reader, AtomicInteger sequence)
-                                                                                                     throws SQLException,
-                                                                                                     IOException {
+            throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
         sequence.set(reader.getLastPacketSeq());
         switch (buffer.getByteAt(0)) {
-            case (byte) 0xFF:
-                ErrorPacket ep = new ErrorPacket(buffer);
-                String message = ep.getMessage();
-                throw new SQLException("Could not connect: " + message, ep.getSqlState(),
-                    ep.getErrorCode());
+        case (byte) 0xFF:
+            ErrorPacket ep = new ErrorPacket(buffer);
+            String message = ep.getMessage();
+            throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
 
-            case (byte) 0xFE:
-                // Erroneous AuthSwitchRequest packet when security exception
-                throw new SQLException(
-                    "Could not connect: receive AuthSwitchRequest in place of RSA public key. "
-                            + "Did user has the rights to connect to database ?");
-            default:
-                // AuthMoreData packet
-                buffer.skipByte();
-                return generatePublicKey(buffer.readRawBytes(buffer.remaining()));
+        case (byte) 0xFE:
+            // Erroneous AuthSwitchRequest packet when security exception
+            throw new SQLException("Could not connect: receive AuthSwitchRequest in place of RSA public key. "
+                    + "Did user has the rights to connect to database ?");
+        default:
+            // AuthMoreData packet
+            buffer.skipByte();
+            return generatePublicKey(buffer.readRawBytes(buffer.remaining()));
         }
     }
 
     /**
      * Read public pem key from String.
      *
-     * @param publicKeyBytes public key bytes value
+     * @param publicKeyBytes
+     *            public key bytes value
      * @return public key
-     * @throws SQLException if key cannot be parsed
+     * @throws SQLException
+     *             if key cannot be parsed
      */
     public static PublicKey generatePublicKey(byte[] publicKeyBytes) throws SQLException {
         try {
-            String publicKey = new String(publicKeyBytes).replaceAll(
-                "(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
+            String publicKey = new String(publicKeyBytes)
+                    .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
             byte[] keyBytes = Base64.getMimeDecoder().decode(publicKey);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return kf.generatePublic(spec);
         } catch (Exception ex) {
-            throw new SQLException("Could read server RSA public key: " + ex.getMessage(), "S1009",
-                ex);
+            throw new SQLException("Could read server RSA public key: " + ex.getMessage(), "S1009", ex);
         }
     }
 
     /**
      * Encode password with seed and public key.
      *
-     * @param publicKey public key
-     * @param password password
-     * @param seed seed
-     * @param passwordCharacterEncoding password encoding
+     * @param publicKey
+     *            public key
+     * @param password
+     *            password
+     * @param seed
+     *            seed
+     * @param passwordCharacterEncoding
+     *            password encoding
      * @return encoded password
-     * @throws SQLException if cannot encode password
-     * @throws UnsupportedEncodingException if password encoding is unknown
+     * @throws SQLException
+     *             if cannot encode password
+     * @throws UnsupportedEncodingException
+     *             if password encoding is unknown
      */
-    public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed,
-                                 String passwordCharacterEncoding) throws SQLException,
-                                                                  UnsupportedEncodingException {
+    public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed, String passwordCharacterEncoding)
+            throws SQLException, UnsupportedEncodingException {
 
         byte[] correctedSeed;
         if (seed.length > 0) {
@@ -192,8 +201,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
             return cipher.doFinal(xorBytes);
         } catch (Exception ex) {
-            throw new SQLException("Could not connect using SHA256 plugin : " + ex.getMessage(),
-                "S1009", ex);
+            throw new SQLException("Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
         }
     }
 
@@ -210,9 +218,12 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
     /**
      * Initialization.
      *
-     * @param authenticationData authentication data (password/token)
-     * @param seed server provided seed
-     * @param options Connection string options
+     * @param authenticationData
+     *            authentication data (password/token)
+     * @param seed
+     *            server provided seed
+     * @param options
+     *            Connection string options
      */
     public void initialize(String authenticationData, byte[] seed, Options options) {
         this.seed = seed;
@@ -224,23 +235,25 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
      * Process SHA 256 password plugin authentication. see
      * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
      *
-     * @param out out stream
-     * @param in in stream
-     * @param sequence packet sequence
+     * @param out
+     *            out stream
+     * @param in
+     *            in stream
+     * @param sequence
+     *            packet sequence
      * @return response packet
-     * @throws IOException if socket error
+     * @throws IOException
+     *             if socket error
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-                                                                                               throws IOException,
-                                                                                               SQLException {
+            throws IOException, SQLException {
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
         } else if (Boolean.TRUE.equals(options.useSsl)) {
             // send clear password
             out.startPacket(sequence.incrementAndGet());
             byte[] bytePwd;
-            if (options.passwordCharacterEncoding != null
-                && !options.passwordCharacterEncoding.isEmpty()) {
+            if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
                 bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
             } else {
                 bytePwd = authenticationData.getBytes();
@@ -256,8 +269,9 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
                 publicKey = readPublicKeyFromFile(options.serverRsaPublicKeyFile);
             } else {
                 if (!options.allowPublicKeyRetrieval) {
-                    throw new SQLException("RSA public key is not available client side (option "
-                                           + "serverRsaPublicKeyFile)", "S1009");
+                    throw new SQLException(
+                            "RSA public key is not available client side (option " + "serverRsaPublicKeyFile)",
+                            "S1009");
                 }
 
                 // ask public Key Retrieval
@@ -268,14 +282,12 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
             }
 
             try {
-                byte[] cipherBytes = encrypt(publicKey, authenticationData, seed,
-                    options.passwordCharacterEncoding);
+                byte[] cipherBytes = encrypt(publicKey, authenticationData, seed, options.passwordCharacterEncoding);
                 out.startPacket(sequence.incrementAndGet());
                 out.write(cipherBytes);
                 out.flush();
             } catch (Exception ex) {
-                throw new SQLException(
-                    "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
+                throw new SQLException("Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
             }
         }
 

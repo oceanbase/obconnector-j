@@ -56,6 +56,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -63,11 +64,10 @@ public class CheckDataTest extends BaseTest {
 
     @Test
     public void testStatementExecuteAutoincrement() throws SQLException {
-        createTable("CheckDataTest1",
-            "id int not null primary key auto_increment, test varchar(10)");
+        createTable("CheckDataTest1", "id int not null primary key auto_increment, test varchar(10)");
         Statement stmt = sharedConnection.createStatement();
         int insert = stmt.executeUpdate("INSERT INTO CheckDataTest1 (test) VALUES ('test1')",
-            Statement.RETURN_GENERATED_KEYS);
+                Statement.RETURN_GENERATED_KEYS);
         assertEquals(1, insert);
 
         int[] autoInc = setAutoInc();
@@ -87,8 +87,7 @@ public class CheckDataTest extends BaseTest {
     @Test
     public void testStatementBatch() throws SQLException {
         Assume.assumeFalse(isGalera());
-        createTable("CheckDataTest2",
-            "id int not null primary key auto_increment, test varchar(10)");
+        createTable("CheckDataTest2", "id int not null primary key auto_increment, test varchar(10)");
         Statement stmt = sharedConnection.createStatement();
         stmt.addBatch("INSERT INTO CheckDataTest2 (id, test) VALUES (2, 'test1')");
         stmt.addBatch("INSERT INTO CheckDataTest2 (test) VALUES ('test2')");
@@ -108,7 +107,7 @@ public class CheckDataTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertTrue(rs.next());
-        //        assertEquals(2 + autoInc[0] + autoInc[1], rs.getInt(1));
+        // assertEquals(2 + autoInc[0] + autoInc[1], rs.getInt(1));
         assertTrue(rs.next());
         assertEquals(9, rs.getInt(1));
         assertFalse(rs.next());
@@ -118,7 +117,7 @@ public class CheckDataTest extends BaseTest {
         assertEquals(2, rs.getInt(1));
         assertEquals("test1tt", rs.getString(2));
         assertTrue(rs.next());
-        //        assertEquals(2 + autoInc[0] + autoInc[1], rs.getInt(1));
+        // assertEquals(2 + autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("test2tt", rs.getString(2));
         assertTrue(rs.next());
         assertEquals(9, rs.getInt(1));
@@ -128,10 +127,9 @@ public class CheckDataTest extends BaseTest {
 
     @Test
     public void testPrepareStatementExecuteAutoincrement() throws SQLException {
-        createTable("CheckDataTest3",
-            "id int not null primary key auto_increment, test varchar(10)");
-        PreparedStatement stmt = sharedConnection.prepareStatement(
-            "INSERT INTO CheckDataTest3 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        createTable("CheckDataTest3", "id int not null primary key auto_increment, test varchar(10)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("INSERT INTO CheckDataTest3 (test) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS);
         stmt.setString(1, "test1");
 
         int[] autoInc = setAutoInc();
@@ -171,10 +169,9 @@ public class CheckDataTest extends BaseTest {
 
     @Test
     public void testPrepareStatementBatch() throws SQLException {
-        createTable("CheckDataTest4",
-            "id int not null primary key auto_increment, test varchar(10)");
-        PreparedStatement stmt = sharedConnection.prepareStatement(
-            "INSERT INTO CheckDataTest4 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        createTable("CheckDataTest4", "id int not null primary key auto_increment, test varchar(10)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("INSERT INTO CheckDataTest4 (test) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS);
         stmt.setString(1, "test1");
         stmt.addBatch();
         stmt.setString(1, "test2");

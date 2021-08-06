@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
@@ -63,9 +64,9 @@ public class HostAddress {
 
     private static final Logger logger = LoggerFactory.getLogger(HostAddress.class);
 
-    public String               host;
-    public int                  port;
-    public String               type   = null;
+    public String host;
+    public int port;
+    public String type = null;
 
     private HostAddress() {
     }
@@ -73,8 +74,10 @@ public class HostAddress {
     /**
      * Constructor. type is master.
      *
-     * @param host host
-     * @param port port
+     * @param host
+     *            host
+     * @param port
+     *            port
      */
     public HostAddress(String host, int port) {
         this.host = host;
@@ -85,9 +88,12 @@ public class HostAddress {
     /**
      * Constructor.
      *
-     * @param host host
-     * @param port port
-     * @param type type
+     * @param host
+     *            host
+     * @param port
+     *            port
+     * @param type
+     *            type
      */
     public HostAddress(String host, int port, String type) {
         this.host = host;
@@ -98,57 +104,57 @@ public class HostAddress {
     /**
      * parse - parse server addresses from the URL fragment.
      *
-     * @param spec list of endpoints in one of the forms 1 - host1,....,hostN:port (missing port
-     *     default to MariaDB default 3306 2 - host:port,...,host:port
-     * @param haMode High availability mode
+     * @param spec
+     *            list of endpoints in one of the forms 1 - host1,....,hostN:port (missing port default to MariaDB
+     *            default 3306 2 - host:port,...,host:port
+     * @param haMode
+     *            High availability mode
      * @return parsed endpoints
      */
     public static List<HostAddress> parse(String spec, HaMode haMode) {
-    if (spec == null) {
-      throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
-    }
-    if ("".equals(spec)) {
-      return new ArrayList<>(0);
-    }
-    String[] tokens = spec.trim().split(",");
-    int size = tokens.length;
-    List<HostAddress> arr = new ArrayList<>(size);
-
-    // Aurora using cluster end point mustn't have any other host
-    if (haMode == HaMode.AURORA) {
-      Pattern clusterPattern =
-          Pattern.compile(
-              "(.+)\\.(?:cluster-|cluster-ro-)([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
-              Pattern.CASE_INSENSITIVE);
-      Matcher matcher = clusterPattern.matcher(spec);
-
-      if (!matcher.find()) {
-        logger.warn(
-            "Aurora recommended connection URL must only use cluster end-point like "
-                + "\"jdbc:oceanbase:aurora://xx.cluster-yy.zz.rds.amazonaws.com\". "
-                + "Using end-point permit auto-discovery of new replicas");
-      }
-    }
-
-    for (String token : tokens) {
-      if (token.startsWith("address=")) {
-        arr.add(parseParameterHostAddress(token));
-      } else {
-        arr.add(parseSimpleHostAddress(token));
-      }
-    }
-
-    if (haMode == HaMode.REPLICATION) {
-      for (int i = 0; i < size; i++) {
-        if (i == 0 && arr.get(i).type == null) {
-          arr.get(i).type = ParameterConstant.TYPE_MASTER;
-        } else if (i != 0 && arr.get(i).type == null) {
-          arr.get(i).type = ParameterConstant.TYPE_SLAVE;
+        if (spec == null) {
+            throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
         }
-      }
+        if ("".equals(spec)) {
+            return new ArrayList<>(0);
+        }
+        String[] tokens = spec.trim().split(",");
+        int size = tokens.length;
+        List<HostAddress> arr = new ArrayList<>(size);
+
+        // Aurora using cluster end point mustn't have any other host
+        if (haMode == HaMode.AURORA) {
+            Pattern clusterPattern = Pattern.compile(
+                    "(.+)\\.(?:cluster-|cluster-ro-)([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+                    Pattern.CASE_INSENSITIVE);
+            Matcher matcher = clusterPattern.matcher(spec);
+
+            if (!matcher.find()) {
+                logger.warn("Aurora recommended connection URL must only use cluster end-point like "
+                        + "\"jdbc:oceanbase:aurora://xx.cluster-yy.zz.rds.amazonaws.com\". "
+                        + "Using end-point permit auto-discovery of new replicas");
+            }
+        }
+
+        for (String token : tokens) {
+            if (token.startsWith("address=")) {
+                arr.add(parseParameterHostAddress(token));
+            } else {
+                arr.add(parseSimpleHostAddress(token));
+            }
+        }
+
+        if (haMode == HaMode.REPLICATION) {
+            for (int i = 0; i < size; i++) {
+                if (i == 0 && arr.get(i).type == null) {
+                    arr.get(i).type = ParameterConstant.TYPE_MASTER;
+                } else if (i != 0 && arr.get(i).type == null) {
+                    arr.get(i).type = ParameterConstant.TYPE_SLAVE;
+                }
+            }
+        }
+        return arr;
     }
-    return arr;
-  }
 
     private static HostAddress parseSimpleHostAddress(String str) {
         HostAddress result = new HostAddress();
@@ -187,7 +193,7 @@ public class HostAddress {
             String[] token = array[i].replace("(", "").replace(")", "").trim().split("=");
             if (token.length != 2) {
                 throw new IllegalArgumentException(
-                    "Invalid connection URL, expected key=value pairs, found " + array[i]);
+                        "Invalid connection URL, expected key=value pairs, found " + array[i]);
             }
             String key = token[0].toLowerCase();
             String value = token[1].toLowerCase();
@@ -196,8 +202,7 @@ public class HostAddress {
             } else if ("port".equals(key)) {
                 result.port = getPort(value);
             } else if ("type".equals(key)
-                       && (value.equals(ParameterConstant.TYPE_MASTER) || value
-                           .equals(ParameterConstant.TYPE_SLAVE))) {
+                    && (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE))) {
                 result.type = value;
             }
         }
@@ -207,16 +212,16 @@ public class HostAddress {
     /**
      * ToString implementation of addresses.
      *
-     * @param addrs address list
+     * @param addrs
+     *            address list
      * @return String value
      */
     public static String toString(List<HostAddress> addrs) {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.size(); i++) {
             if (addrs.get(i).type != null) {
-                str.append("address=(host=").append(addrs.get(i).host).append(")(port=")
-                    .append(addrs.get(i).port).append(")(type=").append(addrs.get(i).type)
-                    .append(")");
+                str.append("address=(host=").append(addrs.get(i).host).append(")(port=").append(addrs.get(i).port)
+                        .append(")(type=").append(addrs.get(i).type).append(")");
             } else {
                 boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs.get(i).host + "]") : addrs.get(i).host;
@@ -232,7 +237,8 @@ public class HostAddress {
     /**
      * ToString implementation of addresses.
      *
-     * @param addrs address array
+     * @param addrs
+     *            address array
      * @return String value
      */
     @SuppressWarnings("unused")
@@ -240,8 +246,8 @@ public class HostAddress {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.length; i++) {
             if (addrs[i].type != null) {
-                str.append("address=(host=").append(addrs[i].host).append(")(port=")
-                    .append(addrs[i].port).append(")(type=").append(addrs[i].type).append(")");
+                str.append("address=(host=").append(addrs[i].host).append(")(port=").append(addrs[i].port)
+                        .append(")(type=").append(addrs[i].type).append(")");
             } else {
                 boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs[i].host + "]") : addrs[i].host;
@@ -257,7 +263,7 @@ public class HostAddress {
     @Override
     public String toString() {
         return "HostAddress{" + "host='" + host + '\'' + ", port=" + port
-               + ((type != null) ? (", type='" + type + "'") : "") + "}";
+                + ((type != null) ? (", type='" + type + "'") : "") + "}";
     }
 
     @Override
@@ -271,11 +277,8 @@ public class HostAddress {
 
         HostAddress that = (HostAddress) obj;
 
-        return port == that.port
-               && (host != null ? host.equals(that.host) : that.host == null
-                                                           && !(type != null ? !type
-                                                               .equals(that.type)
-                                                               : that.type != null));
+        return port == that.port && (host != null ? host.equals(that.host)
+                : that.host == null && !(type != null ? !type.equals(that.type) : that.type != null));
     }
 
     @Override

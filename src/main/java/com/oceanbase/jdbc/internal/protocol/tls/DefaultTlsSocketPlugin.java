@@ -62,25 +62,24 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.sql.SQLException;
+
 import javax.net.ssl.*;
 
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.tls.TlsSocketPlugin;
 import com.oceanbase.jdbc.util.Options;
 
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     private static final Logger logger = LoggerFactory.getLogger(DefaultTlsSocketPlugin.class);
 
-    private static KeyManager loadClientCerts(String keyStoreUrl, String keyStorePassword,
-                                              String keyPassword, String storeType)
-                                                                                   throws SQLException {
+    private static KeyManager loadClientCerts(String keyStoreUrl, String keyStorePassword, String keyPassword,
+            String storeType) throws SQLException {
         InputStream inStream = null;
         try {
 
-            char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword
-                .toCharArray();
+            char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
 
             try {
                 inStream = new URL(keyStoreUrl).openStream();
@@ -88,21 +87,18 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
                 inStream = new FileInputStream(keyStoreUrl);
             }
 
-            KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore
-                .getDefaultType());
+            KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
             ks.load(inStream, keyStorePasswordChars);
-            char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword
-                .toCharArray();
+            char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
             return new OceanBaseX509KeyManager(ks, keyStoreChars);
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw ExceptionFactory.INSTANCE.create("Failed to create keyStore instance", "08000",
-                generalSecurityEx);
+            throw ExceptionFactory.INSTANCE.create("Failed to create keyStore instance", "08000", generalSecurityEx);
         } catch (FileNotFoundException fileNotFoundEx) {
-            throw ExceptionFactory.INSTANCE.create("Failed to find keyStore file. Option keyStore="
-                                                   + keyStoreUrl, "08000", fileNotFoundEx);
+            throw ExceptionFactory.INSTANCE.create("Failed to find keyStore file. Option keyStore=" + keyStoreUrl,
+                    "08000", fileNotFoundEx);
         } catch (IOException ioEx) {
-            throw ExceptionFactory.INSTANCE.create("Failed to read keyStore file. Option keyStore="
-                                                   + keyStoreUrl, "08000", ioEx);
+            throw ExceptionFactory.INSTANCE.create("Failed to read keyStore file. Option keyStore=" + keyStoreUrl,
+                    "08000", ioEx);
         } finally {
             try {
                 if (inStream != null) {
@@ -130,21 +126,20 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         TrustManager[] trustManager = null;
         KeyManager[] keyManager = null;
 
-        if (options.trustServerCertificate || options.serverSslCert != null
-            || options.trustStore != null) {
+        if (options.trustServerCertificate || options.serverSslCert != null || options.trustStore != null) {
             trustManager = new X509TrustManager[] { new OceanBaseX509TrustManager(options) };
         }
 
         if (options.keyStore != null) {
-            keyManager = new KeyManager[] { loadClientCerts(options.keyStore,
-                options.keyStorePassword, options.keyPassword, options.keyStoreType) };
+            keyManager = new KeyManager[] { loadClientCerts(options.keyStore, options.keyStorePassword,
+                    options.keyPassword, options.keyStoreType) };
         } else {
             String keyStore = System.getProperty("javax.net.ssl.trustStore");
             String keyStorePassword = System.getProperty("javax.net.ssl.trustStorePassword");
             if (keyStore != null) {
                 try {
-                    keyManager = new KeyManager[] { loadClientCerts(keyStore, keyStorePassword,
-                        keyStorePassword, options.keyStoreType) };
+                    keyManager = new KeyManager[] {
+                            loadClientCerts(keyStore, keyStorePassword, keyStorePassword, options.keyStoreType) };
                 } catch (SQLException queryException) {
                     keyManager = null;
                     logger.error("Error loading keymanager from system properties", queryException);
@@ -157,17 +152,14 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             sslContext.init(keyManager, trustManager, null);
             return sslContext.getSocketFactory();
         } catch (KeyManagementException keyManagementEx) {
-            throw ExceptionFactory.INSTANCE.create("Could not initialize SSL context", "08000",
-                keyManagementEx);
+            throw ExceptionFactory.INSTANCE.create("Could not initialize SSL context", "08000", keyManagementEx);
         } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-            throw ExceptionFactory.INSTANCE.create("SSLContext TLS Algorithm not unknown", "08000",
-                noSuchAlgorithmEx);
+            throw ExceptionFactory.INSTANCE.create("SSLContext TLS Algorithm not unknown", "08000", noSuchAlgorithmEx);
         }
     }
 
     @Override
-    public void verify(String host, SSLSession session, Options options, long serverThreadId)
-                                                                                             throws SSLException {
+    public void verify(String host, SSLSession session, Options options, long serverThreadId) throws SSLException {
         HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
         if (!hostnameVerifier.verify(host, session, serverThreadId)) {
 

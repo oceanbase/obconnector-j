@@ -43,26 +43,29 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.io.Reader;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+
 public class OBReaderParameter implements Cloneable, ParameterHolder {
 
-    private final Reader  reader;
-    private final long    length;
+    private final Reader reader;
+    private final long length;
     private final boolean noBackslashEscapes;
     private final boolean hasLobLocator;
-    private final byte[]  bytes;
+    private final byte[] bytes;
 
     /**
      * Constructor.
      *
-     * @param reader reader to write
-     * @param length max length to write (can be null)
-     * @param noBackslashEscapes must backslash be escape
+     * @param reader
+     *            reader to write
+     * @param length
+     *            max length to write (can be null)
+     * @param noBackslashEscapes
+     *            must backslash be escape
      */
     public OBReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
         this.reader = reader;
@@ -76,8 +79,7 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
 
-    public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length,
-                             boolean noBackslashEscapes) {
+    public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length, boolean noBackslashEscapes) {
         this.reader = null;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
@@ -88,8 +90,10 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     /**
      * Write reader to database in text format.
      *
-     * @param pos database outputStream
-     * @throws IOException if any error occur when reading reader
+     * @param pos
+     *            database outputStream
+     * @throws IOException
+     *             if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
         if (!hasLobLocator && reader != null) {
@@ -115,8 +119,10 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (hasLobLocator && bytes != null) {

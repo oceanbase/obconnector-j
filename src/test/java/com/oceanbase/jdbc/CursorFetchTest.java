@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
 
 public class CursorFetchTest extends BaseTest {
     static String tableName1 = "test_cursor_mysql";
@@ -71,8 +71,7 @@ public class CursorFetchTest extends BaseTest {
             }
             statement.execute(query);
 
-            PreparedStatement preparedStatement = conn.prepareStatement("select * from "
-                                                                        + tableName1);
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from " + tableName1);
             preparedStatement.setFetchSize(1);
             ResultSet rs = preparedStatement.executeQuery();
             int count = 1;

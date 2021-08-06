@@ -50,8 +50,8 @@
  */
 package com.oceanbase.jdbc.credential.aws;
 
-import com.oceanbase.jdbc.HostAddress;
-import com.oceanbase.jdbc.credential.Credential;
+import java.util.Properties;
+
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -59,23 +59,26 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
 import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
-import java.util.Properties;
+import com.oceanbase.jdbc.HostAddress;
+import com.oceanbase.jdbc.credential.Credential;
 
 public class AwsCredentialGenerator {
 
     private RdsIamAuthTokenGenerator generator;
-    private GetIamAuthTokenRequest   request;
-    private String                   userName;
+    private GetIamAuthTokenRequest request;
+    private String userName;
 
     /**
      * AWS Generator.
      *
-     * @param nonMappedOptions non standard options
-     * @param userName user
-     * @param hostAddress current server information
+     * @param nonMappedOptions
+     *            non standard options
+     * @param userName
+     *            user
+     * @param hostAddress
+     *            current server information
      */
-    public AwsCredentialGenerator(Properties nonMappedOptions, String userName,
-                                  HostAddress hostAddress) {
+    public AwsCredentialGenerator(Properties nonMappedOptions, String userName, HostAddress hostAddress) {
         // Build RDS IAM-auth token generator
         this.userName = userName;
         AWSCredentialsProvider awsCredentialsProvider;
@@ -84,17 +87,15 @@ public class AwsCredentialGenerator {
         String region = nonMappedOptions.getProperty("region");
 
         if (accessKeyId != null && secretKey != null) {
-            awsCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(
-                accessKeyId, secretKey));
+            awsCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId, secretKey));
         } else {
             awsCredentialsProvider = new DefaultAWSCredentialsProviderChain();
         }
 
         this.generator = RdsIamAuthTokenGenerator.builder().credentials(awsCredentialsProvider)
-            .region(region != null ? region : new DefaultAwsRegionProviderChain().getRegion())
-            .build();
-        this.request = GetIamAuthTokenRequest.builder().hostname(hostAddress.host)
-            .port(hostAddress.port).userName(userName).build();
+                .region(region != null ? region : new DefaultAwsRegionProviderChain().getRegion()).build();
+        this.request = GetIamAuthTokenRequest.builder().hostname(hostAddress.host).port(hostAddress.port)
+                .userName(userName).build();
     }
 
     public Credential getToken() {

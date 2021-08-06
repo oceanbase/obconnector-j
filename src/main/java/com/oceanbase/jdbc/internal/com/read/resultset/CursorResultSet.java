@@ -43,19 +43,18 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
 public class CursorResultSet extends SelectResultSet {
-    int     statementId;
+    int statementId;
 
-    public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
-                           Protocol protocol, boolean callableResult, boolean eofDeprecated,
-                           boolean isPsOutParamter) throws IOException, SQLException {
+    public CursorResultSet(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
+            boolean callableResult, boolean eofDeprecated, boolean isPsOutParamter) throws IOException, SQLException {
         super(columnsInformation, results, protocol, callableResult, eofDeprecated, isPsOutParamter);
         this.statementId = results.getStatementId();
     }
@@ -77,8 +76,7 @@ public class CursorResultSet extends SelectResultSet {
         }
         int numToFetch = this.getFetchSize();
         try {
-            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
-                numToFetch);
+            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId, numToFetch);
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;
@@ -133,7 +131,7 @@ public class CursorResultSet extends SelectResultSet {
             rowPointer = -1;
             return false;
         }
-        return absolute(newPos+1);
+        return absolute(newPos + 1);
     }
 
     @Override

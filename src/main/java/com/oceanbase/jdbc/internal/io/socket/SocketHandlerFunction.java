@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.io.socket;
 
 import java.io.IOException;
 import java.net.Socket;
+
 import com.oceanbase.jdbc.util.Options;
 
 @FunctionalInterface

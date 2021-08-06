@@ -78,8 +78,7 @@ public class ClientPrepareResultTest {
     }
 
     /**
-     * Insert query that contain table/column name with select keyword, or select in comment can be
-     * rewritten.
+     * Insert query that contain table/column name with select keyword, or select in comment can be rewritten.
      */
     @Test
     public void rewritableThatContainSelectQuery() {
@@ -93,7 +92,6 @@ public class ClientPrepareResultTest {
     }
 
     private boolean checkRewritable(String query) {
-        return ClientPrepareResult.rewritableParts(query, true, false)
-            .isQueryMultiValuesRewritable();
+        return ClientPrepareResult.rewritableParts(query, true, false).isQueryMultiValuesRewritable();
     }
 }

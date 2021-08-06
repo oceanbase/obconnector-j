@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.SQLException;
 import java.sql.Savepoint;
+
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class OceanBaseSavepoint implements Savepoint {
@@ -63,8 +64,7 @@ public class OceanBaseSavepoint implements Savepoint {
     }
 
     /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
-     * represents.
+     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object represents.
      *
      * @return the numeric ID of this savepoint
      */

@@ -43,31 +43,27 @@
  */
 package com.oceanbase.jdbc.Benchmark;
 
-import com.oceanbase.jdbc.internal.util.Utils;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
+
+import com.oceanbase.jdbc.internal.util.Utils;
 
 @Warmup(iterations = 3)
 public class ApiBenchmark {
     @State(Scope.Benchmark)
     public static class ExecutionPlan {
-        @Param({
-                "insert /* woshilize */ into t values( 'wo',?,:name) /* c43 */ -- sfs \n",
-                "SELECT\n" + "  -- Packaged procedures with no arguments\n"
-                        + "  package_name AS procedure_cat,\n" + "  owner AS procedure_schem,\n"
-                        + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
-                        + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
-                        + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
-                        + "FROM all_arguments\n" + "WHERE argument_name IS NULL\n"
-                        + "  AND data_type IS NULL\n" + "  AND package_name LIKE ? \n"
-                        + "  AND owner LIKE ? \n" + "  AND object_name LIKE ? \n"
-                        + "UNION ALL SELECT\n" + "  -- Packaged procedures with arguments\n"
-                        + "  package_name AS procedure_cat,\n" + "  owner AS procedure_schem,\n"
-                        + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
-                        + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
-                        + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
-                        + "FROM all_arguments" })
-        public String  sqlString;
+        @Param({ "insert /* woshilize */ into t values( 'wo',?,:name) /* c43 */ -- sfs \n",
+                "SELECT\n" + "  -- Packaged procedures with no arguments\n" + "  package_name AS procedure_cat,\n"
+                        + "  owner AS procedure_schem,\n" + "  object_name AS procedure_name,\n" + "  NULL,\n"
+                        + "  NULL,\n" + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n" + "  1 AS procedure_type\n"
+                        + ",  NULL AS specific_name\n" + "FROM all_arguments\n" + "WHERE argument_name IS NULL\n"
+                        + "  AND data_type IS NULL\n" + "  AND package_name LIKE ? \n" + "  AND owner LIKE ? \n"
+                        + "  AND object_name LIKE ? \n" + "UNION ALL SELECT\n"
+                        + "  -- Packaged procedures with arguments\n" + "  package_name AS procedure_cat,\n"
+                        + "  owner AS procedure_schem,\n" + "  object_name AS procedure_name,\n" + "  NULL,\n"
+                        + "  NULL,\n" + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n" + "  1 AS procedure_type\n"
+                        + ",  NULL AS specific_name\n" + "FROM all_arguments" })
+        public String sqlString;
         public boolean noBackslashEscapes;
         @Param({ "true", "false" })
         public boolean isOracleMode;
@@ -78,8 +74,7 @@ public class ApiBenchmark {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     public void trimSqlStringTest(ExecutionPlan plan) {
-        Utils.trimSQLString(plan.sqlString, plan.noBackslashEscapes, plan.isOracleMode,
-            plan.skipComment);
+        Utils.trimSQLString(plan.sqlString, plan.noBackslashEscapes, plan.isOracleMode, plan.skipComment);
 
     }
 

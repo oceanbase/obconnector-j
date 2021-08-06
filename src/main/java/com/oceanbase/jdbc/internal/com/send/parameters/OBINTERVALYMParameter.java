@@ -43,15 +43,15 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+
 import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 public class OBINTERVALYMParameter implements Cloneable, ParameterHolder {
-    INTERVALYM                  intervalymValue;
-    private static final byte[] LITERALS_INTERVAL     = "interval ".getBytes();
+    INTERVALYM intervalymValue;
+    private static final byte[] LITERALS_INTERVAL = "interval ".getBytes();
     private static final byte[] LITERALS_INTERVAL_END = " year(9) to month".getBytes();
 
     public OBINTERVALYMParameter(INTERVALYM intervalym) {

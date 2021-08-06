@@ -62,60 +62,60 @@ import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class JDBC4ServerCallableStatement extends CallableProcedureStatement implements
-                                                                            CloneableCallableStatement {
+public class JDBC4ServerCallableStatement extends CallableProcedureStatement implements CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
 
-    private boolean         isObFunction    = false;
+    private boolean isObFunction = false;
 
     /**
-     * Specific implementation of CallableStatement to handle function call, represent by call like
-     * {?= call procedure-name[(arg1,arg2, ...)]}.
+     * Specific implementation of CallableStatement to handle function call, represent by call like {?= call
+     * procedure-name[(arg1,arg2, ...)]}.
      *
-     * @param query                query
-     * @param connection           current connection
-     * @param procedureName        procedure name
-     * @param database             database
-     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
-     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-     *                             or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param exceptionFactory     Exception Factory
-     * @throws SQLException exception
+     * @param query
+     *            query
+     * @param connection
+     *            current connection
+     * @param procedureName
+     *            procedure name
+     * @param database
+     *            database
+     * @param resultSetType
+     *            a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     *                             ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency
+     *            a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *            <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param exceptionFactory
+     *            Exception Factory
+     * @throws SQLException
+     *             exception
      */
-    public JDBC4ServerCallableStatement(boolean isObFunction, String query,
-                                        OceanBaseConnection connection, String procedureName,
-                                        String database, int resultSetType,
-                                        int resultSetConcurrency, ExceptionFactory exceptionFactory)
-                                                                                                    throws SQLException {
-        super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
-            exceptionFactory);
+    public JDBC4ServerCallableStatement(boolean isObFunction, String query, OceanBaseConnection connection,
+            String procedureName, String database, int resultSetType, int resultSetConcurrency,
+            ExceptionFactory exceptionFactory) throws SQLException {
+        super(isObFunction, connection, query, resultSetType, resultSetConcurrency, exceptionFactory);
         this.isObFunction = isObFunction;
         if (!this.connection.getProtocol().isOracleMode()) {
-            this.parameterMetadata = new CallableParameterMetaData(connection, database,
-                procedureName, false);
+            this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
             this.parameterMetadata.readMetadataFromDbIfRequired(query);
         } else {
-            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
-                procedureName, isObFunction);
+            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database, procedureName,
+                    isObFunction);
             this.parameterMetadata.readMetadataFromDbIfRequired();
         }
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
 
-    public JDBC4ServerCallableStatement(boolean isObFunction, String query,
-                                        OceanBaseConnection connection, String procedureName,
-                                        String database, int resultSetType,
-                                        int resultSetConcurrency,
-                                        ExceptionFactory exceptionFactory, boolean isAnonymousBlock)
-                                                                                                    throws SQLException {
-        super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
-            exceptionFactory);
+    public JDBC4ServerCallableStatement(boolean isObFunction, String query, OceanBaseConnection connection,
+            String procedureName, String database, int resultSetType, int resultSetConcurrency,
+            ExceptionFactory exceptionFactory, boolean isAnonymousBlock) throws SQLException {
+        super(isObFunction, connection, query, resultSetType, resultSetConcurrency, exceptionFactory);
         this.isObFunction = isObFunction;
-        this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
-            procedureName, isObFunction);
+        this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database, procedureName,
+                isObFunction);
         this.parameterMetadata.generateMetadataFromPrepareResultSet(this.serverPrepareResult);
         setParamsAccordingToSetArguments();
         setParametersVariables();
@@ -129,8 +129,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         params = new ArrayList<>(parameterCount);
         for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
             CallParameter parameter = this.parameterMetadata.getParam(index + 1);
-            if(parameter.getIndex() != -1) {
-                this.params.add(parameter); //TODO if check registerOutputParamter need to add it by arguments
+            if (parameter.getIndex() != -1) {
+                this.params.add(parameter); // TODO if check registerOutputParamter need to add it by arguments
             }
         }
     }
@@ -141,8 +141,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             int currentOutputMapper = 1;
 
             for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++
-                    : -1;
+                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
             }
         }
     }
@@ -172,12 +171,13 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     /**
      * Clone statement.
      *
-     * @param connection connection
+     * @param connection
+     *            connection
      * @return Clone statement.
-     * @throws CloneNotSupportedException if any error occur.
+     * @throws CloneNotSupportedException
+     *             if any error occur.
      */
-    public JDBC4ServerCallableStatement clone(OceanBaseConnection connection)
-                                                                             throws CloneNotSupportedException {
+    public JDBC4ServerCallableStatement clone(OceanBaseConnection connection) throws CloneNotSupportedException {
         JDBC4ServerCallableStatement clone = (JDBC4ServerCallableStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
@@ -194,7 +194,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             for (int i = 1; i <= ci.length; i++) {
                 ColumnType columnTypes = ci[i - 1].getColumnType();
                 if (columnTypes == ColumnType.COMPLEX || columnTypes == ColumnType.ARRAY
-                    || columnTypes == ColumnType.STRUCT) {
+                        || columnTypes == ColumnType.STRUCT) {
                     selectResultSet.getComplex(i);
                 } else if (columnTypes == ColumnType.CURSOR) {
                     selectResultSet.getComplexCursor(i);
@@ -203,8 +203,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
     }
 
-    public void setParameter(final int parameterIndex, final ParameterHolder holder)
-                                                                                    throws SQLException {
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
@@ -212,7 +211,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     private final String PARAMETER_NAMESPACE_PREFIX = "@com_mysql_jdbc_outparam_";
 
     private String mangleParameterName(String origParameterName) {
-        //Fixed for 5.5+ in callers
+        // Fixed for 5.5+ in callers
         if (origParameterName == null) {
             return null;
         }
@@ -223,8 +222,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             offset = 1;
         }
 
-        StringBuilder paramNameBuf = new StringBuilder(PARAMETER_NAMESPACE_PREFIX.length()
-                                                       + origParameterName.length());
+        StringBuilder paramNameBuf = new StringBuilder(
+                PARAMETER_NAMESPACE_PREFIX.length() + origParameterName.length());
         paramNameBuf.append(PARAMETER_NAMESPACE_PREFIX);
         paramNameBuf.append(origParameterName.substring(offset));
 
@@ -295,8 +294,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
         if (getResult) {
-            ResultSet resultSet = this.connection.createStatement().executeQuery(
-                selectSB.toString());
+            ResultSet resultSet = this.connection.createStatement().executeQuery(selectSB.toString());
             resultSet.next();
             outputResultSet = (SelectResultSet) resultSet;
         }
@@ -340,7 +338,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     /**
      * Valid that all parameters are set.
      *
-     * @throws SQLException if set parameters is not right
+     * @throws SQLException
+     *             if set parameters is not right
      */
     private void validAllParameters() throws SQLException {
 

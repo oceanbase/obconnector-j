@@ -59,26 +59,28 @@ import java.text.NumberFormat;
 import java.util.List;
 
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ProtocolLoggingProxy.class);
-    private final NumberFormat  numberFormat;
-    private final boolean       profileSql;
-    private final Long          slowQueryThresholdNanos;
-    private final int           maxQuerySizeToLog;
-    private final Protocol      protocol;
+    private final NumberFormat numberFormat;
+    private final boolean profileSql;
+    private final Long slowQueryThresholdNanos;
+    private final int maxQuerySizeToLog;
+    private final Protocol protocol;
 
     /**
      * Constructor. Will create a proxy around protocol to log queries.
      *
-     * @param protocol protocol to proxy
-     * @param options options
+     * @param protocol
+     *            protocol to proxy
+     * @param options
+     *            options
      */
     public ProtocolLoggingProxy(Protocol protocol, Options options) {
         this.protocol = protocol;
@@ -93,28 +95,25 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         try {
 
             switch (method.getName()) {
-                case "executeQuery":
-                case "executePreparedQuery":
-                case "executeBatchStmt":
-                case "executeBatchClient":
-                case "executeBatchServer":
-                    final long startTime = System.nanoTime();
-                    Object returnObj = method.invoke(protocol, args);
-                    if (logger.isInfoEnabled()
-                        && (profileSql || (slowQueryThresholdNanos != null && System.nanoTime()
-                                                                              - startTime > slowQueryThresholdNanos))) {
+            case "executeQuery":
+            case "executePreparedQuery":
+            case "executeBatchStmt":
+            case "executeBatchClient":
+            case "executeBatchServer":
+                final long startTime = System.nanoTime();
+                Object returnObj = method.invoke(protocol, args);
+                if (logger.isInfoEnabled() && (profileSql || (slowQueryThresholdNanos != null
+                        && System.nanoTime() - startTime > slowQueryThresholdNanos))) {
 
-                        String sql = logQuery(method.getName(), args);
-                        logger
-                            .info("conn={}({}) - {} ms - Query: {}", protocol.getServerThreadId(),
-                                protocol.isMasterConnection() ? "M" : "S", numberFormat
-                                    .format(((double) System.nanoTime() - startTime) / 1000000),
-                                subQuery(sql));
-                    }
-                    return returnObj;
+                    String sql = logQuery(method.getName(), args);
+                    logger.info("conn={}({}) - {} ms - Query: {}", protocol.getServerThreadId(),
+                            protocol.isMasterConnection() ? "M" : "S",
+                            numberFormat.format(((double) System.nanoTime() - startTime) / 1000000), subQuery(sql));
+                }
+                return returnObj;
 
-                default:
-                    return method.invoke(protocol, args);
+            default:
+                return method.invoke(protocol, args);
             }
 
         } catch (InvocationTargetException e) {
@@ -125,69 +124,67 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     @SuppressWarnings("unchecked")
     private String logQuery(String methodName, Object[] args) {
         switch (methodName) {
-            case "executeQuery":
-                switch (args.length) {
-                    case 1:
-                        return (String) args[0];
-                    case 3:
-                        return (String) args[2];
-                    case 4:
-                    case 5:
-                        if (args[3] instanceof Charset) {
-                            return (String) args[2];
-                        }
-                        ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                        return getQueryFromPrepareParameters(clientPrepareResult,
-                            (ParameterHolder[]) args[3], clientPrepareResult.getParamCount());
-                    default:
-                        // no default
+        case "executeQuery":
+            switch (args.length) {
+            case 1:
+                return (String) args[0];
+            case 3:
+                return (String) args[2];
+            case 4:
+            case 5:
+                if (args[3] instanceof Charset) {
+                    return (String) args[2];
                 }
-                break;
-
-            case "executeBatchClient":
                 ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                return getQueryFromPrepareParameters(clientPrepareResult.getSql(),
-                    (List<ParameterHolder[]>) args[3], clientPrepareResult.getParamCount());
-
-            case "executeBatchStmt":
-                List<String> multipleQueries = (List<String>) args[2];
-                if (multipleQueries.size() == 1) {
-                    return multipleQueries.get(0);
-                } else {
-                    StringBuilder sb = new StringBuilder();
-                    for (String multipleQuery : multipleQueries) {
-                        if (maxQuerySizeToLog > 0
-                            && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
-                            sb.append(multipleQuery, 1,
-                                Math.max(1, maxQuerySizeToLog - sb.length()));
-                            break;
-                        }
-                        sb.append(multipleQuery).append(";");
-                        if (maxQuerySizeToLog > 0 && sb.length() >= maxQuerySizeToLog) {
-                            break;
-                        }
-                    }
-                    return sb.toString();
-                }
-
-            case "executeBatchServer":
-                List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList,
-                    serverPrepareResult.getParamCount());
-
-            case "executePreparedQuery":
-                ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
-                if (args[3] instanceof ParameterHolder[]) {
-                    return getQueryFromPrepareParameters(prepareResult,
-                        (ParameterHolder[]) args[3], prepareResult.getParamCount());
-                } else {
-                    return getQueryFromPrepareParameters(prepareResult.getSql(),
-                        (List<ParameterHolder[]>) args[3], prepareResult.getParameters().length);
-                }
-
+                return getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3],
+                        clientPrepareResult.getParamCount());
             default:
                 // no default
+            }
+            break;
+
+        case "executeBatchClient":
+            ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
+            return getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                    clientPrepareResult.getParamCount());
+
+        case "executeBatchStmt":
+            List<String> multipleQueries = (List<String>) args[2];
+            if (multipleQueries.size() == 1) {
+                return multipleQueries.get(0);
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (String multipleQuery : multipleQueries) {
+                    if (maxQuerySizeToLog > 0 && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
+                        sb.append(multipleQuery, 1, Math.max(1, maxQuerySizeToLog - sb.length()));
+                        break;
+                    }
+                    sb.append(multipleQuery).append(";");
+                    if (maxQuerySizeToLog > 0 && sb.length() >= maxQuerySizeToLog) {
+                        break;
+                    }
+                }
+                return sb.toString();
+            }
+
+        case "executeBatchServer":
+            List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
+            ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+            return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList,
+                    serverPrepareResult.getParamCount());
+
+        case "executePreparedQuery":
+            ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
+            if (args[3] instanceof ParameterHolder[]) {
+                return getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3],
+                        prepareResult.getParamCount());
+            } else {
+                return getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                        prepareResult.getParameters().length);
+            }
+
+        default:
+            // no default
         }
         return "-unknown-";
     }
@@ -195,7 +192,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     /**
      * Get query, truncated if to big.
      *
-     * @param sql current query
+     * @param sql
+     *            current query
      * @return possibly truncated query if too big
      */
     public String subQuery(String sql) {
@@ -206,7 +204,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     }
 
     private String getQueryFromPrepareParameters(String sql, List<ParameterHolder[]> parameterList,
-                                                 int parameterLength) {
+            int parameterLength) {
 
         if (parameterLength == 0) {
             return sql;
@@ -235,8 +233,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         }
     }
 
-    private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult,
-                                                 ParameterHolder[] paramHolders, int parameterLength) {
+    private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult, ParameterHolder[] paramHolders,
+            int parameterLength) {
         StringBuilder sb = new StringBuilder(serverPrepareResult.getSql());
         if (paramHolders.length > 0) {
             sb.append(", parameters [");

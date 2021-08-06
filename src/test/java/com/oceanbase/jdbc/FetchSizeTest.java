@@ -56,6 +56,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -76,8 +77,7 @@ public class FetchSizeTest extends BaseTest {
     @Test
     public void batchFetchSizeTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        PreparedStatement pstmt = sharedConnection
-            .prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
+        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
         stmt.setFetchSize(1);
         pstmt.setFetchSize(1);
         // check that fetch isn't use by batch execution
@@ -184,8 +184,7 @@ public class FetchSizeTest extends BaseTest {
     }
 
     private void prepareRecords(int recordNumber, String tableName) throws SQLException {
-        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO " + tableName
-                                                                    + " (test) values (?)");
+        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO " + tableName + " (test) values (?)");
         for (int i = 0; i < recordNumber; i++) {
             pstmt.setString(1, "" + i);
             pstmt.addBatch();
@@ -196,76 +195,73 @@ public class FetchSizeTest extends BaseTest {
     /**
      * CONJ-315/CONJ-531 : statement interruption.
      *
-     * @throws SQLException sqle
+     * @throws SQLException
+     *             sqle
      */
     @Ignore
-  public void fetchSizeCancel() throws SQLException {
-    ifMaxscaleRequireMinimumVersion(2, 2);
-    Assume.assumeTrue(!sharedOptions().profileSql);
-    long start = System.currentTimeMillis();
-    try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.executeQuery(
-          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
-    }
-    final long normalExecutionTime = System.currentTimeMillis() - start;
+    public void fetchSizeCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
+        Assume.assumeTrue(!sharedOptions().profileSql);
+        long start = System.currentTimeMillis();
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.executeQuery(
+                    "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
+        }
+        final long normalExecutionTime = System.currentTimeMillis() - start;
 
-    start = System.currentTimeMillis();
-    try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.setFetchSize(1);
-      stmt.executeQuery(
-          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
-      stmt.cancel();
-    }
-    long interruptedExecutionTime = System.currentTimeMillis() - start;
+        start = System.currentTimeMillis();
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.setFetchSize(1);
+            stmt.executeQuery(
+                    "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
+            stmt.cancel();
+        }
+        long interruptedExecutionTime = System.currentTimeMillis() - start;
 
-//    Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
-//
-//    // ensure that query is a long query. if not cancelling the query (that might lead to creating a
-//    // new connection)
-//    // may not render the test reliable
-//    String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
-//    if (maxscaleVersion == null && normalExecutionTime > 500) {
-//      assertTrue(
-//          "interruptedExecutionTime:"
-//              + interruptedExecutionTime
-//              + " normalExecutionTime:"
-//              + normalExecutionTime,
-//          interruptedExecutionTime < normalExecutionTime);
-//    }
-  }
+        // Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
+        //
+        // // ensure that query is a long query. if not cancelling the query (that might lead to creating a
+        // // new connection)
+        // // may not render the test reliable
+        // String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
+        // if (maxscaleVersion == null && normalExecutionTime > 500) {
+        // assertTrue(
+        // "interruptedExecutionTime:"
+        // + interruptedExecutionTime
+        // + " normalExecutionTime:"
+        // + normalExecutionTime,
+        // interruptedExecutionTime < normalExecutionTime);
+        // }
+    }
 
     @Ignore
-  public void fetchSizePrepareCancel() throws SQLException {
-    ifMaxscaleRequireMinimumVersion(2, 2);
-    Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
+    public void fetchSizePrepareCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
+        Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
 
-    long start;
-    long normalExecutionTime;
+        long start;
+        long normalExecutionTime;
 
-    try (PreparedStatement stmt =
-        sharedConnection.prepareStatement(
-            "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
-      start = System.currentTimeMillis();
-      stmt.executeQuery();
-      normalExecutionTime = System.currentTimeMillis() - start;
+        try (PreparedStatement stmt = sharedConnection.prepareStatement(
+                "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
+            start = System.currentTimeMillis();
+            stmt.executeQuery();
+            normalExecutionTime = System.currentTimeMillis() - start;
 
-      start = System.currentTimeMillis();
-      stmt.setFetchSize(1);
-      stmt.executeQuery();
-      stmt.cancel();
+            start = System.currentTimeMillis();
+            stmt.setFetchSize(1);
+            stmt.executeQuery();
+            stmt.cancel();
+        }
+
+        long interruptedExecutionTime = System.currentTimeMillis() - start;
+
+        System.out.println(normalExecutionTime);
+        System.out.println(interruptedExecutionTime);
+        // normalExecutionTime = 1500
+        // interruptedExecutionTime = 77
+        assertTrue(
+                "interruptedExecutionTime:" + interruptedExecutionTime + " normalExecutionTime:" + normalExecutionTime,
+                interruptedExecutionTime < normalExecutionTime);
     }
-
-    long interruptedExecutionTime = System.currentTimeMillis() - start;
-
-    System.out.println(normalExecutionTime);
-    System.out.println(interruptedExecutionTime);
-    // normalExecutionTime = 1500
-    // interruptedExecutionTime = 77
-    assertTrue(
-        "interruptedExecutionTime:"
-            + interruptedExecutionTime
-            + " normalExecutionTime:"
-            + normalExecutionTime,
-        interruptedExecutionTime < normalExecutionTime);
-  }
 }

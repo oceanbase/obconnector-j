@@ -68,42 +68,40 @@ public class DatatypeTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("Driverstreamtest", "id int not null primary key, strm text");
         createTable("Driverstreamtest2", "id int primary key not null, strm text");
         createTable("objecttest", "int_test int primary key not null, string_test varchar(30), "
-                                  + "timestamp_test timestamp, serial_test blob");
-        createTable("bintest",
-            "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
-        createTable("bigdectest", "id int not null primary key auto_increment, bd decimal",
-            "engine=innodb");
-        createTable("bytetest", "id int not null primary key auto_increment, a int",
-            "engine=innodb");
-        createTable("shorttest", "id int not null primary key auto_increment,a int",
-            "engine=innodb");
-        createTable("doubletest", "id int not null primary key auto_increment,a double",
-            "engine=innodb");
+                + "timestamp_test timestamp, serial_test blob");
+        createTable("bintest", "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
+        createTable("bigdectest", "id int not null primary key auto_increment, bd decimal", "engine=innodb");
+        createTable("bytetest", "id int not null primary key auto_increment, a int", "engine=innodb");
+        createTable("shorttest", "id int not null primary key auto_increment,a int", "engine=innodb");
+        createTable("doubletest", "id int not null primary key auto_increment,a double", "engine=innodb");
         createTable("bittest", "id int not null primary key auto_increment, b int");
         createTable("emptytest", "id int");
-        createTable("test_setobjectconv",
-            "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
+        createTable("test_setobjectconv", "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
         createTable("blabla", "valsue varchar(20)");
         createTable("TestBigIntType", "t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20)");
         createTable("time_period",
-            "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
+                "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
     }
 
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query    query
-     * @param prepared flag must be a prepare statement
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
         return getResultSet(query, prepared, sharedConnection);
@@ -112,17 +110,19 @@ public class DatatypeTest extends BaseTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query      query
-     * @param prepared   flag must be a prepare statement
-     * @param connection the connection to use
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
+     * @param connection
+     *            the connection to use
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection)
-                                                                                               throws SQLException {
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
         if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query
-                                                                              + " WHERE 1 = ?");
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {
@@ -135,79 +135,63 @@ public class DatatypeTest extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    private void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType)
-                                                                                             throws Exception {
+    private void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
         int index = resultSet.findColumn(column);
         Object obj = resultSet.getObject(column);
         if (obj != null) {
             if (!clazz.equals(obj.getClass())) {
                 System.out.println("test");
             }
-            assertEquals("Unexpected class for column " + column, clazz, resultSet
-                .getObject(column).getClass());
+            assertEquals("Unexpected class for column " + column, clazz, resultSet.getObject(column).getClass());
         }
-        assertEquals("Unexpected class name for column " + column, clazz.getName(), resultSet
-            .getMetaData().getColumnClassName(index));
-        //        assertEquals("Unexpected MySQL type for column " + column, mysqlType, resultSet
-        //            .getMetaData().getColumnTypeName(index));
-        assertEquals("Unexpected java sql type for column " + column, javaSqlType, resultSet
-            .getMetaData().getColumnType(index));
+        assertEquals("Unexpected class name for column " + column, clazz.getName(),
+                resultSet.getMetaData().getColumnClassName(index));
+        // assertEquals("Unexpected MySQL type for column " + column, mysqlType, resultSet
+        // .getMetaData().getColumnTypeName(index));
+        assertEquals("Unexpected java sql type for column " + column, javaSqlType,
+                resultSet.getMetaData().getColumnType(index));
     }
 
     private void createDataTypeTables() throws SQLException {
-        createTable(
-            "datatypetest",
-            "bit1 BIT(1) default 0,"
-                    + "bit2 BIT(2) default 1,"
-                    + "tinyint1 TINYINT(1) default 0,"
-                    + "tinyint2 TINYINT(2) default 1,"
-                    + "bool0 BOOL default 0,"
-                    + "smallint0 SMALLINT default 1,"
-                    + "smallint_unsigned SMALLINT UNSIGNED default 0,"
-                    + "mediumint0 MEDIUMINT default 1,"
-                    + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
-                    + "int0 INT default 1,"
-                    + "int_unsigned INT UNSIGNED default 0,"
-                    + "bigint0 BIGINT default 1,"
-                    + "bigint_unsigned BIGINT UNSIGNED default 0,"
-                    + "float0 FLOAT default 0,"
-                    + "double0 DOUBLE default 1,"
-                    + "decimal0 DECIMAL default 0,"
-                    + "date0 DATE default '2001-01-01',"
-                    + "datetime0 DATETIME default '2001-01-01 00:00:00',"
-                    + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
-                    + "time0 TIME default '22:11:00',"
-                    + ((minVersion(5, 6) && strictBeforeVersion(10, 0)) ? "year2 YEAR(4) default 99,"
-                        : "year2 YEAR(2) default 99,") + "year4 YEAR(4) default 2011,"
-                    + "char0 CHAR(1) default '0'," + "char_binary CHAR (1) binary default '0',"
-                    + "varchar0 VARCHAR(1) default '1',"
-                    + "varchar_binary VARCHAR(10) BINARY default 0x1,"
-                    + "binary0 BINARY(10) default 0x1," + "varbinary0 VARBINARY(10) default 0x1,"
-                    + "tinyblob0 TINYBLOB," + "tinytext0 TINYTEXT," + "blob0 BLOB," + "text0 TEXT,"
-                    + "mediumblob0 MEDIUMBLOB," + "mediumtext0 MEDIUMTEXT," + "longblob0 LONGBLOB,"
-                    + "longtext0 LONGTEXT ");
-        //                    + "enum0 ENUM('a','b') default 'a',"
-        //                    + "set0 SET('a','b') default 'a' ");
+        createTable("datatypetest", "bit1 BIT(1) default 0," + "bit2 BIT(2) default 1,"
+                + "tinyint1 TINYINT(1) default 0," + "tinyint2 TINYINT(2) default 1," + "bool0 BOOL default 0,"
+                + "smallint0 SMALLINT default 1," + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+                + "mediumint0 MEDIUMINT default 1," + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+                + "int0 INT default 1," + "int_unsigned INT UNSIGNED default 0," + "bigint0 BIGINT default 1,"
+                + "bigint_unsigned BIGINT UNSIGNED default 0," + "float0 FLOAT default 0," + "double0 DOUBLE default 1,"
+                + "decimal0 DECIMAL default 0," + "date0 DATE default '2001-01-01',"
+                + "datetime0 DATETIME default '2001-01-01 00:00:00',"
+                + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00'," + "time0 TIME default '22:11:00',"
+                + ((minVersion(5, 6) && strictBeforeVersion(10, 0)) ? "year2 YEAR(4) default 99,"
+                        : "year2 YEAR(2) default 99,")
+                + "year4 YEAR(4) default 2011," + "char0 CHAR(1) default '0',"
+                + "char_binary CHAR (1) binary default '0'," + "varchar0 VARCHAR(1) default '1',"
+                + "varchar_binary VARCHAR(10) BINARY default 0x1," + "binary0 BINARY(10) default 0x1,"
+                + "varbinary0 VARBINARY(10) default 0x1," + "tinyblob0 TINYBLOB," + "tinytext0 TINYTEXT,"
+                + "blob0 BLOB," + "text0 TEXT," + "mediumblob0 MEDIUMBLOB," + "mediumtext0 MEDIUMTEXT,"
+                + "longblob0 LONGBLOB," + "longtext0 LONGTEXT ");
+        // + "enum0 ENUM('a','b') default 'a',"
+        // + "set0 SET('a','b') default 'a' ");
     }
 
     /**
      * Testing different date parameters.
      *
-     * @param connection     current connection
-     * @param tinyInt1isBit  tiny bit must be consider as boolean
-     * @param yearIsDateType year must be consider as Date or int
-     * @throws Exception exception
+     * @param connection
+     *            current connection
+     * @param tinyInt1isBit
+     *            tiny bit must be consider as boolean
+     * @param yearIsDateType
+     *            year must be consider as Date or int
+     * @throws Exception
+     *             exception
      */
-    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType)
-                                                                                               throws Exception {
+    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
 
         createDataTypeTables();
 
-        connection
-            .createStatement()
-            .execute(
-                "insert into datatypetest (tinyblob0,mediumblob0,blob0,longblob0,"
-                        + "tinytext0,mediumtext0,text0, longtext0) values(0x1,0x1,0x1,0x1, 'a', 'a', 'a', 'a')");
+        connection.createStatement().execute("insert into datatypetest (tinyblob0,mediumblob0,blob0,longblob0,"
+                + "tinytext0,mediumtext0,text0, longtext0) values(0x1,0x1,0x1,0x1, 'a', 'a', 'a', 'a')");
 
         resultSet = connection.createStatement().executeQuery("select * from datatypetest");
         resultSet.next();
@@ -218,10 +202,10 @@ public class DatatypeTest extends BaseTest {
         checkClass("bit2", byteArrayClass, "BIT", Types.VARBINARY);
 
         checkClass("tinyint1", tinyInt1isBit ? Boolean.class : Integer.class, "TINYINT",
-            tinyInt1isBit ? Types.BIT : Types.TINYINT);
+                tinyInt1isBit ? Types.BIT : Types.TINYINT);
         checkClass("tinyint2", Integer.class, "TINYINT", Types.TINYINT);
         checkClass("bool0", tinyInt1isBit ? Boolean.class : Integer.class, "TINYINT",
-            tinyInt1isBit ? Types.BIT : Types.TINYINT);
+                tinyInt1isBit ? Types.BIT : Types.TINYINT);
         checkClass("smallint0", Integer.class, "SMALLINT", Types.SMALLINT);
         checkClass("smallint_unsigned", Integer.class, "SMALLINT UNSIGNED", Types.SMALLINT);
         checkClass("mediumint0", Integer.class, "MEDIUMINT", Types.INTEGER);
@@ -240,10 +224,10 @@ public class DatatypeTest extends BaseTest {
         if (minVersion(5, 6) && strictBeforeVersion(10, 0)) {
             // MySQL deprecated YEAR(2) since 5.6
             checkClass("year2", yearIsDateType ? Date.class : Short.class, "YEAR",
-                yearIsDateType ? Types.DATE : Types.SMALLINT);
+                    yearIsDateType ? Types.DATE : Types.SMALLINT);
         }
         checkClass("year4", yearIsDateType ? Date.class : Short.class, "YEAR",
-            yearIsDateType ? Types.DATE : Types.SMALLINT);
+                yearIsDateType ? Types.DATE : Types.SMALLINT);
         checkClass("char0", String.class, "CHAR", Types.CHAR);
         checkClass("char_binary", String.class, "CHAR", Types.CHAR);
         checkClass("varchar0", String.class, "VARCHAR", Types.VARCHAR);
@@ -258,8 +242,8 @@ public class DatatypeTest extends BaseTest {
         checkClass("mediumtext0", String.class, "VARCHAR", Types.VARCHAR);
         checkClass("longblob0", byteArrayClass, "LONGBLOB", Types.LONGVARBINARY);
         checkClass("longtext0", String.class, "VARCHAR", Types.LONGVARCHAR);
-        //        checkClass("enum0", String.class, "CHAR", Types.CHAR);
-        //        checkClass("set0", String.class, "CHAR", Types.CHAR);
+        // checkClass("enum0", String.class, "CHAR", Types.CHAR);
+        // checkClass("set0", String.class, "CHAR", Types.CHAR);
 
         resultSet = connection.createStatement().executeQuery("select NULL as foo");
         resultSet.next();
@@ -295,16 +279,16 @@ public class DatatypeTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void testCharacterStreams() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into Driverstreamtest (id, strm) values (?,?)");
+                .prepareStatement("insert into Driverstreamtest (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from Driverstreamtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest");
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -339,22 +323,20 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithLength() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into Driverstreamtest2 (id, strm) values (?,?)");
+                .prepareStatement("insert into Driverstreamtest2 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader, 5);
         stmt.execute();
-        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", false),
-            toInsert);
-        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", true),
-            toInsert);
+        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", false), toInsert);
+        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", true), toInsert);
     }
 
-    private void testCharacterStreamWithLength(ResultSet rs, String toInsert) throws SQLException,
-                                                                             IOException {
+    private void testCharacterStreamWithLength(ResultSet rs, String toInsert) throws SQLException, IOException {
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -409,8 +391,7 @@ public class DatatypeTest extends BaseTest {
      */
     @Test
     public void setBitBoolObjectTest() throws SQLException {
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into bitBoolTest values (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bitBoolTest values (?,?)");
         ps.setObject(1, 0);
         ps.setObject(2, 0);
         ps.addBatch();
@@ -441,8 +422,7 @@ public class DatatypeTest extends BaseTest {
 
         ps.executeBatch();
 
-        try (ResultSet rs =
-                     sharedConnection.createStatement().executeQuery("select * from bitBoolTest")) {
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bitBoolTest")) {
             assertValue(rs, false);
             assertValue(rs, true);
             assertValue(rs, false);
@@ -467,8 +447,7 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void setObjectTest() throws SQLException, IOException, ClassNotFoundException {
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into objecttest values (?,?,?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into objecttest values (?,?,?,?)");
         ps.setObject(1, 5);
         ps.setObject(2, "aaa");
         ps.setObject(3, Timestamp.valueOf("2009-01-17 15:41:01"));
@@ -491,8 +470,7 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-    private void setObjectTestResult(ResultSet rs) throws SQLException, IOException,
-                                                  ClassNotFoundException {
+    private void setObjectTestResult(ResultSet rs) throws SQLException, IOException, ClassNotFoundException {
         assertEquals("5", rs.getString(1));
         assertEquals("aaa", rs.getString(2));
         assertEquals("2009-01-17 15:41:01.0", rs.getString(3));
@@ -527,9 +505,8 @@ public class DatatypeTest extends BaseTest {
     @Test
     public void setObjectBitInt() throws SQLException {
 
-        PreparedStatement preparedStatement =
-                sharedConnection.prepareStatement(
-                        "INSERT INTO TestBigIntType " + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
+        PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("INSERT INTO TestBigIntType " + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
 
         final long valueLong = System.currentTimeMillis();
         final String maxValue = String.valueOf(Long.MAX_VALUE);
@@ -549,8 +526,7 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-    private void validateResultBigIntType(long valueLong, String maxValue, ResultSet resultSet)
-                                                                                               throws SQLException {
+    private void validateResultBigIntType(long valueLong, String maxValue, ResultSet resultSet) throws SQLException {
         if (resultSet.next()) {
             assertEquals(resultSet.getLong(1), valueLong);
             assertEquals(resultSet.getLong(2), Long.parseLong(maxValue));
@@ -567,14 +543,14 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         byte[] allBytes = new byte[256];
         for (int i = 0; i < 256; i++) {
             allBytes[i] = (byte) (i & 0xff);
         }
         ByteArrayInputStream bais = new ByteArrayInputStream(allBytes);
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into bintest (bin1,bin2) values (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bintest (bin1,bin2) values (?,?)");
         ps.setBytes(1, allBytes);
         ps.setBinaryStream(2, bais);
         ps.execute();
@@ -613,7 +589,8 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -642,7 +619,8 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest3() throws SQLException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         byte[] buf = new byte[1000000];
         for (int i = 0; i < 1000000; i++) {
             buf[i] = (byte) i;
@@ -653,8 +631,7 @@ public class DatatypeTest extends BaseTest {
             createTable("bintest3", "bin1 longblob", "engine=innodb");
             Statement stmt = connection.createStatement();
 
-            try (PreparedStatement ps =
-                         connection.prepareStatement("insert into bintest3 (bin1) values (?)")) {
+            try (PreparedStatement ps = connection.prepareStatement("insert into bintest3 (bin1) values (?)")) {
                 ps.setBinaryStream(1, is);
                 ps.execute();
             }
@@ -698,8 +675,7 @@ public class DatatypeTest extends BaseTest {
     public void bigDecimalTest() throws SQLException {
         requireMinimumVersion(5, 0);
         BigDecimal bd = BigDecimal.TEN;
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into bigdectest (bd) values (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigdectest (bd) values (?)");
         ps.setBigDecimal(1, bd);
         ps.execute();
 
@@ -756,8 +732,7 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void shortTest() throws SQLException {
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into shorttest (a) values (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1, Short.MAX_VALUE);
         ps.execute();
         try (ResultSet rs = getResultSet("select a from shorttest", false)) {
@@ -783,8 +758,7 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void doubleTest() throws SQLException {
-        PreparedStatement ps =
-                sharedConnection.prepareStatement("insert into doubletest (a) values (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into doubletest (a) values (?)");
         double sendDoubleValue = 1.5;
         ps.setDouble(1, sendDoubleValue);
         ps.execute();
@@ -886,8 +860,7 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void testSetObject() throws SQLException {
-        PreparedStatement ps = sharedConnection
-            .prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
         ps.setObject(1, "2009-01-01 00:00:00", Types.TIMESTAMP);
         ps.setObject(2, "33", Types.DOUBLE);
         ps.execute();
@@ -895,8 +868,7 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void testBit() throws SQLException {
-        PreparedStatement stmt =
-                sharedConnection.prepareStatement("insert into bittest values(null, ?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into bittest values(null, ?)");
         stmt.setBoolean(1, true);
         stmt.execute();
         stmt.setBoolean(1, false);
@@ -928,8 +900,7 @@ public class DatatypeTest extends BaseTest {
     @Test
     @SuppressWarnings("deprecation")
     public void testNullTimePreparedStatement() throws Exception {
-        sharedConnection
-                .createStatement()
+        sharedConnection.createStatement()
                 .execute("insert into time_period(id, start, end) values(1, '00:00:00', '08:00:00');");
         final String sql = "SELECT id, start, end FROM time_period WHERE id=?";
         PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
@@ -949,16 +920,16 @@ public class DatatypeTest extends BaseTest {
         createTable("longMinValueSpecificity", "ii BIGINT");
         try (Statement statement = sharedConnection.createStatement()) {
 
-            try (PreparedStatement preparedStatement =
-                         sharedConnection.prepareStatement("INSERT INTO longMinValueSpecificity values (?)")) {
+            try (PreparedStatement preparedStatement = sharedConnection
+                    .prepareStatement("INSERT INTO longMinValueSpecificity values (?)")) {
                 preparedStatement.setLong(1, Long.MAX_VALUE);
                 preparedStatement.executeQuery();
                 preparedStatement.setLong(1, Long.MIN_VALUE);
                 preparedStatement.executeQuery();
             }
 
-            try (PreparedStatement preparedStatement =
-                         sharedConnection.prepareStatement("SELECT * from longMinValueSpecificity")) {
+            try (PreparedStatement preparedStatement = sharedConnection
+                    .prepareStatement("SELECT * from longMinValueSpecificity")) {
                 ResultSet resultSet = preparedStatement.executeQuery();
                 assertTrue(resultSet.next());
                 assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
@@ -978,37 +949,29 @@ public class DatatypeTest extends BaseTest {
     public void testBinarySetter() throws Throwable {
         createTable("LatinTable", "t1 varchar(30)", "DEFAULT CHARSET=latin1");
 
-        try (Connection connection =
-                     DriverManager.getConnection(
-                             connU
-                                     + "?user="
-                                     + username
-                                     + ((password != null && !password.isEmpty()) ? "&password=" + password : "")
-                                     + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                                     + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-                                     + "&useServerPrepStmts=true")) {
+        try (Connection connection = DriverManager.getConnection(
+                connU + "?user=" + username + ((password != null && !password.isEmpty()) ? "&password=" + password : "")
+                        + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                        + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
+                        + "&useServerPrepStmts=true")) {
             checkCharactersInsert(connection);
         }
 
         Statement stmt = sharedConnection.createStatement();
         assertFalse(stmt.execute("truncate LatinTable"));
 
-        try (Connection connection =
-                     DriverManager.getConnection(
-                             connU
-                                     + "?user="
-                                     + username
-                                     + (password != null && !"".equals(password) ? "&password=" + password : "")
-                                     + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                                     + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-                                     + "&useServerPrepStmts=false")) {
+        try (Connection connection = DriverManager.getConnection(
+                connU + "?user=" + username + (password != null && !"".equals(password) ? "&password=" + password : "")
+                        + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                        + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
+                        + "&useServerPrepStmts=false")) {
             checkCharactersInsert(connection);
         }
     }
 
     private void checkCharactersInsert(Connection connection) throws Throwable {
-        try (PreparedStatement preparedStatement =
-                     connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
+        try (PreparedStatement preparedStatement = connection
+                .prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
             String str = "你好(hello in Chinese)";
             try {
                 preparedStatement.setString(1, str);
@@ -1034,7 +997,8 @@ public class DatatypeTest extends BaseTest {
     /**
      * CONJ-535 : BIT data type value with numeric getter.
      *
-     * @throws SQLException if any exception occur.
+     * @throws SQLException
+     *             if any exception occur.
      */
     @Test
     public void testBitValues() throws SQLException {
@@ -1046,17 +1010,16 @@ public class DatatypeTest extends BaseTest {
 
         validResultSetBitValue(stmt.executeQuery("SELECT * FROM testShortBit"));
 
-        try (PreparedStatement preparedStatement =
-                     sharedConnection.prepareStatement("SELECT * FROM testShortBit")) {
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testShortBit")) {
             validResultSetBitValue(preparedStatement.executeQuery());
         }
     }
 
     /**
-     * CONJ-650 : NegativeArraySizeException while executing getObject(columnName, byte[].class) with
-     * null value
+     * CONJ-650 : NegativeArraySizeException while executing getObject(columnName, byte[].class) with null value
      *
-     * @throws SQLException if any exception occur.
+     * @throws SQLException
+     *             if any exception occur.
      */
     @Test
     public void testNullGetObject() throws SQLException {

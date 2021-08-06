@@ -64,16 +64,19 @@ public class ComQuery {
     /**
      * Client-side PrepareStatement.execute() packet send.
      *
-     * @param out outputStream
-     * @param clientPrepareResult clientPrepareResult
-     * @param parameters parameter
-     * @param queryTimeout query timeout
-     * @throws IOException if connection fail
+     * @param out
+     *            outputStream
+     * @param clientPrepareResult
+     *            clientPrepareResult
+     * @param parameters
+     *            parameter
+     * @param queryTimeout
+     *            query timeout
+     * @throws IOException
+     *             if connection fail
      */
-    public static void sendSubCmd(final PacketOutputStream out,
-                                  final ClientPrepareResult clientPrepareResult,
-                                  ParameterHolder[] parameters, int queryTimeout)
-                                                                                 throws IOException {
+    public static void sendSubCmd(final PacketOutputStream out, final ClientPrepareResult clientPrepareResult,
+            ParameterHolder[] parameters, int queryTimeout) throws IOException {
         out.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
             out.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
@@ -86,8 +89,7 @@ public class ComQuery {
                 parameters[i].writeTo(out);
                 out.write(clientPrepareResult.getQueryParts().get(i + 2));
             }
-            out.write(clientPrepareResult.getQueryParts().get(
-                clientPrepareResult.getParamCount() + 2));
+            out.write(clientPrepareResult.getQueryParts().get(clientPrepareResult.getParamCount() + 2));
 
         } else {
 
@@ -100,22 +102,27 @@ public class ComQuery {
     }
 
     /**
-     * Client side PreparedStatement.executeBatch values rewritten (concatenate value params according
-     * to max_allowed_packet)
+     * Client side PreparedStatement.executeBatch values rewritten (concatenate value params according to
+     * max_allowed_packet)
      *
-     * @param pos outputStream
-     * @param queryParts query parts
-     * @param currentIndex currentIndex
-     * @param paramCount parameter pos
-     * @param parameterList parameter list
-     * @param rewriteValues is query rewritable by adding values
+     * @param pos
+     *            outputStream
+     * @param queryParts
+     *            query parts
+     * @param currentIndex
+     *            currentIndex
+     * @param paramCount
+     *            parameter pos
+     * @param parameterList
+     *            parameter list
+     * @param rewriteValues
+     *            is query rewritable by adding values
      * @return current index
-     * @throws IOException if connection fail
+     * @throws IOException
+     *             if connection fail
      */
-    public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts,
-                                     int currentIndex, int paramCount,
-                                     List<ParameterHolder[]> parameterList, boolean rewriteValues)
-                                                                                                  throws IOException {
+    public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts, int currentIndex,
+            int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         int index = currentIndex;
@@ -219,8 +226,7 @@ public class ComQuery {
                     // We know the additional query part size. This permit :
                     // - to resize buffer size if needed (to avoid resize test every write)
                     // - if this query will be separated in a new packet.
-                    if (pos.checkRemainingSize(1 + parameterLength + intermediatePartLength
-                                               + lastPartLength)) {
+                    if (pos.checkRemainingSize(1 + parameterLength + intermediatePartLength + lastPartLength)) {
                         pos.write((byte) ',');
                         pos.write(secondPart, 0, secondPart.length);
 
@@ -253,19 +259,22 @@ public class ComQuery {
     }
 
     /**
-     * Statement.executeBatch() rewritten multiple (concatenate with ";") according to
-     * max_allowed_packet)
+     * Statement.executeBatch() rewritten multiple (concatenate with ";") according to max_allowed_packet)
      *
-     * @param writer outputstream
-     * @param firstQuery first query
-     * @param queries queries
-     * @param currentIndex currentIndex
+     * @param writer
+     *            outputstream
+     * @param firstQuery
+     *            first query
+     * @param queries
+     *            queries
+     * @param currentIndex
+     *            currentIndex
      * @return current index
-     * @throws IOException if connection error occur
+     * @throws IOException
+     *             if connection error occur
      */
-    public static int sendBatchAggregateSemiColon(final PacketOutputStream writer,
-                                                  String firstQuery, List<String> queries,
-                                                  int currentIndex) throws IOException {
+    public static int sendBatchAggregateSemiColon(final PacketOutputStream writer, String firstQuery,
+            List<String> queries, int currentIndex) throws IOException {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         // index is already set to 1 for first one
@@ -291,9 +300,12 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos output stream
-     * @param sqlBytes the query in UTF-8 bytes
-     * @throws IOException if connection error occur
+     * @param pos
+     *            output stream
+     * @param sqlBytes
+     *            the query in UTF-8 bytes
+     * @throws IOException
+     *             if connection error occur
      */
     public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes) throws IOException {
         pos.startPacket(0);
@@ -305,13 +317,16 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos output stream
-     * @param sqlBytes the query in UTF-8 bytes
-     * @param queryTimeout timeout using max_statement_time
-     * @throws IOException if connection error occur
+     * @param pos
+     *            output stream
+     * @param sqlBytes
+     *            the query in UTF-8 bytes
+     * @param queryTimeout
+     *            timeout using max_statement_time
+     * @throws IOException
+     *             if connection error occur
      */
-    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes, int queryTimeout)
-                                                                                                  throws IOException {
+    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes, int queryTimeout) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
@@ -324,12 +339,14 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos output stream
-     * @param sqlBytes the query in UTF-8 bytes
-     * @throws IOException if connection error occur
+     * @param pos
+     *            output stream
+     * @param sqlBytes
+     *            the query in UTF-8 bytes
+     * @throws IOException
+     *             if connection error occur
      */
-    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes)
-                                                                                           throws IOException {
+    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         for (byte[] bytes : sqlBytes) {
@@ -341,13 +358,17 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos output stream
-     * @param sqlBytes the query in UTF-8 bytes
-     * @param queryTimeout timeout using max_statement_time
-     * @throws IOException if connection error occur
+     * @param pos
+     *            output stream
+     * @param sqlBytes
+     *            the query in UTF-8 bytes
+     * @param queryTimeout
+     *            timeout using max_statement_time
+     * @throws IOException
+     *             if connection error occur
      */
-    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes,
-                                       int queryTimeout) throws IOException {
+    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes, int queryTimeout)
+            throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());

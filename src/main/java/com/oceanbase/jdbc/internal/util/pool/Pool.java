@@ -61,130 +61,124 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 
 import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.UrlParser;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 import com.oceanbase.jdbc.OceanBasePooledConnection;
+import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 import com.oceanbase.jdbc.util.Options;
 
 public class Pool implements AutoCloseable, PoolMBean {
 
-    private static final Logger                                  logger               = LoggerFactory
-                                                                                          .getLogger(Pool.class);
+    private static final Logger logger = LoggerFactory.getLogger(Pool.class);
 
-    private static final int                                     POOL_STATE_OK        = 0;
-    private static final int                                     POOL_STATE_CLOSING   = 1;
+    private static final int POOL_STATE_OK = 0;
+    private static final int POOL_STATE_CLOSING = 1;
 
-    private final AtomicInteger                                  poolState            = new AtomicInteger();
+    private final AtomicInteger poolState = new AtomicInteger();
 
-    private final UrlParser                                      urlParser;
-    private final Options                                        options;
-    private final AtomicInteger                                  pendingRequestNumber = new AtomicInteger();
-    private final AtomicInteger                                  totalConnection      = new AtomicInteger();
+    private final UrlParser urlParser;
+    private final Options options;
+    private final AtomicInteger pendingRequestNumber = new AtomicInteger();
+    private final AtomicInteger totalConnection = new AtomicInteger();
 
     private final LinkedBlockingDeque<OceanBasePooledConnection> idleConnections;
-    private final ThreadPoolExecutor                             connectionAppender;
-    private final BlockingQueue<Runnable>                        connectionAppenderQueue;
+    private final ThreadPoolExecutor connectionAppender;
+    private final BlockingQueue<Runnable> connectionAppenderQueue;
 
-    private final String                                         poolTag;
-    private final ScheduledThreadPoolExecutor                    poolExecutor;
-    private final ScheduledFuture                                scheduledFuture;
-    private GlobalStateInfo                                      globalInfo;
+    private final String poolTag;
+    private final ScheduledThreadPoolExecutor poolExecutor;
+    private final ScheduledFuture scheduledFuture;
+    private GlobalStateInfo globalInfo;
 
-    private int                                                  maxIdleTime;
-    private long                                                 timeToConnectNanos;
-    private long                                                 connectionTime       = 0;
+    private int maxIdleTime;
+    private long timeToConnectNanos;
+    private long connectionTime = 0;
 
     /**
      * Create pool from configuration.
      *
-     * @param urlParser configuration parser
-     * @param poolIndex pool index to permit distinction of thread name
-     * @param poolExecutor pools common executor
+     * @param urlParser
+     *            configuration parser
+     * @param poolIndex
+     *            pool index to permit distinction of thread name
+     * @param poolExecutor
+     *            pools common executor
      */
     public Pool(UrlParser urlParser, int poolIndex, ScheduledThreadPoolExecutor poolExecutor) {
 
-    this.urlParser = urlParser;
-    options = urlParser.getOptions();
-    this.maxIdleTime = options.maxIdleTime;
-    poolTag = generatePoolTag(poolIndex);
+        this.urlParser = urlParser;
+        options = urlParser.getOptions();
+        this.maxIdleTime = options.maxIdleTime;
+        poolTag = generatePoolTag(poolIndex);
 
-    // one thread to add new connection to pool.
-    connectionAppenderQueue = new ArrayBlockingQueue<>(options.maxPoolSize);
-    connectionAppender =
-        new ThreadPoolExecutor(
-            1,
-            1,
-            10,
-            TimeUnit.SECONDS,
-            connectionAppenderQueue,
-            new OceanBaseThreadFactory(poolTag + "-appender"));
-    connectionAppender.allowCoreThreadTimeOut(true);
-    // create workers, since driver only interact with queue after that (i.e. not using .execute() )
-    connectionAppender.prestartCoreThread();
+        // one thread to add new connection to pool.
+        connectionAppenderQueue = new ArrayBlockingQueue<>(options.maxPoolSize);
+        connectionAppender = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, connectionAppenderQueue,
+                new OceanBaseThreadFactory(poolTag + "-appender"));
+        connectionAppender.allowCoreThreadTimeOut(true);
+        // create workers, since driver only interact with queue after that (i.e. not using .execute() )
+        connectionAppender.prestartCoreThread();
 
-    idleConnections = new LinkedBlockingDeque<>();
+        idleConnections = new LinkedBlockingDeque<>();
 
-    int scheduleDelay = Math.min(30, maxIdleTime / 2);
-    this.poolExecutor = poolExecutor;
-    scheduledFuture =
-        poolExecutor.scheduleAtFixedRate(
-            this::removeIdleTimeoutConnection, scheduleDelay, scheduleDelay, TimeUnit.SECONDS);
+        int scheduleDelay = Math.min(30, maxIdleTime / 2);
+        this.poolExecutor = poolExecutor;
+        scheduledFuture = poolExecutor.scheduleAtFixedRate(this::removeIdleTimeoutConnection, scheduleDelay,
+                scheduleDelay, TimeUnit.SECONDS);
 
-    if (options.registerJmxPool) {
-      try {
-        registerJmx();
-      } catch (Exception ex) {
-        logger.error("pool " + poolTag + " not registered due to exception : " + ex.getMessage());
-      }
+        if (options.registerJmxPool) {
+            try {
+                registerJmx();
+            } catch (Exception ex) {
+                logger.error("pool " + poolTag + " not registered due to exception : " + ex.getMessage());
+            }
+        }
+
+        // create minimal connection in pool
+        try {
+            for (int i = 0; i < options.minPoolSize; i++) {
+                addConnection();
+            }
+        } catch (SQLException sqle) {
+            logger.error("error initializing pool connection", sqle);
+        }
     }
-
-    // create minimal connection in pool
-    try {
-      for (int i = 0; i < options.minPoolSize; i++) {
-        addConnection();
-      }
-    } catch (SQLException sqle) {
-      logger.error("error initializing pool connection", sqle);
-    }
-  }
 
     /**
-     * Add new connection if needed. Only one thread create new connection, so new connection request
-     * will wait to newly created connection or for a released connection.
+     * Add new connection if needed. Only one thread create new connection, so new connection request will wait to newly
+     * created connection or for a released connection.
      */
     private void addConnectionRequest() {
-    if (totalConnection.get() < options.maxPoolSize && poolState.get() == POOL_STATE_OK) {
+        if (totalConnection.get() < options.maxPoolSize && poolState.get() == POOL_STATE_OK) {
 
-      // ensure to have one worker if was timeout
-      connectionAppender.prestartCoreThread();
-      connectionAppenderQueue.offer(
-          () -> {
-            if ((totalConnection.get() < options.minPoolSize || pendingRequestNumber.get() > 0)
-                && totalConnection.get() < options.maxPoolSize) {
-              try {
-                addConnection();
-              } catch (SQLException sqle) {
-                // eat
-              }
-            }
-          });
+            // ensure to have one worker if was timeout
+            connectionAppender.prestartCoreThread();
+            connectionAppenderQueue.offer(() -> {
+                if ((totalConnection.get() < options.minPoolSize || pendingRequestNumber.get() > 0)
+                        && totalConnection.get() < options.maxPoolSize) {
+                    try {
+                        addConnection();
+                    } catch (SQLException sqle) {
+                        // eat
+                    }
+                }
+            });
+        }
     }
-  }
 
     /**
-     * Removing idle connection. Close them and recreate connection to reach minimal number of
-     * connection.
+     * Removing idle connection. Close them and recreate connection to reach minimal number of connection.
      */
     private void removeIdleTimeoutConnection() {
 
@@ -208,7 +202,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                     shouldBeReleased = true;
                 }
 
-                //  idle has reach option maxIdleTime value and pool has more connections than minPoolSiz
+                // idle has reach option maxIdleTime value and pool has more connections than minPoolSiz
                 if (timedOut && totalConnection.get() > options.minPoolSize) {
                     shouldBeReleased = true;
                 }
@@ -223,11 +217,8 @@ public class Pool implements AutoCloseable, PoolMBean {
                 silentCloseConnection(item);
                 addConnectionRequest();
                 if (logger.isDebugEnabled()) {
-                    logger
-                        .debug(
-                            "pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
-                            poolTag, totalConnection.get(), getActiveConnections(),
-                            pendingRequestNumber.get());
+                    logger.debug("pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
+                            poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
                 }
             }
         }
@@ -236,7 +227,8 @@ public class Pool implements AutoCloseable, PoolMBean {
     /**
      * Create new connection.
      *
-     * @throws SQLException if connection creation failed
+     * @throws SQLException
+     *             if connection creation failed
      */
     private void addConnection() throws SQLException {
 
@@ -257,15 +249,12 @@ public class Pool implements AutoCloseable, PoolMBean {
             connection.setDefaultTransactionIsolation(connection.getTransactionIsolation());
         }
 
-        if (poolState.get() == POOL_STATE_OK
-            && totalConnection.incrementAndGet() <= options.maxPoolSize) {
+        if (poolState.get() == POOL_STATE_OK && totalConnection.incrementAndGet() <= options.maxPoolSize) {
             idleConnections.addFirst(pooledConnection);
 
             if (logger.isDebugEnabled()) {
-                logger.debug(
-                    "pool {} new physical connection created (total:{}, active:{}, pending:{})",
-                    poolTag, totalConnection.get(), getActiveConnections(),
-                    pendingRequestNumber.get());
+                logger.debug("pool {} new physical connection created (total:{}, active:{}, pending:{})", poolTag,
+                        totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
             }
             return;
         }
@@ -282,17 +271,17 @@ public class Pool implements AutoCloseable, PoolMBean {
      *
      * @return an IDLE connection.
      */
-    private OceanBasePooledConnection getIdleConnection(long timeout, TimeUnit timeUnit)
-                                                                                        throws InterruptedException {
+    private OceanBasePooledConnection getIdleConnection(long timeout, TimeUnit timeUnit) throws InterruptedException {
 
         while (true) {
             OceanBasePooledConnection item = (timeout == 0) ? idleConnections.pollFirst()
-                : idleConnections.pollFirst(timeout, timeUnit);
+                    : idleConnections.pollFirst(timeout, timeUnit);
 
             if (item != null) {
                 OceanBaseConnection connection = item.getConnection();
                 try {
-                    if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get()) > options.poolValidMinDelay) {
+                    if (TimeUnit.NANOSECONDS
+                            .toMillis(System.nanoTime() - item.getLastUsed().get()) > options.poolValidMinDelay) {
 
                         // validate connection
                         if (connection.isValid(10)) { // 10 seconds timeout
@@ -317,11 +306,9 @@ public class Pool implements AutoCloseable, PoolMBean {
                 silentAbortConnection(item);
                 addConnectionRequest();
                 if (logger.isDebugEnabled()) {
-                    logger
-                        .debug(
+                    logger.debug(
                             "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
-                            poolTag, totalConnection.get(), getActiveConnections(),
-                            pendingRequestNumber.get());
+                            poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
                 }
                 continue;
             }
@@ -364,8 +351,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                         // sql exception during reset, removing connection from pool
                         totalConnection.decrementAndGet();
                         silentCloseConnection(item);
-                        logger.debug("connection removed from pool {} due to error during reset",
-                            poolTag);
+                        logger.debug("connection removed from pool {} due to error during reset", poolTag);
                     }
                 } else {
                     // pool is closed, should then not be render to pool, but closed.
@@ -387,8 +373,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                 }
                 silentCloseConnection(item);
                 addConnectionRequest();
-                logger
-                    .debug(
+                logger.debug(
                         "connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",
                         item.getConnection().getServerThreadId(), poolTag, totalConnection.get(),
                         getActiveConnections(), pendingRequestNumber.get());
@@ -398,12 +383,12 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     /**
-     * Retrieve new connection. If possible return idle connection, if not, stack connection query,
-     * ask for a connection creation, and loop until a connection become idle / a new connection is
-     * created.
+     * Retrieve new connection. If possible return idle connection, if not, stack connection query, ask for a connection
+     * creation, and loop until a connection become idle / a new connection is created.
      *
      * @return a connection object
-     * @throws SQLException if no connection is created when reaching timeout (connectTimeout option)
+     * @throws SQLException
+     *             if no connection is created when reaching timeout (connectTimeout option)
      */
     public OceanBaseConnection getConnection() throws SQLException {
 
@@ -415,7 +400,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             // try to get Idle connection if any (with a very small timeout)
             if ((pooledConnection = getIdleConnection(totalConnection.get() > 4 ? 0 : 50,
-                TimeUnit.MICROSECONDS)) != null) {
+                    TimeUnit.MICROSECONDS)) != null) {
                 return pooledConnection.getConnection();
             }
 
@@ -423,16 +408,14 @@ public class Pool implements AutoCloseable, PoolMBean {
             addConnectionRequest();
 
             // try to create new connection if semaphore permit it
-            if ((pooledConnection = getIdleConnection(
-                TimeUnit.MILLISECONDS.toNanos(options.connectTimeout), TimeUnit.NANOSECONDS)) != null) {
+            if ((pooledConnection = getIdleConnection(TimeUnit.MILLISECONDS.toNanos(options.connectTimeout),
+                    TimeUnit.NANOSECONDS)) != null) {
                 return pooledConnection.getConnection();
             }
 
-            throw ExceptionFactory.INSTANCE
-                .create(String
-                    .format(
-                        "No connection available within the specified time (option 'connectTimeout': %s ms)",
-                        NumberFormat.getInstance().format(options.connectTimeout)));
+            throw ExceptionFactory.INSTANCE.create(
+                    String.format("No connection available within the specified time (option 'connectTimeout': %s ms)",
+                            NumberFormat.getInstance().format(options.connectTimeout)));
 
         } catch (InterruptedException interrupted) {
             throw ExceptionFactory.INSTANCE.create("Thread was interrupted", "70100", interrupted);
@@ -442,22 +425,24 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     /**
-     * Get new connection from pool if user and password correspond to pool. If username and password
-     * are different from pool, will return a dedicated connection.
+     * Get new connection from pool if user and password correspond to pool. If username and password are different from
+     * pool, will return a dedicated connection.
      *
-     * @param username username
-     * @param password password
+     * @param username
+     *            username
+     * @param password
+     *            password
      * @return connection
-     * @throws SQLException if any error occur during connection
+     * @throws SQLException
+     *             if any error occur during connection
      */
     public OceanBaseConnection getConnection(String username, String password) throws SQLException {
 
         try {
 
-            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username)
-                : username == null)
-                && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password)
-                    : password == null)) {
+            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username) : username == null)
+                    && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password)
+                            : password == null)) {
                 return getConnection();
             }
 
@@ -469,8 +454,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
         } catch (CloneNotSupportedException cloneException) {
             // cannot occur
-            throw new SQLException("Error getting connection, parameters cannot be cloned",
-                cloneException);
+            throw new SQLException("Error getting connection, parameters cannot be cloned", cloneException);
         }
     }
 
@@ -488,68 +472,58 @@ public class Pool implements AutoCloseable, PoolMBean {
     /**
      * Close pool and underlying connections.
      *
-     * @throws InterruptedException if interrupted
+     * @throws InterruptedException
+     *             if interrupted
      */
     public void close() throws InterruptedException {
-    synchronized (this) {
-      Pools.remove(this);
-      poolState.set(POOL_STATE_CLOSING);
-      pendingRequestNumber.set(0);
+        synchronized (this) {
+            Pools.remove(this);
+            poolState.set(POOL_STATE_CLOSING);
+            pendingRequestNumber.set(0);
 
-      scheduledFuture.cancel(false);
-      connectionAppender.shutdown();
+            scheduledFuture.cancel(false);
+            connectionAppender.shutdown();
 
-      try {
-        connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
-      } catch (InterruptedException i) {
-        // eat
-      }
+            try {
+                connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException i) {
+                // eat
+            }
 
-      if (logger.isInfoEnabled()) {
-        logger.info(
-            "closing pool {} (total:{}, active:{}, pending:{})",
-            poolTag,
-            totalConnection.get(),
-            getActiveConnections(),
-            pendingRequestNumber.get());
-      }
+            if (logger.isInfoEnabled()) {
+                logger.info("closing pool {} (total:{}, active:{}, pending:{})", poolTag, totalConnection.get(),
+                        getActiveConnections(), pendingRequestNumber.get());
+            }
 
-      ExecutorService connectionRemover =
-          new ThreadPoolExecutor(
-              totalConnection.get(),
-              options.maxPoolSize,
-              10,
-              TimeUnit.SECONDS,
-              new LinkedBlockingQueue<>(options.maxPoolSize),
-              new OceanBaseThreadFactory(poolTag + "-destroyer"));
+            ExecutorService connectionRemover = new ThreadPoolExecutor(totalConnection.get(), options.maxPoolSize, 10,
+                    TimeUnit.SECONDS, new LinkedBlockingQueue<>(options.maxPoolSize),
+                    new OceanBaseThreadFactory(poolTag + "-destroyer"));
 
-      // loop for up to 10 seconds to close not used connection
-      long start = System.nanoTime();
-      do {
-        closeAll(connectionRemover, idleConnections);
-        if (totalConnection.get() > 0) {
-          Thread.sleep(0, 10_00);
+            // loop for up to 10 seconds to close not used connection
+            long start = System.nanoTime();
+            do {
+                closeAll(connectionRemover, idleConnections);
+                if (totalConnection.get() > 0) {
+                    Thread.sleep(0, 10_00);
+                }
+            } while (totalConnection.get() > 0 && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 10);
+
+            // after having wait for 10 seconds, force removal, even if used connections
+            if (totalConnection.get() > 0 || idleConnections.isEmpty()) {
+                closeAll(connectionRemover, idleConnections);
+            }
+
+            connectionRemover.shutdown();
+            try {
+                unRegisterJmx();
+            } catch (Exception exception) {
+                // eat
+            }
+            connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
         }
-      } while (totalConnection.get() > 0
-          && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 10);
-
-      // after having wait for 10 seconds, force removal, even if used connections
-      if (totalConnection.get() > 0 || idleConnections.isEmpty()) {
-        closeAll(connectionRemover, idleConnections);
-      }
-
-      connectionRemover.shutdown();
-      try {
-        unRegisterJmx();
-      } catch (Exception exception) {
-        // eat
-      }
-      connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
     }
-  }
 
-    private void closeAll(ExecutorService connectionRemover,
-                          Collection<OceanBasePooledConnection> collection) {
+    private void closeAll(ExecutorService connectionRemover, Collection<OceanBasePooledConnection> collection) {
         synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
             for (OceanBasePooledConnection item : collection) {
                 collection.remove(item);
@@ -564,52 +538,39 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     private void initializePoolGlobalState(OceanBaseConnection connection) throws SQLException {
-    try (Statement stmt = connection.createStatement()) {
-      String sql =
-          "SELECT @@max_allowed_packet,"
-              + "@@wait_timeout,"
-              + "@@autocommit,"
-              + "@@auto_increment_increment,"
-              + "@@time_zone,"
-              + "@@system_time_zone,"
-              + "@@tx_isolation";
-      if (!connection.isServerMariaDb()) {
-        int major = connection.getMetaData().getDatabaseMajorVersion();
-        if ((major >= 8 && connection.versionGreaterOrEqual(8, 0, 3))
-            || (major < 8 && connection.versionGreaterOrEqual(5, 7, 20))) {
-          sql =
-              "SELECT @@max_allowed_packet,"
-                  + "@@wait_timeout,"
-                  + "@@autocommit,"
-                  + "@@auto_increment_increment,"
-                  + "@@time_zone,"
-                  + "@@system_time_zone,"
-                  + "@@transaction_isolation";
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "SELECT @@max_allowed_packet," + "@@wait_timeout," + "@@autocommit,"
+                    + "@@auto_increment_increment," + "@@time_zone," + "@@system_time_zone," + "@@tx_isolation";
+            if (!connection.isServerMariaDb()) {
+                int major = connection.getMetaData().getDatabaseMajorVersion();
+                if ((major >= 8 && connection.versionGreaterOrEqual(8, 0, 3))
+                        || (major < 8 && connection.versionGreaterOrEqual(5, 7, 20))) {
+                    sql = "SELECT @@max_allowed_packet," + "@@wait_timeout," + "@@autocommit,"
+                            + "@@auto_increment_increment," + "@@time_zone," + "@@system_time_zone,"
+                            + "@@transaction_isolation";
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+
+                rs.next();
+
+                int transactionIsolation = Utils.transactionFromString(rs.getString(7)); // tx_isolation
+
+                globalInfo = new GlobalStateInfo(rs.getLong(1), // max_allowed_packet
+                        rs.getInt(2), // wait_timeout
+                        rs.getBoolean(3), // autocommit
+                        rs.getInt(4), // autoIncrementIncrement
+                        rs.getString(5), // time_zone
+                        rs.getString(6), // system_time_zone
+                        transactionIsolation);
+
+                // ensure that the options "maxIdleTime" is not > to server wait_timeout
+                // removing 45s since scheduler check status every 30s
+                maxIdleTime = Math.min(options.maxIdleTime, globalInfo.getWaitTimeout() - 45);
+            }
         }
-      }
-
-      try (ResultSet rs = stmt.executeQuery(sql)) {
-
-        rs.next();
-
-        int transactionIsolation = Utils.transactionFromString(rs.getString(7)); // tx_isolation
-
-        globalInfo =
-            new GlobalStateInfo(
-                rs.getLong(1), // max_allowed_packet
-                rs.getInt(2), // wait_timeout
-                rs.getBoolean(3), // autocommit
-                rs.getInt(4), // autoIncrementIncrement
-                rs.getString(5), // time_zone
-                rs.getString(6), // system_time_zone
-                transactionIsolation);
-
-        // ensure that the options "maxIdleTime" is not > to server wait_timeout
-        // removing 45s since scheduler check  status every 30s
-        maxIdleTime = Math.min(options.maxIdleTime, globalInfo.getWaitTimeout() - 45);
-      }
     }
-  }
 
     public String getPoolTag() {
         return poolTag;
@@ -683,12 +644,12 @@ public class Pool implements AutoCloseable, PoolMBean {
      * @return current thread id's
      */
     public List<Long> testGetConnectionIdleThreadIds() {
-    List<Long> threadIds = new ArrayList<>();
-    for (OceanBasePooledConnection pooledConnection : idleConnections) {
-      threadIds.add(pooledConnection.getConnection().getServerThreadId());
+        List<Long> threadIds = new ArrayList<>();
+        for (OceanBasePooledConnection pooledConnection : idleConnections) {
+            threadIds.add(pooledConnection.getConnection().getServerThreadId());
+        }
+        return threadIds;
     }
-    return threadIds;
-  }
 
     /** JMX method to remove state (will be reinitialized on next connection creation). */
     public void resetStaticGlobal() {

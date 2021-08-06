@@ -59,23 +59,23 @@ import java.io.Serializable;
  */
 public class Field implements Serializable {
 
-    private static final long  serialVersionUID = 8746587465875676L;
+    private static final long serialVersionUID = 8746587465875676L;
 
-    public final FieldElement  ZERO;
-    public final FieldElement  ONE;
-    public final FieldElement  TWO;
-    public final FieldElement  FOUR;
-    public final FieldElement  FIVE;
-    public final FieldElement  EIGHT;
+    public final FieldElement ZERO;
+    public final FieldElement ONE;
+    public final FieldElement TWO;
+    public final FieldElement FOUR;
+    public final FieldElement FIVE;
+    public final FieldElement EIGHT;
 
-    private final int          b;
+    private final int b;
     private final FieldElement q;
     /** q-2 */
     private final FieldElement qm2;
     /** (q-5) / 8 */
     private final FieldElement qm5d8;
 
-    private final Encoding     enc;
+    private final Encoding enc;
 
     public Field(int b, byte[] q, Encoding enc) {
         this.b = b;

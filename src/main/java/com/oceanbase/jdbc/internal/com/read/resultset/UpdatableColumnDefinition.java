@@ -61,16 +61,21 @@ public class UpdatableColumnDefinition extends ColumnDefinition {
     /**
      * Constructor of Column metadata.
      *
-     * @param columnDefinition column meta information
-     * @param canBeNull can column be null
-     * @param hasDefault has default
-     * @param generated is automatically generated
-     * @param primary is column part of primary key
-     * @param autoIncrement column has AUTO_INCREMENT attribute
+     * @param columnDefinition
+     *            column meta information
+     * @param canBeNull
+     *            can column be null
+     * @param hasDefault
+     *            has default
+     * @param generated
+     *            is automatically generated
+     * @param primary
+     *            is column part of primary key
+     * @param autoIncrement
+     *            column has AUTO_INCREMENT attribute
      */
-    public UpdatableColumnDefinition(ColumnDefinition columnDefinition, boolean canBeNull,
-                                     boolean hasDefault, boolean generated, boolean primary,
-                                     boolean autoIncrement) {
+    public UpdatableColumnDefinition(ColumnDefinition columnDefinition, boolean canBeNull, boolean hasDefault,
+            boolean generated, boolean primary, boolean autoIncrement) {
         super(columnDefinition);
         this.canBeNull = canBeNull;
         this.hasDefault = hasDefault;

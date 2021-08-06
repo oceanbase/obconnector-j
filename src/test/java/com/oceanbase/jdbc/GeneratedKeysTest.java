@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,14 +63,13 @@ public class GeneratedKeysTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("gen_key_test",
-            "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
-        createTable("gen_key_test2",
-            "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
+        createTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
+        createTable("gen_key_test2", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class GeneratedKeysTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.execute("truncate gen_key_test");
         statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')",
-            Statement.RETURN_GENERATED_KEYS);
+                Statement.RETURN_GENERATED_KEYS);
         int[] autoInc = setAutoInc();
         ResultSet resultSet = statement.getGeneratedKeys();
         assertTrue(resultSet.next());
@@ -87,9 +87,8 @@ public class GeneratedKeysTest extends BaseTest {
     @Test
     public void testSimpleGeneratedKeysWithPreparedStatement() throws SQLException {
         sharedConnection.createStatement().execute("truncate gen_key_test");
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("INSERT INTO gen_key_test (id, name) VALUES (null, ?)",
-                Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT INTO gen_key_test (id, name) VALUES (null, ?)", Statement.RETURN_GENERATED_KEYS);
 
         preparedStatement.setString(1, "Dave");
         preparedStatement.execute();
@@ -106,10 +105,8 @@ public class GeneratedKeysTest extends BaseTest {
         statement.execute("truncate gen_key_test");
         statement.execute("INSERT INTO gen_key_test (name) VALUES ('Dave')");
         int[] autoInc = setAutoInc();
-        statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES ("
-                                + (autoInc[0] + autoInc[1])
-                                + ", 'Dave') ON DUPLICATE KEY UPDATE id = id",
-            Statement.RETURN_GENERATED_KEYS);
+        statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (" + (autoInc[0] + autoInc[1])
+                + ", 'Dave') ON DUPLICATE KEY UPDATE id = id", Statement.RETURN_GENERATED_KEYS);
         // From the Javadoc: "If this Statement object did not generate any keys, an empty ResultSet
         // object is returned."
         ResultSet resultSet = statement.getGeneratedKeys();
@@ -122,15 +119,16 @@ public class GeneratedKeysTest extends BaseTest {
     /**
      * CONJ-284: Cannot read autoincremented IDs bigger than Short.MAX_VALUE.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @Test
     public void testGeneratedKeysNegativeValue() throws SQLException {
         Assume.assumeFalse(isGalera());
         Statement statement = sharedConnection.createStatement();
         statement.execute("ALTER TABLE gen_key_test2 AUTO_INCREMENT = 65500");
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-            "INSERT INTO gen_key_test2 (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("INSERT INTO gen_key_test2 (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
         preparedStatement.setString(1, "t");
         preparedStatement.execute();
 

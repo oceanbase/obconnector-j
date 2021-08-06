@@ -48,9 +48,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.sql.SQLException;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 /**
  * @author hongwei.yhw
@@ -93,8 +94,7 @@ public class UrlParserTest {
         Assert.assertEquals(HaMode.NONE, parser.getHaMode());
 
         parser = UrlParser.parse("jdbc:oceanbase:oracle:loadbalance://127.1:3306/schema?a=b");
-        assertEquals("jdbc:oceanbase:oracle:loadbalance://127.1:3306/schema?a=b",
-            parser.getInitialUrl());
+        assertEquals("jdbc:oceanbase:oracle:loadbalance://127.1:3306/schema?a=b", parser.getInitialUrl());
         assertEquals("127.1", parser.getHostAddresses().get(0).host);
         assertEquals(3306, parser.getHostAddresses().get(0).port);
         assertEquals("schema", parser.getDatabase());

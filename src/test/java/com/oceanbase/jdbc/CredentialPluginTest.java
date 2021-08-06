@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.*;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,20 +62,19 @@ public class CredentialPluginTest extends BaseTest {
     /**
      * Create temporary test User.
      *
-     * @throws SQLException if any
+     * @throws SQLException
+     *             if any
      */
     @Before
     public void before() throws SQLException {
         boolean useOldNotation = true;
-        if ((isMariadbServer() && minVersion(10, 2, 0))
-            || (!isMariadbServer() && minVersion(8, 0, 0))) {
+        if ((isMariadbServer() && minVersion(10, 2, 0)) || (!isMariadbServer() && minVersion(8, 0, 0))) {
             useOldNotation = false;
         }
         Statement stmt = sharedConnection.createStatement();
         if (useOldNotation) {
             stmt.execute("CREATE USER 'identityUser'@'%'");
-            stmt.execute("GRANT SELECT ON " + database
-                         + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+            stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
         } else {
             stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
             stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%'");
@@ -84,7 +84,8 @@ public class CredentialPluginTest extends BaseTest {
     /**
      * remove temporary test User.
      *
-     * @throws SQLException if any
+     * @throws SQLException
+     *             if any
      */
     @After
     public void after() throws SQLException {
@@ -93,51 +94,37 @@ public class CredentialPluginTest extends BaseTest {
     }
 
     @Test
-  public void propertiesIdentityTest() throws SQLException {
-    System.setProperty("mariadb.user", "identityUser");
-    System.setProperty("mariadb.pwd", "!Passw0rd3Works");
+    public void propertiesIdentityTest() throws SQLException {
+        System.setProperty("mariadb.user", "identityUser");
+        System.setProperty("mariadb.pwd", "!Passw0rd3Works");
 
-    try (Connection conn =
-        DriverManager.getConnection(
-            "jdbc:oceanbase://"
-                + ((hostname == null) ? "localhost" : hostname)
-                + ":"
-                + port
-                + "/"
-                + ((database == null) ? "" : database)
-                + "?credentialType=PROPERTY"
-                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                + ((options.serverSslCert != null)
-                    ? "&serverSslCert=" + options.serverSslCert
-                    : ""))) {
-      Statement stmt = conn.createStatement();
+        try (Connection conn = DriverManager
+                .getConnection("jdbc:oceanbase://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
+                        + ((database == null) ? "" : database) + "?credentialType=PROPERTY"
+                        + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                        + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : ""))) {
+            Statement stmt = conn.createStatement();
 
-      ResultSet rs = stmt.executeQuery("SELECT '5'");
-      Assert.assertTrue(rs.next());
-      Assert.assertEquals("5", rs.getString(1));
+            ResultSet rs = stmt.executeQuery("SELECT '5'");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("5", rs.getString(1));
+        }
     }
-  }
 
     @Test
-  public void specificPropertiesIdentityTest() throws SQLException {
-    System.setProperty("myUserKey", "identityUser");
-    System.setProperty("myPwdKey", "!Passw0rd3Works");
+    public void specificPropertiesIdentityTest() throws SQLException {
+        System.setProperty("myUserKey", "identityUser");
+        System.setProperty("myPwdKey", "!Passw0rd3Works");
 
-    try (Connection conn =
-        DriverManager.getConnection(
-            "jdbc:oceanbase://"
-                + ((hostname == null) ? "localhost" : hostname)
-                + ":"
-                + port
-                + "/"
-                + ((database == null) ? "" : database)
-                + "?credentialType=PROPERTY"
-                + "&userKey=myUserKey&pwdKey=myPwdKey")) {
-      Statement stmt = conn.createStatement();
+        try (Connection conn = DriverManager
+                .getConnection("jdbc:oceanbase://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
+                        + ((database == null) ? "" : database) + "?credentialType=PROPERTY"
+                        + "&userKey=myUserKey&pwdKey=myPwdKey")) {
+            Statement stmt = conn.createStatement();
 
-      ResultSet rs = stmt.executeQuery("SELECT '5'");
-      Assert.assertTrue(rs.next());
-      Assert.assertEquals("5", rs.getString(1));
+            ResultSet rs = stmt.executeQuery("SELECT '5'");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("5", rs.getString(1));
+        }
     }
-  }
 }

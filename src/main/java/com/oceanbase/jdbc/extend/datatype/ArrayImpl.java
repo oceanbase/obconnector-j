@@ -43,7 +43,6 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
-import com.oceanbase.jdbc.ObArray;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -52,9 +51,11 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
 
+import com.oceanbase.jdbc.ObArray;
+
 public class ArrayImpl extends ComplexData implements ObArray {
 
-    private int      cur_pos            = -1;
+    private int cur_pos = -1;
     public final int COLUMN_INDEX_INDEX = 1;
     public final int COLUMN_INDEX_VALUE = 2;
 
@@ -108,8 +109,7 @@ public class ArrayImpl extends ComplexData implements ObArray {
     }
 
     @Override
-    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map)
-                                                                                   throws SQLException {
+    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
         return null;
     }
 
@@ -671,20 +671,17 @@ public class ArrayImpl extends ComplexData implements ObArray {
     }
 
     @Override
-    public void updateAsciiStream(String columnLabel, InputStream x, int length)
-                                                                                throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateBinaryStream(String columnLabel, InputStream x, int length)
-                                                                                 throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateCharacterStream(String columnLabel, Reader reader, int length)
-                                                                                    throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
@@ -974,8 +971,7 @@ public class ArrayImpl extends ComplexData implements ObArray {
     }
 
     @Override
-    public void updateNCharacterStream(String columnLabel, Reader reader, long length)
-                                                                                      throws SQLException {
+    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
 
     }
 
@@ -995,32 +991,27 @@ public class ArrayImpl extends ComplexData implements ObArray {
     }
 
     @Override
-    public void updateAsciiStream(String columnLabel, InputStream x, long length)
-                                                                                 throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateBinaryStream(String columnLabel, InputStream x, long length)
-                                                                                  throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateCharacterStream(String columnLabel, Reader reader, long length)
-                                                                                     throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateBlob(int columnIndex, InputStream inputStream, long length)
-                                                                                 throws SQLException {
+    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public void updateBlob(String columnLabel, InputStream inputStream, long length)
-                                                                                    throws SQLException {
+    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 

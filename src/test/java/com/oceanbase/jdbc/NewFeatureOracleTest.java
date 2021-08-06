@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
 
 public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
@@ -148,7 +148,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             try {
                 stmt.execute("drop table  test_change_user");
             } catch (SQLException e) {
-                //                e.printStackTrace();
+                // e.printStackTrace();
             }
             stmt.execute("create table test_change_user(c1 int);");
             stmt.execute("insert into test_change_user values(100)");
@@ -176,7 +176,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             try {
                 stmt.execute("drop table  test_change_user");
             } catch (SQLException e) {
-                //                e.printStackTrace();
+                // e.printStackTrace();
             }
             stmt.execute("create table test_change_user(c1 int);");
             stmt.execute("insert into test_change_user values(100)");

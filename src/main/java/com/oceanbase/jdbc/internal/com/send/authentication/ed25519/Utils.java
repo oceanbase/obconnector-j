@@ -60,8 +60,10 @@ public class Utils {
     /**
      * Constant-time byte comparison.
      *
-     * @param b a byte
-     * @param c a byte
+     * @param b
+     *            a byte
+     * @param c
+     *            a byte
      * @return 1 if b and c are equal, 0 otherwise.
      */
     public static int equal(int b, int c) {
@@ -76,8 +78,10 @@ public class Utils {
     /**
      * Constant-time byte[] comparison.
      *
-     * @param b a byte[]
-     * @param c a byte[]
+     * @param b
+     *            a byte[]
+     * @param c
+     *            a byte[]
      * @return 1 if b and c are equal, 0 otherwise.
      */
     public static int equal(byte[] b, byte[] c) {
@@ -92,7 +96,8 @@ public class Utils {
     /**
      * Constant-time determine if byte is negative.
      *
-     * @param b the byte to check.
+     * @param b
+     *            the byte to check.
      * @return 1 if the byte is negative, 0 otherwise.
      */
     public static int negative(int b) {
@@ -102,8 +107,10 @@ public class Utils {
     /**
      * Get the i'th bit of a byte array.
      *
-     * @param h the byte array.
-     * @param i the bit index.
+     * @param h
+     *            the byte array.
+     * @param i
+     *            the bit index.
      * @return 0 or 1, the value of the i'th bit in h
      */
     public static int bit(byte[] h, int i) {
@@ -113,15 +120,15 @@ public class Utils {
     /**
      * Converts a hex string to bytes.
      *
-     * @param s the hex string to be converted.
+     * @param s
+     *            the hex string to be converted.
      * @return the byte[]
      */
     public static byte[] hexToBytes(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(
-                s.charAt(i + 1), 16));
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
         }
         return data;
     }
@@ -129,7 +136,8 @@ public class Utils {
     /**
      * Converts bytes to a hex string.
      *
-     * @param raw the byte[] to be converted.
+     * @param raw
+     *            the byte[] to be converted.
      * @return the hex representation as a string.
      */
     public static String bytesToHex(byte[] raw) {
@@ -138,8 +146,7 @@ public class Utils {
         }
         final StringBuilder hex = new StringBuilder(2 * raw.length);
         for (final byte b : raw) {
-            hex.append(Character.forDigit((b & 0xF0) >> 4, 16)).append(
-                Character.forDigit((b & 0x0F), 16));
+            hex.append(Character.forDigit((b & 0xF0) >> 4, 16)).append(Character.forDigit((b & 0x0F), 16));
         }
         return hex.toString();
     }

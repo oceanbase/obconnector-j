@@ -50,14 +50,14 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.extend.datatype.ComplexUtil;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.util.Options;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 public class OBArrayParameter implements Cloneable, ParameterHolder {
     ObArray arrayValue;
@@ -69,8 +69,7 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
     }
 
     /**
-     * see complex data type protocol
-     * https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
+     * see complex data type protocol https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
      */
     public void storeArrayTypeInfo(PacketOutputStream packet) throws IOException, SQLException {
         ObArray array = arrayValue;
@@ -79,8 +78,7 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
         packet.writeFieldLength(array.getComplexType().getVersion());
         int elementType = ComplexUtil.getMysqlType(array.getBaseType()).getType();
         packet.writeBytes((byte) elementType, 1);
-        if (elementType >= ColumnType.COMPLEX.getType()
-            && elementType <= ColumnType.STRUCT.getType()) {
+        if (elementType >= ColumnType.COMPLEX.getType() && elementType <= ColumnType.STRUCT.getType()) {
             byte[] tmp = array.getComplexType().getAttrType(0).getSchemaName().getBytes();
             packet.writeFieldLength(tmp.length);
             packet.write(tmp);
@@ -109,8 +107,8 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
             byte[] nullBitsBuffer = new byte[nullCount];
             for (int i = 0; i < arrayValue.getAttrCount(); ++i) {
                 if (null != arrayValue.getAttrData(i)) {
-                    ComplexUtil.storeComplexAttrData(pos, arrayValue.getComplexType()
-                        .getAttrType(0), arrayValue.getAttrData(i), options);
+                    ComplexUtil.storeComplexAttrData(pos, arrayValue.getComplexType().getAttrType(0),
+                            arrayValue.getAttrData(i), options);
                 } else {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }

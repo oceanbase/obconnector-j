@@ -49,7 +49,7 @@ import java.sql.SQLException;
 
 public class NUMBER extends Datum {
     private BigDecimal bigDecimal;
-    static final long  serialVersionUID = -1656085588913430059L;
+    static final long serialVersionUID = -1656085588913430059L;
 
     public NUMBER() {
     }
@@ -65,12 +65,10 @@ public class NUMBER extends Datum {
     public boolean isConvertibleTo(Class var1) {
         String var2 = var1.getName();
         return var2.compareTo("java.lang.Integer") == 0 || var2.compareTo("java.lang.Long") == 0
-               || var2.compareTo("java.lang.Float") == 0 || var2.compareTo("java.lang.Double") == 0
-               || var2.compareTo("java.math.BigInteger") == 0
-               || var2.compareTo("java.math.BigDecimal") == 0
-               || var2.compareTo("java.lang.String") == 0
-               || var2.compareTo("java.lang.Boolean") == 0 || var2.compareTo("java.lang.Byte") == 0
-               || var2.compareTo("java.lang.Short") == 0;
+                || var2.compareTo("java.lang.Float") == 0 || var2.compareTo("java.lang.Double") == 0
+                || var2.compareTo("java.math.BigInteger") == 0 || var2.compareTo("java.math.BigDecimal") == 0
+                || var2.compareTo("java.lang.String") == 0 || var2.compareTo("java.lang.Boolean") == 0
+                || var2.compareTo("java.lang.Byte") == 0 || var2.compareTo("java.lang.Short") == 0;
     }
 
     @Override

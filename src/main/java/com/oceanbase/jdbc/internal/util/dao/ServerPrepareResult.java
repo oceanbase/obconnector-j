@@ -52,34 +52,39 @@ package com.oceanbase.jdbc.internal.util.dao;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareResult implements PrepareResult {
 
     private final ColumnDefinition[] columns;
     private final ColumnDefinition[] parameters;
-    private final String             sql;
-    private final AtomicBoolean      inCache      = new AtomicBoolean();
-    private int                      statementId;
-    private ColumnType[]             parameterTypeHeader;
-    private Protocol                 unProxiedProtocol;
+    private final String sql;
+    private final AtomicBoolean inCache = new AtomicBoolean();
+    private int statementId;
+    private ColumnType[] parameterTypeHeader;
+    private Protocol unProxiedProtocol;
     // share indicator
-    private volatile int             shareCounter = 1;
-    private volatile boolean         isBeingDeallocate;
+    private volatile int shareCounter = 1;
+    private volatile boolean isBeingDeallocate;
 
     /**
      * PrepareStatement Result object.
      *
-     * @param sql query
-     * @param statementId server statement Id.
-     * @param columns columns information
-     * @param parameters parameters information
-     * @param unProxiedProtocol indicate the protocol on which the prepare has been done
+     * @param sql
+     *            query
+     * @param statementId
+     *            server statement Id.
+     * @param columns
+     *            columns information
+     * @param parameters
+     *            parameters information
+     * @param unProxiedProtocol
+     *            indicate the protocol on which the prepare has been done
      */
-    public ServerPrepareResult(String sql, int statementId, ColumnDefinition[] columns,
-                               ColumnDefinition[] parameters, Protocol unProxiedProtocol) {
+    public ServerPrepareResult(String sql, int statementId, ColumnDefinition[] columns, ColumnDefinition[] parameters,
+            Protocol unProxiedProtocol) {
         this.sql = sql;
         this.statementId = statementId;
         this.columns = columns;
@@ -95,8 +100,10 @@ public class ServerPrepareResult implements PrepareResult {
     /**
      * Update information after a failover.
      *
-     * @param statementId new statement Id
-     * @param unProxiedProtocol the protocol on which the prepare has been done
+     * @param statementId
+     *            new statement Id
+     * @param unProxiedProtocol
+     *            the protocol on which the prepare has been done
      */
     public void failover(int statementId, Protocol unProxiedProtocol) {
         this.statementId = statementId;
@@ -134,8 +141,7 @@ public class ServerPrepareResult implements PrepareResult {
     }
 
     /**
-     * Asked if can be deallocate (is not shared in other statement and not in cache) Set deallocate
-     * flag to true if so.
+     * Asked if can be deallocate (is not shared in other statement and not in cache) Set deallocate flag to true if so.
      *
      * @return true if can be deallocate
      */

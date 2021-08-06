@@ -56,10 +56,12 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -91,20 +93,20 @@ public class DistributedTransactionTest extends BaseTest {
     }
 
     private Xid newXid() {
-        return new OceanBaseXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID()
-            .toString().getBytes());
+        return new OceanBaseXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
     }
 
     private Xid newXid(Xid branchFrom) {
-        return new OceanBaseXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID()
-            .toString().getBytes());
+        return new OceanBaseXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
     }
 
     /**
      * 2 phase commit , with either commit or rollback at the end.
      *
-     * @param doCommit must commit
-     * @throws Exception exception
+     * @param doCommit
+     *            must commit
+     * @throws Exception
+     *             exception
      */
     private int test2PhaseCommit(boolean doCommit) throws Exception {
 
@@ -152,22 +154,19 @@ public class DistributedTransactionTest extends BaseTest {
         return connectionNumber;
     }
 
-    private void startAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids)
-                                                                                              throws XAException {
+    private void startAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
         for (int i = 0; i < connectionNumber; i++) {
             xaResources[i].start(xids[i], XAResource.TMNOFLAGS);
         }
     }
 
-    private void endAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids)
-                                                                                            throws XAException {
+    private void endAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
         for (int i = 0; i < connectionNumber; i++) {
             xaResources[i].end(xids[i], XAResource.TMSUCCESS);
         }
     }
 
-    private void prepareAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids)
-                                                                                                throws XAException {
+    private void prepareAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
         for (int i = 0; i < connectionNumber; i++) {
             xaResources[i].prepare(xids[i]);
         }
@@ -175,34 +174,31 @@ public class DistributedTransactionTest extends BaseTest {
 
     private void insertDatas(int connectionNumber, Connection[] connections) throws SQLException {
         for (int i = 0; i < connectionNumber; i++) {
-            connections[i].createStatement()
-                .executeUpdate("INSERT INTO xatable VALUES (" + i + ")");
+            connections[i].createStatement().executeUpdate("INSERT INTO xatable VALUES (" + i + ")");
         }
     }
 
     @Test
-  public void testCommit() throws Exception {
-    int connectionNumber = test2PhaseCommit(true);
+    public void testCommit() throws Exception {
+        int connectionNumber = test2PhaseCommit(true);
 
-    // check the completion
-    try (ResultSet rs =
-        sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
-      for (int i = 0; i < connectionNumber; i++) {
-        assertTrue(rs.next());
-        assertEquals(rs.getInt(1), i);
-      }
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            for (int i = 0; i < connectionNumber; i++) {
+                assertTrue(rs.next());
+                assertEquals(rs.getInt(1), i);
+            }
+        }
     }
-  }
 
     @Test
-  public void testRollback() throws Exception {
-    test2PhaseCommit(false);
-    // check the completion
-    try (ResultSet rs =
-        sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
-      assertFalse(rs.next());
+    public void testRollback() throws Exception {
+        test2PhaseCommit(false);
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            assertFalse(rs.next());
+        }
     }
-  }
 
     @Test
     public void testRecover() throws Exception {
@@ -215,8 +211,7 @@ public class DistributedTransactionTest extends BaseTest {
             connection.createStatement().executeQuery("SELECT 1");
             xaResource.end(xid, XAResource.TMSUCCESS);
             xaResource.prepare(xid);
-            Xid[] recoveredXids = xaResource.recover(XAResource.TMSTARTRSCAN
-                                                     | XAResource.TMENDRSCAN);
+            Xid[] recoveredXids = xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
             assertTrue(recoveredXids != null);
             assertTrue(recoveredXids.length > 0);
             boolean found = false;

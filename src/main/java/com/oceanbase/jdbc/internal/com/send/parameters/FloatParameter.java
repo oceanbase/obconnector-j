@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
@@ -73,8 +74,10 @@ public class FloatParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.writeInt(Float.floatToIntBits(value));

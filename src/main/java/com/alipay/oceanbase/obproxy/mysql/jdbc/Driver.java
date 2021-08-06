@@ -43,10 +43,10 @@
  */
 package com.alipay.oceanbase.obproxy.mysql.jdbc;
 
-import com.oceanbase.jdbc.internal.util.DeRegister;
-
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import com.oceanbase.jdbc.internal.util.DeRegister;
 
 public class Driver extends com.oceanbase.jdbc.Driver {
 

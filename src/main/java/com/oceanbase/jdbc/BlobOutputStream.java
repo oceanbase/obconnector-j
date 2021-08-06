@@ -57,7 +57,7 @@ import java.io.OutputStream;
 class BlobOutputStream extends OutputStream {
 
     private final Blob blob;
-    private int        pos;
+    private int pos;
 
     public BlobOutputStream(Blob blob, int pos) {
         this.blob = blob;

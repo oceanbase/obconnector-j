@@ -46,13 +46,14 @@ package com.oceanbase.jdbc.extend.datatype;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class NUMBER_FLOAT extends Datum {
 
     private final float value;
-    private BigDecimal  bigDecimal = null;
+    private BigDecimal bigDecimal = null;
 
     public NUMBER_FLOAT(float value) {
         this.value = value;
@@ -77,8 +78,10 @@ public class NUMBER_FLOAT extends Datum {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.writeLong(Double.doubleToLongBits(value));

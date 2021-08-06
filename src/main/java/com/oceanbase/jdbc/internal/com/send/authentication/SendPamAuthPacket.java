@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.com.send.authentication;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -61,10 +62,10 @@ import com.oceanbase.jdbc.util.Options;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {
 
-    private String  authenticationData;
-    private String  passwordCharacterEncoding;
+    private String authenticationData;
+    private String passwordCharacterEncoding;
     private Options options;
-    private int     counter = 0;
+    private int counter = 0;
 
     @Override
     public String name() {
@@ -79,9 +80,12 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
     /**
      * Initialization.
      *
-     * @param authenticationData authentication data (password/token)
-     * @param seed server provided seed
-     * @param options Connection string options
+     * @param authenticationData
+     *            authentication data (password/token)
+     * @param seed
+     *            server provided seed
+     * @param options
+     *            Connection string options
      */
     public void initialize(String authenticationData, byte[] seed, Options options) {
         this.authenticationData = authenticationData;
@@ -90,19 +94,22 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
     }
 
     /**
-     * Process PAM plugin authentication. see
-     * https://mariadb.com/kb/en/library/authentication-plugin-pam/
+     * Process PAM plugin authentication. see https://mariadb.com/kb/en/library/authentication-plugin-pam/
      *
-     * @param out out stream
-     * @param in in stream
-     * @param sequence packet sequence
+     * @param out
+     *            out stream
+     * @param in
+     *            in stream
+     * @param sequence
+     *            packet sequence
      * @return response packet
-     * @throws IOException if socket error
-     * @throws SQLException if plugin exception
+     * @throws IOException
+     *             if socket error
+     * @throws SQLException
+     *             if plugin exception
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-                                                                                               throws IOException,
-                                                                                               SQLException {
+            throws IOException, SQLException {
         while (true) {
             counter++;
             String password;
@@ -110,8 +117,8 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
                 password = authenticationData;
             } else {
                 if (!options.nonMappedOptions.containsKey("password" + counter)) {
-                    throw new SQLException("PAM authentication request multiple passwords, but "
-                                           + "'password" + counter + "' is not set");
+                    throw new SQLException("PAM authentication request multiple passwords, but " + "'password" + counter
+                            + "' is not set");
                 }
                 password = (String) options.nonMappedOptions.get("password" + counter);
             }
@@ -134,8 +141,8 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
 
             // PAM continue until finish.
             if (type == 0xfe // Switch Request
-                || type == 0x00 // OK_Packet
-                || type == 0xff) { // ERR_Packet
+                    || type == 0x00 // OK_Packet
+                    || type == 0xff) { // ERR_Packet
                 return buffer;
             }
         }

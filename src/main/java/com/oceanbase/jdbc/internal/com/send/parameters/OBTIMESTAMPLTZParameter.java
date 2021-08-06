@@ -47,22 +47,24 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBTIMESTAMPLTZParameter implements Cloneable, ParameterHolder {
 
-    private final TIMESTAMPLTZ  ts;
-    private final Connection    connection;
+    private final TIMESTAMPLTZ ts;
+    private final Connection connection;
 
     private static final byte[] LITERALS_TIMESTAMP = "timestamp ".getBytes();
-    private static final int    ORACLE_TIME_SCALE  = 9;                      // When serializing oracle time type , fixedly fill scale9 .
+    private static final int ORACLE_TIME_SCALE = 9; // When serializing oracle time type , fixedly fill scale9 .
 
     /**
      * Constructor.
      *
-     * @param ts timestamps
+     * @param ts
+     *            timestamps
      */
     public OBTIMESTAMPLTZParameter(TIMESTAMPLTZ ts, Connection connection) {
         this.ts = ts;
@@ -72,7 +74,8 @@ public class OBTIMESTAMPLTZParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos the stream to write to
+     * @param pos
+     *            the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
 
@@ -96,8 +99,10 @@ public class OBTIMESTAMPLTZParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         byte[] data = ts.getBytes();

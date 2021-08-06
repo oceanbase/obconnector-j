@@ -47,8 +47,8 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_FLOAT extends Datum {
-    static final long           serialVersionUID = -4231112037190700631L;
-    public static final boolean TRACE            = false;
+    static final long serialVersionUID = -4231112037190700631L;
+    public static final boolean TRACE = false;
 
     public BINARY_FLOAT() {
     }

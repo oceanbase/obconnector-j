@@ -47,27 +47,31 @@ import java.io.*;
 import java.sql.*;
 import java.text.*;
 import java.util.*;
+
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
 
-    private final SimpleDateFormat sdf                = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    private final Timestamp        ts;
-    private final TimeZone         timeZone;
-    private final boolean          fractionalSeconds;
-    private final boolean          isDate;
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final Timestamp ts;
+    private final TimeZone timeZone;
+    private final boolean fractionalSeconds;
+    private final boolean isDate;
 
-    private static final byte[]    LITERALS_TIMESTAMP = "timestamp ".getBytes();
-    private static final int       ORACLE_TIME_SCALE  = 9;                                          // When serializing oracle time type , fixedly fill scale9 .
+    private static final byte[] LITERALS_TIMESTAMP = "timestamp ".getBytes();
+    private static final int ORACLE_TIME_SCALE = 9; // When serializing oracle time type , fixedly fill scale9 .
 
     /**
      * Constructor.
      *
-     * @param ts timestamps
-     * @param timeZone timeZone
-     * @param fractionalSeconds must fractional Seconds be send to database.
+     * @param ts
+     *            timestamps
+     * @param timeZone
+     *            timeZone
+     * @param fractionalSeconds
+     *            must fractional Seconds be send to database.
      */
     public OBTIMESTAMPParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds) {
         this.ts = ts;
@@ -76,8 +80,7 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
         this.isDate = false;
     }
 
-    public OBTIMESTAMPParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds,
-                                boolean isDate) {
+    public OBTIMESTAMPParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds, boolean isDate) {
         this.ts = ts;
         this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
@@ -87,12 +90,13 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos the stream to write to
+     * @param pos
+     *            the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         sdf.setTimeZone(timeZone);
 
-        //TO_DATE('2021-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+        // TO_DATE('2021-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
         if (isDate) {
             pos.write("TO_DATE(".getBytes());
             pos.write(QUOTE);
@@ -131,8 +135,10 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         TIMESTAMP timestamp = new TIMESTAMP(ts);

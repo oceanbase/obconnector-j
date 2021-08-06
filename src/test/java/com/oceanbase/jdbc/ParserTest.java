@@ -56,10 +56,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.util.DefaultOptions;
 
 public class ParserTest extends BaseTest {
@@ -67,7 +68,8 @@ public class ParserTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -86,61 +88,52 @@ public class ParserTest extends BaseTest {
     }
 
     @Test
-  public void poolVerification() throws Exception {
-    ArrayList<HostAddress> hostAddresses = new ArrayList<>();
-    hostAddresses.add(new HostAddress(hostname, port));
-    UrlParser urlParser =
-        new UrlParser(
-            database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
-    urlParser.setUsername("USER");
-    urlParser.setPassword("PWD");
-    urlParser.parseUrl("jdbc:oceanbase://localhost:3306/db");
-    assertEquals("USER", urlParser.getUsername());
-    assertEquals("PWD", urlParser.getPassword());
+    public void poolVerification() throws Exception {
+        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        hostAddresses.add(new HostAddress(hostname, port));
+        UrlParser urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE),
+                HaMode.NONE);
+        urlParser.setUsername("USER");
+        urlParser.setPassword("PWD");
+        urlParser.parseUrl("jdbc:oceanbase://localhost:3306/db");
+        assertEquals("USER", urlParser.getUsername());
+        assertEquals("PWD", urlParser.getPassword());
 
-    OceanBaseDataSource datasource = new OceanBaseDataSource();
-    datasource.setUser("USER");
-    datasource.setPassword("PWD");
-    datasource.setUrl("jdbc:oceanbase://localhost:3306/db");
-  }
+        OceanBaseDataSource datasource = new OceanBaseDataSource();
+        datasource.setUser("USER");
+        datasource.setPassword("PWD");
+        datasource.setUrl("jdbc:oceanbase://localhost:3306/db");
+    }
 
     @Test
     public void isMultiMaster() throws Exception {
         Properties emptyProps = new Properties();
 
-        assertFalse(UrlParser.parse("jdbc:oceanbase:replication://host1/", emptyProps)
-            .isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:oceanbase:replication://host1/", emptyProps).isMultiMaster());
         assertFalse(UrlParser.parse("jdbc:oceanbase:failover://host1/", emptyProps).isMultiMaster());
         assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://host1/", emptyProps).isMultiMaster());
-        assertFalse(UrlParser.parse("jdbc:oceanbase:sequential://host1/", emptyProps)
-            .isMultiMaster());
-        assertFalse(UrlParser.parse("jdbc:oceanbase:loadbalance://host1/", emptyProps)
-            .isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:oceanbase:sequential://host1/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:oceanbase:loadbalance://host1/", emptyProps).isMultiMaster());
 
-        assertFalse(UrlParser.parse("jdbc:oceanbase:replication://host1,host2/", emptyProps)
-            .isMultiMaster());
-        assertTrue(UrlParser.parse("jdbc:oceanbase:failover://host1,host2/", emptyProps)
-            .isMultiMaster());
-        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://host1,host2/", emptyProps)
-            .isMultiMaster());
-        assertTrue(UrlParser.parse("jdbc:oceanbase:sequential://host1,host2/", emptyProps)
-            .isMultiMaster());
-        assertTrue(UrlParser.parse("jdbc:oceanbase:loadbalance://host1,host2/", emptyProps)
-            .isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:oceanbase:replication://host1,host2/", emptyProps).isMultiMaster());
+        assertTrue(UrlParser.parse("jdbc:oceanbase:failover://host1,host2/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://host1,host2/", emptyProps).isMultiMaster());
+        assertTrue(UrlParser.parse("jdbc:oceanbase:sequential://host1,host2/", emptyProps).isMultiMaster());
+        assertTrue(UrlParser.parse("jdbc:oceanbase:loadbalance://host1,host2/", emptyProps).isMultiMaster());
     }
 
     @Test
-  public void mysqlDatasourceVerification() throws Exception {
-    Assume.assumeFalse(options.useSsl != null && options.useSsl);
-    OceanBaseDataSource datasource = new OceanBaseDataSource();
-    datasource.setUser(username);
-    datasource.setPassword(password);
-    datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
-    try (Connection connection = datasource.getConnection()) {
-      Statement stmt = connection.createStatement();
-      assertTrue(stmt.execute("SELECT 10"));
+    public void mysqlDatasourceVerification() throws Exception {
+        Assume.assumeFalse(options.useSsl != null && options.useSsl);
+        OceanBaseDataSource datasource = new OceanBaseDataSource();
+        datasource.setUser(username);
+        datasource.setPassword(password);
+        datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
+        try (Connection connection = datasource.getConnection()) {
+            Statement stmt = connection.createStatement();
+            assertTrue(stmt.execute("SELECT 10"));
+        }
     }
-  }
 
     @Test
     public void libreOfficeBase() {
@@ -175,15 +168,13 @@ public class ParserTest extends BaseTest {
     @Test
     public void auroraClusterVerification() {
         try {
-            DriverManager.getConnection("jdbc:oceanbase:aurora://"
-                                        + "1.somehex.us-east-1.rds.amazonaws.com,"
-                                        + "2.someOtherHex.us-east-1.rds.amazonaws.com/testj");
+            DriverManager.getConnection("jdbc:oceanbase:aurora://" + "1.somehex.us-east-1.rds.amazonaws.com,"
+                    + "2.someOtherHex.us-east-1.rds.amazonaws.com/testj");
             fail("must have fail since not same cluster");
         } catch (Exception e) {
-            assertEquals(
-                "Connection string must contain only one aurora cluster. "
-                        + "'2.someOtherHex.us-east-1.rds.amazonaws.com' doesn't correspond to DNS prefix "
-                        + "'somehex.us-east-1.rds.amazonaws.com'", e.getMessage());
+            assertEquals("Connection string must contain only one aurora cluster. "
+                    + "'2.someOtherHex.us-east-1.rds.amazonaws.com' doesn't correspond to DNS prefix "
+                    + "'somehex.us-east-1.rds.amazonaws.com'", e.getMessage());
         }
     }
 }

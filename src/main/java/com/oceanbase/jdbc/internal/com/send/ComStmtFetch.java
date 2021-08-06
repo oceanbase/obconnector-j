@@ -50,10 +50,10 @@
  */
 package com.oceanbase.jdbc.internal.com.send;
 
+import java.io.IOException;
+
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
-import java.io.IOException;
 
 public class ComStmtFetch {
     /**
@@ -62,8 +62,7 @@ public class ComStmtFetch {
      * @param fetchSize
      * @throws IOException
      */
-    public static void send(final PacketOutputStream pos, int fetchSize, int statementId)
-                                                                                         throws IOException {
+    public static void send(final PacketOutputStream pos, int fetchSize, int statementId) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_FETCH);
         pos.writeInt(statementId);

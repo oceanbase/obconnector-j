@@ -50,6 +50,15 @@
  */
 package com.oceanbase.jdbc.failover;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.*;
+
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.ObPrepareStatement;
 import com.oceanbase.jdbc.ObResultSet;
@@ -58,14 +67,6 @@ import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.*;
-
-import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
 
@@ -124,8 +125,7 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
 
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
-            stmt.execute(
-                    "create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
         } catch (SQLException sqle) {
             // normal exception
         }
@@ -181,7 +181,8 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
     }
 
     /**
-     * A single connection instance executes the query and starts the transaction, and each conn does not switch the host
+     * A single connection instance executes the query and starts the transaction, and each conn does not switch the
+     * host
      */
     public void testLoadBalanceSingleConnWithTrans() throws Throwable {
         Connection conn = getNewConnection("&retriesAllDown=6", false);
@@ -220,6 +221,7 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
 
     /**
      * Open transaction and execute prepareCall connection host will not switch
+     * 
      * @throws Exception
      */
     public void testLoadBalanceSingleConnWithProcedure() {
@@ -233,9 +235,8 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
             } catch (SQLException throwables) {
             }
             conn.createStatement().execute("create table test_t1 (c1 int)");
-            conn.createStatement().execute(
-                "create or replace procedure lbTest(a in int) is \n" + "begin \n"
-                        + "insert  into test_t1 values(a);\n" + "end ");
+            conn.createStatement().execute("create or replace procedure lbTest(a in int) is \n" + "begin \n"
+                    + "insert  into test_t1 values(a);\n" + "end ");
             CallableStatement cStmt = conn.prepareCall("call lbTest(?)");
 
             conn.setAutoCommit(false);
@@ -252,7 +253,7 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
 
                 cStmt.setInt(1, 1);
                 cStmt.execute();
-                //            cStmt.close();
+                // cStmt.close();
                 conn.commit();
             }
             System.out.println("LBwithProcedure finish");
@@ -275,8 +276,7 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
         String curUrl = null;
         int count = 0;
         for (int i = 0; i < 20; i++) {
-            OceanBaseConnection conn = (OceanBaseConnection) getNewConnection("&retriesAllDown=6",
-                false);
+            OceanBaseConnection conn = (OceanBaseConnection) getNewConnection("&retriesAllDown=6", false);
             Protocol protocol = getProtocolFromConnection(conn);
             HostAddress hostAddress = protocol.getHostAddress();
             curUrl = hostAddress.host;
@@ -318,9 +318,8 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
         } catch (SQLException throwables) {
         }
         try {
-            conn.createStatement().execute(
-                "create table test_intervalds (c1 int primary key,"
-                        + " c2 interval day(6) to second(5))");
+            conn.createStatement()
+                    .execute("create table test_intervalds (c1 int primary key," + " c2 interval day(6) to second(5))");
         } catch (SQLException throwables) {
         }
         String sql;

@@ -43,22 +43,23 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DataTypeSignedOracleTest extends BaseOracleTest {
 
     /**
      * Tables initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -88,10 +89,13 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query    query
-     * @param prepared flag must be a prepare statement
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
         return getResultSet(query, prepared, sharedConnection);
@@ -100,17 +104,19 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query      query
-     * @param prepared   flag must be a prepare statement
-     * @param connection the connection to use
+     * @param query
+     *            query
+     * @param prepared
+     *            flag must be a prepare statement
+     * @param connection
+     *            the connection to use
      * @return a statement
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection)
-                                                                                               throws SQLException {
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
         if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query
-                                                                              + " WHERE 1 = ?");
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {
@@ -249,9 +255,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
 
     @Test
     public void signedBigIntTest() throws SQLException {
-        sharedConnection
-                .createStatement()
-                .execute("insert into signedBigIntTest values (9223372036854775807)");
+        sharedConnection.createStatement().execute("insert into signedBigIntTest values (9223372036854775807)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
@@ -288,8 +292,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
     @Test
     public void signedDecimalTest() throws SQLException {
         try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute(
-                    "insert into signedDecimalTest values (123456789012345678901234567890.123)"); //7890
+            statement.execute("insert into signedDecimalTest values (123456789012345678901234567890.123)"); // 7890
             statement.execute("insert into signedDecimalTest values (9223372036854775806)");
             statement.execute("insert into signedDecimalTest values (1.1)");
             statement.execute("insert into signedDecimalTest values (1.0)");
@@ -312,12 +315,9 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             shortMustFail(rs);
             intMustFail(rs);
             longMustFail(rs);
-            assertEquals(123456789012345678901234567890.12345678F, rs.getFloat(1),
-                1000000000000000000000000D);
-            assertEquals(123456789012345678901234567890.12345678F, rs.getFloat(1),
-                1000000000000000000000000D);
-            assertEquals(123456789012345678901234567890.12345678D, rs.getDouble(1),
-                1000000000000000000000000D);
+            assertEquals(123456789012345678901234567890.12345678F, rs.getFloat(1), 1000000000000000000000000D);
+            assertEquals(123456789012345678901234567890.12345678F, rs.getFloat(1), 1000000000000000000000000D);
+            assertEquals(123456789012345678901234567890.12345678D, rs.getDouble(1), 1000000000000000000000000D);
             assertEquals(new BigDecimal("123456789012345678901234567890.123"), rs.getBigDecimal(1));
             assertEquals("123456789012345678901234567890.123", rs.getString(1));
             if (rs.next()) {
@@ -327,10 +327,9 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                 assertEquals(9223372036854775806L, rs.getLong(1));
                 assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
                 assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
-                Assert.assertTrue(new BigDecimal("9223372036854775806.00000000000000000000")
-                    .compareTo(rs.getBigDecimal(1)) == 0);
-                Assert.assertFalse("9223372036854775806.00000000000000000000".equals(rs
-                    .getString(1)));
+                Assert.assertTrue(
+                        new BigDecimal("9223372036854775806.00000000000000000000").compareTo(rs.getBigDecimal(1)) == 0);
+                Assert.assertFalse("9223372036854775806.00000000000000000000".equals(rs.getString(1)));
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
                     assertEquals(1, rs.getShort(1));
@@ -340,10 +339,8 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                     assertEquals(1.1D, rs.getDouble(1), .000001);
                     Assert.assertFalse("1.10000000000000000000".equals(rs.getString(1)));
                     Assert.assertTrue("1.1".equals(rs.getString(1)));
-                    Assert.assertTrue(new BigDecimal("1.10000000000000000000").compareTo(rs
-                        .getBigDecimal(1)) == 0);
-                    Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs
-                        .getBigDecimal(1)));
+                    Assert.assertTrue(new BigDecimal("1.10000000000000000000").compareTo(rs.getBigDecimal(1)) == 0);
+                    Assert.assertFalse(new BigDecimal("1.10000000000000000000").equals(rs.getBigDecimal(1)));
 
                     if (rs.next()) {
                         oneNullNegativeTest(rs, true, false);
@@ -367,8 +364,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             fail("getByte must have thrown error !");
         } catch (Exception e) {
             if (e instanceof NumberFormatException) {
-                Assert.assertTrue("message: " + e.getMessage(),
-                    e.getMessage().contains("For input string"));
+                Assert.assertTrue("message: " + e.getMessage(), e.getMessage().contains("For input string"));
             } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("sqlstate: " + ee.getSQLState(), "22003", ee.getSQLState());
@@ -383,8 +379,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             fail("getShort must have thrown error !");
         } catch (Exception e) {
             if (e instanceof NumberFormatException) {
-                Assert.assertTrue("message: " + e.getMessage(),
-                    e.getMessage().contains("For input string"));
+                Assert.assertTrue("message: " + e.getMessage(), e.getMessage().contains("For input string"));
             } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
@@ -398,8 +393,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             fail("getInt must have thrown error !");
         } catch (Exception e) {
             if (e instanceof NumberFormatException) {
-                Assert.assertTrue("message: " + e.getMessage(),
-                    e.getMessage().contains("For input string"));
+                Assert.assertTrue("message: " + e.getMessage(), e.getMessage().contains("For input string"));
             } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
@@ -413,8 +407,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
             fail("getLong must have thrown error !");
         } catch (Exception e) {
             if (e instanceof NumberFormatException) {
-                Assert.assertTrue("message: " + e.getMessage(),
-                    e.getMessage().contains("For input string"));
+                Assert.assertTrue("message: " + e.getMessage(), e.getMessage().contains("For input string"));
             } else if (e instanceof SQLException) {
                 SQLException ee = (SQLException) e;
                 assertEquals("22003", ee.getSQLState());
@@ -426,8 +419,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
         oneNullNegativeTest(rs, false, false);
     }
 
-    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint)
-                                                                                          throws SQLException {
+    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
         try {
             if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));
@@ -447,8 +439,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                     assertEquals("1.0", rs.getString(1));
 
                 } else {
-                    Assert.assertTrue(new BigDecimal("1.00000000000000000000").compareTo(rs
-                        .getBigDecimal(1)) == 0);
+                    Assert.assertTrue(new BigDecimal("1.00000000000000000000").compareTo(rs.getBigDecimal(1)) == 0);
                     Assert.assertFalse("1.00000000000000000000".equals(rs.getString(1)));
                 }
             } else {
@@ -496,8 +487,7 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
                 assertEquals(-1, rs.getDouble(1), .00001);
                 assertEquals(-1, rs.getFloat(1), .00001);
                 if (decimal) {
-                    assertFalse(new BigDecimal("-1.00000000000000000000").equals(rs
-                        .getBigDecimal(1)));
+                    assertFalse(new BigDecimal("-1.00000000000000000000").equals(rs.getBigDecimal(1)));
                     Assert.assertFalse("-1.00000000000000000000".equals(rs.getString(1)));
                 } else {
                     assertTrue(new BigDecimal("-1").equals(rs.getBigDecimal(1)));
@@ -513,6 +503,6 @@ public class DataTypeSignedOracleTest extends BaseOracleTest {
         }
     }
 
-    //--------------------------------the follow is from DataTypeSignedTest ------------------------------------//
+    // --------------------------------the follow is from DataTypeSignedTest ------------------------------------//
 
 }

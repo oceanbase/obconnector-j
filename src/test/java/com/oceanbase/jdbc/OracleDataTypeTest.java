@@ -49,23 +49,24 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 
 public class OracleDataTypeTest extends BaseOracleTest {
 
-    private static PreparedStatement ps   = null;
-    private static final Connection  conn = sharedConnection;
+    private static PreparedStatement ps = null;
+    private static final Connection conn = sharedConnection;
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -96,8 +97,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
         ps = conn.prepareStatement("select * from t_number");
         ResultSet rs = ps.executeQuery();
         BigDecimal[] decimals = new BigDecimal[] { BigDecimal.valueOf(1), BigDecimal.valueOf(-1),
-                BigDecimal.valueOf(1000.56), BigDecimal.valueOf(1000.55),
-                BigDecimal.valueOf(1000.56) };
+                BigDecimal.valueOf(1000.56), BigDecimal.valueOf(1000.55), BigDecimal.valueOf(1000.56) };
         int i = 0;
         while (rs.next()) {
             assertEquals(decimals[i], rs.getBigDecimal(1));
@@ -120,8 +120,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         String sql = "insert into t_binary_float (bf) values (1.9),(1.9f),(1)";
         assertEquals(3, conn.createStatement().executeUpdate(sql));
         ResultSet rs = conn.prepareStatement("select bf from t_binary_float").executeQuery();
-        BigDecimal[] decimals = new BigDecimal[] { BigDecimal.valueOf(1.9f),
-                BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1) };
+        BigDecimal[] decimals = new BigDecimal[] { BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1.9f),
+                BigDecimal.valueOf(1) };
         int i = 0;
         while (rs.next()) {
             assertEquals(0, decimals[i].compareTo(rs.getBigDecimal(1)));
@@ -136,8 +136,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         String sql = "insert into t_binary_double (bd) values (1.9f),(1.9d),(1)";
         assertEquals(3, conn.createStatement().executeUpdate(sql));
         ResultSet rs = conn.prepareStatement("select bd from t_binary_double").executeQuery();
-        BigDecimal[] decimals = new BigDecimal[] { BigDecimal.valueOf(1.9f),
-                BigDecimal.valueOf(1.9d), BigDecimal.valueOf(1) };
+        BigDecimal[] decimals = new BigDecimal[] { BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1.9d),
+                BigDecimal.valueOf(1) };
         int i = 0;
         while (rs.next()) {
             assertEquals(0, decimals[i].compareTo(rs.getBigDecimal(1)));
@@ -161,8 +161,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
             i++;
         }
         assertEquals(Types.CHAR, rs.getMetaData().getColumnType(1));
-        rs = conn.createStatement().executeQuery(
-            "select value from nls_database_parameters where parameter = 'NLS_CHARACTERSET'");
+        rs = conn.createStatement()
+                .executeQuery("select value from nls_database_parameters where parameter = 'NLS_CHARACTERSET'");
         Assert.assertTrue(rs.next());
         assertEquals("AL32UTF8", rs.getString(1));
         rs.close();
@@ -182,8 +182,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
             i++;
         }
         assertEquals(Types.NCHAR, rs.getMetaData().getColumnType(1));
-        rs = conn.createStatement().executeQuery(
-            "select value from nls_database_parameters where parameter = 'NLS_NCHAR_CHARACTERSET'");
+        rs = conn.createStatement()
+                .executeQuery("select value from nls_database_parameters where parameter = 'NLS_NCHAR_CHARACTERSET'");
         Assert.assertTrue(rs.next());
         assertEquals("AL16UTF16", rs.getString(1));
 
@@ -389,11 +389,9 @@ public class OracleDataTypeTest extends BaseOracleTest {
     @Test
     public void testIntervalDayToSecond() throws SQLException {
         String sql = "insert into t_interval_day_to_second values (interval '100 15:02:23.666' day(3) to second),"
-                     + "(interval '15:2:3.66' hour to second), "
-                     + "(interval '15:02' minute to second)";
+                + "(interval '15:2:3.66' hour to second), " + "(interval '15:02' minute to second)";
         assertEquals(3, conn.createStatement().executeUpdate(sql));
-        ResultSet rs = conn.prepareStatement("select ds from t_interval_day_to_second")
-            .executeQuery();
+        ResultSet rs = conn.prepareStatement("select ds from t_interval_day_to_second").executeQuery();
         String[] str = new String[] { "100 15:2:23.666", "0 15:2:3.66", "0 0:15:2.000000" };
         int i = 0;
         while (rs.next()) {
@@ -485,8 +483,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
         ps = conn.prepareStatement(sql);
         ps.setTimestamp(1, timestamp);
         assertEquals(1, ps.executeUpdate());
-        ResultSet rs = conn.createStatement().executeQuery(
-            "select twtz from t_timestamp_with_timezone");
+        ResultSet rs = conn.createStatement().executeQuery("select twtz from t_timestamp_with_timezone");
         assertTrue(rs.next());
         assertEquals(timestamp, rs.getTimestamp(1));
         assertEquals("TIMESTAMP WITH TIME ZONE", rs.getMetaData().getColumnTypeName(1));
@@ -503,9 +500,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         // Consistent with oracle jdbc
         assertEquals("2020-10-05 21:03:15.233 +8:00", rs.getString(1));
         assertEquals("TIMESTAMP WITH TIME ZONE", rs.getMetaData().getColumnTypeName(1));
-        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ", rs.getMetaData()
-            .getColumnClassName(1));
-        //assertEquals("oracle.sql.TIMESTAMPTZ", rs.getMetaData().getColumnClassName(1));
+        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ", rs.getMetaData().getColumnClassName(1));
+        // assertEquals("oracle.sql.TIMESTAMPTZ", rs.getMetaData().getColumnClassName(1));
         rs.close();
     }
 
@@ -519,21 +515,19 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertTrue(rs.next());
         assertEquals(timestamp, rs.getTimestamp(1));
         assertEquals("TIMESTAMP WITH TIME ZONE", rs.getMetaData().getColumnTypeName(1));
-        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ", rs.getMetaData()
-            .getColumnClassName(1));
+        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ", rs.getMetaData().getColumnClassName(1));
         rs.close();
     }
 
     @Test
     public void testTimestampWLTZ() throws SQLException {
         String sql = "insert into t_timestamp_with_local_timezone (twltz) values (?)";
-        TIMESTAMPLTZ timestampltz = new TIMESTAMPLTZ(conn,
-            Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+        TIMESTAMPLTZ timestampltz = new TIMESTAMPLTZ(conn, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
         BasePrepareStatement bps = (BasePrepareStatement) conn.prepareStatement(sql);
         bps.setTIMESTAMPLTZ(1, timestampltz);
         assertEquals(1, bps.executeUpdate());
-        SelectResultSet srs = (SelectResultSet) conn.prepareStatement(
-            "select twltz from t_timestamp_with_local_timezone").executeQuery();
+        SelectResultSet srs = (SelectResultSet) conn
+                .prepareStatement("select twltz from t_timestamp_with_local_timezone").executeQuery();
         assertTrue(srs.next());
         assertEquals(timestampltz, srs.getTIMESTAMPLTZ(1));
         assertEquals("TIMESTAMP WITH LOCAL TIME ZONE", srs.getMetaData().getColumnTypeName(1));
@@ -546,9 +540,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertTrue(rs.next());
         assertEquals(timestamp, rs.getTimestamp(1));
         assertEquals("TIMESTAMP WITH LOCAL TIME ZONE", rs.getMetaData().getColumnTypeName(1));
-        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ", rs.getMetaData()
-            .getColumnClassName(1));
-        //assertEquals("oracle.sql.TIMESTAMPLTZ", rs.getMetaData().getColumnClassName(1));
+        assertEquals("com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ", rs.getMetaData().getColumnClassName(1));
+        // assertEquals("oracle.sql.TIMESTAMPLTZ", rs.getMetaData().getColumnClassName(1));
         rs.close();
     }
 
@@ -559,8 +552,7 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertEquals(0, ps.executeUpdate());
 
         sql = "create or replace procedure test_insert (a in number,b in t_array) is begin "
-              + "for i in 1..b.count loop "
-              + "insert into t_nested_array values (a,b(i)); end loop; end";
+                + "for i in 1..b.count loop " + "insert into t_nested_array values (a,b(i)); end loop; end";
         assertEquals(0, conn.prepareStatement(sql).executeUpdate());
         CallableStatement cs = conn.prepareCall("{call test_insert(?, ?)}");
         cs.setInt(1, 1);
@@ -568,15 +560,14 @@ public class OracleDataTypeTest extends BaseOracleTest {
         cs.execute();
 
         sql = "create or replace procedure test_select (a in integer,b out t_array) is begin "
-              + "for i in 1..b.count loop "
-              + "select id2 into b(i) from t_nested_array where id1 = a; end loop; end";
+                + "for i in 1..b.count loop " + "select id2 into b(i) from t_nested_array where id1 = a; end loop; end";
         assertEquals(0, conn.prepareStatement(sql).executeUpdate());
         cs = conn.prepareCall("{call test_select(?, ?)}");
         cs.setInt(1, 1);
         cs.registerOutParameter(2, Types.ARRAY);
         cs.execute();
         // fix next version
-        //        assertNotNull(cs.getArray(2).getArray());
+        // assertNotNull(cs.getArray(2).getArray());
     }
 
 }

@@ -50,15 +50,15 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.util.Arrays;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+
 public class OBByteArrayParameter implements Cloneable, ParameterHolder {
 
-    private final byte[]  bytes;
+    private final byte[] bytes;
     private final boolean noBackslashEscapes;
 
     public OBByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
@@ -75,8 +75,10 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in text format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         pos.write(QUOTE);
@@ -91,8 +93,10 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.writeFieldLength(bytes.length);

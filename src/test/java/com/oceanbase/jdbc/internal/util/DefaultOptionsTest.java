@@ -57,11 +57,12 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.util.Properties;
 
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.oceanbase.jdbc.Driver;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.Assert;
-import org.junit.Test;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 
@@ -77,10 +78,10 @@ public class DefaultOptionsTest {
             DefaultOptions.postOptionProcess(defaultOption, null);
             for (DefaultOptions o : DefaultOptions.values()) {
                 Field field = Options.class.getField(o.getOptionName());
-                assertEquals("field :" + field.getName(),
-                    field.get(DefaultOptions.defaultValues(HaMode.NONE)), field.get(option));
-                assertEquals("field :" + field.getName(),
-                    field.get(DefaultOptions.defaultValues(haMode)), field.get(defaultOption));
+                assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(HaMode.NONE)),
+                        field.get(option));
+                assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(haMode)),
+                        field.get(defaultOption));
             }
         }
     }
@@ -89,8 +90,8 @@ public class DefaultOptionsTest {
     public void getDefaultPropertyInfo() throws Exception {
         // check that default option object correspond to default
         Driver driver = new Driver();
-        DriverPropertyInfo[] driverPropertyInfos = driver.getPropertyInfo(
-            "jdbc:oceanbase://localhost:3306/testj?user=hi", new Properties());
+        DriverPropertyInfo[] driverPropertyInfos = driver
+                .getPropertyInfo("jdbc:oceanbase://localhost:3306/testj?user=hi", new Properties());
         assertTrue(driverPropertyInfos.length > 30);
         Assert.assertEquals(driverPropertyInfos[0].name, "user");
         Assert.assertEquals(driverPropertyInfos[0].value, "hi");
@@ -122,21 +123,22 @@ public class DefaultOptionsTest {
     }
 
     @Test
-  public void parseDefaultDriverManagerTimeout() throws Exception {
-    DriverManager.setLoginTimeout(2);
-    UrlParser parser = UrlParser.parse("jdbc:oceanbase://localhost/");
-    assertEquals(parser.getOptions().connectTimeout, 2_000);
+    public void parseDefaultDriverManagerTimeout() throws Exception {
+        DriverManager.setLoginTimeout(2);
+        UrlParser parser = UrlParser.parse("jdbc:oceanbase://localhost/");
+        assertEquals(parser.getOptions().connectTimeout, 2_000);
 
-    DriverManager.setLoginTimeout(0);
+        DriverManager.setLoginTimeout(0);
 
-    parser = UrlParser.parse("jdbc:oceanbase://localhost/");
-    assertEquals(parser.getOptions().connectTimeout, 30_000);
-  }
+        parser = UrlParser.parse("jdbc:oceanbase://localhost/");
+        assertEquals(parser.getOptions().connectTimeout, 30_000);
+    }
 
     /**
      * Ensure that default value of new Options() correspond to DefaultOption Enumeration.
      *
-     * @throws Exception if any value differ.
+     * @throws Exception
+     *             if any value differ.
      */
     @Test
     public void parseOption() throws Exception {
@@ -146,43 +148,40 @@ public class DefaultOptionsTest {
             Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
             for (Field field : Options.class.getFields()) {
                 if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
-                    && !"nonMappedOptions".equals(field.getName())) {
+                        && !"nonMappedOptions".equals(field.getName())) {
                     switch (field.getType().getName()) {
-                        case "java.lang.String":
-                            assertEquals("field " + field.getName() + " value error for param"
-                                         + param, field.get(resultOptions), field.getName() + "1");
-                            break;
-                        case "int":
-                            assertEquals("field " + field.getName() + " value error for param"
-                                         + param, field.getInt(resultOptions), 9999);
-                            break;
-                        case "java.lang.Integer":
-                            assertEquals("field " + field.getName() + " value error for param"
-                                         + param, ((Integer) field.get(resultOptions)).intValue(),
-                                9999);
-                            break;
-                        case "java.lang.Long":
-                            assertEquals("field " + field.getName() + " value error for param"
-                                         + param, ((Long) field.get(resultOptions)).intValue(),
-                                9999);
-                            break;
-                        case "java.lang.Boolean":
-                            Boolean bool = (Boolean) field.get(option);
-                            if (bool == null) {
-                                assertTrue("field " + field.getName() + " value error for param"
-                                           + param, (Boolean) field.get(resultOptions));
-                            } else {
-                                assertEquals("field " + field.getName() + " value error for param"
-                                             + param, field.get(resultOptions), !bool);
-                            }
-                            break;
-                        case "boolean":
-                            assertEquals("field " + field.getName() + " value error for param"
-                                         + param, field.getBoolean(resultOptions),
-                                !field.getBoolean(option));
-                            break;
-                        default:
-                            fail("type not used normally ! " + field.getType().getName());
+                    case "java.lang.String":
+                        assertEquals("field " + field.getName() + " value error for param" + param,
+                                field.get(resultOptions), field.getName() + "1");
+                        break;
+                    case "int":
+                        assertEquals("field " + field.getName() + " value error for param" + param,
+                                field.getInt(resultOptions), 9999);
+                        break;
+                    case "java.lang.Integer":
+                        assertEquals("field " + field.getName() + " value error for param" + param,
+                                ((Integer) field.get(resultOptions)).intValue(), 9999);
+                        break;
+                    case "java.lang.Long":
+                        assertEquals("field " + field.getName() + " value error for param" + param,
+                                ((Long) field.get(resultOptions)).intValue(), 9999);
+                        break;
+                    case "java.lang.Boolean":
+                        Boolean bool = (Boolean) field.get(option);
+                        if (bool == null) {
+                            assertTrue("field " + field.getName() + " value error for param" + param,
+                                    (Boolean) field.get(resultOptions));
+                        } else {
+                            assertEquals("field " + field.getName() + " value error for param" + param,
+                                    field.get(resultOptions), !bool);
+                        }
+                        break;
+                    case "boolean":
+                        assertEquals("field " + field.getName() + " value error for param" + param,
+                                field.getBoolean(resultOptions), !field.getBoolean(option));
+                        break;
+                    default:
+                        fail("type not used normally ! " + field.getType().getName());
                     }
                 }
             }
@@ -204,27 +203,27 @@ public class DefaultOptionsTest {
                     }
                     sb.append(field.getName()).append("=");
                     switch (field.getType().getName()) {
-                        case "java.lang.String":
-                            sb.append(field.getName()).append("1");
-                            break;
-                        case "int":
-                        case "java.lang.Integer":
-                        case "java.lang.Long":
-                            sb.append("9999");
-                            break;
-                        case "java.lang.Boolean":
-                            Boolean bool = (Boolean) field.get(option);
-                            if (bool == null) {
-                                sb.append("true");
-                            } else {
-                                sb.append((!((Boolean) field.get(option))));
-                            }
-                            break;
-                        case "boolean":
-                            sb.append(!(boolean) (field.get(option)));
-                            break;
-                        default:
-                            fail("type not used normally ! : " + field.getType().getName());
+                    case "java.lang.String":
+                        sb.append(field.getName()).append("1");
+                        break;
+                    case "int":
+                    case "java.lang.Integer":
+                    case "java.lang.Long":
+                        sb.append("9999");
+                        break;
+                    case "java.lang.Boolean":
+                        Boolean bool = (Boolean) field.get(option);
+                        if (bool == null) {
+                            sb.append("true");
+                        } else {
+                            sb.append((!((Boolean) field.get(option))));
+                        }
+                        break;
+                    case "boolean":
+                        sb.append(!(boolean) (field.get(option)));
+                        break;
+                    default:
+                        fail("type not used normally ! : " + field.getType().getName());
                     }
                 }
             }

@@ -45,26 +45,24 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.TimeZone;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMP;
+
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
 
-    private final TIMESTAMPTZ   ts;
+    private final TIMESTAMPTZ ts;
 
     private static final byte[] LITERALS_TIMESTAMP = "timestamp ".getBytes();
-    private static final int    ORACLE_TIME_SCALE  = 9;                      // When serializing oracle time type , fixedly fill scale 9 .
-    private boolean             isTZTablesImported = false;
+    private static final int ORACLE_TIME_SCALE = 9; // When serializing oracle time type , fixedly fill scale 9 .
+    private boolean isTZTablesImported = false;
 
     /**
      * Constructor.
      *
-     * @param ts timestamps
+     * @param ts
+     *            timestamps
      */
     public OBTIMESTAMPTZParameter(TIMESTAMPTZ ts) {
         this.ts = ts;
@@ -78,7 +76,8 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos the stream to write to
+     * @param pos
+     *            the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         try {
@@ -99,8 +98,10 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         byte[] data = ts.getBytes();

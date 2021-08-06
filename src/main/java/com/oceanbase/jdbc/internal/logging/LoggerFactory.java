@@ -53,12 +53,13 @@ package com.oceanbase.jdbc.internal.logging;
 public class LoggerFactory {
 
     private static final Logger NO_LOGGER = new NoLogger();
-    private static Boolean      hasToLog  = null;
+    private static Boolean hasToLog = null;
 
     /**
      * Initialize factory.
      *
-     * @param mustLog indicate if must initiate Slf4j log
+     * @param mustLog
+     *            indicate if must initiate Slf4j log
      */
     @SuppressWarnings("unchecked")
     public static void init(boolean mustLog) {
@@ -80,7 +81,8 @@ public class LoggerFactory {
     /**
      * Initialize logger.
      *
-     * @param clazz initiator class
+     * @param clazz
+     *            initiator class
      * @return logger
      */
     public static Logger getLogger(Class<?> clazz) {

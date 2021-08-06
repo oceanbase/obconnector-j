@@ -50,7 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -60,20 +60,21 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import org.junit.*;
 
 public class BlobOracleTest extends BaseOracleTest {
 
     /**
      * Initialisation.
      *
-     * @throws SQLException exception
+     * @throws SQLException
+     *             exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bug716378", "id int not null primary key, test blob, test2 blob, test3 clob");
-        createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm clob"
-                                           + ", strm2 clob, strm3 clob");
+        createTable("BlobTeststreamtest2",
+                "id int primary key not null, st varchar(20), strm clob" + ", strm2 clob, strm3 clob");
         createTable("BlobTeststreamtest3", "id int primary key not null, strm clob");
         createTable("BlobTestclobtest", "id int not null primary key, strm clob");
         createTable("BlobTestclobtest2", "strm clob");
@@ -83,10 +84,9 @@ public class BlobOracleTest extends BaseOracleTest {
         createTable("BlobTestblobtest", "id int not null primary key, strm blob");
         createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
         createTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive BLOB, PRIMARY KEY (Name)");
-        createTable("bug716378_ps",
-            "id int not null primary key, test blob, test2 blob, test3 clob");
+        createTable("bug716378_ps", "id int not null primary key, test blob, test2 blob, test3 clob");
         createTable("BlobTeststreamtest2_ps",
-            "id int primary key not null, st varchar(20), strm clob" + ", strm2 clob, strm3 clob");
+                "id int primary key not null, st varchar(20), strm clob" + ", strm2 clob, strm3 clob");
         createTable("BlobTeststreamtest3_ps", "id int primary key not null, strm clob");
         createTable("BlobTestclobtest_ps", "id int not null primary key, strm clob");
         createTable("BlobTestclobtest2_ps", "strm clob");
@@ -130,7 +130,8 @@ public class BlobOracleTest extends BaseOracleTest {
         blob.position(pattern, 44);
     }
 
-    //  For lob and other types of columns, getObject returns the corresponding type instance instead of byte[] Consistent with 1.x, it will be modified later
+    // For lob and other types of columns, getObject returns the corresponding type instance instead of byte[]
+    // Consistent with 1.x, it will be modified later
     @Ignore
     public void testBug716378() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
@@ -146,11 +147,12 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         String toInsert1 = "Øbbcdefgh\njklmn\"";
         String toInsert2 = "Øabcdefgh\njklmn\"";
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTeststreamtest2 (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
+                .prepareStatement("insert into BlobTeststreamtest2 (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
         stmt.setInt(1, 2);
         stmt.setString(2, toInsert1);
         Reader reader = new StringReader(toInsert2);
@@ -159,8 +161,7 @@ public class BlobOracleTest extends BaseOracleTest {
         stmt.setCharacterStream(5, null, 5);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTeststreamtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest2");
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -175,14 +176,15 @@ public class BlobOracleTest extends BaseOracleTest {
         assertNull(rs.getString(5));
     }
 
-    //@Ignore //TODO FIXME
+    // @Ignore //TODO FIXME
     @Test
     public void testPSCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         String toInsert1 = "Øbbcdefgh\njklmn\"";
         String toInsert2 = "Øabcdefgh\njklmn\"";
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTeststreamtest2_ps (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
+                .prepareStatement("insert into BlobTeststreamtest2_ps (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
         stmt.setInt(1, 2);
         stmt.setString(2, toInsert1);
         Reader reader = new StringReader(toInsert2);
@@ -191,8 +193,7 @@ public class BlobOracleTest extends BaseOracleTest {
         stmt.setCharacterStream(5, null, 5);
         stmt.execute();
 
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTeststreamtest2_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTeststreamtest2_ps");
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -209,16 +210,16 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacter() throws Throwable {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "Øabcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTeststreamtest3");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest3");
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -231,16 +232,16 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testPSCharacterStreamWithMultibyteCharacter() throws Throwable {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTeststreamtest3_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTeststreamtest3_ps (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "Øabcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader);
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTeststreamtest3_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTeststreamtest3_ps");
         assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -253,9 +254,10 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testReaderWithLength() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
         Arrays.fill(arr, (byte) 'b');
 
@@ -263,13 +265,12 @@ public class BlobOracleTest extends BaseOracleTest {
         String clob = new String(arr);
         stmt.setCharacterStream(2, new StringReader(clob), 20000);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest5");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest5");
         assertTrue(rs.next());
         Reader readStuff = rs.getCharacterStream("strm");
 
         char[] chars = new char[50000];
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
 
         byte[] arrResult = new byte[20000];
@@ -285,11 +286,11 @@ public class BlobOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    //TODO FIXME
+    // TODO FIXME
     @Test
     public void testPSReaderWithLength() throws SQLException, IOException {
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestclobtest5_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest5_ps (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
         Arrays.fill(arr, (byte) 'b');
 
@@ -297,13 +298,12 @@ public class BlobOracleTest extends BaseOracleTest {
         String clob = new String(arr);
         stmt.setCharacterStream(2, new StringReader(clob), 20000);
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest5_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestclobtest5_ps");
         assertTrue(rs.next());
         Reader readStuff = rs.getCharacterStream("strm");
 
         char[] chars = new char[50000];
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
 
         byte[] arrResult = new byte[20000];
@@ -320,9 +320,10 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testBlobWithLength() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
         Random rand = new Random();
         rand.nextBytes(arr);
@@ -338,8 +339,7 @@ public class BlobOracleTest extends BaseOracleTest {
         }
         assertEquals(12000, remainRead);
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestblobtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
         assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int pos = 0;
@@ -352,9 +352,10 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testPSBlobWithLength() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestblobtest2_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestblobtest2_ps (id, strm) values (?,?)");
         byte[] arr = new byte[32000];
         Random rand = new Random();
         rand.nextBytes(arr);
@@ -370,8 +371,7 @@ public class BlobOracleTest extends BaseOracleTest {
         }
         assertEquals(12000, remainRead);
 
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestblobtest2_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestblobtest2_ps");
         assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int pos = 0;
@@ -384,19 +384,19 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
         String clob = "Øclob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest");
         if (rs.next()) {
             Reader readStuff = rs.getClob("strm").getCharacterStream();
             char[] chars = new char[5];
-            //noinspection ResultOfMethodCallIgnored
+            // noinspection ResultOfMethodCallIgnored
             readStuff.read(chars);
             assertEquals(new String(chars), clob);
         } else {
@@ -406,19 +406,19 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testPSClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestclobtest_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest_ps (id, strm) values (?,?)");
         String clob = "Øclob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestclobtest_ps");
         if (rs.next()) {
             Reader readStuff = rs.getClob("strm").getCharacterStream();
             char[] chars = new char[5];
-            //noinspection ResultOfMethodCallIgnored
+            // noinspection ResultOfMethodCallIgnored
             readStuff.read(chars);
             assertEquals(new String(chars), clob);
         } else {
@@ -428,37 +428,35 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testClob3() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
-        PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
         java.sql.Clob clob = sharedConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("Øhello", 0, 6);
         writer.flush();
         stmt.setClob(1, clob);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
         assertTrue(rs.next());
-        //        assertTrue(rs.getObject(1) instanceof Clob);
+        // assertTrue(rs.getObject(1) instanceof Clob);
         String result = rs.getString(1);
         assertEquals("Øhello", result);
     }
 
     @Ignore
-    //TODO FIXME
+    // TODO FIXME
     @Test
     public void testPSClob3() throws Exception {
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestclobtest2_ps (strm) values (?)");
+                .prepareStatement("insert into BlobTestclobtest2_ps (strm) values (?)");
         java.sql.Clob clob = sharedPSConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("Øhello", 0, 6);
         writer.flush();
         stmt.setClob(1, clob);
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest2_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestclobtest2_ps");
         assertTrue(rs.next());
         assertTrue(rs.getObject(1) instanceof String);
         String result = rs.getString(1);
@@ -467,16 +465,16 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testBlob() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
         byte[] theBlob = { 1, 2, 3, 4, 5, 6 };
         InputStream stream = new ByteArrayInputStream(theBlob);
         stmt.setInt(1, 1);
         stmt.setBlob(2, stream);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestblobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest");
         assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
@@ -495,18 +493,17 @@ public class BlobOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    //TODO FIXME
+    // TODO FIXME
     @Test
     public void testPSBlob() throws SQLException, IOException {
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestblobtest_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestblobtest_ps (id, strm) values (?,?)");
         byte[] theBlob = { 1, 2, 3, 4, 5, 6 };
         InputStream stream = new ByteArrayInputStream(theBlob);
         stmt.setInt(1, 1);
         stmt.setBlob(2, stream);
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestblobtest_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestblobtest_ps");
         assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
@@ -526,48 +523,48 @@ public class BlobOracleTest extends BaseOracleTest {
 
     @Test
     public void testClobWithLength() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
         String clob = "clob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest3");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
         assertTrue(rs.next());
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] chars = new char[4];
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
         assertEquals(new String(chars), clob);
     }
 
     @Ignore
-    //TODO FIXME
+    // TODO FIXME
     @Test
     public void testPSClobWithLength() throws SQLException, IOException {
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestclobtest3_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest3_ps (id, strm) values (?,?)");
         String clob = "clob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest3_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestclobtest3_ps");
         assertTrue(rs.next());
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] chars = new char[4];
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
         assertEquals(new String(chars), clob);
     }
 
     @Test
     public void testClob2() throws SQLException, IOException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
         PreparedStatement stmt = sharedConnection
-            .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
         java.sql.Clob clob = sharedConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
@@ -575,20 +572,19 @@ public class BlobOracleTest extends BaseOracleTest {
         stmt.setInt(1, 1);
         stmt.setClob(2, clob);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest4");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
         assertTrue(rs.next());
         Object obj = rs.getObject(2);
-        //        assertTrue(rs.getObject(2) instanceof Clob);
+        // assertTrue(rs.getObject(2) instanceof Clob);
         assertTrue(rs.getString(2).equals("hello"));
     }
 
     @Ignore
-    //TODO FIXME
+    // TODO FIXME
     @Test
     public void testPSClob2() throws SQLException, IOException {
         PreparedStatement stmt = sharedPSConnection
-            .prepareStatement("insert into BlobTestclobtest4_ps (id, strm) values (?,?)");
+                .prepareStatement("insert into BlobTestclobtest4_ps (id, strm) values (?,?)");
         java.sql.Clob clob = sharedPSConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
@@ -596,8 +592,7 @@ public class BlobOracleTest extends BaseOracleTest {
         stmt.setInt(1, 1);
         stmt.setClob(2, clob);
         stmt.execute();
-        ResultSet rs = sharedPSConnection.createStatement().executeQuery(
-            "select * from BlobTestclobtest4_ps");
+        ResultSet rs = sharedPSConnection.createStatement().executeQuery("select * from BlobTestclobtest4_ps");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -635,8 +630,8 @@ public class BlobOracleTest extends BaseOracleTest {
     @Test
     public void conj73() throws Exception {
         /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-        java.sql.Clob clob = new com.oceanbase.jdbc.Clob(new byte[] { (byte) 0x10, (byte) 0xD0,
-                (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e });
+        java.sql.Clob clob = new com.oceanbase.jdbc.Clob(
+                new byte[] { (byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e });
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
@@ -656,183 +651,183 @@ public class BlobOracleTest extends BaseOracleTest {
     }
 
     @Test
-  public void conj77() throws Exception {
+    public void conj77() throws Exception {
 
-    byte[][] values = new byte[3][];
-    values[0] = "".getBytes();
-    values[1] = "hello".getBytes();
-    values[2] = null;
+        byte[][] values = new byte[3][];
+        values[0] = "".getBytes();
+        values[1] = "hello".getBytes();
+        values[2] = null;
 
-    try (Statement sta1 = sharedConnection.createStatement()) {
-      try {
-        PreparedStatement pre =
-                sharedConnection.prepareStatement(
-                        "INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
-        pre.setString(1, "1-Empty String");
-        pre.setBytes(2, values[0]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
+        try (Statement sta1 = sharedConnection.createStatement()) {
+            try {
+                PreparedStatement pre = sharedConnection
+                        .prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
+                pre.setString(1, "1-Empty String");
+                pre.setBytes(2, values[0]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
 
-        pre.setString(1, "2-Data Hello");
-        pre.setBytes(2, values[1]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
+                pre.setString(1, "2-Data Hello");
+                pre.setBytes(2, values[1]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
 
-        pre.setString(1, "3-Empty Data null");
-        pre.setBytes(2, values[2]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
+                pre.setString(1, "3-Empty Data null");
+                pre.setBytes(2, values[2]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
 
-        //TODO support batch()
-        //pre.executeBatch();
+                // TODO support batch()
+                // pre.executeBatch();
 
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    try (Statement sta2 = sharedConnection.createStatement()) {
-//    try (Statement sta2 = conn.createStatement()) {
-      try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
-        int pos = 0;
-        while (set.next()) {
-          final java.sql.Blob blob = set.getBlob("text");
-          if (blob != null) {
-
-            try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
-              try (InputStream bin = blob.getBinaryStream()) {
-                final byte[] buffer = new byte[1024 * 4];
-                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
-                  bout.write(buffer, 0, read);
-                }
-              }
-              byte[] b = bout.toByteArray();
-              assertArrayEquals(bout.toByteArray(), values[pos++]);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-          } else {
-            if (values[pos] != null) {
-              Assert.assertTrue(values[pos++].length == 0);
-            } else {
-              assertNull(values[pos++]);
-            }
-          }
         }
-        assertEquals(pos, 3);
-      }
-    }
-  }
+        try (Statement sta2 = sharedConnection.createStatement()) {
+            // try (Statement sta2 = conn.createStatement()) {
+            try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
+                int pos = 0;
+                while (set.next()) {
+                    final java.sql.Blob blob = set.getBlob("text");
+                    if (blob != null) {
 
-    @Test
-  public void conj77PS() throws Exception {
-
-    byte[][] values = new byte[3][];
-    values[0] = "".getBytes();
-    values[1] = "hello".getBytes();
-    values[2] = null;
-
-    try (Statement sta1 = sharedPSConnection.createStatement()) {
-      try {
-        PreparedStatement pre =
-                sharedPSConnection.prepareStatement(
-                        "INSERT INTO conj77_test_ps (Name,Archive) VALUES (?,?)");
-        pre.setString(1, "1-Empty String");
-        pre.setBytes(2, values[0]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
-
-        pre.setString(1, "2-Data Hello");
-        pre.setBytes(2, values[1]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
-
-        pre.setString(1, "3-Empty Data null");
-        pre.setBytes(2, values[2]);
-        //TODO to support batch()
-        //pre.addBatch();
-        pre.executeUpdate();
-
-        //TODO support batch()
-        //pre.executeBatch();
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    try (Statement sta2 = sharedPSConnection.createStatement()) {
-      try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test_ps")) {
-        int pos = 0;
-        while (set.next()) {
-          final java.sql.Blob blob = set.getBlob("text");
-          if (blob != null) {
-
-            try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
-              try (InputStream bin = blob.getBinaryStream()) {
-                final byte[] buffer = new byte[1024 * 4];
-                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
-                  bout.write(buffer, 0, read);
+                        try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
+                            try (InputStream bin = blob.getBinaryStream()) {
+                                final byte[] buffer = new byte[1024 * 4];
+                                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
+                                    bout.write(buffer, 0, read);
+                                }
+                            }
+                            byte[] b = bout.toByteArray();
+                            assertArrayEquals(bout.toByteArray(), values[pos++]);
+                        }
+                    } else {
+                        if (values[pos] != null) {
+                            Assert.assertTrue(values[pos++].length == 0);
+                        } else {
+                            assertNull(values[pos++]);
+                        }
+                    }
                 }
-              }
-              assertArrayEquals(bout.toByteArray(), values[pos++]);
+                assertEquals(pos, 3);
             }
-          } else {
-            if (values[pos] != null) {
-              Assert.assertTrue(values[pos++].length == 0);
-            } else {
-              assertNull(values[pos++]);
-            }
-          }
         }
-        assertEquals(pos, 3);
-      }
     }
-  }
 
     @Test
-  public void sendEmptyBlobPreparedQuery() throws SQLException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
-    createTable("emptyBlob", "test blob, test2 clob, test3 clob");
-    //try (Connection conn = setConnection()) {
-    //  PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
-    try (PreparedStatement ps = sharedConnection.prepareStatement("insert into emptyBlob values(?,?,?)")) {
-      ps.setBlob(1, new com.oceanbase.jdbc.Blob(new byte[0]));
-      ps.setString(2, "a 'a ");
-      ps.setNull(3, Types.VARCHAR);
-      ps.executeUpdate();
+    public void conj77PS() throws Exception {
 
-      Statement stmt = sharedConnection.createStatement();
-      ResultSet rs = stmt.executeQuery("select * from emptyBlob");
-      assertTrue(rs.next());
-      //assertEquals(0, rs.getBytes(1).length);
-      assertEquals("a 'a ", rs.getString(2));
-      assertNull(rs.getBytes(3));
+        byte[][] values = new byte[3][];
+        values[0] = "".getBytes();
+        values[1] = "hello".getBytes();
+        values[2] = null;
+
+        try (Statement sta1 = sharedPSConnection.createStatement()) {
+            try {
+                PreparedStatement pre = sharedPSConnection
+                        .prepareStatement("INSERT INTO conj77_test_ps (Name,Archive) VALUES (?,?)");
+                pre.setString(1, "1-Empty String");
+                pre.setBytes(2, values[0]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
+
+                pre.setString(1, "2-Data Hello");
+                pre.setBytes(2, values[1]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
+
+                pre.setString(1, "3-Empty Data null");
+                pre.setBytes(2, values[2]);
+                // TODO to support batch()
+                // pre.addBatch();
+                pre.executeUpdate();
+
+                // TODO support batch()
+                // pre.executeBatch();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        try (Statement sta2 = sharedPSConnection.createStatement()) {
+            try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test_ps")) {
+                int pos = 0;
+                while (set.next()) {
+                    final java.sql.Blob blob = set.getBlob("text");
+                    if (blob != null) {
+
+                        try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
+                            try (InputStream bin = blob.getBinaryStream()) {
+                                final byte[] buffer = new byte[1024 * 4];
+                                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
+                                    bout.write(buffer, 0, read);
+                                }
+                            }
+                            assertArrayEquals(bout.toByteArray(), values[pos++]);
+                        }
+                    } else {
+                        if (values[pos] != null) {
+                            Assert.assertTrue(values[pos++].length == 0);
+                        } else {
+                            assertNull(values[pos++]);
+                        }
+                    }
+                }
+                assertEquals(pos, 3);
+            }
+        }
     }
-  }
 
     @Test
-  public void sendEmptyBlobPreparedQueryPS() throws SQLException {
-        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
-    createTable("emptyBlob_ps", "test blob, test2 clob, test3 clob");
-    //try (Connection conn = setConnection()) {
-    //  PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
-    try (PreparedStatement ps = sharedPSConnection.prepareStatement("insert into emptyBlob_ps values(?,?,?)")) {
-      ps.setBlob(1, new com.oceanbase.jdbc.Blob(new byte[0]));
-      ps.setString(2, "a 'a ");
-      ps.setNull(3, Types.VARCHAR);
-      ps.executeUpdate();
+    public void sendEmptyBlobPreparedQuery() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
+        createTable("emptyBlob", "test blob, test2 clob, test3 clob");
+        // try (Connection conn = setConnection()) {
+        // PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
+        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into emptyBlob values(?,?,?)")) {
+            ps.setBlob(1, new com.oceanbase.jdbc.Blob(new byte[0]));
+            ps.setString(2, "a 'a ");
+            ps.setNull(3, Types.VARCHAR);
+            ps.executeUpdate();
 
-      Statement stmt = sharedPSConnection.createStatement();
-      ResultSet rs = stmt.executeQuery("select * from emptyBlob_ps");
-      assertTrue(rs.next());
-      //assertEquals(0, rs.getBytes(1).length);
-      assertEquals("a 'a ", rs.getString(2));
-      assertNull(rs.getBytes(3));
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from emptyBlob");
+            assertTrue(rs.next());
+            // assertEquals(0, rs.getBytes(1).length);
+            assertEquals("a 'a ", rs.getString(2));
+            assertNull(rs.getBytes(3));
+        }
     }
-  }
+
+    @Test
+    public void sendEmptyBlobPreparedQueryPS() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
+                                                // used
+        createTable("emptyBlob_ps", "test blob, test2 clob, test3 clob");
+        // try (Connection conn = setConnection()) {
+        // PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
+        try (PreparedStatement ps = sharedPSConnection.prepareStatement("insert into emptyBlob_ps values(?,?,?)")) {
+            ps.setBlob(1, new com.oceanbase.jdbc.Blob(new byte[0]));
+            ps.setString(2, "a 'a ");
+            ps.setNull(3, Types.VARCHAR);
+            ps.executeUpdate();
+
+            Statement stmt = sharedPSConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from emptyBlob_ps");
+            assertTrue(rs.next());
+            // assertEquals(0, rs.getBytes(1).length);
+            assertEquals("a 'a ", rs.getString(2));
+            assertNull(rs.getBytes(3));
+        }
+    }
 
     @Test
     public void blobSerializationWithOffset() throws Exception {
@@ -875,72 +870,68 @@ public class BlobOracleTest extends BaseOracleTest {
         }
     }
 
-    private void blobDeserializationFilterInternal(boolean addFilter, int filterSize)
-      throws Exception {
-    Assume.assumeTrue(System.getProperty("java.version").startsWith("9."));
-    byte[] bb = new byte[1000];
-    for (int i = 0; i < 1000; i++) {
-      bb[i] = (byte) i;
+    private void blobDeserializationFilterInternal(boolean addFilter, int filterSize) throws Exception {
+        Assume.assumeTrue(System.getProperty("java.version").startsWith("9."));
+        byte[] bb = new byte[1000];
+        for (int i = 0; i < 1000; i++) {
+            bb[i] = (byte) i;
+        }
+        com.oceanbase.jdbc.Blob blob = new com.oceanbase.jdbc.Blob(bb, 50, 750);
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(blob);
+        oos.flush();
+        oos.close();
+        bos.close();
+
+        byte[] data = bos.toByteArray();
+
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+        ObjectInputStream ois = new ObjectInputStream(bis);
+
+        if (addFilter) {
+            // equivalent of : (but permit compilation if java < 9)
+            // ois.setObjectInputFilter(new ObjectInputFilter() {
+            // @Override
+            // public Status checkInput(FilterInfo filterInfo) {
+            // if (filterInfo.arrayLength() > 500) return Status.REJECTED;
+            // return Status.ALLOWED;
+            // }
+            // });
+
+            ClassLoader cl = BlobOracleTest.class.getClassLoader();
+            Class<?> objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
+
+            Object objectInputFilterImpl = Proxy.newProxyInstance(cl, new Class[] { objectInputFilterClass },
+                    (proxy, method, args) -> {
+                        Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
+                        Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
+                        Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
+                        Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
+                        Field rejected = statusClass.getField("REJECTED");
+                        Field allowed = statusClass.getField("ALLOWED");
+                        if (arrayLength > filterSize) {
+                            return rejected.get(null);
+                        }
+                        return allowed.get(null);
+                    });
+
+            Method setObjectInputFilterMethod = ObjectInputStream.class.getDeclaredMethod("setObjectInputFilter",
+                    objectInputFilterClass);
+            setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
+        }
+
+        com.oceanbase.jdbc.Blob resultBlob = (com.oceanbase.jdbc.Blob) ois.readObject();
+        assertEquals(750, resultBlob.data.length);
+        assertEquals(0, resultBlob.offset);
+        assertEquals(750, resultBlob.length);
+
+        byte[] blobBytes = resultBlob.getBytes(1, 1000);
+        for (int i = 0; i < 750; i++) {
+            assertEquals(bb[i + 50], blobBytes[i]);
+        }
     }
-    com.oceanbase.jdbc.Blob blob = new com.oceanbase.jdbc.Blob(bb, 50, 750);
-
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    ObjectOutputStream oos = new ObjectOutputStream(bos);
-    oos.writeObject(blob);
-    oos.flush();
-    oos.close();
-    bos.close();
-
-    byte[] data = bos.toByteArray();
-
-    ByteArrayInputStream bis = new ByteArrayInputStream(data);
-    ObjectInputStream ois = new ObjectInputStream(bis);
-
-    if (addFilter) {
-      // equivalent of :  (but permit compilation if java < 9)
-      // ois.setObjectInputFilter(new ObjectInputFilter() {
-      //  @Override
-      //  public Status checkInput(FilterInfo filterInfo) {
-      //      if (filterInfo.arrayLength() > 500) return Status.REJECTED;
-      //      return Status.ALLOWED;
-      //  }
-      // });
-
-      ClassLoader cl = BlobOracleTest.class.getClassLoader();
-      Class<?> objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
-
-      Object objectInputFilterImpl =
-          Proxy.newProxyInstance(
-              cl,
-              new Class[] {objectInputFilterClass},
-              (proxy, method, args) -> {
-                Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
-                Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
-                Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
-                Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
-                Field rejected = statusClass.getField("REJECTED");
-                Field allowed = statusClass.getField("ALLOWED");
-                if (arrayLength > filterSize) {
-                  return rejected.get(null);
-                }
-                return allowed.get(null);
-              });
-
-      Method setObjectInputFilterMethod =
-          ObjectInputStream.class.getDeclaredMethod("setObjectInputFilter", objectInputFilterClass);
-      setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
-    }
-
-    com.oceanbase.jdbc.Blob resultBlob = (com.oceanbase.jdbc.Blob) ois.readObject();
-    assertEquals(750, resultBlob.data.length);
-    assertEquals(0, resultBlob.offset);
-    assertEquals(750, resultBlob.length);
-
-    byte[] blobBytes = resultBlob.getBytes(1, 1000);
-    for (int i = 0; i < 750; i++) {
-      assertEquals(bb[i + 50], blobBytes[i]);
-    }
-  }
 
     public java.sql.Blob writeDataToBlob(ResultSet rs, int column, byte[] data) throws SQLException {
         java.sql.Blob blob = rs.getBlob(column);
@@ -951,8 +942,7 @@ public class BlobOracleTest extends BaseOracleTest {
             ((com.oceanbase.jdbc.Blob) blob).setBytes(1L, data);
             return blob;
         }
-        throw new SQLException("Driver's Blob representation is of an unsupported type: "
-                               + blob.getClass().getName());
+        throw new SQLException("Driver's Blob representation is of an unsupported type: " + blob.getClass().getName());
     }
 
     @Test
@@ -960,34 +950,22 @@ public class BlobOracleTest extends BaseOracleTest {
         String tableName = "blobtest";
         Connection conn = sharedConnection;
         System.out.println("connect success");
-        String query = "CREATE TABLE "
-                       + tableName
-                       + " (\n"
-                       + "  \"JOB_NAME\" VARCHAR2(80) NOT NULL,\n"
-                       + "  \"JOB_GROUP\" VARCHAR2(80) NOT NULL,\n"
-                       + "  \"DESCRIPTION\" VARCHAR2(120),\n"
-                       + "  \"JOB_CLASS_NAME\" VARCHAR2(128) NOT NULL,\n"
-                       + "  \"IS_DURABLE\" VARCHAR2(1) NOT NULL,\n"
-                       + "  \"IS_VOLATILE\" VARCHAR2(1) NOT NULL,\n"
-                       + "  \"IS_STATEFUL\" VARCHAR2(1) NOT NULL,\n"
-                       + "  \"REQUESTS_RECOVERY\" VARCHAR2(1) NOT NULL,\n"
-                       + "  \"JOB_DATA\" BLOB,\n"
-                       + "  \"OMS_OBJECT_NUMBER\" NUMBER INVISIBLE,\n"
-                       + "  \"OMS_RELATIVE_FNO\" NUMBER INVISIBLE,\n"
-                       + "  \"OMS_BLOCK_NUMBER\" NUMBER INVISIBLE,\n"
-                       + "  \"OMS_ROW_NUMBER\" NUMBER INVISIBLE,\n"
-                       + "  CONSTRAINT \"SYS_"
-                       + tableName
-                       + "\" PRIMARY KEY (\"JOB_NAME\", \"JOB_GROUP\"),\n"
-                       + "  CONSTRAINT \"UK_"
-                       + tableName
-                       + "_OMS_ROWID\" UNIQUE (\"OMS_OBJECT_NUMBER\", \"OMS_RELATIVE_FNO\", "
-                       + "\"OMS_BLOCK_NUMBER\", \"OMS_ROW_NUMBER\")\n"
-                       + ") COMPRESS FOR ARCHIVE REPLICA_NUM = 3 BLOCK_SIZE = 16384 USE_BLOOM_FILTER = FALSE TABLET_SIZE = 134217728 PCTFREE"
-                       + " = 10";
+        String query = "CREATE TABLE " + tableName + " (\n" + "  \"JOB_NAME\" VARCHAR2(80) NOT NULL,\n"
+                + "  \"JOB_GROUP\" VARCHAR2(80) NOT NULL,\n" + "  \"DESCRIPTION\" VARCHAR2(120),\n"
+                + "  \"JOB_CLASS_NAME\" VARCHAR2(128) NOT NULL,\n" + "  \"IS_DURABLE\" VARCHAR2(1) NOT NULL,\n"
+                + "  \"IS_VOLATILE\" VARCHAR2(1) NOT NULL,\n" + "  \"IS_STATEFUL\" VARCHAR2(1) NOT NULL,\n"
+                + "  \"REQUESTS_RECOVERY\" VARCHAR2(1) NOT NULL,\n" + "  \"JOB_DATA\" BLOB,\n"
+                + "  \"OMS_OBJECT_NUMBER\" NUMBER INVISIBLE,\n" + "  \"OMS_RELATIVE_FNO\" NUMBER INVISIBLE,\n"
+                + "  \"OMS_BLOCK_NUMBER\" NUMBER INVISIBLE,\n" + "  \"OMS_ROW_NUMBER\" NUMBER INVISIBLE,\n"
+                + "  CONSTRAINT \"SYS_" + tableName + "\" PRIMARY KEY (\"JOB_NAME\", \"JOB_GROUP\"),\n"
+                + "  CONSTRAINT \"UK_" + tableName
+                + "_OMS_ROWID\" UNIQUE (\"OMS_OBJECT_NUMBER\", \"OMS_RELATIVE_FNO\", "
+                + "\"OMS_BLOCK_NUMBER\", \"OMS_ROW_NUMBER\")\n"
+                + ") COMPRESS FOR ARCHIVE REPLICA_NUM = 3 BLOCK_SIZE = 16384 USE_BLOOM_FILTER = FALSE TABLET_SIZE = 134217728 PCTFREE"
+                + " = 10";
         byte[] data = "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"
-            .getBytes();
-        //new byte[] { 'a', 'b', 'c' };
+                .getBytes();
+        // new byte[] { 'a', 'b', 'c' };
 
         int res = 0;
         Statement st = null;
@@ -1006,13 +984,13 @@ public class BlobOracleTest extends BaseOracleTest {
             st.execute("set autocommit=0");
             st.close();
 
-            ps = conn
-                .prepareStatement(("INSERT INTO " + tableName + " (JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE, IS_VOLATILE, IS_STATEFUL, REQUESTS_RECOVERY, JOB_DATA)  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+            ps = conn.prepareStatement(("INSERT INTO " + tableName
+                    + " (JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE, IS_VOLATILE, IS_STATEFUL, REQUESTS_RECOVERY, JOB_DATA)  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"));
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
             ps.setString(3, "不定期新单信息生效");
             ps.setString(4,
-                "com.chinalife.cis.moduals.uw.irregularuw.cooperatereceive.job.IrregularInsuredDataInfoEffetJob");
+                    "com.chinalife.cis.moduals.uw.irregularuw.cooperatereceive.job.IrregularInsuredDataInfoEffetJob");
             ps.setBoolean(5, false);
             ps.setBoolean(6, false);
             ps.setBoolean(7, false);
@@ -1022,16 +1000,16 @@ public class BlobOracleTest extends BaseOracleTest {
             ps.executeUpdate();
             ps.close();
 
-            ps = conn
-                .prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = EMPTY_BLOB()  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+            ps = conn.prepareStatement(
+                    ("UPDATE " + tableName + " SET JOB_DATA = EMPTY_BLOB()  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
 
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
             ps.executeUpdate();
             ps.close();
 
-            ps = conn
-                .prepareStatement(("SELECT JOB_DATA FROM " + tableName + " WHERE JOB_NAME = ? AND JOB_GROUP = ? FOR UPDATE"));
+            ps = conn.prepareStatement(
+                    ("SELECT JOB_DATA FROM " + tableName + " WHERE JOB_NAME = ? AND JOB_GROUP = ? FOR UPDATE"));
             ps.setString(1, "不定期新单信息生效");
             ps.setString(2, "group1");
 
@@ -1046,8 +1024,8 @@ public class BlobOracleTest extends BaseOracleTest {
             rs.close();
             ps.close();
 
-            ps = conn
-                .prepareStatement(("UPDATE " + tableName + " SET JOB_DATA = ?  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
+            ps = conn.prepareStatement(
+                    ("UPDATE " + tableName + " SET JOB_DATA = ?  WHERE JOB_NAME = ? AND JOB_GROUP = ?"));
             ps.setBlob(1, dbBlob);
             ps.setString(2, "不定期新单信息生效");
             ps.setString(3, "group1");
@@ -1090,11 +1068,10 @@ public class BlobOracleTest extends BaseOracleTest {
             try {
                 stmt.execute("drop table emptylob ");
             } catch (SQLException e) {
-                //                e.printStackTrace();
+                // e.printStackTrace();
             }
             stmt.execute("create  table emptylob(c1 blob,c2 clob)");
-            PreparedStatement preparedStatement = conn
-                .prepareStatement("insert into emptylob values(?,?)");
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into emptylob values(?,?)");
             preparedStatement.setBlob(1, com.oceanbase.jdbc.Blob.getEmptyBLOB());
             preparedStatement.setClob(2, com.oceanbase.jdbc.Clob.getEmptyCLOB());
             preparedStatement.execute();

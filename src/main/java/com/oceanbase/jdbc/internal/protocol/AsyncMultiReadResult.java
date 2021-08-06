@@ -57,7 +57,7 @@ import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 public class AsyncMultiReadResult {
 
     private PrepareResult prepareResult;
-    private SQLException  exception;
+    private SQLException exception;
 
     public AsyncMultiReadResult(PrepareResult prepareResult) {
         this.prepareResult = prepareResult;

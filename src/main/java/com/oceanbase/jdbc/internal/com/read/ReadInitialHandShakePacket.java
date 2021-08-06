@@ -55,35 +55,39 @@ import static com.oceanbase.jdbc.internal.com.Packet.ERROR;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.util.Utils;
 
 public class ReadInitialHandShakePacket {
 
-    /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
-     * to workaround bugs in Oracle MySQL replication
+    /*
+     * MDEV-4088/CONJ-32 : in 10.0, the real version string maybe prefixed with "5.5.5-", to workaround bugs in Oracle
+     * MySQL replication
      */
-    private static final String MARIADB_RPL_HACK_PREFIX  = "5.5.5-";
-    private final byte          protocolVersion;
-    private final long          serverThreadId;
-    private final long          serverCapabilities;
-    private final byte          serverLanguage;
-    private final short         serverStatus;
-    private final byte[]        seed;
-    private String              serverVersion;
-    private String              authenticationPluginType = "";
-    private boolean             serverMariaDb;
+    private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
+    private final byte protocolVersion;
+    private final long serverThreadId;
+    private final long serverCapabilities;
+    private final byte serverLanguage;
+    private final short serverStatus;
+    private final byte[] seed;
+    private String serverVersion;
+    private String authenticationPluginType = "";
+    private boolean serverMariaDb;
 
     /**
      * Read database initial stream.
      *
-     * @param reader packetFetcher
-     * @throws IOException if a connection error occur
-     * @throws SQLException if received an error packet
+     * @param reader
+     *            packetFetcher
+     * @throws IOException
+     *             if a connection error occur
+     * @throws SQLException
+     *             if received an error packet
      */
-    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException,
-                                                                     SQLException {
+    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException, SQLException {
         Buffer buffer = reader.getPacket(true);
         if (buffer.getByteAt(0) == ERROR) {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
@@ -98,8 +102,7 @@ public class ReadInitialHandShakePacket {
         int serverCapabilities2FirstBytes = buffer.readShort() & 0x0000ffff;
         serverLanguage = buffer.readByte();
         serverStatus = buffer.readShort();
-        int serverCapabilities4FirstBytes = serverCapabilities2FirstBytes
-                                            + (buffer.readShort() << 16);
+        int serverCapabilities4FirstBytes = serverCapabilities2FirstBytes + (buffer.readShort() << 16);
         int saltLength = 0;
 
         if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
@@ -123,15 +126,15 @@ public class ReadInitialHandShakePacket {
             }
             seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
             System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
-            //  reader.skipByte();
+            // reader.skipByte();
         } else {
             seed = Utils.copyWithLength(seed1, seed1.length);
         }
         buffer.skipByte();
 
         /*
-         * check for MariaDB 10.x replication hack , remove fake prefix if needed
-         *  (see comments about MARIADB_RPL_HACK_PREFIX)
+         * check for MariaDB 10.x replication hack , remove fake prefix if needed (see comments about
+         * MARIADB_RPL_HACK_PREFIX)
          */
 
         if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
@@ -143,8 +146,7 @@ public class ReadInitialHandShakePacket {
 
         // since MariaDB 10.2
         if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.CLIENT_MYSQL) == 0) {
-            serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL)
-                                 + (mariaDbAdditionalCapacities << 32);
+            serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
             serverMariaDb = true;
         } else {
             serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
@@ -157,9 +159,8 @@ public class ReadInitialHandShakePacket {
 
     @Override
     public String toString() {
-        return protocolVersion + ":" + serverVersion + ":" + serverThreadId + ":"
-               + new String(seed) + ":" + serverCapabilities + ":" + serverLanguage + ":"
-               + serverStatus;
+        return protocolVersion + ":" + serverVersion + ":" + serverThreadId + ":" + new String(seed) + ":"
+                + serverCapabilities + ":" + serverLanguage + ":" + serverStatus;
     }
 
     public String getServerVersion() {

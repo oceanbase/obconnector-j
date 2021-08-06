@@ -53,9 +53,9 @@ package com.oceanbase.jdbc.internal.failover;
 public class HandleErrorResult {
 
     public boolean mustThrowError = true;
-    public boolean isReconnected  = false;
+    public boolean isReconnected = false;
 
-    public Object  resultObject   = null;
+    public Object resultObject = null;
 
     public HandleErrorResult() {
     }
@@ -71,7 +71,7 @@ public class HandleErrorResult {
 
     @Override
     public String toString() {
-        return "HandleErrorResult{" + "mustThrowError=" + mustThrowError + ", isReconnected="
-               + isReconnected + ", resultObject=" + resultObject + "}";
+        return "HandleErrorResult{" + "mustThrowError=" + mustThrowError + ", isReconnected=" + isReconnected
+                + ", resultObject=" + resultObject + "}";
     }
 }

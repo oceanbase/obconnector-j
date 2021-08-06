@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -59,13 +58,15 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public interface ParameterHolder {
 
     byte[] BINARY_INTRODUCER = { '_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\'' };
-    byte   QUOTE             = (byte) '\'';
+    byte QUOTE = (byte) '\'';
 
     /**
      * Write parameter value.
      *
-     * @param os the stream to write to
-     * @throws IOException when something goes wrong
+     * @param os
+     *            the stream to write to
+     * @throws IOException
+     *             when something goes wrong
      */
     void writeTo(final PacketOutputStream os) throws IOException;
 

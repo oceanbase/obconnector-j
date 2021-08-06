@@ -51,13 +51,14 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class ByteParameter implements Cloneable, ParameterHolder {
 
     private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
-    private final int           value;
+    private final int value;
 
     public ByteParameter(byte value) {
         this.value = value;
@@ -66,8 +67,10 @@ public class ByteParameter implements Cloneable, ParameterHolder {
     /**
      * Write Byte value to stream using TEXT protocol.
      *
-     * @param os the stream to write to
-     * @throws IOException if any socket error occur
+     * @param os
+     *            the stream to write to
+     * @throws IOException
+     *             if any socket error occur
      */
     public void writeTo(final PacketOutputStream os) throws IOException {
         os.write(String.valueOf(value).getBytes());
@@ -80,8 +83,10 @@ public class ByteParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.write(value);

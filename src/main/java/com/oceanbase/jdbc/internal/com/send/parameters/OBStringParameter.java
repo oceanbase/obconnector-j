@@ -43,17 +43,17 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+
 public class OBStringParameter implements Cloneable, ParameterHolder {
 
-    private final String  stringValue;
+    private final String stringValue;
     private final boolean noBackslashEscapes;
-    private final String  characterEncoding;
+    private final String characterEncoding;
     private final Charset charset;
 
     public OBStringParameter(String str, boolean noBackslashEscapes, String characterEncoding) {
@@ -66,12 +66,13 @@ public class OBStringParameter implements Cloneable, ParameterHolder {
     /**
      * Send escaped String to outputStream.
      *
-     * @param pos outpustream.
+     * @param pos
+     *            outpustream.
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         pos.write(QUOTE);
-        pos.writeBytesEscapedQuote(stringValue.getBytes(charset),
-            stringValue.getBytes(charset).length, noBackslashEscapes);
+        pos.writeBytesEscapedQuote(stringValue.getBytes(charset), stringValue.getBytes(charset).length,
+                noBackslashEscapes);
         pos.write(QUOTE);
     }
 
@@ -82,8 +83,10 @@ public class OBStringParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         byte[] bytes = stringValue.getBytes(charset);

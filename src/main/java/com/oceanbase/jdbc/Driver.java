@@ -55,6 +55,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
 import com.oceanbase.jdbc.internal.util.DeRegister;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.constant.Version;
@@ -74,9 +75,11 @@ public class Driver implements java.sql.Driver {
     /**
      * Connect to the given connection string.
      *
-     * @param url the url to connect to
+     * @param url
+     *            the url to connect to
      * @return a connection
-     * @throws SQLException if it is not possible to connect
+     * @throws SQLException
+     *             if it is not possible to connect
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
 
@@ -91,7 +94,8 @@ public class Driver implements java.sql.Driver {
     /**
      * returns true if the driver can accept the url.
      *
-     * @param url the url to test
+     * @param url
+     *            the url to test
      * @return true if the url is valid for this driver
      */
     @Override
@@ -102,39 +106,42 @@ public class Driver implements java.sql.Driver {
     /**
      * Get the property info.
      *
-     * @param url the url to get properties for
-     * @param info the info props
+     * @param url
+     *            the url to get properties for
+     * @param info
+     *            the info props
      * @return all possible connector options
-     * @throws SQLException if there is a problem getting the property info
+     * @throws SQLException
+     *             if there is a problem getting the property info
      */
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
-    Options options;
-    if (url != null && !url.isEmpty()) {
-      UrlParser urlParser = UrlParser.parse(url, info);
-      if (urlParser == null || urlParser.getOptions() == null) {
-        return new DriverPropertyInfo[0];
-      }
-      options = urlParser.getOptions();
-    } else {
-      options = DefaultOptions.parse(HaMode.NONE, "", info, null);
-    }
+        Options options;
+        if (url != null && !url.isEmpty()) {
+            UrlParser urlParser = UrlParser.parse(url, info);
+            if (urlParser == null || urlParser.getOptions() == null) {
+                return new DriverPropertyInfo[0];
+            }
+            options = urlParser.getOptions();
+        } else {
+            options = DefaultOptions.parse(HaMode.NONE, "", info, null);
+        }
 
-    List<DriverPropertyInfo> props = new ArrayList<>();
-    for (DefaultOptions o : DefaultOptions.values()) {
-      try {
-        Field field = Options.class.getField(o.getOptionName());
-        Object value = field.get(options);
-        DriverPropertyInfo propertyInfo =
-            new DriverPropertyInfo(field.getName(), value == null ? null : value.toString());
-        propertyInfo.description = o.getDescription();
-        propertyInfo.required = o.isRequired();
-        props.add(propertyInfo);
-      } catch (NoSuchFieldException | IllegalAccessException e) {
-        // eat error
-      }
+        List<DriverPropertyInfo> props = new ArrayList<>();
+        for (DefaultOptions o : DefaultOptions.values()) {
+            try {
+                Field field = Options.class.getField(o.getOptionName());
+                Object value = field.get(options);
+                DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(),
+                        value == null ? null : value.toString());
+                propertyInfo.description = o.getDescription();
+                propertyInfo.required = o.isRequired();
+                props.add(propertyInfo);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                // eat error
+            }
+        }
+        return props.toArray(new DriverPropertyInfo[props.size()]);
     }
-    return props.toArray(new DriverPropertyInfo[props.size()]);
-  }
 
     /**
      * gets the major version of the driver.

@@ -59,84 +59,78 @@ import java.sql.Types;
 
 import com.oceanbase.jdbc.Blob;
 import com.oceanbase.jdbc.Clob;
-import com.oceanbase.jdbc.util.Options;
 import com.oceanbase.jdbc.extend.datatype.*;
+import com.oceanbase.jdbc.util.Options;
 
 public enum ColumnType {
 
     OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
-    TINYINT(1, Types.TINYINT, "Types.TINYINT", Integer.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT  -> Types.TINYINT
+    TINYINT(1, Types.TINYINT, "Types.TINYINT", Integer.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT ->
+                                                                                               // Types.TINYINT
     SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName(), ColumnType.BOTH_TYPE), //
     INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.MYSQL_TYPE), //
     FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.MYSQL_TYPE), //
     DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName(), ColumnType.MYSQL_TYPE), //
     NULL(6, Types.NULL, "Types.NULL", String.class.getName(), ColumnType.BOTH_TYPE), //
-    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
-              ColumnType.BOTH_TYPE), //
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE), //
     BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName(), ColumnType.BOTH_TYPE), //
-    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.BOTH_TYPE), // in V1 it is FIELD_TYPE_INT24
+    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.BOTH_TYPE), // in V1 it is
+                                                                                                 // FIELD_TYPE_INT24
     DATE(10, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE), //
     TIME(11, Types.TIME, "Types.TIME", Time.class.getName(), ColumnType.BOTH_TYPE), //
-    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
-             ColumnType.BOTH_TYPE), //
-    YEAR(13, Types.DATE, "Types.SMALLINT", Short.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT -> Types.DATE
+    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE), //
+    YEAR(13, Types.DATE, "Types.SMALLINT", Short.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT ->
+                                                                                         // Types.DATE
     NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE), //
     VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), //
     BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE), //
     JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE), //
-    OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(),
-              ColumnType.ORACLE_TYPE), //
+    OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.ORACLE_TYPE), //
     ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), //
     MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARBINARY -> LONGVARBINARY
-    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //Types.CHAR -> Types.DECIMAL
+    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), // Types.CHAR ->
+                                                                                           // Types.DECIMAL
     BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //
     VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE), //
     VARCHAR2(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.ORACLE_TYPE), //
     STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     GEOMETRY(255, Types.CHAR, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
 
-    TIMESTAMP_TZ(200, -101, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -101
-    TIMESTAMP_LTZ(201, -102, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName(),
-                  ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -102
-    TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
-                   ColumnType.ORACLE_TYPE), //
+    TIMESTAMP_TZ(200, -101, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP
+                                                                                                     // -> -101
+    TIMESTAMP_LTZ(201, -102, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP
+                                                                                                       // -> -102
+    TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.ORACLE_TYPE), //
     OBBLOB(210, Types.BLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
-    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob",
-           ColumnType.ORACLE_TYPE), //
-    INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
-               ColumnType.ORACLE_TYPE), //
-    INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
-               ColumnType.ORACLE_TYPE), //
+    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob", ColumnType.ORACLE_TYPE), //
+    INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
+    INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
     COMPLEX(160, Types.OTHER, "Types.OTHER", ComplexData.class.getName(), ColumnType.ORACLE_TYPE), //
     ARRAY(161, Types.ARRAY, "Types.Array", ArrayImpl.class.getName(), ColumnType.ORACLE_TYPE), //
     STRUCT(162, Types.STRUCT, "Types.STRUCT", StructImpl.class.getName(), ColumnType.ORACLE_TYPE), //
     RAW(203, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.ORACLE_TYPE), //
     CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE), //
-    NUMBER(3, Types.INTEGER, "Types.INTEGER", com.oceanbase.jdbc.extend.datatype.NUMBER.class
-        .getName(), ColumnType.ORACLE_TYPE), //
-    NUMBER_FLOAT(206, Types.VARCHAR, "Types.FLOAT", java.lang.String.class.getName(),
-                 ColumnType.ORACLE_TYPE), //
-    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(),
-                  ColumnType.ORACLE_TYPE), //
+    NUMBER(3, Types.INTEGER, "Types.INTEGER", com.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(),
+            ColumnType.ORACLE_TYPE), //
+    NUMBER_FLOAT(206, Types.VARCHAR, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
+    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(), ColumnType.ORACLE_TYPE), //
     NCHAR(208, Types.NCHAR, "Types.NCHAR", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
-    NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(),
-              ColumnType.ORACLE_TYPE), //
+    NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
     ROWID(209, Types.ROWID, "Types.ROWID", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
-    BINARY_FLOAT(4, Types.FLOAT, "Types.FLOAT", java.lang.Float.class.getName(),
-                 ColumnType.ORACLE_TYPE);
+    BINARY_FLOAT(4, Types.FLOAT, "Types.FLOAT", java.lang.Float.class.getName(), ColumnType.ORACLE_TYPE);
 
-    /* Add one protocol type need to check:
-     *      1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types
-     * */
+    /*
+     * Add one protocol type need to check: 1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types
+     */
 
     static final ColumnType[] typeMysqlMap;
     static final ColumnType[] typeOracleMap;
-    static final int          MYSQL_TYPE  = 1;
-    static final int          ORACLE_TYPE = 2;
-    static final int          BOTH_TYPE   = 3;
+    static final int MYSQL_TYPE = 1;
+    static final int ORACLE_TYPE = 2;
+    static final int BOTH_TYPE = 3;
 
     static {
         typeMysqlMap = new ColumnType[256];
@@ -154,11 +148,11 @@ public enum ColumnType {
         }
     }
 
-    private final short       protocolType;
-    private final int         javaType;
-    private final String      javaTypeName;
-    private final String      className;
-    private final int         serverType;     /* 1 just for MySQL / 2 just for Oracle / 3 for both */
+    private final short protocolType;
+    private final int javaType;
+    private final String javaTypeName;
+    private final String className;
+    private final int serverType; /* 1 just for MySQL / 2 just for Oracle / 3 for both */
 
     ColumnType(int protocolType, int javaType, String javaTypeName, String className, int serverType) {
         this.protocolType = (short) protocolType;
@@ -171,83 +165,84 @@ public enum ColumnType {
     /**
      * Permit to know java result class according to java.sql.Types.
      *
-     * @param type java.sql.Type value
+     * @param type
+     *            java.sql.Type value
      * @return Class name.
      */
     public static Class classFromJavaType(int type) {
         switch (type) {
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return Boolean.class;
+        case Types.BOOLEAN:
+        case Types.BIT:
+            return Boolean.class;
 
-            case Types.TINYINT:
-                //return Byte.class;
-                return Integer.class;
+        case Types.TINYINT:
+            // return Byte.class;
+            return Integer.class;
 
-            case Types.SMALLINT:
-                //return Short.class;
-                return Integer.class;
+        case Types.SMALLINT:
+            // return Short.class;
+            return Integer.class;
 
-            case Types.INTEGER:
-                return Integer.class;
+        case Types.INTEGER:
+            return Integer.class;
 
-            case Types.BIGINT:
-                return Long.class;
+        case Types.BIGINT:
+            return Long.class;
 
-            case Types.DOUBLE:
-            case Types.FLOAT:
-                return Double.class;
+        case Types.DOUBLE:
+        case Types.FLOAT:
+            return Double.class;
 
-            case Types.REAL:
-                return Float.class;
+        case Types.REAL:
+            return Float.class;
 
-            case Types.TIMESTAMP:
-                return Timestamp.class;
+        case Types.TIMESTAMP:
+            return Timestamp.class;
 
-            case Types.DATE:
-                return Date.class;
+        case Types.DATE:
+            return Date.class;
 
-            case Types.VARCHAR:
-            case Types.NVARCHAR:
-            case Types.CHAR:
-            case Types.NCHAR:
-            case Types.LONGVARCHAR:
-            case Types.LONGNVARCHAR:
-            case Types.NCLOB:
-                //TODO need to update
-                return String.class;
+        case Types.VARCHAR:
+        case Types.NVARCHAR:
+        case Types.CHAR:
+        case Types.NCHAR:
+        case Types.LONGVARCHAR:
+        case Types.LONGNVARCHAR:
+        case Types.NCLOB:
+            // TODO need to update
+            return String.class;
 
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-                return BigDecimal.class;
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+            return BigDecimal.class;
 
-            case Types.VARBINARY:
-            case Types.BINARY:
-            case Types.LONGVARBINARY:
+        case Types.VARBINARY:
+        case Types.BINARY:
+        case Types.LONGVARBINARY:
 
-            case Types.JAVA_OBJECT:
-                return byte[].class;
+        case Types.JAVA_OBJECT:
+            return byte[].class;
 
-            case Types.NULL:
-                return null;
-            case Types.TIME:
-                return Time.class;
-            case Types.BLOB:
-                return Blob.class;
-            case Types.CLOB:
-                return Clob.class;
-            default:
-                // DISTINCT
-                // STRUCT
-                // ARRAY
-                // REF
-                // DATALINK
-                // ROWID
-                // SQLXML
-                // REF_CURSOR
-                // TIME_WITH_TIMEZONE
-                // TIMESTAMP_WITH_TIMEZONE
-                break;
+        case Types.NULL:
+            return null;
+        case Types.TIME:
+            return Time.class;
+        case Types.BLOB:
+            return Blob.class;
+        case Types.CLOB:
+            return Clob.class;
+        default:
+            // DISTINCT
+            // STRUCT
+            // ARRAY
+            // REF
+            // DATALINK
+            // ROWID
+            // SQLXML
+            // REF_CURSOR
+            // TIME_WITH_TIMEZONE
+            // TIMESTAMP_WITH_TIMEZONE
+            break;
         }
         return null;
     }
@@ -255,115 +250,120 @@ public enum ColumnType {
     /**
      * Is type numeric.
      *
-     * @param type mariadb type
+     * @param type
+     *            mariadb type
      * @return true if type is numeric
      */
     public static boolean isNumeric(ColumnType type) {
         switch (type) {
-            case OLDDECIMAL:
-            case TINYINT:
-            case SMALLINT:
-            case INTEGER:
-            case FLOAT:
-            case DOUBLE:
-            case BIGINT:
-            case MEDIUMINT:
-            case BIT:
-            case DECIMAL:
-                return true;
-            default:
-                return false;
+        case OLDDECIMAL:
+        case TINYINT:
+        case SMALLINT:
+        case INTEGER:
+        case FLOAT:
+        case DOUBLE:
+        case BIGINT:
+        case MEDIUMINT:
+        case BIT:
+        case DECIMAL:
+            return true;
+        default:
+            return false;
         }
     }
 
     /**
      * Get columnTypeName.
      *
-     * @param type   type
-     * @param len    len
-     * @param signed signed
-     * @param binary binary
+     * @param type
+     *            type
+     * @param len
+     *            len
+     * @param signed
+     *            signed
+     * @param binary
+     *            binary
      * @return type
      */
-    public static String getColumnTypeName(ColumnType type, long len, boolean signed,
-                                           boolean binary, boolean isOracelMode) {
+    public static String getColumnTypeName(ColumnType type, long len, boolean signed, boolean binary,
+            boolean isOracelMode) {
         long l = len;
         switch (type) {
-            case SMALLINT:
-            case MEDIUMINT:
-            case INTEGER:
-            case BIGINT:
-                if (!signed) {
-                    return type.getTypeName() + " UNSIGNED";
-                } else {
-                    return type.getTypeName();
-                }
-            case BLOB:
-                /*
-                 map to different blob types based on datatype length
-                 see https://mariadb.com/kb/en/library/data-types/
-                */
-                /*
-                Each BLOB value is stored using a two-byte length prefix that
-                indicates the number of bytes in the value.
-                 */
-
-                if (binary) {
-                    l -= 2;
-                }
-                if (len < 0) {
-                    return "LONGBLOB";
-                } else if (l <= 255) {
-                    return "TINYBLOB";
-                } else if (l <= 65535) {
-                    return "BLOB";
-                } else if (l <= 16777215) {
-                    return "MEDIUMBLOB";
-                } else {
-                    return "LONGBLOB";
-                }
-            case VARSTRING:
-            case VARCHAR:
-                if (binary) {
-                    return "VARBINARY";
-                }
-                return "VARCHAR";
-            case STRING:
-                if (binary) {
-                    return "BINARY";
-                }
-                return "CHAR";
-            case OBCLOB:
-                return "CLOB";
-            case OBBLOB:
-                return "BLOB";
-            case TIMESTAMP_NANO:
-                return "TIMESTAMP";
-            case TIMESTAMP_TZ:
-                return "TIMESTAMP WITH TIME ZONE";
-            case TIMESTAMP_LTZ:
-                return "TIMESTAMP WITH LOCAL TIME ZONE";
-            case OLDDECIMAL:
-            case DECIMAL:
-                return !signed ? "DECIMAL UNSIGNED" : "DECIMAL";
-            case OBDECIMAL:
-                return !signed ? "NUMBER UNSIGNED" : "NUMBER";
-            case NUMBER_FLOAT:
-                return "NUMBER";
-            case DATETIME:
-                if (isOracelMode) {
-                    return "DATE";
-                }
-            default:
+        case SMALLINT:
+        case MEDIUMINT:
+        case INTEGER:
+        case BIGINT:
+            if (!signed) {
+                return type.getTypeName() + " UNSIGNED";
+            } else {
                 return type.getTypeName();
+            }
+        case BLOB:
+            /*
+             * map to different blob types based on datatype length see https://mariadb.com/kb/en/library/data-types/
+             */
+            /*
+             * Each BLOB value is stored using a two-byte length prefix that indicates the number of bytes in the value.
+             */
+
+            if (binary) {
+                l -= 2;
+            }
+            if (len < 0) {
+                return "LONGBLOB";
+            } else if (l <= 255) {
+                return "TINYBLOB";
+            } else if (l <= 65535) {
+                return "BLOB";
+            } else if (l <= 16777215) {
+                return "MEDIUMBLOB";
+            } else {
+                return "LONGBLOB";
+            }
+        case VARSTRING:
+        case VARCHAR:
+            if (binary) {
+                return "VARBINARY";
+            }
+            return "VARCHAR";
+        case STRING:
+            if (binary) {
+                return "BINARY";
+            }
+            return "CHAR";
+        case OBCLOB:
+            return "CLOB";
+        case OBBLOB:
+            return "BLOB";
+        case TIMESTAMP_NANO:
+            return "TIMESTAMP";
+        case TIMESTAMP_TZ:
+            return "TIMESTAMP WITH TIME ZONE";
+        case TIMESTAMP_LTZ:
+            return "TIMESTAMP WITH LOCAL TIME ZONE";
+        case OLDDECIMAL:
+        case DECIMAL:
+            return !signed ? "DECIMAL UNSIGNED" : "DECIMAL";
+        case OBDECIMAL:
+            return !signed ? "NUMBER UNSIGNED" : "NUMBER";
+        case NUMBER_FLOAT:
+            return "NUMBER";
+        case DATETIME:
+            if (isOracelMode) {
+                return "DATE";
+            }
+        default:
+            return type.getTypeName();
         }
     }
 
     /**
      * Convert server Type to server type.
      *
-     * @param typeValue     type value
-     * @param charsetNumber charset
+     * @param typeValue
+     *            type value
+     * @param charsetNumber
+     *            charset
      * @return MariaDb type
      */
     public static ColumnType fromServer(int typeValue, int charsetNumber, boolean isOracleMode) {
@@ -392,7 +392,8 @@ public enum ColumnType {
     /**
      * Convert javatype to ColumnType.
      *
-     * @param javaType javatype value
+     * @param javaType
+     *            javatype value
      * @return mariaDb type value
      */
     public static ColumnType toServer(int javaType) {
@@ -407,38 +408,42 @@ public enum ColumnType {
     /**
      * Get class name.
      *
-     * @param type    type
-     * @param len     len
-     * @param signed  signed
-     * @param binary  binary
-     * @param options options
+     * @param type
+     *            type
+     * @param len
+     *            len
+     * @param signed
+     *            signed
+     * @param binary
+     *            binary
+     * @param options
+     *            options
      * @return class name
      */
-    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary,
-                                      Options options) {
+    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, Options options) {
         switch (type) {
-            case TINYINT:
-                if (len == 1 && options.tinyInt1isBit) {
-                    return Boolean.class.getName();
-                }
-                return Integer.class.getName();
-            case INTEGER:
-                return (signed) ? Integer.class.getName() : Long.class.getName();
-            case BIGINT:
-                return (signed) ? Long.class.getName() : BigInteger.class.getName();
-            case YEAR:
-                if (options.yearIsDateType) {
-                    return Date.class.getName();
-                }
-                return Short.class.getName();
-            case BIT:
-                return (len == 1) ? Boolean.class.getName() : "[B";
-            case STRING:
-            case VARCHAR:
-            case VARSTRING:
-                return binary ? "[B" : String.class.getName();
-            default:
-                break;
+        case TINYINT:
+            if (len == 1 && options.tinyInt1isBit) {
+                return Boolean.class.getName();
+            }
+            return Integer.class.getName();
+        case INTEGER:
+            return (signed) ? Integer.class.getName() : Long.class.getName();
+        case BIGINT:
+            return (signed) ? Long.class.getName() : BigInteger.class.getName();
+        case YEAR:
+            if (options.yearIsDateType) {
+                return Date.class.getName();
+            }
+            return Short.class.getName();
+        case BIT:
+            return (len == 1) ? Boolean.class.getName() : "[B";
+        case STRING:
+        case VARCHAR:
+        case VARSTRING:
+            return binary ? "[B" : String.class.getName();
+        default:
+            break;
         }
         return type.getClassName();
     }

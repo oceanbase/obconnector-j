@@ -43,10 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import java.sql.*;
 
 public class RowidTest extends BaseOracleTest {
     @BeforeClass()
@@ -57,10 +58,9 @@ public class RowidTest extends BaseOracleTest {
     @Test
     public void rowidTest() {
         try {
-            sharedConnection.createStatement().execute(
-                "insert into test_rowid(col1, col2) values(1, 'test1');");
+            sharedConnection.createStatement().execute("insert into test_rowid(col1, col2) values(1, 'test1');");
             PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("select rowid as id, col1 from test_rowid where col1 = ?");
+                    .prepareStatement("select rowid as id, col1 from test_rowid where col1 = ?");
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {

@@ -43,16 +43,15 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.nio.charset.Charset;
-import java.sql.*;
-
 public class GBKTestOracle extends BaseOracleTest {
     static String nchartable = "nchartest" + getRandomString(10);
-    static String dateTest   = "dateTest" + getRandomString(10);
+    static String dateTest = "dateTest" + getRandomString(10);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -64,8 +63,7 @@ public class GBKTestOracle extends BaseOracleTest {
     public void testNcharUncommonChinese() {
         try {
             Connection conn = sharedConnection;
-            PreparedStatement pstmt = conn.prepareStatement("insert into " + nchartable
-                                                            + " values(?);");
+            PreparedStatement pstmt = conn.prepareStatement("insert into " + nchartable + " values(?);");
             pstmt.setNString(1, "张\uE863");
             pstmt.execute();
             pstmt.setNString(1, "中文");
@@ -89,7 +87,7 @@ public class GBKTestOracle extends BaseOracleTest {
             stmt.execute("insert into " + dateTest + " values('我是123abc','我是abc123')");
             ResultSet resultSet = stmt.executeQuery("select * from " + dateTest);
             Assert.assertTrue(resultSet.next());
-            // return value length  of  getNString  is 200
+            // return value length of getNString is 200
             Assert.assertTrue(resultSet.getNString(1).contains("我是123abc"));
             Assert.assertTrue(resultSet.getNString(2).contains("我是abc123"));
             Assert.assertTrue(resultSet.next());

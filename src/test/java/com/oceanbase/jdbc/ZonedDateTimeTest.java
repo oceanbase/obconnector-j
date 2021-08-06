@@ -43,32 +43,31 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class ZonedDateTimeTest extends BaseOracleTest {
     static String zonedDateTimeTable = "zonedDataTimeTest";
 
     @BeforeClass
     public static void initClass() throws SQLException {
-        createTable(
-            zonedDateTimeTable,
-            "TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE, TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE");
+        createTable(zonedDateTimeTable,
+                "TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE, TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE");
     }
 
     @Test
     public void zonedDateTimeTest() {
         try {
             PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("insert into " + zonedDateTimeTable + " values(?,?)");
+                    .prepareStatement("insert into " + zonedDateTimeTable + " values(?,?)");
             LocalDateTime ldt = LocalDateTime.of(2019, 9, 13, 17, 16, 17, 920);
 
             ZonedDateTime zbj = ldt.atZone(ZoneId.systemDefault());
@@ -78,8 +77,7 @@ public class ZonedDateTimeTest extends BaseOracleTest {
             preparedStatement.execute();
             Timestamp timestamp = Timestamp.from(zbj.toInstant());
             Timestamp timestamp2 = Timestamp.from(zny.toInstant());
-            ResultSet rs = sharedConnection.createStatement().executeQuery(
-                "select * from " + zonedDateTimeTable);
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select * from " + zonedDateTimeTable);
             while (rs.next()) {
                 Timestamp t1 = rs.getTimestamp(1);
                 Timestamp t2 = rs.getTimestamp(2);

@@ -52,12 +52,13 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.util.Arrays;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class ByteArrayParameter implements Cloneable, ParameterHolder {
 
-    private final byte[]  bytes;
+    private final byte[] bytes;
     private final boolean noBackslashEscapes;
 
     public ByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
@@ -68,8 +69,10 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in text format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         pos.write(BINARY_INTRODUCER);
@@ -84,8 +87,10 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
+     * @param pos
+     *            socket output stream
+     * @throws IOException
+     *             if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.writeFieldLength(bytes.length);
