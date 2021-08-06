@@ -49,4 +49,6 @@ public interface ObConnection extends MysqlConnection {
     void setSessionTimeZone(String zoneID) throws SQLException;
 
     String getSessionTimeZone();
+
+    void changeUser(String userName, String newPassword) throws SQLException;
 }

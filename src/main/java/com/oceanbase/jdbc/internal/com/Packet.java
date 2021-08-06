@@ -74,6 +74,7 @@ public class Packet {
     public static final byte COM_RESET_CONNECTION    = (byte) 0x1f;
     public static final byte COM_STMT_BULK_EXECUTE   = (byte) 0xfa;
     public static final byte COM_MULTI               = (byte) 0xfe;
+    public static final byte COM_CHANGE_USER         = (byte) 0x11;
 
     // prepare statement cursor flag.
     public static final byte CURSOR_TYPE_NO_CURSOR   = (byte) 0x00;

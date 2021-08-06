@@ -47,9 +47,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
@@ -126,4 +124,71 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testUrlCharsetError() {
+        try {
+            Connection conn = setConnection("&characterEncoding=UTF-8");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testChangeUser() throws SQLException {
+        Connection conn = null;
+        try {
+            String url = System.getProperty("observerUrlOracle");
+            conn = DriverManager.getConnection(url);
+            String user = System.getProperty("newUserOracle");
+            String password = System.getProperty("newPwd");
+            ((ObConnection) conn).changeUser(user, password);
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table  test_change_user");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table test_change_user(c1 int);");
+            stmt.execute("insert into test_change_user values(100)");
+            ResultSet rs = stmt.executeQuery("select * from test_change_user");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.assertTrue("changeUser failed", false);
+        } finally {
+            conn.close();
+        }
+    }
+
+    @Test
+    public void testChangeUserWithoutDatabase() throws SQLException {
+        Connection conn = null;
+        try {
+            String url = System.getProperty("observerUrlOracleWithoutDatabase");
+            conn = DriverManager.getConnection(url);
+            String user = System.getProperty("newUserOracle");
+            String password = System.getProperty("newPwd");
+            ((ObConnection) conn).changeUser(user, password);
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table  test_change_user");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table test_change_user(c1 int);");
+            stmt.execute("insert into test_change_user values(100)");
+            ResultSet rs = stmt.executeQuery("select * from test_change_user");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.assertTrue("changeUser failed", false);
+        } finally {
+            conn.close();
+        }
+    }
+
 }

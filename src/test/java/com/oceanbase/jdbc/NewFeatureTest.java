@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.*;
@@ -157,6 +158,40 @@ public class NewFeatureTest extends BaseTest {
             sharedConnection.setCatalog("sys");
             catalog = sharedConnection.getCatalog();
             System.out.println("catalog = " + catalog);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testChangeUser() {
+        try {
+            String observerUrl = System.getProperty("observerUrl");
+            Assume.assumeNotNull(observerUrl);
+            String user = System.getProperty("newUser");
+            String password = System.getProperty("newPwd");
+            System.out.println("observerUrl = " + observerUrl);
+            Connection conn = DriverManager.getConnection(observerUrl);
+            ((ObConnection) conn).changeUser(user, password);
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists test_change_user");
+            stmt.execute("create table test_change_user(c1 int);");
+            stmt.execute("insert into test_change_user values(100)");
+            ResultSet rs = stmt.executeQuery("select * from test_change_user");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(1));
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testUrlCharsetError() {
+        try {
+            Connection conn = setConnection("&characterEncoding=UTF-8");
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

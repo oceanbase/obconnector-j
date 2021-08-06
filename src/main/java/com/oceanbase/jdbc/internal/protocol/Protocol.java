@@ -147,6 +147,8 @@ public interface Protocol {
 
     String getUsername();
 
+    void setUsername(String username);
+
     boolean ping() throws SQLException;
 
     boolean isValid(int timeout) throws SQLException;
@@ -313,5 +315,7 @@ public interface Protocol {
     long getLastPacketSendTimestamp();
 
     void clearNetworkStatistics();
+
+    void changeUser(String user, String pwd) throws SQLException;
 
 }

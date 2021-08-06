@@ -59,6 +59,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -70,6 +71,8 @@ import com.oceanbase.jdbc.LocalInfileInterceptor;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.credential.Credential;
+import com.oceanbase.jdbc.credential.CredentialPlugin;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -79,10 +82,8 @@ import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
-import com.oceanbase.jdbc.internal.com.send.ComQuery;
-import com.oceanbase.jdbc.internal.com.send.ComStmtExecute;
-import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
-import com.oceanbase.jdbc.internal.com.send.SendChangeDbPacket;
+import com.oceanbase.jdbc.internal.com.send.*;
+import com.oceanbase.jdbc.internal.com.send.authentication.NativePasswordPlugin;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
@@ -1220,6 +1221,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       reader.clearNetworkStatistics();
   }
 
+  @Override
+  public void changeUser(String user, String pwd) throws SQLException {
+    cmdPrologue();
+    try {
+      Credential  credential = new Credential(user,pwd);
+      String clientIp = this.socket.getLocalAddress().getHostAddress();
+      SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
+              serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
+                      : 0x01), options, authenticationPluginType, seed, clientIp,this.isOracleMode());
+      getResult(new Results());
+    } catch (IOException e) {
+      throw exceptionWithQuery(
+              " change user failed.", handleIoException(e), explicitClosed);
+    }
+    setUsername(user);
+    postConnectionQueries();
+  }
+
 
   /** Rollback transaction. */
   public void rollback() throws SQLException {
@@ -1238,6 +1257,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       lock.unlock();
     }
+  }
+
+  @Override
+  public void setUsername(String username) {
+      this.username = username;
   }
 
   /**

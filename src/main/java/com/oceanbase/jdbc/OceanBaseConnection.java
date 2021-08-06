@@ -2275,4 +2275,17 @@ public class OceanBaseConnection implements ConnectionImpl {
         return protocol.getLastPacketSendTimestamp();
     }
 
+    @Override
+    public void changeUser(String userName, String newPassword) throws SQLException {
+        if ((userName == null) || userName.equals("")) {
+            userName = "";
+        }
+
+        if (newPassword == null) {
+            newPassword = "";
+        }
+
+        protocol.changeUser(userName, newPassword);
+
+    }
 }

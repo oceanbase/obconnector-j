@@ -52,9 +52,11 @@ package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.function.Supplier;
 
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
 import com.oceanbase.jdbc.internal.com.send.authentication.NativePasswordPlugin;
@@ -192,6 +194,98 @@ public class SendHandshakeResponsePacket {
             pos.write(database);
             pos.write((byte) 0);
         }
+
+        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+            pos.write(authenticationPluginType);
+            pos.write((byte) 0);
+        }
+
+        if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0) {
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
+        }
+
+        pos.flush();
+        pos.permitTrace(true);
+    }
+
+    public static void sendChangeUser(final PacketOutputStream pos, final Credential credential,
+                                      final String host, final String database,
+                                      final long clientCapabilities, final long serverCapabilities,
+                                      final byte serverLanguage, final byte packetSeq,
+                                      final Options options, String authenticationPluginType,
+                                      final byte[] seed, String clientIp, boolean isOracleMode)
+                                                                                               throws IOException {
+
+        pos.startPacket(packetSeq);
+
+        final byte[] authData;
+
+        switch (authenticationPluginType) {
+            case ClearPasswordPlugin.TYPE:
+                pos.permitTrace(false);
+                if (credential.getPassword() == null) {
+                    authData = new byte[0];
+                } else {
+                    if (options.passwordCharacterEncoding != null
+                        && !options.passwordCharacterEncoding.isEmpty()) {
+                        authData = credential.getPassword().getBytes(
+                            options.passwordCharacterEncoding);
+                    } else {
+                        authData = credential.getPassword().getBytes();
+                    }
+                }
+                break;
+
+            default:
+                authenticationPluginType = NativePasswordPlugin.TYPE;
+                pos.permitTrace(false);
+                try {
+                    authData = Utils.encryptPassword(credential.getPassword(), seed,
+                        options.passwordCharacterEncoding);
+                    break;
+                } catch (NoSuchAlgorithmException e) {
+                    // cannot occur :
+                    throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
+                }
+        }
+
+        pos.startPacket(0);
+        pos.write(Packet.COM_CHANGE_USER);
+        String user;
+        if (credential.getUser() == null || credential.getUser().isEmpty()) {
+            user = System.getProperty("user.name");
+            pos.write(System.getProperty("user.name").getBytes()); // to permit SSO
+        } else {
+            user = credential.getUser();
+            pos.write(credential.getUser().getBytes()); // strlen username
+        }
+
+        pos.write((byte) 0); // 1
+
+        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+            pos.writeFieldLength(authData.length);
+            pos.write(authData);
+        } else if ((serverCapabilities & OceanBaseServerCapabilities.SECURE_CONNECTION) != 0) {
+            pos.write((byte) authData.length);
+            pos.write(authData);
+        } else {
+            pos.write(authData);
+            pos.write((byte) 0);
+        }
+        if (isOracleMode) { // oracle mode send database always
+            if ((clientCapabilities & OceanBaseServerCapabilities.CONNECT_WITH_DB) != 0) {
+                pos.write(database.toUpperCase(Locale.ROOT));
+            } else {
+                int index = user.indexOf('@');
+                String databaseTmp = user.substring(0, index);
+                pos.write(databaseTmp);
+            }
+        } else {
+            if ((clientCapabilities & OceanBaseServerCapabilities.CONNECT_WITH_DB) != 0) {
+                pos.write(database);
+            }
+        }
+        pos.write((byte) 0);
 
         if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
             pos.write(authenticationPluginType);
