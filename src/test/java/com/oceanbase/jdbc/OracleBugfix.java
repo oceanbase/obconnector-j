@@ -51,17 +51,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class OracleBugfix extends BaseOracleTest {
-    static String testTMTable = "test_timestamp" + getRandomString(5);
-    static String testColonIdentifier = "testcolon" + getRandomString(5);
-    static String testColonIdentifierBatch = "testcolonbatch" + getRandomString(5);
+    static String testTMTable               = "test_timestamp" + getRandomString(5);
+    static String testColonIdentifier       = "testcolon" + getRandomString(5);
+    static String testColonIdentifierBatch  = "testcolonbatch" + getRandomString(5);
     static String testColonIdentifierBatch2 = "testcolonbatch" + getRandomString(5);
-    static String testColonIdentifierProc = "testcolonproc" + getRandomString(5);
-    static String testJDBIfunction = "JDBIfunction1" + getRandomString(5);
-    static String testJDBIfunction2 = "JDBIfunction1" + getRandomString(5);
-    static String testNumberCol1 = "testNumberCol1" + getRandomString(5);
-    static String testNumberCol2 = "testNumberCol2" + getRandomString(5);
-    static String testNumberCol3 = "testNumberCol3" + getRandomString(5);
-    static String testNumberCol4 = "testNumberCol4" + getRandomString(5);
+    static String testColonIdentifierProc   = "testcolonproc" + getRandomString(5);
+    static String testJDBIfunction          = "JDBIfunction1" + getRandomString(5);
+    static String testJDBIfunction2         = "JDBIfunction1" + getRandomString(5);
+    static String testNumberCol1            = "testNumberCol1" + getRandomString(5);
+    static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
+    static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
+    static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -69,18 +69,29 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testColonIdentifier, "c1 varchar2(200),c2 int ,c3 int");
         createTable(testColonIdentifierBatch, "c1 varchar2(200),c2 int ,c3 int");
         createTable(testColonIdentifierBatch2, "c1 varchar2(200),c2 int ,c3 int");
-        createProcedure(testColonIdentifierProc, "(p1 IN int ,p2 OUT int) is begin  p2:=p1 + 250; end");
-        createFunction(testJDBIfunction,
-                "(\n" + "  I_BIRTHDAY               IN DATE,        " + "  I_HOLD_DATE              IN DATE,        "
-                        + "  I_VALIDATE_DATE          IN DATE       " + ") RETURN NUMBER\n" + "as\n"
-                        + "  V_AGE_MONTH  NUMBER;\n" + "begin\n" + "  if true then\n"
-                        + "    V_AGE_MONTH := mod(floor(months_between(I_HOLD_DATE,I_BIRTHDAY)), 12);\n" + "  else\n"
-                        + "    V_AGE_MONTH := mod(floor(months_between(I_VALIDATE_DATE,I_BIRTHDAY)), 12);\n"
-                        + "  end if;\n" + "  return V_AGE_MONTH;\n" + "end;\n");
-        createFunction(testJDBIfunction2,
-                "(\n" + "  i1               IN INt,       " + "  i2              IN INT,       "
-                        + "  i3          IN INT        " + ") RETURN NUMBER\n" + "as\n" + "  ototoal  NUMBER;\n"
-                        + "begin\n" + "ototoal := i1 + i2 + i3;\n" + "return ototoal;\n" + "end");
+        createProcedure(testColonIdentifierProc,
+            "(p1 IN int ,p2 OUT int) is begin  p2:=p1 + 250; end");
+        createFunction(
+            testJDBIfunction,
+            "(\n"
+                    + "  I_BIRTHDAY               IN DATE,        "
+                    + "  I_HOLD_DATE              IN DATE,        "
+                    + "  I_VALIDATE_DATE          IN DATE       "
+                    + ") RETURN NUMBER\n"
+                    + "as\n"
+                    + "  V_AGE_MONTH  NUMBER;\n"
+                    + "begin\n"
+                    + "  if true then\n"
+                    + "    V_AGE_MONTH := mod(floor(months_between(I_HOLD_DATE,I_BIRTHDAY)), 12);\n"
+                    + "  else\n"
+                    + "    V_AGE_MONTH := mod(floor(months_between(I_VALIDATE_DATE,I_BIRTHDAY)), 12);\n"
+                    + "  end if;\n" + "  return V_AGE_MONTH;\n" + "end;\n");
+        createFunction(testJDBIfunction2, "(\n" + "  i1               IN INt,       "
+                                          + "  i2              IN INT,       "
+                                          + "  i3          IN INT        " + ") RETURN NUMBER\n"
+                                          + "as\n" + "  ototoal  NUMBER;\n" + "begin\n"
+                                          + "ototoal := i1 + i2 + i3;\n" + "return ototoal;\n"
+                                          + "end");
         createTable(testNumberCol1, "c1 int");
         createTable(testNumberCol2, "c1 float");
         createTable(testNumberCol3, "c1 decimal");
@@ -110,10 +121,12 @@ public class OracleBugfix extends BaseOracleTest {
         try {
             Connection conn = setConnection("&supportNameBinding=true");
             Statement stmt = conn.createStatement();
-            stmt.execute("insert /* commment */  into " + testColonIdentifier + " values('varcharvalue111',1,2)");
+            stmt.execute("insert /* commment */  into " + testColonIdentifier
+                         + " values('varcharvalue111',1,2)");
             stmt.execute("insert into " + testColonIdentifier + " values('varcharvalue222',1,3)");
-            PreparedStatement pstmt = conn.prepareStatement(
-                    "select * /* comment */ from " + testColonIdentifier + " where  c3 =:n and c2 = :name ");
+            PreparedStatement pstmt = conn.prepareStatement("select * /* comment */ from "
+                                                            + testColonIdentifier
+                                                            + " where  c3 =:n and c2 = :name ");
             pstmt.setInt(1, 3);
             pstmt.setInt(2, 1);
             ResultSet rs = pstmt.executeQuery();
@@ -132,8 +145,9 @@ public class OracleBugfix extends BaseOracleTest {
         try {
             Connection conn = setConnection("&supportNameBinding=true");
             Statement stmt = conn.createStatement();
-            PreparedStatement pstmt = conn
-                    .prepareStatement("insert into " + testColonIdentifierBatch + " values(:var1,:var2,:var3);");
+            PreparedStatement pstmt = conn.prepareStatement("insert into "
+                                                            + testColonIdentifierBatch
+                                                            + " values(:var1,:var2,:var3);");
             pstmt.setString(1, "values");
             pstmt.setInt(2, 1);
             pstmt.setInt(3, 2);
@@ -155,8 +169,9 @@ public class OracleBugfix extends BaseOracleTest {
         try {
             Connection conn = setConnection("&rewriteBatchedStatements=true");
             Statement stmt = conn.createStatement();
-            PreparedStatement pstmt = conn
-                    .prepareStatement("insert into " + testColonIdentifierBatch2 + " values(:var1,:var2,:var3);");
+            PreparedStatement pstmt = conn.prepareStatement("insert into "
+                                                            + testColonIdentifierBatch2
+                                                            + " values(:var1,:var2,:var3);");
             pstmt.setString(1, "values");
             pstmt.setInt(2, 1);
             pstmt.setInt(3, 2);
@@ -178,8 +193,8 @@ public class OracleBugfix extends BaseOracleTest {
         try {
             Connection conn = null;
             conn = setConnection("&supportNameBinding=true");
-            CallableStatement cstmt = conn
-                    .prepareCall("{ call " + testColonIdentifierProc + "\n(:inparam,:outparam) }");
+            CallableStatement cstmt = conn.prepareCall("{ call " + testColonIdentifierProc
+                                                       + "\n(:inparam,:outparam) }");
             cstmt.setInt(1, 100);
             cstmt.registerOutParameter(2, Types.INTEGER);
             cstmt.executeUpdate();
@@ -191,12 +206,13 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
-    // bugfix for JDBI name binding setDate
+    // bugfix  for JDBI name binding setDate
     @Test
     public void functionTest() {
         try {
             Connection conn = sharedConnection;
-            CallableStatement cstmt = conn.prepareCall("{? =  call " + testJDBIfunction + "(:name1,:name2,:name3)}");
+            CallableStatement cstmt = conn.prepareCall("{? =  call " + testJDBIfunction
+                                                       + "(:name1,:name2,:name3)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             Date date = new Date(System.currentTimeMillis());
             cstmt.setDate(2, date);
@@ -216,7 +232,8 @@ public class OracleBugfix extends BaseOracleTest {
 
         try {
             Connection conn = sharedConnection;
-            CallableStatement cstmt = conn.prepareCall("{? =  call " + testJDBIfunction2 + "(:name1,:name2,:name3)}");
+            CallableStatement cstmt = conn.prepareCall("{? =  call " + testJDBIfunction2
+                                                       + "(:name1,:name2,:name3)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setInt(2, 1);
             cstmt.setInt(3, 1);
@@ -237,9 +254,10 @@ public class OracleBugfix extends BaseOracleTest {
             try {
                 conn.prepareStatement("drop table ttt_name1").executeUpdate();
             } catch (SQLException e) {
-                // e.printStackTrace();
+                //                e.printStackTrace();
             }
-            conn.prepareStatement("create table ttt_name1 (c1 number, c2 varchar2(50))").executeUpdate();
+            conn.prepareStatement("create table ttt_name1 (c1 number, c2 varchar2(50))")
+                .executeUpdate();
             String sql = "insert into ttt_name1 values(:b, :张\uE863)";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, 1);
@@ -260,9 +278,10 @@ public class OracleBugfix extends BaseOracleTest {
             try {
                 conn.prepareStatement("drop table ttt_name2").executeUpdate();
             } catch (SQLException e) {
-                // e.printStackTrace();
+                //                e.printStackTrace();
             }
-            conn.prepareStatement("create table ttt_name2 (c1 number, c2 varchar2(50))").executeUpdate();
+            conn.prepareStatement("create table ttt_name2 (c1 number, c2 varchar2(50))")
+                .executeUpdate();
             String sql = "insert into ttt_name2 values(:b, :张\uE863)";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, 1);
@@ -305,7 +324,8 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (SQLException e) {
             // e.printStackTrace();
         }
-        statement.executeUpdate("create table test_decimal (c1 int, c2 float, c3 decimal, c4 number)");
+        statement
+            .executeUpdate("create table test_decimal (c1 int, c2 float, c3 decimal, c4 number)");
         String sql = "insert into test_decimal values (1, 1, 1, 1)";
         Assert.assertEquals(1, conn.prepareStatement(sql).executeUpdate());
 
@@ -324,12 +344,12 @@ public class OracleBugfix extends BaseOracleTest {
             try {
                 conn.createStatement().execute("drop table t");
             } catch (SQLException e) {
-                // e.printStackTrace();
+                //                e.printStackTrace();
             }
             Statement stmt = conn.createStatement();
             stmt.execute("create table t(a int)");
-            stmt.execute("create or replace procedure pp\n" + "is\n" + "begin\n" + "insert into t(a1) values(1);\n"
-                    + "end;\n");
+            stmt.execute("create or replace procedure pp\n" + "is\n" + "begin\n"
+                         + "insert into t(a1) values(1);\n" + "end;\n");
             SQLWarning sqlWarning = stmt.getWarnings();
             System.out.println("sqlWarning = " + sqlWarning.getMessage());
             sqlWarning = sqlWarning.getNextWarning();
@@ -348,7 +368,7 @@ public class OracleBugfix extends BaseOracleTest {
             try {
                 stmt.execute("drop table TESTNULLABLE");
             } catch (SQLException e) {
-                // e.printStackTrace();
+                //                e.printStackTrace();
             }
             stmt.execute("create table TESTNULLABLE (c1 varchar2(36))");
             DatabaseMetaData databaseMetaData = conn.getMetaData();

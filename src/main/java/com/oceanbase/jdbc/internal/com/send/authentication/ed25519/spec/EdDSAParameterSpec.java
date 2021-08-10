@@ -66,23 +66,18 @@ import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519.
  */
 public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable {
 
-    private static final long serialVersionUID = 8274987108472012L;
-    private final Curve curve;
-    private final String hashAlgo;
-    private final ScalarOps sc;
+    private static final long  serialVersionUID = 8274987108472012L;
+    private final Curve        curve;
+    private final String       hashAlgo;
+    private final ScalarOps    sc;
     private final GroupElement B;
 
     /**
-     * @param curve
-     *            the curve
-     * @param hashAlgo
-     *            the JCA string for the hash algorithm
-     * @param sc
-     *            the parameter L represented as ScalarOps
-     * @param B
-     *            the parameter B
-     * @throws IllegalArgumentException
-     *             if hash algorithm is unsupported or length is wrong
+     * @param curve the curve
+     * @param hashAlgo the JCA string for the hash algorithm
+     * @param sc the parameter L represented as ScalarOps
+     * @param B the parameter B
+     * @throws IllegalArgumentException if hash algorithm is unsupported or length is wrong
      */
     public EdDSAParameterSpec(Curve curve, String hashAlgo, ScalarOps sc, GroupElement B) {
         try {
@@ -132,6 +127,7 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
             return false;
         }
         EdDSAParameterSpec s = (EdDSAParameterSpec) o;
-        return hashAlgo.equals(s.getHashAlgorithm()) && curve.equals(s.getCurve()) && B.equals(s.getB());
+        return hashAlgo.equals(s.getHashAlgorithm()) && curve.equals(s.getCurve())
+               && B.equals(s.getB());
     }
 }

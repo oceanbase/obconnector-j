@@ -83,14 +83,15 @@ public interface Listener {
 
     void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-    HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean wasClosed) throws SQLException;
+    HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean wasClosed)
+                                                                                                   throws SQLException;
 
     Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
     Object invoke(Method method, Object[] args) throws Throwable;
 
-    HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol,
-            boolean wasClosed) throws Throwable;
+    HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
+                                     Protocol protocol, boolean wasClosed) throws Throwable;
 
     void foundActiveMaster(Protocol protocol) throws SQLException;
 
@@ -104,8 +105,8 @@ public interface Listener {
 
     UrlParser getUrlParser();
 
-    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, SQLException queryException,
-            boolean reconnected) throws SQLException;
+    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
+                              SQLException queryException, boolean reconnected) throws SQLException;
 
     boolean isAutoReconnect();
 
@@ -135,7 +136,8 @@ public interface Listener {
 
     boolean isValid(int timeout) throws SQLException;
 
-    void prolog(long maxRows, OceanBaseConnection connection, OceanBaseStatement statement) throws SQLException;
+    void prolog(long maxRows, OceanBaseConnection connection, OceanBaseStatement statement)
+                                                                                           throws SQLException;
 
     String getCatalog() throws SQLException;
 
@@ -159,7 +161,8 @@ public interface Listener {
 
     boolean checkMasterStatus(SearchFilter searchFilter);
 
-    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws SQLException;
+    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster)
+                                                                                                  throws SQLException;
 
     void reset() throws SQLException;
 }

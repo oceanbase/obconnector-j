@@ -217,18 +217,21 @@ public class OceanBaseClobTest extends BaseTest {
         out2.write(otherBytes);
         assertArrayEquals(new byte[] { 0, 1, 2, 10, 11, 12, 13 }, blob2.getBytes(1, 7));
 
-        com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(
+            new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes);
         assertArrayEquals(new byte[] { 2, 10, 11, 12, 13 }, blob3.getBytes(1, 7));
 
-        com.oceanbase.jdbc.Clob blob4 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        com.oceanbase.jdbc.Clob blob4 = new com.oceanbase.jdbc.Clob(
+            new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes);
         assertArrayEquals(new byte[] { 2, 3, 4, 10, 11, 12 }, blob4.getBytes(1, 6));
 
         try {
-            com.oceanbase.jdbc.Clob blob5 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+            com.oceanbase.jdbc.Clob blob5 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4,
+                    5 }, 2, 3);
             blob5.setBinaryStream(0);
         } catch (SQLException sqle) {
             // normal exception
@@ -250,17 +253,20 @@ public class OceanBaseClobTest extends BaseTest {
         out2.write(otherBytes, 3, 2);
         assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, }, blob2.getBytes(1, 7));
 
-        com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
+        com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(
+            new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
         OutputStream out3 = blob3.setBinaryStream(2);
         out3.write(otherBytes, 2, 3);
         assertArrayEquals(new byte[] { 2, 12, 13, 5 }, blob3.getBytes(1, 7));
 
-        com.oceanbase.jdbc.Clob blob4 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        com.oceanbase.jdbc.Clob blob4 = new com.oceanbase.jdbc.Clob(
+            new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out4 = blob4.setBinaryStream(4);
         out4.write(otherBytes, 2, 2);
         assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob4.getBytes(1, 6));
 
-        com.oceanbase.jdbc.Clob blob5 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
+        com.oceanbase.jdbc.Clob blob5 = new com.oceanbase.jdbc.Clob(
+            new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 3);
         OutputStream out5 = blob5.setBinaryStream(4);
         out5.write(otherBytes, 2, 20);
         assertArrayEquals(new byte[] { 2, 3, 4, 12, 13 }, blob5.getBytes(1, 6));
@@ -283,8 +289,8 @@ public class OceanBaseClobTest extends BaseTest {
         clob.truncate(0);
         assertEquals("", clob.getSubString(1, 7));
 
-        com.oceanbase.jdbc.Clob clob2 = new com.oceanbase.jdbc.Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2,
-                8);
+        com.oceanbase.jdbc.Clob clob2 = new com.oceanbase.jdbc.Clob(
+            "abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 8);
         clob2.truncate(20);
         assertEquals("cde🙏f", clob2.getSubString(1, 8));
         clob2.truncate(6);
@@ -305,45 +311,46 @@ public class OceanBaseClobTest extends BaseTest {
     }
 
     @Test
-    @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
-    public void clobLength() throws Exception {
-        Statement stmt = sharedConnection.createStatement();
-        try (ResultSet rs = stmt.executeQuery("SELECT 'ab$c', 'ab¢c', 'abहc', 'ab\uD801\uDC37c', 'ab𐍈c' from dual")) {
-            while (rs.next()) {
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  public void clobLength() throws Exception {
+    Statement stmt = sharedConnection.createStatement();
+    try (ResultSet rs =
+        stmt.executeQuery("SELECT 'ab$c', 'ab¢c', 'abहc', 'ab\uD801\uDC37c', 'ab𐍈c' from dual")) {
+      while (rs.next()) {
 
-                java.sql.Clob clob1 = rs.getClob(1);
-                assertEquals(4, clob1.length());
+        java.sql.Clob clob1 = rs.getClob(1);
+        assertEquals(4, clob1.length());
 
-                java.sql.Clob clob2 = rs.getClob(2);
-                assertEquals(4, clob2.length());
+        java.sql.Clob clob2 = rs.getClob(2);
+        assertEquals(4, clob2.length());
 
-                java.sql.Clob clob3 = rs.getClob(3);
-                assertEquals(4, clob3.length());
+        java.sql.Clob clob3 = rs.getClob(3);
+        assertEquals(4, clob3.length());
 
-                java.sql.Clob clob4 = rs.getClob(4);
-                assertEquals(5, clob4.length());
+        java.sql.Clob clob4 = rs.getClob(4);
+        assertEquals(5, clob4.length());
 
-                java.sql.Clob clob5 = rs.getClob(5);
-                assertEquals(5, clob5.length());
+        java.sql.Clob clob5 = rs.getClob(5);
+        assertEquals(5, clob5.length());
 
-                clob1.truncate(3);
-                clob2.truncate(3);
-                clob3.truncate(3);
-                clob4.truncate(3);
-                clob5.truncate(3);
+        clob1.truncate(3);
+        clob2.truncate(3);
+        clob3.truncate(3);
+        clob4.truncate(3);
+        clob5.truncate(3);
 
-                assertEquals(3, clob1.length());
-                assertEquals(3, clob2.length());
-                assertEquals(3, clob3.length());
-                assertEquals(3, clob4.length());
-                assertEquals(3, clob5.length());
+        assertEquals(3, clob1.length());
+        assertEquals(3, clob2.length());
+        assertEquals(3, clob3.length());
+        assertEquals(3, clob4.length());
+        assertEquals(3, clob5.length());
 
-                assertEquals("ab$", clob1.getSubString(1, 3));
-                assertEquals("ab¢", clob2.getSubString(1, 3));
-                assertEquals("abह", clob3.getSubString(1, 3));
-                assertEquals("ab�", clob4.getSubString(1, 3));
-                assertEquals("ab�", clob5.getSubString(1, 3));
-            }
-        }
+        assertEquals("ab$", clob1.getSubString(1, 3));
+        assertEquals("ab¢", clob2.getSubString(1, 3));
+        assertEquals("abह", clob3.getSubString(1, 3));
+        assertEquals("ab�", clob4.getSubString(1, 3));
+        assertEquals("ab�", clob5.getSubString(1, 3));
+      }
     }
+  }
 }

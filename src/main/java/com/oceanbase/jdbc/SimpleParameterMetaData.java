@@ -72,9 +72,9 @@ public class SimpleParameterMetaData implements ParameterMetaData {
     @Override
     public int isNullable(final int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         return ParameterMetaData.parameterNullableUnknown;
     }
@@ -82,9 +82,9 @@ public class SimpleParameterMetaData implements ParameterMetaData {
     @Override
     public boolean isSigned(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         return true;
     }
@@ -92,9 +92,9 @@ public class SimpleParameterMetaData implements ParameterMetaData {
     @Override
     public int getPrecision(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         throw ExceptionFactory.INSTANCE.create("Unknown parameter metadata precision");
     }
@@ -102,9 +102,9 @@ public class SimpleParameterMetaData implements ParameterMetaData {
     @Override
     public int getScale(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         throw ExceptionFactory.INSTANCE.create("Unknown parameter metadata scale");
     }
@@ -113,28 +113,27 @@ public class SimpleParameterMetaData implements ParameterMetaData {
      * Parameter type are not sent by server. See https://jira.mariadb.org/browse/CONJ-568 and
      * https://jira.mariadb.org/browse/MDEV-15031
      *
-     * @param param
-     *            parameter number
+     * @param param parameter number
      * @return SQL type from java.sql.Types
-     * @throws SQLException
-     *             a feature not supported, since server doesn't sent the right information
+     * @throws SQLException a feature not supported, since server doesn't sent the right information
      */
     @Override
     public int getParameterType(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
-        throw ExceptionFactory.INSTANCE.notSupported("Getting parameter type metadata are not supported");
+        throw ExceptionFactory.INSTANCE
+            .notSupported("Getting parameter type metadata are not supported");
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         throw ExceptionFactory.INSTANCE.create("Unknown parameter metadata type name");
     }
@@ -142,9 +141,9 @@ public class SimpleParameterMetaData implements ParameterMetaData {
     @Override
     public String getParameterClassName(int param) throws SQLException {
         if (param < 1 || param > parameterCount) {
-            throw ExceptionFactory.INSTANCE
-                    .create(String.format("Parameter metadata out of range : param was %s and must be in range 1 - %s",
-                            param, parameterCount), "07009");
+            throw ExceptionFactory.INSTANCE.create(String.format(
+                "Parameter metadata out of range : param was %s and must be in range 1 - %s",
+                param, parameterCount), "07009");
         }
         throw ExceptionFactory.INSTANCE.create("Unknown parameter metadata class name");
     }
@@ -163,7 +162,8 @@ public class SimpleParameterMetaData implements ParameterMetaData {
                 throw new SQLException("The receiver is not a wrapper for " + iface.getName());
             }
         } catch (Exception e) {
-            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+            throw new SQLException(
+                "The receiver is not a wrapper and does not implement the interface");
         }
     }
 

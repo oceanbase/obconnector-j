@@ -60,10 +60,10 @@ import javax.sql.StatementEventListener;
 public class MyEventListener implements ConnectionEventListener, StatementEventListener {
 
     public SQLException sqlException;
-    public boolean closed;
-    public boolean connectionErrorOccured;
-    public boolean statementClosed;
-    public boolean statementErrorOccured;
+    public boolean      closed;
+    public boolean      connectionErrorOccured;
+    public boolean      statementClosed;
+    public boolean      statementErrorOccured;
 
     /** MyEventListener initialisation. */
     public MyEventListener() {

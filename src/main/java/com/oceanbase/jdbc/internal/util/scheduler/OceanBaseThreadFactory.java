@@ -58,8 +58,8 @@ public class OceanBaseThreadFactory implements ThreadFactory {
 
     // start from DefaultThread factory to get security groups and what not
     private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
-    private final AtomicInteger threadId = new AtomicInteger();
-    private final String threadName;
+    private final AtomicInteger threadId      = new AtomicInteger();
+    private final String        threadName;
 
     public OceanBaseThreadFactory(String threadName) {
         this.threadName = threadName;

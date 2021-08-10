@@ -64,7 +64,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     @Test
     public void closedStatement() throws SQLException {
 
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? FROM DUAL");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ? FROM DUAL");
         preparedStatement.setString(1, "1");
         preparedStatement.execute();
 
@@ -106,7 +107,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     @Test
     public void timeoutStatement() throws SQLException {
 
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? FROM DUAL");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ? FROM DUAL");
         preparedStatement.setQueryTimeout(10);
         preparedStatement.setString(1, "1");
         preparedStatement.execute();
@@ -152,13 +154,13 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             preparedStatement.executeUpdate();
         } catch (Exception e) {
-            // skip
+            //skip
         }
-        preparedStatement.execute(
-                "create table test_execute_client_ps#(c int, c1 varchar(10), c2 int, c3 int, c# varchar2(10))");
+        preparedStatement
+            .execute("create table test_execute_client_ps#(c int, c1 varchar(10), c2 int, c3 int, c# varchar2(10))");
 
         preparedStatement = sharedConnection
-                .prepareStatement("insert into test_execute_client_ps# values (?, ?, ?, ?, ?)");
+            .prepareStatement("insert into test_execute_client_ps# values (?, ?, ?, ?, ?)");
         preparedStatement.setInt(1, 101);
         preparedStatement.setString(2, "101");
         preparedStatement.setInt(3, 101);
@@ -182,21 +184,14 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             preparedStatement.executeUpdate();
         } catch (Exception e) {
-            // skip
+            //skip
         }
-        preparedStatement.execute(
-                "CREATE TABLE test_varchar_with_symbols (col1 NUMBER(5,2), col2 varchar (200), col3 varchar(100))");
-        sql = "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')"; // str is: `INSERT INTO
-                                                                                               // test_nvarchar2 VALUES
-                                                                                               // (15, 'PJ>PK:ROf\',
-                                                                                               // 'PJ>PK?ROf')`
+        preparedStatement
+            .execute("CREATE TABLE test_varchar_with_symbols (col1 NUMBER(5,2), col2 varchar (200), col3 varchar(100))");
+        sql = "INSERT INTO test_varchar_with_symbols VALUES (15, 'PJ>PK:ROf\\', 'PJ>PK?ROf')"; //str is: `INSERT INTO test_nvarchar2 VALUES (15, 'PJ>PK:ROf\', 'PJ>PK?ROf')`
         preparedStatement = sharedConnection.prepareStatement(sql);
         preparedStatement.executeUpdate();
-        sql = "INSERT INTO test_varchar_with_symbols VALUES (12, 'PJ>PK\":ROf\\', 'PJ>PK?ROf')"; // str is: `INSERT INTO
-                                                                                                 // test_nvarchar2
-                                                                                                 // VALUES (12,
-                                                                                                 // 'PJ>PK":ROf\',
-                                                                                                 // 'PJ>PK?ROf')`
+        sql = "INSERT INTO test_varchar_with_symbols VALUES (12, 'PJ>PK\":ROf\\', 'PJ>PK?ROf')"; //str is: `INSERT INTO test_nvarchar2 VALUES (12, 'PJ>PK":ROf\', 'PJ>PK?ROf')`
         preparedStatement = sharedConnection.prepareStatement(sql);
         preparedStatement.executeUpdate();
         sql = "select col1, col2, col3 from test_varchar_with_symbols";
@@ -209,10 +204,10 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
                 Object obj2 = resultSet.getObject(2);
                 Object obj3 = resultSet.getObject(3);
                 System.out.println("OBJECT:" + obj1 + " " + obj2 + " " + obj3);
-                // if (Integer.parseInt((String) obj1) == 15) {
-                // //Assert.assertEquals("PJ>PK:ROf\\", obj2);
-                // //Assert.assertEquals("PJ>PK?ROf", obj3);
-                // }
+                //                if (Integer.parseInt((String) obj1) == 15) {
+                //                    //Assert.assertEquals("PJ>PK:ROf\\", obj2);
+                //                    //Assert.assertEquals("PJ>PK?ROf", obj3);
+                //                }
             }
         } catch (Exception e) {
             fail();
@@ -226,11 +221,11 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         String sql = "drop table test_symbols";
 
         Statement statement = sharedConnection.createStatement();
-        // PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+        //PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
         try {
             statement.executeUpdate(sql);
         } catch (Exception e) {
-            // skip
+            //skip
         }
         statement.execute("CREATE TABLE test_symbols (cc varchar(100))");
         sql = "INSERT INTO test_symbols VALUES ('^+c$k\"(!YX'),('db=(qB,(Q '),('/~~`zLD3/('),('FnAEFwPl{L'),('t[Nb-&%?7 '),('\"~[qD`|Iz<'),('CL(5w=(L7}'),('x?>}V\\Dz''T'),('O\\rIC/e7Pl'),('h8=v\\odkI8'),('v0z=ukdfe]'),('ZLfJ:BxPxw'),('u22tr)|FsX'),('2n1vX)k_4 '),('*3EhYn4CV-'),('xu6igHpNR '),('G;Su2+F\"i^'),('\"[]Wv.t>mu'),('''m L9\"]^n!'),('&[CB]-Li%t'),('>`%mCA%|L '),('}S}E7E0D+&'),('E?|=/3qW6G'),('q=6&@+STA-'),('c;-`Q2;Px='),('civzF)F@MQ'),('r`%78CC]&a'),('+}QFS/W-zG'),('`n2hH$w?\\ '),(']z*j/?~2m-'),('Lh;1ml8-I)'),('/6`1^7xZh '),('q7A(rJ z\"M'),('Y7 l@n2b}M'),('=,&8~OIh+`'),('J>3I9oQ9k9'),(',.G9?&z$;x'),('jB%z5d&|;y'),('pN6=ZD~I<_'),('Y4X_S[RC:='),('3v>$oD[*c('),('|&]4L''e=Vc'),('HP{\"fm7T90'),('gCEYfy yTJ'),('<9L6:aD_H '),('H{h^}fy1A~'),('rX,aXjw3bQ'),('3f\"8oK(@<{'),('PJ>PK:ROf\\'),(':;]yQ3ID}L'),('|8m`L_d4cf'),('/f;(:\"8Jww'),('~)cZ>lCD<2'),(']+51KX!1M9'),('E;iL'']DX;K'),('`UN0-EmC^x'),('9[=HdY{B_ '),('TTZ+i\\9{hf'),('Co61c6wyl1'),(']]PA/LkDM*'),('07!]uvKh61'),('hk!.):1+! '),('Lki>ALUg{1'),('^e*KV&E;{S'),('zqLmp(.cPb'),('/p53m;B=3q'),('<tm)Y>=H(U'),('wIt}{=>N@o'),('Fo}TVMa^}!'),('3ljFV0X}=6'),('''U2q_Re W?'),('b=8|C,N4T,'),('9b|N4;6MxT'),('$UzgL@\\6ja'),('A*BT5([\\Dd'),(';\"XY9?B8eP'),('2}K;qbIyC]'),('ZcLYt+I2!@'),('NmmnF ,+\"H'),('*g.l5`vRbi'),('s!%Jg2Y1@<'),('[/`etVG_me'),('-^l65z,C1O'),('0[]\"RvN;}I'),('?m,[~PGc\"D'),('J,(J;PnB`&'),('l/q0:Yz!:-'),('To\"wW!o|W '),('?8-cUaV;CY'),('GTxLb>T-I6'),('h]|DZzb&Ud'),('26/hh1}^al'),('qqW[I5Y.Sk'),('}Hm@PSEvJl'),('+1@.]4@y/~'),('zL4m[Qn[Le'),('xCpY[Pu&Ak'),('8S=vE?JM?@'),('EnD}4D\\f`5'),('\"yX~m@hi)J');";
@@ -259,7 +254,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             preparedStatement.executeUpdate();
         } catch (Exception e) {
-            // skip
+            //skip
         }
         preparedStatement.execute("CREATE TABLE test_symbols (cc varchar(100))");
         sql = "INSERT INTO test_symbols VALUES ('^+c$k\"(!YX'),('db=(qB,(Q '),('/~~`zLD3/('),('FnAEFwPl{L'),('t[Nb-&%?7 '),('\"~[qD`|Iz<'),('CL(5w=(L7}'),('x?>}V\\Dz''T'),('O\\rIC/e7Pl'),('h8=v\\odkI8'),('v0z=ukdfe]'),('ZLfJ:BxPxw'),('u22tr)|FsX'),('2n1vX)k_4 '),('*3EhYn4CV-'),('xu6igHpNR '),('G;Su2+F\"i^'),('\"[]Wv.t>mu'),('''m L9\"]^n!'),('&[CB]-Li%t'),('>`%mCA%|L '),('}S}E7E0D+&'),('E?|=/3qW6G'),('q=6&@+STA-'),('c;-`Q2;Px='),('civzF)F@MQ'),('r`%78CC]&a'),('+}QFS/W-zG'),('`n2hH$w?\\ '),(']z*j/?~2m-'),('Lh;1ml8-I)'),('/6`1^7xZh '),('q7A(rJ z\"M'),('Y7 l@n2b}M'),('=,&8~OIh+`'),('J>3I9oQ9k9'),(',.G9?&z$;x'),('jB%z5d&|;y'),('pN6=ZD~I<_'),('Y4X_S[RC:='),('3v>$oD[*c('),('|&]4L''e=Vc'),('HP{\"fm7T90'),('gCEYfy yTJ'),('<9L6:aD_H '),('H{h^}fy1A~'),('rX,aXjw3bQ'),('3f\"8oK(@<{'),('PJ>PK:ROf\\'),(':;]yQ3ID}L'),('|8m`L_d4cf'),('/f;(:\"8Jww'),('~)cZ>lCD<2'),(']+51KX!1M9'),('E;iL'']DX;K'),('`UN0-EmC^x'),('9[=HdY{B_ '),('TTZ+i\\9{hf'),('Co61c6wyl1'),(']]PA/LkDM*'),('07!]uvKh61'),('hk!.):1+! '),('Lki>ALUg{1'),('^e*KV&E;{S'),('zqLmp(.cPb'),('/p53m;B=3q'),('<tm)Y>=H(U'),('wIt}{=>N@o'),('Fo}TVMa^}!'),('3ljFV0X}=6'),('''U2q_Re W?'),('b=8|C,N4T,'),('9b|N4;6MxT'),('$UzgL@\\6ja'),('A*BT5([\\Dd'),(';\"XY9?B8eP'),('2}K;qbIyC]'),('ZcLYt+I2!@'),('NmmnF ,+\"H'),('*g.l5`vRbi'),('s!%Jg2Y1@<'),('[/`etVG_me'),('-^l65z,C1O'),('0[]\"RvN;}I'),('?m,[~PGc\"D'),('J,(J;PnB`&'),('l/q0:Yz!:-'),('To\"wW!o|W '),('?8-cUaV;CY'),('GTxLb>T-I6'),('h]|DZzb&Ud'),('26/hh1}^al'),('qqW[I5Y.Sk'),('}Hm@PSEvJl'),('+1@.]4@y/~'),('zL4m[Qn[Le'),('xCpY[Pu&Ak'),('8S=vE?JM?@'),('EnD}4D\\f`5'),('\"yX~m@hi)J');";
@@ -276,14 +271,15 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
                 System.out.println("OBJECT:  " + obj1);
             }
         } catch (Exception e) {
-            // fail();
+            //fail();
             e.printStackTrace();
         }
     }
 
     @Test
     public void batchParamNumber() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ? from dual");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ?, ? from dual");
         // batch with no parameter
         assertEquals(0, preparedStatement.executeBatch().length);
         assertEquals(0, preparedStatement.executeLargeBatch().length);
@@ -293,8 +289,9 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-                    || e.getMessage().contains("Parameter at position 2 is not set"));
+            assertTrue(e.getMessage().contains(
+                "You need to set exactly 2 parameters on the prepared statement")
+                       || e.getMessage().contains("Parameter at position 2 is not set"));
         }
 
         try {
@@ -315,15 +312,17 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-                    || e.getMessage().contains("Parameter at position 1 is not set"));
+            assertTrue(e.getMessage().contains(
+                "You need to set exactly 2 parameters on the prepared statement")
+                       || e.getMessage().contains("Parameter at position 1 is not set"));
         }
     }
 
     @Test
     public void setParameterError() throws SQLException {
         Assume.assumeFalse(sharedOptions().useServerPrepStmts);
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ? FROM DUAL");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ?, ? FROM DUAL");
         preparedStatement.setString(1, "a");
         preparedStatement.setString(2, "a");
 
@@ -331,21 +330,24 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             preparedStatement.setString(3, "a");
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Could not set parameter at position 3 (values was 'a')"));
+            assertTrue(e.getMessage().contains(
+                "Could not set parameter at position 3 (values was 'a')"));
         }
 
         try {
             preparedStatement.setString(0, "a");
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Could not set parameter at position 0 (values was 'a')"));
+            assertTrue(e.getMessage().contains(
+                "Could not set parameter at position 0 (values was 'a')"));
         }
     }
 
     @Ignore
     @Test
     public void closedBatchError() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ? FROM DUAL");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ?, ? FROM DUAL");
         preparedStatement.setString(1, "1");
         preparedStatement.setString(2, "1");
         preparedStatement.addBatch();
@@ -353,10 +355,9 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
         preparedStatement.close();
 
-        /*
-         * The connection has been set to null after execute preparedStatement.close(). It will be throw
-         * java.lang.NullPointerException for judge this.connection.getProtocol.isOracleMode().
-         **/
+        /* The connection has been set to null after execute preparedStatement.close(). It will be throw
+        *  java.lang.NullPointerException for judge this.connection.getProtocol.isOracleMode().
+        * **/
         try {
             preparedStatement.setString(1, "2");
             preparedStatement.setString(2, "2");
@@ -371,7 +372,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     @Test
     public void executeLargeBatchError() throws SQLException {
         PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("INSERT INTO unknownTable values (?, ?)");
+            .prepareStatement("INSERT INTO unknownTable values (?, ?)");
         preparedStatement.setString(1, "1");
         preparedStatement.setString(2, "1");
         preparedStatement.addBatch();
@@ -386,25 +387,26 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void executeBatchOneByOne() throws SQLException {
-        try (Connection connection = setConnection(
-                "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
-            Statement stmt = connection.createStatement();
-            try {
-                stmt.execute("drop table executeBatchOneByOne");
-            } catch (SQLException e) {
-            }
-            stmt.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
-            PreparedStatement preparedStatement = connection
-                    .prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
-            preparedStatement.setString(1, "1");
-            preparedStatement.setString(2, "1");
-            preparedStatement.addBatch();
-            preparedStatement.setQueryTimeout(10);
-            assertEquals(1, preparedStatement.executeBatch().length);
-            stmt.execute("DROP TABLE executeBatchOneByOne");
+  public void executeBatchOneByOne() throws SQLException {
+    try (Connection connection =
+        setConnection(
+            "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
+      Statement stmt = connection.createStatement();
+        try {
+            stmt.execute("drop table executeBatchOneByOne");
+        } catch (SQLException e) {
         }
+        stmt.execute("CREATE TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
+      preparedStatement.setString(1, "1");
+      preparedStatement.setString(2, "1");
+      preparedStatement.addBatch();
+      preparedStatement.setQueryTimeout(10);
+      assertEquals(1, preparedStatement.executeBatch().length);
+      stmt.execute("DROP TABLE executeBatchOneByOne");
     }
+  }
 
     @Test
     public void metaDataForWrongQuery() throws SQLException {
@@ -415,9 +417,10 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     @Ignore
     @Test
     public void getMultipleMetaData() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1 as a FROM DUAL");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT 1 as a FROM DUAL");
         ResultSetMetaData meta = preparedStatement.getMetaData();
-        // TODO check MetaData values returned (meta.getColumnName(1) -> 'A')
+        //TODO check MetaData values returned (meta.getColumnName(1) -> 'A')
         assertEquals("a", meta.getColumnName(1));
 
         preparedStatement.execute();
@@ -428,9 +431,11 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void prepareToString() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? as a, ? as b");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ? as a, ? as b");
         preparedStatement.setString(1, "a");
         preparedStatement.setNull(2, Types.VARCHAR);
-        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]", preparedStatement.toString());
+        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
+            preparedStatement.toString());
     }
 }

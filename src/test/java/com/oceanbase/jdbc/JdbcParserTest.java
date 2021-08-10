@@ -79,26 +79,26 @@ public class JdbcParserTest {
     @Test
     public void testAuroraUseBatchMultiSend() throws Throwable {
         assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
-        assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test?useBatchMultiSend=true").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
-        assertFalse(UrlParser.parse("jdbc:oceanbase://localhost/test?useBatchMultiSend=false").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
+            .getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test?useBatchMultiSend=true")
+            .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:oceanbase://localhost/test?useBatchMultiSend=false")
+            .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
-        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test")
+            .auroraPipelineQuirks().getOptions().useBatchMultiSend);
         assertTrue(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test?useBatchMultiSend=true")
-                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+            .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
         String hostAurora = "jdbc:oceanbase://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
         assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().useBatchMultiSend);
         assertTrue(UrlParser.parse(hostAurora + "?useBatchMultiSend=true").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
+            .getOptions().useBatchMultiSend);
 
         String hostAuroraUpper = "jdbc:oceanbase://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.AMAZONAWS.com:3306/test";
         assertFalse(UrlParser.parse(hostAuroraUpper).auroraPipelineQuirks().getOptions().useBatchMultiSend);
-        assertTrue(UrlParser.parse(hostAuroraUpper + "?useBatchMultiSend=true").auroraPipelineQuirks()
-                .getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse(hostAuroraUpper + "?useBatchMultiSend=true")
+            .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
         OceanBaseDataSource datasource = new OceanBaseDataSource();
         datasource.initialize();
@@ -115,7 +115,8 @@ public class JdbcParserTest {
             UrlParser.parse("jdbc:oceanbase:/localhost/test");
             fail("Must have throw exception");
         } catch (SQLException ie) {
-            assertTrue(ie.getMessage().contains("url parsing error : '//' is not present in the url"));
+            assertTrue(ie.getMessage().contains(
+                "url parsing error : '//' is not present in the url"));
         }
     }
 
@@ -137,40 +138,43 @@ public class JdbcParserTest {
 
     @Test
     public void testUrl() throws SQLException {
-        UrlParser parser = new UrlParser("DB", Arrays.asList(new HostAddress("local", 3306)), new Options(),
-                HaMode.REPLICATION);
-        assertEquals("jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB",
-                parser.getInitialUrl());
-        assertEquals("jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB", parser.toString());
+        UrlParser parser = new UrlParser("DB", Arrays.asList(new HostAddress("local", 3306)),
+            new Options(), HaMode.REPLICATION);
+        assertEquals(
+            "jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB",
+            parser.getInitialUrl());
+        assertEquals(
+            "jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB",
+            parser.toString());
         assertEquals(parser, parser);
         assertNotEquals(this, parser);
-        assertEquals(UrlParser.parse("jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB"),
-                parser);
-
-        parser = new UrlParser("DB",
-                Arrays.asList(new HostAddress("host1", 3306),
-                        new HostAddress("host2", 3307, ParameterConstant.TYPE_SLAVE)),
-                new Options(), HaMode.REPLICATION);
         assertEquals(
-                "jdbc:oceanbase:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=slave)/DB",
-                parser.getInitialUrl());
+            UrlParser
+                .parse("jdbc:oceanbase:replication://address=(host=local)(port=3306)(type=master)/DB"),
+            parser);
+
+        parser = new UrlParser("DB", Arrays.asList(new HostAddress("host1", 3306), new HostAddress(
+            "host2", 3307, ParameterConstant.TYPE_SLAVE)), new Options(), HaMode.REPLICATION);
+        assertEquals(
+            "jdbc:oceanbase:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=slave)/DB",
+            parser.getInitialUrl());
         parser.setDatabase("DB2");
         assertEquals("DB2", parser.getDatabase());
     }
 
     @Test
     public void testAuroraUsePipelineAuth() throws Throwable {
-        assertTrue(
-                UrlParser.parse("jdbc:oceanbase://localhost/test").auroraPipelineQuirks().getOptions().usePipelineAuth);
-        assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test?usePipelineAuth=true").auroraPipelineQuirks()
-                .getOptions().usePipelineAuth);
-        assertFalse(UrlParser.parse("jdbc:oceanbase://localhost/test?usePipelineAuth=false").auroraPipelineQuirks()
-                .getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test").auroraPipelineQuirks()
+            .getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:oceanbase://localhost/test?usePipelineAuth=true")
+            .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertFalse(UrlParser.parse("jdbc:oceanbase://localhost/test?usePipelineAuth=false")
+            .auroraPipelineQuirks().getOptions().usePipelineAuth);
 
-        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test").auroraPipelineQuirks()
-                .getOptions().usePipelineAuth);
-        assertTrue(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test?usePipelineAuth=true").auroraPipelineQuirks()
-                .getOptions().usePipelineAuth);
+        assertFalse(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test")
+            .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:oceanbase:aurora://localhost/test?usePipelineAuth=true")
+            .auroraPipelineQuirks().getOptions().usePipelineAuth);
 
         String hostAurora = "jdbc:oceanbase://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
         assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().usePipelineAuth);
@@ -223,20 +227,21 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testOptionTakeDefault() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://localhost/test");
-        assertEquals(30_000, jdbc.getOptions().connectTimeout);
-        assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
-        assertFalse(jdbc.getOptions().autoReconnect);
-        assertNull(jdbc.getOptions().user);
-        assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-        assertNull(jdbc.getOptions().socketTimeout);
-    }
+  public void testOptionTakeDefault() throws Throwable {
+    UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://localhost/test");
+    assertEquals(30_000, jdbc.getOptions().connectTimeout);
+    assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
+    assertFalse(jdbc.getOptions().autoReconnect);
+    assertNull(jdbc.getOptions().user);
+    assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
+    assertNull(jdbc.getOptions().socketTimeout);
+  }
 
     @Test
     public void testOptionParse() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://localhost/test?user=root&password=toto&createDB=true"
-                + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5&socketTimeout=20");
+        UrlParser jdbc = UrlParser
+            .parse("jdbc:oceanbase://localhost/test?user=root&password=toto&createDB=true"
+                   + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5&socketTimeout=20");
         assertTrue(jdbc.getOptions().connectTimeout == 5);
         assertTrue(jdbc.getOptions().socketTimeout == 20);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 2);
@@ -252,8 +257,9 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionParseSlash() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://127.0.0.1:3306/colleo?user=root&password=toto"
-                + "&localSocket=/var/run/mysqld/mysqld.sock");
+        UrlParser jdbc = UrlParser
+            .parse("jdbc:oceanbase://127.0.0.1:3306/colleo?user=root&password=toto"
+                   + "&localSocket=/var/run/mysqld/mysqld.sock");
         assertTrue("/var/run/mysqld/mysqld.sock".equals(jdbc.getOptions().localSocket));
 
         assertTrue("root".equals(jdbc.getOptions().user));
@@ -265,8 +271,9 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionParseIntegerMinimum() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://localhost/test?user=root&autoReconnect=true"
-                + "&validConnectionTimeout=0&connectTimeout=5");
+        UrlParser jdbc = UrlParser
+            .parse("jdbc:oceanbase://localhost/test?user=root&autoReconnect=true"
+                   + "&validConnectionTimeout=0&connectTimeout=5");
         assertTrue(jdbc.getOptions().connectTimeout == 5);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertTrue(jdbc.getOptions().autoReconnect);
@@ -275,19 +282,22 @@ public class JdbcParserTest {
 
     @Test
     public void testWithoutDb() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:oceanbase://localhost/?user=root&autoReconnect=true");
+        UrlParser jdbc = UrlParser
+            .parse("jdbc:oceanbase://localhost/?user=root&autoReconnect=true");
         assertTrue(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getDatabase());
 
-        UrlParser jdbc2 = UrlParser.parse("jdbc:oceanbase://localhost?user=root&autoReconnect=true");
+        UrlParser jdbc2 = UrlParser
+            .parse("jdbc:oceanbase://localhost?user=root&autoReconnect=true");
         assertTrue(jdbc2.getOptions().autoReconnect);
         assertNull(jdbc2.getDatabase());
     }
 
     @Test(expected = SQLException.class)
     public void testOptionParseIntegerNotPossible() throws Throwable {
-        UrlParser.parse("jdbc:oceanbase://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
-                + "&connectTimeout=5");
+        UrlParser
+            .parse("jdbc:oceanbase://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
+                   + "&connectTimeout=5");
         fail();
     }
 
@@ -357,8 +367,10 @@ public class JdbcParserTest {
         try {
             UrlParser.parse(url, prop);
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage()
-                    .contains("Optional parameter autoReconnect must be boolean (true/false or 0/1) was \"truee\""));
+            assertTrue(sqle
+                .getMessage()
+                .contains(
+                    "Optional parameter autoReconnect must be boolean (true/false or 0/1) was \"truee\""));
         }
     }
 
@@ -378,35 +390,39 @@ public class JdbcParserTest {
     @Test
     public void testJdbcParserSimpleIpv6() throws SQLException {
         String url = "jdbc:oceanbase://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306,[2001:660:7401:200::edf:bdd7]:3307"
-                + "/database?user=greg&password=pass";
+                     + "/database?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         assertTrue("database".equals(urlParser.getDatabase()));
         assertTrue("greg".equals(urlParser.getUsername()));
         assertTrue("pass".equals(urlParser.getPassword()));
         assertTrue(urlParser.getHostAddresses().size() == 2);
         assertTrue(new HostAddress("2001:0660:7401:0200:0000:0000:0edf:bdd7", 3306)
-                .equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("2001:660:7401:200::edf:bdd7", 3307).equals(urlParser.getHostAddresses().get(1)));
+            .equals(urlParser.getHostAddresses().get(0)));
+        assertTrue(new HostAddress("2001:660:7401:200::edf:bdd7", 3307).equals(urlParser
+            .getHostAddresses().get(1)));
     }
 
     @Test
     public void testJdbcParserParameter() throws SQLException {
         String url = "jdbc:oceanbase://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)"
-                + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
+                     + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         assertTrue("database".equals(urlParser.getDatabase()));
         assertTrue("greg".equals(urlParser.getUsername()));
         assertTrue("pass".equals(urlParser.getPassword()));
         assertTrue(urlParser.getHostAddresses().size() == 3);
-        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses().get(1)));
-        assertTrue(new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses().get(2)));
+        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses()
+            .get(0)));
+        assertTrue(new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses()
+            .get(1)));
+        assertTrue(new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses()
+            .get(2)));
     }
 
     @Test(expected = SQLException.class)
     public void testJdbcParserParameterErrorEqual() throws SQLException {
         String url = "jdbc:oceanbase://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)"
-                + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
+                     + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         UrlParser.parse(url);
         fail("Must have throw an SQLException");
     }
@@ -428,16 +444,19 @@ public class JdbcParserTest {
     @Test
     public void testJdbcParserReplicationParameter() throws SQLException {
         String url = "jdbc:oceanbase:replication://address=(type=master)(port=3306)(host=master1),address=(port=3307)"
-                + "(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database"
-                + "?user=greg&password=pass";
+                     + "(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database"
+                     + "?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         assertTrue("database".equals(urlParser.getDatabase()));
         assertTrue("greg".equals(urlParser.getUsername()));
         assertTrue("pass".equals(urlParser.getPassword()));
         assertTrue(urlParser.getHostAddresses().size() == 3);
-        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses().get(1)));
-        assertTrue(new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses().get(2)));
+        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses()
+            .get(0)));
+        assertTrue(new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses()
+            .get(1)));
+        assertTrue(new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses()
+            .get(2)));
     }
 
     @Test
@@ -446,9 +465,12 @@ public class JdbcParserTest {
         UrlParser urlParser = UrlParser.parse(url);
         assertTrue("database".equals(urlParser.getDatabase()));
         assertTrue(urlParser.getHostAddresses().size() == 3);
-        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("slave1", 3306, "slave").equals(urlParser.getHostAddresses().get(1)));
-        assertTrue(new HostAddress("slave2", 3306, "slave").equals(urlParser.getHostAddresses().get(2)));
+        assertTrue(new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses()
+            .get(0)));
+        assertTrue(new HostAddress("slave1", 3306, "slave").equals(urlParser.getHostAddresses()
+            .get(1)));
+        assertTrue(new HostAddress("slave2", 3306, "slave").equals(urlParser.getHostAddresses()
+            .get(2)));
     }
 
     @Test
@@ -461,8 +483,7 @@ public class JdbcParserTest {
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
      *
-     * @throws SQLException
-     *             if any exception occur
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkOtherDriverCompatibility() throws SQLException {
@@ -473,8 +494,7 @@ public class JdbcParserTest {
     /**
      * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver".
      *
-     * @throws SQLException
-     *             if any exception occur
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkDisable() throws SQLException {
@@ -496,7 +516,8 @@ public class JdbcParserTest {
             checkHaMode("jdbc:oceanbase:replicati//localhost/test", HaMode.REPLICATION);
             fail();
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("wrong failover parameter format in connection String"));
+            assertTrue(sqle.getMessage().contains(
+                "wrong failover parameter format in connection String"));
         }
     }
 
@@ -508,52 +529,52 @@ public class JdbcParserTest {
     /**
      * CONJ-452 : correcting line break in connection url.
      *
-     * @throws SQLException
-     *             if any exception occur
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkInfileCertificate() throws SQLException {
-        String url = "jdbc:oceanbase://1.2.3.4/testj?user=diego" + "&profileSql=true&serverSslCert="
-                + "-----BEGIN CERTIFICATE-----\n" + "MIIDITCCAgmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBIMSMwIQYDVQQDExpHb29n\n"
-                + "bGUgQ2xvdWQgU1FMIFNlcnZlciBDQTEUMBIGA1UEChMLR29vZ2xlLCBJbmMxCzAJ\n"
-                + "BgNVBAYTAlVTMB4XDTE3MDQyNzEyMjcyNFoXDTE5MDQyNzEyMjgyNFowSDEjMCEG\n"
-                + "A1UEAxMaR29vZ2xlIENsb3VkIFNRTCBTZXJ2ZXIgQ0ExFDASBgNVBAoTC0dvb2ds\n"
-                + "ZSwgSW5jMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC\n"
-                + "ggEBANA6vS37//gvYOsEXKA9Cnlt/C1Ef/a5zJNahpVxx8HbJn6DF+pQbhHm3o4P\n"
-                + "TeZp1HoRg5TRiXOEkNTBmgSQbR2+otM2q2gmkn4XAh0+yXkNW3hr2IydJyg9C26v\n"
-                + "/OzFvuLcw9iDBvrn433pDa6vjYDU+wiQaVtr1ItzsoE/kgW2IkgFVQB+CrkpAmwm\n"
-                + "omwEze3QFUUznP0PHy3P7g7UVD9u5x3APY6kVt2dq8mnOiLZkyfHHR2j6+j0E73I\n"
-                + "k3HQv7D0yRIv3kuNpFgJbITVgDIq9ukWU2XinDHUjguCDH+yQAoQH7hOQlWUHIz8\n"
-                + "/TtfZjrlUQf2uLzOWCn5KxfEqTkCAwEAAaMWMBQwEgYDVR0TAQH/BAgwBgEB/wIB\n"
-                + "ADANBgkqhkiG9w0BAQUFAAOCAQEArYkBkUvMvteT4fN6lxUkzmp8R7clLPkA2HnJ\n"
-                + "7IUK3c5GJ0/blffxj/9Oe2g+etga15SIO73GNAnTxhxIJllKRmmh6SR+dwNMkAvE\n"
-                + "xp87/Y6cSeJp5d4HhZUvxpFjaUDsWIC8tpbriUJoqGIirprLVcsPgDjKyuvVOlbK\n"
-                + "aQf3fOoBPLspGWHgic8Iw1O4kRcStUGCSCwOtYcgMJEhVqTgX0sTX5BgatZhr8FY\n"
-                + "Mnoceo2vzzxgHJU9qZuPkpYDs+ipQjzhoIJaY4HU2Uz4jMptqxSdzsPpC6PAKwuN\n"
-                + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
-                + "-----END CERTIFICATE-----&useSSL=true&password=testj&password=pwd2";
+        String url = "jdbc:oceanbase://1.2.3.4/testj?user=diego"
+                     + "&profileSql=true&serverSslCert=" + "-----BEGIN CERTIFICATE-----\n"
+                     + "MIIDITCCAgmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBIMSMwIQYDVQQDExpHb29n\n"
+                     + "bGUgQ2xvdWQgU1FMIFNlcnZlciBDQTEUMBIGA1UEChMLR29vZ2xlLCBJbmMxCzAJ\n"
+                     + "BgNVBAYTAlVTMB4XDTE3MDQyNzEyMjcyNFoXDTE5MDQyNzEyMjgyNFowSDEjMCEG\n"
+                     + "A1UEAxMaR29vZ2xlIENsb3VkIFNRTCBTZXJ2ZXIgQ0ExFDASBgNVBAoTC0dvb2ds\n"
+                     + "ZSwgSW5jMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC\n"
+                     + "ggEBANA6vS37//gvYOsEXKA9Cnlt/C1Ef/a5zJNahpVxx8HbJn6DF+pQbhHm3o4P\n"
+                     + "TeZp1HoRg5TRiXOEkNTBmgSQbR2+otM2q2gmkn4XAh0+yXkNW3hr2IydJyg9C26v\n"
+                     + "/OzFvuLcw9iDBvrn433pDa6vjYDU+wiQaVtr1ItzsoE/kgW2IkgFVQB+CrkpAmwm\n"
+                     + "omwEze3QFUUznP0PHy3P7g7UVD9u5x3APY6kVt2dq8mnOiLZkyfHHR2j6+j0E73I\n"
+                     + "k3HQv7D0yRIv3kuNpFgJbITVgDIq9ukWU2XinDHUjguCDH+yQAoQH7hOQlWUHIz8\n"
+                     + "/TtfZjrlUQf2uLzOWCn5KxfEqTkCAwEAAaMWMBQwEgYDVR0TAQH/BAgwBgEB/wIB\n"
+                     + "ADANBgkqhkiG9w0BAQUFAAOCAQEArYkBkUvMvteT4fN6lxUkzmp8R7clLPkA2HnJ\n"
+                     + "7IUK3c5GJ0/blffxj/9Oe2g+etga15SIO73GNAnTxhxIJllKRmmh6SR+dwNMkAvE\n"
+                     + "xp87/Y6cSeJp5d4HhZUvxpFjaUDsWIC8tpbriUJoqGIirprLVcsPgDjKyuvVOlbK\n"
+                     + "aQf3fOoBPLspGWHgic8Iw1O4kRcStUGCSCwOtYcgMJEhVqTgX0sTX5BgatZhr8FY\n"
+                     + "Mnoceo2vzzxgHJU9qZuPkpYDs+ipQjzhoIJaY4HU2Uz4jMptqxSdzsPpC6PAKwuN\n"
+                     + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
+                     + "-----END CERTIFICATE-----&useSSL=true&password=testj&password=pwd2";
         UrlParser jdbc = UrlParser.parse(url);
         assertEquals("diego", jdbc.getOptions().user);
         assertEquals(true, jdbc.getOptions().profileSql);
-        assertEquals(
-                "-----BEGIN CERTIFICATE-----\n" + "MIIDITCCAgmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBIMSMwIQYDVQQDExpHb29n\n"
-                        + "bGUgQ2xvdWQgU1FMIFNlcnZlciBDQTEUMBIGA1UEChMLR29vZ2xlLCBJbmMxCzAJ\n"
-                        + "BgNVBAYTAlVTMB4XDTE3MDQyNzEyMjcyNFoXDTE5MDQyNzEyMjgyNFowSDEjMCEG\n"
-                        + "A1UEAxMaR29vZ2xlIENsb3VkIFNRTCBTZXJ2ZXIgQ0ExFDASBgNVBAoTC0dvb2ds\n"
-                        + "ZSwgSW5jMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC\n"
-                        + "ggEBANA6vS37//gvYOsEXKA9Cnlt/C1Ef/a5zJNahpVxx8HbJn6DF+pQbhHm3o4P\n"
-                        + "TeZp1HoRg5TRiXOEkNTBmgSQbR2+otM2q2gmkn4XAh0+yXkNW3hr2IydJyg9C26v\n"
-                        + "/OzFvuLcw9iDBvrn433pDa6vjYDU+wiQaVtr1ItzsoE/kgW2IkgFVQB+CrkpAmwm\n"
-                        + "omwEze3QFUUznP0PHy3P7g7UVD9u5x3APY6kVt2dq8mnOiLZkyfHHR2j6+j0E73I\n"
-                        + "k3HQv7D0yRIv3kuNpFgJbITVgDIq9ukWU2XinDHUjguCDH+yQAoQH7hOQlWUHIz8\n"
-                        + "/TtfZjrlUQf2uLzOWCn5KxfEqTkCAwEAAaMWMBQwEgYDVR0TAQH/BAgwBgEB/wIB\n"
-                        + "ADANBgkqhkiG9w0BAQUFAAOCAQEArYkBkUvMvteT4fN6lxUkzmp8R7clLPkA2HnJ\n"
-                        + "7IUK3c5GJ0/blffxj/9Oe2g+etga15SIO73GNAnTxhxIJllKRmmh6SR+dwNMkAvE\n"
-                        + "xp87/Y6cSeJp5d4HhZUvxpFjaUDsWIC8tpbriUJoqGIirprLVcsPgDjKyuvVOlbK\n"
-                        + "aQf3fOoBPLspGWHgic8Iw1O4kRcStUGCSCwOtYcgMJEhVqTgX0sTX5BgatZhr8FY\n"
-                        + "Mnoceo2vzzxgHJU9qZuPkpYDs+ipQjzhoIJaY4HU2Uz4jMptqxSdzsPpC6PAKwuN\n"
-                        + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n" + "-----END CERTIFICATE-----",
-                jdbc.getOptions().serverSslCert);
+        assertEquals("-----BEGIN CERTIFICATE-----\n"
+                     + "MIIDITCCAgmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBIMSMwIQYDVQQDExpHb29n\n"
+                     + "bGUgQ2xvdWQgU1FMIFNlcnZlciBDQTEUMBIGA1UEChMLR29vZ2xlLCBJbmMxCzAJ\n"
+                     + "BgNVBAYTAlVTMB4XDTE3MDQyNzEyMjcyNFoXDTE5MDQyNzEyMjgyNFowSDEjMCEG\n"
+                     + "A1UEAxMaR29vZ2xlIENsb3VkIFNRTCBTZXJ2ZXIgQ0ExFDASBgNVBAoTC0dvb2ds\n"
+                     + "ZSwgSW5jMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC\n"
+                     + "ggEBANA6vS37//gvYOsEXKA9Cnlt/C1Ef/a5zJNahpVxx8HbJn6DF+pQbhHm3o4P\n"
+                     + "TeZp1HoRg5TRiXOEkNTBmgSQbR2+otM2q2gmkn4XAh0+yXkNW3hr2IydJyg9C26v\n"
+                     + "/OzFvuLcw9iDBvrn433pDa6vjYDU+wiQaVtr1ItzsoE/kgW2IkgFVQB+CrkpAmwm\n"
+                     + "omwEze3QFUUznP0PHy3P7g7UVD9u5x3APY6kVt2dq8mnOiLZkyfHHR2j6+j0E73I\n"
+                     + "k3HQv7D0yRIv3kuNpFgJbITVgDIq9ukWU2XinDHUjguCDH+yQAoQH7hOQlWUHIz8\n"
+                     + "/TtfZjrlUQf2uLzOWCn5KxfEqTkCAwEAAaMWMBQwEgYDVR0TAQH/BAgwBgEB/wIB\n"
+                     + "ADANBgkqhkiG9w0BAQUFAAOCAQEArYkBkUvMvteT4fN6lxUkzmp8R7clLPkA2HnJ\n"
+                     + "7IUK3c5GJ0/blffxj/9Oe2g+etga15SIO73GNAnTxhxIJllKRmmh6SR+dwNMkAvE\n"
+                     + "xp87/Y6cSeJp5d4HhZUvxpFjaUDsWIC8tpbriUJoqGIirprLVcsPgDjKyuvVOlbK\n"
+                     + "aQf3fOoBPLspGWHgic8Iw1O4kRcStUGCSCwOtYcgMJEhVqTgX0sTX5BgatZhr8FY\n"
+                     + "Mnoceo2vzzxgHJU9qZuPkpYDs+ipQjzhoIJaY4HU2Uz4jMptqxSdzsPpC6PAKwuN\n"
+                     + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
+                     + "-----END CERTIFICATE-----", jdbc.getOptions().serverSslCert);
         assertEquals(true, jdbc.getOptions().useSsl);
         assertEquals("testj", jdbc.getOptions().password);
     }
@@ -561,12 +582,12 @@ public class JdbcParserTest {
     /**
      * CONJ-464 : Using of "slowQueryThresholdNanos" option results in class cast exception.
      *
-     * @throws SQLException
-     *             if any exception occur
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkBigSlowQueryThresholdNanosValue() throws SQLException {
-        String url = "jdbc:oceanbase://1.2.3.4/testj?user=john&slowQueryThresholdNanos=" + Long.MAX_VALUE;
+        String url = "jdbc:oceanbase://1.2.3.4/testj?user=john&slowQueryThresholdNanos="
+                     + Long.MAX_VALUE;
         UrlParser jdbc = UrlParser.parse(url);
         assertEquals(Long.MAX_VALUE, jdbc.getOptions().slowQueryThresholdNanos.longValue());
     }

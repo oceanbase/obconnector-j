@@ -60,5 +60,6 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public interface GssapiAuth {
 
     void authenticate(PacketOutputStream writer, PacketInputStream in, AtomicInteger sequence,
-            String servicePrincipalName, String mechanisms) throws SQLException, IOException;
+                      String servicePrincipalName, String mechanisms) throws SQLException,
+                                                                     IOException;
 }

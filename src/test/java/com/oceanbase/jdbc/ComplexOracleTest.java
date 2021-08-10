@@ -58,19 +58,18 @@ public class ComplexOracleTest extends BaseOracleTest {
     /**
      * Tables initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
-    public static String tablenameArray = "testarray";
+    public static String tablenameArray  = "testarray";
     public static String tablenameStruct = "teststruct";
-    public static String array1 = "test_array";
-    public static String array2 = "test_array2";
-    public static String array3 = "test_array3";
-    public static String struct1 = "test_struct1";
-    public static String struct2 = "test_struct2";
-    public static String struct3 = "test_struct3";
-    public static String raw1 = "test_raw1";
-    public static String refcursor1 = "test_ref";
+    public static String array1          = "test_array";
+    public static String array2          = "test_array2";
+    public static String array3          = "test_array3";
+    public static String struct1         = "test_struct1";
+    public static String struct2         = "test_struct2";
+    public static String struct3         = "test_struct3";
+    public static String raw1            = "test_raw1";
+    public static String refcursor1      = "test_ref";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -126,13 +125,14 @@ public class ComplexOracleTest extends BaseOracleTest {
             stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj");
 
             // test input
-            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_objarr(X IN obj_array) IS " + "BEGIN "
-                    + "  FOR idx IN 1..X.count LOOP " + "    INSERT INTO " + array1 + " VALUES(X(idx).c1);"
-                    + "  END LOOP; "
-                    // + " FOR idx IN 1..X.count LOOP" + " INSERT INTO " + array2
-                    // + " VALUES(X(idx).c2);" + " END LOOP; "
-                    + "    FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array3 + " VALUES(X(idx).c3);"
-                    + "  END LOOP; " + "END;";
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_objarr(X IN obj_array) IS "
+                                 + "BEGIN " + "  FOR idx IN 1..X.count LOOP " + "    INSERT INTO "
+                                 + array1 + " VALUES(X(idx).c1);"
+                                 + "  END LOOP; "
+                                 //                                 + "  FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array2
+                                 //                                 + "  VALUES(X(idx).c2);" + "  END LOOP; "
+                                 + "    FOR idx IN 1..X.count LOOP" + "    INSERT INTO " + array3
+                                 + " VALUES(X(idx).c3);" + "  END LOOP; " + "END;";
             stmt.execute(createPlSql);
             Integer[] intArray = new Integer[10];
             for (int i = 0; i < 10; ++i) {
@@ -153,7 +153,8 @@ public class ComplexOracleTest extends BaseOracleTest {
             }
             Object[] structArray = new Object[10];
             for (int i = 0; i < 10; ++i) {
-                structArray[i] = conn.createStruct("my_obj", new Object[] { intArray[i], dateArray[i] });
+                structArray[i] = conn.createStruct("my_obj", new Object[] { intArray[i],
+                        dateArray[i] });
             }
             Array array = conn.createArrayOf("my_obj", structArray);
             {
@@ -182,7 +183,8 @@ public class ComplexOracleTest extends BaseOracleTest {
                     if (rs.getDate("c1") == null) {
                         Assert.assertEquals(null, dateArray[i]);
                     } else {
-                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs.getDate("c1").toString());
+                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs
+                            .getDate("c1").toString());
                     }
                     i++;
                 }
@@ -220,19 +222,21 @@ public class ComplexOracleTest extends BaseOracleTest {
                     if (rs.getDate("c1") == null) {
                         Assert.assertEquals(null, dateArray[i]);
                     } else {
-                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs.getDate("c1").toString());
+                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs
+                            .getDate("c1").toString());
                     }
                     i++;
                 }
                 ps.close();
             }
             // test output
-            createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out(x OUT obj_array) IS" + " i int :=1;" + " BEGIN"
-                    + " x.extend(10);" + "  for idx in 1..5 loop"
-                    // + " x(i).c1 := idx;" + " x(i).c2 := idx;"
-                    + "    x(i).c1 := idx;" + "    x(i).c3 := date '1970-01-01';" + "    x(i + 1).c1 := null;"
-                    // + " x(i + 1).c2 := null;" + " x(i + 1).c3 := null;"
-                    + "    x(i + 1).c3 := null;" + "    i := i + 2;" + "  end loop;" + "END;";
+            createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out(x OUT obj_array) IS"
+                          + " i int :=1;" + " BEGIN" + " x.extend(10);" + "  for idx in 1..5 loop"
+                          //                          + "    x(i).c1 := idx;" + "    x(i).c2 := idx;"
+                          + "    x(i).c1 := idx;" + "    x(i).c3 := date '1970-01-01';"
+                          + "    x(i + 1).c1 := null;"
+                          //                          + "    x(i + 1).c2 := null;" + "    x(i + 1).c3 := null;"
+                          + "    x(i + 1).c3 := null;" + "    i := i + 2;" + "  end loop;" + "END;";
             {
                 stmt.execute(createPlSql);
                 ps = conn.prepareStatement("call my_proc_obj_out(?)");
@@ -269,8 +273,11 @@ public class ComplexOracleTest extends BaseOracleTest {
             Statement stmt = conn.createStatement();
             stmt.execute("CREATE or replace  TYPE my_obj_1 force as object (c1 int, c3 int)");
 
-            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_1(x OUT my_obj_1) IS " + " begin "
-                    + "    x:= my_obj_1(1,2); " + "    x.c1 := 1;" + "  x.c3 := 2;" + " END;";
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_1(x OUT my_obj_1) IS "
+                                 + " begin "
+                                 + "    x:= my_obj_1(1,2); "
+                                 + "    x.c1 := 1;"
+                                 + "  x.c3 := 2;" + " END;";
             stmt.execute(createPlSql);
             System.out.println("=========callable stmt test==========");
             CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_1(?)");
@@ -299,7 +306,10 @@ public class ComplexOracleTest extends BaseOracleTest {
             Object[] objects = new Object[] { 1, 2 };
             Struct struct = conn.createStruct("my_obj_2", objects);
             String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_2(x IN my_obj_2,y OUT my_obj_2) IS "
-                    + " begin " + "    y:= my_obj_2(1,2); " + "    y.c1 := x.c1;" + "  y.c3 := x.c3;" + " END;";
+                                 + " begin "
+                                 + "    y:= my_obj_2(1,2); "
+                                 + "    y.c1 := x.c1;"
+                                 + "  y.c3 := x.c3;" + " END;";
             stmt.execute(createPlSql);
             System.out.println("=========callable stmt test==========");
             CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_2(?,?)");
@@ -318,7 +328,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     }
 
     /*
-     * Multi-level structure test case . Observer not support now.
+       Multi-level structure test case . Observer not support now.
      */
     @Ignore
     public void getStructTest2() throws SQLException {
@@ -330,8 +340,9 @@ public class ComplexOracleTest extends BaseOracleTest {
             Statement stmt = conn.createStatement();
             stmt.execute("CREATE or replace  TYPE subtype1 force as object (c1 int, c2 int)");
             stmt.execute("CREATE or replace  TYPE type1 force as object (c1 int, c2 subtype1 )");
-            String createPlSql = "CREATE OR REPLACE PROCEDURE type_proc(x OUT type1)  is " + "    st1 subtype1;"
-                    + " begin " + "    st1.c1 := 1;" + "  st1.c2 := 2;" + "    x.c1 := 1;" + "  x.c2 := st1;" + " END;";
+            String createPlSql = "CREATE OR REPLACE PROCEDURE type_proc(x OUT type1)  is "
+                                 + "    st1 subtype1;" + " begin " + "    st1.c1 := 1;"
+                                 + "  st1.c2 := 2;" + "    x.c1 := 1;" + "  x.c2 := st1;" + " END;";
             stmt.execute(createPlSql);
             System.out.println("=========callable stmt test==========");
             CallableStatement csmt = conn.prepareCall("call type_proc(?)");
@@ -352,10 +363,12 @@ public class ComplexOracleTest extends BaseOracleTest {
         String sql1 = "drop table resFun";
         String sql2 = "create table resFun(var1 varchar2(50),var2 varchar2(50),var3 varchar2(50))";
         String sql3 = "create or replace type type1 is varray(3) of number";
-        String sql4 = "create or replace function func19\n" + "return type1\n" + "is\n" + "var type1;\n" + "begin\n"
-                + "var :=type1(9,8,7);\n" + "return var;\n" + "end;";
-        String sql5 = "declare\n" + "var type1;\n" + "begin\n" + "var :=func19();\n" + "for i in 1..var.count loop\n"
-                + "insert into resFun values (i,i,var(i));\n" + "end loop;\n" + "end;";
+        String sql4 = "create or replace function func19\n" + "return type1\n" + "is\n"
+                      + "var type1;\n" + "begin\n" + "var :=type1(9,8,7);\n" + "return var;\n"
+                      + "end;";
+        String sql5 = "declare\n" + "var type1;\n" + "begin\n" + "var :=func19();\n"
+                      + "for i in 1..var.count loop\n"
+                      + "insert into resFun values (i,i,var(i));\n" + "end loop;\n" + "end;";
         String preCall = "begin\n" + "? :=func19();\n" + "end;";
 
         Statement stmt = conn.createStatement();
@@ -398,7 +411,7 @@ public class ComplexOracleTest extends BaseOracleTest {
             try {
                 conn.createStatement().execute("drop table t_nested_array");
             } catch (SQLException e) {
-                // e.printStackTrace();
+                //            e.printStackTrace();
             }
             conn.createStatement().execute("create table t_nested_array (c1 number,c2 int)");
             String sql = "create or replace type t_array is table of number";
@@ -406,15 +419,17 @@ public class ComplexOracleTest extends BaseOracleTest {
             assertEquals(0, ps.executeUpdate());
 
             sql = "create or replace procedure test_insert (a in number,b in t_array) is begin "
-                    + "for i in 1..b.count loop " + "insert into t_nested_array values (a,b(i)); end loop; end";
+                  + "for i in 1..b.count loop "
+                  + "insert into t_nested_array values (a,b(i)); end loop; end";
             assertEquals(0, conn.prepareStatement(sql).executeUpdate());
             CallableStatement cs = conn.prepareCall("{call test_insert(?, ?)}");
             cs.setInt(1, 1);
             cs.setArray(2, conn.createArrayOf("number", new Integer[] { 5, 6 }));
             cs.execute();
-            String createPlSql = "CREATE OR REPLACE PROCEDURE test_select(x OUT t_array) IS" + " i int :=1;" + " BEGIN"
-                    + " x.extend(10);" + "  for idx in 1..5 loop" + "    x(idx):= i;" + "    i := i + 2;"
-                    + "  end loop;" + "END;";
+            String createPlSql = "CREATE OR REPLACE PROCEDURE test_select(x OUT t_array) IS"
+                                 + " i int :=1;" + " BEGIN" + " x.extend(10);"
+                                 + "  for idx in 1..5 loop" + "    x(idx):= i;" + "    i := i + 2;"
+                                 + "  end loop;" + "END;";
             conn.createStatement().execute(createPlSql);
             assertEquals(0, conn.prepareStatement(sql).executeUpdate());
             cs = conn.prepareCall("{call test_select( ?)}");
@@ -471,7 +486,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
             ps = conn.prepareStatement("select c1 ,c2 from " + raw1 + " where c1 = 11");
             ResultSet rs = ps.executeQuery();
-            // Assert.assertEquals("[B", rs.getMetaData().getColumnClassName(2));
+            //            Assert.assertEquals("[B", rs.getMetaData().getColumnClassName(2));
             Assert.assertEquals("RAW", rs.getMetaData().getColumnTypeName(2));
             Assert.assertEquals(-3, rs.getMetaData().getColumnType(2));
             Assert.assertEquals(2, rs.getMetaData().getColumnCount());
@@ -481,7 +496,7 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.assertEquals("C2", rs.getMetaData().getColumnName(2));
             Assert.assertEquals(0, rs.getMetaData().getScale(2));
             Assert.assertEquals("TEST_RAW1", rs.getMetaData().getTableName(2));
-            // assertFalse(rs.getMetaData().isCaseSensitive(2));
+            //            assertFalse(rs.getMetaData().isCaseSensitive(2));
             assertTrue(rs.next());
             Assert.assertEquals(11, rs.getInt(1));
             Assert.assertTrue(Arrays.equals(new byte[] { 1, 2, 3 }, rs.getBytes(2)));
@@ -521,7 +536,8 @@ public class ComplexOracleTest extends BaseOracleTest {
                     while (resultSet.next()) {
                         int columnCnt = resultSet.getMetaData().getColumnCount();
                         for (int j = 1; j <= columnCnt; j++) {
-                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":" + resultSet.getString(j));
+                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                               + resultSet.getString(j));
                         }
                     }
                 } catch (SQLException e) {
@@ -530,10 +546,12 @@ public class ComplexOracleTest extends BaseOracleTest {
                 try {
                     Statement statement = conn.createStatement();
                     String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(p_cursor OUT sys_refcursor) "
-                            + "is BEGIN " + " open p_cursor for select * from " + refcursor1 + ";" + "end;";
+                                         + "is BEGIN "
+                                         + " open p_cursor for select * from "
+                                         + refcursor1 + ";" + "end;";
                     statement.execute(createPlSql);
-                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)", ResultSet.TYPE_FORWARD_ONLY,
-                            ResultSet.CONCUR_READ_ONLY);
+                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)",
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                     csmt.setFetchSize(10);
                     csmt.registerOutParameter(1, Types.REF);
                     csmt.execute();
@@ -543,7 +561,8 @@ public class ComplexOracleTest extends BaseOracleTest {
                     while (resultSet.next()) {
                         int columnCnt = resultSet.getMetaData().getColumnCount();
                         for (int j = 1; j <= columnCnt; j++) {
-                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":" + resultSet.getString(j));
+                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                               + resultSet.getString(j));
                         }
                     }
                     resultSet.close();
@@ -553,8 +572,8 @@ public class ComplexOracleTest extends BaseOracleTest {
                         while (resultSet.next()) {
                             int columnCnt = resultSet.getMetaData().getColumnCount();
                             for (int j = 1; j <= columnCnt; j++) {
-                                System.out.println(
-                                        resultSet.getMetaData().getColumnName(j) + ":" + resultSet.getString(j));
+                                System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
+                                                   + resultSet.getString(j));
                             }
                         }
                     } catch (SQLException e) {
@@ -576,10 +595,13 @@ public class ComplexOracleTest extends BaseOracleTest {
         try {
             conn = sharedConnection;
             {
-                String[] sqls = { "drop table t1 cascade constraints purge;", "create table t1(c1 binary_double);",
-                        "insert into t1 values(1);", "insert into t1 values(2);",
-                        "create or replace procedure get_jobs(tcur out sys_refcursor)\n" + "is\n" + "BEGIN\n"
-                                + "  open tcur for SELECT * from t1;\n" + "END;", };
+                String[] sqls = {
+                        "drop table t1 cascade constraints purge;",
+                        "create table t1(c1 binary_double);",
+                        "insert into t1 values(1);",
+                        "insert into t1 values(2);",
+                        "create or replace procedure get_jobs(tcur out sys_refcursor)\n" + "is\n"
+                                + "BEGIN\n" + "  open tcur for SELECT * from t1;\n" + "END;", };
                 for (int i = 0; i < sqls.length; i++) {
                     try {
                         conn.createStatement().execute(sqls[i]);

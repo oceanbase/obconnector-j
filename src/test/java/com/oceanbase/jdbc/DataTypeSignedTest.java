@@ -65,8 +65,7 @@ public class DataTypeSignedTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -79,19 +78,19 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedTinyIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedTinyIntTest values (120)");
-        sharedConnection.createStatement().execute("insert into signedTinyIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
-        sharedConnection.createStatement().execute("insert into signedTinyIntTest values (-1)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false)) {
-            assertTrue(signedTinyIntTestResult(rs));
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true)) {
-            assertTrue(signedTinyIntTestResult(rs));
-        }
+  public void unsignedTinyIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into signedTinyIntTest values (120)");
+    sharedConnection.createStatement().execute("insert into signedTinyIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
+    sharedConnection.createStatement().execute("insert into signedTinyIntTest values (-1)");
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false)) {
+      assertTrue(signedTinyIntTestResult(rs));
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true)) {
+      assertTrue(signedTinyIntTestResult(rs));
+    }
+  }
 
     private boolean signedTinyIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -116,20 +115,20 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void signedSmallIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedSmallIntTest values (32767)");
-        sharedConnection.createStatement().execute("insert into signedSmallIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into signedSmallIntTest values (null)");
-        sharedConnection.createStatement().execute("insert into signedSmallIntTest values (-1)");
+  public void signedSmallIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into signedSmallIntTest values (32767)");
+    sharedConnection.createStatement().execute("insert into signedSmallIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into signedSmallIntTest values (null)");
+    sharedConnection.createStatement().execute("insert into signedSmallIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", false)) {
-            signedSmallIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", true)) {
-            signedSmallIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", false)) {
+      signedSmallIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", true)) {
+      signedSmallIntTestResult(rs);
+    }
+  }
 
     private void signedSmallIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -152,20 +151,20 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void signedMediumIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedMediumIntTest values (8388607)");
-        sharedConnection.createStatement().execute("insert into signedMediumIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into signedMediumIntTest values (null)");
-        sharedConnection.createStatement().execute("insert into signedMediumIntTest values (-1)");
+  public void signedMediumIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into signedMediumIntTest values (8388607)");
+    sharedConnection.createStatement().execute("insert into signedMediumIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into signedMediumIntTest values (null)");
+    sharedConnection.createStatement().execute("insert into signedMediumIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", false)) {
-            signedMediumIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", true)) {
-            signedMediumIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", false)) {
+      signedMediumIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", true)) {
+      signedMediumIntTestResult(rs);
+    }
+  }
 
     private void signedMediumIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -188,19 +187,19 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void signedIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedIntTest values (2147483647)");
-        sharedConnection.createStatement().execute("insert into signedIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into signedIntTest values (null)");
-        sharedConnection.createStatement().execute("insert into signedIntTest values (-1)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", false)) {
-            signedIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", true)) {
-            signedIntTestResult(rs);
-        }
+  public void signedIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into signedIntTest values (2147483647)");
+    sharedConnection.createStatement().execute("insert into signedIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into signedIntTest values (null)");
+    sharedConnection.createStatement().execute("insert into signedIntTest values (-1)");
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", false)) {
+      signedIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", true)) {
+      signedIntTestResult(rs);
+    }
+  }
 
     private void signedIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -223,20 +222,22 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void signedBigIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedBigIntTest values (9223372036854775807)");
-        sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
-        sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
+  public void signedBigIntTest() throws SQLException {
+    sharedConnection
+        .createStatement()
+        .execute("insert into signedBigIntTest values (9223372036854775807)");
+    sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
+    sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", false)) {
-            signedBigIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", true)) {
-            signedBigIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", false)) {
+      signedBigIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", true)) {
+      signedBigIntTestResult(rs);
+    }
+  }
 
     private void signedBigIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -259,25 +260,25 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
     @Test
-    public void signedDecimalTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute(
-                    "insert into signedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
-            statement.execute("insert into signedDecimalTest values (9223372036854775806)");
-            statement.execute("insert into signedDecimalTest values (1.1)");
-            statement.execute("insert into signedDecimalTest values (1.0)");
-            statement.execute("insert into signedDecimalTest values (null)");
-            statement.execute("insert into signedDecimalTest values (-1)");
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", false)) {
-            signedDecimalTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", true)) {
-            signedDecimalTestResult(rs);
-        }
+  public void signedDecimalTest() throws SQLException {
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.execute(
+          "insert into signedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
+      statement.execute("insert into signedDecimalTest values (9223372036854775806)");
+      statement.execute("insert into signedDecimalTest values (1.1)");
+      statement.execute("insert into signedDecimalTest values (1.0)");
+      statement.execute("insert into signedDecimalTest values (null)");
+      statement.execute("insert into signedDecimalTest values (-1)");
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", false)) {
+      signedDecimalTestResult(rs);
+    }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", true)) {
+      signedDecimalTestResult(rs);
+    }
+  }
 
     private void signedDecimalTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -286,12 +287,13 @@ public class DataTypeSignedTest extends BaseTest {
             intMustFail(rs);
             longMustFail(rs);
             assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
-                    1000000000000000000000000D);
+                1000000000000000000000000D);
             assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
-                    1000000000000000000000000D);
+                1000000000000000000000000D);
             assertEquals(123456789012345678901234567890.12345678901234567890D, rs.getDouble(1),
-                    1000000000000000000000000D);
-            assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"), rs.getBigDecimal(1));
+                1000000000000000000000000D);
+            assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"),
+                rs.getBigDecimal(1));
             assertEquals("123456789012345678901234567890.12345678901234567890", rs.getString(1));
             if (rs.next()) {
                 byteMustFail(rs);
@@ -300,7 +302,8 @@ public class DataTypeSignedTest extends BaseTest {
                 assertEquals(9223372036854775806L, rs.getLong(1));
                 assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
                 assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
-                assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
+                assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"),
+                    rs.getBigDecimal(1));
                 assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
@@ -368,7 +371,8 @@ public class DataTypeSignedTest extends BaseTest {
         oneNullNegativeTest(rs, false, false);
     }
 
-    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
+    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint)
+                                                                                          throws SQLException {
         try {
             if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));
@@ -436,7 +440,8 @@ public class DataTypeSignedTest extends BaseTest {
                 assertEquals(-1, rs.getDouble(1), .00001);
                 assertEquals(-1, rs.getFloat(1), .00001);
                 if (decimal) {
-                    assertTrue(new BigDecimal("-1.00000000000000000000").equals(rs.getBigDecimal(1)));
+                    assertTrue(new BigDecimal("-1.00000000000000000000")
+                        .equals(rs.getBigDecimal(1)));
                     assertEquals("-1.00000000000000000000", rs.getString(1));
                 } else {
                     assertTrue(new BigDecimal("-1").equals(rs.getBigDecimal(1)));

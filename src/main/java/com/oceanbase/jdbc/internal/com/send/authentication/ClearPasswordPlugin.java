@@ -63,8 +63,8 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
 
     public static final String TYPE = "mysql_clear_password";
 
-    private String authenticationData;
-    private String passwordCharacterEncoding;
+    private String             authenticationData;
+    private String             passwordCharacterEncoding;
 
     @Override
     public String name() {
@@ -89,17 +89,14 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
     /**
      * Send password in clear text to server.
      *
-     * @param out
-     *            out stream
-     * @param in
-     *            in stream
-     * @param sequence
-     *            packet sequence
+     * @param out out stream
+     * @param in in stream
+     * @param sequence packet sequence
      * @return response packet
-     * @throws IOException
-     *             if socket error
+     * @throws IOException if socket error
      */
-    public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+    public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+                                                                                               throws IOException {
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
         } else {

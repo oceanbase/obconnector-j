@@ -78,8 +78,8 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
         gssapiAuth = init;
     }
 
-    private byte[] seed;
-    private String optionServicePrincipalName;
+    private byte[]                  seed;
+    private String                  optionServicePrincipalName;
 
     @Override
     public String name() {
@@ -94,12 +94,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     /**
      * Initialization.
      *
-     * @param authenticationData
-     *            authentication data (password/token)
-     * @param seed
-     *            server provided seed
-     * @param options
-     *            Connection string options
+     * @param authenticationData authentication data (password/token)
+     * @param seed server provided seed
+     * @param options Connection string options
      */
     public void initialize(String authenticationData, byte[] seed, Options options) {
         this.seed = seed;
@@ -107,28 +104,25 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     }
 
     /**
-     * Process gssapi plugin authentication. see https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
+     * Process gssapi plugin authentication. see
+     * https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
      *
-     * @param out
-     *            out stream
-     * @param in
-     *            in stream
-     * @param sequence
-     *            packet sequence
+     * @param out out stream
+     * @param in in stream
+     * @param sequence packet sequence
      * @return response packet
-     * @throws IOException
-     *             if socket error
-     * @throws SQLException
-     *             if plugin exception
+     * @throws IOException if socket error
+     * @throws SQLException if plugin exception
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-            throws IOException, SQLException {
+                                                                                               throws IOException,
+                                                                                               SQLException {
         Buffer buffer = new Buffer(seed);
 
         final String serverSpn = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         // using provided connection string SPN if set, or if not, using to server information
-        final String servicePrincipalName = (optionServicePrincipalName != null
-                && !optionServicePrincipalName.isEmpty()) ? optionServicePrincipalName : serverSpn;
+        final String servicePrincipalName = (optionServicePrincipalName != null && !optionServicePrincipalName
+            .isEmpty()) ? optionServicePrincipalName : serverSpn;
         String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         if (mechanisms.isEmpty()) {
             mechanisms = "Kerberos";

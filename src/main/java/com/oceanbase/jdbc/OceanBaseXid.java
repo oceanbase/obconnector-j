@@ -56,19 +56,16 @@ import javax.transaction.xa.Xid;
 
 public class OceanBaseXid implements Xid {
 
-    private final int formatId;
+    private final int    formatId;
     private final byte[] globalTransactionId;
     private final byte[] branchQualifier;
 
     /**
      * Global transaction identifier.
      *
-     * @param formatId
-     *            the format identifier part of the XID.
-     * @param globalTransactionId
-     *            the global transaction identifier part of XID as an array of bytes.
-     * @param branchQualifier
-     *            the transaction branch identifier part of XID as an array of bytes.
+     * @param formatId the format identifier part of the XID.
+     * @param globalTransactionId the global transaction identifier part of XID as an array of bytes.
+     * @param branchQualifier the transaction branch identifier part of XID as an array of bytes.
      */
     public OceanBaseXid(int formatId, byte[] globalTransactionId, byte[] branchQualifier) {
         this.formatId = formatId;
@@ -79,12 +76,9 @@ public class OceanBaseXid implements Xid {
     /**
      * Global transaction identifier.
      *
-     * @param globalTransactionId
-     *            the global transaction identifier part of XID as an array of bytes.
-     * @param branchQualifier
-     *            the transaction branch identifier part of XID as an array of bytes.
-     * @param formatId
-     *            the format identifier part of the XID.
+     * @param globalTransactionId the global transaction identifier part of XID as an array of bytes.
+     * @param branchQualifier the transaction branch identifier part of XID as an array of bytes.
+     * @param formatId the format identifier part of the XID.
      */
     public OceanBaseXid(byte[] globalTransactionId, byte[] branchQualifier, int formatId) {
         this.formatId = formatId;
@@ -95,15 +89,15 @@ public class OceanBaseXid implements Xid {
     /**
      * Equal implementation.
      *
-     * @param obj
-     *            object to compare
+     * @param obj object to compare
      * @return true if object is MariaDbXi and as same parameters
      */
     public boolean equals(Object obj) {
         if (obj instanceof Xid) {
             Xid other = (Xid) obj;
-            return formatId == other.getFormatId() && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
-                    && Arrays.equals(branchQualifier, other.getBranchQualifier());
+            return formatId == other.getFormatId()
+                   && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
+                   && Arrays.equals(branchQualifier, other.getBranchQualifier());
         }
         return false;
     }

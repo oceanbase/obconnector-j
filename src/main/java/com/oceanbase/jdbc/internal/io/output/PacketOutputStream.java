@@ -80,19 +80,23 @@ public interface PacketOutputStream {
 
     void write(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void write(InputStream is, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
+    void write(InputStream is, long length, boolean escape, boolean noBackslashEscapes)
+                                                                                       throws IOException;
 
     void writeHex(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void writeHex(InputStream is, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
+    void writeHex(InputStream is, long length, boolean escape, boolean noBackslashEscapes)
+                                                                                          throws IOException;
 
     void write(Reader reader, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
+    void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes)
+                                                                                      throws IOException;
 
     void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
 
-    void writeBytesEscapedQuote(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
+    void writeBytesEscapedQuote(byte[] bytes, int len, boolean noBackslashEscapes)
+                                                                                  throws IOException;
 
     void flush() throws IOException;
 

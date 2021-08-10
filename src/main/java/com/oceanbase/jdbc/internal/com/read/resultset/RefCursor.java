@@ -55,11 +55,11 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class RefCursor extends SelectResultSet {
     private RowObCursorData rowObCursorData;
-    private boolean isLastRow = false;
+    private boolean         isLastRow = false;
 
-    public RefCursor(ColumnDefinition[] columnsInformation, Results results, Protocol protocol, boolean callableResult,
-            boolean eofDeprecated, boolean isPsOutParamter, RowObCursorData rowObCursorData)
-            throws IOException, SQLException {
+    public RefCursor(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
+                     boolean callableResult, boolean eofDeprecated, boolean isPsOutParamter,
+                     RowObCursorData rowObCursorData) throws IOException, SQLException {
         super(columnsInformation, results, protocol, callableResult, eofDeprecated, isPsOutParamter);
         this.rowObCursorData = rowObCursorData;
     }
@@ -82,8 +82,8 @@ public class RefCursor extends SelectResultSet {
         int numToFetch = this.getFetchSize();
         ColumnDefinition[] ci = new ColumnDefinition[0];
         try {
-            ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.rowObCursorData.getCursorId(),
-                    numToFetch);
+            ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(
+                this.rowObCursorData.getCursorId(), numToFetch);
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;
@@ -95,8 +95,8 @@ public class RefCursor extends SelectResultSet {
         if (ci != null) {
             this.columnsInformation = ci;
             this.columnInformationLength = ci.length;
-            this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength,
-                    this.getStatement().getMaxFieldSize(), options);
+            this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
+                .getStatement().getMaxFieldSize(), options);
             this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
         }
         try {

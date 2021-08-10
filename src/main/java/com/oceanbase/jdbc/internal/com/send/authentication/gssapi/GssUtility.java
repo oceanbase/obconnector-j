@@ -55,7 +55,8 @@ import com.sun.jna.Platform;
 public class GssUtility {
 
     /**
-     * Get authentication method according to classpath. Windows native authentication is using Waffle-jna.
+     * Get authentication method according to classpath. Windows native authentication is using
+     * Waffle-jna.
      *
      * @return authentication method
      */

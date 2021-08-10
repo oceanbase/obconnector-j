@@ -58,19 +58,16 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class ReaderParameter implements Cloneable, ParameterHolder {
 
-    private final Reader reader;
-    private final long length;
+    private final Reader  reader;
+    private final long    length;
     private final boolean noBackslashEscapes;
 
     /**
      * Constructor.
      *
-     * @param reader
-     *            reader to write
-     * @param length
-     *            max length to write (can be null)
-     * @param noBackslashEscapes
-     *            must backslash be escape
+     * @param reader reader to write
+     * @param length max length to write (can be null)
+     * @param noBackslashEscapes must backslash be escape
      */
     public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
         this.reader = reader;
@@ -85,10 +82,8 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
     /**
      * Write reader to database in text format.
      *
-     * @param pos
-     *            database outputStream
-     * @throws IOException
-     *             if any error occur when reading reader
+     * @param pos database outputStream
+     * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
         pos.write(QUOTE);
@@ -112,10 +107,8 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (length == Long.MAX_VALUE) {

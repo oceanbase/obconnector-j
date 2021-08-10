@@ -56,10 +56,10 @@ import java.util.Arrays;
 
 public class Buffer {
 
-    public byte[] buf;
-    public int position;
-    public int limit;
-    static final long NULL_LENGTH = -1;
+    public byte[]              buf;
+    public int                 position;
+    public int                 limit;
+    static final long          NULL_LENGTH      = -1;
     public final static byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     public Buffer(final byte[] buf, int limit) {
@@ -70,8 +70,7 @@ public class Buffer {
     /**
      * Constructor with default limit and offset.
      *
-     * @param buf
-     *            byte array
+     * @param buf byte array
      */
     public Buffer(final byte[] buf) {
         this.buf = buf;
@@ -89,8 +88,7 @@ public class Buffer {
     /**
      * Reads a string from the buffer, looks for a 0 to end the string.
      *
-     * @param charset
-     *            the charset to use, for example ASCII
+     * @param charset the charset to use, for example ASCII
      * @return the read string
      */
     public String readStringNullEnd(final Charset charset) {
@@ -121,8 +119,7 @@ public class Buffer {
     /**
      * Reads length-encoded string.
      *
-     * @param charset
-     *            the charset to use, for example ASCII
+     * @param charset the charset to use, for example ASCII
      * @return the read string
      */
     public String readStringLengthEncoded(final Charset charset) {
@@ -135,8 +132,7 @@ public class Buffer {
     /**
      * Read String with defined length.
      *
-     * @param numberOfBytes
-     *            raw data length.
+     * @param numberOfBytes raw data length.
      * @return String value
      */
     public String readString(final int numberOfBytes) {
@@ -159,7 +155,8 @@ public class Buffer {
      * @return length
      */
     public int read24bitword() {
-        return (buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8) + ((buf[position++] & 0xff) << 16);
+        return (buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8)
+               + ((buf[position++] & 0xff) << 16);
     }
 
     /**
@@ -168,8 +165,8 @@ public class Buffer {
      * @return a int
      */
     public int readInt() {
-        return ((buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8) + ((buf[position++] & 0xff) << 16)
-                + ((buf[position++] & 0xff) << 24));
+        return ((buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8)
+                + ((buf[position++] & 0xff) << 16) + ((buf[position++] & 0xff) << 24));
     }
 
     public int readIntV1() {
@@ -182,16 +179,20 @@ public class Buffer {
         byte[] b = this.buf;
 
         return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
-                | ((long) (b[this.position++] & 0xff) << 16) | ((long) (b[this.position++] & 0xff) << 24);
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24);
     }
 
     public long readLongLongV1() {
         byte[] b = this.buf;
 
         return (b[this.position++] & 0xff) | ((long) (b[this.position++] & 0xff) << 8)
-                | ((long) (b[this.position++] & 0xff) << 16) | ((long) (b[this.position++] & 0xff) << 24)
-                | ((long) (b[this.position++] & 0xff) << 32) | ((long) (b[this.position++] & 0xff) << 40)
-                | ((long) (b[this.position++] & 0xff) << 48) | ((long) (b[this.position++] & 0xff) << 56);
+               | ((long) (b[this.position++] & 0xff) << 16)
+               | ((long) (b[this.position++] & 0xff) << 24)
+               | ((long) (b[this.position++] & 0xff) << 32)
+               | ((long) (b[this.position++] & 0xff) << 40)
+               | ((long) (b[this.position++] & 0xff) << 48)
+               | ((long) (b[this.position++] & 0xff) << 56);
     }
 
     /**
@@ -258,8 +259,7 @@ public class Buffer {
     /**
      * Read raw data.
      *
-     * @param numberOfBytes
-     *            raw data length.
+     * @param numberOfBytes raw data length.
      * @return raw data
      */
     public byte[] readRawBytes(final int numberOfBytes) {
@@ -281,28 +281,30 @@ public class Buffer {
     public void skipLengthEncodedBytes() {
         int type = this.buf[this.position++] & 0xff;
         switch (type) {
-        case 251:
-            break;
+            case 251:
+                break;
 
-        case 252:
-            position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
-            break;
+            case 252:
+                position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
+                break;
 
-        case 253:
-            position += 3 + (0xffffff & ((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8)
-                    + ((buf[position + 2] & 0xff) << 16)));
-            break;
+            case 253:
+                position += 3 + (0xffffff & ((buf[position] & 0xff)
+                                             + ((buf[position + 1] & 0xff) << 8) + ((buf[position + 2] & 0xff) << 16)));
+                break;
 
-        case 254:
-            position += 8 + ((buf[position] & 0xff) + ((long) (buf[position + 1] & 0xff) << 8)
-                    + ((long) (buf[position + 2] & 0xff) << 16) + ((long) (buf[position + 3] & 0xff) << 24)
-                    + ((long) (buf[position + 4] & 0xff) << 32) + ((long) (buf[position + 5] & 0xff) << 40)
-                    + ((long) (buf[position + 6] & 0xff) << 48) + ((long) (buf[position + 7] & 0xff) << 56));
-            break;
+            case 254:
+                position += 8 + ((buf[position] & 0xff) + ((long) (buf[position + 1] & 0xff) << 8)
+                                 + ((long) (buf[position + 2] & 0xff) << 16)
+                                 + ((long) (buf[position + 3] & 0xff) << 24)
+                                 + ((long) (buf[position + 4] & 0xff) << 32)
+                                 + ((long) (buf[position + 5] & 0xff) << 40)
+                                 + ((long) (buf[position + 6] & 0xff) << 48) + ((long) (buf[position + 7] & 0xff) << 56));
+                break;
 
-        default:
-            position += type;
-            break;
+            default:
+                position += type;
+                break;
         }
     }
 
@@ -314,16 +316,16 @@ public class Buffer {
     public long getLengthEncodedNumeric() {
         int type = this.buf[this.position++] & 0xff;
         switch (type) {
-        case 251:
-            return -1;
-        case 252:
-            return 0xffff & readShort();
-        case 253:
-            return 0xffffff & read24bitword();
-        case 254:
-            return readLong();
-        default:
-            return type;
+            case 251:
+                return -1;
+            case 252:
+                return 0xffff & readShort();
+            case 253:
+                return 0xffffff & read24bitword();
+            case 254:
+                return readLong();
+            default:
+                return type;
         }
     }
 
@@ -331,17 +333,17 @@ public class Buffer {
     public void skipLengthEncodedNumeric() {
         int type = this.buf[this.position++] & 0xff;
         switch (type) {
-        case 252:
-            this.position += 2;
-            return;
-        case 253:
-            this.position += 3;
-            return;
-        case 254:
-            this.position += 8;
-            return;
-        default:
-            return;
+            case 252:
+                this.position += 2;
+                return;
+            case 253:
+                this.position += 3;
+                return;
+            case 254:
+                this.position += 8;
+                return;
+            default:
+                return;
         }
     }
 
@@ -363,23 +365,25 @@ public class Buffer {
         int type = this.buf[this.position++] & 0xff;
         int length;
         switch (type) {
-        case 251:
-            return null;
-        case 252:
-            length = 0xffff & readShort();
-            break;
-        case 253:
-            length = 0xffffff & read24bitword();
-            break;
-        case 254:
-            length = (int) ((buf[position++] & 0xff) + ((long) (buf[position++] & 0xff) << 8)
-                    + ((long) (buf[position++] & 0xff) << 16) + ((long) (buf[position++] & 0xff) << 24)
-                    + ((long) (buf[position++] & 0xff) << 32) + ((long) (buf[position++] & 0xff) << 40)
-                    + ((long) (buf[position++] & 0xff) << 48) + ((long) (buf[position++] & 0xff) << 56));
-            break;
-        default:
-            length = type;
-            break;
+            case 251:
+                return null;
+            case 252:
+                length = 0xffff & readShort();
+                break;
+            case 253:
+                length = 0xffffff & read24bitword();
+                break;
+            case 254:
+                length = (int) ((buf[position++] & 0xff) + ((long) (buf[position++] & 0xff) << 8)
+                                + ((long) (buf[position++] & 0xff) << 16)
+                                + ((long) (buf[position++] & 0xff) << 24)
+                                + ((long) (buf[position++] & 0xff) << 32)
+                                + ((long) (buf[position++] & 0xff) << 40)
+                                + ((long) (buf[position++] & 0xff) << 48) + ((long) (buf[position++] & 0xff) << 56));
+                break;
+            default:
+                length = type;
+                break;
         }
 
         byte[] tmpBuf = new byte[length];
@@ -395,8 +399,7 @@ public class Buffer {
     /**
      * Write value with length encoded prefix.
      *
-     * @param value
-     *            value to write
+     * @param value value to write
      */
     public void writeStringLength(String value) {
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
@@ -412,8 +415,7 @@ public class Buffer {
     /**
      * Write value with length encoded prefix.
      *
-     * @param bytes
-     *            value to write
+     * @param bytes value to write
      */
     public void writeStringLength(byte[] bytes) {
         int length = bytes.length;
@@ -428,8 +430,7 @@ public class Buffer {
     /**
      * Write value with length encoded prefix. value length MUST be less than 251 char
      *
-     * @param value
-     *            value to write
+     * @param value value to write
      */
     public void writeStringSmallLength(byte[] value) {
         int length = value.length;
@@ -444,10 +445,8 @@ public class Buffer {
     /**
      * Write bytes.
      *
-     * @param header
-     *            header byte
-     * @param bytes
-     *            command bytes
+     * @param header header byte
+     * @param bytes command bytes
      */
     public void writeBytes(byte header, byte[] bytes) {
         int length = bytes.length;
@@ -463,8 +462,7 @@ public class Buffer {
     /**
      * Write length.
      *
-     * @param length
-     *            length
+     * @param length length
      */
     public void writeLength(long length) {
         if (length < 251) {
@@ -504,27 +502,28 @@ public class Buffer {
     public int readLongIntV1() {
         byte[] b = this.buf;
 
-        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8) | ((b[this.position++] & 0xff) << 16);
+        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8)
+               | ((b[this.position++] & 0xff) << 16);
     }
 
     public int readnBytes() {
         int sw = this.buf[this.position++] & 0xff;
 
         switch (sw) {
-        case 1:
-            return this.buf[this.position++] & 0xff;
+            case 1:
+                return this.buf[this.position++] & 0xff;
 
-        case 2:
-            return this.readInt();
+            case 2:
+                return this.readInt();
 
-        case 3:
-            return this.readLongIntV1();
+            case 3:
+                return this.readLongIntV1();
 
-        case 4:
-            return (int) this.readLongV1();
+            case 4:
+                return (int) this.readLongV1();
 
-        default:
-            return 255;
+            default:
+                return 255;
         }
     }
 
@@ -548,20 +547,20 @@ public class Buffer {
         int sw = this.buf[this.position++] & 0xff;
 
         switch (sw) {
-        case 251:
-            return NULL_LENGTH;
+            case 251:
+                return NULL_LENGTH;
 
-        case 252:
-            return readInt();
+            case 252:
+                return readInt();
 
-        case 253:
-            return readLongIntV1();
+            case 253:
+                return readLongIntV1();
 
-        case 254:
-            return readLongLongV1();
+            case 254:
+                return readLongLongV1();
 
-        default:
-            return sw;
+            default:
+                return sw;
         }
     }
 

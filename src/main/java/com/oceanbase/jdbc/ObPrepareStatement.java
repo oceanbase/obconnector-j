@@ -58,7 +58,8 @@ public interface ObPrepareStatement extends PreparedStatement {
 
     void setTIMESTAMP(int parameterIndex, Timestamp timestamp) throws java.sql.SQLException;
 
-    void setTIMESTAMPLTZ(int parameterIndex, TIMESTAMPLTZ timestampltz) throws java.sql.SQLException;
+    void setTIMESTAMPLTZ(int parameterIndex, TIMESTAMPLTZ timestampltz)
+                                                                       throws java.sql.SQLException;
 
     void setTIMESTAMPTZ(int parameterIndex, TIMESTAMPTZ timestamptz) throws java.sql.SQLException;
 }

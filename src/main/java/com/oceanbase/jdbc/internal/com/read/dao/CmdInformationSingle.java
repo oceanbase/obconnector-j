@@ -58,18 +58,15 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 public class CmdInformationSingle implements CmdInformation {
 
     private final long insertId;
-    private final int autoIncrement;
-    private long updateCount;
+    private final int  autoIncrement;
+    private long       updateCount;
 
     /**
      * Object containing update / insert ids, optimized for only one result.
      *
-     * @param insertId
-     *            auto generated id.
-     * @param updateCount
-     *            update count
-     * @param autoIncrement
-     *            connection auto increment value.
+     * @param insertId auto generated id.
+     * @param updateCount update count
+     * @param autoIncrement connection auto increment value.
      */
     public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
         this.insertId = insertId;
@@ -120,10 +117,8 @@ public class CmdInformationSingle implements CmdInformation {
     /**
      * Get generated Keys.
      *
-     * @param protocol
-     *            current protocol
-     * @param sql
-     *            SQL command
+     * @param protocol current protocol
+     * @param sql SQL command
      * @return a resultSet containing the single insert ids.
      */
     public ResultSet getGeneratedKeys(Protocol protocol, String sql) {

@@ -67,8 +67,8 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void testPooledConnectionClosed() throws Exception {
-        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname : "localhost", port,
-                database);
+        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname
+            : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         Connection connection = pc.getConnection();
         MyEventListener listener = new MyEventListener();
@@ -88,10 +88,11 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void testPooledConnectionException() throws Exception {
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null
+                          && System.getenv("SKYSQL") == null);
 
-        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname : "localhost", port,
-                database);
+        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname
+            : "localhost", port, database);
         PooledConnection pc = null;
         try {
             pc = ds.getPooledConnection(username, password);
@@ -106,7 +107,7 @@ public class PooledConnectionTest extends BaseTest {
                 /* exception is expected here, server sends query aborted */
             }
 
-            /* Try to read after server side closed the connection */
+            /* Try to read  after server side closed the connection */
             connection.createStatement().execute("SELECT 1");
 
             fail("should never get there");
@@ -118,29 +119,31 @@ public class PooledConnectionTest extends BaseTest {
     }
 
     @Test
-    public void testPooledConnectionStatementError() throws Exception {
-        Assume.assumeFalse(options.useSsl != null && options.useSsl);
-        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname : "localhost", port,
-                database);
-        PooledConnection pc = ds.getPooledConnection(username, password);
-        MyEventListener listener = new MyEventListener();
-        pc.addStatementEventListener(listener);
-        OceanBaseConnection connection = (OceanBaseConnection) pc.getConnection();
-        try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
-            ps.execute();
-            fail("should never get there");
-        } catch (Exception e) {
-            assertTrue(listener.statementErrorOccured);
-            if (sharedBulkCapacity()) {
-                assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
-                        || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
-            } else {
-                // HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
-                assertTrue("07004".equals(listener.sqlException.getSQLState())
-                        || "HY000".equals(listener.sqlException.getSQLState()));
-            }
-        }
-        assertTrue(listener.statementClosed);
-        pc.close();
+  public void testPooledConnectionStatementError() throws Exception {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+    ConnectionPoolDataSource ds =
+        new OceanBaseDataSource(hostname != null ? hostname : "localhost", port, database);
+    PooledConnection pc = ds.getPooledConnection(username, password);
+    MyEventListener listener = new MyEventListener();
+    pc.addStatementEventListener(listener);
+    OceanBaseConnection connection = (OceanBaseConnection) pc.getConnection();
+    try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
+      ps.execute();
+      fail("should never get there");
+    } catch (Exception e) {
+      assertTrue(listener.statementErrorOccured);
+      if (sharedBulkCapacity()) {
+        assertTrue(
+            e.getMessage().contains("Parameter at position 1 is not set")
+                || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
+      } else {
+        // HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
+        assertTrue(
+            "07004".equals(listener.sqlException.getSQLState())
+                || "HY000".equals(listener.sqlException.getSQLState()));
+      }
     }
+    assertTrue(listener.statementClosed);
+    pc.close();
+  }
 }

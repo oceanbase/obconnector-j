@@ -68,16 +68,16 @@ public class CollationTest extends BaseTest {
     /**
      * Tables Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        createTable("unicodeTestChar",
-                "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
-                        + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
-                "DEFAULT CHARSET=utf8mb4");
+        createTable("emojiTest",
+            "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        createTable(
+            "unicodeTestChar",
+            "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
+                    + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", "DEFAULT CHARSET=utf8mb4");
         createTable("textUtf8", "column1 text", "DEFAULT CHARSET=utf8");
         createTable("blobUtf8", "column1 blob", "DEFAULT CHARSET=utf8");
     }
@@ -85,48 +85,46 @@ public class CollationTest extends BaseTest {
     /**
      * Conj-92 and CONJ-118.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @Test
-    public void emoji() throws SQLException {
-        try (Connection connection = setConnection()) {
-            String sqlForCharset = "select @@character_set_server";
-            ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
-            assertTrue(rs.next());
-            final String serverCharacterSet = rs.getString(1);
-            sqlForCharset = "select @@character_set_client";
-            rs = connection.createStatement().executeQuery(sqlForCharset);
-            assertTrue(rs.next());
-            String clientCharacterSet = rs.getString(1);
+  public void emoji() throws SQLException {
+    try (Connection connection = setConnection()) {
+      String sqlForCharset = "select @@character_set_server";
+      ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
+      assertTrue(rs.next());
+      final String serverCharacterSet = rs.getString(1);
+      sqlForCharset = "select @@character_set_client";
+      rs = connection.createStatement().executeQuery(sqlForCharset);
+      assertTrue(rs.next());
+      String clientCharacterSet = rs.getString(1);
 
-            if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
-                assertEquals(serverCharacterSet, clientCharacterSet);
-            } else {
-                connection.createStatement().execute("SET NAMES utf8mb4");
-            }
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO emojiTest (id, field) VALUES (1, ?)");
-            byte[] emoji = new byte[] { (byte) 0xF0, (byte) 0x9F, (byte) 0x98, (byte) 0x84 };
-            ps.setBytes(1, emoji);
-            ps.execute();
-            ps = connection.prepareStatement("SELECT field FROM emojiTest");
-            rs = ps.executeQuery();
-            assertTrue(rs.next());
-            // compare to the Java representation of UTF32
-            assertEquals("😄", rs.getString(1));
-        }
+      if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
+        assertEquals(serverCharacterSet, clientCharacterSet);
+      } else {
+        connection.createStatement().execute("SET NAMES utf8mb4");
+      }
+      PreparedStatement ps =
+          connection.prepareStatement("INSERT INTO emojiTest (id, field) VALUES (1, ?)");
+      byte[] emoji = new byte[] {(byte) 0xF0, (byte) 0x9F, (byte) 0x98, (byte) 0x84};
+      ps.setBytes(1, emoji);
+      ps.execute();
+      ps = connection.prepareStatement("SELECT field FROM emojiTest");
+      rs = ps.executeQuery();
+      assertTrue(rs.next());
+      // compare to the Java representation of UTF32
+      assertEquals("😄", rs.getString(1));
     }
+  }
 
     /**
      * Conj-252.
      *
-     * @throws Exception
-     *             exception
+     * @throws Exception exception
      */
     @Test
     public void test4BytesUtf8() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
-                                                // used
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
         if (rs.next()) {
@@ -138,13 +136,14 @@ public class CollationTest extends BaseTest {
             }
 
             PreparedStatement ps = sharedConnection
-                    .prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
+                .prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
             ps.setString(1, emoji);
             Reader reader = new StringReader(emoji);
             ps.setCharacterStream(2, reader);
             try {
                 ps.execute();
-                ps = sharedConnection.prepareStatement("SELECT field1, field2 FROM unicodeTestChar");
+                ps = sharedConnection
+                    .prepareStatement("SELECT field1, field2 FROM unicodeTestChar");
                 rs = ps.executeQuery();
                 assertTrue(rs.next());
 
@@ -174,48 +173,49 @@ public class CollationTest extends BaseTest {
     }
 
     @Test
-    public void testText() throws SQLException {
-        String str = "你好(hello in Chinese)";
-        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into textUtf8 values (?)")) {
-            ps.setString(1, str);
-            ps.executeUpdate();
-        }
-        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from textUtf8");
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String tmp = rs.getString(1);
-                assertEquals(tmp, str);
-            }
-        }
+  public void testText() throws SQLException {
+    String str = "你好(hello in Chinese)";
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into textUtf8 values (?)")) {
+      ps.setString(1, str);
+      ps.executeUpdate();
     }
+    try (PreparedStatement ps = sharedConnection.prepareStatement("select * from textUtf8");
+        ResultSet rs = ps.executeQuery()) {
+      while (rs.next()) {
+        String tmp = rs.getString(1);
+        assertEquals(tmp, str);
+      }
+    }
+  }
 
     @Test
-    public void testBinary() throws SQLException {
-        String str = "你好(hello in Chinese)";
-        byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
-        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into blobUtf8 values (?)")) {
-            ps.setBytes(1, strBytes);
-            ps.executeUpdate();
-        }
-        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from blobUtf8");
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                byte[] tmp = rs.getBytes(1);
-                for (int i = 0; i < tmp.length; i++) {
-                    assertEquals(strBytes[i], tmp[i]);
-                }
-            }
-        }
+  public void testBinary() throws SQLException {
+    String str = "你好(hello in Chinese)";
+    byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into blobUtf8 values (?)")) {
+      ps.setBytes(1, strBytes);
+      ps.executeUpdate();
     }
+    try (PreparedStatement ps = sharedConnection.prepareStatement("select * from blobUtf8");
+        ResultSet rs = ps.executeQuery()) {
+      while (rs.next()) {
+        byte[] tmp = rs.getBytes(1);
+        for (int i = 0; i < tmp.length; i++) {
+          assertEquals(strBytes[i], tmp[i]);
+        }
+      }
+    }
+  }
 
     /**
      * CONJ-369 : Writes and reads a clob (longtext) of a latin1 table.
      *
-     * @throws SQLException
-     *             if connection error occur.
+     * @throws SQLException if connection error occur.
      */
     /*
-     * No supported character set latin1 now
+     No supported  character set latin1 now
      */
     @Ignore
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
@@ -252,49 +252,49 @@ public class CollationTest extends BaseTest {
     }
 
     @Test
-    public void languageCasing() throws SQLException {
-        Locale currentLocal = Locale.getDefault();
-        createTable("languageCasing", "ID int, id2 int");
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute("INSERT INTO languageCasing values (1,2)");
+  public void languageCasing() throws SQLException {
+    Locale currentLocal = Locale.getDefault();
+    createTable("languageCasing", "ID int, id2 int");
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.execute("INSERT INTO languageCasing values (1,2)");
 
-            ResultSet rs = statement.executeQuery("SELECT * FROM languageCasing");
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt("ID"));
-            assertEquals(1, rs.getInt("id"));
-            assertEquals(2, rs.getInt("ID2"));
-            assertEquals(2, rs.getInt("id2"));
+      ResultSet rs = statement.executeQuery("SELECT * FROM languageCasing");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt("ID"));
+      assertEquals(1, rs.getInt("id"));
+      assertEquals(2, rs.getInt("ID2"));
+      assertEquals(2, rs.getInt("id2"));
 
-            Locale.setDefault(new Locale("tr"));
+      Locale.setDefault(new Locale("tr"));
 
-            rs = statement.executeQuery("SELECT * FROM languageCasing");
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt("ID"));
-            assertEquals(1, rs.getInt("id"));
-            assertEquals(2, rs.getInt("ID2"));
-            assertEquals(2, rs.getInt("id2"));
+      rs = statement.executeQuery("SELECT * FROM languageCasing");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt("ID"));
+      assertEquals(1, rs.getInt("id"));
+      assertEquals(2, rs.getInt("ID2"));
+      assertEquals(2, rs.getInt("id2"));
 
-        } finally {
-            Locale.setDefault(currentLocal);
-        }
+    } finally {
+      Locale.setDefault(currentLocal);
     }
+  }
 
     @Test
-    public void wrongSurrogate() throws SQLException {
-        byte[] bb = "a\ud800b".getBytes(StandardCharsets.UTF_8);
-        try (Connection conn = setConnection()) {
-            Statement stmt = conn.createStatement();
-            stmt.execute("CREATE TEMPORARY TABLE wrong_utf8_string(tt text) CHARSET utf8mb4");
-            String wrongString = "a\ud800b";
+  public void wrongSurrogate() throws SQLException {
+    byte[] bb = "a\ud800b".getBytes(StandardCharsets.UTF_8);
+    try (Connection conn = setConnection()) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE wrong_utf8_string(tt text) CHARSET utf8mb4");
+      String wrongString = "a\ud800b";
 
-            try (PreparedStatement preparedStatement = conn
-                    .prepareStatement("INSERT INTO wrong_utf8_string values (?)")) {
-                preparedStatement.setString(1, wrongString);
-                preparedStatement.execute();
-            }
-            ResultSet rs = stmt.executeQuery("SELECT * from wrong_utf8_string");
-            assertTrue(rs.next());
-            assertEquals("a?b", rs.getString(1));
-        }
+      try (PreparedStatement preparedStatement =
+          conn.prepareStatement("INSERT INTO wrong_utf8_string values (?)")) {
+        preparedStatement.setString(1, wrongString);
+        preparedStatement.execute();
+      }
+      ResultSet rs = stmt.executeQuery("SELECT * from wrong_utf8_string");
+      assertTrue(rs.next());
+      assertEquals("a?b", rs.getString(1));
     }
+  }
 }

@@ -64,13 +64,12 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class Clob extends Blob implements ObClob, Serializable {
 
     private static final long serialVersionUID = -3066501059817815286L;
-    private static int maxLength = 1 * 1024 * 1024 * 1024;
+    private static int        maxLength        = 1 * 1024 * 1024 * 1024;
 
     /**
      * Creates a Clob with content.
      *
-     * @param bytes
-     *            the content for the Clob.
+     * @param bytes the content for the Clob.
      */
     public Clob(byte[] bytes) {
         super(bytes);
@@ -87,12 +86,9 @@ public class Clob extends Blob implements ObClob, Serializable {
     /**
      * Creates a Clob with content.
      *
-     * @param bytes
-     *            the content for the Clob.
-     * @param offset
-     *            offset
-     * @param length
-     *            length
+     * @param bytes  the content for the Clob.
+     * @param offset offset
+     * @param length length
      */
 
     public Clob(byte[] bytes, int offset, int length) {
@@ -105,7 +101,8 @@ public class Clob extends Blob implements ObClob, Serializable {
         this.encoding = Charset.defaultCharset().name(); // set default encoding
     }
 
-    public Clob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) throws SQLException {
+    public Clob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
+                                                                                           throws SQLException {
         if (!hasLocator) {
             this.encoding = encoding;
             try {
@@ -130,21 +127,23 @@ public class Clob extends Blob implements ObClob, Serializable {
                     locator.payloadSize = buffer.readLongV1();
                     locator.binaryData = buffer.getByteBuffer();
                     if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
-                            - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
-                        locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than
-                                                                                      // MAX_INT
+                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                        locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
                         locator.connection = conn;
                         try {
                             if ((int) locator.payloadSize <= Clob.maxLength) {
-                                this.charData = new String(buffer.getBytes(
+                                this.charData = new String(
+                                    buffer.getBytes(
                                         (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset),
                                         (int) locator.payloadSize), this.encoding);
                             } else {
-                                throw new SQLException("Exceed max length of Clob for support " + Clob.maxLength
-                                        + " current " + locator.payloadSize);
+                                throw new SQLException("Exceed max length of Clob for support "
+                                                       + Clob.maxLength + " current "
+                                                       + locator.payloadSize);
                             }
                         } catch (UnsupportedEncodingException e) {
-                            throw new SQLException("Unsupported character encoding " + this.encoding);
+                            throw new SQLException("Unsupported character encoding "
+                                                   + this.encoding);
                         }
                     }
                 }
@@ -193,13 +192,10 @@ public class Clob extends Blob implements ObClob, Serializable {
     /**
      * Get sub string.
      *
-     * @param pos
-     *            position
-     * @param length
-     *            length of sub string
+     * @param pos    position
+     * @param length length of sub string
      * @return substring
-     * @throws SQLException
-     *             if pos is less than 1 or length is less than 0
+     * @throws SQLException if pos is less than 1 or length is less than 0
      */
     public String getSubString(long pos, int length) throws SQLException {
 
@@ -218,9 +214,8 @@ public class Clob extends Blob implements ObClob, Serializable {
                 // Do nothing just use the adjustedEndIndex.
                 adjustedEndIndex = this.charData.length();
                 /*
-                 * throw SQLError.createSQLException(Messages.getString("Clob.7"), SQLError.SQL_STATE_ILLEGAL_ARGUMENT,
-                 * this.exceptionInterceptor);
-                 */
+                throw SQLError.createSQLException(Messages.getString("Clob.7"),
+                    SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor); */
             }
 
             return this.charData.substring(adjustedStartPos, adjustedEndIndex);
@@ -242,23 +237,21 @@ public class Clob extends Blob implements ObClob, Serializable {
     }
 
     /**
-     * Returns a Reader object that contains a partial Clob value, starting with the character specified by pos, which
-     * is length characters in length.
+     * Returns a Reader object that contains a partial Clob value, starting with the character
+     * specified by pos, which is length characters in length.
      *
-     * @param pos
-     *            the offset to the first character of the partial value to be retrieved. The first character in the
-     *            Clob is at position 1.
-     * @param length
-     *            the length in characters of the partial value to be retrieved.
+     * @param pos    the offset to the first character of the partial value to be retrieved. The first
+     *               character in the Clob is at position 1.
+     * @param length the length in characters of the partial value to be retrieved.
      * @return Reader through which the partial Clob value can be read.
-     * @throws SQLException
-     *             if pos is less than 1 or if pos is greater than the number of characters in the Clob or if pos +
-     *             length is greater than the number of characters in the Clob
+     * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters
+     *                      in the Clob or if pos + length is greater than the number of characters in the Clob
      */
     public Reader getCharacterStream(long pos, long length) throws SQLException {
         String val = toString();
         if (val.length() < (int) pos - 1 + length) {
-            throw ExceptionFactory.INSTANCE.create("pos + length is greater than the number of characters in the Clob");
+            throw ExceptionFactory.INSTANCE
+                .create("pos + length is greater than the number of characters in the Clob");
         }
         String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);
         return new StringReader(sub);
@@ -267,11 +260,9 @@ public class Clob extends Blob implements ObClob, Serializable {
     /**
      * Set character stream.
      *
-     * @param pos
-     *            position
+     * @param pos position
      * @return writer
-     * @throws SQLException
-     *             if position is invalid
+     * @throws SQLException if position is invalid
      */
     public Writer setCharacterStream(long pos) throws SQLException {
         int bytePosition = utf8Position((int) pos - 1);
@@ -305,8 +296,7 @@ public class Clob extends Blob implements ObClob, Serializable {
     /**
      * Convert character position into byte position in UTF8 byte array.
      *
-     * @param charPosition
-     *            charPosition
+     * @param charPosition charPosition
      * @return byte position
      */
     private int utf8Position(int charPosition) {
@@ -333,13 +323,10 @@ public class Clob extends Blob implements ObClob, Serializable {
     /**
      * Set String.
      *
-     * @param pos
-     *            position
-     * @param str
-     *            string
+     * @param pos position
+     * @param str string
      * @return string length
-     * @throws SQLException
-     *             if UTF-8 conversion failed
+     * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
         if (this.locator != null) {
@@ -392,10 +379,12 @@ public class Clob extends Blob implements ObClob, Serializable {
                             pos += 2;
                             len++;
                         } else {
-                            throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+                            throw new UncheckedIOException("invalid UTF8",
+                                new CharacterCodingException());
                         }
                     } else if (firstByte >> 3 != -2) {
-                        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+                        throw new UncheckedIOException("invalid UTF8",
+                            new CharacterCodingException());
                     } else if (pos + 2 < offset + length) {
                         pos += 3;
                         len += 2;
@@ -451,10 +440,12 @@ public class Clob extends Blob implements ObClob, Serializable {
                             pos += 2;
                             len++;
                         } else {
-                            throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+                            throw new UncheckedIOException("invalid UTF8",
+                                new CharacterCodingException());
                         }
                     } else if (firstByte >> 3 != -2) {
-                        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+                        throw new UncheckedIOException("invalid UTF8",
+                            new CharacterCodingException());
                     } else if (pos + 2 < offset + length) {
                         if (len + 2 <= truncateLen) {
                             pos += 3;
@@ -465,7 +456,8 @@ public class Clob extends Blob implements ObClob, Serializable {
                             len = truncateLen;
                         }
                     } else {
-                        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+                        throw new UncheckedIOException("invalid UTF8",
+                            new CharacterCodingException());
                     }
                 } else {
                     pos++;
@@ -482,28 +474,24 @@ public class Clob extends Blob implements ObClob, Serializable {
      * Update <code>Clob</code> object by the DBMS_LOB.write(?,?,?,?), starting with writeAt and write the bytes to
      * database.
      *
-     * @param writeAt
-     *            Start position to be write.
-     * @param bytes
-     *            byte[] data to be write.
-     * @param offset
-     *            first position offset will be write.
-     * @param length
-     *            date length to be write.
-     * @throws SQLException
-     *             if database error occur
+     * @param writeAt Start position to be write.
+     * @param bytes   byte[] data to be write.
+     * @param offset  first position offset will be write.
+     * @param length  date length to be write.
+     * @throws SQLException if database error occur
      */
     public synchronized void updateClobToServer(long writeAt, byte[] bytes, int offset, int length)
-            throws SQLException {
+                                                                                                   throws SQLException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
         cstmt.setClob(1, this);
         cstmt.setInt(2, length);
         cstmt.setInt(3, (int) writeAt);
         try {
-            // cstmt.setString(4, StringUtils.toString(bytes, this.encoding)); // todo
+            //            cstmt.setString(4, StringUtils.toString(bytes, this.encoding)); // todo
             cstmt.setString(4, new String(bytes, this.encoding));
         } catch (UnsupportedEncodingException e) {
             throw new SQLException(e.getMessage());
@@ -521,7 +509,8 @@ public class Clob extends Blob implements ObClob, Serializable {
             int to = (int) (from + locator.payloadSize);
             this.encoding = r.encoding;
             try {
-                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to), this.encoding);
+                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
+                    this.encoding);
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
             }
@@ -530,20 +519,19 @@ public class Clob extends Blob implements ObClob, Serializable {
     }
 
     /**
-     * Truncate <code>Clob</code> object by the DBMS_LOB.trim(?,?), truncate data from len, exception if len is big than
-     * data's length and success when len is less than data's length.
+     * Truncate <code>Clob</code> object by the DBMS_LOB.trim(?,?), truncate data from len, exception if len is big than data's length
+     * and success when len is less than data's length.
      *
-     * @param len
-     *            truncate data from len
-     * @throws SQLException
-     *             if database error occur
+     * @param len truncate data from len
+     * @throws SQLException if database error occur
      */
     public synchronized void trimClobToServer(int len) throws SQLException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.trim( ?, ?)}");
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
         cstmt.setClob(1, this);
         cstmt.setInt(2, len);
         cstmt.registerOutParameter(1, Types.CLOB);
@@ -559,7 +547,8 @@ public class Clob extends Blob implements ObClob, Serializable {
             int to = (int) (from + locator.payloadSize);
             this.encoding = r.encoding;
             try {
-                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to), this.encoding);
+                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
+                    this.encoding);
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
 

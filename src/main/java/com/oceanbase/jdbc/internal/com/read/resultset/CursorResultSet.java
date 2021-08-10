@@ -53,8 +53,9 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 public class CursorResultSet extends SelectResultSet {
     int statementId;
 
-    public CursorResultSet(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
-            boolean callableResult, boolean eofDeprecated, boolean isPsOutParamter) throws IOException, SQLException {
+    public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
+                           Protocol protocol, boolean callableResult, boolean eofDeprecated,
+                           boolean isPsOutParamter) throws IOException, SQLException {
         super(columnsInformation, results, protocol, callableResult, eofDeprecated, isPsOutParamter);
         this.statementId = results.getStatementId();
     }
@@ -76,7 +77,8 @@ public class CursorResultSet extends SelectResultSet {
         }
         int numToFetch = this.getFetchSize();
         try {
-            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId, numToFetch);
+            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
+                numToFetch);
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;

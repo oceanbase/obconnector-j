@@ -50,18 +50,20 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ProcTest extends BaseTest {
-    public static String procName = "testProc" + getRandomString(5);
+    public static String procName  = "testProc" + getRandomString(5);
     public static String tableUser = "tUser" + getRandomString(5);
 
     @BeforeClass
     public static void initClass() throws SQLException {
         createTable(tableUser, "user_id varchar(10),name varchar(10),age varchar(10)");
-        createProcedure(procName,
-                "(\n" + "  in v_user_id varchar(10),\n" + "  in v_name varchar(10),\n" + "  in v_age varchar(10),\n"
-                        + "  out v_result1 varchar(10)\n" + ")\n" + "BEGIN    \n" + "DELETE FROM " + tableUser
-                        + " ;      \n" + "INSERT INTO " + tableUser
-                        + "(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
-                        + "select name INTO v_result1 from " + tableUser + ";   \n" + "END;");
+        createProcedure(procName, "(\n" + "  in v_user_id varchar(10),\n"
+                                  + "  in v_name varchar(10),\n" + "  in v_age varchar(10),\n"
+                                  + "  out v_result1 varchar(10)\n" + ")\n" + "BEGIN    \n"
+                                  + "DELETE FROM " + tableUser + " ;      \n" + "INSERT INTO "
+                                  + tableUser
+                                  + "(user_id, name, age) VALUES (v_user_id, v_name, v_age);    \n"
+                                  + "select name INTO v_result1 from " + tableUser + ";   \n"
+                                  + "END;");
     }
 
     @Test

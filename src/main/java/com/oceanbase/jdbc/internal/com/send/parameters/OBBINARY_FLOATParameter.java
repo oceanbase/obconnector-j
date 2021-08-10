@@ -69,8 +69,8 @@ public class OBBINARY_FLOATParameter implements Cloneable, ParameterHolder {
 
     @Override
     public void writeBinary(PacketOutputStream pos) throws IOException {
-        // pos.write(String.valueOf(value).getBytes());
-        // pos.write(String.valueOf(value));
+        //        pos.write(String.valueOf(value).getBytes());
+        //        pos.write(String.valueOf(value));
         pos.writeInt(Float.floatToIntBits(value));
     }
 

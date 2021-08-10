@@ -91,110 +91,118 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void connectionOrder() throws Throwable {
+  public void connectionOrder() throws Throwable {
 
-        Assume.assumeTrue(!initialGaleraUrl.contains("failover"));
-        UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
-        for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
-            int serverNb;
-            try (Connection connection = getNewConnection(true)) {
-                serverNb = getServerId(connection);
-                assertTrue(serverNb == i + 1);
-            }
-            stopProxy(serverNb);
-        }
+    Assume.assumeTrue(!initialGaleraUrl.contains("failover"));
+    UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
+    for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
+      int serverNb;
+      try (Connection connection = getNewConnection(true)) {
+        serverNb = getServerId(connection);
+        assertTrue(serverNb == i + 1);
+      }
+      stopProxy(serverNb);
     }
+  }
 
     @Test
-    public void checkStaticBlacklist() throws Throwable {
-        assureProxy();
-        try (Connection connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true)) {
-            Statement st = connection.createStatement();
+  public void checkStaticBlacklist() throws Throwable {
+    assureProxy();
+    try (Connection connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true)) {
+      Statement st = connection.createStatement();
 
-            int firstServerId = getServerId(connection);
-            int blackListSize = getProtocolFromConnection(connection).getProxy().getListener().getBlacklistKeys()
-                    .size();
-            System.out.println("blackListSize:" + blackListSize);
-            stopProxy(firstServerId);
+      int firstServerId = getServerId(connection);
+      int blackListSize =
+          getProtocolFromConnection(connection).getProxy().getListener().getBlacklistKeys().size();
+      System.out.println("blackListSize:" + blackListSize);
+      stopProxy(firstServerId);
 
-            try {
-                st.execute("show variables like 'slow_query_log'");
-                fail();
-            } catch (SQLException e) {
-                // normal exception that permit to blacklist the failing connection.
-            }
+      try {
+        st.execute("show variables like 'slow_query_log'");
+        fail();
+      } catch (SQLException e) {
+        // normal exception that permit to blacklist the failing connection.
+      }
 
-            // check blacklist size
-            try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                assertEquals(blackListSize + 1, protocol.getProxy().getListener().getBlacklistKeys().size());
+      // check blacklist size
+      try {
+        Protocol protocol = getProtocolFromConnection(connection);
+        assertEquals(
+            blackListSize + 1, protocol.getProxy().getListener().getBlacklistKeys().size());
 
-                // replace proxified HostAddress by normal one
-                UrlParser urlParser = UrlParser.parse(defaultUrl);
-                protocol.getProxy().getListener().addToBlacklist(urlParser.getHostAddresses().get(firstServerId - 1));
-            } catch (Throwable e) {
-                e.printStackTrace();
-                fail();
-            }
+        // replace proxified HostAddress by normal one
+        UrlParser urlParser = UrlParser.parse(defaultUrl);
+        protocol
+            .getProxy()
+            .getListener()
+            .addToBlacklist(urlParser.getHostAddresses().get(firstServerId - 1));
+      } catch (Throwable e) {
+        e.printStackTrace();
+        fail();
+      }
 
-            // add first Host to blacklist
-            Protocol protocol = getProtocolFromConnection(connection);
-            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1,
-                    new OceanBaseThreadFactory("MariaDB-testable-scheduler"));
+      // add first Host to blacklist
+      Protocol protocol = getProtocolFromConnection(connection);
+      ScheduledThreadPoolExecutor scheduler =
+          new ScheduledThreadPoolExecutor(
+              1, new OceanBaseThreadFactory("MariaDB-testable-scheduler"));
 
-            // check blacklist shared
-            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
-            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
+      // check blacklist shared
+      scheduler.execute(
+          new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
+      scheduler.execute(
+          new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
 
-            // deterministically execute CheckBlacklists
-            scheduler.shutdown();
-            scheduler.awaitTermination(10, TimeUnit.SECONDS);
-        }
+      // deterministically execute CheckBlacklists
+      scheduler.shutdown();
+      scheduler.awaitTermination(10, TimeUnit.SECONDS);
     }
+  }
 
     @Test
-    public void testMultiHostWriteOnMaster() {
-        Assume.assumeTrue(initialGaleraUrl != null);
-        try (Connection connection = getNewConnection()) {
-            Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists multinode");
-            stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-        } catch (SQLException sqle) {
-            fail("must have worked");
-        }
+  public void testMultiHostWriteOnMaster() {
+    Assume.assumeTrue(initialGaleraUrl != null);
+    try (Connection connection = getNewConnection()) {
+      Statement stmt = connection.createStatement();
+      stmt.execute("drop table  if exists multinode");
+      stmt.execute(
+          "create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+    } catch (SQLException sqle) {
+      fail("must have worked");
     }
+  }
 
     @Test
-    public void pingReconnectAfterRestart() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-            Statement st = connection.createStatement();
-            int masterServerId = getServerId(connection);
-            stopProxy(masterServerId);
+  public void pingReconnectAfterRestart() throws Throwable {
+    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+      Statement st = connection.createStatement();
+      int masterServerId = getServerId(connection);
+      stopProxy(masterServerId);
 
-            try {
-                st.execute("SELECT 1");
-            } catch (SQLException e) {
-                // eat exception
-            }
-            restartProxy(masterServerId);
-            long restartTime = System.nanoTime();
-            boolean loop = true;
-            while (loop) {
-                if (!connection.isClosed()) {
-                    loop = false;
-                }
-                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
-                if (duration > 15 * 1000) {
-                    fail();
-                }
-                Thread.sleep(250);
-            }
+      try {
+        st.execute("SELECT 1");
+      } catch (SQLException e) {
+        // eat exception
+      }
+      restartProxy(masterServerId);
+      long restartTime = System.nanoTime();
+      boolean loop = true;
+      while (loop) {
+        if (!connection.isClosed()) {
+          loop = false;
         }
+        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
+        if (duration > 15 * 1000) {
+          fail();
+        }
+        Thread.sleep(250);
+      }
     }
+  }
 
     protected class CheckBlacklist implements Runnable {
 
-        private final int firstServerId;
+        private final int              firstServerId;
         private final Set<HostAddress> blacklistKeys;
 
         public CheckBlacklist(int firstServerId, Set<HostAddress> blacklistKeys) {
@@ -203,18 +211,19 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         }
 
         public void run() {
-            try (Connection connection2 = getNewConnection()) {
-                int otherServerId = getServerId(connection2);
-                assertTrue(otherServerId != firstServerId);
-                Protocol protocol = getProtocolFromConnection(connection2);
-                assertTrue(blacklistKeys.toArray()[0]
-                        .equals(protocol.getProxy().getListener().getBlacklistKeys().toArray()[0]));
+      try (Connection connection2 = getNewConnection()) {
+        int otherServerId = getServerId(connection2);
+        assertTrue(otherServerId != firstServerId);
+        Protocol protocol = getProtocolFromConnection(connection2);
+        assertTrue(
+            blacklistKeys.toArray()[0].equals(
+                protocol.getProxy().getListener().getBlacklistKeys().toArray()[0]));
 
-            } catch (Throwable e) {
-                e.printStackTrace();
-                fail();
-            }
-        }
+      } catch (Throwable e) {
+        e.printStackTrace();
+        fail();
+      }
+    }
     }
 
     class MutableInt {

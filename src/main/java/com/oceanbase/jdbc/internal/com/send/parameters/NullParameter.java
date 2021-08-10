@@ -58,7 +58,7 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class NullParameter implements ParameterHolder, Cloneable {
 
     private static final byte[] NULL = { 'N', 'U', 'L', 'L' };
-    private final ColumnType type;
+    private final ColumnType    type;
 
     public NullParameter() {
         type = ColumnType.NULL;
@@ -79,8 +79,7 @@ public class NullParameter implements ParameterHolder, Cloneable {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
+     * @param pos socket output stream
      */
     public void writeBinary(final PacketOutputStream pos) {
         // null data are not send in binary format.

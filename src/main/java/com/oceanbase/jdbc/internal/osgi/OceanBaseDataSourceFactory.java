@@ -67,8 +67,9 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
 
     @Override
     public DataSource createDataSource(Properties props) throws SQLException {
-        if (props != null && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE)
-                || props.containsKey(JDBC_MAX_IDLE_TIME))) {
+        if (props != null
+            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
+                .containsKey(JDBC_MAX_IDLE_TIME))) {
             return createPoolDataSource(props);
         } else {
             return createBasicDataSource(props);
@@ -76,9 +77,11 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
     }
 
     @Override
-    public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props) throws SQLException {
-        if (props != null && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE)
-                || props.containsKey(JDBC_MAX_IDLE_TIME))) {
+    public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
+                                                                                    throws SQLException {
+        if (props != null
+            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
+                .containsKey(JDBC_MAX_IDLE_TIME))) {
             return createPoolDataSource(props);
         } else {
             return createBasicDataSource(props);
@@ -87,8 +90,9 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
 
     @Override
     public XADataSource createXADataSource(Properties props) throws SQLException {
-        if (props != null && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE)
-                || props.containsKey(JDBC_MAX_IDLE_TIME))) {
+        if (props != null
+            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
+                .containsKey(JDBC_MAX_IDLE_TIME))) {
             return createPoolDataSource(props);
         } else {
             return createBasicDataSource(props);
@@ -113,8 +117,8 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
             try {
                 dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
             } catch (NumberFormatException nfe) {
-                throw new SQLException(
-                        "Port format must be integer, but value is '" + props.getProperty(JDBC_PORT_NUMBER) + "'");
+                throw new SQLException("Port format must be integer, but value is '"
+                                       + props.getProperty(JDBC_PORT_NUMBER) + "'");
             }
         }
         if (props.containsKey(JDBC_USER)) {
@@ -142,7 +146,7 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
                 dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
             } catch (NumberFormatException nfe) {
                 throw new SQLException("Port number format must be integer, but value is '"
-                        + props.getProperty(JDBC_PORT_NUMBER) + "'");
+                                       + props.getProperty(JDBC_PORT_NUMBER) + "'");
             }
         }
         if (props.containsKey(JDBC_USER)) {
@@ -159,7 +163,7 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
                 dataSource.setMaxIdleTime(Integer.parseInt(props.getProperty(JDBC_MAX_IDLE_TIME)));
             } catch (NumberFormatException nfe) {
                 throw new SQLException("Max idle time format must be integer, but value is '"
-                        + props.getProperty(JDBC_MAX_IDLE_TIME) + "'");
+                                       + props.getProperty(JDBC_MAX_IDLE_TIME) + "'");
             }
         }
         if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
@@ -167,7 +171,7 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
                 dataSource.setMaxPoolSize(Integer.parseInt(props.getProperty(JDBC_MAX_POOL_SIZE)));
             } catch (NumberFormatException nfe) {
                 throw new SQLException("Max pool size format must be integer, but value is '"
-                        + props.getProperty(JDBC_MAX_POOL_SIZE) + "'");
+                                       + props.getProperty(JDBC_MAX_POOL_SIZE) + "'");
             }
         }
         if (props.containsKey(JDBC_MIN_POOL_SIZE)) {
@@ -175,7 +179,7 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
                 dataSource.setMinPoolSize(Integer.parseInt(props.getProperty(JDBC_MIN_POOL_SIZE)));
             } catch (NumberFormatException nfe) {
                 throw new SQLException("Min pool size format must be integer, but value is '"
-                        + props.getProperty(JDBC_MIN_POOL_SIZE) + "'");
+                                       + props.getProperty(JDBC_MIN_POOL_SIZE) + "'");
             }
         }
         return dataSource;

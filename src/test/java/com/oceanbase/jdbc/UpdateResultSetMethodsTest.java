@@ -65,13 +65,12 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @Before
     public void before() throws SQLException {
-        rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-                .executeQuery("select 1");
+        rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE).executeQuery("select 1");
     }
 
     @Test

@@ -59,7 +59,7 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public final class ServerPrepareStatementCache extends LinkedHashMap<String, ServerPrepareResult> {
 
-    private final int maxSize;
+    private final int      maxSize;
     private final Protocol protocol;
 
     private ServerPrepareStatementCache(int size, Protocol protocol) {
@@ -75,8 +75,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
     /**
      * Remove eldestEntry.
      *
-     * @param eldest
-     *            eldest entry
+     * @param eldest eldest entry
      * @return true if eldest entry must be removed
      */
     @Override
@@ -98,14 +97,14 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
     }
 
     /**
-     * Associates the specified value with the specified key in this map. If the map previously contained a mapping for
-     * the key, the existing cached prepared result shared counter will be incremented.
+     * Associates the specified value with the specified key in this map. If the map previously
+     * contained a mapping for the key, the existing cached prepared result shared counter will be
+     * incremented.
      *
-     * @param key
-     *            key
-     * @param result
-     *            new prepare result.
-     * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
+     * @param key key
+     * @param result new prepare result.
+     * @return the previous value associated with key if not been deallocate, or null if there was no
+     *     mapping for key.
      */
     public synchronized ServerPrepareResult put(String key, ServerPrepareResult result) {
         ServerPrepareResult cachedServerPrepareResult = super.get(key);
@@ -123,7 +122,8 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder("ServerPrepareStatementCache.map[");
         for (Map.Entry<String, ServerPrepareResult> entry : this.entrySet()) {
-            stringBuilder.append("\n").append(entry.getKey()).append("-").append(entry.getValue().getShareCounter());
+            stringBuilder.append("\n").append(entry.getKey()).append("-")
+                .append(entry.getValue().getShareCounter());
         }
         stringBuilder.append("]");
         return stringBuilder.toString();

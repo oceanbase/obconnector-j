@@ -79,19 +79,23 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
     /**
      * CONJ-392 : aurora must discover active nodes without timezone issue.
      *
-     * @throws Throwable
-     *             if error occur
+     * @throws Throwable if error occur
      */
     @Ignore
-    public void testTimeZoneDiscovery() throws Throwable {
+  public void testTimeZoneDiscovery() throws Throwable {
 
-        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
-            List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener()
-                    .getUrlParser().getHostAddresses();
-            for (HostAddress hostAddress : hostAddresses) {
-                System.out.println("hostAddress:" + hostAddress);
-            }
-            assertTrue(hostAddresses.size() > 1);
-        }
+    try (Connection connection =
+        getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
+      List<HostAddress> hostAddresses =
+          getProtocolFromConnection(connection)
+              .getProxy()
+              .getListener()
+              .getUrlParser()
+              .getHostAddresses();
+      for (HostAddress hostAddress : hostAddresses) {
+        System.out.println("hostAddress:" + hostAddress);
+      }
+      assertTrue(hostAddresses.size() > 1);
     }
+  }
 }

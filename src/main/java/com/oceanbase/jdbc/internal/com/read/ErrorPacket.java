@@ -55,15 +55,14 @@ import java.nio.charset.StandardCharsets;
 /** See protocol documentation https://mariadb.com/kb/en/err_packet/ */
 public class ErrorPacket {
 
-    private final short errorCode;
+    private final short  errorCode;
     private final String sqlState;
     private final String message;
 
     /**
      * Reading error stream.
      *
-     * @param buffer
-     *            current stream rawBytes
+     * @param buffer current stream rawBytes
      */
     public ErrorPacket(Buffer buffer) {
         buffer.skipByte(); // 0xff Error header
@@ -74,7 +73,8 @@ public class ErrorPacket {
             message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
+            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,
+                StandardCharsets.UTF_8);
             sqlState = "HY000";
         }
     }

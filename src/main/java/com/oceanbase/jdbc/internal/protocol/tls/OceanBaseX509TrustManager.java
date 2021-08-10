@@ -77,10 +77,8 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
     /**
      * MyX509TrustManager.
      *
-     * @param options
-     *            parsed url options
-     * @throws SQLException
-     *             exception
+     * @param options parsed url options
+     * @throws SQLException exception
      */
     public OceanBaseX509TrustManager(Options options) throws SQLException {
         // if trustServerCertificate is true, will have a X509TrustManager implementation that validate
@@ -91,11 +89,11 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
 
         KeyStore ks;
         try {
-            ks = KeyStore
-                    .getInstance(options.trustStoreType != null ? options.trustStoreType : KeyStore.getDefaultType());
+            ks = KeyStore.getInstance(options.trustStoreType != null ? options.trustStoreType
+                : KeyStore.getDefaultType());
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new SQLException("Failed to create keystore instance", SqlStates.CONNECTION_EXCEPTION.getSqlState(),
-                    generalSecurityEx);
+            throw new SQLException("Failed to create keystore instance",
+                SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
         }
 
         InputStream inStream = null;
@@ -110,18 +108,20 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
                     } catch (IOException ioexception) {
                         inStream = new FileInputStream(trustStore);
                     }
-                    ks.load(inStream,
-                            options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
+                    ks.load(inStream, options.trustStorePassword == null ? null
+                        : options.trustStorePassword.toCharArray());
 
                 } catch (GeneralSecurityException generalSecurityEx) {
                     throw new SQLException("Failed to create trustStore instance",
-                            SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+                        SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
                 } catch (FileNotFoundException fileNotFoundEx) {
-                    throw new SQLException("Failed to find trustStore file. trustStore=" + options.trustStore,
-                            SqlStates.CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
+                    throw new SQLException("Failed to find trustStore file. trustStore="
+                                           + options.trustStore,
+                        SqlStates.CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
                 } catch (IOException ioEx) {
-                    throw new SQLException("Failed to read trustStore file. trustStore=" + options.trustStore,
-                            SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioEx);
+                    throw new SQLException("Failed to read trustStore file. trustStore="
+                                           + options.trustStore,
+                        SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioEx);
                 }
             } else {
                 // generate a keyStore from the provided cert
@@ -130,14 +130,15 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
                 } else if (options.serverSslCert.startsWith("classpath:")) {
                     // Load it from a classpath relative file
                     String classpathFile = options.serverSslCert.substring("classpath:".length());
-                    inStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(classpathFile);
+                    inStream = Thread.currentThread().getContextClassLoader()
+                        .getResourceAsStream(classpathFile);
                 } else {
                     try {
                         inStream = new FileInputStream(options.serverSslCert);
                     } catch (FileNotFoundException fileNotFoundEx) {
-                        throw new SQLException(
-                                "Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert,
-                                SqlStates.CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
+                        throw new SQLException("Failed to find serverSslCert file. serverSslCert="
+                                               + options.serverSslCert,
+                            SqlStates.CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
                     }
                 }
 
@@ -151,10 +152,12 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
                         ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
                     }
                 } catch (IOException ioEx) {
-                    throw new SQLException("Failed load keyStore", SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioEx);
+                    throw new SQLException("Failed load keyStore",
+                        SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioEx);
                 } catch (GeneralSecurityException generalSecurityEx) {
-                    throw new SQLException("Failed to store certificate from serverSslCert into a keyStore",
-                            SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+                    throw new SQLException(
+                        "Failed to store certificate from serverSslCert into a keyStore",
+                        SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
                 }
             }
         } finally {
@@ -167,7 +170,8 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
             }
         }
         try {
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
+                .getDefaultAlgorithm());
             tmf.init(ks);
             for (TrustManager tm : tmf.getTrustManagers()) {
                 if (tm instanceof X509TrustManager) {
@@ -177,10 +181,10 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
             }
         } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
             throw new SQLException("Failed to create TrustManagerFactory default instance",
-                    SqlStates.CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
+                SqlStates.CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new SQLException("Failed to initialize trust manager", SqlStates.CONNECTION_EXCEPTION.getSqlState(),
-                    generalSecurityEx);
+            throw new SQLException("Failed to initialize trust manager",
+                SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
         }
 
         if (trustManager == null) {
@@ -191,15 +195,13 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
     /**
      * Check client trusted.
      *
-     * @param x509Certificates
-     *            certificate
-     * @param string
-     *            string
-     * @throws CertificateException
-     *             exception
+     * @param x509Certificates certificate
+     * @param string string
+     * @throws CertificateException exception
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String string)
+                                                                                     throws CertificateException {
         if (trustManager == null) {
             return;
         }
@@ -209,15 +211,13 @@ public class OceanBaseX509TrustManager implements X509TrustManager {
     /**
      * Check server trusted.
      *
-     * @param x509Certificates
-     *            certificate
-     * @param string
-     *            string
-     * @throws CertificateException
-     *             exception
+     * @param x509Certificates certificate
+     * @param string string
+     * @throws CertificateException exception
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String string)
+                                                                                     throws CertificateException {
         if (trustManager == null) {
             return;
         }

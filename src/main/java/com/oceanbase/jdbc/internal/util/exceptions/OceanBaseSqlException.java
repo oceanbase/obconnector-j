@@ -55,7 +55,7 @@ import java.sql.SQLException;
 public class OceanBaseSqlException extends SQLException {
 
     private String sql;
-    private String threadName = null;
+    private String threadName   = null;
     private String deadLockInfo = null;
 
     public OceanBaseSqlException(String reason, String sql, Throwable cause) {
@@ -68,15 +68,16 @@ public class OceanBaseSqlException extends SQLException {
         this.sql = sql;
     }
 
-    public OceanBaseSqlException(String reason, String sql, String sqlState, int vendorCode, Throwable cause) {
+    public OceanBaseSqlException(String reason, String sql, String sqlState, int vendorCode,
+                                 Throwable cause) {
         super(reason, sqlState, vendorCode, cause);
         this.sql = sql;
     }
 
     public static OceanBaseSqlException of(SQLException cause, String sql) {
-        return new OceanBaseSqlException(cause.getMessage().contains("\n")
-                ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n")) : cause.getMessage(), sql,
-                cause.getSQLState(), cause.getErrorCode(), cause);
+        return new OceanBaseSqlException(cause.getMessage().contains("\n") ? cause.getMessage()
+            .substring(0, cause.getMessage().indexOf("\n")) : cause.getMessage(), sql,
+            cause.getSQLState(), cause.getErrorCode(), cause);
     }
 
     public OceanBaseSqlException withThreadName(String threadName) {

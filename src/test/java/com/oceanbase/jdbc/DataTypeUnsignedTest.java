@@ -66,8 +66,7 @@ public class DataTypeUnsignedTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -84,19 +83,19 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedBitTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'01000000')");
-        sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000001')");
-        sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000000')");
-        sharedConnection.createStatement().execute("insert into unsignedBitTest values (null)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", false)) {
-            unsignedBitTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", true)) {
-            unsignedBitTestResult(rs);
-        }
+  public void unsignedBitTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'01000000')");
+    sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000001')");
+    sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000000')");
+    sharedConnection.createStatement().execute("insert into unsignedBitTest values (null)");
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", false)) {
+      unsignedBitTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", true)) {
+      unsignedBitTestResult(rs);
+    }
+  }
 
     private void unsignedBitTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -125,19 +124,19 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedTinyIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (200)");
-        sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (120)");
-        sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (null)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", false)) {
-            unsignedTinyIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", true)) {
-            unsignedTinyIntTestResult(rs);
-        }
+  public void unsignedTinyIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (200)");
+    sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (120)");
+    sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (null)");
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", false)) {
+      unsignedTinyIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", true)) {
+      unsignedTinyIntTestResult(rs);
+    }
+  }
 
     private void unsignedTinyIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -172,20 +171,20 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedSmallIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (65535)");
-        sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (32767)");
-        sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (null)");
+  public void unsignedSmallIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (65535)");
+    sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (32767)");
+    sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (null)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", false)) {
-            unsignedSmallIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", true)) {
-            unsignedSmallIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", false)) {
+      unsignedSmallIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", true)) {
+      unsignedSmallIntTestResult(rs);
+    }
+  }
 
     private void unsignedSmallIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -220,21 +219,21 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void yearTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into yearTest values (2155)");
-        sharedConnection.createStatement().execute("insert into yearTest values (0)");
-        sharedConnection.createStatement().execute("insert into yearTest values (null)");
+  public void yearTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into yearTest values (2155)");
+    sharedConnection.createStatement().execute("insert into yearTest values (0)");
+    sharedConnection.createStatement().execute("insert into yearTest values (null)");
 
-        try (Connection connection = setConnection("&yearIsDateType=false")) {
-            try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", false, connection)) {
-                yearTestResult(rs, false);
-            }
+    try (Connection connection = setConnection("&yearIsDateType=false")) {
+      try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", false, connection)) {
+        yearTestResult(rs, false);
+      }
 
-            try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", true, connection)) {
-                yearTestResult(rs, sharedOptions().useServerPrepStmts);
-            }
-        }
+      try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", true, connection)) {
+        yearTestResult(rs, sharedOptions().useServerPrepStmts);
+      }
     }
+  }
 
     private void yearTestResult(ResultSet rs, boolean binary) throws SQLException {
         if (rs.next()) {
@@ -269,20 +268,24 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedMediumIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (16777215)");
-        sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (8388607)");
-        sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (null)");
+  public void unsignedMediumIntTest() throws SQLException {
+    sharedConnection
+        .createStatement()
+        .execute("insert into unsignedMediumIntTest values (16777215)");
+    sharedConnection
+        .createStatement()
+        .execute("insert into unsignedMediumIntTest values (8388607)");
+    sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (null)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", false)) {
-            unsignedMediumIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", true)) {
-            unsignedMediumIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", false)) {
+      unsignedMediumIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", true)) {
+      unsignedMediumIntTestResult(rs);
+    }
+  }
 
     private void unsignedMediumIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -317,19 +320,19 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedIntTest values (4294967295)");
-        sharedConnection.createStatement().execute("insert into unsignedIntTest values (2147483647)");
-        sharedConnection.createStatement().execute("insert into unsignedIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into unsignedIntTest values (null)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", false)) {
-            unsignedIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", true)) {
-            unsignedIntTestResult(rs);
-        }
+  public void unsignedIntTest() throws SQLException {
+    sharedConnection.createStatement().execute("insert into unsignedIntTest values (4294967295)");
+    sharedConnection.createStatement().execute("insert into unsignedIntTest values (2147483647)");
+    sharedConnection.createStatement().execute("insert into unsignedIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into unsignedIntTest values (null)");
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", false)) {
+      unsignedIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", true)) {
+      unsignedIntTestResult(rs);
+    }
+  }
 
     private void unsignedIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -364,20 +367,24 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedBigIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (18446744073709551615)");
-        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (9223372036854775807)");
-        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (1)");
-        sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (null)");
+  public void unsignedBigIntTest() throws SQLException {
+    sharedConnection
+        .createStatement()
+        .execute("insert into unsignedBigIntTest values (18446744073709551615)");
+    sharedConnection
+        .createStatement()
+        .execute("insert into unsignedBigIntTest values (9223372036854775807)");
+    sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (1)");
+    sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (null)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", false)) {
-            unsignedBigIntTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", true)) {
-            unsignedBigIntTestResult(rs);
-        }
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", false)) {
+      unsignedBigIntTestResult(rs);
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", true)) {
+      unsignedBigIntTestResult(rs);
+    }
+  }
 
     private void unsignedBigIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -412,24 +419,24 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedDecimalTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute(
-                    "insert into unsignedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
-            statement.execute("insert into unsignedDecimalTest values (9223372036854775806)");
-            statement.execute("insert into unsignedDecimalTest values (1.1)");
-            statement.execute("insert into unsignedDecimalTest values (1.0)");
-            statement.execute("insert into unsignedDecimalTest values (null)");
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", false)) {
-            unsignedDecimalTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", true)) {
-            unsignedDecimalTestResult(rs);
-        }
+  public void unsignedDecimalTest() throws SQLException {
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.execute(
+          "insert into unsignedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
+      statement.execute("insert into unsignedDecimalTest values (9223372036854775806)");
+      statement.execute("insert into unsignedDecimalTest values (1.1)");
+      statement.execute("insert into unsignedDecimalTest values (1.0)");
+      statement.execute("insert into unsignedDecimalTest values (null)");
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", false)) {
+      unsignedDecimalTestResult(rs);
+    }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", true)) {
+      unsignedDecimalTestResult(rs);
+    }
+  }
 
     private void unsignedDecimalTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -438,12 +445,13 @@ public class DataTypeUnsignedTest extends BaseTest {
             intMustFail(rs);
             longMustFail(rs);
             assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
-                    1000000000000000000000000D);
+                1000000000000000000000000D);
             assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
-                    1000000000000000000000000D);
+                1000000000000000000000000D);
             assertEquals(123456789012345678901234567890.12345678901234567890D, rs.getDouble(1),
-                    1000000000000000000000000D);
-            assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"), rs.getBigDecimal(1));
+                1000000000000000000000000D);
+            assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"),
+                rs.getBigDecimal(1));
             assertEquals("123456789012345678901234567890.12345678901234567890", rs.getString(1));
             if (rs.next()) {
                 byteMustFail(rs);
@@ -452,7 +460,8 @@ public class DataTypeUnsignedTest extends BaseTest {
                 assertEquals(9223372036854775806L, rs.getLong(1));
                 assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
                 assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
-                assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
+                assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"),
+                    rs.getBigDecimal(1));
                 assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
@@ -481,24 +490,24 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedFloatTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute(
-                    "insert into unsignedFloatTest values (123456789012345678901234567890.12345678901234567890)");
-            statement.execute("insert into unsignedFloatTest values (9223372036854775806)");
-            statement.execute("insert into unsignedFloatTest values (1.1)");
-            statement.execute("insert into unsignedFloatTest values (1.0)");
-            statement.execute("insert into unsignedFloatTest values (null)");
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", false)) {
-            unsignedFloatTestResult(rs, false);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", true)) {
-            unsignedFloatTestResult(rs, sharedUsePrepare());
-        }
+  public void unsignedFloatTest() throws SQLException {
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.execute(
+          "insert into unsignedFloatTest values (123456789012345678901234567890.12345678901234567890)");
+      statement.execute("insert into unsignedFloatTest values (9223372036854775806)");
+      statement.execute("insert into unsignedFloatTest values (1.1)");
+      statement.execute("insert into unsignedFloatTest values (1.0)");
+      statement.execute("insert into unsignedFloatTest values (null)");
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", false)) {
+      unsignedFloatTestResult(rs, false);
+    }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", true)) {
+      unsignedFloatTestResult(rs, sharedUsePrepare());
+    }
+  }
 
     private void unsignedFloatTestResult(ResultSet rs, boolean binary) throws SQLException {
         if (rs.next()) {
@@ -550,24 +559,24 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     @Test
-    public void unsignedDoubleTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute(
-                    "insert into unsignedDoubleTest values (123456789012345678901234567890.12345678901234567890)");
-            statement.execute("insert into unsignedDoubleTest values (9223372036854775806)");
-            statement.execute("insert into unsignedDoubleTest values (1.1)");
-            statement.execute("insert into unsignedDoubleTest values (1.0)");
-            statement.execute("insert into unsignedDoubleTest values (null)");
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", false)) {
-            unsignedDoubleTestResult(rs);
-        }
-
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", true)) {
-            unsignedDoubleTestResult(rs);
-        }
+  public void unsignedDoubleTest() throws SQLException {
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.execute(
+          "insert into unsignedDoubleTest values (123456789012345678901234567890.12345678901234567890)");
+      statement.execute("insert into unsignedDoubleTest values (9223372036854775806)");
+      statement.execute("insert into unsignedDoubleTest values (1.1)");
+      statement.execute("insert into unsignedDoubleTest values (1.0)");
+      statement.execute("insert into unsignedDoubleTest values (null)");
     }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", false)) {
+      unsignedDoubleTestResult(rs);
+    }
+
+    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", true)) {
+      unsignedDoubleTestResult(rs);
+    }
+  }
 
     private void unsignedDoubleTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
@@ -653,7 +662,8 @@ public class DataTypeUnsignedTest extends BaseTest {
         oneNullTest(rs, false, false);
     }
 
-    private void oneNullTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
+    private void oneNullTest(ResultSet rs, boolean decimal, boolean floatingPoint)
+                                                                                  throws SQLException {
         try {
             if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));

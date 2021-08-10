@@ -69,14 +69,14 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("quote_test", "id int primary key , create_time timestamp");
         createTable(tableName2, "no INT NOT NULL ,\n" + "    product_category INT NOT NULL,\n"
-                + "    product_id INT NOT NULL,\n" + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
+                                + "    product_id INT NOT NULL,\n"
+                                + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
     }
 
     @Before
@@ -100,22 +100,22 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
     @Test
     public void getSQLKeywordsTest() throws SQLException {
         assertEquals(
-                "ACCESS, ADD, ALTER, AUDIT, CLUSTER, COLUMN, COMMENT, COMPRESS, CONNECT, DATE, DROP, EXCLUSIVE, FILE, IDENTIFIED, IMMEDIATE, INCREMENT, INDEX, INITIAL, INTERSECT, LEVEL, LOCK, LONG, MAXEXTENTS, MINUS, MODE, NOAUDIT, NOCOMPRESS, NOWAIT, NUMBER, OFFLINE, ONLINE, PCTFREE, PRIOR, all_PL_SQL_reserved_ words",
-                sharedConnection.getMetaData().getSQLKeywords());
+            "ACCESS, ADD, ALTER, AUDIT, CLUSTER, COLUMN, COMMENT, COMPRESS, CONNECT, DATE, DROP, EXCLUSIVE, FILE, IDENTIFIED, IMMEDIATE, INCREMENT, INDEX, INITIAL, INTERSECT, LEVEL, LOCK, LONG, MAXEXTENTS, MINUS, MODE, NOAUDIT, NOCOMPRESS, NOWAIT, NUMBER, OFFLINE, ONLINE, PCTFREE, PRIOR, all_PL_SQL_reserved_ words",
+            sharedConnection.getMetaData().getSQLKeywords());
     }
 
     @Test
     public void getNumericFunctionsTest() throws SQLException {
         assertEquals(
-                "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE",
-                sharedConnection.getMetaData().getNumericFunctions());
+            "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE",
+            sharedConnection.getMetaData().getNumericFunctions());
     }
 
     @Test
     public void getStringFunctionsTest() throws SQLException {
         assertEquals(
-                "ASCII,CHAR,CHAR_LENGTH,CHARACTER_LENGTH,CONCAT,LCASE,LENGTH,LTRIM,OCTET_LENGTH,REPLACE,RTRIM,SOUNDEX,SUBSTRING,UCASE",
-                sharedConnection.getMetaData().getStringFunctions());
+            "ASCII,CHAR,CHAR_LENGTH,CHARACTER_LENGTH,CONCAT,LCASE,LENGTH,LTRIM,OCTET_LENGTH,REPLACE,RTRIM,SOUNDEX,SUBSTRING,UCASE",
+            sharedConnection.getMetaData().getStringFunctions());
     }
 
     @Test
@@ -125,16 +125,17 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
 
     @Test
     public void getTimeDateFunctionsTest() throws SQLException {
-        assertEquals("CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR",
-                sharedConnection.getMetaData().getTimeDateFunctions());
+        assertEquals(
+            "CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR",
+            sharedConnection.getMetaData().getTimeDateFunctions());
     }
 
     @Test
     public void getIndexInfoTest() {
         try {
             Connection connection = sharedConnection;
-            ResultSet rs = connection.getMetaData().getIndexInfo(null, null, tableName2.toUpperCase(Locale.ROOT), false,
-                    false); // same as oracle driver ,Need to use uppercase table name
+            ResultSet rs = connection.getMetaData().getIndexInfo(null, null,
+                tableName2.toUpperCase(Locale.ROOT), false, false); // same as oracle driver ,Need to use uppercase table name
             int columnCount = rs.getMetaData().getColumnCount();
             Assert.assertEquals(13, columnCount);
             ResultSetMetaData resultSetMetaData = rs.getMetaData();

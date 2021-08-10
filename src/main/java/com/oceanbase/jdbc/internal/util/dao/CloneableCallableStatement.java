@@ -56,5 +56,6 @@ import com.oceanbase.jdbc.OceanBaseConnection;
 
 public interface CloneableCallableStatement extends CallableStatement {
 
-    CloneableCallableStatement clone(OceanBaseConnection connection) throws CloneNotSupportedException;
+    CloneableCallableStatement clone(OceanBaseConnection connection)
+                                                                    throws CloneNotSupportedException;
 }

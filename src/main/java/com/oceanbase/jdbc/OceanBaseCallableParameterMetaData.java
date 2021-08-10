@@ -65,14 +65,21 @@ import java.util.regex.Pattern;
 
 public class OceanBaseCallableParameterMetaData extends CallableParameterMetaData {
 
-    private static final Pattern PARAMETER_PATTERN = Pattern.compile(
-            "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern RETURN_PATTERN = Pattern.compile(
-            "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern       PARAMETER_PATTERN = Pattern
+                                                             .compile(
+                                                                 "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                 Pattern.CASE_INSENSITIVE);
+    private static final Pattern       RETURN_PATTERN    = Pattern
+                                                             .compile(
+                                                                 "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                 Pattern.CASE_INSENSITIVE);
     /*
-     * private final OceanBaseConnection con; private final String name; private List<CallParameter> params; private
-     * String database; private boolean valid; private boolean isFunction;
+    private final OceanBaseConnection con;
+    private final String name;
+    private List<CallParameter> params;
+    private String database;
+    private boolean valid;
+    private boolean isFunction;
      */
     private Map<String, CallParameter> mapNameToParamter;
 
@@ -87,110 +94,111 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     /**
      * Retrieve Callable metaData.
      *
-     * @param con
-     *            connection
-     * @param database
-     *            database name
-     * @param name
-     *            procedure/function name
-     * @param isFunction
-     *            is it a function
+     * @param con connection
+     * @param database database name
+     * @param name procedure/function name
+     * @param isFunction is it a function
      */
-    public OceanBaseCallableParameterMetaData(OceanBaseConnection con, String database, String name,
-            boolean isFunction) {
+    public OceanBaseCallableParameterMetaData(OceanBaseConnection con, String database,
+                                              String name, boolean isFunction) {
         super(con, database, name, isFunction);
         /*
-         * this.params = null; this.con = con; if (database != null) { this.database = database.replace("`", ""); } else
-         * { this.database = null; } this.name = name.replace("`", ""); this.isFunction = isFunction;
-         */
+        this.params = null;
+        this.con = con;
+        if (database != null) {
+            this.database = database.replace("`", "");
+        } else {
+            this.database = null;
+        }
+        this.name = name.replace("`", "");
+        this.isFunction = isFunction; */
     }
 
     /**
      * Search metaData if not already loaded.
      *
-     * @throws SQLException
-     *             if error append during loading metaData
+     * @throws SQLException if error append during loading metaData
      */
     @Override
     public void readMetadataFromDbIfRequired() throws SQLException {
         if (valid) {
             return;
         }
-        // readMetadata();
+        //readMetadata();
         queryMetaInfos(false);
         valid = true;
     }
 
     private int mapMariaDbTypeToJdbc(String str) {
         switch (str.toUpperCase(Locale.ROOT)) {
-        case "BIT":
-            return Types.BIT;
-        case "TINYINT":
-            return Types.TINYINT;
-        case "SMALLINT":
-            return Types.SMALLINT;
-        case "MEDIUMINT":
-            return Types.INTEGER;
-        case "INT":
-            return Types.INTEGER;
-        case "INTEGER":
-            return Types.INTEGER;
-        case "LONG":
-            return Types.INTEGER;
-        case "BIGINT":
-            return Types.BIGINT;
-        case "INT24":
-            return Types.INTEGER;
-        case "REAL":
-            return Types.DOUBLE;
-        case "FLOAT":
-            return Types.FLOAT;
-        case "DECIMAL":
-            return Types.DECIMAL;
-        case "NUMERIC":
-            return Types.NUMERIC;
-        case "DOUBLE":
-            return Types.DOUBLE;
-        case "CHAR":
-            return Types.CHAR;
-        case "VARCHAR":
-            return Types.VARCHAR;
-        case "DATE":
-            return Types.DATE;
-        case "TIME":
-            return Types.TIME;
-        case "YEAR":
-            return Types.SMALLINT;
-        case "TIMESTAMP":
-            return Types.TIMESTAMP;
-        case "DATETIME":
-            return Types.TIMESTAMP;
-        case "TINYBLOB":
-            return Types.BINARY;
-        case "BLOB":
-            return Types.LONGVARBINARY;
-        case "MEDIUMBLOB":
-            return Types.LONGVARBINARY;
-        case "LONGBLOB":
-            return Types.LONGVARBINARY;
-        case "TINYTEXT":
-            return Types.VARCHAR;
-        case "TEXT":
-            return Types.LONGVARCHAR;
-        case "MEDIUMTEXT":
-            return Types.LONGVARCHAR;
-        case "LONGTEXT":
-            return Types.LONGVARCHAR;
-        case "ENUM":
-            return Types.VARCHAR;
-        case "SET":
-            return Types.VARCHAR;
-        case "GEOMETRY":
-            return Types.LONGVARBINARY;
-        case "VARBINARY":
-            return Types.VARBINARY;
-        default:
-            return Types.OTHER;
+            case "BIT":
+                return Types.BIT;
+            case "TINYINT":
+                return Types.TINYINT;
+            case "SMALLINT":
+                return Types.SMALLINT;
+            case "MEDIUMINT":
+                return Types.INTEGER;
+            case "INT":
+                return Types.INTEGER;
+            case "INTEGER":
+                return Types.INTEGER;
+            case "LONG":
+                return Types.INTEGER;
+            case "BIGINT":
+                return Types.BIGINT;
+            case "INT24":
+                return Types.INTEGER;
+            case "REAL":
+                return Types.DOUBLE;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DECIMAL":
+                return Types.DECIMAL;
+            case "NUMERIC":
+                return Types.NUMERIC;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "CHAR":
+                return Types.CHAR;
+            case "VARCHAR":
+                return Types.VARCHAR;
+            case "DATE":
+                return Types.DATE;
+            case "TIME":
+                return Types.TIME;
+            case "YEAR":
+                return Types.SMALLINT;
+            case "TIMESTAMP":
+                return Types.TIMESTAMP;
+            case "DATETIME":
+                return Types.TIMESTAMP;
+            case "TINYBLOB":
+                return Types.BINARY;
+            case "BLOB":
+                return Types.LONGVARBINARY;
+            case "MEDIUMBLOB":
+                return Types.LONGVARBINARY;
+            case "LONGBLOB":
+                return Types.LONGVARBINARY;
+            case "TINYTEXT":
+                return Types.VARCHAR;
+            case "TEXT":
+                return Types.LONGVARCHAR;
+            case "MEDIUMTEXT":
+                return Types.LONGVARCHAR;
+            case "LONGTEXT":
+                return Types.LONGVARCHAR;
+            case "ENUM":
+                return Types.VARCHAR;
+            case "SET":
+                return Types.VARCHAR;
+            case "GEOMETRY":
+                return Types.LONGVARBINARY;
+            case "VARBINARY":
+                return Types.VARBINARY;
+            default:
+                return Types.OTHER;
         }
     }
 
@@ -211,8 +219,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {
                 paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
                 paramMetaSql.append("' order by POSITION");
-            } else {
-                if (this.obOraclePackageName != null) {
+            } else{
+                if(this.obOraclePackageName != null) {
                     if (!this.obOraclePackageName.equals("DBMS_LOB")) {
                         paramMetaSql.append("' and owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')");
                     } else {
@@ -282,7 +290,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 callParameter.setInput(true);
                 callParameter.setOutput(true);
             } else {
-                throw new SQLException("unknown parameter direction " + direction + "for " + callParameter.getName());
+                throw new SQLException(
+                        "unknown parameter direction " + direction + "for " + callParameter.getName());
             }
 
             callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
@@ -302,15 +311,14 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     /**
      * Read procedure metadata from mysql.proc table(column param_list).
      *
-     * @throws SQLException
-     *             if data doesn't correspond.
+     * @throws SQLException if data doesn't correspond.
      */
     private void readMetadata() throws SQLException {
         if (valid) {
             return;
         }
 
-        String[] metaInfos = null;// queryMetaInfos(isFunction);
+        String[] metaInfos = null;//queryMetaInfos(isFunction);
         String paramList = metaInfos[0];
         String functionReturn = metaInfos[1];
 
@@ -331,9 +339,13 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     }
 
     /*
-     * private CallParameter getParam(int index) throws SQLException { if (index < 1 || index > params.size()) { throw
-     * new SQLException("invalid parameter index " + index); } readMetadataFromDbIfRequired(); return params.get(index -
-     * 1); }
+    private CallParameter getParam(int index) throws SQLException {
+        if (index < 1 || index > params.size()) {
+            throw new SQLException("invalid parameter index " + index);
+        }
+        readMetadataFromDbIfRequired();
+        return params.get(index - 1);
+    }
      */
     public CallParameter getParam(int index) throws SQLException {
         if (index < 1 || index > params.size()) {
@@ -375,17 +387,15 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
      * Get mode info.
      *
      * <ul>
-     * <li>0 : unknown
-     * <li>1 : IN
-     * <li>2 : INOUT
-     * <li>4 : OUT
+     *   <li>0 : unknown
+     *   <li>1 : IN
+     *   <li>2 : INOUT
+     *   <li>4 : OUT
      * </ul>
      *
-     * @param param
-     *            parameter index
+     * @param param parameter index
      * @return mode information
-     * @throws SQLException
-     *             if index is wrong
+     * @throws SQLException if index is wrong
      */
     public int getParameterMode(int param) throws SQLException {
         CallParameter callParameter = getParam(param);
@@ -453,20 +463,20 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             String typeName = paramTypesRs.getString("DATA_TYPE");
             int precision = paramTypesRs.getInt("DATA_PRECISION");
             int scale = paramTypesRs.getInt("DATA_SCALE");
-            // int jdbcType = MysqlDefs.mysqlToJavaType(typeName);
-            // ColumnType.getColumnTypeName(typeName);
-            // TODO need add currect jdbcType
-            int jdbcType = mapMariaDbTypeToJdbc(typeName);// ColumnType.classFromJavaType(1);
+            //int jdbcType = MysqlDefs.mysqlToJavaType(typeName);
+            //ColumnType.getColumnTypeName(typeName);
+            //TODO need add currect jdbcType
+            int jdbcType = mapMariaDbTypeToJdbc(typeName);//ColumnType.classFromJavaType(1);
             short nullability = DatabaseMetaData.procedureNullable;
 
-            CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter, isOutParameter, jdbcType,
-                    typeName, precision, scale, nullability, inOutModifier);
+            CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
+                isOutParameter, jdbcType, typeName, precision, scale, nullability, inOutModifier);
 
-            // this.parameterList.add(paramInfoToAdd);
+            //this.parameterList.add(paramInfoToAdd);
             this.params.add(paramInfoToAdd);
             this.mapNameToParamter.put(paramName, paramInfoToAdd);
-            // this.parameterMap.put(paramName, paramInfoToAdd);
-            // ++this.numParameters;
+            //this.parameterMap.put(paramName, paramInfoToAdd);
+            //++this.numParameters;
         }
     }
 }

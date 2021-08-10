@@ -62,11 +62,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardPacketOutputStream.class);
+    private static final Logger logger               = LoggerFactory
+                                                         .getLogger(StandardPacketOutputStream.class);
 
-    private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
-    private int maxPacketLength = MAX_PACKET_LENGTH;
-    private long timestampBeforeFlush = 0;
+    private static final int    MAX_PACKET_LENGTH    = 0x00ffffff + 4;
+    private int                 maxPacketLength      = MAX_PACKET_LENGTH;
+    private long                timestampBeforeFlush = 0;
 
     public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
         super(out, options.maxQuerySizeToLog, threadId);
@@ -112,10 +113,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
     /**
      * Flush the internal buffer.
      *
-     * @param commandEnd
-     *            command end
-     * @throws IOException
-     *             id connection error occur.
+     * @param commandEnd command end
+     * @throws IOException id connection error occur.
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {
         if (enableNetworkStatistics) {
@@ -132,15 +131,17 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
             if (traceCache != null && permitTrace) {
                 // trace last packets
-                traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId,
-                        Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
+                traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId, Arrays
+                    .copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
             }
 
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send: {}{}", serverThreadLog, Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
+                    logger.trace("send: {}{}", serverThreadLog,
+                        Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
                 } else {
-                    logger.trace("send: content length={} {} com=<hidden>", pos - 4, serverThreadLog);
+                    logger.trace("send: content length={} {} com=<hidden>", pos - 4,
+                        serverThreadLog);
                 }
             }
 
@@ -156,8 +157,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
     /**
      * Write an empty com.
      *
-     * @throws IOException
-     *             if socket error occur.
+     * @throws IOException if socket error occur.
      */
     public void writeEmptyPacket() throws IOException {
         if (enableNetworkStatistics) {
@@ -171,12 +171,13 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
         if (traceCache != null) {
             // trace last packets
-            traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId, Arrays.copyOfRange(buf, 0, 4)));
+            traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId, Arrays
+                .copyOfRange(buf, 0, 4)));
         }
 
         if (logger.isTraceEnabled()) {
             logger.trace("send com : content length=0 {}{}", serverThreadLog,
-                    Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
+                Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
         }
     }
 }

@@ -155,27 +155,35 @@ public interface Protocol {
 
     void executeQuery(String sql) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql)
+                                                                                     throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset)
-            throws SQLException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql,
+                      Charset charset) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-            ParameterHolder[] parameters) throws SQLException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results,
+                      final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
+                                                                                                  throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-            ParameterHolder[] parameters, int timeout) throws SQLException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results,
+                      final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters,
+                      int timeout) throws SQLException;
 
-    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-            final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
+    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
+                               final ClientPrepareResult prepareResult,
+                               final List<ParameterHolder[]> parametersList, boolean hasLongData)
+                                                                                                 throws SQLException;
 
-    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries) throws SQLException;
+    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
+                                                                                                   throws SQLException;
 
-    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult, Results results,
-            ParameterHolder[] parameters) throws SQLException;
+    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                              Results results, ParameterHolder[] parameters) throws SQLException;
 
-    boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult, Results results,
-            String sql, List<ParameterHolder[]> parameterList, boolean hasLongData) throws SQLException;
+    boolean executeBatchServer(boolean mustExecuteOnMaster,
+                               ServerPrepareResult serverPrepareResult, Results results,
+                               String sql, List<ParameterHolder[]> parameterList,
+                               boolean hasLongData) throws SQLException;
 
     void getResult(Results results) throws SQLException;
 
@@ -233,11 +241,12 @@ public interface Protocol {
 
     TimeZone getTimeZone();
 
-    void prolog(long maxRows, boolean hasProxy, OceanBaseConnection connection, OceanBaseStatement statement)
-            throws SQLException;
+    void prolog(long maxRows, boolean hasProxy, OceanBaseConnection connection,
+                OceanBaseStatement statement) throws SQLException;
 
     void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-            OceanBaseConnection connection, OceanBaseStatement statement) throws SQLException;
+                     OceanBaseConnection connection, OceanBaseStatement statement)
+                                                                                  throws SQLException;
 
     Results getActiveStreamingResult();
 
@@ -263,8 +272,8 @@ public interface Protocol {
 
     void removeActiveStreamingResult();
 
-    void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
-            throws SQLException;
+    void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database,
+                                 boolean autocommit) throws SQLException;
 
     void setActiveFutureTask(FutureTask activeFutureTask);
 
@@ -292,8 +301,8 @@ public interface Protocol {
 
     long getChecksum();
 
-    ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize,
-            Results results) throws SQLException;
+    ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
+                                            int fetchSize, Results results) throws SQLException;
 
     long getLastPacketCostTime() throws SQLException;
 

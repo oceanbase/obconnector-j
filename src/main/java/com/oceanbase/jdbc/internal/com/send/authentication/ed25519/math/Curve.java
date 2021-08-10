@@ -59,8 +59,8 @@ import java.io.Serializable;
  */
 public class Curve implements Serializable {
 
-    private static final long serialVersionUID = 4578920872509827L;
-    private final Field f;
+    private static final long  serialVersionUID = 4578920872509827L;
+    private final Field        f;
     private final FieldElement d;
     private final FieldElement d2;
     private final FieldElement I;
@@ -100,14 +100,14 @@ public class Curve implements Serializable {
 
     public GroupElement getZero(GroupElement.Representation repr) {
         switch (repr) {
-        case P2:
-            return zeroP2;
-        case P3:
-            return zeroP3;
-        case PRECOMP:
-            return zeroPrecomp;
-        default:
-            return null;
+            case P2:
+                return zeroP2;
+            case P3:
+                return zeroP3;
+            case PRECOMP:
+                return zeroPrecomp;
+            default:
+                return null;
         }
     }
 

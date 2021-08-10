@@ -47,10 +47,8 @@ public class RowObCursorData {
     /**
      * Constructor.
      *
-     * @param cursorId
-     *            the cursor id
-     * @param isOpen
-     *            the is open
+     * @param cursorId the cursor id
+     * @param isOpen   the is open
      */
     public RowObCursorData(int cursorId, boolean isOpen) {
         this.cursorId = cursorId;
@@ -69,8 +67,7 @@ public class RowObCursorData {
     /**
      * Sets set cursor id.
      *
-     * @param cursorId
-     *            the cursor id
+     * @param cursorId the cursor id
      */
     public void setCursorId(int cursorId) {
         this.cursorId = cursorId;
@@ -90,8 +87,7 @@ public class RowObCursorData {
     /**
      * Sets set open.
      *
-     * @param open
-     *            the open
+     * @param open the open
      */
     public void setOpen(boolean open) {
         isOpen = open;

@@ -59,18 +59,15 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class StreamParameter implements Cloneable, ParameterHolder {
 
     private final InputStream is;
-    private final long length;
-    private final boolean noBackslashEscapes;
+    private final long        length;
+    private final boolean     noBackslashEscapes;
 
     /**
      * Constructor.
      *
-     * @param is
-     *            stream to write
-     * @param length
-     *            max length to write (if null the whole stream will be send)
-     * @param noBackslashEscapes
-     *            must backslash be escape
+     * @param is stream to write
+     * @param length max length to write (if null the whole stream will be send)
+     * @param noBackslashEscapes must backslash be escape
      */
     public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
         this.is = is;
@@ -85,10 +82,8 @@ public class StreamParameter implements Cloneable, ParameterHolder {
     /**
      * Write stream in text format.
      *
-     * @param pos
-     *            database outputStream
-     * @throws IOException
-     *             if any error occur when reader stream
+     * @param pos database outputStream
+     * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         pos.write(BINARY_INTRODUCER);
@@ -112,10 +107,8 @@ public class StreamParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (length == Long.MAX_VALUE) {

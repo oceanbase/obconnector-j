@@ -75,7 +75,8 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     private byte[] seed;
 
     private static byte[] ed25519SignWithPassword(final String password, final byte[] seed,
-            String passwordCharacterEncoding) throws SQLException {
+                                                  String passwordCharacterEncoding)
+                                                                                   throws SQLException {
 
         try {
             byte[] bytePwd;
@@ -125,8 +126,8 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
         } catch (NoSuchAlgorithmException e) {
             throw new SQLException("Could not use SHA-512, failing", e);
         } catch (UnsupportedEncodingException use) {
-            throw new SQLException(
-                    "Unsupported encoding '" + passwordCharacterEncoding + "' (option passwordCharacterEncoding)", use);
+            throw new SQLException("Unsupported encoding '" + passwordCharacterEncoding
+                                   + "' (option passwordCharacterEncoding)", use);
         }
     }
 
@@ -143,12 +144,9 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     /**
      * Initialization.
      *
-     * @param authenticationData
-     *            authentication data (password/token)
-     * @param seed
-     *            server provided seed
-     * @param options
-     *            Connection string options
+     * @param authenticationData authentication data (password/token)
+     * @param seed server provided seed
+     * @param options Connection string options
      */
     public void initialize(String authenticationData, byte[] seed, Options options) {
         this.seed = seed;
@@ -160,18 +158,15 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
      * Process Ed25519 password plugin authentication. see
      * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
      *
-     * @param out
-     *            out stream
-     * @param in
-     *            in stream
-     * @param sequence
-     *            packet sequence
+     * @param out out stream
+     * @param in in stream
+     * @param sequence packet sequence
      * @return response packet
-     * @throws IOException
-     *             if socket error
+     * @throws IOException if socket error
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-            throws IOException, SQLException {
+                                                                                               throws IOException,
+                                                                                               SQLException {
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
         } else {

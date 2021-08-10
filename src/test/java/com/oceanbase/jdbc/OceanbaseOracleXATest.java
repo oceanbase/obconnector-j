@@ -77,7 +77,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = setConnection();
         conn.createStatement().execute(" insert into " + tableName1 + "  values(1,2)");
-        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection((OceanBaseConnection) conn);
+        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
+            (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_one";
 
@@ -116,7 +117,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         conn = setConnection();
         conn.createStatement().execute(" insert into " + tableName2 + "  values(1,2)");
 
-        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection((OceanBaseConnection) conn);
+        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
+            (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one_phase";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_one_phase";
 
@@ -155,7 +157,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         conn = setConnection();
         conn.setAutoCommit(false);
 
-        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection((OceanBaseConnection) conn);
+        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
+            (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_with_error";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_with_error";
 
@@ -199,7 +202,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
 
         conn = setConnection();
 
-        OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection((OceanBaseConnection) conn);
+        OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection(
+            (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_check_ac_and_error";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_check_ac_and_error";
 
@@ -228,7 +232,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
 
         conn = setConnection();
 
-        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection((OceanBaseConnection) conn);
+        JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
+            (OceanBaseConnection) conn);
         String gtridStr = "gtrid_test_wgs_ob_oracle_xa_check_ac_and_end_error_3";
         String bqualStr = "bqual_test_wgs_ob_oracle_xa_check_ac_and_end_error_3";
 
@@ -284,7 +289,8 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
         conn = setConnection();
-        OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection((OceanBaseConnection) conn);
+        OceanBaseXaConnection mysqlXAConnection = new OceanBaseXaConnection(
+            (OceanBaseConnection) conn);
         XAResource xaResource = mysqlXAConnection.getXAResource();
         xaResource.recover(XAResource.TMSTARTRSCAN);
     }

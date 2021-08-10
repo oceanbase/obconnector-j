@@ -53,10 +53,11 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OBStructParameter implements Cloneable, ParameterHolder {
     ObStruct structValue;
-    Options options;
+    Options  options;
 
     /**
-     * see complex data type protocol https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
+     * see complex data type protocol
+     * https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
      */
     public void storeStructTypeInfo(PacketOutputStream packet) throws IOException {
 
@@ -91,8 +92,9 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
             byte[] nullBitsBuffer = new byte[nullCount];
             for (int i = 0; i < structValue.getAttrCount(); ++i) {
                 if (null != structValue.getAttrData(i)) {
-                    ComplexUtil.storeComplexAttrData(pos, structValue.getComplexType().getAttrType(i),
-                            structValue.getAttrData(i), options);
+                    ComplexUtil.storeComplexAttrData(pos,
+                        structValue.getComplexType().getAttrType(i), structValue.getAttrData(i),
+                        options);
                 } else {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }

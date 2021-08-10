@@ -71,12 +71,12 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     /**
      * Add value to map.
      *
-     * @param value
-     *            value to add
+     * @param value value to add
      * @return added value
      */
     public TraceObject put(TraceObject value) {
-        String key = increment.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+        String key = increment.incrementAndGet() + "- "
+                     + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
         return put(key, value);
     }
 
@@ -95,8 +95,8 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
         boolean finished = false;
         while (!finished) {
             try {
-                Map.Entry<String, TraceObject>[] arr = entrySet()
-                        .toArray((Map.Entry<String, TraceObject>[]) new Map.Entry[0]);
+                Map.Entry<String, TraceObject>[] arr = entrySet().toArray(
+                    (Map.Entry<String, TraceObject>[]) new Map.Entry[0]);
                 for (Map.Entry<String, TraceObject> entry : arr) {
                     TraceObject traceObj = entry.getValue();
                     if (traceObj.getBuf() != null) {
@@ -104,14 +104,14 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
                         String indicator = "";
 
                         switch (traceObj.getIndicatorFlag()) {
-                        case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
-                            indicator = " (compressed protocol - packet not compressed)";
-                            break;
-                        case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
-                            indicator = " (compressed protocol - packet compressed)";
-                            break;
-                        default:
-                            break;
+                            case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+                                indicator = " (compressed protocol - packet not compressed)";
+                                break;
+                            case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+                                indicator = " (compressed protocol - packet compressed)";
+                                break;
+                            default:
+                                break;
                         }
                         sb.append("\nthread:").append(traceObj.getThreadId());
                         if (traceObj.isSend()) {

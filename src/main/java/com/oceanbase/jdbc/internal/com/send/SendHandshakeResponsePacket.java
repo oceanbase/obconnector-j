@@ -72,93 +72,96 @@ import com.oceanbase.jdbc.util.Options;
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
-    private static final Supplier<String> pidRequest = PidFactory.getInstance();
-    private static final byte[] _CLIENT_NAME = "__client_name".getBytes();
-    private static final byte[] _CLIENT_VERSION = "__client_version".getBytes();
-    private static final byte[] _SERVER_HOST = "__server_host".getBytes();
-    private static final byte[] _CLIENT_IP = "__client_ip".getBytes();
-    private static final byte[] _OS = "__os".getBytes();
-    private static final byte[] _PID = "__pid".getBytes();
-    private static final byte[] _THREAD = "__thread".getBytes();
-    private static final byte[] _JAVA_VENDOR = "__java_vendor".getBytes();
-    private static final byte[] _JAVA_VERSION = "__java_version".getBytes();
+    private static final Supplier<String> pidRequest                        = PidFactory
+                                                                                .getInstance();
+    private static final byte[]           _CLIENT_NAME                      = "__client_name"
+                                                                                .getBytes();
+    private static final byte[]           _CLIENT_VERSION                   = "__client_version"
+                                                                                .getBytes();
+    private static final byte[]           _SERVER_HOST                      = "__server_host"
+                                                                                .getBytes();
+    private static final byte[]           _CLIENT_IP                        = "__client_ip"
+                                                                                .getBytes();
+    private static final byte[]           _OS                               = "__os".getBytes();
+    private static final byte[]           _PID                              = "__pid".getBytes();
+    private static final byte[]           _THREAD                           = "__thread".getBytes();
+    private static final byte[]           _JAVA_VENDOR                      = "__java_vendor"
+                                                                                .getBytes();
+    private static final byte[]           _JAVA_VERSION                     = "__java_version"
+                                                                                .getBytes();
 
-    private static final String OB_PROXY_PARTITION_HIT = "ob_proxy_partition_hit";
-    private static final String OB_STATEMENT_TRACE_ID = "ob_statement_trace_id";
-    private static final String OB_CAPABILITY_FLAG = "ob_capability_flag"; // tell which features ob supports
-    private static final String OB_CLIENT_FEEDBACK = "ob_client_feedback";
-    private static final long OB_CAP_VIRTUAL_COMPRESS = (1 << 3);
-    private static final long OB_CAP_USE_OCEANBASE_2_0_PROTOCOL = (1 << 8);
-    private static final long OB_CAP_VIRTUAL_COMPRESS_SWITCH = (1 << 6);
+    private static final String           OB_PROXY_PARTITION_HIT            = "ob_proxy_partition_hit";
+    private static final String           OB_STATEMENT_TRACE_ID             = "ob_statement_trace_id";
+    private static final String           OB_CAPABILITY_FLAG                = "ob_capability_flag";                                            // tell which features ob supports
+    private static final String           OB_CLIENT_FEEDBACK                = "ob_client_feedback";
+    private static final long             OB_CAP_VIRTUAL_COMPRESS           = (1 << 3);
+    private static final long             OB_CAP_USE_OCEANBASE_2_0_PROTOCOL = (1 << 8);
+    private static final long             OB_CAP_VIRTUAL_COMPRESS_SWITCH    = (1 << 6);
     // whether OCJ read extra ok package from server like obproxy, then we can bring more information to client
-    private static final long OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET = (1 << 7);
-    private static final long OB_CAP_ABUNDANT_FEEDBACK = (1 << 10);
-    private static final long OB_CAPABILITY_FLAG_VALUE = (OB_CAP_VIRTUAL_COMPRESS | OB_CAP_VIRTUAL_COMPRESS_SWITCH
-            | OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET | OB_CAP_USE_OCEANBASE_2_0_PROTOCOL | OB_CAP_ABUNDANT_FEEDBACK);
+    private static final long             OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET = (1 << 7);
+    private static final long             OB_CAP_ABUNDANT_FEEDBACK          = (1 << 10);
+    private static final long             OB_CAPABILITY_FLAG_VALUE          = (OB_CAP_VIRTUAL_COMPRESS
+                                                                               | OB_CAP_VIRTUAL_COMPRESS_SWITCH
+                                                                               | OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
+                                                                               | OB_CAP_USE_OCEANBASE_2_0_PROTOCOL | OB_CAP_ABUNDANT_FEEDBACK);
 
     /**
      * Send handshake response packet.
      *
-     * @param pos
-     *            output stream
-     * @param credential
-     *            credential
-     * @param host
-     *            current hostname
-     * @param database
-     *            database name
-     * @param clientCapabilities
-     *            client capabilities
-     * @param serverCapabilities
-     *            server capabilities
-     * @param serverLanguage
-     *            server language (utf8 / utf8mb4 collation)
-     * @param packetSeq
-     *            packet sequence
-     * @param options
-     *            user options
-     * @param authenticationPluginType
-     *            Authentication plugin type. ex: mysql_native_password
-     * @param seed
-     *            seed
-     * @throws IOException
-     *             if socket exception occur
-     * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
-     *      documentation</a>
+     * @param pos output stream
+     * @param credential credential
+     * @param host current hostname
+     * @param database database name
+     * @param clientCapabilities client capabilities
+     * @param serverCapabilities server capabilities
+     * @param serverLanguage server language (utf8 / utf8mb4 collation)
+     * @param packetSeq packet sequence
+     * @param options user options
+     * @param authenticationPluginType Authentication plugin type. ex: mysql_native_password
+     * @param seed seed
+     * @throws IOException if socket exception occur
+     * @see <a
+     *     href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
+     *     documentation</a>
      */
-    public static void send(final PacketOutputStream pos, final Credential credential, final String host,
-            final String database, final long clientCapabilities, final long serverCapabilities,
-            final byte serverLanguage, final byte packetSeq, final Options options, String authenticationPluginType,
-            final byte[] seed, String clientIp) throws IOException {
+    public static void send(final PacketOutputStream pos, final Credential credential,
+                            final String host, final String database,
+                            final long clientCapabilities, final long serverCapabilities,
+                            final byte serverLanguage, final byte packetSeq, final Options options,
+                            String authenticationPluginType, final byte[] seed, String clientIp)
+                                                                                                throws IOException {
 
         pos.startPacket(packetSeq);
 
         final byte[] authData;
 
         switch (authenticationPluginType) {
-        case ClearPasswordPlugin.TYPE:
-            pos.permitTrace(false);
-            if (credential.getPassword() == null) {
-                authData = new byte[0];
-            } else {
-                if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
-                    authData = credential.getPassword().getBytes(options.passwordCharacterEncoding);
+            case ClearPasswordPlugin.TYPE:
+                pos.permitTrace(false);
+                if (credential.getPassword() == null) {
+                    authData = new byte[0];
                 } else {
-                    authData = credential.getPassword().getBytes();
+                    if (options.passwordCharacterEncoding != null
+                        && !options.passwordCharacterEncoding.isEmpty()) {
+                        authData = credential.getPassword().getBytes(
+                            options.passwordCharacterEncoding);
+                    } else {
+                        authData = credential.getPassword().getBytes();
+                    }
                 }
-            }
-            break;
-
-        default:
-            authenticationPluginType = NativePasswordPlugin.TYPE;
-            pos.permitTrace(false);
-            try {
-                authData = Utils.encryptPassword(credential.getPassword(), seed, options.passwordCharacterEncoding);
                 break;
-            } catch (NoSuchAlgorithmException e) {
-                // cannot occur :
-                throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
-            }
+
+            default:
+                authenticationPluginType = NativePasswordPlugin.TYPE;
+                pos.permitTrace(false);
+                try {
+                    authData = Utils.encryptPassword(credential.getPassword(), seed,
+                        options.passwordCharacterEncoding);
+                    break;
+                } catch (NoSuchAlgorithmException e) {
+                    // cannot occur :
+                    throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
+                }
         }
 
         pos.writeInt((int) clientCapabilities);
@@ -205,39 +208,45 @@ public class SendHandshakeResponsePacket {
         pos.permitTrace(true);
     }
 
-    public static void sendChangeUser(final PacketOutputStream pos, final Credential credential, final String host,
-            final String database, final long clientCapabilities, final long serverCapabilities,
-            final byte serverLanguage, final byte packetSeq, final Options options, String authenticationPluginType,
-            final byte[] seed, String clientIp, boolean isOracleMode) throws IOException {
+    public static void sendChangeUser(final PacketOutputStream pos, final Credential credential,
+                                      final String host, final String database,
+                                      final long clientCapabilities, final long serverCapabilities,
+                                      final byte serverLanguage, final byte packetSeq,
+                                      final Options options, String authenticationPluginType,
+                                      final byte[] seed, String clientIp, boolean isOracleMode)
+                                                                                               throws IOException {
 
         pos.startPacket(packetSeq);
 
         final byte[] authData;
 
         switch (authenticationPluginType) {
-        case ClearPasswordPlugin.TYPE:
-            pos.permitTrace(false);
-            if (credential.getPassword() == null) {
-                authData = new byte[0];
-            } else {
-                if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
-                    authData = credential.getPassword().getBytes(options.passwordCharacterEncoding);
+            case ClearPasswordPlugin.TYPE:
+                pos.permitTrace(false);
+                if (credential.getPassword() == null) {
+                    authData = new byte[0];
                 } else {
-                    authData = credential.getPassword().getBytes();
+                    if (options.passwordCharacterEncoding != null
+                        && !options.passwordCharacterEncoding.isEmpty()) {
+                        authData = credential.getPassword().getBytes(
+                            options.passwordCharacterEncoding);
+                    } else {
+                        authData = credential.getPassword().getBytes();
+                    }
                 }
-            }
-            break;
-
-        default:
-            authenticationPluginType = NativePasswordPlugin.TYPE;
-            pos.permitTrace(false);
-            try {
-                authData = Utils.encryptPassword(credential.getPassword(), seed, options.passwordCharacterEncoding);
                 break;
-            } catch (NoSuchAlgorithmException e) {
-                // cannot occur :
-                throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
-            }
+
+            default:
+                authenticationPluginType = NativePasswordPlugin.TYPE;
+                pos.permitTrace(false);
+                try {
+                    authData = Utils.encryptPassword(credential.getPassword(), seed,
+                        options.passwordCharacterEncoding);
+                    break;
+                } catch (NoSuchAlgorithmException e) {
+                    // cannot occur :
+                    throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
+                }
         }
 
         pos.startPacket(0);
@@ -291,8 +300,9 @@ public class SendHandshakeResponsePacket {
         pos.permitTrace(true);
     }
 
-    private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes, String host,
-            Options options, String clientIp) throws IOException {
+    private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
+                                               String host, Options options, String clientIp)
+                                                                                             throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
         buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -350,8 +360,7 @@ public class SendHandshakeResponsePacket {
         // add ob_connector_capability_flag for oceanbase server
         buffer.writeStringSmallLength("__proxy_capability_flag".getBytes());
         buffer.writeStringLength(String.valueOf(capFlag));
-        // fixme __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added
-        // later
+        // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);
         pos.write(buffer.buf, 0, buffer.position);
     }

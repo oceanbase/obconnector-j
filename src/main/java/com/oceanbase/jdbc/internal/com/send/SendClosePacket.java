@@ -60,8 +60,7 @@ public class SendClosePacket {
     /**
      * Send close stream to server.
      *
-     * @param pos
-     *            write outputStream
+     * @param pos write outputStream
      */
     public static void send(final PacketOutputStream pos) {
         try {

@@ -50,8 +50,8 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBINTERVALDSParameter implements Cloneable, ParameterHolder {
-    INTERVALDS intervaldsValue;
-    private static final byte[] LITERALS_INTERVALDS = "interval ".getBytes();
+    INTERVALDS                  intervaldsValue;
+    private static final byte[] LITERALS_INTERVALDS     = "interval ".getBytes();
     private static final byte[] LITERALS_INTERVALDS_END = " day(9) to second(9)".getBytes();
 
     public OBINTERVALDSParameter(INTERVALDS intervalds) {

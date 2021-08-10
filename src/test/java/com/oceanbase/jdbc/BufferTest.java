@@ -129,142 +129,149 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mSqlNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlNotCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlNotCompressDataException",
+                false));
             sendSqlData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getMessage(), sqlexception
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send20mSqlCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlCompressDataException",
+                false));
             sendSqlData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getMessage(), sqlexception
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send40mSqlNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlNotCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlNotCompressDataException",
+                false));
             sendSqlData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getMessage(), sqlexception
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send40mSqlCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlCompressDataException",
+                false));
             sendSqlData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getMessage(), sqlexception
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send20mByteBufferNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore20m(
+                "send20mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was "
+                       + sqlexception.getCause().getCause().getMessage(), sqlexception.getCause()
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send20mByteBufferCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore20m(
+                "send20mByteBufferCompressDataException", false));
             sendByteBufferData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             if (sharedOptions().dumpQueriesOnException) {
-                assertTrue(sqlexception.getMessage()
-                        .contains("INSERT INTO BufferTest VALUES (?), parameters ['" + array20m[0]));
+                assertTrue(sqlexception.getMessage().contains(
+                    "INSERT INTO BufferTest VALUES (?), parameters ['" + array20m[0]));
             }
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was "
+                       + sqlexception.getCause().getCause().getMessage(), sqlexception.getCause()
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send40mByteBufferNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore40m(
+                "send40mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was "
+                       + sqlexception.getCause().getCause().getMessage(), sqlexception.getCause()
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     @Test
     public void send40mByteBufferCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException", false));
+            Assume.assumeTrue(!checkMaxAllowedPacketMore40m(
+                "send40mByteBufferCompressDataException", false));
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was "
+                       + sqlexception.getCause().getCause().getMessage(), sqlexception.getCause()
+                .getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     /**
      * Insert data using bytebuffer implementation on PacketOutputStream.
      *
-     * @param compression
-     *            use packet compression
-     * @param arr
-     *            data to insert
-     * @throws SQLException
-     *             if anything wrong append
+     * @param compression use packet compression
+     * @param arr data to insert
+     * @throws SQLException if anything wrong append
      */
     private void sendByteBufferData(boolean compression, char[] arr) throws SQLException {
-        try (Connection connection = setConnection("&useCompression=" + compression)) {
-            Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE BufferTest");
-            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
-            preparedStatement.setString(1, new String(arr));
-            preparedStatement.execute();
-            checkResult(arr);
-        }
+    try (Connection connection = setConnection("&useCompression=" + compression)) {
+      Statement stmt = connection.createStatement();
+      stmt.execute("TRUNCATE BufferTest");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
+      preparedStatement.setString(1, new String(arr));
+      preparedStatement.execute();
+      checkResult(arr);
     }
+  }
 
     /**
      * Insert data using sql buffer implementation on PacketOutputStream.
      *
-     * @param compression
-     *            use packet compression
-     * @param arr
-     *            data to insert
-     * @throws SQLException
-     *             if anything wrong append
+     * @param compression use packet compression
+     * @param arr data to insert
+     * @throws SQLException if anything wrong append
      */
     private void sendSqlData(boolean compression, char[] arr) throws SQLException {
-        try (Connection connection = setConnection("&useCompression=" + compression)) {
-            Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE BufferTest");
-            stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
-            checkResult(arr);
-        }
+    try (Connection connection = setConnection("&useCompression=" + compression)) {
+      Statement stmt = connection.createStatement();
+      stmt.execute("TRUNCATE BufferTest");
+      stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
+      checkResult(arr);
     }
+  }
 
     private void checkResult(char[] arr) throws SQLException {
         Statement stmt = sharedConnection.createStatement();

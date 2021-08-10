@@ -45,8 +45,8 @@ package com.oceanbase.jdbc.extend.datatype;
 
 public class ComplexData {
     protected ComplexDataType complexType;
-    protected Object[] attrData = null;
-    protected int attrCount = 0;
+    protected Object[]        attrData  = null;
+    protected int             attrCount = 0;
 
     public ComplexData(ComplexDataType type) {
         this.complexType = type;

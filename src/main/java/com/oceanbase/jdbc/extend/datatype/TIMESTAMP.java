@@ -53,10 +53,11 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 public class TIMESTAMP extends Datum implements Serializable {
-    static final int[] daysInMonth = new int[] { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    static final long serialVersionUID = -7964732752952728545L;
+    static final int[] daysInMonth      = new int[] { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30,
+            31                         };
+    static final long  serialVersionUID = -7964732752952728545L;
 
-    public static int SIZE_TIMESTAMP = 12;
+    public static int  SIZE_TIMESTAMP   = 12;
 
     public TIMESTAMP() {
         super(initTimestamp());
@@ -187,14 +188,13 @@ public class TIMESTAMP extends Datum implements Serializable {
         int second = var1[6];
         int nanos = getNanos(bytes, 7);
 
-        return toString(i, month, day, hour, minute, second, nanos, bytes[11], null); // FIXME duplicate from
-                                                                                      // TIMESTAMPTZ
+        return toString(i, month, day, hour, minute, second, nanos, bytes[11], null); // FIXME duplicate from TIMESTAMPTZ
     }
 
-    public static String toString(int year, int month, int day, int hour, int minute, int second, int nanos, int scale,
-            String timezone) {
-        String time = "" + year + "-" + toStr(month) + "-" + toStr(day) + " " + toStr(hour) + ":" + toStr(minute) + ":"
-                + toStr(second);
+    public static String toString(int year, int month, int day, int hour, int minute, int second,
+                                  int nanos, int scale, String timezone) {
+        String time = "" + year + "-" + toStr(month) + "-" + toStr(day) + " " + toStr(hour) + ":"
+                      + toStr(minute) + ":" + toStr(second);
         if (nanos >= 0) {
             String temp = String.format("%09d", nanos);
             char[] chars = temp.toCharArray();
@@ -342,9 +342,10 @@ public class TIMESTAMP extends Datum implements Serializable {
     }
 
     public boolean isConvertibleTo(Class clazz) {
-        return clazz.getName().compareTo("java.sql.Date") == 0 || clazz.getName().compareTo("java.sql.Time") == 0
-                || clazz.getName().compareTo("java.sql.Timestamp") == 0
-                || clazz.getName().compareTo("java.lang.String") == 0;
+        return clazz.getName().compareTo("java.sql.Date") == 0
+               || clazz.getName().compareTo("java.sql.Time") == 0
+               || clazz.getName().compareTo("java.sql.Timestamp") == 0
+               || clazz.getName().compareTo("java.lang.String") == 0;
     }
 
     public String stringValue() {
@@ -412,7 +413,8 @@ public class TIMESTAMP extends Datum implements Serializable {
                     if (month >= 1 && month <= 12) {
                         int day = bytes[3] & 255;
                         if (day >= 1 && day <= 31) {
-                            if (day > daysInMonth[month - 1] && (!this.isLeapYear(year) || month != 2 || day != 29)) {
+                            if (day > daysInMonth[month - 1]
+                                && (!this.isLeapYear(year) || month != 2 || day != 29)) {
                                 return false;
                             } else if (year == 1582 && month == 10 && day >= 5 && day < 15) {
                                 return false;

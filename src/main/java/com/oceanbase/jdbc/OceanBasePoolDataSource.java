@@ -68,35 +68,32 @@ import com.oceanbase.jdbc.internal.util.pool.Pools;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 
-public class OceanBasePoolDataSource
-        implements ConnectionPoolDataSource, DataSource, XADataSource, Closeable, AutoCloseable {
+public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSource, XADataSource,
+                                    Closeable, AutoCloseable {
 
     private UrlParser urlParser;
-    private Pool pool;
+    private Pool      pool;
 
-    private String hostname;
-    private Integer port;
-    private Integer connectTimeout;
-    private String database;
-    private String url;
-    private String user;
-    private String password;
-    private String poolName;
-    private Integer maxPoolSize;
-    private Integer minPoolSize;
-    private Integer maxIdleTime;
-    private Boolean staticGlobal;
-    private Integer poolValidMinDelay;
+    private String    hostname;
+    private Integer   port;
+    private Integer   connectTimeout;
+    private String    database;
+    private String    url;
+    private String    user;
+    private String    password;
+    private String    poolName;
+    private Integer   maxPoolSize;
+    private Integer   minPoolSize;
+    private Integer   maxIdleTime;
+    private Boolean   staticGlobal;
+    private Integer   poolValidMinDelay;
 
     /**
      * Constructor.
      *
-     * @param hostname
-     *            hostname (ipv4, ipv6, dns name)
-     * @param port
-     *            server port
-     * @param database
-     *            database name
+     * @param hostname hostname (ipv4, ipv6, dns name)
+     * @param port server port
+     * @param database database name
      */
     public OceanBasePoolDataSource(String hostname, int port, String database) {
         this.hostname = hostname;
@@ -121,16 +118,15 @@ public class OceanBasePoolDataSource
         if (database != null) {
             return database;
         }
-        return (urlParser != null && urlParser.getDatabase() != null) ? urlParser.getDatabase() : "";
+        return (urlParser != null && urlParser.getDatabase() != null) ? urlParser.getDatabase()
+            : "";
     }
 
     /**
      * Sets the database name.
      *
-     * @param database
-     *            the name of the database
-     * @throws SQLException
-     *             if error in URL
+     * @param database the name of the database
+     * @throws SQLException if error in URL
      */
     public void setDatabaseName(String database) throws SQLException {
         checkNotInitialized();
@@ -158,10 +154,8 @@ public class OceanBasePoolDataSource
     /**
      * Sets the username.
      *
-     * @param user
-     *            the username
-     * @throws SQLException
-     *             if error in URL
+     * @param user the username
+     * @throws SQLException if error in URL
      */
     public void setUser(String user) throws SQLException {
         checkNotInitialized();
@@ -171,10 +165,8 @@ public class OceanBasePoolDataSource
     /**
      * Sets the password.
      *
-     * @param password
-     *            the password
-     * @throws SQLException
-     *             if error in URL
+     * @param password the password
+     * @throws SQLException if error in URL
      */
     public void setPassword(String password) throws SQLException {
         checkNotInitialized();
@@ -196,10 +188,8 @@ public class OceanBasePoolDataSource
     /**
      * Sets the database port.
      *
-     * @param port
-     *            the port
-     * @throws SQLException
-     *             if error in URL
+     * @param port the port
+     * @throws SQLException if error in URL
      */
     public void setPort(int port) throws SQLException {
         checkNotInitialized();
@@ -218,10 +208,8 @@ public class OceanBasePoolDataSource
     /**
      * Sets the port number.
      *
-     * @param port
-     *            the port
-     * @throws SQLException
-     *             if error in URL
+     * @param port the port
+     * @throws SQLException if error in URL
      * @see #setPort
      */
     public void setPortNumber(int port) throws SQLException {
@@ -234,10 +222,8 @@ public class OceanBasePoolDataSource
     /**
      * Sets the connection string URL.
      *
-     * @param url
-     *            the connection string
-     * @throws SQLException
-     *             if error in URL
+     * @param url the connection string
+     * @throws SQLException if error in URL
      */
     public void setUrl(String url) throws SQLException {
         checkNotInitialized();
@@ -253,17 +239,16 @@ public class OceanBasePoolDataSource
         if (hostname != null) {
             return hostname;
         }
-        boolean hasHost = urlParser != null && this.urlParser.getHostAddresses().get(0).host != null;
+        boolean hasHost = urlParser != null
+                          && this.urlParser.getHostAddresses().get(0).host != null;
         return (hasHost) ? this.urlParser.getHostAddresses().get(0).host : "localhost";
     }
 
     /**
      * Sets the server name.
      *
-     * @param serverName
-     *            the server name
-     * @throws SQLException
-     *             if error in URL
+     * @param serverName the server name
+     * @throws SQLException if error in URL
      */
     public void setServerName(String serverName) throws SQLException {
         checkNotInitialized();
@@ -271,11 +256,11 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
+     * Attempts to establish a connection with the data source that this <code>DataSource</code>
+     * object represents.
      *
      * @return a connection to the data source
-     * @throws SQLException
-     *             if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
         try {
@@ -289,17 +274,16 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
+     * Attempts to establish a connection with the data source that this <code>DataSource</code>
+     * object represents.
      *
-     * @param username
-     *            the database user on whose behalf the connection is being made
-     * @param password
-     *            the user's password
+     * @param username the database user on whose behalf the connection is being made
+     * @param password the user's password
      * @return a connection to the data source
-     * @throws SQLException
-     *             if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
-    public Connection getConnection(final String username, final String password) throws SQLException {
+    public Connection getConnection(final String username, final String password)
+                                                                                 throws SQLException {
         try {
             if (pool == null) {
                 this.user = username;
@@ -309,9 +293,10 @@ public class OceanBasePoolDataSource
                 return pool.getConnection();
             }
 
-            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username) : username == null)
-                    && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password)
-                            : (password == null || password.isEmpty()))) {
+            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username)
+                : username == null)
+                && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password)
+                    : (password == null || password.isEmpty()))) {
                 return pool.getConnection();
             }
 
@@ -333,10 +318,10 @@ public class OceanBasePoolDataSource
     /**
      * Attempts to establish a physical database connection that can be used as a pooled connection.
      *
-     * @return a <code>PooledConnection</code> object that is a physical connection to the database that this
-     *         <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException
-     *             if a database access error occurs if the JDBC driver does not support this method
+     * @return a <code>PooledConnection</code> object that is a physical connection to the database
+     *     that this <code>ConnectionPoolDataSource</code> object represents
+     * @throws SQLException if a database access error occurs if the JDBC driver does not support this
+     *     method
      */
     public PooledConnection getPooledConnection() throws SQLException {
         return new OceanBasePooledConnection((OceanBaseConnection) getConnection());
@@ -345,14 +330,11 @@ public class OceanBasePoolDataSource
     /**
      * Attempts to establish a physical database connection that can be used as a pooled connection.
      *
-     * @param user
-     *            the database user on whose behalf the connection is being made
-     * @param password
-     *            the user's password
-     * @return a <code>PooledConnection</code> object that is a physical connection to the database that this
-     *         <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException
-     *             if a database access error occurs
+     * @param user the database user on whose behalf the connection is being made
+     * @param password the user's password
+     * @return a <code>PooledConnection</code> object that is a physical connection to the database
+     *     that this <code>ConnectionPoolDataSource</code> object represents
+     * @throws SQLException if a database access error occurs
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
         return new OceanBasePooledConnection((OceanBaseConnection) getConnection(user, password));
@@ -361,15 +343,14 @@ public class OceanBasePoolDataSource
     /**
      * Retrieves the log writer for this <code>DataSource</code> object.
      *
-     * <p>
-     * The log writer is a character output stream to which all logging and tracing messages for this data source will
-     * be printed. This includes messages printed by the methods of this object, messages printed by methods of other
-     * objects manufactured by this object, and so on. Messages printed to a data source specific log writer are not
-     * printed to the log writer associated with the <code>java.sql.DriverManager</code> class.
+     * <p>The log writer is a character output stream to which all logging and tracing messages for
+     * this data source will be printed. This includes messages printed by the methods of this object,
+     * messages printed by methods of other objects manufactured by this object, and so on. Messages
+     * printed to a data source specific log writer are not printed to the log writer associated with
+     * the <code>java.sql.DriverManager</code> class.
      *
-     * <p>
-     * When a <code>DataSource</code> object is created, the log writer is initially null; in other words, the default
-     * is for logging to be disabled.
+     * <p>When a <code>DataSource</code> object is created, the log writer is initially null; in other
+     * words, the default is for logging to be disabled.
      *
      * @return the log writer for this data source or null if logging is disabled
      * @see #setLogWriter
@@ -382,16 +363,14 @@ public class OceanBasePoolDataSource
      * Sets the log writer for this <code>DataSource</code> object to the given <code>
      * java.io.PrintWriter</code> object.
      *
-     * <p>
-     * The log writer is a character output stream to which all logging and tracing messages for this data source will
-     * be printed. This includes messages printed by the methods of this object, messages printed by methods of other
-     * objects manufactured by this object, and so on. Messages printed to a data source- specific log writer are not
-     * printed to the log writer associated with the <code>java.sql.DriverManager</code> class. When a
-     * <code>DataSource</code> object is created the log writer is initially null; in other words, the default is for
-     * logging to be disabled.
+     * <p>The log writer is a character output stream to which all logging and tracing messages for
+     * this data source will be printed. This includes messages printed by the methods of this object,
+     * messages printed by methods of other objects manufactured by this object, and so on. Messages
+     * printed to a data source- specific log writer are not printed to the log writer associated with
+     * the <code>java.sql.DriverManager</code> class. When a <code>DataSource</code> object is created
+     * the log writer is initially null; in other words, the default is for logging to be disabled.
      *
-     * @param out
-     *            the new log writer; to disable logging, set to null
+     * @param out the new log writer; to disable logging, set to null
      * @see #getLogWriter
      * @since 1.4
      */
@@ -400,9 +379,10 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Gets the maximum time in seconds that this data source can wait while attempting to connect to a database. A
-     * value of zero means that the timeout is the default system timeout if there is one; otherwise, it means that
-     * there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
+     * Gets the maximum time in seconds that this data source can wait while attempting to connect to
+     * a database. A value of zero means that the timeout is the default system timeout if there is
+     * one; otherwise, it means that there is no timeout. When a <code>DataSource</code> object is
+     * created, the login timeout is initially zero.
      *
      * @return the data source login time limit
      * @see #setLoginTimeout
@@ -416,14 +396,13 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Sets the maximum time in seconds that this data source will wait while attempting to connect to a database. A
-     * value of zero specifies that the timeout is the default system timeout if there is one; otherwise, it specifies
-     * that there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
+     * Sets the maximum time in seconds that this data source will wait while attempting to connect to
+     * a database. A value of zero specifies that the timeout is the default system timeout if there
+     * is one; otherwise, it specifies that there is no timeout. When a <code>DataSource</code> object
+     * is created, the login timeout is initially zero.
      *
-     * @param seconds
-     *            the data source login time limit
-     * @throws SQLException
-     *             if a database access error occurs.
+     * @param seconds the data source login time limit
+     * @throws SQLException if a database access error occurs.
      * @see #getLoginTimeout
      * @since 1.4
      */
@@ -434,22 +413,20 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Returns an object that implements the given interface to allow access to non-standard methods, or standard
-     * methods not exposed by the proxy.
+     * Returns an object that implements the given interface to allow access to non-standard methods,
+     * or standard methods not exposed by the proxy.
      *
-     * <p>
-     * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
-     * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
-     * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
-     * wrapped object or a proxy for that result. If the receiver is not a wrapper and does not implement the interface,
-     * then an <code>SQLException
+     * <p>If the receiver implements the interface then the result is the receiver or a proxy for the
+     * receiver. If the receiver is a wrapper and the wrapped object implements the interface then the
+     * result is the wrapped object or a proxy for the wrapped object. Otherwise return the the result
+     * of calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
+     * the receiver is not a wrapper and does not implement the interface, then an <code>SQLException
      * </code> is thrown.
      *
-     * @param iface
-     *            A Class defining an interface that the result must implement.
-     * @return an object that implements the interface. May be a proxy for the actual implementing object.
-     * @throws SQLException
-     *             If no object found that implements the interface
+     * @param iface A Class defining an interface that the result must implement.
+     * @return an object that implements the interface. May be a proxy for the actual implementing
+     *     object.
+     * @throws SQLException If no object found that implements the interface
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
@@ -457,28 +434,30 @@ public class OceanBasePoolDataSource
             if (isWrapperFor(iface)) {
                 return iface.cast(this);
             } else {
-                throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+                throw new SQLException(
+                    "The receiver is not a wrapper and does not implement the interface");
             }
         } catch (Exception e) {
-            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+            throw new SQLException(
+                "The receiver is not a wrapper and does not implement the interface");
         }
     }
 
     /**
-     * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an
-     * object that does. Returns false otherwise. If this implements the interface then return true, else if this is a
-     * wrapper then return the result of recursively calling <code>
-     * isWrapperFor</code> on the wrapped object. If this does not implement the interface and is not a wrapper, return
-     * false. This method should be implemented as a low-cost operation compared to <code>unwrap</code> so that callers
-     * can use this method to avoid expensive <code>unwrap</code> calls that may fail. If this method returns true then
-     * calling <code>unwrap</code> with the same argument should succeed.
+     * Returns true if this either implements the interface argument or is directly or indirectly a
+     * wrapper for an object that does. Returns false otherwise. If this implements the interface then
+     * return true, else if this is a wrapper then return the result of recursively calling <code>
+     * isWrapperFor</code> on the wrapped object. If this does not implement the interface and is not
+     * a wrapper, return false. This method should be implemented as a low-cost operation compared to
+     * <code>unwrap</code> so that callers can use this method to avoid expensive <code>unwrap</code>
+     * calls that may fail. If this method returns true then calling <code>unwrap</code> with the same
+     * argument should succeed.
      *
-     * @param interfaceOrWrapper
-     *            a Class defining an interface.
-     * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws SQLException
-     *             if an error occurs while determining whether this is a wrapper for an object with the given
-     *             interface.
+     * @param interfaceOrWrapper a Class defining an interface.
+     * @return true if this implements the interface or directly or indirectly wraps an object that
+     *     does.
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an
+     *     object with the given interface.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
@@ -535,8 +514,8 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Get minimum pool size (pool will grow at creation untile reaching this size). Null mean use the pool maximum pool
-     * size.
+     * Get minimum pool size (pool will grow at creation untile reaching this size). Null mean use the
+     * pool maximum pool size.
      *
      * @return current value.
      */
@@ -578,8 +557,8 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * If connection has been used in less time than poolValidMinDelay, then no connection validation will be done
-     * (0=mean validation every time).
+     * If connection has been used in less time than poolValidMinDelay, then no connection validation
+     * will be done (0=mean validation every time).
      *
      * @return current value of poolValidMinDelay
      */
@@ -660,11 +639,9 @@ public class OceanBasePoolDataSource
                 options.poolValidMinDelay = poolValidMinDelay;
             }
 
-            urlParser = new UrlParser(database,
-                    Collections.singletonList(
-                            new HostAddress((hostname == null || hostname.isEmpty()) ? "localhost" : hostname,
-                                    port == null ? 3306 : port)),
-                    options, HaMode.NONE);
+            urlParser = new UrlParser(database, Collections.singletonList(new HostAddress(
+                (hostname == null || hostname.isEmpty()) ? "localhost" : hostname,
+                port == null ? 3306 : port)), options, HaMode.NONE);
         }
     }
 
@@ -682,8 +659,7 @@ public class OceanBasePoolDataSource
     /**
      * Initialize pool.
      *
-     * @throws SQLException
-     *             if connection string has error
+     * @throws SQLException if connection string has error
      */
     public synchronized void initialize() throws SQLException {
         if (pool == null) {
@@ -702,13 +678,11 @@ public class OceanBasePoolDataSource
     }
 
     /**
-     * Permit to create test that doesn't wait for maxIdleTime minimum value of 60 seconds. !! For testing purpose only
-     * !!
+     * Permit to create test that doesn't wait for maxIdleTime minimum value of 60 seconds. !! For
+     * testing purpose only !!
      *
-     * @param maxIdleTime
-     *            forced value of maxIdleTime option.
-     * @throws SQLException
-     *             if connection string has error
+     * @param maxIdleTime forced value of maxIdleTime option.
+     * @throws SQLException if connection string has error
      */
     public void testForceMaxIdleTime(int maxIdleTime) throws SQLException {
         initializeUrlParser();

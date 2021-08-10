@@ -66,8 +66,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -76,12 +75,15 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         createProcedure("multiResultSets", " is BEGIN  SELECT 1 from dual; SELECT 2 from dual; END");
         createProcedure("inoutParam", "(p1 IN OUT INT)  is begin p1:= p1 + 1; end\n");
         createProcedure("testGetProcedures", "(p1 IN OUT INT) is begin p1 := p1 + 1; end\n");
-        // createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
+        //createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
         createProcedure("withStrangeParameter", "(a IN OUT number) is begin select a into a from dual; end");
-        createProcedure("TEST_SP1", " is BEGIN \n" + "SELECT 'Test error from SP' from dual;\n"
-        // + "SIGNAL SQLSTATE '70100';\n"
-        // + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
-                + "END");
+        createProcedure(
+                "TEST_SP1",
+                " is BEGIN \n"
+                        + "SELECT 'Test error from SP' from dual;\n"
+                        //        + "SIGNAL SQLSTATE '70100';\n"
+                        //        + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+                        + "END");
 
         // sequence table are not in MySQL and MariaDB < 10.1, so create some basic table
         createTable("table_10", "val int");
@@ -96,21 +98,26 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
     @Test
     public void testAdd() throws Exception {
-        createProcedure("calc_add_2", "(a1 IN int, a2 IN int, a3 OUT int) is " + "begin " + "  a3:=a1+a2; " + "end;");
+        createProcedure(
+                "calc_add_2",
+                "(a1 IN int, a2 IN int, a3 OUT int) is "
+                        + "begin " + "  a3:=a1+a2; " + "end;"
+        );
         try (CallableStatement callableStatement = sharedConnection.prepareCall("call calc_add_2(?, ?, ?)")) {
             callableStatement.setInt(1, 1);
             callableStatement.setInt(2, 2);
             callableStatement.registerOutParameter(3, Types.INTEGER);
             callableStatement.execute();
-            // System.out.println(callableStatement.getInt(2));
+            //System.out.println(callableStatement.getInt(2));
             ResultSet rs = callableStatement.getResultSet();
             System.out.println("rs is:" + callableStatement.getDouble(3));
-            if (rs != null && rs.next()) {
+            if (rs!= null && rs.next()) {
                 System.out.println("THE RESULT IS:" + rs.getInt(3));
             }
-            /*
-             * while (rs.next()) { System.out.println("TT : " + rs.getInt(2)); }
-             */
+      /*
+      while (rs.next()) {
+        System.out.println("TT : " + rs.getInt(2));
+      } */
         }
     }
 
@@ -125,13 +132,15 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("StoredWithOutput", "(MAX_PARAM out int, MIN_PARAM out int, NULL_PARAM out int)"
-                + "is begin select 1,0,2 into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; end");
-        // + "is begin select 1,0,2 into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT *
-        // from table_5; end");
-        // SELECT * from table_10; SELECT * from table_5;
+        createProcedure(
+                "StoredWithOutput",
+                "(MAX_PARAM out int, MIN_PARAM out int, NULL_PARAM out int)"
+                        + "is begin select 1,0,2 into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; end");
+        //+ "is begin select 1,0,2 into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5; end");
+        //SELECT * from table_10; SELECT * from table_5;
 
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
             // indicate to stream results
             callableStatement.setFetchSize(1);
 
@@ -144,19 +153,27 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             assertEquals(0, callableStatement.getInt(2));
             assertEquals(2, callableStatement.getInt(3));
 
-            /*
-             * ResultSet rs = callableStatement.getResultSet(); for (int i = 1; i <= 10; i++) { assertTrue(rs.next());
-             * assertEquals(i, rs.getInt(1)); } assertFalse(rs.next());
-             * 
-             * // force reading of all result-set since output parameter are in the end. assertEquals(true,
-             * callableStatement.getBoolean(1)); assertEquals(false, callableStatement.getBoolean(2));
-             * assertEquals(false, callableStatement.getBoolean(3));
-             * 
-             * assertTrue(callableStatement.getMoreResults());
-             * 
-             * rs = callableStatement.getResultSet(); for (int i = 1; i <= 5; i++) { assertTrue(rs.next());
-             * assertEquals(i, rs.getInt(1)); } assertFalse(rs.next());
-             */
+      /*
+      ResultSet rs = callableStatement.getResultSet();
+      for (int i = 1; i <= 10; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next());
+
+      // force reading of all result-set since output parameter are in the end.
+      assertEquals(true, callableStatement.getBoolean(1));
+      assertEquals(false, callableStatement.getBoolean(2));
+      assertEquals(false, callableStatement.getBoolean(3));
+
+      assertTrue(callableStatement.getMoreResults());
+
+      rs = callableStatement.getResultSet();
+      for (int i = 1; i <= 5; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next()); */
         }
     }
 
@@ -171,11 +188,13 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("StreamInterrupted",
+        createProcedure(
+                "StreamInterrupted",
                 "( MAX_PARAM out SMALLINT,  MIN_PARAM out SMALLINT,  NULL_PARAM out SMALLINT)"
                         + " is begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual;end");
 
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
             // indicate to stream results
             callableStatement.setFetchSize(1);
 
@@ -197,31 +216,39 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
                 assertEquals("test", otherRs.getString(1));
             }
 
-            /*
-             * for (int i = 2; i <= 10; i++) { assertTrue(rs.next()); assertEquals(i, rs.getInt(1)); }
-             * assertFalse(rs.next());
-             */
+      /*
+      for (int i = 2; i <= 10; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next()); */
+
 
             assertEquals(true, callableStatement.getBoolean(1));
             assertEquals(false, callableStatement.getBoolean(2));
             assertEquals(false, callableStatement.getBoolean(3));
 
             // force reading of all result-set since output parameter are in the end.
-            // assertTrue(callableStatement.getMoreResults());
+            //assertTrue(callableStatement.getMoreResults());
 
-            /*
-             * rs = callableStatement.getResultSet(); for (int i = 1; i <= 5; i++) { assertTrue(rs.next());
-             * assertEquals(i, rs.getInt(1)); } assertFalse(rs.next());
-             */
+      /*
+      rs = callableStatement.getResultSet();
+      for (int i = 1; i <= 5; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next()); */
         }
     }
 
     @Test
     public void testStoreProcedureStreamingWithoutOutput() throws Exception {
-        createProcedure("StreamWithoutOutput",
+        createProcedure(
+                "StreamWithoutOutput",
                 "(MAX_PARAM IN OUT INT)" + "is begin SELECT MAX_PARAM into MAX_PARAM from dual ;end");
 
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
             // indicate to stream results
             callableStatement.setFetchSize(1);
             callableStatement.setInt(1, 100);
@@ -231,18 +258,23 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             ResultSet rs = callableStatement.getResultSet();
 
             assertEquals(100, callableStatement.getInt(1));
-            /*
-             * assertTrue(rs.next()); assertEquals(100, rs.getInt(1));
-             */
-            /*
-             * for (int i = 1; i <= 10; i++) { assertTrue(rs.next()); assertEquals(i, rs.getInt(1)); }
-             * assertFalse(rs.next());
-             * 
-             * assertTrue(callableStatement.getMoreResults());
-             * 
-             * rs = callableStatement.getResultSet(); for (int i = 1; i <= 5; i++) { assertTrue(rs.next());
-             * assertEquals(i, rs.getInt(1)); } assertFalse(rs.next());
-             */
+/*      assertTrue(rs.next());
+      assertEquals(100, rs.getInt(1)); */
+      /*
+      for (int i = 1; i <= 10; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next());
+
+      assertTrue(callableStatement.getMoreResults());
+
+      rs = callableStatement.getResultSet();
+      for (int i = 1; i <= 5; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+      }
+      assertFalse(rs.next()); */
         }
     }
 
@@ -252,7 +284,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO oracle not support
+    //TODO oracle not support
     @Test
     public void callSimple() throws SQLException {
         CallableStatement st = sharedConnection.prepareCall("{? = call pow(?,?)}");
@@ -264,11 +296,11 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO oracle mode not support
+    //TODO oracle mode not support
     @Test
     public void callSimpleWithNewlines() throws SQLException {
         // Violates JDBC spec, but MySQL Connector/J allows it
-        // CallableStatement st = sharedConnection.prepareCall("{\r\n ? = call pow(?, ? ) }");
+        //CallableStatement st = sharedConnection.prepareCall("{\r\n ? =  call pow(?,  ?  )   }");
         CallableStatement st = sharedConnection.prepareCall("{\r\n ? =  call pow(?,  ?  )   }");
         st.setInt(2, 2);
         st.setInt(3, 2);
@@ -305,8 +337,10 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("prepareStmtWithOutParameter", "(x int, y IN OUT int)\n" + " IS BEGIN\n" + "y := y;end\n");
-        CallableStatement callableStatement = sharedConnection.prepareCall("{call prepareStmtWithOutParameter(?,?)}");
+        createProcedure("prepareStmtWithOutParameter", "(x int, y IN OUT int)\n" + " IS BEGIN\n"
+                                                       + "y := y;end\n");
+        CallableStatement callableStatement = sharedConnection
+            .prepareCall("{call prepareStmtWithOutParameter(?,?)}");
         callableStatement.registerOutParameter(2, Types.INTEGER);
         callableStatement.setInt(1, 2);
         callableStatement.setInt(2, 3);
@@ -320,11 +354,13 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         CallableStatement stmt = sharedConnection.prepareCall("{call withResultSet(?)}");
         stmt.setInt(1, 1);
         stmt.registerOutParameter(1, Types.INTEGER);
-        // stmt.setFetchSize(1);
+        //stmt.setFetchSize(1);
         stmt.execute();
         /*
-         * ResultSet rs = stmt.executeQuery(); assertTrue(rs.next()); int res = rs.getInt(1); assertEquals(res, 1);
-         */
+        ResultSet rs = stmt.executeQuery();
+        assertTrue(rs.next());
+        int res = rs.getInt(1);
+        assertEquals(res, 1); */
         assertEquals(1, stmt.getInt(1));
     }
 
@@ -334,7 +370,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         stmt.setInt("a", 1);
         stmt.registerOutParameter(1, Types.INTEGER);
         ResultSet rs = stmt.executeQuery();
-        // assertTrue(rs == null);
+        //assertTrue(rs == null);
         int res = stmt.getInt(1);
         assertEquals(res, 1);
     }
@@ -347,14 +383,14 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO Oracle mode not support
+    //TODO Oracle mode not support
     @Test
     public void callMultiResultSets() throws Exception {
         executeAndCheckResult(sharedConnection.prepareCall("{call multiResultSets()}"));
     }
 
     @Ignore
-    // TODO Oracle mode not support
+    //TODO Oracle mode not support
     @Test
     public void prepareMultiResultSets() throws Exception {
         executeAndCheckResult(sharedConnection.prepareStatement("{call multiResultSets()}"));
@@ -401,22 +437,29 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
                 stmt.setDouble(1, tooMuch);
                 stmt.registerOutParameter(1, Types.DOUBLE);
                 try (ResultSet rs2 = stmt.executeQuery()) {
-                    // TODO change number to number(10, 2);
-                    // assertNotEquals(stmt.getDouble(1), tooMuch);
+                    //TODO change number to number(10, 2);
+                    //assertNotEquals(stmt.getDouble(1), tooMuch);
                 }
             }
 
-            /*
-             * try (ResultSet rs = stmt.executeQuery()) { assertTrue(rs.next()); double res = rs.getDouble(1);
-             * assertEquals(expected, res, 0); // now fail due to three decimals double tooMuch = 34.987;
-             * stmt.setDouble("a", tooMuch); try (ResultSet rs2 = stmt.executeQuery()) { assertTrue(rs2.next());
-             * assertNotEquals(rs2.getDouble(1), tooMuch); } }
-             */
+      /*
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        double res = rs.getDouble(1);
+        assertEquals(expected, res, 0);
+        // now fail due to three decimals
+        double tooMuch = 34.987;
+        stmt.setDouble("a", tooMuch);
+        try (ResultSet rs2 = stmt.executeQuery()) {
+          assertTrue(rs2.next());
+          assertNotEquals(rs2.getDouble(1), tooMuch);
+        }
+      }*/
         }
     }
 
     @Ignore
-    // TODO not support now, need to support next
+    //TODO not support now, need to support next
     @Test
     public void meta() throws Exception {
         createProcedure("callabletest1", "()\n is BEGIN\n SELECT 1 from dual;end\n");
@@ -428,7 +471,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
     }
 
-    @Ignore // TODO check create user or grant privilege for account
+    @Ignore //TODO check create user or grant privilege for account
     @Test
     public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
         // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
@@ -443,8 +486,10 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             // eat exception
         }
         statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
-        statement.execute("GRANT SELECT, EXECUTE  ON " + database
-                + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+        statement.execute(
+                "GRANT SELECT, EXECUTE  ON "
+                        + database
+                        + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
         Properties properties = new Properties();
         properties.put("user", "test_jdbc");
         properties.put("password", "testJ@dc1");
@@ -458,8 +503,10 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
                 callableStatement.setString("x", "1");
                 fail("Set by named must not succeed");
             } catch (SQLException sqlException) {
-                assertTrue(sqlException.getMessage()
-                        .startsWith("Access to metaData informations not granted for current user"));
+                assertTrue(
+                        sqlException
+                                .getMessage()
+                                .startsWith("Access to metaData informations not granted for current user"));
             }
             callableStatement.setString(1, "1");
             callableStatement.execute();
@@ -467,12 +514,15 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
                 callableStatement.getInt("y");
                 fail("Get by named must not succeed");
             } catch (SQLException sqlException) {
-                assertTrue(sqlException.getMessage()
-                        .startsWith("Access to metaData informations not granted for current user"));
+                assertTrue(
+                        sqlException
+                                .getMessage()
+                                .startsWith("Access to metaData informations not granted for current user"));
             }
             assertEquals(2, callableStatement.getInt(2));
 
-            ResultSet resultSet = connection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
+            ResultSet resultSet =
+                    connection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
             assertFalse(resultSet.next());
 
             // test without catalog
@@ -489,97 +539,111 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         statement.execute("DROP USER 'test_jdbc'@'%'");
     }
 
-    // @Ignore /* not support */
+    //@Ignore /* not support */
     @Test
     public void testSameProcedureWithDifferentParameters() throws Exception {
-        // sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
+        //sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
 
-        createProcedure("testSameProcedureWithDifferentParameters1",
+        createProcedure(
+                "testSameProcedureWithDifferentParameters1",
                 "(p1 OUT VARCHAR2,  p2 IN VARCHAR2)\n IS BEGIN" + "\n select 1 INTO p1 FROM DUAL;" + "\nEND");
 
-        createProcedure("testSameProcedureWithDifferentParameters2",
+        createProcedure(
+                "testSameProcedureWithDifferentParameters2",
                 "( p1 OUT VARCHAR2)\n IS BEGIN" + "\n select 2 INTO p1 FROM DUAL;" + "\nEND");
 
-        try (CallableStatement callableStatement = sharedConnection
-                .prepareCall("{ call testSameProcedureWithDifferentParameters1(?, ?) }")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters1(?, ?) }")) {
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             callableStatement.execute();
         }
-        // sharedConnection.setCatalog("testj2");
-        try (CallableStatement callableStatement = sharedConnection
-                .prepareCall("{ call unittests.testSameProcedureWithDifferentParameters1(?, ?) }")) {
+        //sharedConnection.setCatalog("testj2");
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{ call unittests.testSameProcedureWithDifferentParameters1(?, ?) }")) {
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             try {
                 callableStatement.execute();
-                // fail("Should've thrown an exception");
+                //fail("Should've thrown an exception");
             } catch (SQLException sqlEx) {
                 assertEquals("42000", sqlEx.getSQLState());
             }
         }
 
-        try (CallableStatement callableStatement = sharedConnection
-                .prepareCall("{ call testSameProcedureWithDifferentParameters2(?) }")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters2(?) }")) {
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.execute();
         }
-        // sharedConnection.setCatalog("testj");
-        // sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
+        //sharedConnection.setCatalog("testj");
+        //sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
     }
 
     @Test
     public void testProcDecimalComa() throws Exception {
-        createProcedure("testProcDecimalComa", "(decimalParam OUT DECIMAL)\n" + "IS BEGIN\n"
-                + "   SELECT decimalParam INTO decimalParam from dual;\n" + "END");
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
+        createProcedure(
+                "testProcDecimalComa",
+                "(decimalParam OUT DECIMAL)\n" + "IS BEGIN\n" + "   SELECT decimalParam INTO decimalParam from dual;\n" + "END");
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
             callableStatement.setDouble(1, 18.0);
             callableStatement.registerOutParameter(1, Types.DECIMAL);
             callableStatement.execute();
         }
     }
 
-    // @Ignore //TODO support in next.
+    //@Ignore //TODO support in next.
     @Test
     public void testFunctionCall() throws Exception {
-        createFunction("testFunctionCall", "(a float, b NUMBER, c int) RETURN INT \nIS BEGIN\nRETURN a;\nEND");
-        CallableStatement callableStatement = sharedConnection.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
+        createFunction("testFunctionCall",
+            "(a float, b NUMBER, c int) RETURN INT \nIS BEGIN\nRETURN a;\nEND");
+        CallableStatement callableStatement = sharedConnection
+            .prepareCall("{? = CALL testFunctionCall(?,?,?)}");
         callableStatement.registerOutParameter(1, Types.INTEGER);
         callableStatement.setFloat(2, 2);
         callableStatement.setInt(3, 1);
         callableStatement.setInt(4, 1);
 
         assertEquals(3, callableStatement.getParameterMetaData().getParameterCount());
-        // assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
+        //assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
         ResultSetMetaData rsmd = null;
         DatabaseMetaData dbmd = null;
         /*
-         * DatabaseMetaData dbmd = sharedConnection.getMetaData();
-         * 
-         * ResultSet rs = dbmd.getFunctionColumns(sharedConnection.getCatalog(), null, "testFunctionCall", "%");
-         * ResultSetMetaData rsmd = rs.getMetaData();
-         * 
-         * assertEquals(17, rsmd.getColumnCount()); assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
-         * assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2)); assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
-         * assertEquals("COLUMN_NAME", rsmd.getColumnName(4)); assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
-         * assertEquals("DATA_TYPE", rsmd.getColumnName(6)); assertEquals("TYPE_NAME", rsmd.getColumnName(7));
-         * assertEquals("PRECISION", rsmd.getColumnName(8)); assertEquals("LENGTH", rsmd.getColumnName(9));
-         * assertEquals("SCALE", rsmd.getColumnName(10)); assertEquals("RADIX", rsmd.getColumnName(11));
-         * assertEquals("NULLABLE", rsmd.getColumnName(12)); assertEquals("REMARKS", rsmd.getColumnName(13));
-         * assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14)); assertEquals("ORDINAL_POSITION",
-         * rsmd.getColumnName(15)); assertEquals("IS_NULLABLE", rsmd.getColumnName(16)); assertEquals("SPECIFIC_NAME",
-         * rsmd.getColumnName(17));
-         * 
-         * rs.close();
-         */
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
+
+        ResultSet rs =
+            dbmd.getFunctionColumns(sharedConnection.getCatalog(), null, "testFunctionCall", "%");
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        assertEquals(17, rsmd.getColumnCount());
+        assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+        assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+        assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+        assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+        assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+        assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+        assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+        assertEquals("PRECISION", rsmd.getColumnName(8));
+        assertEquals("LENGTH", rsmd.getColumnName(9));
+        assertEquals("SCALE", rsmd.getColumnName(10));
+        assertEquals("RADIX", rsmd.getColumnName(11));
+        assertEquals("NULLABLE", rsmd.getColumnName(12));
+        assertEquals("REMARKS", rsmd.getColumnName(13));
+        assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+        assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+        assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+        assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+
+        rs.close(); */
 
         assertTrue(callableStatement.execute());
         assertEquals(2f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         assertEquals(0, callableStatement.executeUpdate());
         assertEquals(2f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         callableStatement.setFloat("a", 4);
         callableStatement.setInt("b", 1);
@@ -587,17 +651,17 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         assertTrue(callableStatement.execute());
         assertEquals(4f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         assertEquals(0, callableStatement.executeUpdate());
         assertEquals(4f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         /*
-         * ResultSet rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
-         * assertTrue(rs.next()); assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
-         * assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
-         */
+        ResultSet rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
+        assertTrue(rs.next());
+        assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
+        assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE")); */
         callableStatement.setNull(2, Types.FLOAT);
         callableStatement.setInt(3, 1);
         callableStatement.setInt(4, 1);
@@ -620,19 +684,18 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         assertTrue(callableStatement.execute());
         assertEquals(4f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         assertEquals(0, callableStatement.executeUpdate());
         assertEquals(4f, callableStatement.getInt(1), .001);
-        // assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        //assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
         assertEquals(3, callableStatement.getParameterMetaData().getParameterCount());
         /*
-         * assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
-         * assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
-         * assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
-         * assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4));
-         */
+        assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
+        assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
+        assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
+        assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4)); */
     }
 
     @Ignore // not support
@@ -654,50 +717,68 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("testInOutParam", "(p1 IN VARCHAR2, p2 IN OUT INT)\n" + "is\n" + " z int:=0;\n" + " begin\n"
-                + "  z :=0;\n" + " z := p2 + 1;\n" + " p2 := z;\n"
-                // + " SELECT p1 from dual;\n"
-                // + " SELECT CONCAT('todo ', p1) from dual;\n"
-                + "end");
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call testInOutParam(?, ?)}")) {
+        createProcedure(
+                "testInOutParam",
+                "(p1 IN VARCHAR2, p2 IN OUT INT)\n"
+                        + "is\n"
+                        +  " z int:=0;\n"
+                        + " begin\n"
+                        + "  z :=0;\n"
+                        + " z := p2 + 1;\n"
+                        + " p2 := z;\n"
+                        // + " SELECT p1 from dual;\n"
+                        // + " SELECT CONCAT('todo ', p1) from dual;\n"
+                        + "end");
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{call testInOutParam(?, ?)}")) {
             callableStatement.registerOutParameter(2, Types.INTEGER);
             callableStatement.setString(1, "test");
             callableStatement.setInt(2, 1);
             ResultSet resultSet = callableStatement.executeQuery();
             assertEquals(2, callableStatement.getInt(2));
-            // assertEquals("test", callableStatement.getString(1));
-            /*
-             * if (resultSet.next()) { assertEquals("test", resultSet.getString(1)); } else {
-             * fail("must have resultset"); } assertTrue(callableStatement.getMoreResults());
-             * 
-             * resultSet = callableStatement.getResultSet(); if (resultSet.next()) { assertEquals("todo test",
-             * resultSet.getString(1)); } else { fail("must have resultset"); }
-             */
+            //assertEquals("test", callableStatement.getString(1));
+      /*
+      if (resultSet.next()) {
+        assertEquals("test", resultSet.getString(1));
+      } else {
+        fail("must have resultset");
+      }
+      assertTrue(callableStatement.getMoreResults());
+
+      resultSet = callableStatement.getResultSet();
+      if (resultSet.next()) {
+        assertEquals("todo test", resultSet.getString(1));
+      } else {
+        fail("must have resultset");
+      } */
         }
     }
 
     @Ignore
-    // TODO need support in next
+    //TODO need support in next
     @Test
     public void callFunctionWithNoParameters() throws SQLException {
-        createFunction("callFunctionWithNoParameters",
-                "()\n" + "    RETURNS CHAR(50) DETERMINISTIC\n" + "    RETURN 'mike';");
+        createFunction("callFunctionWithNoParameters", "()\n"
+                                                       + "    RETURNS CHAR(50) DETERMINISTIC\n"
+                                                       + "    RETURN 'mike';");
 
-        CallableStatement callableStatement = sharedConnection.prepareCall("{? = call callFunctionWithNoParameters()}");
+        CallableStatement callableStatement = sharedConnection
+            .prepareCall("{? = call callFunctionWithNoParameters()}");
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.execute();
         assertEquals("mike", callableStatement.getString(1));
     }
 
-    // @Ignore //TODO support next
+    //@Ignore //TODO support next
     @Test
     public void testFunctionWith2parameters() throws SQLException {
-        createFunction("testFunctionWith2parameters",
-                "(s VARCHAR, s2 VARCHAR)\n" + "    RETURN VARCHAR2  IS BEGIN\n" + "    RETURN s + s2; END;");
-        // + " RETURN CONCAT(s,' and ', s2)");
+        createFunction("testFunctionWith2parameters", "(s VARCHAR, s2 VARCHAR)\n"
+                                                      + "    RETURN VARCHAR2  IS BEGIN\n"
+                                                      + "    RETURN s + s2; END;");
+        //+ "    RETURN CONCAT(s,' and ', s2)");
 
         CallableStatement callableStatement = sharedConnection
-                .prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
+            .prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.setString(2, "mike");
         callableStatement.setString(3, "bart");
@@ -705,18 +786,18 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertEquals("mike and bart", callableStatement.getString(1));
     }
 
-    // @Ignore //TODO support function in next
+    //@Ignore //TODO support function in next
     @Test
     public void testFunctionWithFixedParameters() throws SQLException {
-        createFunction("testFunctionWith2parameters", "(s VARCHAR2, s2 VARCHAR2)\n" + "    RETURN VARCHAR2 \n"
-                + "  IS  BEGIN RETURN CONCAT(s,' and ', s2); END;");
+        createFunction("testFunctionWith2parameters",
+            "(s VARCHAR2, s2 VARCHAR2)\n" + "    RETURN VARCHAR2 \n"
+                    + "  IS  BEGIN RETURN CONCAT(s,' and ', s2); END;");
 
         /*
-         * CallableStatement callableStatement =
-         * sharedConnection.prepareCall("{? = call testFunctionWith2parameters('mike', ?)}");
-         */// TODO not support
+        CallableStatement callableStatement =
+            sharedConnection.prepareCall("{? = call testFunctionWith2parameters('mike', ?)}"); *///TODO not support
         CallableStatement callableStatement = sharedConnection
-                .prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
+            .prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.setString(2, "mike");
         callableStatement.setString(3, "bart");
@@ -732,10 +813,13 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 4);
 
         createTable("testResultsetWithInoutParameterTb", "test VARCHAR2(10)");
-        createProcedure("testResultsetWithInoutParameter", "( testValue IN OUT VARCHAR2)\n" + " IS BEGIN\n"
-                + " insert into testResultsetWithInoutParameterTb(test) values (testValue);\n"
-                + " SELECT testValue into testValue from dual;\n" + " testValue := UPPER(testValue);\n" + "END");
-        CallableStatement cstmt = sharedConnection.prepareCall("{call testResultsetWithInoutParameter(?)}");
+        createProcedure("testResultsetWithInoutParameter",
+            "( testValue IN OUT VARCHAR2)\n" + " IS BEGIN\n"
+                    + " insert into testResultsetWithInoutParameterTb(test) values (testValue);\n"
+                    + " SELECT testValue into testValue from dual;\n"
+                    + " testValue := UPPER(testValue);\n" + "END");
+        CallableStatement cstmt = sharedConnection
+            .prepareCall("{call testResultsetWithInoutParameter(?)}");
         cstmt.registerOutParameter(1, Types.VARCHAR);
         cstmt.setString(1, "mike");
         // assertEquals(1, cstmt.executeUpdate());
@@ -743,14 +827,15 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertEquals("MIKE", cstmt.getString(1));
         // assertTrue(cstmt.getMoreResults());
         ResultSet resultSet = cstmt.getResultSet();
-        /*
-         * if (resultSet.next()) { assertEquals("mike", resultSet.getString(1)); } else {
-         * fail("must have a resultset corresponding to the SELECT testValue"); }
-         */
+        /*if (resultSet.next()) {
+          assertEquals("mike", resultSet.getString(1));
+        } else {
+          fail("must have a resultset corresponding to the SELECT testValue");
+        } */
         assertNull(resultSet);
         assertEquals("MIKE", cstmt.getString(1));
-        ResultSet rs = sharedConnection.createStatement()
-                .executeQuery("SELECT * FROM testResultsetWithInoutParameterTb");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM testResultsetWithInoutParameterTb");
         if (rs.next()) {
             assertEquals("mike", rs.getString(1));
         } else {
@@ -758,7 +843,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
     }
 
-    @Ignore // TODO ObServer not support
+    @Ignore //TODO ObServer not support
     @Test
     public void testSettingFixedParameter() throws SQLException {
         // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
@@ -766,14 +851,17 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("simpleproc",
-                "(inParam IN VARCHAR2,  inOutParam IN OUT VARCHAR2,  outParam OUT VARCHAR2)" + "    IS BEGIN\n"
+        createProcedure(
+                "simpleproc",
+                "(inParam IN VARCHAR2,  inOutParam IN OUT VARCHAR2,  outParam OUT VARCHAR2)"
+                        + "    IS BEGIN\n"
                         + "         inOutParam := UPPER(inOutParam);\n"
                         + "         outParam := CONCAT('Hello, ', inOutParam, ' and ', inParam);"
-                        // + " SELECT 'a' FROM DUAL;\n"
+                        //+ "         SELECT 'a' FROM DUAL;\n"
                         + "     END;");
 
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call simpleproc('mike', ?, ?)}")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall("{call simpleproc('mike', ?, ?)}")) {
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.registerOutParameter(2, Types.VARCHAR);
             callableStatement.setString(1, "toto");
@@ -788,7 +876,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO need to delete on need any more
+    //TODO need to delete on need any more
     @Test
     public void testNoParenthesisCall() throws Exception {
         createProcedure("testProcedureParenthesis", "() IS BEGIN SELECT 1; END");
@@ -798,16 +886,17 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO not support in Oracle
+    //TODO not support in Oracle
     @Test
     public void testProcLinefeed() throws Exception {
         createProcedure("testProcLinefeed", "(\r\n)\r\n BEGIN SELECT 1; END");
         CallableStatement callStmt = sharedConnection.prepareCall("{CALL testProcLinefeed()}");
         callStmt.execute();
 
-        sharedConnection.createStatement().executeUpdate("DROP PROCEDURE IF EXISTS testProcLinefeed");
-        sharedConnection.createStatement()
-                .executeUpdate("CREATE PROCEDURE testProcLinefeed(\r\na INT)\r\n BEGIN SELECT 1; END");
+        sharedConnection.createStatement().executeUpdate(
+            "DROP PROCEDURE IF EXISTS testProcLinefeed");
+        sharedConnection.createStatement().executeUpdate(
+            "CREATE PROCEDURE testProcLinefeed(\r\na INT)\r\n BEGIN SELECT 1; END");
         callStmt = sharedConnection.prepareCall("{CALL testProcLinefeed(?)}");
         callStmt.setInt(1, 1);
         callStmt.execute();
@@ -817,8 +906,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     public void testHugeNumberOfParameters() throws Exception {
         StringBuilder procDef = new StringBuilder("(");
         StringBuilder param = new StringBuilder();
-        // TODO if i == 274, OB Server overflow: internal error code, arguments: -4019, Size overflow
-        int num = 257; // MAX SIZE supported is 257
+        //TODO if i == 274, OB Server overflow: internal error code, arguments: -4019, Size overflow
+        int num = 257; //MAX SIZE supported is 257
         for (int i = 0; i < num; i++) {
             if (i != 0) {
                 procDef.append(",");
@@ -833,16 +922,18 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         System.out.println(procDef.toString());
         createProcedure("testHugeNumberOfParameters", procDef.toString());
 
-        try (CallableStatement callableStatement = sharedConnection
-                .prepareCall("{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
-            /*
-             * for (int i = 1; i <= num; i++) { callableStatement.registerOutParameter(i, Types.VARCHAR); }
-             */
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall(
+                             "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
+      /*
+      for (int i = 1; i <= num; i++) {
+        callableStatement.registerOutParameter(i, Types.VARCHAR);
+      } */
             callableStatement.execute();
         }
     }
 
-    @Ignore // TODO not support send long data use SEND_LONG_DATA
+    @Ignore //TODO not support send long data use SEND_LONG_DATA
     @Test
     public void testStreamInOutWithName() throws Exception {
         // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
@@ -850,16 +941,25 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("testStreamInOutWithName",
+        createProcedure(
+                "testStreamInOutWithName",
                 "( mblob IN OUT BLOB) IS BEGIN SELECT 1 INTO mblob FROM DUAL WHERE 1=0;\nEND");
-        try (CallableStatement cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
+        try (CallableStatement cstmt =
+                     sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
             byte[] buffer = new byte[65];
             for (int i = 0; i < 65; i++) {
                 buffer[i] = 1;
             }
             int il = buffer.length;
-            int[] typesToTest = new int[] { Types.BIT, Types.BINARY, Types.BLOB, Types.JAVA_OBJECT, Types.LONGVARBINARY,
-                    Types.VARBINARY };
+            int[] typesToTest =
+                    new int[] {
+                            Types.BIT,
+                            Types.BINARY,
+                            Types.BLOB,
+                            Types.JAVA_OBJECT,
+                            Types.LONGVARBINARY,
+                            Types.VARBINARY
+                    };
 
             for (int typeToTest : typesToTest) {
                 cstmt.setBinaryStream("mblob", new ByteArrayInputStream(buffer), buffer.length);
@@ -889,29 +989,34 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     public void testDefinerCallableStatement() throws Exception {
         Statement stmt = sharedConnection.createStatement();
         stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
-        stmt.executeUpdate(
-                "CREATE PROCEDURE testDefinerCallableStatement(I INT) -- 'abcdefg'\nIS BEGIN\nSELECT I * 10 FROM dual;\nEND");
+        stmt.executeUpdate("CREATE PROCEDURE testDefinerCallableStatement(I INT) -- 'abcdefg'\nIS BEGIN\nSELECT I * 10 FROM dual;\nEND");
         sharedConnection.prepareCall("{call testDefinerCallableStatement(?)}").close();
         stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
     }
 
     @Test
     public void testProcedureComment() throws Exception {
-        createProcedure("testProcedureComment",
+        createProcedure(
+                "testProcedureComment",
                 "(a INT, b IN OUT VARCHAR2) IS BEGIN SELECT CONCAT(CONVERT(a, CHAR(50)), b) INTO b FROM DUAL; END");
 
-        try (CallableStatement callableStatement = sharedConnection
-                .prepareCall("{ call /* just test */ testProcedureComment(?, " + "/* ? is the OUT param */?)  }")) {
+        try (CallableStatement callableStatement =
+                     sharedConnection.prepareCall(
+                             "{ call /* just test */ testProcedureComment(?, "
+                                     + "/* ? is the OUT param */?)  }")) {
             assertTrue(callableStatement.toString().contains("/*"));
             callableStatement.setInt(1, 1);
             callableStatement.setString(2, " a");
             callableStatement.registerOutParameter(2, Types.VARCHAR);
             ResultSet rs = callableStatement.executeQuery();
-            /*
-             * if (rs.next()) { assertEquals("1 a", rs.getString(1)); } else { fail("must have a result !"); }
-             */
-            // assertNull(rs);
-            // assertEquals("1 a", callableStatement.getString(2));
+      /*
+      if (rs.next()) {
+        assertEquals("1 a", rs.getString(1));
+      } else {
+        fail("must have a result !");
+      } */
+            //assertNull(rs);
+            //assertEquals("1 a", callableStatement.getString(2));
             assertTrue(callableStatement.getString(2).contains("1"));
             assertTrue(callableStatement.getString(2).contains("a"));
         }
@@ -919,46 +1024,53 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
     @Test
     public void testCommentParser() throws Exception {
-        createProcedure("testCommentParser", "(ACTION varchar2," + "`/*dumb-identifier-1*/` int,"
-                + "\n`#dumb-identifier-2` int," + "\n`--dumb-identifier-3` int," + "\nCLIENT_ID int, -- ABC"
-                + "\nLOGIN_ID  int, -- DEF" + "\nO_WHERE varchar2," + "\nSORT varchar2,"
-                + "\n  O_SQL out varchar2/* test comment */," + "\n SONG_ID int," + "\n  NOTES varchar2,"
-                + "\n  RESULT out varchar2" + "\n /*" + "\n ,    -- Generic result parameter"
-                + "\n out _PERIOD_ID int,         -- Returns the period_id. "
-                + "Useful when using @PREDEFLINK to return which is the last period" + "\n   _SONGS_LIST varchar(8000),"
-                + "\n  _COMPOSERID int," + "\n  _PUBLISHERID int,"
-                + "\n   _PREDEFLINK int        -- If the user is accessing through a "
-                + "predefined link: 0=none  1=last period" + "\n */) IS BEGIN SELECT 1 into O_SQL FROM DUAL; END");
+        createProcedure("testCommentParser",
+            "(ACTION varchar2," + "`/*dumb-identifier-1*/` int," + "\n`#dumb-identifier-2` int,"
+                    + "\n`--dumb-identifier-3` int," + "\nCLIENT_ID int, -- ABC"
+                    + "\nLOGIN_ID  int, -- DEF" + "\nO_WHERE varchar2," + "\nSORT varchar2,"
+                    + "\n  O_SQL out varchar2/* test comment */," + "\n SONG_ID int,"
+                    + "\n  NOTES varchar2," + "\n  RESULT out varchar2" + "\n /*"
+                    + "\n ,    -- Generic result parameter"
+                    + "\n out _PERIOD_ID int,         -- Returns the period_id. "
+                    + "Useful when using @PREDEFLINK to return which is the last period"
+                    + "\n   _SONGS_LIST varchar(8000)," + "\n  _COMPOSERID int,"
+                    + "\n  _PUBLISHERID int,"
+                    + "\n   _PREDEFLINK int        -- If the user is accessing through a "
+                    + "predefined link: 0=none  1=last period"
+                    + "\n */) IS BEGIN SELECT 1 into O_SQL FROM DUAL; END");
 
-        createProcedure("testCommentParser_1", "(`/*id*/` /* before type 1 */ varchar2,"
-                + "/* after type 1 */  result2 OUT NUMBER /* p2 */) IS BEGIN SELECT  results into result2 from dual; END");
+        createProcedure(
+            "testCommentParser_1",
+            "(`/*id*/` /* before type 1 */ varchar2,"
+                    + "/* after type 1 */  result2 OUT NUMBER /* p2 */) IS BEGIN SELECT  results into result2 from dual; END");
 
-        sharedConnection.prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}").close();
-        // TODO need to support getProcedureColumns
+        sharedConnection
+            .prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}").close();
+        //TODO need to support getProcedureColumns
         sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
 
     }
 
-    private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes, int[] precision,
-            int[] scale, int[] direction) throws SQLException {
+    private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes,
+                                int[] precision, int[] scale, int[] direction) throws SQLException {
         int index = 0;
         while (rs.next()) {
             assertEquals(parameterNames[index], rs.getString("COLUMN_NAME"));
             assertEquals(parameterTypes[index], rs.getInt("DATA_TYPE"));
 
             switch (index) {
-            case 0:
-            case 6:
-            case 7:
-            case 8:
-            case 10:
-            case 11:
-                assertEquals(precision[index], rs.getInt("LENGTH"));
-                break;
+                case 0:
+                case 6:
+                case 7:
+                case 8:
+                case 10:
+                case 11:
+                    assertEquals(precision[index], rs.getInt("LENGTH"));
+                    break;
 
-            default:
-                assertEquals(precision[index], rs.getInt("PRECISION"));
-                break;
+                default:
+                    assertEquals(precision[index], rs.getInt("PRECISION"));
+                    break;
             }
             assertEquals(scale[index], rs.getInt("SCALE"));
             assertEquals(direction[index], rs.getInt("COLUMN_TYPE"));
@@ -968,15 +1080,19 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         rs.close();
     }
 
-    // @Ignore //TODO function next
+    //@Ignore //TODO function next
     @Test
     public void testCallableThrowException() throws Exception {
         createTable("testCallableThrowException1", "value_1 INT PRIMARY KEY");
         createTable("testCallableThrowException2", "value_2 INT PRIMARY KEY");
 
-        sharedConnection.createStatement().executeUpdate("INSERT INTO testCallableThrowException1 VALUES (1)");
-        createFunction("test_function", " RETURN int is \n max_value int; BEGIN "
-                + "SELECT MAX(value_1) INTO max_value FROM testCallableThrowException2; RETURN max_value; END;");
+        sharedConnection
+                .createStatement()
+                .executeUpdate("INSERT INTO testCallableThrowException1 VALUES (1)");
+        createFunction(
+                "test_function",
+                " RETURN int is \n max_value int; BEGIN "
+                        + "SELECT MAX(value_1) INTO max_value FROM testCallableThrowException2; RETURN max_value; END;");
 
         try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function()}")) {
 
@@ -987,7 +1103,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
                 fail("impossible; we should never get here.");
             } catch (SQLException sqlEx) {
                 System.out.println(sqlEx.getSQLState());
-                // sqlEx.printStackTrace();
+                //sqlEx.printStackTrace();
                 assertEquals("42S22", sqlEx.getSQLState());
             }
         }
@@ -995,14 +1111,20 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         try {
             sharedConnection.createStatement().execute("DROP TABLE testCallableThrowException4");
         } catch (SQLException e) {
-            // skip drop error
+            //skip drop error
         }
         createTable("testCallableThrowException3", "value_1 NUMBER(20, 0) PRIMARY KEY");
-        sharedConnection.createStatement().executeUpdate("INSERT INTO testCallableThrowException3 VALUES (1)");
-        createTable("testCallableThrowException4", "value_2 NUMBER(20, 0) PRIMARY KEY, "
-                + " FOREIGN KEY (value_2) REFERENCES testCallableThrowException3 (value_1) ON DELETE CASCADE");
-        createFunction("test_function", "(value NUMBER) RETURN INT IS BEGIN "
-                + "INSERT INTO testCallableThrowException4 VALUES (value); RETURN value; END;");
+        sharedConnection
+                .createStatement()
+                .executeUpdate("INSERT INTO testCallableThrowException3 VALUES (1)");
+        createTable(
+                "testCallableThrowException4",
+                "value_2 NUMBER(20, 0) PRIMARY KEY, "
+                        + " FOREIGN KEY (value_2) REFERENCES testCallableThrowException3 (value_1) ON DELETE CASCADE");
+        createFunction(
+                "test_function",
+                "(value NUMBER) RETURN INT IS BEGIN "
+                        + "INSERT INTO testCallableThrowException4 VALUES (value); RETURN value; END;");
 
         try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function(?)}")) {
             callable.registerOutParameter(1, Types.BIGINT);
@@ -1027,14 +1149,16 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
     }
 
-    // @Ignore //TODO support function in next
+    //@Ignore //TODO support function in next
     @Test
     public void testFunctionWithFixedParameter() throws Exception {
-        createFunction("testFunctionWithFixedParameter",
-                "(a varchar2, b number, c varchar2) RETURN NUMBER " + " IS  BEGIN RETURN 1; END; ");
+        createFunction(
+                "testFunctionWithFixedParameter",
+                "(a varchar2, b number, c varchar2) RETURN NUMBER "
+                        + " IS  BEGIN RETURN 1; END; ");
 
-        try (CallableStatement callable = sharedConnection
-                .prepareCall("{? = call testFunctionWithFixedParameter(?,101,?)}")) {
+        try (CallableStatement callable =
+                     sharedConnection.prepareCall("{? = call testFunctionWithFixedParameter(?,101,?)}")) {
             callable.registerOutParameter(1, Types.BIGINT);
             callable.setString(2, "FOO");
             callable.setString(3, "BAR");
@@ -1048,53 +1172,47 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 2);
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
-        /*
-         * createTable( "TMIX91P",
-         * "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             NUMBER," +
-         * "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
-         * +
-         * " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
-         * + " F12DATETIME         TIMESTAMP, PRIMARY KEY (F01SMALLINT)");
-         */
-        // TODO need to check type date and timestampe
-        createTable("TMIX91P",
+/*
+    createTable(
+        "TMIX91P",
+        "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             NUMBER,"
+            + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
+            + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
+            + " F12DATETIME         TIMESTAMP, PRIMARY KEY (F01SMALLINT)"); */
+        //TODO need to check type date and timestampe
+        createTable(
+                "TMIX91P",
                 "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             NUMBER,"
                         + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
                         + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         VARCHAR2(20),"
                         + " F12DATETIME         VARCHAR2(20), PRIMARY KEY (F01SMALLINT)");
         Statement stmt = sharedConnection.createStatement(); /*
-                                                              * stmt.executeUpdate(
-                                                              * "INSERT INTO TMIX91P VALUES (1,1,1234567.12,1234567.12,111111111111111111111111111.1111,.111111111111111,'1234567890',"
-                                                              * +
-                                                              * "'1234567890','CHAR20CHAR20','VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01')"
-                                                              * );
-                                                              */
+    stmt.executeUpdate(
+        "INSERT INTO TMIX91P VALUES (1,1,1234567.12,1234567.12,111111111111111111111111111.1111,.111111111111111,'1234567890',"
+            + "'1234567890','CHAR20CHAR20','VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01')"); */
         stmt.executeUpdate(
                 "INSERT INTO TMIX91P VALUES (1,1,1234567.12,1234567.12,111111111111111111111111111.1111,.111111111111111,'1234567890',"
                         + "'1234567890','CHAR20CHAR20','VARCHAR20ABCD','2001-01-01','2001-01-01')");
-        /*
-         * stmt.executeUpdate(
-         * "INSERT INTO TMIX91P VALUES (7,1,1234567.12,1234567.12,22222222222.0001,.99999999999,'1234567896','1234567896','CHAR20',"
-         * + "'VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01')");
-         */
+    /*
+    stmt.executeUpdate(
+            "INSERT INTO TMIX91P VALUES (7,1,1234567.12,1234567.12,22222222222.0001,.99999999999,'1234567896','1234567896','CHAR20',"
+                    + "'VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01')"); */
         stmt.executeUpdate(
                 "INSERT INTO TMIX91P VALUES (7,1,1234567.12,1234567.12,22222222222.0001,.99999999999,'1234567896','1234567896','CHAR20',"
                         + "'VARCHAR20ABCD','2001-01-01','2001-01-01')");
-        /*
-         * stmt.executeUpdate(
-         * "INSERT INTO TMIX91P VALUES (12,12,1234567.12,1234567.12,111222333.4444,.1234567890,'2234567891','2234567891','CHAR20',"
-         * + "'VARCHAR20VARCHAR20','2001-01-01','2001-01-01 01:01:01')");
-         */
+    /*
+    stmt.executeUpdate(
+            "INSERT INTO TMIX91P VALUES (12,12,1234567.12,1234567.12,111222333.4444,.1234567890,'2234567891','2234567891','CHAR20',"
+                    + "'VARCHAR20VARCHAR20','2001-01-01','2001-01-01 01:01:01')"); */
         stmt.executeUpdate(
                 "INSERT INTO TMIX91P VALUES (12,12,1234567.12,1234567.12,111222333.4444,.1234567890,'2234567891','2234567891','CHAR20',"
                         + "'VARCHAR20VARCHAR20','2001-01-01','2001-01-01')");
 
-        createProcedure("MSQSPR100",
+        createProcedure(
+                "MSQSPR100",
                 "( p1_in  INTEGER , p2_in  VARCHAR2,  p3_out OUT INTEGER,  p4_out OUT VARCHAR2)\n is BEGIN "
-                        // + "\n SELECT F01SMALLINT,F02INTEGER, F11DATE,F12DATETIME,F03REAL \n FROM TMIX91P WHERE
-                        // F02INTEGER = p1_in; "
-                        // + "\n SELECT F08VARCHAR_10,F09CHAR_20 into p3_out, p4_out \n FROM TMIX91P WHERE F09CHAR_20 =
-                        // p2_in ORDER BY F02INTEGER ; "
+                        // + "\n SELECT F01SMALLINT,F02INTEGER, F11DATE,F12DATETIME,F03REAL \n FROM TMIX91P WHERE F02INTEGER = p1_in; "
+                        // + "\n SELECT F08VARCHAR_10,F09CHAR_20 into p3_out, p4_out \n FROM TMIX91P WHERE  F09CHAR_20 = p2_in ORDER BY F02INTEGER ; "
                         + "\n p3_out := 144; \n p4_out  := 'CHARACTER11'; \n END");
 
         String sql = "{call MSQSPR100(1,'CHAR20',?,?)}";
@@ -1107,11 +1225,13 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cs.execute();
         cs.close();
 
-        createProcedure("testParameterNumber_1",
+        createProcedure(
+                "testParameterNumber_1",
                 "( nfact OUT VARCHAR2,  ccuenta IN VARCHAR2,\n ffact OUT VARCHAR2,\n fdoc OUT VARCHAR2)\n is BEGIN"
                         + "\n nfact := 'ncfact string';\n ffact := 'ffact string';\n fdoc := 'fdoc string';\nEND");
 
-        createProcedure("testParameterNumber_2",
+        createProcedure(
+                "testParameterNumber_2",
                 "( ccuent1 IN VARCHAR2,  ccuent2 IN VARCHAR2,\n nfact OUT VARCHAR2,\n ffact OUT VARCHAR2,"
                         + "\n fdoc OUT VARCHAR2)\nIS BEGIN\n nfact := 'ncfact string';\n ffact := 'ffact string';\n"
                         + " fdoc := 'fdoc string';\nEND");
@@ -1120,7 +1240,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         props.put("jdbcCompliantTruncation", "true");
         props.put("useInformationSchema", "true");
         try (Connection conn1 = setConnection(props)) {
-            // try (Connection conn1 = sharedConnection) {
+            //try (Connection conn1 = sharedConnection) {
             CallableStatement callSt = conn1.prepareCall("{ call testParameterNumber_1(?, ?, ?, ?) }");
             callSt.setString(2, "xxx");
             callSt.registerOutParameter(1, Types.VARCHAR);
@@ -1132,7 +1252,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             assertEquals("ffact string", callSt.getString(3));
             assertEquals("fdoc string", callSt.getString(4));
 
-            CallableStatement callSt2 = conn1.prepareCall("{ call testParameterNumber_2(?, ?, ?, ?, ?) }");
+            CallableStatement callSt2 =
+                    conn1.prepareCall("{ call testParameterNumber_2(?, ?, ?, ?, ?) }");
             callSt2.setString(1, "xxx");
             callSt2.setString(2, "yyy");
             callSt2.registerOutParameter(3, Types.VARCHAR);
@@ -1144,7 +1265,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             assertEquals("ffact string", callSt2.getString(4));
             assertEquals("fdoc string", callSt2.getString(5));
 
-            CallableStatement callSt3 = conn1.prepareCall("{ call testParameterNumber_2(?, 'yyy', ?, ?, ?) }");
+            CallableStatement callSt3 =
+                    conn1.prepareCall("{ call testParameterNumber_2(?, 'yyy', ?, ?, ?) }");
             callSt3.setString(1, "xxx");
             // callSt3.setString(2, "yyy");
             callSt3.registerOutParameter(2, Types.VARCHAR);
@@ -1160,7 +1282,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Ignore
-    // TODO support in NEXT, need to check
+    //TODO support in NEXT, need to check
     @Test
     public void testProcMultiDb() throws Exception {
         // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
@@ -1173,17 +1295,18 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         try {
             sharedConnection.createStatement().executeUpdate("drop TABLESPACE testProcMultiDb");
         } catch (SQLException e) {
-            // skip
+            //skip
         }
 
         sharedConnection.createStatement().executeUpdate("CREATE TABLESPACE testProcMultiDb");
 
         createProcedure("unittests.testProcMultiDbProc",
-                "(x int, y out int)\n is  z int:=0;\n begin\n z:= x+1, y:= z;\nend;\n");
+            "(x int, y out int)\n is  z int:=0;\n begin\n z:= x+1, y:= z;\nend;\n");
 
         CallableStatement callableStatement = null;
         try {
-            callableStatement = sharedConnection.prepareCall("{call `testProcMultiDb`.`testProcMultiDbProc`(?, ?)}");
+            callableStatement = sharedConnection
+                .prepareCall("{call `testProcMultiDb`.`testProcMultiDbProc`(?, ?)}");
             callableStatement.setInt(1, 5);
             callableStatement.registerOutParameter(2, Types.INTEGER);
 
@@ -1193,7 +1316,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             callableStatement.close();
 
             sharedConnection.setCatalog("testProcMultiDb");
-            callableStatement = sharedConnection.prepareCall("{call testProcMultiDb.testProcMultiDbProc(?, ?)}");
+            callableStatement = sharedConnection
+                .prepareCall("{call testProcMultiDb.testProcMultiDbProc(?, ?)}");
             callableStatement.setInt(1, 5);
             callableStatement.registerOutParameter(2, Types.INTEGER);
 
@@ -1203,7 +1327,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             callableStatement.close();
 
             sharedConnection.setCatalog("mysql");
-            callableStatement = sharedConnection.prepareCall("{call `testProcMultiDb`.`testProcMultiDbProc`(?, ?)}");
+            callableStatement = sharedConnection
+                .prepareCall("{call `testProcMultiDb`.`testProcMultiDbProc`(?, ?)}");
             callableStatement.setInt(1, 5);
             callableStatement.registerOutParameter(2, Types.INTEGER);
 
@@ -1226,10 +1351,12 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 4);
 
         createProcedure("testProcSendNullInOut_1", "(x IN OUT INT)\n IS BEGIN\n x := x + 1;\nEND;");
-        createProcedure("testProcSendNullInOut_2", "(x INT, y OUT INT )\nIS BEGIN\n y := x + 1;\nEND;");
+        createProcedure("testProcSendNullInOut_2",
+            "(x INT, y OUT INT )\nIS BEGIN\n y := x + 1;\nEND;");
         createProcedure("testProcSendNullInOut_3", "(x IN OUT INTEGER)\nIS BEGIN\n x := 10;\nEND;");
 
-        CallableStatement call = sharedConnection.prepareCall("{ call testProcSendNullInOut_1(?) }");
+        CallableStatement call = sharedConnection
+            .prepareCall("{ call testProcSendNullInOut_1(?) }");
         call.registerOutParameter(1, Types.INTEGER);
         call.setInt(1, 1);
         call.execute();
@@ -1263,11 +1390,10 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     /**
-     * CONJ-263: Error in stored procedure or SQL statement with allowMultiQueries does not raise Exception when there
-     * is a result returned prior to erroneous statement.
+     * CONJ-263: Error in stored procedure or SQL statement with allowMultiQueries does not raise
+     * Exception when there is a result returned prior to erroneous statement.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @Test
     public void testCallExecuteErrorBatch() throws SQLException {
@@ -1278,22 +1404,22 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         } catch (SQLException sqle) {
             // must have thrown error.
             System.out.println("Message:" + sqle.getMessage());
-            // TODO update next
-            // assertTrue(sqle.getMessage().contains("Test error from SP"));
+            //TODO update next
+            //assertTrue(sqle.getMessage().contains("Test error from SP"));
         }
     }
 
     /**
      * CONJ-298 : Callable function exception when no parameter and space before parenthesis.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @Ignore
-    // TODO Both Oracle and ObOracle mode not support
+    //TODO Both Oracle and ObOracle mode not support
     @Test
     public void testFunctionWithSpace() throws SQLException {
-        createFunction("hello3", "\n" + "    RETURN VARCHAR2 \n" + "  IS BEGIN  RETURN CONCAT('Hello, !'); END;");
+        createFunction("hello3", "\n" + "    RETURN VARCHAR2 \n"
+                                 + "  IS BEGIN  RETURN CONCAT('Hello, !'); END;");
         CallableStatement callableStatement = sharedConnection.prepareCall("{? = call hello3()}");
         callableStatement.registerOutParameter(1, Types.INTEGER);
         assertFalse(callableStatement.execute());
@@ -1303,8 +1429,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     /**
      * CONJ-425 : take care of registerOutParameter type.
      *
-     * @throws Exception
-     *             if connection error occur
+     * @throws Exception if connection error occur
      */
     @Test
     public void testOutputObjectType() throws Exception {
@@ -1313,8 +1438,9 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        createProcedure("issue425", "( inValue IN varchar2,  testValue OUT varchar2)\n" + "is BEGIN\n"
-                + " testValue := CONCAT('o', inValue);\n" + "END");
+        createProcedure("issue425", "( inValue IN varchar2,  testValue OUT varchar2)\n"
+                                    + "is BEGIN\n" + " testValue := CONCAT('o', inValue);\n"
+                                    + "END");
 
         // registering with VARCHAR Type
         CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}");
@@ -1340,10 +1466,11 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject("testValue")));
     }
 
-    // @Ignore //TODO support function
+    //@Ignore //TODO support function
     @Test
     public void testOutputObjectTypeFunction() throws Exception {
-        createFunction("issue425f", "(a VARCHAR2, b VARCHAR2) RETURN varchar2\n is BEGIN\nRETURN CONCAT(a, b);\nEND");
+        createFunction("issue425f",
+            "(a VARCHAR2, b VARCHAR2) RETURN varchar2\n is BEGIN\nRETURN CONCAT(a, b);\nEND");
 
         // registering with VARCHAR Type
         CallableStatement cstmt = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
@@ -1366,13 +1493,11 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertEquals("ox", cstmt2.getString(1));
         assertEquals("ox", cstmt2.getObject(1, String.class)); // works
         System.out.println("ZDW:" + cstmt2.getObject(1).getClass().toString());
-        /*
-         * assertTrue(cstmt2.getObject(1) instanceof byte[]); //TODO check assertArrayEquals("ox".getBytes(), ((byte[])
-         * cstmt2.getObject(1)));
-         */
+        /*assertTrue(cstmt2.getObject(1) instanceof byte[]); //TODO check
+        assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(1))); */
     }
 
-    @Ignore // TODO oracle not support nothing in procedure
+    @Ignore //TODO oracle not support nothing in procedure
     @Test
     public void procedureCaching() throws SQLException {
         createProcedure("cacheCall", "(inValue IN INT)\n" + " IS BEGIN\n" + " /*do nothing*/ \n" + "END");
@@ -1400,25 +1525,27 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
     }
 
-    // @Ignore //ignore first
+    //@Ignore //ignore first
     @Test
     public void functionCaching() throws SQLException {
-        createFunction("hello2",
+        createFunction(
+                "hello2",
                 "(a int) \n" + " RETURN INT \n" + " is b int; begin  select 3 into b from dual;  RETURN b; end;");
         CallableStatement st = sharedConnection.prepareCall("{? = call hello2(?)}");
         st.setInt(2, 1);
         st.registerOutParameter(1, Types.INTEGER);
-        // assertFalse(st.execute());
+        //assertFalse(st.execute());
         st.execute();
 
         st.setInt(2, 1);
         st.registerOutParameter(1, Types.INTEGER);
-        // st.setFetchSize(1);
+        //st.setFetchSize(1);
         st.registerOutParameter(1, Types.INTEGER);
         st.execute();
-        // System.out.println(st.getResultSet().getInt(10));
-        // System.out.println(st.getInt(1));
+        //System.out.println(st.getResultSet().getInt(10));
+        //System.out.println(st.getInt(1));
         assertEquals(3, st.getInt(1));
+
 
         try (CallableStatement st2 = sharedConnection.prepareCall("{? = call hello2(?)}")) {
             st2.registerOutParameter(1, Types.INTEGER);
@@ -1428,9 +1555,9 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
             try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2(?)}")) {
                 st3.registerOutParameter(1, Types.INTEGER);
-                // st3.registerOutParameter(2, Types.INTEGER);
+                //st3.registerOutParameter(2, Types.INTEGER);
 
-                // assertFalse(st3.execute());
+                //assertFalse(st3.execute());
             }
         }
 
@@ -1438,7 +1565,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
     @Test
     public void testTimestampParameterOutput() throws Exception {
-        createProcedure("CONJ791", "( a IN CLOB,  b OUT VARCHAR) \n IS BEGIN\n b := '2006-01-01 01:01:16';\nEND");
+        createProcedure("CONJ791",
+            "( a IN CLOB,  b OUT VARCHAR) \n IS BEGIN\n b := '2006-01-01 01:01:16';\nEND");
 
         // registering with VARCHAR Type
         CallableStatement cstmt = sharedConnection.prepareCall("{call CONJ791(?, ?)}");

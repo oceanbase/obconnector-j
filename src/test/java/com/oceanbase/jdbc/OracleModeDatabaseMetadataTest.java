@@ -79,13 +79,14 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         if (!rs.next()) {
             hasNext = false;
         }
-        // there return null in oracle
+        //there return null in oracle
         assertTrue(!hasNext);
     }
 
     @Test
     public void testGetColumns() throws SQLException {
-        createTable("GETCOLUMNS_TEST", "a INT NOT NULL primary key, b VARCHAR(32), c INT , " + "d VARCHAR(5)", null);
+        createTable("GETCOLUMNS_TEST", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
+                                       + "d VARCHAR(5)", null);
 
         ResultSet rs = dbmd.getColumns(null, null, "GETCOLUMNS_TEST", null);
         {
@@ -97,14 +98,14 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
             assertEquals("NUMBER", rs.getString(6)); // "TYPE_NAME
             assertEquals(38, rs.getInt(7)); // "COLUMN_SIZE
-            assertEquals(0, rs.getInt(8));// BUFFER_LENGTH
+            assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
             assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
             assertEquals(0, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
             assertEquals(null, rs.getString(13)); // DATA_DEFAULT
-            assertEquals(0, rs.getInt(14));// SQL_DATA_TYPE
-            assertEquals(0, rs.getInt(15));// SQL_DATETIME_SUB
+            assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
             assertEquals(0, rs.getInt(16)); // DATA_LENGTH
             assertEquals(1, rs.getInt(17)); // COLUMN_ID
             assertEquals("NO", rs.getString(18)); // IS_NULLABLE
@@ -122,14 +123,14 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
             assertEquals("VARCHAR2", rs.getString(6)); // "TYPE_NAME
             assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
-            assertEquals(0, rs.getInt(8));// BUFFER_LENGTH
+            assertEquals(0, rs.getInt(8));//BUFFER_LENGTH
             assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
             assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
             assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // DATA_DEFAULT
-            assertEquals(0, rs.getInt(14));// SQL_DATA_TYPE
-            assertEquals(0, rs.getInt(15));// SQL_DATETIME_SUB
+            assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
+            assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
             assertEquals(32, rs.getInt(16)); // DATA_LENGTH
             assertEquals(2, rs.getInt(17)); // COLUMN_ID
             assertEquals("YES", rs.getString(18)); // IS_NULLABLE
@@ -151,7 +152,8 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
             assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
-            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
+                       || rs.getString(13) == null); // COLUMN_DEF
             assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
             assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
             assertEquals("YES", rs.getString(18)); // IS_NULLABLE
@@ -173,7 +175,8 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
             assertEquals(1, rs.getInt(11)); // NULLABLE
             assertEquals(null, rs.getString(12)); // REMARKS
-            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+            assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
+                       || rs.getString(13) == null); // COLUMN_DEF
             assertEquals(5, rs.getInt(16)); // CHAR_OCTET_LENGTH
             assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
             assertEquals("YES", rs.getString(18)); // IS_NULLABLE
@@ -189,14 +192,16 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     @Test
     public void getColumnsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                        + "DATA_TYPE decimal,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH decimal,"
-                        + "DECIMAL_DIGITS decimal,NUM_PREC_RADIX decimal,NULLABLE decimal,"
-                        + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE decimal,"
-                        + "SQL_DATETIME_SUB decimal, CHAR_OCTET_LENGTH decimal,"
-                        + "ORDINAL_POSITION decimal,IS_NULLABLE String," + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-                        + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getColumns(null, null, null, null),
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                    + "DATA_TYPE decimal,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH decimal,"
+                    + "DECIMAL_DIGITS decimal,NUM_PREC_RADIX decimal,NULLABLE decimal,"
+                    + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE decimal,"
+                    + "SQL_DATETIME_SUB decimal, CHAR_OCTET_LENGTH decimal,"
+                    + "ORDINAL_POSITION decimal,IS_NULLABLE String,"
+                    + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                    + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
     }
 
     @Test
@@ -220,8 +225,9 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     @Ignore
     public void getFunctionsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getFunctions(null, null, null),
-                "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE decimal,SPECIFIC_NAME String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getFunctions(null, null, null),
+            "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE decimal,SPECIFIC_NAME String");
     }
 
     @Ignore
@@ -231,21 +237,25 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             Connection oraConnection = getOracleConnection();
             ResultSet oraRs = oraConnection.getMetaData().getProcedures(null, null, null);
             assertTrue(rs.next() && oraRs.next());
-            System.out.println(rs.getString("PROCEDURE_CAT") + " " + oraRs.getString("PROCEDURE_CAT"));
-            System.out.println(rs.getString("PROCEDURE_SCHEM") + " " + oraRs.getString("PROCEDURE_SCHEM"));
-            System.out.println(rs.getString("PROCEDURE_NAME") + " " + oraRs.getString("PROCEDURE_NAME"));
+            System.out.println(rs.getString("PROCEDURE_CAT") + " "
+                               + oraRs.getString("PROCEDURE_CAT"));
+            System.out.println(rs.getString("PROCEDURE_SCHEM") + " "
+                               + oraRs.getString("PROCEDURE_SCHEM"));
+            System.out.println(rs.getString("PROCEDURE_NAME") + " "
+                               + oraRs.getString("PROCEDURE_NAME"));
             System.out.println(rs.getString("REMARKS") + " " + oraRs.getString("REMARKS"));
             System.out.println(rs.getInt("PROCEDURE_TYPE") + " " + oraRs.getInt("PROCEDURE_TYPE"));
-            System.out.println(rs.getString("SPECIFIC_NAME") + " " + oraRs.getString("SPECIFIC_NAME"));
+            System.out.println(rs.getString("SPECIFIC_NAME") + " "
+                               + oraRs.getString("SPECIFIC_NAME"));
             int i = rs.getMetaData().getColumnCount();
             for (int i1 = 1; i1 < i; i1++) {
-                // System.out.print(rs.getMetaData().getColumnName(i1) + ":");
-                // System.out.print(rs.getMetaData().getColumnTypeName(i1) + ":");
-                // System.out.println(rs.getMetaData().getColumnType(i1));
-                // System.out.println("++++++++++++++++");
-                // System.out.print(oraRs.getMetaData().getColumnName(i1) + ":");
-                // System.out.print(oraRs.getMetaData().getColumnTypeName(i1) + ":");
-                // System.out.println(oraRs.getMetaData().getColumnType(i1));
+                //                System.out.print(rs.getMetaData().getColumnName(i1) + ":");
+                //                System.out.print(rs.getMetaData().getColumnTypeName(i1) + ":");
+                //                System.out.println(rs.getMetaData().getColumnType(i1));
+                //                System.out.println("++++++++++++++++");
+                //                System.out.print(oraRs.getMetaData().getColumnName(i1) + ":");
+                //                System.out.print(oraRs.getMetaData().getColumnTypeName(i1) + ":");
+                //                System.out.println(oraRs.getMetaData().getColumnType(i1));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -255,8 +265,9 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     @Ignore
     public void getProceduresBasic() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, null);
-        testResultSetColumns(rs,
-                "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,NULL String,NULL String,NULL String,REMARKS String,PROCEDURE_TYPE decimal,SPECIFIC_NAME String");
+        testResultSetColumns(
+            rs,
+            "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,NULL String,NULL String,NULL String,REMARKS String,PROCEDURE_TYPE decimal,SPECIFIC_NAME String");
     }
 
     @Ignore
@@ -328,9 +339,10 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
     @Test
     public void testGetTablesWithParameter() throws SQLException {
-        createTable("test_getTables", "a INT NOT NULL primary key, b VARCHAR(32), c INT , " + "d VARCHAR(5)", null);
+        createTable("test_getTables", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
+                                      + "d VARCHAR(5)", null);
         ResultSet rs = sharedConnection.getMetaData().getTables(sharedConnection.getCatalog(),
-                sharedConnection.getSchema(), "test_getTables", null);
+            sharedConnection.getSchema(), "test_getTables", null);
         rs.next();
 
         assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
@@ -341,8 +353,8 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     @Test
     public void testGetBestRowIdentifier() throws SQLException {
 
-        ResultSet rs = rs = sharedConnection.getMetaData().getBestRowIdentifier(null, sharedConnection.getSchema(),
-                "TEST_GETTABLES", 1, false);
+        ResultSet rs = rs = sharedConnection.getMetaData().getBestRowIdentifier(null,
+            sharedConnection.getSchema(), "TEST_GETTABLES", 1, false);
         assertEquals(true, rs.next());
     }
 
@@ -360,51 +372,98 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         HashMap<String, Boolean> map = new HashMap<>();
         HashMap<String, String> mapBy1X = new HashMap<>();
 
-        // result of OceanBase-client1.X
-        String s = "supportsMinimumSQLGrammar:true\n" + "supportsPositionedDelete:false\n"
-                + "autoCommitFailureClosesAllResultSets:false\n" + "supportsSubqueriesInComparisons:true\n"
-                + "supportsANSI92IntermediateSQL:false\n" + "nullPlusNonNullIsNull:true\n"
-                + "supportsCatalogsInDataManipulation:true\n" + "supportsMultipleTransactions:true\n"
-                + "supportsCatalogsInTableDefinitions:false\n" + "supportsOpenCursorsAcrossRollback:false\n"
-                + "supportsStatementPooling:false\n" + "supportsDataDefinitionAndDataManipulationTransactions:false\n"
-                + "supportsTableCorrelationNames:true\n" + "usesLocalFiles:false\n" + "supportsFullOuterJoins:false\n"
-                + "supportsExpressionsInOrderBy:true\n" + "allProceduresAreCallable:false\n"
-                + "storesMixedCaseQuotedIdentifiers:false\n" + "supportsSchemasInProcedureCalls:false\n"
-                + "nullsAreSortedAtStart:false\n" + "supportsLikeEscapeClause:true\n"
-                + "supportsDataManipulationTransactionsOnly:false\n" + "supportsSchemasInDataManipulation:false\n"
-                + "supportsPositionedUpdate:false\n" + "supportsGetGeneratedKeys:true\n" + "supportsGroupBy:true\n"
-                + "supportsOuterJoins:true\n" + "supportsBatchUpdates:true\n" + "supportsLimitedOuterJoins:true\n"
-                + "allTablesAreSelectable:false\n" + "supportsSchemasInIndexDefinitions:false\n"
-                + "supportsConvert1:false\n" + "supportsDifferentTableCorrelationNames:true\n"
-                + "supportsMultipleOpenResults:true\n" + "supportsTransactions:true\n" + "supportsUnion:true\n"
-                + "supportsOpenCursorsAcrossCommit:false\n" + "storesLowerCaseQuotedIdentifiers:true\n"
-                + "supportsANSI92EntryLevelSQL:true\n" + "supportsStoredProcedures:true\n"
-                + "supportsCatalogsInPrivilegeDefinitions:true\n" + "supportsAlterTableWithDropColumn:true\n"
-                + "nullsAreSortedHigh:false\n" + "supportsCatalogsInProcedureCalls:true\n"
-                + "supportsNonNullableColumns:true\n" + "supportsSelectForUpdate:true\n"
-                + "supportsSubqueriesInExists:true\n" + "supportsOpenStatementsAcrossRollback:false\n"
-                + "supportsOpenStatementsAcrossCommit:false\n" + "supportsColumnAliasing:true\n"
-                + "supportsSavepoints:true\n" + "dataDefinitionCausesTransactionCommit:true\n"
-                + "supportsMixedCaseIdentifiers:false\n" + "nullsAreSortedAtEnd:false\n"
-                + "supportsAlterTableWithAddColumn:true\n" + "isCatalogAtStart:true\n" + "supportsUnionAll:true\n"
-                + "dataDefinitionIgnoredInTransactions:false\n" + "supportsCoreSQLGrammar:true\n" + "isReadOnly:false\n"
-                + "supportsGroupByUnrelated:true\n" + "nullsAreSortedLow:true\n" + "supportsCorrelatedSubqueries:true\n"
-                + "locatorsUpdateCopy:true\n" + "supportsANSI92FullSQL:false\n" + "storesUpperCaseIdentifiers:true\n"
-                + "supportsMultipleResultSets:true\n" + "supportsSchemasInPrivilegeDefinitions:false\n"
-                + "supportsMixedCaseQuotedIdentifiers:false\n" + "supportsGroupByBeyondSelect:true\n"
-                + "supportsCatalogsInIndexDefinitions:true\n" + "supportsOrderByUnrelated:false\n"
-                + "supportsNamedParameters:false\n" + "doesMaxRowSizeIncludeBlobs:true\n"
-                + "supportsSubqueriesInQuantifieds:true\n" + "supportsStoredFunctionsUsingCallSyntax:true\n"
-                + "usesLocalFilePerTable:false\n" + "supportsIntegrityEnhancementFacility:false\n"
-                + "storesLowerCaseIdentifiers:true\n" + "supportsSubqueriesInIns:true\n"
-                + "supportsExtendedSQLGrammar:false\n" + "storesUpperCaseQuotedIdentifiers:true\n"
-                + "supportsSchemasInTableDefinitions:true\n" + "storesMixedCaseIdentifiers:false\n"
-                + "supportsConvert:false\n" + "generatedKeyAlwaysReturned:false";
+        //result of OceanBase-client1.X
+        String s = "supportsMinimumSQLGrammar:true\n" +
+                "supportsPositionedDelete:false\n" +
+                "autoCommitFailureClosesAllResultSets:false\n" +
+                "supportsSubqueriesInComparisons:true\n" +
+                "supportsANSI92IntermediateSQL:false\n" +
+                "nullPlusNonNullIsNull:true\n" +
+                "supportsCatalogsInDataManipulation:true\n" +
+                "supportsMultipleTransactions:true\n" +
+                "supportsCatalogsInTableDefinitions:false\n" +
+                "supportsOpenCursorsAcrossRollback:false\n" +
+                "supportsStatementPooling:false\n" +
+                "supportsDataDefinitionAndDataManipulationTransactions:false\n" +
+                "supportsTableCorrelationNames:true\n" +
+                "usesLocalFiles:false\n" +
+                "supportsFullOuterJoins:false\n" +
+                "supportsExpressionsInOrderBy:true\n" +
+                "allProceduresAreCallable:false\n" +
+                "storesMixedCaseQuotedIdentifiers:false\n" +
+                "supportsSchemasInProcedureCalls:false\n" +
+                "nullsAreSortedAtStart:false\n" +
+                "supportsLikeEscapeClause:true\n" +
+                "supportsDataManipulationTransactionsOnly:false\n" +
+                "supportsSchemasInDataManipulation:false\n" +
+                "supportsPositionedUpdate:false\n" +
+                "supportsGetGeneratedKeys:true\n" +
+                "supportsGroupBy:true\n" +
+                "supportsOuterJoins:true\n" +
+                "supportsBatchUpdates:true\n" +
+                "supportsLimitedOuterJoins:true\n" +
+                "allTablesAreSelectable:false\n" +
+                "supportsSchemasInIndexDefinitions:false\n" +
+                "supportsConvert1:false\n" +
+                "supportsDifferentTableCorrelationNames:true\n" +
+                "supportsMultipleOpenResults:true\n" +
+                "supportsTransactions:true\n" +
+                "supportsUnion:true\n" +
+                "supportsOpenCursorsAcrossCommit:false\n" +
+                "storesLowerCaseQuotedIdentifiers:true\n" +
+                "supportsANSI92EntryLevelSQL:true\n" +
+                "supportsStoredProcedures:true\n" +
+                "supportsCatalogsInPrivilegeDefinitions:true\n" +
+                "supportsAlterTableWithDropColumn:true\n" +
+                "nullsAreSortedHigh:false\n" +
+                "supportsCatalogsInProcedureCalls:true\n" +
+                "supportsNonNullableColumns:true\n" +
+                "supportsSelectForUpdate:true\n" +
+                "supportsSubqueriesInExists:true\n" +
+                "supportsOpenStatementsAcrossRollback:false\n" +
+                "supportsOpenStatementsAcrossCommit:false\n" +
+                "supportsColumnAliasing:true\n" +
+                "supportsSavepoints:true\n" +
+                "dataDefinitionCausesTransactionCommit:true\n" +
+                "supportsMixedCaseIdentifiers:false\n" +
+                "nullsAreSortedAtEnd:false\n" +
+                "supportsAlterTableWithAddColumn:true\n" +
+                "isCatalogAtStart:true\n" +
+                "supportsUnionAll:true\n" +
+                "dataDefinitionIgnoredInTransactions:false\n" +
+                "supportsCoreSQLGrammar:true\n" +
+                "isReadOnly:false\n" +
+                "supportsGroupByUnrelated:true\n" +
+                "nullsAreSortedLow:true\n" +
+                "supportsCorrelatedSubqueries:true\n" +
+                "locatorsUpdateCopy:true\n" +
+                "supportsANSI92FullSQL:false\n" +
+                "storesUpperCaseIdentifiers:true\n" +
+                "supportsMultipleResultSets:true\n" +
+                "supportsSchemasInPrivilegeDefinitions:false\n" +
+                "supportsMixedCaseQuotedIdentifiers:false\n" +
+                "supportsGroupByBeyondSelect:true\n" +
+                "supportsCatalogsInIndexDefinitions:true\n" +
+                "supportsOrderByUnrelated:false\n" +
+                "supportsNamedParameters:false\n" +
+                "doesMaxRowSizeIncludeBlobs:true\n" +
+                "supportsSubqueriesInQuantifieds:true\n" +
+                "supportsStoredFunctionsUsingCallSyntax:true\n" +
+                "usesLocalFilePerTable:false\n" +
+                "supportsIntegrityEnhancementFacility:false\n" +
+                "storesLowerCaseIdentifiers:true\n" +
+                "supportsSubqueriesInIns:true\n" +
+                "supportsExtendedSQLGrammar:false\n" +
+                "storesUpperCaseQuotedIdentifiers:true\n" +
+                "supportsSchemasInTableDefinitions:true\n" +
+                "storesMixedCaseIdentifiers:false\n" +
+                "supportsConvert:false\n" +
+                "generatedKeyAlwaysReturned:false";
 
         String[] split = s.split("\n");
         for (String s1 : split) {
             String[] s2 = s1.split(":");
-            mapBy1X.put(s2[0], s2[1]);
+            mapBy1X.put(s2[0],s2[1]);
         }
 
         boolean allProceduresAreCallable = metaData.allProceduresAreCallable();
@@ -623,10 +682,8 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         boolean supportsTransactions = metaData.supportsTransactions();
         map.put("supportsTransactions", supportsTransactions);
 
-        boolean supportsDataDefinitionAndDataManipulationTransactions = metaData
-                .supportsDataDefinitionAndDataManipulationTransactions();
-        map.put("supportsDataDefinitionAndDataManipulationTransactions",
-                supportsDataDefinitionAndDataManipulationTransactions);
+        boolean supportsDataDefinitionAndDataManipulationTransactions = metaData.supportsDataDefinitionAndDataManipulationTransactions();
+        map.put("supportsDataDefinitionAndDataManipulationTransactions", supportsDataDefinitionAndDataManipulationTransactions);
 
         boolean supportsDataManipulationTransactionsOnly = metaData.supportsDataManipulationTransactionsOnly();
         map.put("supportsDataManipulationTransactionsOnly", supportsDataManipulationTransactionsOnly);
@@ -637,48 +694,48 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         boolean dataDefinitionIgnoredInTransactions = metaData.dataDefinitionIgnoredInTransactions();
         map.put("dataDefinitionIgnoredInTransactions", dataDefinitionIgnoredInTransactions);
 
-        /**
-         * todo with out parameter
-         * 
-         * boolean supportsTransactionIsolationLevel = metaData.supportsTransactionIsolationLevel(1);
-         * map.put("supportsTransactionIsolationLevel", supportsTransactionIsolationLevel);
-         * 
-         * boolean supportsResultSetType = metaData.supportsResultSetType(1); map.put("supportsResultSetType",
-         * supportsResultSetType);
-         * 
-         * boolean updatesAreDetected = metaData.updatesAreDetected(1); map.put("updatesAreDetected",
-         * updatesAreDetected);
-         * 
-         * boolean othersDeletesAreVisible = metaData.othersDeletesAreVisible(1); map.put("othersDeletesAreVisible",
-         * othersDeletesAreVisible);
-         * 
-         * boolean othersInsertsAreVisible = metaData.othersInsertsAreVisible(1); map.put("othersInsertsAreVisible",
-         * othersInsertsAreVisible);
-         * 
-         * boolean supportsResultSetConcurrency = metaData.supportsResultSetConcurrency(1,2);
-         * map.put("supportsResultSetConcurrency", supportsResultSetConcurrency);
-         * 
-         * boolean ownUpdatesAreVisible = metaData.ownUpdatesAreVisible(1); map.put("ownUpdatesAreVisible",
-         * ownUpdatesAreVisible);
-         * 
-         * boolean ownDeletesAreVisible = metaData.ownDeletesAreVisible(1); map.put("ownDeletesAreVisible",
-         * ownDeletesAreVisible);
-         * 
-         * boolean ownInsertsAreVisible = metaData.ownInsertsAreVisible(1); map.put("ownInsertsAreVisible",
-         * ownInsertsAreVisible);
-         * 
-         * boolean othersUpdatesAreVisible = metaData.othersUpdatesAreVisible(1); map.put("othersUpdatesAreVisible",
-         * othersUpdatesAreVisible);
-         * 
-         * boolean deletesAreDetected = metaData.deletesAreDetected(1); map.put("deletesAreDetected",
-         * deletesAreDetected);
-         * 
-         * boolean insertsAreDetected = metaData.insertsAreDetected(1); map.put("insertsAreDetected",
-         * insertsAreDetected);
-         * 
-         * boolean supportsResultSetHoldability = metaData.supportsResultSetHoldability(1);
-         * map.put("supportsResultSetHoldability", supportsResultSetHoldability);
-         */
+/**
+ * todo with out parameter
+
+        boolean supportsTransactionIsolationLevel = metaData.supportsTransactionIsolationLevel(1);
+        map.put("supportsTransactionIsolationLevel", supportsTransactionIsolationLevel);
+
+        boolean supportsResultSetType = metaData.supportsResultSetType(1);
+        map.put("supportsResultSetType", supportsResultSetType);
+
+        boolean updatesAreDetected = metaData.updatesAreDetected(1);
+        map.put("updatesAreDetected", updatesAreDetected);
+
+        boolean othersDeletesAreVisible = metaData.othersDeletesAreVisible(1);
+        map.put("othersDeletesAreVisible", othersDeletesAreVisible);
+
+        boolean othersInsertsAreVisible = metaData.othersInsertsAreVisible(1);
+        map.put("othersInsertsAreVisible", othersInsertsAreVisible);
+
+        boolean supportsResultSetConcurrency = metaData.supportsResultSetConcurrency(1,2);
+        map.put("supportsResultSetConcurrency", supportsResultSetConcurrency);
+
+        boolean ownUpdatesAreVisible = metaData.ownUpdatesAreVisible(1);
+        map.put("ownUpdatesAreVisible", ownUpdatesAreVisible);
+
+        boolean ownDeletesAreVisible = metaData.ownDeletesAreVisible(1);
+        map.put("ownDeletesAreVisible", ownDeletesAreVisible);
+
+        boolean ownInsertsAreVisible = metaData.ownInsertsAreVisible(1);
+        map.put("ownInsertsAreVisible", ownInsertsAreVisible);
+
+        boolean othersUpdatesAreVisible = metaData.othersUpdatesAreVisible(1);
+        map.put("othersUpdatesAreVisible", othersUpdatesAreVisible);
+
+        boolean deletesAreDetected = metaData.deletesAreDetected(1);
+        map.put("deletesAreDetected", deletesAreDetected);
+
+        boolean insertsAreDetected = metaData.insertsAreDetected(1);
+        map.put("insertsAreDetected", insertsAreDetected);
+
+        boolean supportsResultSetHoldability = metaData.supportsResultSetHoldability(1);
+        map.put("supportsResultSetHoldability", supportsResultSetHoldability);
+*/
 
         boolean supportsBatchUpdates = metaData.supportsBatchUpdates();
         map.put("supportsBatchUpdates", supportsBatchUpdates);
@@ -713,14 +770,18 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         Set<String> keys = map.keySet();
         for (String k : keys) {
             try {
-                assertEquals(map.get(k).toString(), mapBy1X.get(k));
+                assertEquals(map.get(k).toString(),mapBy1X.get(k));
             } catch (AssertionError e) {
                 if ("supportsDataDefinitionAndDataManipulationTransactions".equals(k)
-                        || "supportsFullOuterJoins".equals(k) || "supportsMultipleOpenResults".equals(k)
-                        || "generatedKeyAlwaysReturned".equals(k) || "supportsSchemasInPrivilegeDefinitions".equals(k)
-                        || "supportsOrderByUnrelated".equals(k) || "supportsIntegrityEnhancementFacility".equals(k)) {
+                ||"supportsFullOuterJoins".equals(k)
+                ||"supportsMultipleOpenResults".equals(k)
+                ||"generatedKeyAlwaysReturned".equals(k)
+                ||"supportsSchemasInPrivilegeDefinitions".equals(k)
+                ||"supportsOrderByUnrelated".equals(k)
+                ||"supportsIntegrityEnhancementFacility".equals(k)
+                ){
                     // ignore , Here 1.X isn't consistent with 2.X , but 2.X is consistent with Oracle-JDBC
-                } else {
+                }else {
                     e.printStackTrace();
                 }
             }

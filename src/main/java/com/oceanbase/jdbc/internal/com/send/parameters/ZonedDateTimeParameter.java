@@ -62,27 +62,24 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.util.Options;
 
 /**
- * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String entry and send it
- * to Server according to server timezone
+ * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String
+ * entry and send it to Server according to server timezone
  */
 public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
 
     private final ZonedDateTime tz;
-    private final boolean fractionalSeconds;
+    private final boolean       fractionalSeconds;
 
     /**
      * Constructor.
      *
-     * @param tz
-     *            zone date time
-     * @param serverZoneId
-     *            server session zoneId
-     * @param fractionalSeconds
-     *            must fractional Seconds be send to database.
-     * @param options
-     *            session options
+     * @param tz zone date time
+     * @param serverZoneId server session zoneId
+     * @param fractionalSeconds must fractional Seconds be send to database.
+     * @param options session options
      */
-    public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
+    public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds,
+                                  Options options) {
         ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
         this.tz = tz.withZoneSameInstant(zoneId);
         this.fractionalSeconds = fractionalSeconds;
@@ -91,12 +88,12 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos
-     *            the stream to write to
+     * @param pos the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        DateTimeFormatter formatter = DateTimeFormatter
-                .ofPattern(fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+            fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss",
+            Locale.ENGLISH);
         pos.write(QUOTE);
         pos.write(formatter.format(tz).getBytes());
         pos.write(QUOTE);
@@ -109,10 +106,8 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.write((byte) (fractionalSeconds ? 11 : 7)); // length

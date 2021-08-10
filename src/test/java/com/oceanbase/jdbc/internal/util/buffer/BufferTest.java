@@ -60,12 +60,13 @@ public class BufferTest {
     @Test
     public void testGetLengthEncodedBinary() {
         Assert.assertEquals(15, new Buffer(new byte[] { (byte) 0x0f }).getLengthEncodedNumeric());
-        Assert.assertEquals(65535,
-                new Buffer(new byte[] { (byte) 0xfc, (byte) 0xff, (byte) 0xff }).getLengthEncodedNumeric());
-        Assert.assertEquals(16777215, new Buffer(new byte[] { (byte) 0xfd, (byte) 0xff, (byte) 0xff, (byte) 0xff })
-                .getLengthEncodedNumeric());
-        Assert.assertEquals(Long.MAX_VALUE, new Buffer(new byte[] { (byte) 0xfe, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x7f }).getLengthEncodedNumeric());
+        Assert.assertEquals(65535, new Buffer(new byte[] { (byte) 0xfc, (byte) 0xff, (byte) 0xff })
+            .getLengthEncodedNumeric());
+        Assert.assertEquals(16777215, new Buffer(new byte[] { (byte) 0xfd, (byte) 0xff,
+                (byte) 0xff, (byte) 0xff }).getLengthEncodedNumeric());
+        Assert.assertEquals(Long.MAX_VALUE, new Buffer(new byte[] { (byte) 0xfe, (byte) 0xff,
+                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                (byte) 0x7f }).getLengthEncodedNumeric());
     }
 
     @Test

@@ -71,7 +71,8 @@ public class CursorFetchTest extends BaseTest {
             }
             statement.execute(query);
 
-            PreparedStatement preparedStatement = conn.prepareStatement("select * from " + tableName1);
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from "
+                                                                        + tableName1);
             preparedStatement.setFetchSize(1);
             ResultSet rs = preparedStatement.executeQuery();
             int count = 1;
@@ -101,7 +102,7 @@ public class CursorFetchTest extends BaseTest {
             stmt.execute(query);
 
             PreparedStatement ps = conn.prepareStatement("select * from " + tableName2,
-                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ps.setFetchSize(40);
             ResultSet rs = ps.executeQuery();
 

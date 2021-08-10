@@ -118,8 +118,7 @@ public class DatatypeOracleTest extends BaseOracleTest {
     /**
      * Tables initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -150,156 +149,171 @@ public class DatatypeOracleTest extends BaseOracleTest {
     public void TIMESTAMP() throws SQLException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         assertInsertSelectClientPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 1) }, new TO[] { TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.TIMESTAMP, timestamp) });
 
         assertInsertSelectClientPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 2) }, new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMP, timestamp) });
 
         timestamp = new Timestamp(System.currentTimeMillis());
         assertInsertSelectServerPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 3) }, new TO[] { TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp) });
+            new TO[] { TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 3) },
+            new TO[] { TO.$n(T.INT, 3), TO.$n(T.TIMESTAMP, timestamp) });
 
         assertInsertSelectServerPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 4) }, new TO[] { TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp) });
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 4) },
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.OBTIMESTAMP, timestamp) });
 
         assertInsertSelectClientPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 5) }, new TO[] { TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null) });
+            new TO[] { TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 5) },
+            new TO[] { TO.$n(T.INT, 5), TO.$n(T.TIMESTAMP, null) });
         assertInsertSelectServerPs("insert into tt1_timestamp values(?,?)",
-                new TO[] { TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null) }, "select * from tt1_timestamp where id=?",
-                new TO[] { TO.$n(T.INT, 6) }, new TO[] { TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null) });
+            new TO[] { TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null) },
+            "select * from tt1_timestamp where id=?", new TO[] { TO.$n(T.INT, 6) },
+            new TO[] { TO.$n(T.INT, 6), TO.$n(T.TIMESTAMP, null) });
     }
 
     @Test
     public void TIMESTAMPTZ() throws SQLException {
-        TIMESTAMPTZ timestamp = new TIMESTAMPTZ(null, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+        TIMESTAMPTZ timestamp = new TIMESTAMPTZ(null,
+            Timestamp.valueOf("2018-12-26 16:54:19.878879"));
         assertInsertSelectClientPs("insert into tt1_timestamptz values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp) },
-                "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 1) },
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp) },
+            "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPTZ, timestamp) });
 
         timestamp = new TIMESTAMPTZ(null, Timestamp.valueOf("2019-01-26 16:54:19.878879"));
         assertInsertSelectServerPs("insert into tt1_timestamptz values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp) },
-                "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 2) },
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp) },
+            "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPTZ, timestamp) });
 
         assertInsertSelectClientPs("insert into tt1_timestamptz values(?,?)",
-                new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null) }, "select * from tt1_timestamptz where id=?",
-                new TO[] { TO.$n(T.INT, 5) }, new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null) });
+            new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null) },
+            "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 5) },
+            new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPTZ, null) });
         assertInsertSelectServerPs("insert into tt1_timestamptz values(?,?)",
-                new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null) }, "select * from tt1_timestamptz where id=?",
-                new TO[] { TO.$n(T.INT, 6) }, new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null) });
+            new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null) },
+            "select * from tt1_timestamptz where id=?", new TO[] { TO.$n(T.INT, 6) },
+            new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPTZ, null) });
     }
 
     @Test
     public void TIMESTAMPLTZ() throws SQLException {
-        TIMESTAMPLTZ timestamp = new TIMESTAMPLTZ(sharedConnection, Timestamp.valueOf("2018-12-26 16:54:19.878879"));
+        TIMESTAMPLTZ timestamp = new TIMESTAMPLTZ(sharedConnection,
+            Timestamp.valueOf("2018-12-26 16:54:19.878879"));
         assertInsertSelectClientPs("insert into tt1_timestampltz values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp) },
-                "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 1) },
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp) },
+            "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 1) }, new TO[] {
+                    TO.$n(T.INT, 1), TO.$n(T.OBTIMESTAMPLTZ, timestamp) });
 
-        timestamp = new TIMESTAMPLTZ(sharedPSConnection, Timestamp.valueOf("2019-01-26 16:54:19.878879"));
+        timestamp = new TIMESTAMPLTZ(sharedPSConnection,
+            Timestamp.valueOf("2019-01-26 16:54:19.878879"));
         assertInsertSelectServerPs("insert into tt1_timestampltz values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp) },
-                "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 2) },
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp) },
+            "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 2) }, new TO[] {
+                    TO.$n(T.INT, 2), TO.$n(T.OBTIMESTAMPLTZ, timestamp) });
 
         assertInsertSelectClientPs("insert into tt1_timestampltz values(?,?)",
-                new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null) },
-                "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 5) },
-                new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null) });
+            new TO[] { TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null) },
+            "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 5) }, new TO[] {
+                    TO.$n(T.INT, 5), TO.$n(T.OBTIMESTAMPLTZ, null) });
         assertInsertSelectServerPs("insert into tt1_timestampltz values(?,?)",
-                new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null) },
-                "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 6) },
-                new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null) });
+            new TO[] { TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null) },
+            "select * from tt1_timestampltz where id=?", new TO[] { TO.$n(T.INT, 6) }, new TO[] {
+                    TO.$n(T.INT, 6), TO.$n(T.OBTIMESTAMPLTZ, null) });
     }
 
     @Test
     public void DATE() throws SQLException { // FIXME should test use TIMESTAMP/TIMESTAMPTZ/TIMESTAMPLTZ dataype, but
         // use getDate method
         Date date = new Date(Timestamp.valueOf("2018-12-26 16:54:19.878879").getTime());
-        assertInsertSelectClientPs("insert into tt1_date values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.DATE, date) }, "select * from tt1_date where id=?",
-                new TO[] { TO.$n(T.INT, 1) }, new TO[] { TO.$n(T.INT, 1), TO.$n(T.DATE, date) });
-        assertInsertSelectServerPs("insert into tt1_date values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.DATE, date) }, "select * from tt1_date where id=?",
-                new TO[] { TO.$n(T.INT, 2) }, new TO[] { TO.$n(T.INT, 2), TO.$n(T.DATE, date) });
+        assertInsertSelectClientPs("insert into tt1_date values(?,?)", new TO[] { TO.$n(T.INT, 1),
+                TO.$n(T.DATE, date) }, "select * from tt1_date where id=?",
+            new TO[] { TO.$n(T.INT, 1) }, new TO[] { TO.$n(T.INT, 1), TO.$n(T.DATE, date) });
+        assertInsertSelectServerPs("insert into tt1_date values(?,?)", new TO[] { TO.$n(T.INT, 2),
+                TO.$n(T.DATE, date) }, "select * from tt1_date where id=?",
+            new TO[] { TO.$n(T.INT, 2) }, new TO[] { TO.$n(T.INT, 2), TO.$n(T.DATE, date) });
 
-        assertInsertSelectClientPs("insert into tt1_date values(?,?)",
-                new TO[] { TO.$n(T.INT, 5), TO.$n(T.DATE, null) }, "select * from tt1_date where id=?",
-                new TO[] { TO.$n(T.INT, 5) }, new TO[] { TO.$n(T.INT, 5), TO.$n(T.DATE, null) });
-        assertInsertSelectServerPs("insert into tt1_date values(?,?)",
-                new TO[] { TO.$n(T.INT, 6), TO.$n(T.DATE, null) }, "select * from tt1_date where id=?",
-                new TO[] { TO.$n(T.INT, 6) }, new TO[] { TO.$n(T.INT, 6), TO.$n(T.DATE, null) });
+        assertInsertSelectClientPs("insert into tt1_date values(?,?)", new TO[] { TO.$n(T.INT, 5),
+                TO.$n(T.DATE, null) }, "select * from tt1_date where id=?",
+            new TO[] { TO.$n(T.INT, 5) }, new TO[] { TO.$n(T.INT, 5), TO.$n(T.DATE, null) });
+        assertInsertSelectServerPs("insert into tt1_date values(?,?)", new TO[] { TO.$n(T.INT, 6),
+                TO.$n(T.DATE, null) }, "select * from tt1_date where id=?",
+            new TO[] { TO.$n(T.INT, 6) }, new TO[] { TO.$n(T.INT, 6), TO.$n(T.DATE, null) });
     }
 
     @Test
     public void varchar() throws SQLException {
         assertInsertSelect("insert into tt1_varchar values(1, 'one')", "select * from tt1_varchar",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.VARCHAR, "one") });
-        assertInsertSelect("insert into tt1_varchar values(2, '')", "select * from tt1_varchar where id = 2",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_varchar values(3, null)", "select * from tt1_varchar where id = 3",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_varchar values(4, '张三')", "select * from tt1_varchar where id = 4",
-                new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.VARCHAR, "one") });
+        assertInsertSelect("insert into tt1_varchar values(2, '')",
+            "select * from tt1_varchar where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_varchar values(3, null)",
+            "select * from tt1_varchar where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_varchar values(4, '张三')",
+            "select * from tt1_varchar where id = 4",
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
     }
 
     @Test
     public void varchar2() throws SQLException {
-        assertInsertSelect("insert into tt1_varchar2 values(1, 'one')", "select * from tt1_varchar2",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.VARCHAR2, "one") });
-        assertInsertSelect("insert into tt1_varchar2 values(2, '')", "select * from tt1_varchar2 where id = 2",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_varchar2 values(3, null)", "select * from tt1_varchar2 where id = 3",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_varchar2 values(4, '张三')", "select * from tt1_varchar2 where id = 4",
-                new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
+        assertInsertSelect("insert into tt1_varchar2 values(1, 'one')",
+            "select * from tt1_varchar2", new TO[] { TO.$n(T.INT, 1), TO.$n(T.VARCHAR2, "one") });
+        assertInsertSelect("insert into tt1_varchar2 values(2, '')",
+            "select * from tt1_varchar2 where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_varchar2 values(3, null)",
+            "select * from tt1_varchar2 where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_varchar2 values(4, '张三')",
+            "select * from tt1_varchar2 where id = 4",
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
     }
 
     @Test
     public void nvarchar2() throws SQLException {
-        assertInsertSelect("insert into tt1_nvarchar2 values(1, 'one')", "select * from tt1_nvarchar2",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NVARCHAR2, "one") });
-        assertInsertSelect("insert into tt1_nvarchar2 values(2, '')", "select * from tt1_nvarchar2 where id = 2",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_nvarchar2 values(3, null)", "select * from tt1_nvarchar2 where id = 3",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_nvarchar2 values(4, '张三')", "select * from tt1_nvarchar2 where id = 4",
-                new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
+        assertInsertSelect("insert into tt1_nvarchar2 values(1, 'one')",
+            "select * from tt1_nvarchar2", new TO[] { TO.$n(T.INT, 1), TO.$n(T.NVARCHAR2, "one") });
+        assertInsertSelect("insert into tt1_nvarchar2 values(2, '')",
+            "select * from tt1_nvarchar2 where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_nvarchar2 values(3, null)",
+            "select * from tt1_nvarchar2 where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_nvarchar2 values(4, '张三')",
+            "select * from tt1_nvarchar2 where id = 4",
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, "张三") });
     }
 
     @Test
     public void test_char() throws SQLException {
         assertInsertSelect("insert into tt1_char values(1, 'one')", "select * from tt1_char",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20)) });
-        assertInsertSelect("insert into tt1_char values(2, '')", "select * from tt1_char where id = 2",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_char values(3, null)", "select * from tt1_char where id = 3",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20)) });
+        assertInsertSelect("insert into tt1_char values(2, '')",
+            "select * from tt1_char where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_char values(3, null)",
+            "select * from tt1_char where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
         // TODO Need to consider the impact of character set .
         // insertAndSelect("insert into tt1_char values(4, '张三')", "select * from tt1_char where id =
         // 4", new TO[]{TO.$n(T.INT, 4),
-        // TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
+        //        TO.$n(T.NVARCHAR2, rightPadding("张三", 20))});
     }
 
     @Test
     public void test_nchar() throws SQLException {
         assertInsertSelect("insert into tt1_nchar values(1, 'one')", "select * from tt1_nchar",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20)) });
-        assertInsertSelect("insert into tt1_nchar values(2, '')", "select * from tt1_nchar where id = 2",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
-        assertInsertSelect("insert into tt1_nchar values(3, null)", "select * from tt1_nchar where id = 3",
-                new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.CHAR, rightPadding("one", 20)) });
+        assertInsertSelect("insert into tt1_nchar values(2, '')",
+            "select * from tt1_nchar where id = 2", new TO[] { TO.$n(T.INT, 2), TO.$n(T.NULL) });
+        assertInsertSelect("insert into tt1_nchar values(3, null)",
+            "select * from tt1_nchar where id = 3", new TO[] { TO.$n(T.INT, 3), TO.$n(T.NULL) });
         // TODO Need to consider the impact of character set .
-        assertInsertSelect("insert into tt1_nchar values(4, '张三')", "select * from tt1_nchar where id = 4",
-                new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, rightPadding("张三", 20)) });
+        assertInsertSelect("insert into tt1_nchar values(4, '张三')",
+            "select * from tt1_nchar where id = 4",
+            new TO[] { TO.$n(T.INT, 4), TO.$n(T.NVARCHAR2, rightPadding("张三", 20)) });
     }
 
     public String rightPadding(String inputString, int length) {
@@ -320,17 +334,19 @@ public class DatatypeOracleTest extends BaseOracleTest {
         createTable("test_number_ps", "id int ,tmp number(5) ");
         Integer num = 2;
         assertInsertSelectClientPs("insert into test_number_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, num) }, "select * from test_number_ps where id=?",
-                new TO[] { TO.$n(T.INT, 1) }, new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, num) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, num) },
+            "select * from test_number_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, num) });
         assertInsertSelectServerPs("insert into test_number_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER, num) }, "select * from test_number_ps where id=?",
-                new TO[] { TO.$n(T.INT, 2) }, new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER, num) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER, num) },
+            "select * from test_number_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER, num) });
     }
 
     @Test
     public void test_number() throws SQLException {
         assertInsertSelect("insert into tt1_number values(1, 3)", "select id,tmp from tt1_number",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, 3) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER, 3) });
     }
 
     @Test
@@ -338,27 +354,29 @@ public class DatatypeOracleTest extends BaseOracleTest {
         createTable("test_number_float_ps", "id int ,tmp number(5,2) ");
         float num = 5.3f;
         assertInsertSelectClientPs("insert into test_number_float_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num) },
-                "select id,tmp from test_number_float_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num) },
+            "select id,tmp from test_number_float_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, num) });
         assertInsertSelectServerPs("insert into test_number_float_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num) },
-                "select id,tmp from test_number_float_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num) },
+            "select id,tmp from test_number_float_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.NUMBER_FLOAT, num) });
     }
 
     @Test
     public void test_number_float() throws SQLException {
         createTable("test_number_float", "id int ,tmp number(10,2)");
-        assertInsertSelect("insert into test_number_float values(1, 2.43)", "select * from test_number_float",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, 2.43f) });
+        assertInsertSelect("insert into test_number_float values(1, 2.43)",
+            "select * from test_number_float",
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.NUMBER_FLOAT, 2.43f) });
     }
 
     @Test
     public void test_binary_float() throws SQLException {
         createTable("test_binary_float", "id int ,tmp number(10,2)");
-        assertInsertSelect("insert into test_binary_float values(1, 1.23)", "select * from test_binary_float",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, 1.23f) });
+        assertInsertSelect("insert into test_binary_float values(1, 1.23)",
+            "select * from test_binary_float",
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, 1.23f) });
     }
 
     @Test
@@ -366,20 +384,21 @@ public class DatatypeOracleTest extends BaseOracleTest {
         createTable("test_binary_float_ps", "id int ,tmp number(5,3) ");
         float num = 2.345f;
         assertInsertSelectClientPs("insert into test_binary_float_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num) },
-                "select id,tmp from test_binary_float_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num) },
+            "select id,tmp from test_binary_float_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_FLOAT, num) });
         assertInsertSelectServerPs("insert into test_binary_float_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num) },
-                "select id,tmp from test_binary_float_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num) },
+            "select id,tmp from test_binary_float_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_FLOAT, num) });
     }
 
     @Test
     public void test_binary_double() throws SQLException {
         createTable("test_binary_double", "id int ,tmp number(10,3)");
-        assertInsertSelect("insert into test_binary_double values(1, 1.234)", "select * from test_binary_double",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, 1.234d) });
+        assertInsertSelect("insert into test_binary_double values(1, 1.234)",
+            "select * from test_binary_double",
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, 1.234d) });
     }
 
     @Test
@@ -387,13 +406,13 @@ public class DatatypeOracleTest extends BaseOracleTest {
         createTable("test_binary_double_ps", "id int ,tmp number(5,3) ");
         double num = 2.345d;
         assertInsertSelectClientPs("insert into test_binary_double_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num) },
-                "select id,tmp from test_binary_double_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
-                new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num) });
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num) },
+            "select id,tmp from test_binary_double_ps where id=?", new TO[] { TO.$n(T.INT, 1) },
+            new TO[] { TO.$n(T.INT, 1), TO.$n(T.BINARY_DOUBLE, num) });
         assertInsertSelectServerPs("insert into test_binary_double_ps values(?,?)",
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num) },
-                "select id,tmp from test_binary_double_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
-                new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num) });
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num) },
+            "select id,tmp from test_binary_double_ps where id=?", new TO[] { TO.$n(T.INT, 2) },
+            new TO[] { TO.$n(T.INT, 2), TO.$n(T.BINARY_DOUBLE, num) });
     }
 
     @Test
@@ -402,9 +421,10 @@ public class DatatypeOracleTest extends BaseOracleTest {
             createTable("testBinaryFloat", "c1 binary_float ");
             String sql = "insert into testBinaryFloat (c1) values(1.9),(1.9f),(1);";
             assertEquals(3, sharedConnection.createStatement().executeUpdate(sql));
-            ResultSet rs = sharedConnection.prepareStatement("select c1  from testBinaryFloat").executeQuery();
-            BigDecimal[] bigDecimals = new BigDecimal[] { BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1.9f),
-                    BigDecimal.valueOf(1) };
+            ResultSet rs = sharedConnection.prepareStatement("select c1  from testBinaryFloat")
+                .executeQuery();
+            BigDecimal[] bigDecimals = new BigDecimal[] { BigDecimal.valueOf(1.9f),
+                    BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1) };
             int i = 0;
             while (rs.next()) {
                 System.out.println("i = " + i);
@@ -422,9 +442,10 @@ public class DatatypeOracleTest extends BaseOracleTest {
             createTable("testBinaryDouble", "c1 binary_double ");
             String sql = "insert into testBinaryDouble (c1) values(1.9),(1.9f),(1);";
             assertEquals(3, sharedConnection.createStatement().executeUpdate(sql));
-            ResultSet rs = sharedConnection.prepareStatement("select c1  from testBinaryDouble").executeQuery();
-            BigDecimal[] bigDecimals = new BigDecimal[] { BigDecimal.valueOf(1.9d), BigDecimal.valueOf(1.9f),
-                    BigDecimal.valueOf(1) };
+            ResultSet rs = sharedConnection.prepareStatement("select c1  from testBinaryDouble")
+                .executeQuery();
+            BigDecimal[] bigDecimals = new BigDecimal[] { BigDecimal.valueOf(1.9d),
+                    BigDecimal.valueOf(1.9f), BigDecimal.valueOf(1) };
             int i = 0;
             while (rs.next()) {
                 System.out.println("i = " + i);
@@ -454,13 +475,10 @@ public class DatatypeOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query
-     *            query
-     * @param prepared
-     *            flag must be a prepare statement
+     * @param query    query
+     * @param prepared flag must be a prepare statement
      * @return a statement
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
         return getResultSet(query, prepared, sharedConnection);
@@ -469,19 +487,17 @@ public class DatatypeOracleTest extends BaseOracleTest {
     /**
      * Get a simple Statement or a PrepareStatement.
      *
-     * @param query
-     *            query
-     * @param prepared
-     *            flag must be a prepare statement
-     * @param connection
-     *            the connection to use
+     * @param query      query
+     * @param prepared   flag must be a prepare statement
+     * @param connection the connection to use
      * @return a statement
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection)
+                                                                                               throws SQLException {
         if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
+            PreparedStatement preparedStatement = connection.prepareStatement(query
+                                                                              + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {
@@ -620,7 +636,9 @@ public class DatatypeOracleTest extends BaseOracleTest {
 
     @Test
     public void signedBigIntTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into signedBigIntTest values (9223372036854775807)");
+        sharedConnection
+                .createStatement()
+                .execute("insert into signedBigIntTest values (9223372036854775807)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
@@ -694,7 +712,8 @@ public class DatatypeOracleTest extends BaseOracleTest {
         oneNullNegativeTest(rs, false, false);
     }
 
-    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
+    private void oneNullNegativeTest(ResultSet rs, boolean decimal, boolean floatingPoint)
+                                                                                          throws SQLException {
         try {
             if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));
@@ -762,7 +781,8 @@ public class DatatypeOracleTest extends BaseOracleTest {
                 assertEquals(-1, rs.getDouble(1), .00001);
                 assertEquals(-1, rs.getFloat(1), .00001);
                 if (decimal) {
-                    assertTrue(new BigDecimal("-1.00000000000000000000").equals(rs.getBigDecimal(1)));
+                    assertTrue(new BigDecimal("-1.00000000000000000000")
+                        .equals(rs.getBigDecimal(1)));
                     assertEquals("-1.00000000000000000000", rs.getString(1));
                 } else {
                     assertTrue(new BigDecimal("-1").equals(rs.getBigDecimal(1)));
@@ -798,15 +818,19 @@ public class DatatypeOracleTest extends BaseOracleTest {
                 }
 
                 statement.execute("create table ALL_DATATYPE_TEST(\n" + " INT_TEST INT,\n"
-                        + " VARCHAR2_TEST VARCHAR2(32),\n" + " NVARCHAR2_TEST NVARCHAR2(32),\n"
-                        + " NUMBER_TEST NUMBER(9,5),\n" + " FLOAT_TEST FLOAT(32),\n" + " DATE_TEST DATE,\n"
-                        + " BINARY_FLOAT_TEST BINARY_FLOAT,\n" + " BINARY_DOUBLE_TEST BINARY_DOUBLE,\n"
-                        + " ROWID_TEST ROWID,\n" + " UROWID_TEST UROWID(4000),\n" + " CHAR_TEST CHAR(128),\n"
-                        + " NCHAR_TEST NCHAR(128),\n" + " CLOB_TEST CLOB,\n" + " BLOB_TEST BLOB,\n"
-                        + " TIMESTAMP_TEST TIMESTAMP,\n" + " TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE,\n"
-                        + " RAW_TEST RAW(100),\n" + " TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE,\n"
-                        + " INTERVAL_DAY_TO_SECOND_TEST INTERVAL DAY TO SECOND,\n"
-                        + " INTERVAL_YEAR_TO_MONTH_TEST INTERVAL YEAR TO MONTH\n" + ")");
+                                  + " VARCHAR2_TEST VARCHAR2(32),\n"
+                                  + " NVARCHAR2_TEST NVARCHAR2(32),\n"
+                                  + " NUMBER_TEST NUMBER(9,5),\n" + " FLOAT_TEST FLOAT(32),\n"
+                                  + " DATE_TEST DATE,\n" + " BINARY_FLOAT_TEST BINARY_FLOAT,\n"
+                                  + " BINARY_DOUBLE_TEST BINARY_DOUBLE,\n" + " ROWID_TEST ROWID,\n"
+                                  + " UROWID_TEST UROWID(4000),\n" + " CHAR_TEST CHAR(128),\n"
+                                  + " NCHAR_TEST NCHAR(128),\n" + " CLOB_TEST CLOB,\n"
+                                  + " BLOB_TEST BLOB,\n" + " TIMESTAMP_TEST TIMESTAMP,\n"
+                                  + " TIMESTAMP_WTZ_TEST TIMESTAMP(8) WITH TIME ZONE,\n"
+                                  + " RAW_TEST RAW(100),\n"
+                                  + " TIMESTAMP_WLTZ_TEST TIMESTAMP(8) WITH LOCAL TIME ZONE,\n"
+                                  + " INTERVAL_DAY_TO_SECOND_TEST INTERVAL DAY TO SECOND,\n"
+                                  + " INTERVAL_YEAR_TO_MONTH_TEST INTERVAL YEAR TO MONTH\n" + ")");
 
                 ResultSet rs = statement.executeQuery("select * FROM ALL_DATATYPE_TEST");
 
@@ -817,12 +841,15 @@ public class DatatypeOracleTest extends BaseOracleTest {
                         map.put("columnTypeName" + p, columnTypeName);
                         map.put("columnType" + p, columnType);
                     } else {
-                        System.out.println(
-                                "column[" + p + "] --------------------------------------------------------------");
-                        System.out.println("Oracle      " + "\t[TypeName|" + columnTypeName + "] \t[TypeValue|"
-                                + columnType + "] \t");
-                        System.out.println("OB-Oracle   " + "\t[TypeName|" + map.get("columnTypeName" + p)
-                                + "] \t[TypeValue|" + map.get("columnType" + p) + "] \t");
+                        System.out
+                            .println("column["
+                                     + p
+                                     + "] --------------------------------------------------------------");
+                        System.out.println("Oracle      " + "\t[TypeName|" + columnTypeName
+                                           + "] \t[TypeValue|" + columnType + "] \t");
+                        System.out.println("OB-Oracle   " + "\t[TypeName|"
+                                           + map.get("columnTypeName" + p) + "] \t[TypeValue|"
+                                           + map.get("columnType" + p) + "] \t");
                         assertEquals(columnTypeName, map.get("columnTypeName" + p));
                         assertEquals(columnType, map.get("columnType" + p));
                     }

@@ -47,15 +47,15 @@ import java.security.InvalidParameterException;
 import java.sql.SQLException;
 
 public class INTERVALYM extends Datum {
-    private static int MASKVAL = 255;
-    private static int INTYMYEAROFFSET = -2147483648;
-    private static int INTYMMONTHOFFSET = 60;
+    private static int MASKVAL             = 255;
+    private static int INTYMYEAROFFSET     = -2147483648;
+    private static int INTYMMONTHOFFSET    = 60;
     private static int INTERVALYMMAXLENGTH = 5;
-    private static int MAXYEARPREC = 9;
-    private static int MAXMONTH = 12;
+    private static int MAXYEARPREC         = 9;
+    private static int MAXMONTH            = 12;
 
     private static int INTERVALYM_BYTE_NUM = 7;
-    static final long serialVersionUID = 8393284561907159296L;
+    static final long  serialVersionUID    = 8393284561907159296L;
 
     public INTERVALYM() {
         super(toBytes("0-0"));
@@ -69,7 +69,7 @@ public class INTERVALYM extends Datum {
         super(toBytes(str));
     }
 
-    // +0123-02
+    //+0123-02
     public static byte[] toBytes(String var) {
         if (var == null) {
             return null;
@@ -90,7 +90,7 @@ public class INTERVALYM extends Datum {
                 }
             }
             String subStr = trimStr.substring(pos);
-            int index = subStr.indexOf('-'); // find pos of blanket
+            int index = subStr.indexOf('-'); //find pos of blanket
             String yearStr = subStr.substring(0, index);
             if (yearStr.length() > MAXYEARPREC) {
                 throw new NumberFormatException("invalid year " + yearStr + " in " + var);
@@ -121,11 +121,12 @@ public class INTERVALYM extends Datum {
             int month = data[5] & MASKVAL;
             int year_scale = data[6] & MASKVAL;
             if (year < 0 || year > Math.pow(10, MAXYEARPREC)) {
-                throw new NumberFormatException(
-                        "year should not exceed " + Math.pow(10, MAXYEARPREC) + ", now is " + year);
+                throw new NumberFormatException("year should not exceed "
+                                                + Math.pow(10, MAXYEARPREC) + ", now is " + year);
             }
             if (month < 0 || month >= MAXMONTH) {
-                throw new NumberFormatException("month should not exceed " + MAXMONTH + ", now is " + month);
+                throw new NumberFormatException("month should not exceed " + MAXMONTH + ", now is "
+                                                + month);
             }
 
             String result;

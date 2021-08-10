@@ -156,8 +156,9 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-                    || e.getMessage().contains("Parameter at position 2 is not set"));
+            assertTrue(e.getMessage().contains(
+                "You need to set exactly 2 parameters on the prepared statement")
+                       || e.getMessage().contains("Parameter at position 2 is not set"));
         }
 
         try {
@@ -178,8 +179,9 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-                    || e.getMessage().contains("Parameter at position 1 is not set"));
+            assertTrue(e.getMessage().contains(
+                "You need to set exactly 2 parameters on the prepared statement")
+                       || e.getMessage().contains("Parameter at position 1 is not set"));
         }
     }
 
@@ -194,14 +196,16 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.setString(3, "a");
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Could not set parameter at position 3 (values was 'a')"));
+            assertTrue(e.getMessage().contains(
+                "Could not set parameter at position 3 (values was 'a')"));
         }
 
         try {
             preparedStatement.setString(0, "a");
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Could not set parameter at position 0 (values was 'a')"));
+            assertTrue(e.getMessage().contains(
+                "Could not set parameter at position 0 (values was 'a')"));
         }
     }
 
@@ -216,10 +220,9 @@ public class ClientPreparedStatementTest extends BaseTest {
 
         preparedStatement.close();
 
-        /*
-         * The connection has been set to null after execute preparedStatement.close(). It will be throw
-         * java.lang.NullPointerException for judge this.connection.getProtocol.isOracleMode().
-         **/
+        /* The connection has been set to null after execute preparedStatement.close(). It will be throw
+        *  java.lang.NullPointerException for judge this.connection.getProtocol.isOracleMode().
+        * **/
         try {
             preparedStatement.setString(1, "2");
             preparedStatement.setString(2, "2");
@@ -234,7 +237,7 @@ public class ClientPreparedStatementTest extends BaseTest {
     @Test
     public void executeLargeBatchError() throws SQLException {
         PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("INSERT INTO unknownTable values (?, ?)");
+            .prepareStatement("INSERT INTO unknownTable values (?, ?)");
         preparedStatement.setString(1, "1");
         preparedStatement.setString(2, "1");
         preparedStatement.addBatch();
@@ -248,25 +251,26 @@ public class ClientPreparedStatementTest extends BaseTest {
     }
 
     @Test
-    public void executeBatchOneByOne() throws SQLException {
-        try (Connection connection = setConnection(
-                "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
-            Statement stmt = connection.createStatement();
-            try {
-                stmt.execute("drop table executeBatchOneByOne");
-            } catch (SQLException e) {
-                // eat execetion
-            }
-            stmt.execute("CREATE TEMPORARY TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
-            PreparedStatement preparedStatement = connection
-                    .prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
-            preparedStatement.setString(1, "1");
-            preparedStatement.setString(2, "1");
-            preparedStatement.addBatch();
-            preparedStatement.setQueryTimeout(10);
-            assertEquals(1, preparedStatement.executeBatch().length);
-        }
+  public void executeBatchOneByOne() throws SQLException {
+    try (Connection connection =
+        setConnection(
+            "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
+      Statement stmt = connection.createStatement();
+      try{
+          stmt.execute("drop table executeBatchOneByOne");
+      } catch (SQLException e) {
+          // eat execetion
+      }
+      stmt.execute("CREATE TEMPORARY TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
+      preparedStatement.setString(1, "1");
+      preparedStatement.setString(2, "1");
+      preparedStatement.addBatch();
+      preparedStatement.setQueryTimeout(10);
+      assertEquals(1, preparedStatement.executeBatch().length);
     }
+  }
 
     @Test
     public void metaDataForWrongQuery() throws SQLException {
@@ -288,9 +292,11 @@ public class ClientPreparedStatementTest extends BaseTest {
 
     @Test
     public void prepareToString() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? as a, ? as b");
+        PreparedStatement preparedStatement = sharedConnection
+            .prepareStatement("SELECT ? as a, ? as b");
         preparedStatement.setString(1, "a");
         preparedStatement.setNull(2, Types.VARCHAR);
-        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]", preparedStatement.toString());
+        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
+            preparedStatement.toString());
     }
 }

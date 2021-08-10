@@ -71,13 +71,15 @@ public class OceanBaseActivator implements BundleActivator {
     private ServiceRegistration<DataSourceFactory> service;
 
     @Override
-    public void start(BundleContext context) throws Exception {
-        Dictionary<String, Object> properties = new Hashtable<>();
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, OceanBaseDatabaseMetaData.DRIVER_NAME);
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Version.version);
-        service = context.registerService(DataSourceFactory.class, new OceanBaseDataSourceFactory(), properties);
-    }
+  public void start(BundleContext context) throws Exception {
+    Dictionary<String, Object> properties = new Hashtable<>();
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, OceanBaseDatabaseMetaData.DRIVER_NAME);
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Version.version);
+    service =
+        context.registerService(
+            DataSourceFactory.class, new OceanBaseDataSourceFactory(), properties);
+  }
 
     @Override
     public void stop(BundleContext context) throws Exception {

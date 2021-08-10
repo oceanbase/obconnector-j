@@ -65,9 +65,9 @@ import com.sun.jna.Structure;
 
 public class UnixDomainSocket extends Socket {
 
-    private static final int AF_UNIX = 1;
-    private static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
-    private static final int PROTOCOL = 0;
+    private static final int    AF_UNIX     = 1;
+    private static final int    SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
+    private static final int    PROTOCOL    = 0;
 
     static {
         if (Platform.isSolaris()) {
@@ -79,12 +79,12 @@ public class UnixDomainSocket extends Socket {
         }
     }
 
-    private final AtomicBoolean closeLock = new AtomicBoolean();
-    private final SockAddr sockaddr;
-    private final int fd;
-    private InputStream is;
-    private OutputStream os;
-    private boolean connected;
+    private final AtomicBoolean closeLock   = new AtomicBoolean();
+    private final SockAddr      sockaddr;
+    private final int           fd;
+    private InputStream         is;
+    private OutputStream        os;
+    private boolean             connected;
 
     public UnixDomainSocket(String path) throws IOException {
         if (Platform.isWindows() || Platform.isWindowsCE()) {
@@ -101,11 +101,14 @@ public class UnixDomainSocket extends Socket {
 
     public static native int socket(int domain, int type, int protocol) throws LastErrorException;
 
-    public static native int connect(int sockfd, SockAddr sockaddr, int addrlen) throws LastErrorException;
+    public static native int connect(int sockfd, SockAddr sockaddr, int addrlen)
+                                                                                throws LastErrorException;
 
-    public static native int recv(int fd, byte[] buffer, int count, int flags) throws LastErrorException;
+    public static native int recv(int fd, byte[] buffer, int count, int flags)
+                                                                              throws LastErrorException;
 
-    public static native int send(int fd, byte[] buffer, int count, int flags) throws LastErrorException;
+    public static native int send(int fd, byte[] buffer, int count, int flags)
+                                                                              throws LastErrorException;
 
     public static native int close(int fd) throws LastErrorException;
 
@@ -197,14 +200,13 @@ public class UnixDomainSocket extends Socket {
 
     public static class SockAddr extends Structure {
 
-        public short sun_family;
+        public short  sun_family;
         public byte[] sun_path;
 
         /**
          * Contructor.
          *
-         * @param sunPath
-         *            path
+         * @param sunPath path
          */
         public SockAddr(String sunPath) {
             sun_family = AF_UNIX;
@@ -231,7 +233,8 @@ public class UnixDomainSocket extends Socket {
                     int size;
                     byte[] data = new byte[(len < 10240) ? len : 10240];
                     do {
-                        size = recv(fd, data, (remainingLength < 10240) ? remainingLength : 10240, 0);
+                        size = recv(fd, data, (remainingLength < 10240) ? remainingLength : 10240,
+                            0);
                         if (size > 0) {
                             System.arraycopy(data, 0, bytesEntry, off, size);
                             bytes += size;

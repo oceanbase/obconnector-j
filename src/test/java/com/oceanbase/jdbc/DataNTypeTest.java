@@ -69,10 +69,10 @@ public class DataNTypeTest extends BaseTest {
     // not support setNClob now
     @Test
     public void testSetNClob() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
-                                                // used
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetNClob", "id int not null primary key, strm text", "CHARSET utf8");
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into testSetNClob (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection
+            .prepareStatement("insert into testSetNClob (id, strm) values (?,?)");
         NClob nclob = sharedConnection.createNClob();
         OutputStream stream = nclob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
@@ -82,7 +82,8 @@ public class DataNTypeTest extends BaseTest {
         stmt.setString(2, "hello");
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNClob");
+        ResultSet rs = sharedConnection.createStatement()
+            .executeQuery("select * from testSetNClob");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -95,11 +96,11 @@ public class DataNTypeTest extends BaseTest {
     // not support setNclob or set with nclob object
     @Test
     public void testSetObjectNClob() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
-                                                // used
-        createTable("testSetObjectNClob", "id int not null primary key, strm text, strm2 text", "CHARSET utf8");
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        createTable("testSetObjectNClob", "id int not null primary key, strm text, strm2 text",
+            "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
-                .prepareStatement("insert into testSetObjectNClob (id, strm, strm2) values (?,?,?)");
+            .prepareStatement("insert into testSetObjectNClob (id, strm, strm2) values (?,?,?)");
         NClob nclob = sharedConnection.createNClob();
         OutputStream stream = nclob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
@@ -110,7 +111,8 @@ public class DataNTypeTest extends BaseTest {
         stmt.setObject(3, nclob, Types.NCLOB);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNClob");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "select * from testSetObjectNClob");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -123,14 +125,16 @@ public class DataNTypeTest extends BaseTest {
     @Test
     public void testSetNString() throws Exception {
 
-        createTable("testSetNString", "id int not null primary key, strm varchar(10)", "CHARSET utf8");
+        createTable("testSetNString", "id int not null primary key, strm varchar(10)",
+            "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
-                .prepareStatement("insert into testSetNString (id, strm) values (?,?)");
+            .prepareStatement("insert into testSetNString (id, strm) values (?,?)");
         stmt.setInt(1, 1);
         stmt.setNString(2, "hello");
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNString");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "select * from testSetNString");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getNString(2).equals("hello"));
@@ -139,16 +143,17 @@ public class DataNTypeTest extends BaseTest {
     @Test
     public void testSetObjectNString() throws Exception {
 
-        createTable("testSetObjectNString", "id int not null primary key, strm varchar(10), strm2 varchar(10)",
-                "CHARSET utf8");
+        createTable("testSetObjectNString",
+            "id int not null primary key, strm varchar(10), strm2 varchar(10)", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
-                .prepareStatement("insert into testSetObjectNString (id, strm, strm2) values (?, ?, ?)");
+            .prepareStatement("insert into testSetObjectNString (id, strm, strm2) values (?, ?, ?)");
         stmt.setInt(1, 2);
         stmt.setObject(2, "hello");
         stmt.setObject(3, "hello", Types.NCLOB);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNString");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "select * from testSetObjectNString");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
@@ -160,11 +165,10 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetNCharacter() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
-                                                // used
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
         createTable("testSetNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
-                .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
+            .prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
         String toInsert = "Øabcdefgh\njklmn\"";
 
         stmt.setInt(1, 1);
@@ -175,7 +179,8 @@ public class DataNTypeTest extends BaseTest {
         stmt.setNCharacterStream(2, new StringReader(toInsert), 3);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetNCharacter");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "select * from testSetNCharacter");
         assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getCharacterStream(2) instanceof Reader);
@@ -187,11 +192,11 @@ public class DataNTypeTest extends BaseTest {
 
     @Test
     public void testSetObjectNCharacter() throws Exception {
-        Assume.assumeFalse(sharedUsePrepare()); // COM_STMT_SEND_LONG_DATA is temporarily not supported, ps cannot be
-                                                // used
-        createTable("testSetObjectNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
+        Assume.assumeFalse(sharedUsePrepare()); //COM_STMT_SEND_LONG_DATA  is temporarily not supported, ps cannot be used
+        createTable("testSetObjectNCharacter", "id int not null primary key, strm text",
+            "CHARSET utf8");
         PreparedStatement stmt = sharedConnection
-                .prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
+            .prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
         String toInsert = "Øabcdefgh\njklmn\"";
 
         stmt.setInt(1, 1);
@@ -206,7 +211,8 @@ public class DataNTypeTest extends BaseTest {
         stmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR, 3);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+            "select * from testSetObjectNCharacter");
         assertTrue(rs.next());
         Reader reader1 = rs.getObject(2, Reader.class);
         assertNotNull(reader1);

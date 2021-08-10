@@ -68,7 +68,7 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
-                // e.printStackTrace();
+                //            e.printStackTrace();
             }
             ps = conn.prepareStatement("drop table pub_grade_task");
             try {
@@ -76,7 +76,7 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
-                // e.printStackTrace();
+                //            e.printStackTrace();
             }
             ps = conn.prepareStatement("drop table pub_user");
             try {
@@ -84,7 +84,7 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
-                // e.printStackTrace();
+                //            e.printStackTrace();
             }
             ps = conn.prepareStatement("drop table pub_user_grade");
             try {
@@ -92,38 +92,54 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
-                // e.printStackTrace();
+                //            e.printStackTrace();
             }
-            ps = conn.prepareStatement(
-                    "CREATE TABLE pub_menu (menuid varchar(20), uppermenuid varchar(20), menulevel varchar(20),"
-                            + "systemcode varchar(20),menucname varchar(20), actionurl varchar(20),target varchar(20), "
-                            + "displayno varchar(20), image varchar(20), taskcode varchar(20),validind varchar(20), remark varchar(20))");
+            ps = conn
+                .prepareStatement("CREATE TABLE pub_menu (menuid varchar(20), uppermenuid varchar(20), menulevel varchar(20),"
+                                  + "systemcode varchar(20),menucname varchar(20), actionurl varchar(20),target varchar(20), "
+                                  + "displayno varchar(20), image varchar(20), taskcode varchar(20),validind varchar(20), remark varchar(20))");
             ps.execute();
             ps.close();
-            ps = conn.prepareStatement("CREATE TABLE pub_grade_task (taskcode varchar(20), gradecode varchar(20))");
+            ps = conn
+                .prepareStatement("CREATE TABLE pub_grade_task (taskcode varchar(20), gradecode varchar(20))");
             ps.execute();
             ps.close();
-            ps = conn.prepareStatement("CREATE TABLE pub_user (usercode varchar(20),validind varchar(20))");
+            ps = conn
+                .prepareStatement("CREATE TABLE pub_user (usercode varchar(20),validind varchar(20))");
             ps.execute();
             ps.close();
-            ps = conn.prepareStatement(
-                    "CREATE TABLE pub_user_grade (gradecode varchar(20), usercode varchar(20),validind varchar(20))");
+            ps = conn
+                .prepareStatement("CREATE TABLE pub_user_grade (gradecode varchar(20), usercode varchar(20),validind varchar(20))");
             ps.execute();
             ps.close();
             String csn = Charset.defaultCharset().name();
             System.out.println("csn = " + csn);
-            ps = conn.prepareStatement("select\n" + "  t.menuid as menuID,\n" + "  t.uppermenuid as upperMenuID,\n"
-                    + "  t.menulevel as menulevel,\n" + "  t.systemcode as systemcode,\n"
-                    + "  t.menucname as menucname,\n" + "  t.actionurl as actionUrl,\n" + "  t.target as target,\n"
-                    + "  t.displayno as displayno,\n" + "  t.image as image,\n" + "  t.taskcode as taskcode,\n"
-                    + "  t.validind as validind\n" + "from\n" + "  pub_menu t\n" + "where\n" + "  1 = 1\n" + "  and (\n"
-                    + "    t.remark is null\n" + "    or t.remark != '����̨�˵�'\n" + "  )\n" + "  and t.taskcode in (\n"
-                    + "    select\n" + "      gt.taskcode\n" + "    from\n" + "      pub_grade_task gt,\n"
-                    + "      pub_user u,\n" + "      pub_user_grade ug\n" + "    where\n" + "      1 = 1\n"
-                    + "      and gt.gradecode = ug.gradecode\n" + "      and ug.usercode = u.usercode\n"
-                    + "      and u.usercode = 'zhouwenjun@sinosafe.com.cn'\n" + "      and u.validind = '1'\n"
-                    + "      and ug.validind = '1'\n" + "  )\n" + "  and t.systemcode = 'lawsuit'\n"
-                    + "  and t.menulevel = 1\n" + "  and t.validind = '1'\n" + "order by\n" + "  t.displayno");
+            ps = conn.prepareStatement("select\n" + "  t.menuid as menuID,\n"
+                                       + "  t.uppermenuid as upperMenuID,\n"
+                                       + "  t.menulevel as menulevel,\n"
+                                       + "  t.systemcode as systemcode,\n"
+                                       + "  t.menucname as menucname,\n"
+                                       + "  t.actionurl as actionUrl,\n"
+                                       + "  t.target as target,\n"
+                                       + "  t.displayno as displayno,\n" + "  t.image as image,\n"
+                                       + "  t.taskcode as taskcode,\n"
+                                       + "  t.validind as validind\n" + "from\n" + "  pub_menu t\n"
+                                       + "where\n" + "  1 = 1\n" + "  and (\n"
+                                       + "    t.remark is null\n"
+                                       + "    or t.remark != '����̨�˵�'\n" + "  )\n"
+                                       + "  and t.taskcode in (\n" + "    select\n"
+                                       + "      gt.taskcode\n" + "    from\n"
+                                       + "      pub_grade_task gt,\n" + "      pub_user u,\n"
+                                       + "      pub_user_grade ug\n" + "    where\n"
+                                       + "      1 = 1\n"
+                                       + "      and gt.gradecode = ug.gradecode\n"
+                                       + "      and ug.usercode = u.usercode\n"
+                                       + "      and u.usercode = 'zhouwenjun@sinosafe.com.cn'\n"
+                                       + "      and u.validind = '1'\n"
+                                       + "      and ug.validind = '1'\n" + "  )\n"
+                                       + "  and t.systemcode = 'lawsuit'\n"
+                                       + "  and t.menulevel = 1\n" + "  and t.validind = '1'\n"
+                                       + "order by\n" + "  t.displayno");
             try {
                 ps.execute();
             } catch (SQLException ex) {

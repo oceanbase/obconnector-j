@@ -52,22 +52,20 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class OBStreamParameter implements Cloneable, ParameterHolder {
 
     private final InputStream is;
-    private final long length;
-    private final boolean noBackslashEscapes;
-    private final boolean hasLobLocator;
-    private final byte[] bytes;
+    private final long        length;
+    private final boolean     noBackslashEscapes;
+    private final boolean     hasLobLocator;
+    private final byte[]      bytes;
 
     /**
      * Constructor.
      *
-     * @param is
-     *            stream to write
-     * @param length
-     *            max length to write (if null the whole stream will be send)
-     * @param noBackslashEscapes
-     *            must backslash be escape
+     * @param is stream to write
+     * @param length max length to write (if null the whole stream will be send)
+     * @param noBackslashEscapes must backslash be escape
      */
-    public OBStreamParameter(boolean hasLobLocator, InputStream is, long length, boolean noBackslashEscapes) {
+    public OBStreamParameter(boolean hasLobLocator, InputStream is, long length,
+                             boolean noBackslashEscapes) {
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
@@ -75,7 +73,8 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
         this.bytes = null;
     }
 
-    public OBStreamParameter(boolean hasLobLocator, byte[] bytes, long length, boolean noBackslashEscapes) {
+    public OBStreamParameter(boolean hasLobLocator, byte[] bytes, long length,
+                             boolean noBackslashEscapes) {
         this.is = null;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
@@ -94,10 +93,8 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     /**
      * Write stream in text format.
      *
-     * @param pos
-     *            database outputStream
-     * @throws IOException
-     *             if any error occur when reader stream
+     * @param pos database outputStream
+     * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
 
@@ -124,10 +121,8 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (hasLobLocator && bytes != null) {

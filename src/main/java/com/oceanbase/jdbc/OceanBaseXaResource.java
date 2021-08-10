@@ -56,9 +56,9 @@ import javax.transaction.xa.Xid;
 import com.oceanbase.jdbc.internal.util.Utils;
 
 public class OceanBaseXaResource implements XAResource {
-    private static final int MAX_COMMAND_LENGTH = 300;
+    private static final int          MAX_COMMAND_LENGTH = 300;
     private final OceanBaseConnection connection;
-    private boolean isChangedCommit;
+    private boolean                   isChangedCommit;
 
     public OceanBaseXaResource(OceanBaseConnection connection) {
         this.connection = connection;
@@ -66,22 +66,22 @@ public class OceanBaseXaResource implements XAResource {
 
     protected static String xidToString(Xid xid) {
         return "0x" + Utils.byteArrayToHexString(xid.getGlobalTransactionId()) + ",0x"
-                + Utils.byteArrayToHexString(xid.getBranchQualifier()) + ",0x"
-                + Utils.intToHexString(xid.getFormatId());
+               + Utils.byteArrayToHexString(xid.getBranchQualifier()) + ",0x"
+               + Utils.intToHexString(xid.getFormatId());
     }
 
     private static String flagsToString(int flags) {
         switch (flags) {
-        case TMJOIN:
-            return "JOIN";
-        case TMONEPHASE:
-            return "ONE PHASE";
-        case TMRESUME:
-            return "RESUME";
-        case TMSUSPEND:
-            return "SUSPEND";
-        default:
-            return "";
+            case TMJOIN:
+                return "JOIN";
+            case TMONEPHASE:
+                return "ONE PHASE";
+            case TMRESUME:
+                return "RESUME";
+            case TMSUSPEND:
+                return "SUSPEND";
+            default:
+                return "";
         }
     }
 
@@ -89,27 +89,27 @@ public class OceanBaseXaResource implements XAResource {
         int xaErrorCode;
 
         switch (sqle.getErrorCode()) {
-        case 1397:
-            xaErrorCode = XAException.XAER_NOTA;
-            break;
-        case 1398:
-            xaErrorCode = XAException.XAER_INVAL;
-            break;
-        case 1399:
-            xaErrorCode = XAException.XAER_RMFAIL;
-            break;
-        case 1400:
-            xaErrorCode = XAException.XAER_OUTSIDE;
-            break;
-        case 1401:
-            xaErrorCode = XAException.XAER_RMERR;
-            break;
-        case 1402:
-            xaErrorCode = XAException.XA_RBROLLBACK;
-            break;
-        default:
-            xaErrorCode = 0;
-            break;
+            case 1397:
+                xaErrorCode = XAException.XAER_NOTA;
+                break;
+            case 1398:
+                xaErrorCode = XAException.XAER_INVAL;
+                break;
+            case 1399:
+                xaErrorCode = XAException.XAER_RMFAIL;
+                break;
+            case 1400:
+                xaErrorCode = XAException.XAER_OUTSIDE;
+                break;
+            case 1401:
+                xaErrorCode = XAException.XAER_RMERR;
+                break;
+            case 1402:
+                xaErrorCode = XAException.XA_RBROLLBACK;
+                break;
+            default:
+                xaErrorCode = 0;
+                break;
         }
         XAException xaException;
         if (xaErrorCode != 0) {
@@ -124,10 +124,8 @@ public class OceanBaseXaResource implements XAResource {
     /**
      * Execute a query.
      *
-     * @param command
-     *            query to run.
-     * @throws XAException
-     *             exception
+     * @param command query to run.
+     * @throws XAException exception
      */
     private void execute(String command) throws XAException {
         try {
@@ -140,13 +138,10 @@ public class OceanBaseXaResource implements XAResource {
     /**
      * Commits the global transaction specified by xid.
      *
-     * @param xid
-     *            A global transaction identifier
-     * @param onePhase
-     *            If true, the resource manager should use a one-phase commit protocol to commit the work done on behalf
-     *            of xid.
-     * @throws XAException
-     *             exception
+     * @param xid A global transaction identifier
+     * @param onePhase If true, the resource manager should use a one-phase commit protocol to commit
+     *     the work done on behalf of xid.
+     * @throws XAException exception
      */
     public void commit(Xid xid, boolean onePhase) throws XAException {
         if (this.connection.getProtocol().isOracleMode()) {
@@ -168,28 +163,23 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * Ends the work performed on behalf of a transaction branch. The resource manager disassociates the XA resource
-     * from the transaction branch specified and lets the transaction complete.
+     * Ends the work performed on behalf of a transaction branch. The resource manager disassociates
+     * the XA resource from the transaction branch specified and lets the transaction complete.
      *
-     * <p>
-     * If TMSUSPEND is specified in the flags, the transaction branch is temporarily suspended in an incomplete state.
-     * The transaction context is in a suspended state and must be resumed via the start method with TMRESUME specified.
+     * <p>If TMSUSPEND is specified in the flags, the transaction branch is temporarily suspended in
+     * an incomplete state. The transaction context is in a suspended state and must be resumed via
+     * the start method with TMRESUME specified.
      *
-     * <p>
-     * If TMFAIL is specified, the portion of work has failed. The resource manager may mark the transaction as
-     * rollback-only
+     * <p>If TMFAIL is specified, the portion of work has failed. The resource manager may mark the
+     * transaction as rollback-only
      *
-     * <p>
-     * If TMSUCCESS is specified, the portion of work has completed successfully.
+     * <p>If TMSUCCESS is specified, the portion of work has completed successfully.
      *
-     * @param xid
-     *            A global transaction identifier that is the same as the identifier used previously in the start
-     *            method.
-     * @param flags
-     *            One of TMSUCCESS, TMFAIL, or TMSUSPEND.
-     * @throws XAException
-     *             An error has occurred. (XAException values are XAER_RMERR, XAER_RMFAILED, XAER_NOTA, XAER_INVAL,
-     *             XAER_PROTO, or XA_RB*)
+     * @param xid A global transaction identifier that is the same as the identifier used previously
+     *     in the start method.
+     * @param flags One of TMSUCCESS, TMFAIL, or TMSUSPEND.
+     * @throws XAException An error has occurred. (XAException values are XAER_RMERR, XAER_RMFAILED,
+     *     XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
      */
     public void end(Xid xid, int flags) throws XAException {
         if (this.connection.getProtocol().isOracleMode()) {
@@ -200,8 +190,8 @@ public class OceanBaseXaResource implements XAResource {
             dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
 
             /**
-             * Only when XA END is executed correctly does it need to be reset, otherwise the XA transaction is still in
-             * the transaction
+             *   Only when XA END is executed correctly does it need to be reset,
+             *   otherwise the XA transaction is still in the transaction
              */
             try {
                 OceanBaseConnection mySQLConnection = this.connection;
@@ -223,8 +213,7 @@ public class OceanBaseXaResource implements XAResource {
     /**
      * Tells the resource manager to forget about a heuristically completed transaction branch.
      *
-     * @param xid
-     *            A global transaction identifier.
+     * @param xid A global transaction identifier.
      */
     public void forget(Xid xid) {
         // Not implemented by the server
@@ -232,9 +221,9 @@ public class OceanBaseXaResource implements XAResource {
 
     /**
      * Obtains the current transaction timeout value set for this XAResource instance. If
-     * XAResource.setTransactionTimeout was not used prior to invoking this method, the return value is the default
-     * timeout set for the resource manager; otherwise, the value used in the previous setTransactionTimeout call is
-     * returned.
+     * XAResource.setTransactionTimeout was not used prior to invoking this method, the return value
+     * is the default timeout set for the resource manager; otherwise, the value used in the previous
+     * setTransactionTimeout call is returned.
      *
      * @return the transaction timeout value in seconds.
      */
@@ -244,11 +233,11 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * This method is called to determine if the resource manager instance represented by the target object is the same
-     * as the resource manager instance represented by the parameter xares.
+     * This method is called to determine if the resource manager instance represented by the target
+     * object is the same as the resource manager instance represented by the parameter xares.
      *
-     * @param xaResource
-     *            An XAResource object whose resource manager instance is to be compared with the target object.
+     * @param xaResource An XAResource object whose resource manager instance is to be compared with
+     *     the target object.
      * @return true if it's the same RM instance; otherwise false.
      */
     @Override
@@ -259,14 +248,13 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * Ask the resource manager to prepare for a transaction commit of the transaction specified in xid.
+     * Ask the resource manager to prepare for a transaction commit of the transaction specified in
+     * xid.
      *
-     * @param xid
-     *            A global transaction identifier.
+     * @param xid A global transaction identifier.
      * @return A value indicating the resource manager's vote on the outcome of the transaction.
-     * @throws XAException
-     *             An error has occurred. Possible exception values are: XA_RB*, XAER_RMERR, XAER_RMFAIL, XAER_NOTA,
-     *             XAER_INVAL, XAER_PROTO.
+     * @throws XAException An error has occurred. Possible exception values are: XA_RB*, XAER_RMERR,
+     *     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
      */
     public int prepare(Xid xid) throws XAException {
         if (this.connection.getProtocol().isOracleMode()) {
@@ -281,106 +269,103 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * Obtains a list of prepared transaction branches from a resource manager. The transaction manager calls this
-     * method during recovery to obtain the list of transaction branches that are currently in prepared or heuristically
-     * completed states.
+     * Obtains a list of prepared transaction branches from a resource manager. The transaction
+     * manager calls this method during recovery to obtain the list of transaction branches that are
+     * currently in prepared or heuristically completed states.
      *
-     * @param flags
-     *            One of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS. TMNOFLAGS must be used when no other flags are set in the
-     *            parameter.
+     * @param flags One of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS. TMNOFLAGS must be used when no other
+     *     flags are set in the parameter.
      * @return The resource manager returns zero or more XIDs of the transaction branches.
-     * @throws XAException
-     *             An error has occurred. Possible values are XAER_RMERR, XAER_RMFAIL, XAER_INVAL, and XAER_PROTO.
+     * @throws XAException An error has occurred. Possible values are XAER_RMERR, XAER_RMFAIL,
+     *     XAER_INVAL, and XAER_PROTO.
      */
     public Xid[] recover(int flags) throws XAException {
-        // Return all Xid at once, when STARTRSCAN is specified
-        // Return zero-length array otherwise.
+    // Return all Xid  at once, when STARTRSCAN is specified
+    // Return zero-length array otherwise.
 
-        if (((flags & TMSTARTRSCAN) == 0) && ((flags & TMENDRSCAN) == 0) && (flags != TMNOFLAGS)) {
-            throw new XAException(XAException.XAER_INVAL);
-        }
+    if (((flags & TMSTARTRSCAN) == 0) && ((flags & TMENDRSCAN) == 0) && (flags != TMNOFLAGS)) {
+      throw new XAException(XAException.XAER_INVAL);
+    }
 
-        if ((flags & TMSTARTRSCAN) == 0) {
-            return new OceanBaseXid[0];
-        }
-        if (this.connection.getProtocol().isOracleMode()) {
-            List<OceanBaseXid> recoveredXidList = new ArrayList<OceanBaseXid>();
-            java.sql.PreparedStatement psStmt = null;
-            ResultSet rs = null;
-            ResultSet arrayRes = null;
-            String command = "declare " + "  x DBMS_XA_XID_ARRAY := DBMS_XA_XID_ARRAY(); " + "BEGIN "
-                    + "  x := DBMS_XA.XA_RECOVER(); " + "  ? := x;" + "END;";
-            try {
-                OceanBaseConnection mySQLConnection = this.connection;
-                // TODO: Cache this for lifetime of XAConnection
-                psStmt = mySQLConnection.prepareStatement(command);
-                psStmt.setNull(1, java.sql.Types.NULL);
-                rs = psStmt.executeQuery();
-                while (rs.next()) {
-                    java.sql.Array array = rs.getArray(1);
-                    arrayRes = array.getResultSet();
-                    while (arrayRes.next()) {
-                        java.sql.Struct struct = (java.sql.Struct) arrayRes.getObject(2);
-                        Object[] objArr = struct.getAttributes();
-                        recoveredXidList.add(new OceanBaseXid(((String) objArr[1]).getBytes(),
-                                ((String) objArr[2]).getBytes(), ((BigDecimal) objArr[0]).intValue()));
-                    }
+    if ((flags & TMSTARTRSCAN) == 0) {
+      return new OceanBaseXid[0];
+    }
+    if (this.connection.getProtocol().isOracleMode()) {
+        List<OceanBaseXid> recoveredXidList = new ArrayList<OceanBaseXid>();
+        java.sql.PreparedStatement psStmt = null;
+        ResultSet rs = null;
+        ResultSet arrayRes = null;
+        String command = "declare " + "  x DBMS_XA_XID_ARRAY := DBMS_XA_XID_ARRAY(); "
+                + "BEGIN " + "  x := DBMS_XA.XA_RECOVER(); " + "  ? := x;" + "END;";
+        try {
+            OceanBaseConnection mySQLConnection = this.connection;
+            // TODO: Cache this for lifetime of XAConnection
+            psStmt = mySQLConnection.prepareStatement(command);
+            psStmt.setNull(1, java.sql.Types.NULL);
+            rs = psStmt.executeQuery();
+            while (rs.next()) {
+                java.sql.Array array = rs.getArray(1);
+                arrayRes = array.getResultSet();
+                while (arrayRes.next()) {
+                    java.sql.Struct struct = (java.sql.Struct) arrayRes.getObject(2);
+                    Object[] objArr = struct.getAttributes();
+                    recoveredXidList.add(new OceanBaseXid(((String) objArr[1]).getBytes(),
+                            ((String) objArr[2]).getBytes(), ((BigDecimal) objArr[0]).intValue()));
                 }
-            } catch (SQLException sqlEx) {
+            }
+        } catch (SQLException sqlEx) {
+            throw new XAException(XAException.XAER_RMFAIL);
+        } finally {
+            try {
+                if (arrayRes != null) {
+                    arrayRes.close();
+                }
+                if (rs != null) {
+                    rs.close();
+                }
+                if (psStmt != null) {
+                    psStmt.close();
+                }
+            } catch (SQLException sqlEx) { // NOPMD
                 throw new XAException(XAException.XAER_RMFAIL);
-            } finally {
-                try {
-                    if (arrayRes != null) {
-                        arrayRes.close();
-                    }
-                    if (rs != null) {
-                        rs.close();
-                    }
-                    if (psStmt != null) {
-                        psStmt.close();
-                    }
-                } catch (SQLException sqlEx) { // NOPMD
-                    throw new XAException(XAException.XAER_RMFAIL);
-                }
             }
-            int numXids = recoveredXidList.size();
-            Xid[] asXids = new Xid[numXids];
-            Object[] asObjects = recoveredXidList.toArray();
-            for (int i = 0; i < numXids; i++) {
-                asXids[i] = (Xid) asObjects[i];
+        }
+        int numXids = recoveredXidList.size();
+        Xid[] asXids = new Xid[numXids];
+        Object[] asObjects = recoveredXidList.toArray();
+        for (int i = 0; i < numXids; i++) {
+            asXids[i] = (Xid) asObjects[i];
+        }
+        return asXids;
+    } else {
+        try {
+            ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
+            ArrayList<OceanBaseXid> xidList = new ArrayList<>();
+            while (rs.next()) {
+                int formatId = rs.getInt(1);
+                int len1 = rs.getInt(2);
+                int len2 = rs.getInt(3);
+                byte[] arr = rs.getBytes(4);
+                byte[] globalTransactionId = new byte[len1];
+                byte[] branchQualifier = new byte[len2];
+                System.arraycopy(arr, 0, globalTransactionId, 0, len1);
+                System.arraycopy(arr, len1, branchQualifier, 0, len2);
+                xidList.add(new OceanBaseXid(formatId, globalTransactionId, branchQualifier));
             }
-            return asXids;
-        } else {
-            try {
-                ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
-                ArrayList<OceanBaseXid> xidList = new ArrayList<>();
-                while (rs.next()) {
-                    int formatId = rs.getInt(1);
-                    int len1 = rs.getInt(2);
-                    int len2 = rs.getInt(3);
-                    byte[] arr = rs.getBytes(4);
-                    byte[] globalTransactionId = new byte[len1];
-                    byte[] branchQualifier = new byte[len2];
-                    System.arraycopy(arr, 0, globalTransactionId, 0, len1);
-                    System.arraycopy(arr, len1, branchQualifier, 0, len2);
-                    xidList.add(new OceanBaseXid(formatId, globalTransactionId, branchQualifier));
-                }
-                Xid[] xids = new Xid[xidList.size()];
-                xidList.toArray(xids);
-                return xids;
-            } catch (SQLException sqle) {
-                throw mapXaException(sqle);
-            }
+            Xid[] xids = new Xid[xidList.size()];
+            xidList.toArray(xids);
+            return xids;
+        } catch (SQLException sqle) {
+            throw mapXaException(sqle);
         }
     }
+  }
 
     /**
      * Informs the resource manager to roll back work done on behalf of a transaction branch.
      *
-     * @param xid
-     *            A global transaction identifier.
-     * @throws XAException
-     *             An error has occurred.
+     * @param xid A global transaction identifier.
+     * @throws XAException An error has occurred.
      */
     public void rollback(Xid xid) throws XAException {
         if (this.connection.getProtocol().isOracleMode()) {
@@ -398,14 +383,14 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * Sets the current transaction timeout value for this XAResource instance. Once set, this timeout value is
-     * effective until setTransactionTimeout is invoked again with a different value. To reset the timeout value to the
-     * default value used by the resource manager, set the value to zero. If the timeout operation is performed
-     * successfully, the method returns true; otherwise false. If a resource manager does not support explicitly setting
-     * the transaction timeout value, this method returns false.
+     * Sets the current transaction timeout value for this XAResource instance. Once set, this timeout
+     * value is effective until setTransactionTimeout is invoked again with a different value. To
+     * reset the timeout value to the default value used by the resource manager, set the value to
+     * zero. If the timeout operation is performed successfully, the method returns true; otherwise
+     * false. If a resource manager does not support explicitly setting the transaction timeout value,
+     * this method returns false.
      *
-     * @param timeout
-     *            The transaction timeout value in seconds.
+     * @param timeout The transaction timeout value in seconds.
      * @return true if the transaction timeout value is set successfully; otherwise false.
      */
     public boolean setTransactionTimeout(int timeout) {
@@ -413,18 +398,16 @@ public class OceanBaseXaResource implements XAResource {
     }
 
     /**
-     * Starts work on behalf of a transaction branch specified in xid. If TMJOIN is specified, the start applies to
-     * joining a transaction previously seen by the resource manager. If TMRESUME is specified, the start applies to
-     * resuming a suspended transaction specified in the parameter xid. If neither TMJOIN nor TMRESUME is specified and
-     * the transaction specified by xid has previously been seen by the resource manager, the resource manager throws
-     * the XAException exception with XAER_DUPID error code.
+     * Starts work on behalf of a transaction branch specified in xid. If TMJOIN is specified, the
+     * start applies to joining a transaction previously seen by the resource manager. If TMRESUME is
+     * specified, the start applies to resuming a suspended transaction specified in the parameter
+     * xid. If neither TMJOIN nor TMRESUME is specified and the transaction specified by xid has
+     * previously been seen by the resource manager, the resource manager throws the XAException
+     * exception with XAER_DUPID error code.
      *
-     * @param xid
-     *            A global transaction identifier to be associated with the resource.
-     * @param flags
-     *            One of TMNOFLAGS, TMJOIN, or TMRESUME.
-     * @throws XAException
-     *             An error has occurred.
+     * @param xid A global transaction identifier to be associated with the resource.
+     * @param flags One of TMNOFLAGS, TMJOIN, or TMRESUME.
+     * @throws XAException An error has occurred.
      */
     public void start(Xid xid, int flags) throws XAException {
         if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
@@ -462,8 +445,12 @@ public class OceanBaseXaResource implements XAResource {
                 throw e;
             }
         } else {
-            execute("XA START " + xidToString(xid) + " " + flagsToString(
-                    flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME : flags));
+            execute("XA START "
+                    + xidToString(xid)
+                    + " "
+                    + flagsToString(flags == TMJOIN
+                                    && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME
+                        : flags));
         }
     }
 
@@ -486,7 +473,8 @@ public class OceanBaseXaResource implements XAResource {
         return dispatchOracleCommand(command, xid, null);
     }
 
-    private ResultSet dispatchOracleCommand(String command, ObStruct xid, Object param) throws XAException {
+    private ResultSet dispatchOracleCommand(String command, ObStruct xid, Object param)
+                                                                                       throws XAException {
         java.sql.PreparedStatement psStmt = null;
         try {
 

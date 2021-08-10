@@ -61,7 +61,8 @@ import org.junit.*;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 /**
- * Exemple mvn test -DdefaultLoadbalanceUrl=jdbc:oceanbase:loadbalance//localhost:3306,localhost:3307/test?user=root.
+ * Exemple mvn test
+ * -DdefaultLoadbalanceUrl=jdbc:oceanbase:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
@@ -80,51 +81,52 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void failover() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-            int master1ServerId = getServerId(connection);
-            stopProxy(master1ServerId);
-            connection.createStatement().executeQuery("SELECT 1");
-            int secondServerId = getServerId(connection);
-            Assert.assertNotEquals(master1ServerId, secondServerId);
-        }
+  public void failover() throws Throwable {
+    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+      int master1ServerId = getServerId(connection);
+      stopProxy(master1ServerId);
+      connection.createStatement().executeQuery("SELECT 1");
+      int secondServerId = getServerId(connection);
+      Assert.assertNotEquals(master1ServerId, secondServerId);
     }
+  }
 
     @Test
-    public void randomConnection() throws Throwable {
-        Assume.assumeTrue(initialLoadbalanceUrl.contains("loadbalance"));
-        Map<String, MutableInt> connectionMap = new HashMap<>();
-        for (int i = 0; i < 20; i++) {
-            try (Connection connection = getNewConnection(false)) {
-                int serverId = getServerId(connection);
-                MutableInt count = connectionMap.get(String.valueOf(serverId));
-                if (count == null) {
-                    connectionMap.put(String.valueOf(serverId), new MutableInt());
-                } else {
-                    count.increment();
-                }
-            }
+  public void randomConnection() throws Throwable {
+    Assume.assumeTrue(initialLoadbalanceUrl.contains("loadbalance"));
+    Map<String, MutableInt> connectionMap = new HashMap<>();
+    for (int i = 0; i < 20; i++) {
+      try (Connection connection = getNewConnection(false)) {
+        int serverId = getServerId(connection);
+        MutableInt count = connectionMap.get(String.valueOf(serverId));
+        if (count == null) {
+          connectionMap.put(String.valueOf(serverId), new MutableInt());
+        } else {
+          count.increment();
         }
-
-        Assert.assertTrue(connectionMap.size() >= 2);
-        for (String key : connectionMap.keySet()) {
-            Integer connectionCount = connectionMap.get(key).get();
-            Assert.assertTrue(connectionCount > 1);
-        }
+      }
     }
+
+    Assert.assertTrue(connectionMap.size() >= 2);
+    for (String key : connectionMap.keySet()) {
+      Integer connectionCount = connectionMap.get(key).get();
+      Assert.assertTrue(connectionCount > 1);
+    }
+  }
 
     @Test
-    public void testReadonly() {
-        try (Connection connection = getNewConnection(false)) {
-            connection.setReadOnly(true);
+  public void testReadonly() {
+    try (Connection connection = getNewConnection(false)) {
+      connection.setReadOnly(true);
 
-            Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists multinode");
-            stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-        } catch (SQLException sqle) {
-            // normal exception
-        }
+      Statement stmt = connection.createStatement();
+      stmt.execute("drop table  if exists multinode");
+      stmt.execute(
+          "create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+    } catch (SQLException sqle) {
+      // normal exception
     }
+  }
 
     class MutableInt {
 

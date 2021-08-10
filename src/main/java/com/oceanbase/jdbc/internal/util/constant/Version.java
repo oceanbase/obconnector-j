@@ -56,9 +56,9 @@ import java.util.Properties;
 
 public final class Version {
     public static final String version;
-    public static final int majorVersion;
-    public static final int minorVersion;
-    public static final int patchVersion;
+    public static final int    majorVersion;
+    public static final int    minorVersion;
+    public static final int    patchVersion;
     public static final String qualifier;
 
     static {
@@ -72,7 +72,8 @@ public final class Version {
                 // get the property value and print it out
                 tmpVersion = prop.getProperty("version");
             } else {
-                System.out.println("property file 'oceanbase.properties' not found in the classpath");
+                System.out
+                    .println("property file 'oceanbase.properties' not found in the classpath");
             }
         } catch (Exception e) {
             // eat
@@ -100,19 +101,19 @@ public final class Version {
             car = version.charAt(offset);
             if (car < '0' || car > '9') {
                 switch (type) {
-                case 0:
-                    major = val;
-                    break;
-                case 1:
-                    minor = val;
-                    break;
-                case 2:
-                    patch = val;
-                    qualif = version.substring(offset);
-                    offset = length;
-                    break;
-                default:
-                    break;
+                    case 0:
+                        major = val;
+                        break;
+                    case 1:
+                        minor = val;
+                        break;
+                    case 2:
+                        patch = val;
+                        qualif = version.substring(offset);
+                        offset = length;
+                        break;
+                    default:
+                        break;
                 }
                 type++;
                 val = 0;

@@ -69,14 +69,12 @@ import com.oceanbase.jdbc.util.Options;
 /**
  * parse and verification of URL.
  *
- * <p>
- * basic syntax :<br>
+ * <p>basic syntax :<br>
  * {@code
  * jdbc:oceanbase:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }
  *
- * <p>
- * hostDescription:<br>
+ * <p>hostDescription:<br>
  * - simple :<br>
  * {@code <host>:<portnumber>}<br>
  * (for example localhost:3306)<br>
@@ -88,13 +86,11 @@ import com.oceanbase.jdbc.util.Options;
  * type is by default master<br>
  * port is by default 3306<br>
  *
- * <p>
- * host can be dns name, ipv4 or ipv6.<br>
+ * <p>host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
  * exemple : {@code jdbc:oceanbase://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  *
- * <p>
- * Some examples :<br>
+ * <p>Some examples :<br>
  * {@code jdbc:oceanbase://localhost:3306/database?user=greg&password=pass}<br>
  * {@code
  * jdbc:oceanbase://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
@@ -102,18 +98,21 @@ import com.oceanbase.jdbc.util.Options;
  */
 public class UrlParser implements Cloneable {
 
-    private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
-    private static final Pattern URL_PARAMETER = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
-    private static final Pattern AWS_PATTERN = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
-            Pattern.CASE_INSENSITIVE);
+    private static final String  DISABLE_MYSQL_URL = "disableMariaDbDriver";
+    private static final Pattern URL_PARAMETER     = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*",
+                                                       Pattern.DOTALL);
+    private static final Pattern AWS_PATTERN       = Pattern
+                                                       .compile(
+                                                           "(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+                                                           Pattern.CASE_INSENSITIVE);
 
-    private String database;
-    private Options options = null;
-    private List<HostAddress> addresses;
-    private HaMode haMode;
-    private String initialUrl;
-    private boolean multiMaster;
-    private CredentialPlugin credentialPlugin;
+    private String               database;
+    private Options              options           = null;
+    private List<HostAddress>    addresses;
+    private HaMode               haMode;
+    private String               initialUrl;
+    private boolean              multiMaster;
+    private CredentialPlugin     credentialPlugin;
 
     private UrlParser() {
     }
@@ -121,18 +120,14 @@ public class UrlParser implements Cloneable {
     /**
      * Constructor.
      *
-     * @param database
-     *            database
-     * @param addresses
-     *            list of hosts
-     * @param options
-     *            connection option
-     * @param haMode
-     *            High availability mode
-     * @throws SQLException
-     *             if credential plugin cannot be loaded
+     * @param database  database
+     * @param addresses list of hosts
+     * @param options   connection option
+     * @param haMode    High availability mode
+     * @throws SQLException if credential plugin cannot be loaded
      */
-    public UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode) throws SQLException {
+    public UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode)
+                                                                                                  throws SQLException {
         this.options = options;
         this.database = database;
         this.addresses = addresses;
@@ -155,14 +150,15 @@ public class UrlParser implements Cloneable {
     }
 
     /**
-     * Tell if mariadb driver accept url string. (Correspond to interface java.jdbc.Driver.acceptsURL() method)
+     * Tell if mariadb driver accept url string. (Correspond to interface
+     * java.jdbc.Driver.acceptsURL() method)
      *
-     * @param url
-     *            url String
+     * @param url url String
      * @return true if url string correspond.
      */
     public static boolean acceptsUrl(String url) {
-        return (url != null) && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL));
+        return (url != null)
+               && (url.startsWith("jdbc:oceanbase:") && !url.contains(DISABLE_MYSQL_URL));
     }
 
     public static UrlParser parse(final String url) throws SQLException {
@@ -172,17 +168,15 @@ public class UrlParser implements Cloneable {
     /**
      * Parse url connection string with additional properties.
      *
-     * @param url
-     *            connection string
-     * @param prop
-     *            properties
+     * @param url  connection string
+     * @param prop properties
      * @return UrlParser instance
-     * @throws SQLException
-     *             if parsing exception occur
+     * @throws SQLException if parsing exception occur
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
-        if (url != null && ((url.startsWith("jdbc:oceanbase:") || url.startsWith("jdbc:mysql:"))
-                && !url.contains(DISABLE_MYSQL_URL))) {
+        if (url != null
+            && ((url.startsWith("jdbc:oceanbase:") || url.startsWith("jdbc:mysql:")) && !url
+                .contains(DISABLE_MYSQL_URL))) {
             UrlParser urlParser = new UrlParser();
             parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
             return urlParser;
@@ -191,24 +185,22 @@ public class UrlParser implements Cloneable {
     }
 
     /**
-     * Parses the connection URL in order to set the UrlParser instance with all the information provided through the
-     * URL.
+     * Parses the connection URL in order to set the UrlParser instance with all the information
+     * provided through the URL.
      *
-     * @param urlParser
-     *            object instance in which all data from the connection url is stored
-     * @param url
-     *            connection URL
-     * @param properties
-     *            properties
-     * @throws SQLException
-     *             if format is incorrect
+     * @param urlParser  object instance in which all data from the connection url is stored
+     * @param url        connection URL
+     * @param properties properties
+     * @throws SQLException if format is incorrect
      */
-    private static void parseInternal(UrlParser urlParser, String url, Properties properties) throws SQLException {
+    private static void parseInternal(UrlParser urlParser, String url, Properties properties)
+                                                                                             throws SQLException {
         try {
             urlParser.initialUrl = url;
             int separator = url.indexOf("//");
             if (separator == -1) {
-                throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
+                throw new IllegalArgumentException(
+                    "url parsing error : '//' is not present in the url " + url);
             }
 
             urlParser.haMode = parseHaMode(url, separator);
@@ -222,7 +214,8 @@ public class UrlParser implements Cloneable {
             if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
                 hostAddressesString = urlSecondPart.substring(0, paramIndex);
                 additionalParameters = urlSecondPart.substring(paramIndex);
-            } else if ((dbIndex < paramIndex && dbIndex > -1) || (dbIndex > paramIndex && paramIndex < 0)) {
+            } else if ((dbIndex < paramIndex && dbIndex > -1)
+                       || (dbIndex > paramIndex && paramIndex < 0)) {
                 hostAddressesString = urlSecondPart.substring(0, dbIndex);
                 additionalParameters = urlSecondPart.substring(dbIndex);
             } else {
@@ -230,7 +223,8 @@ public class UrlParser implements Cloneable {
                 additionalParameters = null;
             }
 
-            defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
+            defineUrlParserParameters(urlParser, properties, hostAddressesString,
+                additionalParameters);
             setDefaultHostAddressType(urlParser);
             urlParser.loadMultiMasterValue();
         } catch (IllegalArgumentException i) {
@@ -239,41 +233,40 @@ public class UrlParser implements Cloneable {
     }
 
     /**
-     * Sets the parameters of the UrlParser instance: addresses, database and options. It parses through the additional
-     * parameters given in order to extract the database and the options for the connection.
+     * Sets the parameters of the UrlParser instance: addresses, database and options. It parses
+     * through the additional parameters given in order to extract the database and the options for
+     * the connection.
      *
-     * @param urlParser
-     *            object instance in which all data from the connection URL is stored
-     * @param properties
-     *            properties
-     * @param hostAddressesString
-     *            string that holds all the host addresses
-     * @param additionalParameters
-     *            string that holds all parameters defined for the connection
-     * @throws SQLException
-     *             if credential plugin cannot be loaded
+     * @param urlParser            object instance in which all data from the connection URL is stored
+     * @param properties           properties
+     * @param hostAddressesString  string that holds all the host addresses
+     * @param additionalParameters string that holds all parameters defined for the connection
+     * @throws SQLException if credential plugin cannot be loaded
      */
     private static void defineUrlParserParameters(UrlParser urlParser, Properties properties,
-            String hostAddressesString, String additionalParameters) throws SQLException {
+                                                  String hostAddressesString,
+                                                  String additionalParameters) throws SQLException {
 
         if (additionalParameters != null) {
-            // noinspection Annotator
+            //noinspection Annotator
             Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
             matcher.find();
             urlParser.database = matcher.group(2);
-            urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+            urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4),
+                properties, urlParser.options);
             if (urlParser.database != null && urlParser.database.isEmpty()) {
                 urlParser.database = null;
             }
         } else {
             urlParser.database = null;
-            urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+            urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties,
+                urlParser.options);
         }
         urlParser.credentialPlugin = CredentialPluginLoader.get(urlParser.options.credentialType);
         DefaultOptions.postOptionProcess(urlParser.options, urlParser.credentialPlugin);
 
         LoggerFactory.init(urlParser.options.log || urlParser.options.profileSql
-                || urlParser.options.slowQueryThresholdNanos != null);
+                           || urlParser.options.slowQueryThresholdNanos != null);
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
     }
 
@@ -296,9 +289,11 @@ public class UrlParser implements Cloneable {
         }
 
         try {
-            String haModeString = url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT);
+            String haModeString = url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(
+                Locale.ROOT);
             if ("ORACLE".equals(haModeString)) {
-                haModeString = url.substring(thirdColonPos + 1, forthColonPos).toUpperCase(Locale.ROOT);
+                haModeString = url.substring(thirdColonPos + 1, forthColonPos).toUpperCase(
+                    Locale.ROOT);
             }
             if ("".equals(haModeString)) {
                 return HaMode.NONE;
@@ -307,7 +302,8 @@ public class UrlParser implements Cloneable {
             }
             return HaMode.valueOf(haModeString);
         } catch (IllegalArgumentException i) {
-            throw new IllegalArgumentException("wrong failover parameter format in connection String " + url);
+            throw new IllegalArgumentException(
+                "wrong failover parameter format in connection String " + url);
         }
     }
 
@@ -338,8 +334,8 @@ public class UrlParser implements Cloneable {
             if (i > 0) {
                 sb.append(",");
             }
-            sb.append("address=(host=").append(hostAddress.host).append(")").append("(port=").append(hostAddress.port)
-                    .append(")");
+            sb.append("address=(host=").append(hostAddress.host).append(")").append("(port=")
+                .append(hostAddress.port).append(")");
             if (hostAddress.type != null) {
                 sb.append("(type=").append(hostAddress.type).append(")");
             }
@@ -354,8 +350,9 @@ public class UrlParser implements Cloneable {
     }
 
     /**
-     * Permit to set parameters not forced. if options useBatchMultiSend and usePipelineAuth are not explicitly set in
-     * connection string, value will default to true or false according if aurora detection.
+     * Permit to set parameters not forced. if options useBatchMultiSend and usePipelineAuth are not
+     * explicitly set in connection string, value will default to true or false according if aurora
+     * detection.
      *
      * @return UrlParser for easy testing
      */
@@ -364,8 +361,8 @@ public class UrlParser implements Cloneable {
         // Aurora has issue with pipelining, depending on network speed.
         // Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
         boolean disablePipeline = isAurora();
-        // useBatchMultiSend and usePipelineAuth are the related configuration of Aurora.
-        // The default value should be set to off. There is no corresponding configuration in mysql jdbc
+        // useBatchMultiSend and usePipelineAuth are  the related configuration of Aurora.
+        // The default value should be  set to off. There is no corresponding configuration in mysql jdbc
         if (options.useBatchMultiSend == null) {
             options.useBatchMultiSend = false;
         }
@@ -379,10 +376,9 @@ public class UrlParser implements Cloneable {
     /**
      * Detection of Aurora.
      *
-     * <p>
-     * Aurora rely on MySQL, then cannot be identified by protocol. But Aurora doesn't permit some behaviour normally
-     * working with MySQL : pipelining. So Driver must identified if server is Aurora to disable pipeline options that
-     * are enable by default.
+     * <p>Aurora rely on MySQL, then cannot be identified by protocol. But Aurora doesn't permit some
+     * behaviour normally working with MySQL : pipelining. So Driver must identified if server is
+     * Aurora to disable pipeline options that are enable by default.
      *
      * @return true if aurora.
      */
@@ -404,10 +400,8 @@ public class UrlParser implements Cloneable {
     /**
      * Parse url connection string.
      *
-     * @param url
-     *            connection string
-     * @throws SQLException
-     *             if url format is incorrect
+     * @param url connection string
+     * @throws SQLException if url format is incorrect
      */
     public void parseUrl(String url) throws SQLException {
         if (acceptsUrl(url)) {
@@ -483,11 +477,12 @@ public class UrlParser implements Cloneable {
         }
 
         UrlParser urlParser = (UrlParser) parser;
-        return (initialUrl != null ? initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() == null)
-                && (getUsername() != null ? getUsername().equals(urlParser.getUsername())
-                        : urlParser.getUsername() == null)
-                && (getPassword() != null ? getPassword().equals(urlParser.getPassword())
-                        : urlParser.getPassword() == null);
+        return (initialUrl != null ? initialUrl.equals(urlParser.getInitialUrl()) : urlParser
+            .getInitialUrl() == null)
+               && (getUsername() != null ? getUsername().equals(urlParser.getUsername())
+                   : urlParser.getUsername() == null)
+               && (getPassword() != null ? getPassword().equals(urlParser.getPassword())
+                   : urlParser.getPassword() == null);
     }
 
     @Override
@@ -499,7 +494,8 @@ public class UrlParser implements Cloneable {
     }
 
     private void loadMultiMasterValue() {
-        if (haMode == HaMode.SEQUENTIAL || haMode == HaMode.REPLICATION || haMode == HaMode.LOADBALANCE) {
+        if (haMode == HaMode.SEQUENTIAL || haMode == HaMode.REPLICATION
+            || haMode == HaMode.LOADBALANCE) {
             boolean firstMaster = false;
             for (HostAddress host : addresses) {
                 if (host.type.equals(ParameterConstant.TYPE_MASTER)) {

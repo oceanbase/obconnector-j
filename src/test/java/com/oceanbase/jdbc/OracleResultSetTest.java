@@ -62,8 +62,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -92,53 +91,54 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     /**
-     * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different PreparedStatement on a
-     * table that does not have an auto increment.
+     * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different
+     * PreparedStatement on a table that does not have an auto increment.
      */
     @Test
-    public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
-        createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml clob");
-        String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
+  public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
+    createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml clob");
+    String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
 
-        for (int i = 0; i < 2; i++) {
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql,
-                    Statement.RETURN_GENERATED_KEYS)) {
+    for (int i = 0; i < 2; i++) {
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-                preparedStatement.setString(1, "John");
-                preparedStatement.setString(2, "<xml/>");
-                preparedStatement.executeUpdate();
+        preparedStatement.setString(1, "John");
+        preparedStatement.setString(2, "<xml/>");
+        preparedStatement.executeUpdate();
 
-                try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
-                    assertFalse(generatedKeysResultSet.next());
-                }
-            }
+        try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
+          assertFalse(generatedKeysResultSet.next());
         }
+      }
     }
+  }
 
     @Test
-    public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
-        insertRows(2);
-        Statement statement = sharedConnection.createStatement();
-        statement.setFetchSize(1);
-        try (ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test")) {
-            assertTrue(resultSet.isBeforeFirst());
-            assertTrue(resultSet.next());
-            assertFalse(resultSet.isBeforeFirst());
-            resultSet.close();
-            try {
-                resultSet.isBeforeFirst();
-                fail("The above row should have thrown an SQLException");
-            } catch (SQLException e) {
-                // Make sure an exception has been thrown informing us that the ResultSet was closed
-                assertTrue(e.getMessage().contains("closed"));
-            }
-        }
+  public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
+    insertRows(2);
+    Statement statement = sharedConnection.createStatement();
+    statement.setFetchSize(1);
+    try (ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test")) {
+      assertTrue(resultSet.isBeforeFirst());
+      assertTrue(resultSet.next());
+      assertFalse(resultSet.isBeforeFirst());
+      resultSet.close();
+      try {
+        resultSet.isBeforeFirst();
+        fail("The above row should have thrown an SQLException");
+      } catch (SQLException e) {
+        // Make sure an exception has been thrown informing us that the ResultSet was closed
+        assertTrue(e.getMessage().contains("closed"));
+      }
     }
+  }
 
     @Test
     public void isClosedTest() throws SQLException {
         insertRows(1);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertFalse(resultSet.isClosed());
         while (resultSet.next()) {
             assertFalse(resultSet.isClosed());
@@ -151,7 +151,8 @@ public class OracleResultSetTest extends BaseOracleTest {
     @Test
     public void isBeforeFirstTest() throws SQLException {
         insertRows(1);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertTrue(resultSet.isBeforeFirst());
         while (resultSet.next()) {
             assertFalse(resultSet.isBeforeFirst());
@@ -171,7 +172,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     public void isFirstZeroRowsTest() throws SQLException {
         insertRows(0);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet resultSet = stmt.executeQuery("SELECT * FROM result_set_test");
         assertFalse(resultSet.isFirst());
         assertFalse(resultSet.next()); // No more rows after this
@@ -191,7 +192,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     public void isFirstOneRowsTest() throws SQLException {
         insertRows(1);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet resultSet = stmt.executeQuery("SELECT * FROM result_set_test");
         assertFalse(resultSet.isFirst());
         assertTrue(resultSet.next());
@@ -217,37 +218,39 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     private void isFirstTwoRowsTest(boolean fetching) throws SQLException {
-        insertRows(2);
-        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY)) {
-            if (fetching) {
-                statement.setFetchSize(1);
-            }
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-            assertFalse(resultSet.isFirst());
-            assertTrue(resultSet.next());
-            assertTrue(resultSet.isFirst());
-            assertTrue(resultSet.next());
-            assertFalse(resultSet.isFirst());
-            assertFalse(resultSet.next()); // No more rows after this
-            assertFalse(resultSet.isFirst());
-            assertTrue(resultSet.first());
-            assertEquals(1, resultSet.getInt(1));
-            resultSet.close();
-            try {
-                resultSet.isFirst();
-                fail("The above row should have thrown an SQLException");
-            } catch (SQLException e) {
-                // Make sure an exception has been thrown informing us that the ResultSet was closed
-                assertTrue(e.getMessage().contains("closed"));
-            }
-        }
+    insertRows(2);
+    try (Statement statement =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+      if (fetching) {
+        statement.setFetchSize(1);
+      }
+      ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
+      assertFalse(resultSet.isFirst());
+      assertTrue(resultSet.next());
+      assertTrue(resultSet.isFirst());
+      assertTrue(resultSet.next());
+      assertFalse(resultSet.isFirst());
+      assertFalse(resultSet.next()); // No more rows after this
+      assertFalse(resultSet.isFirst());
+      assertTrue(resultSet.first());
+      assertEquals(1, resultSet.getInt(1));
+      resultSet.close();
+      try {
+        resultSet.isFirst();
+        fail("The above row should have thrown an SQLException");
+      } catch (SQLException e) {
+        // Make sure an exception has been thrown informing us that the ResultSet was closed
+        assertTrue(e.getMessage().contains("closed"));
+      }
     }
+  }
 
     @Test
     public void isLastZeroRowsTest() throws SQLException {
         insertRows(0);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertFalse(resultSet.isLast()); // connectorj compatibility
         assertFalse(resultSet.next()); // No more rows after this
         assertFalse(resultSet.isLast());
@@ -265,7 +268,8 @@ public class OracleResultSetTest extends BaseOracleTest {
     @Test
     public void isLastOneRowsTest() throws SQLException {
         insertRows(1);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertFalse(resultSet.isLast());
         assertTrue(resultSet.next());
         assertTrue(resultSet.isLast());
@@ -291,36 +295,37 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     private void isLastTwoRowsTest(boolean fetching) throws SQLException {
-        insertRows(2);
-        try (Statement statement = sharedConnection.createStatement()) {
-            if (fetching) {
-                statement.setFetchSize(1);
-            }
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-            assertFalse(resultSet.isLast());
-            assertTrue(resultSet.next());
-            assertFalse(resultSet.isLast());
-            assertTrue(resultSet.next());
-            assertTrue(resultSet.isLast());
-            assertFalse(resultSet.next()); // No more rows after this
-            assertFalse(resultSet.isLast());
-            assertTrue(resultSet.last());
-            assertEquals(2, resultSet.getInt(1));
-            resultSet.close();
-            try {
-                resultSet.isLast();
-                fail("The above row should have thrown an SQLException");
-            } catch (SQLException e) {
-                // Make sure an exception has been thrown informing us that the ResultSet was closed
-                assertTrue(e.getMessage().contains("closed"));
-            }
-        }
+    insertRows(2);
+    try (Statement statement = sharedConnection.createStatement()) {
+      if (fetching) {
+        statement.setFetchSize(1);
+      }
+      ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
+      assertFalse(resultSet.isLast());
+      assertTrue(resultSet.next());
+      assertFalse(resultSet.isLast());
+      assertTrue(resultSet.next());
+      assertTrue(resultSet.isLast());
+      assertFalse(resultSet.next()); // No more rows after this
+      assertFalse(resultSet.isLast());
+      assertTrue(resultSet.last());
+      assertEquals(2, resultSet.getInt(1));
+      resultSet.close();
+      try {
+        resultSet.isLast();
+        fail("The above row should have thrown an SQLException");
+      } catch (SQLException e) {
+        // Make sure an exception has been thrown informing us that the ResultSet was closed
+        assertTrue(e.getMessage().contains("closed"));
+      }
     }
+  }
 
     @Test
     public void isAfterLastZeroRowsTest() throws SQLException {
         insertRows(0);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertFalse(resultSet.isAfterLast());
         assertFalse(resultSet.next()); // No more rows after this
         assertFalse(resultSet.isAfterLast());
@@ -337,7 +342,8 @@ public class OracleResultSetTest extends BaseOracleTest {
     @Test
     public void isAfterLastTwoRowsTest() throws SQLException {
         insertRows(2);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        ResultSet resultSet = sharedConnection.createStatement().executeQuery(
+            "SELECT * FROM result_set_test");
         assertFalse(resultSet.isAfterLast());
         assertTrue(resultSet.next());
         assertFalse(resultSet.isAfterLast());
@@ -358,31 +364,32 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     @Test
-    public void previousTest() throws SQLException {
-        insertRows(2);
-        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
-        try (ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test")) {
-            assertFalse(rs.previous());
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
-            assertFalse(rs.previous());
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
-            assertTrue(rs.next());
-            assertEquals(2, rs.getInt(1));
-            assertTrue(rs.previous());
-            assertEquals(1, rs.getInt(1));
-            assertTrue(rs.last());
-            assertEquals(2, rs.getInt(1));
-        }
+  public void previousTest() throws SQLException {
+    insertRows(2);
+    Statement stmt =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    try (ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test")) {
+      assertFalse(rs.previous());
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertFalse(rs.previous());
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertTrue(rs.previous());
+      assertEquals(1, rs.getInt(1));
+      assertTrue(rs.last());
+      assertEquals(2, rs.getInt(1));
     }
+  }
 
     @Test
     public void firstTest() throws SQLException {
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertTrue(rs.next());
         assertTrue(rs.next());
@@ -401,7 +408,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     public void lastTest() throws SQLException {
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertTrue(rs.last());
         assertTrue(rs.isLast());
@@ -420,7 +427,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     public void relativeForwardTest() throws SQLException {
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertTrue(rs.isBeforeFirst());
         assertFalse(rs.isFirst());
@@ -453,7 +460,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     public void relativeBackwardTest() throws SQLException {
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         rs.afterLast();
         assertFalse(rs.isBeforeFirst());
@@ -486,27 +493,27 @@ public class OracleResultSetTest extends BaseOracleTest {
     private void insertRows(int numberOfRowsToInsert) throws SQLException {
         sharedConnection.createStatement().execute("truncate result_set_test ");
         for (int i = 1; i <= numberOfRowsToInsert; i++) {
-            sharedConnection.createStatement()
-                    .executeUpdate("INSERT INTO result_set_test VALUES(" + i + ", 'row" + i + "')");
+            sharedConnection.createStatement().executeUpdate(
+                "INSERT INTO result_set_test VALUES(" + i + ", 'row" + i + "')");
         }
     }
 
     /**
      * CONJ-403: NPE in getGenerated keys.
      *
-     * @throws SQLException
-     *             if error occur
+     * @throws SQLException if error occur
      */
     @Test
-    // oracle not exists auto_increment
-    public void generatedKeyNpe() throws SQLException {
-        createTable("generatedKeyNpe", "id int not null primary key , val int");
-        Statement statement = sharedConnection.createStatement();
-        statement.execute("INSERT INTO generatedKeyNpe(id,val) values (1,0)", Statement.RETURN_GENERATED_KEYS);
-        try (ResultSet rs = statement.getGeneratedKeys()) {
-            assertFalse(rs.next());
-        }
+    //oracle not exists auto_increment
+  public void generatedKeyNpe() throws SQLException {
+    createTable("generatedKeyNpe", "id int not null primary key , val int");
+    Statement statement = sharedConnection.createStatement();
+    statement.execute(
+        "INSERT INTO generatedKeyNpe(id,val) values (1,0)", Statement.RETURN_GENERATED_KEYS);
+    try (ResultSet rs = statement.getGeneratedKeys()) {
+      assertFalse(rs.next());
     }
+  }
 
     @Test
     public void generatedKeyError() throws SQLException {
@@ -517,117 +524,120 @@ public class OracleResultSetTest extends BaseOracleTest {
             statement.getGeneratedKeys();
             fail();
         } catch (SQLException sqle) {
-            assertEquals("Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS",
-                    sqle.getMessage());
+            assertEquals(
+                "Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS",
+                sqle.getMessage());
         }
     }
 
     @Test
-    public void testResultSetAbsolute() throws Exception {
-        insertRows(50);
-        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY)) {
-            statement.setFetchSize(10);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-                assertFalse(rs.absolute(52));
-                assertFalse(rs.absolute(-52));
+  public void testResultSetAbsolute() throws Exception {
+    insertRows(50);
+    try (Statement statement =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+      statement.setFetchSize(10);
+      try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+        assertFalse(rs.absolute(52));
+        assertFalse(rs.absolute(-52));
 
-                assertTrue(rs.absolute(42));
-                assertEquals("row42", rs.getString(2).trim());
+        assertTrue(rs.absolute(42));
+        assertEquals("row42", rs.getString(2).trim());
 
-                assertTrue(rs.absolute(-11));
-                assertEquals("row40", rs.getString(2).trim());
-                assertTrue(rs.absolute(0));
-                assertTrue(rs.isBeforeFirst());
+        assertTrue(rs.absolute(-11));
+        assertEquals("row40", rs.getString(2).trim());
+        assertTrue(rs.absolute(0));
+        assertTrue(rs.isBeforeFirst());
 
-                assertFalse(rs.absolute(51));
-                assertTrue(rs.isAfterLast());
+        assertFalse(rs.absolute(51));
+        assertTrue(rs.isAfterLast());
 
-                assertTrue(rs.absolute(-1));
-                assertEquals("row50", rs.getString(2).trim());
+        assertTrue(rs.absolute(-1));
+        assertEquals("row50", rs.getString(2).trim());
 
-                assertTrue(rs.absolute(-50));
-                assertEquals("row1", rs.getString(2).trim());
+        assertTrue(rs.absolute(-50));
+        assertEquals("row1", rs.getString(2).trim());
 
-            }
-        }
+      }
     }
+  }
 
     @Test
-    public void testResultSetIsAfterLast() throws Exception {
-        insertRows(2);
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.setFetchSize(1);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-                assertFalse(rs.isLast());
-                assertFalse(rs.isAfterLast());
-                assertTrue(rs.next());
-                assertFalse(rs.isLast());
-                assertFalse(rs.isAfterLast());
-                assertTrue(rs.next());
-                assertTrue(rs.isLast());
-                assertFalse(rs.isAfterLast());
-                assertFalse(rs.next());
-                assertFalse(rs.isLast());
-                assertTrue(rs.isAfterLast());
-            }
+  public void testResultSetIsAfterLast() throws Exception {
+    insertRows(2);
+    try (Statement statement = sharedConnection.createStatement()) {
+      statement.setFetchSize(1);
+      try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+        assertTrue(rs.next());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+        assertTrue(rs.next());
+        assertTrue(rs.isLast());
+        assertFalse(rs.isAfterLast());
+        assertFalse(rs.next());
+        assertFalse(rs.isLast());
+        assertTrue(rs.isAfterLast());
+      }
 
-            insertRows(0);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-                assertFalse(rs.isAfterLast());
-                assertFalse(rs.isLast());
-                assertFalse(rs.next());
-                assertFalse(rs.isLast());
-                assertFalse(rs.isAfterLast()); // jdbc indicate that results with no rows return false.
-            }
-        }
+      insertRows(0);
+      try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+        assertFalse(rs.isAfterLast());
+        assertFalse(rs.isLast());
+        assertFalse(rs.next());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast()); // jdbc indicate that results with no rows return false.
+      }
     }
+  }
 
     @Test
-    public void testResultSetAfterLast() throws Exception {
-        try (Statement statement = sharedConnection.createStatement()) {
-            checkLastResultSet(statement);
-            statement.setFetchSize(1);
-            checkLastResultSet(statement);
-        }
+  public void testResultSetAfterLast() throws Exception {
+    try (Statement statement = sharedConnection.createStatement()) {
+      checkLastResultSet(statement);
+      statement.setFetchSize(1);
+      checkLastResultSet(statement);
     }
+  }
 
     private void checkLastResultSet(Statement statement) throws SQLException {
 
-        insertRows(10);
-        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+    insertRows(10);
+    try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
 
-            assertTrue(rs.last());
-            assertFalse(rs.isAfterLast());
-            assertTrue(rs.isLast());
+      assertTrue(rs.last());
+      assertFalse(rs.isAfterLast());
+      assertTrue(rs.isLast());
 
-            rs.afterLast();
-            assertTrue(rs.isAfterLast());
-            assertFalse(rs.isLast());
-        }
-
-        insertRows(0);
-        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-
-            assertFalse(rs.last());
-            assertFalse(rs.isAfterLast());
-            assertFalse(rs.isLast());
-
-            rs.afterLast();
-            assertFalse(rs.isAfterLast()); // jdbc indicate that results with no rows return false.
-            assertFalse(rs.isLast());
-        }
+      rs.afterLast();
+      assertTrue(rs.isAfterLast());
+      assertFalse(rs.isLast());
     }
+
+    insertRows(0);
+    try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+
+      assertFalse(rs.last());
+      assertFalse(rs.isAfterLast());
+      assertFalse(rs.isLast());
+
+      rs.afterLast();
+      assertFalse(rs.isAfterLast()); // jdbc indicate that results with no rows return false.
+      assertFalse(rs.isLast());
+    }
+  }
 
     @Test
     public void testStreamInsensitive() throws Exception {
         createTable("testStreamInsensitive", "s1 varchar(20)");
 
         for (int r = 0; r < 20; r++) {
-            sharedConnection.createStatement().executeUpdate("insert into testStreamInsensitive values('V" + r + "')");
+            sharedConnection.createStatement().executeUpdate(
+                "insert into testStreamInsensitive values('V" + r + "')");
         }
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+            ResultSet.CONCUR_READ_ONLY);
         stmt.setFetchSize(10);
 
         // reading forward
@@ -678,9 +688,11 @@ public class OracleResultSetTest extends BaseOracleTest {
         createTable("testStreamForward", "s1 varchar(20)");
 
         for (int r = 0; r < 20; r++) {
-            sharedConnection.createStatement().executeUpdate("insert into testStreamForward values('V" + r + "')");
+            sharedConnection.createStatement().executeUpdate(
+                "insert into testStreamForward values('V" + r + "')");
         }
-        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY);
         stmt.setFetchSize(10);
 
         // reading forward
@@ -710,7 +722,8 @@ public class OracleResultSetTest extends BaseOracleTest {
             rs.previous();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
 
         rs = stmt.executeQuery("select * from testStreamForward");
@@ -721,7 +734,8 @@ public class OracleResultSetTest extends BaseOracleTest {
             rs.first();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
     }
 
@@ -742,64 +756,79 @@ public class OracleResultSetTest extends BaseOracleTest {
             rs.first();
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
         try {
             rs.previous();
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
         try {
             rs.absolute(1);
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
         try {
             rs.relative(-1);
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+            assertTrue(sqle.getMessage().contains(
+                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
     }
 
     /**
      * CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException.
      *
-     * @throws SQLException
-     *             if any abnormal error occur
+     * @throws SQLException if any abnormal error occur
      */
     @Test
-    public void testNumericType() throws SQLException {
-        createTable("numericTypeTable",
-                "t1 number(2), " + "t2 number(1), " + "t3 number(3),  " + "t4 number(4), " + "t5 int, "
-                        + "t6 number(12), " + "t7 number(12,5), " + "t9 number(12,4), " + "t11 char(10),"
-                        + "t12 varchar(10)," + "t15 clob," + "t16 blob," + "t17 date");
+  public void testNumericType() throws SQLException {
+    createTable(
+        "numericTypeTable",
+        "t1 number(2), "
+            + "t2 number(1), "
+            + "t3 number(3),  "
+            + "t4 number(4), "
+            + "t5 int, "
+            + "t6 number(12), "
+            + "t7 number(12,5), "
+            + "t9 number(12,4), "
+            + "t11 char(10),"
+            + "t12 varchar(10),"
+            + "t15 clob,"
+            + "t16 blob,"
+            + "t17 date");
 
-        try (Statement stmt = sharedConnection.createStatement()) {
-            stmt.execute("INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', sysdate)");
-            try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
-                assertTrue(rs.next());
-                try {
-                    floatDoubleCheckResult(rs);
-                } catch (SQLException e) {
-                    if (e.getMessage().contains("getDouble not available for data field type Types.FLOAT")) {
-
-                    }
-
-                }
+    try (Statement stmt = sharedConnection.createStatement()) {
+        stmt.execute(
+                "INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', sysdate)");
+      try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
+        assertTrue(rs.next());
+        try{
+            floatDoubleCheckResult(rs);
+        }catch(SQLException e){
+            if(e.getMessage().contains("getDouble not available for data field type Types.FLOAT")){
 
             }
+
         }
-        try (PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("select * from numericTypeTable")) {
-            try (ResultSet rs = preparedStatement.executeQuery()) {
-                assertTrue(rs.next());
-                floatDoubleCheckResult(rs);
-            }
-        }
+
+      }
     }
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("select * from numericTypeTable")) {
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        assertTrue(rs.next());
+        floatDoubleCheckResult(rs);
+      }
+    }
+  }
 
     private void floatDoubleCheckResult(ResultSet rs) throws SQLException {
 
@@ -832,8 +861,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     /**
      * CONJ-496 : Driver not dealing with non zero decimal values.
      *
-     * @throws SQLException
-     *             if any abnormal error occur
+     * @throws SQLException if any abnormal error occur
      */
     @Test
     public void numericTestWithDecimal() throws SQLException {
@@ -886,7 +914,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         createTable("USER2_TEST", "id number(10),username varchar2(200) ");
         stmt.execute("insert into USER2_TEST values(1,'tom')");
         PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("SELECT ID as test FROM USER2_TEST WHERE ID = 1 ");
+            .prepareStatement("SELECT ID as test FROM USER2_TEST WHERE ID = 1 ");
         rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
@@ -904,14 +932,17 @@ public class OracleResultSetTest extends BaseOracleTest {
         createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 varchar2(4)");
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values " + "(null, null, null, null), "
-                + "(null, null, null, null)," + "('aa', sysdate , sysdate , '2017')");
+                     + "(null, null, null, null)," + "('aa', sysdate , sysdate , '2017')");
         try {
             // day month year can not be zero
-            stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values " + "(null, null, null, null), "
-                    + "(null, null, null, null)," + "('aa', sysdate , sysdate , '2017')");
+            stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
+                         + "(null, null, null, null), " + "(null, null, null, null),"
+                         + "('aa', sysdate , sysdate , '2017')");
         } catch (Exception e) {
-            Assert.assertTrue("not exception",
-                    e.getMessage().contains(" ORA-01841: (full) year must be between -4713 and +9999, and not be 0"));
+            Assert.assertTrue(
+                "not exception",
+                e.getMessage().contains(
+                    " ORA-01841: (full) year must be between -4713 and +9999, and not be 0"));
         }
 
         ResultSet rs = stmt.executeQuery("SELECT * FROM nullField");
@@ -983,7 +1014,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         } catch (Exception e) {
             System.out.println("error: " + e.getMessage().trim());
             Assert.assertTrue("", "Could not get object as Date : Unparseable date: \"2017\""
-                    .equalsIgnoreCase(e.getMessage().trim()));
+                .equalsIgnoreCase(e.getMessage().trim()));
         }
         assertNotNull(rs.getString(2));
         assertFalse(rs.wasNull());
@@ -1014,68 +1045,73 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     @Test
-    public void columnNamesMappingError() throws SQLException {
-        createTable(" columnNamesMappingError ", " xX INT NOT NULL , " + "  PRIMARY KEY(xX)");
+  public void columnNamesMappingError() throws SQLException {
+    createTable(
+        " columnNamesMappingError ", " xX INT NOT NULL , " + "  PRIMARY KEY(xX)");
 
-        Statement stmt = sharedConnection.createStatement();
-        stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
-        try (PreparedStatement preparedStatement = sharedConnection
-                .prepareStatement("SELECT * FROM " + "  columnNamesMappingError")) {
-            // ,
-            // ResultSet.TYPE_FORWARD_ONLY,
-            // ResultSet.CONCUR_UPDATABLE)
+    Statement stmt = sharedConnection.createStatement();
+    stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM " + "  columnNamesMappingError")) {
+//        ,
+//        ResultSet.TYPE_FORWARD_ONLY,
+//                ResultSet.CONCUR_UPDATABLE)
 
-            ResultSet rs = preparedStatement.executeQuery();
-            assertTrue(rs.next());
-            assertEquals(4, rs.getInt("xx"));
-            try {
-                rs.getInt("wrong_column_name");
-                fail("must have fail, column 'wrong_column_name' does not exists");
-            } catch (SQLException e) {
-                assertEquals("42S22", e.getSQLState());
-                assertEquals(1054, e.getErrorCode());
-                assertTrue(
-                        e.getMessage().contains("No such column: 'wrong_column_name'. 'wrong_column_name' must be in "
-                                + "[xx, columnnamesmappingerror.xx]"));
-            }
-        }
+      ResultSet rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(4, rs.getInt("xx"));
+      try {
+        rs.getInt("wrong_column_name");
+        fail("must have fail, column 'wrong_column_name' does not exists");
+      } catch (SQLException e) {
+        assertEquals("42S22", e.getSQLState());
+        assertEquals(1054, e.getErrorCode());
+        assertTrue(
+            e.getMessage()
+                .contains(
+                    "No such column: 'wrong_column_name'. 'wrong_column_name' must be in "
+                        + "[xx, columnnamesmappingerror.xx]"));
+      }
     }
+  }
 
     /**
      * CONJ-669: No such column when having empty column without alias.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @Test
-    public void emptyColumnName() throws SQLException {
-        try (Connection connection = setConnection("")) {
-            Statement stmt = connection.createStatement();
-            try {
-                stmt.execute("drop table emptyColumn");
-            } catch (SQLException e) {
-                // eat exception
-            }
-            stmt.execute("CREATE global TEMPORARY TABLE emptyColumn (id int)");
-            stmt.execute("INSERT INTO emptyColumn values (1)");
-            ResultSet rs = stmt.executeQuery("SELECT '' FROM emptyColumn");
-            while (rs.next()) {
-                Assert.assertEquals("", rs.getString(1));
-                Assert.assertEquals("", rs.getString(""));
-            }
-            ResultSetMetaData meta = rs.getMetaData();
-            Assert.assertEquals(1, meta.getColumnCount());
-            Assert.assertEquals("''", meta.getColumnName(1));
-            connection.close();
+  public void emptyColumnName() throws SQLException {
+    try (Connection connection = setConnection("")) {
+      Statement stmt = connection.createStatement();
+        try {
+            stmt.execute("drop table emptyColumn") ;
+        } catch (SQLException e) {
+//           eat exception
         }
+        stmt.execute("CREATE global TEMPORARY TABLE emptyColumn (id int)");
+      stmt.execute("INSERT INTO emptyColumn values (1)");
+      ResultSet rs = stmt.executeQuery("SELECT '' FROM emptyColumn");
+      while (rs.next()) {
+        Assert.assertEquals("", rs.getString(1));
+        Assert.assertEquals("", rs.getString(""));
+      }
+      ResultSetMetaData meta = rs.getMetaData();
+      Assert.assertEquals(1, meta.getColumnCount());
+      Assert.assertEquals("''", meta.getColumnName(1));
+      connection.close();
     }
+  }
 
     @Test
     public void getMethodTest() throws SQLException {
-        createTable("getMethodTest", "ID INT NOT NULL PRIMARY KEY ,NAME varchar2(100) ,CREATE_TIMESTAMP TIMESTAMP,"
-                + " CRATE_TIME TIMESTAMP,CREATE_DATE DATE,weight number(12,6) "); // ,mark clob,image blob
+        createTable("getMethodTest",
+            "ID INT NOT NULL PRIMARY KEY ,NAME varchar2(100) ,CREATE_TIMESTAMP TIMESTAMP,"
+                    + " CRATE_TIME TIMESTAMP,CREATE_DATE DATE,weight number(12,6) "); // ,mark clob,image blob
 
-        PreparedStatement stmt = sharedConnection.prepareStatement("INSERT INTO getMethodTest VALUES (?,?,?,?,?,?)");
+        PreparedStatement stmt = sharedConnection
+            .prepareStatement("INSERT INTO getMethodTest VALUES (?,?,?,?,?,?)");
         long time = System.currentTimeMillis();
         Timestamp timestamp = new Timestamp(time);
         Time time1 = new Time(time);
@@ -1087,26 +1123,30 @@ public class OracleResultSetTest extends BaseOracleTest {
         stmt.setTimestamp(4, timestamp);
         stmt.setDate(5, date);
         stmt.setBigDecimal(6, new BigDecimal(134254.3342));
-        // stmt.setClob(7,new Clob(new byte[]{1,2,3,4,5,60},0,3));
-        // stmt.setBlob(8,new Blob(new byte[]{1,2,3,4,5,60},0,10));
+        //        stmt.setClob(7,new Clob(new byte[]{1,2,3,4,5,60},0,3));
+        //        stmt.setBlob(8,new Blob(new byte[]{1,2,3,4,5,60},0,10));
         stmt.execute();
         ResultSet resultSet = stmt.executeQuery("select * from getMethodTest");
         while (resultSet.next()) {
             Assert.assertTrue("not equals", 1 == resultSet.getInt(1));
             Assert.assertTrue("not equals", "TOM".equals(resultSet.getString(2)));
-            Assert.assertTrue("not equals result: " + resultSet.getTimestamp(3) + "timestamp:" + timestamp, timestamp
-                    .toString().substring(0, 16).equals(resultSet.getTimestamp(3).toString().substring(0, 16)));
-            Assert.assertTrue("not equals", timestamp.toString().substring(0, 16)
+            Assert.assertTrue(
+                "not equals result: " + resultSet.getTimestamp(3) + "timestamp:" + timestamp,
+                timestamp.toString().substring(0, 16)
+                    .equals(resultSet.getTimestamp(3).toString().substring(0, 16)));
+            Assert.assertTrue(
+                "not equals",
+                timestamp.toString().substring(0, 16)
                     .equals(resultSet.getTimestamp(4).toString().substring(0, 16)));
-            Assert.assertTrue("not equals,date：" + date + "resultSet.getDate(5) ：" + resultSet.getDate(5),
-                    date.toString().equals(resultSet.getDate(5).toString()));
-            // Assert.assertTrue("is Array",resultSet.getArray(6) instanceof Array) ;
-            // Assert.assertTrue("not equals", resultSet.getArray(4) != null );
-            Assert.assertTrue("not equals", 134254.3342 == resultSet.getBigDecimal(6).doubleValue());
-            // Assert.assertTrue("not equals",resultSet.getClob(7).getSubString(0,3).equals(new Clob(new
-            // byte[]{1,2,3,4,5,60},0,3).getSubString(0,3)));
-            // Assert.assertTrue("not equals",new String(resultSet.getBlob(8).getBytes(0,5)).equals(new String (new
-            // Blob(new byte[]{1,2,3,4,5,60},0,10).getBytes(0,5))));
+            Assert.assertTrue(
+                "not equals,date：" + date + "resultSet.getDate(5) ：" + resultSet.getDate(5), date
+                    .toString().equals(resultSet.getDate(5).toString()));
+            //         Assert.assertTrue("is Array",resultSet.getArray(6) instanceof Array) ;
+            //          Assert.assertTrue("not equals", resultSet.getArray(4) != null  );
+            Assert
+                .assertTrue("not equals", 134254.3342 == resultSet.getBigDecimal(6).doubleValue());
+            //            Assert.assertTrue("not equals",resultSet.getClob(7).getSubString(0,3).equals(new Clob(new byte[]{1,2,3,4,5,60},0,3).getSubString(0,3)));
+            //            Assert.assertTrue("not equals",new String(resultSet.getBlob(8).getBytes(0,5)).equals(new String (new Blob(new byte[]{1,2,3,4,5,60},0,10).getBytes(0,5))));
         }
     }
 
@@ -1135,7 +1175,8 @@ public class OracleResultSetTest extends BaseOracleTest {
             pstmt.setString(3, "CLOB_abcdefg");
             pstmt.executeUpdate();
 
-            conn.createStatement().execute(
+            conn.createStatement()
+                .execute(
                     "CREATE OR REPLACE PROCEDURE test_callable_porc(p_c1 IN int, pC2 OUT VARCHAR2, p_c3 OUT varchar2) is BEGIN  \n"
                             + "            select c2,c3 into pC2,p_c3 from test_callable ;\n"
                             + "                    end ;");
@@ -1165,7 +1206,7 @@ public class OracleResultSetTest extends BaseOracleTest {
                     conn.close();
                 } catch (SQLException e) {
                     Assert.assertTrue(e.getMessage(),
-                            e.getMessage().contains("Can't call rollback when autocommit enable"));
+                        e.getMessage().contains("Can't call rollback when autocommit enable"));
                 }
             }
         }

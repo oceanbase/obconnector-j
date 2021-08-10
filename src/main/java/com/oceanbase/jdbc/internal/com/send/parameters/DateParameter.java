@@ -62,19 +62,16 @@ import com.oceanbase.jdbc.util.Options;
 
 public class DateParameter implements Cloneable, ParameterHolder {
 
-    private final Date date;
+    private final Date     date;
     private final TimeZone timeZone;
-    private final Options options;
+    private final Options  options;
 
     /**
      * Represents a date, constructed with time in millis since epoch.
      *
-     * @param date
-     *            the date
-     * @param timeZone
-     *            timezone to use
-     * @param options
-     *            jdbc options
+     * @param date the date
+     * @param timeZone timezone to use
+     * @param options jdbc options
      */
     public DateParameter(Date date, TimeZone timeZone, Options options) {
         this.date = date;
@@ -85,8 +82,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     /**
      * Write to server OutputStream in text protocol.
      *
-     * @param os
-     *            output buffer
+     * @param os output buffer
      */
     public void writeTo(final PacketOutputStream os) throws IOException {
         os.write(QUOTE);
@@ -112,10 +108,8 @@ public class DateParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         Calendar calendar = Calendar.getInstance(timeZone);

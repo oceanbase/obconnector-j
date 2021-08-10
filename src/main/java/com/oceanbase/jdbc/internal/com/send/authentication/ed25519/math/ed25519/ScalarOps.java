@@ -51,29 +51,24 @@
 package com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
 /**
- * Class for reducing a huge integer modulo the group order q and doing a combined multiply plus add plus reduce
- * operation.
+ * Class for reducing a huge integer modulo the group order q and doing a combined multiply plus add
+ * plus reduce operation.
  *
- * <p>
- * $q = 2^{252} + 27742317777372353535851937790883648493$.
+ * <p>$q = 2^{252} + 27742317777372353535851937790883648493$.
  *
- * <p>
- * Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
+ * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class ScalarOps {
 
     /**
      * Reduction modulo the group order $q$.
      *
-     * <p>
-     * Input: $s[0]+256*s[1]+\dots+256^{63}*s[63] = s$
+     * <p>Input: $s[0]+256*s[1]+\dots+256^{63}*s[63] = s$
      *
-     * <p>
-     * Output: $s[0]+256*s[1]+\dots+256^{31}*s[31] = s \bmod q$ where $q = 2^{252} +
+     * <p>Output: $s[0]+256*s[1]+\dots+256^{31}*s[31] = s \bmod q$ where $q = 2^{252} +
      * 27742317777372353535851937790883648493$.
      *
-     * @param s
-     *            byte array
+     * @param s byte array
      * @return reduced byte array using a huge integer modulo the group order q
      */
     public byte[] reduce(byte[] s) {
@@ -123,20 +118,17 @@ public class ScalarOps {
         /**
          * Lots of magic numbers :) To understand what's going on below, note that
          *
-         * <p>
-         * (1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493. (2) s11 is the coefficient of
-         * 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)). (3) 2^252 congruent -q0 modulo
-         * q. (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) -
-         * 683901 * 2^(5*21)
+         * <p>(1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493. (2) s11 is the
+         * coefficient of 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)).
+         * (3) 2^252 congruent -q0 modulo q. (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21)
+         * - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)
          *
-         * <p>
-         * Thus s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent s23 * (666643 * 2^0 +
-         * 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)) * 2^(11*21)
-         * modulo q = s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) + 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657
-         * * 2^(15*21) - 683901 * 2^(16*21)).
+         * <p>Thus s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent s23
+         * * (666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) -
+         * 683901 * 2^(5*21)) * 2^(11*21) modulo q = s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) +
+         * 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657 * 2^(15*21) - 683901 * 2^(16*21)).
          *
-         * <p>
-         * The same procedure is then applied for s22,...,s18.
+         * <p>The same procedure is then applied for s22,...,s18.
          */
         s11 += s23 * 666643;
         s12 += s23 * 470296;
@@ -454,28 +446,22 @@ public class ScalarOps {
     /**
      * $(ab+c) \bmod q$
      *
-     * <p>
-     * Input:
+     * <p>Input:
      *
      * <ul>
-     * <li>$a[0]+256*a[1]+\dots+256^{31}*a[31] = a$
-     * <li>$b[0]+256*b[1]+\dots+256^{31}*b[31] = b$
-     * <li>$c[0]+256*c[1]+\dots+256^{31}*c[31] = c$
+     *   <li>$a[0]+256*a[1]+\dots+256^{31}*a[31] = a$
+     *   <li>$b[0]+256*b[1]+\dots+256^{31}*b[31] = b$
+     *   <li>$c[0]+256*c[1]+\dots+256^{31}*c[31] = c$
      * </ul>
      *
-     * <p>
-     * Output: $result[0]+256*result[1]+\dots+256^{31}*result[31] = (ab+c) \bmod q$ where $q = 2^{252} +
-     * 27742317777372353535851937790883648493$.
+     * <p>Output: $result[0]+256*result[1]+\dots+256^{31}*result[31] = (ab+c) \bmod q$ where $q =
+     * 2^{252} + 27742317777372353535851937790883648493$.
      *
-     * <p>
-     * See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
+     * <p>See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
      *
-     * @param a
-     *            a
-     * @param b
-     *            b
-     * @param c
-     *            c
+     * @param a a
+     * @param b b
+     * @param c c
      * @return multiplied result
      */
     public byte[] multiplyAndAdd(byte[] a, byte[] b, byte[] c) {
@@ -571,16 +557,20 @@ public class ScalarOps {
         s5 = c5 + a0 * b5 + a1 * b4 + a2 * b3 + a3 * b2 + a4 * b1 + a5 * b0;
         s6 = c6 + a0 * b6 + a1 * b5 + a2 * b4 + a3 * b3 + a4 * b2 + a5 * b1 + a6 * b0;
         s7 = c7 + a0 * b7 + a1 * b6 + a2 * b5 + a3 * b4 + a4 * b3 + a5 * b2 + a6 * b1 + a7 * b0;
-        s8 = c8 + a0 * b8 + a1 * b7 + a2 * b6 + a3 * b5 + a4 * b4 + a5 * b3 + a6 * b2 + a7 * b1 + a8 * b0;
-        s9 = c9 + a0 * b9 + a1 * b8 + a2 * b7 + a3 * b6 + a4 * b5 + a5 * b4 + a6 * b3 + a7 * b2 + a8 * b1 + a9 * b0;
-        s10 = c10 + a0 * b10 + a1 * b9 + a2 * b8 + a3 * b7 + a4 * b6 + a5 * b5 + a6 * b4 + a7 * b3 + a8 * b2 + a9 * b1
-                + a10 * b0;
-        s11 = c11 + a0 * b11 + a1 * b10 + a2 * b9 + a3 * b8 + a4 * b7 + a5 * b6 + a6 * b5 + a7 * b4 + a8 * b3 + a9 * b2
-                + a10 * b1 + a11 * b0;
-        s12 = a1 * b11 + a2 * b10 + a3 * b9 + a4 * b8 + a5 * b7 + a6 * b6 + a7 * b5 + a8 * b4 + a9 * b3 + a10 * b2
-                + a11 * b1;
-        s13 = a2 * b11 + a3 * b10 + a4 * b9 + a5 * b8 + a6 * b7 + a7 * b6 + a8 * b5 + a9 * b4 + a10 * b3 + a11 * b2;
-        s14 = a3 * b11 + a4 * b10 + a5 * b9 + a6 * b8 + a7 * b7 + a8 * b6 + a9 * b5 + a10 * b4 + a11 * b3;
+        s8 = c8 + a0 * b8 + a1 * b7 + a2 * b6 + a3 * b5 + a4 * b4 + a5 * b3 + a6 * b2 + a7 * b1
+             + a8 * b0;
+        s9 = c9 + a0 * b9 + a1 * b8 + a2 * b7 + a3 * b6 + a4 * b5 + a5 * b4 + a6 * b3 + a7 * b2
+             + a8 * b1 + a9 * b0;
+        s10 = c10 + a0 * b10 + a1 * b9 + a2 * b8 + a3 * b7 + a4 * b6 + a5 * b5 + a6 * b4 + a7 * b3
+              + a8 * b2 + a9 * b1 + a10 * b0;
+        s11 = c11 + a0 * b11 + a1 * b10 + a2 * b9 + a3 * b8 + a4 * b7 + a5 * b6 + a6 * b5 + a7 * b4
+              + a8 * b3 + a9 * b2 + a10 * b1 + a11 * b0;
+        s12 = a1 * b11 + a2 * b10 + a3 * b9 + a4 * b8 + a5 * b7 + a6 * b6 + a7 * b5 + a8 * b4 + a9
+              * b3 + a10 * b2 + a11 * b1;
+        s13 = a2 * b11 + a3 * b10 + a4 * b9 + a5 * b8 + a6 * b7 + a7 * b6 + a8 * b5 + a9 * b4 + a10
+              * b3 + a11 * b2;
+        s14 = a3 * b11 + a4 * b10 + a5 * b9 + a6 * b8 + a7 * b7 + a8 * b6 + a9 * b5 + a10 * b4
+              + a11 * b3;
         s15 = a4 * b11 + a5 * b10 + a6 * b9 + a7 * b8 + a8 * b7 + a9 * b6 + a10 * b5 + a11 * b4;
         s16 = a5 * b11 + a6 * b10 + a7 * b9 + a8 * b8 + a9 * b7 + a10 * b6 + a11 * b5;
         s17 = a6 * b11 + a7 * b10 + a8 * b9 + a9 * b8 + a10 * b7 + a11 * b6;

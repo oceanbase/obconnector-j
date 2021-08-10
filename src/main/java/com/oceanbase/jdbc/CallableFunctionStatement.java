@@ -62,45 +62,41 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public abstract class CallableFunctionStatement extends ClientSidePreparedStatement implements CallableStatement {
+public abstract class CallableFunctionStatement extends ClientSidePreparedStatement implements
+                                                                                   CallableStatement {
 
     protected CallableParameterMetaData parameterMetadata;
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
-    private CallParameter[] params;
+    private CallParameter[]             params;
 
     /**
      * Constructor for getter/setter of callableStatement.
      *
-     * @param connection
-     *            current connection
-     * @param sql
-     *            query
-     * @param resultSetType
-     *            a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+     * @param connection current connection
+     * @param sql query
+     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
      *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency
-     *            a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
-     *            <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param exceptionFactory
-     *            Exception factory
-     * @throws SQLException
-     *             if clientPrepareStatement creation throw an exception
+     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
+     *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param exceptionFactory Exception factory
+     * @throws SQLException if clientPrepareStatement creation throw an exception
      */
     public CallableFunctionStatement(OceanBaseConnection connection, String sql, int resultSetType,
-            final int resultSetConcurrency, ExceptionFactory exceptionFactory) throws SQLException {
-        super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS, exceptionFactory);
+                                     final int resultSetConcurrency,
+                                     ExceptionFactory exceptionFactory) throws SQLException {
+        super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS,
+            exceptionFactory);
     }
 
     /**
      * Clone data.
      *
-     * @param connection
-     *            connection
+     * @param connection connection
      * @return Cloned .
-     * @throws CloneNotSupportedException
-     *             if any error occur.
+     * @throws CloneNotSupportedException if any error occur.
      */
-    public CallableFunctionStatement clone(OceanBaseConnection connection) throws CloneNotSupportedException {
+    public CallableFunctionStatement clone(OceanBaseConnection connection)
+                                                                          throws CloneNotSupportedException {
         CallableFunctionStatement clone = (CallableFunctionStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
@@ -112,8 +108,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     /**
      * Data initialisation when parameterCount is defined.
      *
-     * @param parametersCount
-     *            number of parameters
+     * @param parametersCount number of parameters
      */
     public void initFunctionData(int parametersCount) {
         params = new CallParameter[parametersCount];
@@ -137,11 +132,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     /**
      * Convert parameter name to parameter index in the query.
      *
-     * @param parameterName
-     *            name
+     * @param parameterName name
      * @return index
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery);
@@ -160,11 +153,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     /**
      * Convert parameter name to output parameter index in the query.
      *
-     * @param parameterName
-     *            name
+     * @param parameterName name
      * @return index
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     private int nameToOutputIndex(String parameterName) throws SQLException {
         for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
@@ -179,8 +170,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     /**
      * Convert parameter index to corresponding outputIndex.
      *
-     * @param parameterIndex
-     *            index
+     * @param parameterIndex index
      * @return index
      */
     private int indexToOutputIndex(int parameterIndex) {
@@ -361,7 +351,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex)
+            .getOutputSqlType());
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
@@ -513,40 +504,34 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
     /**
      * Registers the designated output parameter. This version of the method <code>
-     * registerOutParameter</code> should be used for a user-defined or <code>REF</code> output parameter. Examples of
-     * user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>, <code>JAVA_OBJECT</code>, and named array
-     * types.
+     * registerOutParameter</code> should be used for a user-defined or <code>REF</code> output
+     * parameter. Examples of user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>,
+     * <code>JAVA_OBJECT</code>, and named array types.
      *
-     * <p>
-     * All OUT parameters must be registered before a stored procedure is executed.
+     * <p>All OUT parameters must be registered before a stored procedure is executed.
      *
-     * <p>
-     * For a user-defined parameter, the fully-qualified SQL type name of the parameter should also be given, while a
-     * <code>REF</code> parameter requires that the fully-qualified type name of the referenced type be given. A JDBC
-     * driver that does not need the type code and type name information may ignore it. To be portable, however,
-     * applications should always provide these values for user-defined and <code>REF</code> parameters.
+     * <p>For a user-defined parameter, the fully-qualified SQL type name of the parameter should also
+     * be given, while a <code>REF</code> parameter requires that the fully-qualified type name of the
+     * referenced type be given. A JDBC driver that does not need the type code and type name
+     * information may ignore it. To be portable, however, applications should always provide these
+     * values for user-defined and <code>REF</code> parameters.
      *
-     * <p>
-     * Although it is intended for user-defined and <code>REF</code> parameters, this method may be used to register a
-     * parameter of any JDBC type. If the parameter does not have a user-defined or <code>REF</code> type, the
-     * <i>typeName</i> parameter is ignored.
+     * <p>Although it is intended for user-defined and <code>REF</code> parameters, this method may be
+     * used to register a parameter of any JDBC type. If the parameter does not have a user-defined or
+     * <code>REF</code> type, the <i>typeName</i> parameter is ignored.
      *
-     * <p>
-     * <B>Note:</B> When reading the value of an out parameter, you must use the getter method whose Java type
-     * corresponds to the parameter's registered SQL type.
+     * <p><B>Note:</B> When reading the value of an out parameter, you must use the getter method
+     * whose Java type corresponds to the parameter's registered SQL type.
      *
-     * @param parameterIndex
-     *            the first parameter is 1, the second is 2,...
-     * @param sqlType
-     *            a value from {@link Types}
-     * @param typeName
-     *            the fully-qualified name of an SQL structured type
-     * @throws SQLException
-     *             if the parameterIndex is not valid; if a database access error occurs or this method is called on a
-     *             closed <code>CallableStatement</code>
+     * @param parameterIndex the first parameter is 1, the second is 2,...
+     * @param sqlType a value from {@link Types}
+     * @param typeName the fully-qualified name of an SQL structured type
+     * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
+     *     this method is called on a closed <code>CallableStatement</code>
      * @see Types
      */
-    public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
+    public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
+                                                                                      throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
@@ -559,31 +544,27 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     /**
-     * Registers the parameter in ordinal position <code>parameterIndex</code> to be of JDBC type <code>sqlType</code>.
-     * All OUT parameters must be registered before a stored procedure is executed.
+     * Registers the parameter in ordinal position <code>parameterIndex</code> to be of JDBC type
+     * <code>sqlType</code>. All OUT parameters must be registered before a stored procedure is
+     * executed.
      *
-     * <p>
-     * The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java type that must be used
-     * in the <code>get</code> method to read the value of that parameter.
+     * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
+     * type that must be used in the <code>get</code> method to read the value of that parameter.
      *
-     * <p>
-     * This version of <code>registerOutParameter</code> should be used when the parameter is of JDBC type
-     * <code>NUMERIC</code> or <code>DECIMAL</code>.
+     * <p>This version of <code>registerOutParameter</code> should be used when the parameter is of
+     * JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>.
      *
-     * @param parameterIndex
-     *            the first parameter is 1, the second is 2, and so on
-     * @param sqlType
-     *            the SQL type code defined by <code>java.sql.Types</code>.
-     * @param scale
-     *            the desired number of digits to the right of the decimal point. It must be greater than or equal to
-     *            zero.
-     * @throws SQLException
-     *             if the parameterIndex is not valid; if a database access error occurs or this method is called on a
-     *             closed <code>CallableStatement</code>
+     * @param parameterIndex the first parameter is 1, the second is 2, and so on
+     * @param sqlType the SQL type code defined by <code>java.sql.Types</code>.
+     * @param scale the desired number of digits to the right of the decimal point. It must be greater
+     *     than or equal to zero.
+     * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
+     *     this method is called on a closed <code>CallableStatement</code>
      * @see Types
      */
     @Override
-    public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
+    public void registerOutParameter(int parameterIndex, int sqlType, int scale)
+                                                                                throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
@@ -596,12 +577,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void registerOutParameter(String parameterName, int sqlType, int scale) throws SQLException {
+    public void registerOutParameter(String parameterName, int sqlType, int scale)
+                                                                                  throws SQLException {
         registerOutParameter(nameToIndex(parameterName), sqlType, scale);
     }
 
     @Override
-    public void registerOutParameter(String parameterName, int sqlType, String typeName) throws SQLException {
+    public void registerOutParameter(String parameterName, int sqlType, String typeName)
+                                                                                        throws SQLException {
         registerOutParameter(nameToIndex(parameterName), sqlType, typeName);
     }
 
@@ -611,12 +594,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale)
+                                                                                    throws SQLException {
         registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), scale);
     }
 
     @Override
-    public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName)
+                                                                                          throws SQLException {
         registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), typeName);
     }
 
@@ -626,12 +611,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
+    public void registerOutParameter(String parameterName, SQLType sqlType, int scale)
+                                                                                      throws SQLException {
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), scale);
     }
 
     @Override
-    public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
+    public void registerOutParameter(String parameterName, SQLType sqlType, String typeName)
+                                                                                            throws SQLException {
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
     }
 
@@ -658,7 +645,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setNCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
+    public void setNCharacterStream(String parameterName, Reader reader, long length)
+                                                                                     throws SQLException {
         setCharacterStream(nameToIndex(parameterName), reader, length);
     }
 
@@ -698,7 +686,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException {
+    public void setBlob(String parameterName, InputStream inputStream, long length)
+                                                                                   throws SQLException {
         setBlob(nameToIndex(parameterName), inputStream, length);
     }
 
@@ -713,12 +702,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setAsciiStream(String parameterName, InputStream inputStream, long length) throws SQLException {
+    public void setAsciiStream(String parameterName, InputStream inputStream, long length)
+                                                                                          throws SQLException {
         setAsciiStream(nameToIndex(parameterName), inputStream, length);
     }
 
     @Override
-    public void setAsciiStream(String parameterName, InputStream inputStream, int length) throws SQLException {
+    public void setAsciiStream(String parameterName, InputStream inputStream, int length)
+                                                                                         throws SQLException {
         setAsciiStream(nameToIndex(parameterName), inputStream, length);
     }
 
@@ -728,7 +719,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setBinaryStream(String parameterName, InputStream inputStream, long length) throws SQLException {
+    public void setBinaryStream(String parameterName, InputStream inputStream, long length)
+                                                                                           throws SQLException {
         setBinaryStream(nameToIndex(parameterName), inputStream, length);
     }
 
@@ -738,12 +730,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setBinaryStream(String parameterName, InputStream inputStream, int length) throws SQLException {
+    public void setBinaryStream(String parameterName, InputStream inputStream, int length)
+                                                                                          throws SQLException {
         setBinaryStream(nameToIndex(parameterName), inputStream, length);
     }
 
     @Override
-    public void setCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
+    public void setCharacterStream(String parameterName, Reader reader, long length)
+                                                                                    throws SQLException {
         setCharacterStream(nameToIndex(parameterName), reader, length);
     }
 
@@ -753,7 +747,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setCharacterStream(String parameterName, Reader reader, int length) throws SQLException {
+    public void setCharacterStream(String parameterName, Reader reader, int length)
+                                                                                   throws SQLException {
         setCharacterStream(nameToIndex(parameterName), reader, length);
     }
 
@@ -848,12 +843,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
 
     @Override
-    public void setTimestamp(String parameterName, Timestamp timestamp, Calendar cal) throws SQLException {
+    public void setTimestamp(String parameterName, Timestamp timestamp, Calendar cal)
+                                                                                     throws SQLException {
         setTimestamp(nameToIndex(parameterName), timestamp, cal);
     }
 
     @Override
-    public void setObject(String parameterName, Object obj, int targetSqlType, int scale) throws SQLException {
+    public void setObject(String parameterName, Object obj, int targetSqlType, int scale)
+                                                                                         throws SQLException {
         setObject(nameToIndex(parameterName), obj, targetSqlType, scale);
     }
 
@@ -869,12 +866,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
     @Override
     public void setObject(String parameterName, Object obj, SQLType targetSqlType, int scaleOrLength)
-            throws SQLException {
-        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+                                                                                                     throws SQLException {
+        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber(),
+            scaleOrLength);
     }
 
     @Override
-    public void setObject(String parameterName, Object obj, SQLType targetSqlType) throws SQLException {
+    public void setObject(String parameterName, Object obj, SQLType targetSqlType)
+                                                                                  throws SQLException {
         setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
     }
 }

@@ -83,8 +83,9 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
         if (param >= 1 && param <= parametersInformation.length) {
             return parametersInformation[param - 1];
         }
-        throw new SQLException("Parameter metadata out of range : param was " + param + " and must be 1 <= param <="
-                + parametersInformation.length, "07009");
+        throw new SQLException("Parameter metadata out of range : param was " + param
+                               + " and must be 1 <= param <=" + parametersInformation.length,
+            "07009");
     }
 
     @Override
@@ -119,15 +120,14 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
      * Parameter type are not sent by server. See https://jira.mariadb.org/browse/CONJ-568 and
      * https://jira.mariadb.org/browse/MDEV-15031
      *
-     * @param param
-     *            parameter number
+     * @param param parameter number
      * @return SQL type from java.sql.Types
-     * @throws SQLException
-     *             a feature not supported, since server doesn't sent the right information
+     * @throws SQLException a feature not supported, since server doesn't sent the right information
      */
     @Override
     public int getParameterType(int param) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("Getting parameter type metadata are not supported");
+        throw ExceptionFactory.INSTANCE
+            .notSupported("Getting parameter type metadata are not supported");
     }
 
     @Override
@@ -154,7 +154,8 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
                 throw new SQLException("The receiver is not a wrapper for " + iface.getName());
             }
         } catch (Exception e) {
-            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+            throw new SQLException(
+                "The receiver is not a wrapper and does not implement the interface");
         }
     }
 

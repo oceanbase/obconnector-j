@@ -65,28 +65,24 @@ import com.oceanbase.jdbc.util.Options;
 public class OffsetTimeParameter implements Cloneable, ParameterHolder {
 
     private OffsetTime time;
-    private boolean fractionalSeconds;
+    private boolean    fractionalSeconds;
 
     /**
      * Constructor.
      *
-     * @param offsetTime
-     *            time with offset
-     * @param serverZoneId
-     *            server session zoneId
-     * @param fractionalSeconds
-     *            must fractional Seconds be send to database.
-     * @param options
-     *            session options
-     * @throws SQLException
-     *             if offset cannot be converted to server offset
+     * @param offsetTime time with offset
+     * @param serverZoneId server session zoneId
+     * @param fractionalSeconds must fractional Seconds be send to database.
+     * @param options session options
+     * @throws SQLException if offset cannot be converted to server offset
      */
-    public OffsetTimeParameter(OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds, Options options)
-            throws SQLException {
+    public OffsetTimeParameter(OffsetTime offsetTime, ZoneId serverZoneId,
+                               boolean fractionalSeconds, Options options) throws SQLException {
         ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
         if (zoneId instanceof ZoneOffset) {
-            throw new SQLException("cannot set OffsetTime, since server time zone is set to '" + serverZoneId.toString()
-                    + "' (check server variables time_zone and system_time_zone)");
+            throw new SQLException("cannot set OffsetTime, since server time zone is set to '"
+                                   + serverZoneId.toString()
+                                   + "' (check server variables time_zone and system_time_zone)");
         }
         this.time = offsetTime.withOffsetSameInstant((ZoneOffset) zoneId);
         this.fractionalSeconds = fractionalSeconds;
@@ -95,12 +91,11 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write timestamps to outputStream.
      *
-     * @param pos
-     *            the stream to write to
+     * @param pos the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss",
-                Locale.ENGLISH);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+            fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss", Locale.ENGLISH);
         pos.write(QUOTE);
         pos.write(formatter.format(time).getBytes());
         pos.write(QUOTE);
@@ -113,10 +108,8 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (fractionalSeconds) {

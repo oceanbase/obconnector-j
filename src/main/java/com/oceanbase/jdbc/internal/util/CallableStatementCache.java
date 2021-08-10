@@ -56,7 +56,8 @@ import java.util.Map;
 
 import com.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 
-public class CallableStatementCache extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
+public class CallableStatementCache extends
+                                   LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
 
     private final int maxSize;
 

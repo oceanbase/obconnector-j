@@ -63,27 +63,25 @@ public class CmdInformationMultiple implements CmdInformation {
 
     private final ArrayList<Long> insertIds;
     private final ArrayList<Long> updateCounts;
-    private final int expectedSize;
-    private final int autoIncrement;
-    private int insertIdNumber = 0;
-    private int moreResults;
-    private boolean hasException;
-    private boolean rewritten;
+    private final int             expectedSize;
+    private final int             autoIncrement;
+    private int                   insertIdNumber = 0;
+    private int                   moreResults;
+    private boolean               hasException;
+    private boolean               rewritten;
 
     /**
      * Object containing update / insert ids, optimized for only multiple result.
      *
-     * @param expectedSize
-     *            expected batch size.
-     * @param autoIncrement
-     *            connection auto increment value.
+     * @param expectedSize expected batch size.
+     * @param autoIncrement connection auto increment value.
      */
     public CmdInformationMultiple(int expectedSize, int autoIncrement) {
-        insertIds = new ArrayList<>(expectedSize);
-        updateCounts = new ArrayList<>(expectedSize);
-        this.expectedSize = expectedSize;
-        this.autoIncrement = autoIncrement;
-    }
+    insertIds = new ArrayList<>(expectedSize);
+    updateCounts = new ArrayList<>(expectedSize);
+    this.expectedSize = expectedSize;
+    this.autoIncrement = autoIncrement;
+  }
 
     @Override
     public void addErrorStat() {
@@ -92,7 +90,8 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     /**
-     * Clear error state, used for clear exception after first batch query, when fall back to per-query execution.
+     * Clear error state, used for clear exception after first batch query, when fall back to
+     * per-query execution.
      */
     @Override
     public void reset() {
@@ -199,7 +198,7 @@ public class CmdInformationMultiple implements CmdInformation {
         Iterator<Long> idIterator = insertIds.iterator();
         for (Long updateCount : updateCounts) {
             if (updateCount != Statement.EXECUTE_FAILED && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next()) > 0) {
+                && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -209,12 +208,11 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     /**
-     * Return GeneratedKeys containing insert ids. Insert ids are calculated using autoincrement value.
+     * Return GeneratedKeys containing insert ids. Insert ids are calculated using autoincrement
+     * value.
      *
-     * @param protocol
-     *            current protocol
-     * @param sql
-     *            SQL command
+     * @param protocol current protocol
+     * @param sql SQL command
      * @return a resultSet with insert ids.
      */
     public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
@@ -227,7 +225,7 @@ public class CmdInformationMultiple implements CmdInformation {
         for (int element = 0; element <= moreResults; element++) {
             long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next()) > 0 && element == moreResults) {
+                && (insertId = idIterator.next()) > 0 && element == moreResults) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -242,7 +240,8 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-        return moreResults++ < updateCounts.size() - 1 && updateCounts.get(moreResults) == RESULT_SET_VALUE;
+        return moreResults++ < updateCounts.size() - 1
+               && updateCounts.get(moreResults) == RESULT_SET_VALUE;
     }
 
     @Override

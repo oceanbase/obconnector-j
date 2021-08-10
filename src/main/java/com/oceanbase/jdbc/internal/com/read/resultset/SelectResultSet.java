@@ -61,18 +61,21 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class SelectResultSet extends JDBC4ResultSet {
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-            PacketInputStream reader, boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
-            throws IOException, SQLException {
-        super(columnDefinition, results, protocol, reader, callableResult, eofDeprecated, isPsOutParameter);
+                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
+                           boolean isPsOutParameter) throws IOException, SQLException {
+        super(columnDefinition, results, protocol, reader, callableResult, eofDeprecated,
+            isPsOutParameter);
     }
 
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-            boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter) throws IOException, SQLException {
+                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
+                                                                                                   throws IOException,
+                                                                                                   SQLException {
         super(columnDefinition, results, protocol, callableResult, eofDeprecated, isPsOutParameter);
     }
 
-    public SelectResultSet(ColumnDefinition[] columnDefinition, List<byte[]> resultSet, Protocol protocol,
-            int resultSetScrollType) {
+    public SelectResultSet(ColumnDefinition[] columnDefinition, List<byte[]> resultSet,
+                           Protocol protocol, int resultSetScrollType) {
         super(columnDefinition, resultSet, protocol, resultSetScrollType);
     }
 }

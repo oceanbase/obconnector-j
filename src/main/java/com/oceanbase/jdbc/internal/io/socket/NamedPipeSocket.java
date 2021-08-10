@@ -60,12 +60,12 @@ import com.sun.jna.platform.win32.Kernel32;
 @SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {
 
-    private final String host;
-    private final String name;
+    private final String     host;
+    private final String     name;
 
     private RandomAccessFile file;
-    private InputStream is;
-    private OutputStream os;
+    private InputStream      is;
+    private OutputStream     os;
 
     public NamedPipeSocket(String host, String name) {
         this.host = host;
@@ -88,12 +88,9 @@ public class NamedPipeSocket extends Socket {
     /**
      * Name pipe connection.
      *
-     * @param endpoint
-     *            endPoint
-     * @param timeout
-     *            timeout in milliseconds
-     * @throws IOException
-     *             exception
+     * @param endpoint endPoint
+     * @param timeout timeout in milliseconds
+     * @throws IOException exception
      */
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
         String filename;
@@ -118,18 +115,21 @@ public class NamedPipeSocket extends Socket {
                     file = new RandomAccessFile(filename, "rw");
                 } catch (Throwable cle) {
                     // in case JNA not on classpath, then wait 10ms before next try.
-                    if (System.nanoTime() - initialNano > TimeUnit.MILLISECONDS.toNanos(usedTimeout)) {
+                    if (System.nanoTime() - initialNano > TimeUnit.MILLISECONDS
+                        .toNanos(usedTimeout)) {
                         if (timeout == 0) {
-                            throw new FileNotFoundException(fileNotFoundException.getMessage()
-                                    + "\nplease consider set connectTimeout option, so connection can retry having access to named pipe. "
-                                    + "\n(Named pipe can throw ERROR_PIPE_BUSY error)");
+                            throw new FileNotFoundException(
+                                fileNotFoundException.getMessage()
+                                        + "\nplease consider set connectTimeout option, so connection can retry having access to named pipe. "
+                                        + "\n(Named pipe can throw ERROR_PIPE_BUSY error)");
                         }
                         throw fileNotFoundException;
                     }
                     try {
                         TimeUnit.MILLISECONDS.sleep(5);
                     } catch (InterruptedException interrupted) {
-                        IOException ioException = new IOException("Interruption during connection to named pipe");
+                        IOException ioException = new IOException(
+                            "Interruption during connection to named pipe");
                         ioException.initCause(interrupted);
                         throw ioException;
                     }

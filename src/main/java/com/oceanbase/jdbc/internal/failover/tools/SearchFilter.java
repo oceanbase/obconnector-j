@@ -64,10 +64,8 @@ public class SearchFilter {
     /**
      * Constructor.
      *
-     * @param fineIfFoundOnlyMaster
-     *            stop searching if master found
-     * @param fineIfFoundOnlySlave
-     *            stop searching if slave found
+     * @param fineIfFoundOnlyMaster stop searching if master found
+     * @param fineIfFoundOnlySlave stop searching if slave found
      */
     public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
         this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
@@ -77,8 +75,7 @@ public class SearchFilter {
     /**
      * Constructor.
      *
-     * @param initialConnection
-     *            initial connection flag
+     * @param initialConnection initial connection flag
      */
     public SearchFilter(boolean initialConnection) {
         this.initialConnection = initialConnection;
@@ -106,8 +103,8 @@ public class SearchFilter {
 
     @Override
     public String toString() {
-        return "SearchFilter{" + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster + ", fineIfFoundOnlySlave="
-                + fineIfFoundOnlySlave + ", initialConnection=" + initialConnection + ", failoverLoop=" + failoverLoop
-                + "}";
+        return "SearchFilter{" + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
+               + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave + ", initialConnection="
+               + initialConnection + ", failoverLoop=" + failoverLoop + "}";
     }
 }

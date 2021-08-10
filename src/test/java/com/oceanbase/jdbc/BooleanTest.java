@@ -62,16 +62,16 @@ public class BooleanTest extends BaseTest {
     /**
      * Initialization.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("booleantest", "id int not null primary key auto_increment, test boolean");
         createTable("booleanvalue", "test boolean");
-        createTable("booleanAllField",
-                "t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
-                        + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1)");
+        createTable(
+            "booleanAllField",
+            "t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
+                    + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1)");
     }
 
     @Test
@@ -93,21 +93,22 @@ public class BooleanTest extends BaseTest {
     }
 
     @Test
-    public void testBooleanSet() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("CREATE TEMPORARY TABLE testBooleanSet (test BOOLEAN)");
-        try (PreparedStatement prep = sharedConnection.prepareStatement("INSERT INTO testBooleanSet VALUE (?)")) {
-            prep.setBoolean(1, true);
-            prep.execute();
-            prep.setBoolean(1, false);
-            prep.execute();
-        }
-        ResultSet rs = stmt.executeQuery("select * from testBooleanSet");
-        assertTrue(rs.next());
-        assertTrue(rs.getBoolean(1));
-        assertTrue(rs.next());
-        assertFalse(rs.getBoolean(1));
+  public void testBooleanSet() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("CREATE TEMPORARY TABLE testBooleanSet (test BOOLEAN)");
+    try (PreparedStatement prep =
+        sharedConnection.prepareStatement("INSERT INTO testBooleanSet VALUE (?)")) {
+      prep.setBoolean(1, true);
+      prep.execute();
+      prep.setBoolean(1, false);
+      prep.execute();
     }
+    ResultSet rs = stmt.executeQuery("select * from testBooleanSet");
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(1));
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(1));
+  }
 
     @Test
     public void testBooleanString() throws SQLException {
@@ -140,37 +141,40 @@ public class BooleanTest extends BaseTest {
     /**
      * CONJ-254 error when using scala anorm string interpolation.
      *
-     * @throws Exception
-     *             exception
+     * @throws Exception exception
      */
     @Test
-    public void testBooleanAllField() throws Exception {
-        try (Connection connection = setConnection("&maxPerformance=true")) {
-            Statement stmt = connection.createStatement();
-            stmt.execute(
-                    "INSERT INTO booleanAllField VALUES (null, null, null, null, null, null, null, null, null, null, null, null, null, null)");
-            stmt.execute("INSERT INTO booleanAllField VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0, '0', '0', '0', '0', '0')");
-            stmt.execute("INSERT INTO booleanAllField VALUES (1, 1, 1, 1, 1, 1, 1, 1, 1, '1', '1', '1', '1', '1')");
-            stmt.execute("INSERT INTO booleanAllField VALUES (1, 2, 2, 2, 2, 2, 2, 2, 2, '2', '2', '2', '2', '2')");
+  public void testBooleanAllField() throws Exception {
+    try (Connection connection = setConnection("&maxPerformance=true")) {
+      Statement stmt = connection.createStatement();
+      stmt.execute(
+          "INSERT INTO booleanAllField VALUES (null, null, null, null, null, null, null, null, null, null, null, null, null, null)");
+      stmt.execute(
+          "INSERT INTO booleanAllField VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0, '0', '0', '0', '0', '0')");
+      stmt.execute(
+          "INSERT INTO booleanAllField VALUES (1, 1, 1, 1, 1, 1, 1, 1, 1, '1', '1', '1', '1', '1')");
+      stmt.execute(
+          "INSERT INTO booleanAllField VALUES (1, 2, 2, 2, 2, 2, 2, 2, 2, '2', '2', '2', '2', '2')");
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM booleanAllField");
-            checkBooleanValue(rs, false, null);
-            checkBooleanValue(rs, false, false);
-            checkBooleanValue(rs, true, true);
-            checkBooleanValue(rs, true, true);
+      ResultSet rs = stmt.executeQuery("SELECT * FROM booleanAllField");
+      checkBooleanValue(rs, false, null);
+      checkBooleanValue(rs, false, false);
+      checkBooleanValue(rs, true, true);
+      checkBooleanValue(rs, true, true);
 
-            PreparedStatement preparedStatement = connection
-                    .prepareStatement("SELECT * FROM booleanAllField WHERE 1 = ?");
-            preparedStatement.setInt(1, 1);
-            rs = preparedStatement.executeQuery();
-            checkBooleanValue(rs, false, null);
-            checkBooleanValue(rs, false, false);
-            checkBooleanValue(rs, true, true);
-            checkBooleanValue(rs, true, true);
-        }
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("SELECT * FROM booleanAllField WHERE 1 = ?");
+      preparedStatement.setInt(1, 1);
+      rs = preparedStatement.executeQuery();
+      checkBooleanValue(rs, false, null);
+      checkBooleanValue(rs, false, false);
+      checkBooleanValue(rs, true, true);
+      checkBooleanValue(rs, true, true);
     }
+  }
 
-    private void checkBooleanValue(ResultSet rs, boolean expectedValue, Boolean expectedNull) throws SQLException {
+    private void checkBooleanValue(ResultSet rs, boolean expectedValue, Boolean expectedNull)
+                                                                                             throws SQLException {
         assertTrue(rs.next());
         for (int i = 1; i <= 14; i++) {
             assertEquals(expectedValue, rs.getBoolean(i));

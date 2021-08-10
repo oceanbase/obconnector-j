@@ -51,19 +51,20 @@ import com.oceanbase.jdbc.util.Options;
 
 public interface CredentialPlugin extends Supplier<Credential> {
 
-    String name();
+  String name();
 
-    String type();
+  String type();
 
-    default boolean mustUseSsl() {
-        return false;
-    }
+  default boolean mustUseSsl() {
+    return false;
+  }
 
-    default String defaultAuthenticationPluginType() {
-        return null;
-    }
+  default String defaultAuthenticationPluginType() {
+    return null;
+  }
 
-    default CredentialPlugin initialize(Options options, String userName, HostAddress hostAddress) throws SQLException {
-        return this;
-    }
+  default CredentialPlugin initialize(Options options, String userName, HostAddress hostAddress)
+      throws SQLException {
+    return this;
+  }
 }

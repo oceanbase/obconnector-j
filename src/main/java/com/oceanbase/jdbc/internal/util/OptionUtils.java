@@ -69,7 +69,8 @@ public class OptionUtils {
         OPTIONS_MAP.put("useSSL", DefaultOptions.USE_SSL);
         OPTIONS_MAP.put("profileSQL", DefaultOptions.PROFILE_SQL);
         OPTIONS_MAP.put("enabledSSLCipherSuites", DefaultOptions.ENABLED_SSL_CIPHER_SUITES);
-        OPTIONS_MAP.put("trustCertificateKeyStorePassword", DefaultOptions.TRUST_CERTIFICATE_KEYSTORE_PASSWORD);
+        OPTIONS_MAP.put("trustCertificateKeyStorePassword",
+            DefaultOptions.TRUST_CERTIFICATE_KEYSTORE_PASSWORD);
         OPTIONS_MAP.put("trustCertificateKeyStoreUrl", DefaultOptions.TRUSTSTORE);
         OPTIONS_MAP.put("clientCertificateKeyStorePassword", DefaultOptions.KEYSTORE_PASSWORD);
         OPTIONS_MAP.put("clientCertificateKeyStoreUrl", DefaultOptions.KEYSTORE);

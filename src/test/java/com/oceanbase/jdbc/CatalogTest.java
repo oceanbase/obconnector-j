@@ -86,19 +86,19 @@ public class CatalogTest extends BaseTest {
     }
 
     @Test
-    public void catalogTest5() throws SQLException {
-        requireMinimumVersion(5, 1);
+  public void catalogTest5() throws SQLException {
+    requireMinimumVersion(5, 1);
 
-        String[] weirdDbNames = new String[] { "abc 123", "\"", "`" };
-        for (String name : weirdDbNames) {
-            try (Statement stmt = sharedConnection.createStatement()) {
-                stmt.execute("drop database if exists " + OceanBaseConnection.quoteIdentifier(name));
-                stmt.execute("create database " + OceanBaseConnection.quoteIdentifier(name));
-                sharedConnection.setCatalog(name);
-                assertEquals(name, sharedConnection.getCatalog());
-                stmt.execute("drop database if exists " + OceanBaseConnection.quoteIdentifier(name));
-            }
-            sharedConnection.setCatalog(database);
-        }
+    String[] weirdDbNames = new String[] {"abc 123", "\"", "`"};
+    for (String name : weirdDbNames) {
+      try (Statement stmt = sharedConnection.createStatement()) {
+        stmt.execute("drop database if exists " + OceanBaseConnection.quoteIdentifier(name));
+        stmt.execute("create database " + OceanBaseConnection.quoteIdentifier(name));
+        sharedConnection.setCatalog(name);
+        assertEquals(name, sharedConnection.getCatalog());
+        stmt.execute("drop database if exists " + OceanBaseConnection.quoteIdentifier(name));
+      }
+      sharedConnection.setCatalog(database);
     }
+  }
 }

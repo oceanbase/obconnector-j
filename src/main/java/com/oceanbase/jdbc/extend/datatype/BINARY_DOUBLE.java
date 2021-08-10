@@ -47,8 +47,8 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_DOUBLE extends Datum {
-    static final long serialVersionUID = 6718338151847341754L;
-    public static final boolean TRACE = false;
+    static final long           serialVersionUID = 6718338151847341754L;
+    public static final boolean TRACE            = false;
 
     public BINARY_DOUBLE() {
     }

@@ -55,14 +55,15 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Permit to buffer socket data, reading not only asked bytes, but available number of bytes when possible.
+ * Permit to buffer socket data, reading not only asked bytes, but available number of bytes when
+ * possible.
  */
 public class ReadAheadBufferedStream extends FilterInputStream {
 
     private static final int BUF_SIZE = 16384;
-    private volatile byte[] buf;
-    private int end;
-    private int pos;
+    private volatile byte[]  buf;
+    private int              end;
+    private int              pos;
 
     public ReadAheadBufferedStream(InputStream in) {
         super(in);
@@ -73,8 +74,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
      * Reading one byte from cache of socket if needed.
      *
      * @return byte value
-     * @throws IOException
-     *             if socket reading error.
+     * @throws IOException if socket reading error.
      */
     public synchronized int read() throws IOException {
         if (pos >= end) {
@@ -89,15 +89,11 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     /**
      * Returing byte array, from cache of reading socket if needed.
      *
-     * @param externalBuf
-     *            buffer to fill
-     * @param off
-     *            offset
-     * @param len
-     *            length to read
+     * @param externalBuf buffer to fill
+     * @param off offset
+     * @param len length to read
      * @return number of added bytes
-     * @throws IOException
-     *             if exception during socket reading
+     * @throws IOException if exception during socket reading
      */
     public synchronized int read(byte[] externalBuf, int off, int len) throws IOException {
 
@@ -144,10 +140,8 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     /**
      * Fill buffer with required length, or available bytes.
      *
-     * @param minNeededBytes
-     *            asked number of bytes
-     * @throws IOException
-     *             in case of failing reading stream.
+     * @param minNeededBytes asked number of bytes
+     * @throws IOException in case of failing reading stream.
      */
     private void fillBuffer(int minNeededBytes) throws IOException {
         int lengthToReallyRead = Math.min(BUF_SIZE, Math.max(super.available(), minNeededBytes));

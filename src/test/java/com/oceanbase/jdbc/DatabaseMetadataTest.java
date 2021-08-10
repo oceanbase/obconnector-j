@@ -59,62 +59,77 @@ import java.util.Locale;
 import org.junit.*;
 
 public class DatabaseMetadataTest extends BaseTest {
-    static String dbpkTest = randomTableName("dbpk_test");
-    static String datetimeTest = randomTableName("datetime_test");
-    static String yTable = randomTableName("ytab");
-    static String maxCharLenght = randomTableName("maxcharlength");
-    static String conj72 = randomTableName("conj72");
-    static String versionTable = randomTableName("versionTable");
-    static String manycols = randomTableName("manycols");
-    static String getPrecision = randomTableName("getPrecision");
-    static String getTimePrecision = randomTableName("getTimePrecision");
+    static String dbpkTest          = randomTableName("dbpk_test");
+    static String datetimeTest      = randomTableName("datetime_test");
+    static String yTable            = randomTableName("ytab");
+    static String maxCharLenght     = randomTableName("maxcharlength");
+    static String conj72            = randomTableName("conj72");
+    static String versionTable      = randomTableName("versionTable");
+    static String manycols          = randomTableName("manycols");
+    static String getPrecision      = randomTableName("getPrecision");
+    static String getTimePrecision  = randomTableName("getTimePrecision");
     static String getTimePrecision2 = randomTableName("getTimePrecision2");
-    static String tableName2 = randomTableName("getIndexInfoTest");
+    static String tableName2        = randomTableName("getIndexInfoTest");
 
     /**
      * Initialisation.
      *
-     * @throws SQLException
-     *             exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable(dbpkTest, "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
-                "engine=innodb");
+        createTable(dbpkTest,
+            "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
+            "engine=innodb");
         createTable(datetimeTest, "dt datetime");
-        createTable("`" + manycols + "`",
-                "  `tiny` tinyint(4) DEFAULT NULL," + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
-                        + "  `small` smallint(6) DEFAULT NULL," + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
-                        + "  `medium` mediumint(9) DEFAULT NULL," + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
-                        + "  `int_col` int(11) DEFAULT NULL," + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
-                        + "  `big` bigint(20) DEFAULT NULL," + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
-                        + "  `decimal_col` decimal(10,5) DEFAULT NULL," + "  `fcol` float DEFAULT NULL,"
-                        + "  `fcol_uns` float unsigned DEFAULT NULL," + "  `dcol` double DEFAULT NULL,"
-                        + "  `dcol_uns` double unsigned DEFAULT NULL," + "  `date_col` date DEFAULT NULL,"
-                        + "  `time_col` time DEFAULT NULL,"
-                        + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                        + "  `year_col` year(4) DEFAULT NULL," + "  `bit_col` bit(5) DEFAULT NULL,"
-                        + "  `char_col` char(5) DEFAULT NULL," + "  `varchar_col` varchar(10) DEFAULT NULL,"
-                        + "  `binary_col` binary(10) DEFAULT NULL," + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
-                        + "  `tinyblob_col` tinyblob," + "  `blob_col` blob," + "  `mediumblob_col` mediumblob,"
-                        + "  `longblob_col` longblob," + "  `tinytext_col` tinytext," + "  `text_col` text,"
-                        + "  `mediumtext_col` mediumtext," + "  `longtext_col` longtext");
+        createTable(
+            "`" + manycols + "`",
+            "  `tiny` tinyint(4) DEFAULT NULL,"
+                    + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
+                    + "  `small` smallint(6) DEFAULT NULL,"
+                    + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
+                    + "  `medium` mediumint(9) DEFAULT NULL,"
+                    + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
+                    + "  `int_col` int(11) DEFAULT NULL,"
+                    + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
+                    + "  `big` bigint(20) DEFAULT NULL,"
+                    + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
+                    + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
+                    + "  `fcol` float DEFAULT NULL,"
+                    + "  `fcol_uns` float unsigned DEFAULT NULL,"
+                    + "  `dcol` double DEFAULT NULL,"
+                    + "  `dcol_uns` double unsigned DEFAULT NULL,"
+                    + "  `date_col` date DEFAULT NULL,"
+                    + "  `time_col` time DEFAULT NULL,"
+                    + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                    + "  `year_col` year(4) DEFAULT NULL," + "  `bit_col` bit(5) DEFAULT NULL,"
+                    + "  `char_col` char(5) DEFAULT NULL,"
+                    + "  `varchar_col` varchar(10) DEFAULT NULL,"
+                    + "  `binary_col` binary(10) DEFAULT NULL,"
+                    + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
+                    + "  `tinyblob_col` tinyblob," + "  `blob_col` blob,"
+                    + "  `mediumblob_col` mediumblob," + "  `longblob_col` longblob,"
+                    + "  `tinytext_col` tinytext," + "  `text_col` text,"
+                    + "  `mediumtext_col` mediumtext," + "  `longtext_col` longtext");
         createTable(yTable, "y year");
         createTable(maxCharLenght, "maxcharlength char(1)", "character set utf8");
         createTable(conj72, "t tinyint(1)");
-        // createTable(versionTable, "x INT", "WITH SYSTEM VERSIONING");
-        createTable(getPrecision,
-                "num1 NUMERIC(9,4), " + "num2 NUMERIC (9,0)," + "num3 NUMERIC (9,4) UNSIGNED,"
-                        + "num4 NUMERIC (9,0) UNSIGNED," + "num5 FLOAT(9,4)," + "num6 FLOAT(9,4) UNSIGNED,"
-                        + "num7 DOUBLE(9,4)," + "num8 DOUBLE(9,4) UNSIGNED");
-        createTable(getTimePrecision,
-                "d date, " + "t1 datetime(0)," + "t2 datetime(6)," + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
-                        + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00'," + "t5 time(0)," + "t6 time(6)");
-        createTable(getTimePrecision2,
-                "d date, " + "t1 datetime(0)," + "t2 datetime(6)," + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
-                        + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00'," + "t5 time(0)," + "t6 time(6)");
+        //        createTable(versionTable, "x INT", "WITH SYSTEM VERSIONING");
+        createTable(getPrecision, "num1 NUMERIC(9,4), " + "num2 NUMERIC (9,0),"
+                                  + "num3 NUMERIC (9,4) UNSIGNED," + "num4 NUMERIC (9,0) UNSIGNED,"
+                                  + "num5 FLOAT(9,4)," + "num6 FLOAT(9,4) UNSIGNED,"
+                                  + "num7 DOUBLE(9,4)," + "num8 DOUBLE(9,4) UNSIGNED");
+        createTable(getTimePrecision, "d date, " + "t1 datetime(0)," + "t2 datetime(6),"
+                                      + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                                      + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+                                      + "t5 time(0)," + "t6 time(6)");
+        createTable(getTimePrecision2, "d date, " + "t1 datetime(0)," + "t2 datetime(6),"
+                                       + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                                       + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+                                       + "t5 time(0)," + "t6 time(6)");
         createTable(tableName2, "no INT NOT NULL ,\n" + "    product_category INT NOT NULL,\n"
-                + "    product_id INT NOT NULL,\n" + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
+                                + "    product_id INT NOT NULL,\n"
+                                + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
     }
 
     private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -152,8 +167,8 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists t1");
         stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
         stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
-                + "constraint fk12 foreign key(id2a) references t1(id1),  constraint fk22 foreign key(id2b) "
-                + "references t1(id1))");
+                     + "constraint fk12 foreign key(id2a) references t1(id1),  constraint fk22 foreign key(id2b) "
+                     + "references t1(id1))");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("unittests", null, "t2");
@@ -191,7 +206,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
         stmt.execute("DROP FUNCTION IF EXISTS hello");
         stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  "
-                + "RETURN CONCAT('Hello, ',s,'!')");
+                     + "RETURN CONCAT('Hello, ',s,'!')");
         ResultSet rs = sharedConnection.getMetaData().getFunctionColumns(null, null, "hello", null);
         assertTrue(rs.next());
 
@@ -235,26 +250,28 @@ public class DatabaseMetadataTest extends BaseTest {
         st.execute("CREATE DATABASE IF NOT EXISTS t1");
 
         st.execute("CREATE TABLE t1.product ( category INT NOT NULL, id INT NOT NULL, price DECIMAL,"
-                + " PRIMARY KEY(category, id) )   ENGINE=INNODB");
+                   + " PRIMARY KEY(category, id) )   ENGINE=INNODB");
 
         st.execute("CREATE TABLE `cus``tomer` (id INT NOT NULL, PRIMARY KEY (id))   ENGINE=INNODB");
 
         st.execute("CREATE TABLE product_order (\n" + "    no INT NOT NULL AUTO_INCREMENT,\n"
-                + "    product_category INT NOT NULL,\n" + "    product_id INT NOT NULL,\n"
-                + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no),\n"
-                + "    INDEX (product_category, product_id),\n" + "    INDEX (customer_id),\n"
-                + "    FOREIGN KEY (product_category, product_id)\n" + "      REFERENCES t1.product(category, id)\n"
-                + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n" + "    FOREIGN KEY (customer_id)\n"
-                + "      REFERENCES `cus``tomer`(id)\n" + ")   ENGINE=INNODB;");
+                   + "    product_category INT NOT NULL,\n" + "    product_id INT NOT NULL,\n"
+                   + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no),\n"
+                   + "    INDEX (product_category, product_id),\n" + "    INDEX (customer_id),\n"
+                   + "    FOREIGN KEY (product_category, product_id)\n"
+                   + "      REFERENCES t1.product(category, id)\n"
+                   + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
+                   + "    FOREIGN KEY (customer_id)\n" + "      REFERENCES `cus``tomer`(id)\n"
+                   + ")   ENGINE=INNODB;");
 
         /*
-         * Test that I_S implementation is equivalent to parsing "show create table" . Get result sets using either
-         * method and compare (ignore minor differences INT vs SMALLINT
-         */
+        Test that I_S implementation is equivalent to parsing "show create table" .
+         Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
+        */
         ResultSet rs1 = ((OceanBaseDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingShowCreateTable("unittests", "product_order");
+            .getImportedKeysUsingShowCreateTable("unittests", "product_order");
         ResultSet rs2 = ((OceanBaseDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingInformationSchema("unittests", "product_order");
+            .getImportedKeysUsingInformationSchema("unittests", "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
         while (rs1.next()) {
@@ -297,11 +314,11 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("create table prim_key (id int not null primary key, val varchar(20)) engine=innodb");
         stmt.execute("create table prim2_key (id int not null primary key, val varchar(20)) engine=innodb");
         stmt.execute("create table fore_key0 (id int not null primary key, "
-                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+                     + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
         stmt.execute("create table fore_key1 (id int not null primary key, "
-                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+                     + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
         stmt.execute("create table fore_key3 (id int not null primary key, "
-                + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
+                     + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getExportedKeys("unittests", null, "prim_key");
@@ -315,20 +332,35 @@ public class DatabaseMetadataTest extends BaseTest {
             counter++;
         }
         assertEquals(2, counter);
-        // Fuzzy query is not supported temporarily. Table must now be specified.The following test code needs to be
-        // retained.
+        // Fuzzy query is not supported temporarily. Table must now be specified.The following test code needs to be retained.
         /*
-         * rs = dbmd.getExportedKeys("unittests", null, "prim_k%"); counter = 0; while (rs.next()) { assertEquals("id",
-         * rs.getString("pkcolumn_name")); assertEquals("fore_key" + counter, rs.getString("fktable_name"));
-         * assertEquals("id_ref" + counter, rs.getString("fkcolumn_name")); assertEquals("PRIMARY",
-         * rs.getString("pk_name")); counter++; } assertEquals(2, counter);
-         * 
-         * rs = dbmd.getExportedKeys("unittests", null, null); counter = 0; int totalCounter = 0; while (rs.next()) { if
-         * ("prim_key".equals(rs.getString("pktable_name"))) { assertEquals("id", rs.getString("pkcolumn_name"));
-         * assertEquals("fore_key" + counter, rs.getString("fktable_name")); assertEquals("id_ref" + counter,
-         * rs.getString("fkcolumn_name")); assertEquals("PRIMARY", rs.getString("PK_NAME")); counter++; }
-         * totalCounter++; } assertEquals(2, counter); assertTrue(totalCounter > 2);
-         */
+        rs = dbmd.getExportedKeys("unittests", null, "prim_k%");
+        counter = 0;
+        while (rs.next()) {
+            assertEquals("id", rs.getString("pkcolumn_name"));
+            assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+            assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+            assertEquals("PRIMARY", rs.getString("pk_name"));
+            counter++;
+        }
+        assertEquals(2, counter);
+
+        rs = dbmd.getExportedKeys("unittests", null, null);
+        counter = 0;
+        int totalCounter = 0;
+        while (rs.next()) {
+            if ("prim_key".equals(rs.getString("pktable_name"))) {
+                assertEquals("id", rs.getString("pkcolumn_name"));
+                assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+                assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+                assertEquals("PRIMARY", rs.getString("PK_NAME"));
+                counter++;
+            }
+            totalCounter++;
+        }
+        assertEquals(2, counter);
+        assertTrue(totalCounter > 2);
+        */
         stmt.execute("drop table if exists fore_key0");
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
@@ -341,11 +373,12 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
 
-        stmt.execute("create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
+        stmt.execute("create table prim_key (id int not null primary key, "
+                     + "val varchar(20)) engine=innodb");
         stmt.execute("create table fore_key0 (id int not null primary key, "
-                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+                     + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
         stmt.execute("create table fore_key1 (id int not null primary key, "
-                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+                     + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getImportedKeys(sharedConnection.getCatalog(), null, "fore_key0");
@@ -389,11 +422,12 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
 
-        stmt.execute("create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
+        stmt.execute("create table prim_key (id int not null primary key, "
+                     + "val varchar(20)) engine=innodb");
         stmt.execute("create table fore_key0 (id int not null primary key, "
-                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+                     + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
         stmt.execute("create table fore_key1 (id int not null primary key, "
-                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+                     + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
@@ -406,7 +440,8 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void testGetTables2() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES", new String[] { "SYSTEM VIEW" });
+        ResultSet rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES",
+            new String[] { "SYSTEM VIEW" });
         assertEquals(true, rs.next());
         assertEquals(false, rs.next());
         rs = dbmd.getTables(null, null, "TABLE_PRIVILEGES", new String[] { "TABLE" });
@@ -416,7 +451,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Ignore
     @Test
     public void testGetTablesSystemVersionTables() throws SQLException {
-        // TODO not supported
+        //TODO not supported
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getTables(null, null, "versionTable", null);
         assertEquals(true, rs.next());
@@ -433,7 +468,8 @@ public class DatabaseMetadataTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("drop table if exists table_type_test");
 
-        stmt.execute("create table table_type_test (id int not null primary key, " + "val varchar(20)) engine=innodb");
+        stmt.execute("create table table_type_test (id int not null primary key, "
+                     + "val varchar(20)) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet tableSet = dbmd.getTables(null, null, "table_type_test", null);
@@ -456,14 +492,12 @@ public class DatabaseMetadataTest extends BaseTest {
 
         if (minVersion(10, 2) || !isMariadbServer()) {
             createTable("tablegetcolumns",
-                    "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                            + "d VARCHAR(5) AS (left(b,5)) STORED",
-                    "CHARACTER SET 'utf8mb4'");
+                "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                        + "d VARCHAR(5) AS (left(b,5)) STORED", "CHARACTER SET 'utf8mb4'");
         } else {
             createTable("tablegetcolumns",
-                    "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                            + "d VARCHAR(5) AS (left(b,5)) PERSISTENT",
-                    "CHARACTER SET 'utf8mb4'");
+                "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                        + "d VARCHAR(5) AS (left(b,5)) PERSISTENT", "CHARACTER SET 'utf8mb4'");
         }
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
@@ -475,7 +509,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("a", rs.getString(4)); // COLUMN_NAME
         assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
         assertEquals("INT", rs.getString(6)); // "TYPE_NAME
-        assertEquals(10, rs.getInt(7)); // "COLUMN_SIZE //TODO return value is 10 (11->10)
+        assertEquals(10, rs.getInt(7)); // "COLUMN_SIZE  //TODO return value is 10 (11->10)
         assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
         assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
         assertEquals(0, rs.getInt(11)); // NULLABLE
@@ -532,7 +566,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
         // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
         // require
-        assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
+        assertTrue("CHAR_LENGTH(`b`)".equalsIgnoreCase(rs.getString(13))
+                   || rs.getString(13) == null); // COLUMN_DEF
 
         assertEquals(0, rs.getInt(16)); // CHAR_OCTET_LENGTH
         assertEquals(3, rs.getInt(17)); // ORDINAL_POSITION
@@ -584,49 +619,52 @@ public class DatabaseMetadataTest extends BaseTest {
             assertEquals(label, rsmd.getColumnLabel(col));
             int columnType = rsmd.getColumnType(col);
             switch (type) {
-            case "String":
-                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                        columnType == Types.VARCHAR || columnType == Types.NULL || columnType == Types.LONGVARCHAR);
-                break;
-            case "decimal":
-                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                        + rsmd.getColumnLabel(col) + ",expected decimal", columnType == Types.DECIMAL);
-                break;
-            case "int":
-            case "short":
-                assertTrue(
-                        "invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                + rsmd.getColumnLabel(col) + ",expected numeric",
-                        columnType == Types.BIGINT || columnType == Types.INTEGER || columnType == Types.SMALLINT
-                                || columnType == Types.TINYINT);
+                case "String":
+                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col)
+                               + ",expected String", columnType == Types.VARCHAR
+                                                     || columnType == Types.NULL
+                                                     || columnType == Types.LONGVARCHAR);
+                    break;
+                case "decimal":
+                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
+                               + " ) for " + rsmd.getColumnLabel(col) + ",expected decimal",
+                        columnType == Types.DECIMAL);
+                    break;
+                case "int":
+                case "short":
+                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
+                               + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",
+                        columnType == Types.BIGINT || columnType == Types.INTEGER
+                                || columnType == Types.SMALLINT || columnType == Types.TINYINT);
 
-                break;
-            case "boolean":
-                assertTrue(
-                        "invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                + rsmd.getColumnLabel(col) + ",expected boolean",
+                    break;
+                case "boolean":
+                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
+                               + " ) for " + rsmd.getColumnLabel(col) + ",expected boolean",
                         columnType == Types.BOOLEAN || columnType == Types.BIT);
 
-                break;
-            case "null":
-                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                        columnType == Types.NULL);
-                break;
-            default:
-                fail("invalid type '" + type + "'");
-                break;
+                    break;
+                case "null":
+                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col)
+                               + ",expected null", columnType == Types.NULL);
+                    break;
+                default:
+                    fail("invalid type '" + type + "'");
+                    break;
             }
         }
     }
 
     @Test
     public void getAttributesBasic() throws Exception {
-        testResultSetColumns(sharedConnection.getMetaData().getAttributes(null, null, null, null),
-                "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
-                        + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
-                        + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,"
-                        + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,"
-                        + "SCOPE_CATALOG String,SCOPE_SCHEMA String," + "SCOPE_TABLE String,SOURCE_DATA_TYPE short");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getAttributes(null, null, null, null),
+            "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
+                    + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
+                    + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,"
+                    + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,"
+                    + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                    + "SCOPE_TABLE String,SOURCE_DATA_TYPE short");
     }
 
     @Test
@@ -711,37 +749,41 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getBestRowIdentifierBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
-                "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String," + "COLUMN_SIZE int,BUFFER_LENGTH int,"
-                        + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
+            "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
+                    + "COLUMN_SIZE int,BUFFER_LENGTH int,"
+                    + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
     }
 
     @Test
     public void getClientInfoPropertiesBasic() throws Exception {
         testResultSetColumns(sharedConnection.getMetaData().getClientInfoProperties(),
-                "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
+            "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
         ResultSet rs = sharedConnection.getMetaData().getClientInfoProperties();
         assertTrue(rs.next());
         assertEquals("ApplicationName", rs.getString(1));
         assertEquals(0x00ffffff, rs.getInt(2));
         assertEquals("", rs.getString(3));
-        assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
+        assertEquals("The name of the application currently utilizing the connection",
+            rs.getString(4));
 
         assertTrue(rs.next());
         assertEquals("ClientUser", rs.getString(1));
         assertEquals(0x00ffffff, rs.getInt(2));
         assertEquals("", rs.getString(3));
         assertEquals(
-                "The name of the user that the application using the connection is performing work for. "
-                        + "This may not be the same as the user name that was used in establishing the connection.",
-                rs.getString(4));
+            "The name of the user that the application using the connection is performing work for. "
+                    + "This may not be the same as the user name that was used in establishing the connection.",
+            rs.getString(4));
 
         assertTrue(rs.next());
         assertEquals("ClientHostname", rs.getString(1));
         assertEquals(0x00ffffff, rs.getInt(2));
         assertEquals("", rs.getString(3));
-        assertEquals("The hostname of the computer the application using the connection is running on",
-                rs.getString(4));
+        assertEquals(
+            "The hostname of the computer the application using the connection is running on",
+            rs.getString(4));
         assertFalse(rs.next());
     }
 
@@ -757,114 +799,125 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists t1");
         stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
         stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
-                + "constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) "
-                + "references t1(id1))");
+                     + "constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) "
+                     + "references t1(id1))");
         ResultSet rs = sharedConnection.getMetaData().getColumns("unittests", null, "t2", null);
         int count = rs.getMetaData().getColumnCount();
         testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                        + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
-                        + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
-                        + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                        + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int," + "ORDINAL_POSITION int,IS_NULLABLE String,"
-                        + "SCOPE_CATALOG String,SCOPE_SCHEMA String," + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                    + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
+                    + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                    + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                    + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
+                    + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                    + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                    + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
     }
 
     @Test
     public void getProcedureColumnsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getProcedureColumns(null, null, null, null),
-                "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
-                        + "COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,"
-                        + "RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                        + "SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
-                        + "ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getProcedureColumns(null, null, null, null),
+            "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
+                    + "COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,"
+                    + "RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                    + "SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
+                    + "ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
     }
 
     @Test
     public void getFunctionColumnsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getFunctionColumns(null, null, null, null),
-                "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
-                        + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,"
-                        + "NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,"
-                        + "IS_NULLABLE String,SPECIFIC_NAME String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getFunctionColumns(null, null, null, null),
+            "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
+                    + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,"
+                    + "NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,"
+                    + "IS_NULLABLE String,SPECIFIC_NAME String");
     }
 
     // getColumnPrivileges not support now
     @Ignore
     public void getColumnPrivilegesBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getColumnPrivileges(null, null, "", null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                        + "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getColumnPrivileges(null, null, "", null),
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                    + "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
     }
 
     @Test
     public void getTablePrivilegesBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getTablePrivileges(null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String,"
-                        + "GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String,"
+                    + "GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
     }
 
     @Test
     public void getVersionColumnsBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getVersionColumns(null, null, null),
-                "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
-                        + "COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short," + "PSEUDO_COLUMN short");
+            "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
+                    + "COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short,"
+                    + "PSEUDO_COLUMN short");
     }
 
     @Test
     public void getPrimaryKeysBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getPrimaryKeys(null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getPrimaryKeys(null, null, null),
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String");
     }
 
     @Test
     public void getImportedKeysBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getImportedKeys(null, null, ""),
-                "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-                        + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getImportedKeys(null, null, ""),
+            "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
+                    + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                    + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
     }
 
     @Test
     public void getExportedKeysBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getExportedKeys(null, null, "test"),
-                "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-                        + "UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getExportedKeys(null, null, "test"),
+            "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
+                    + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                    + "UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
     }
 
     @Test
     public void getCrossReferenceBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getCrossReference(null, null, "", null, null, ""),
-                "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-                        + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getCrossReference(null, null, "", null, null, ""),
+            "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
+                    + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                    + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
     }
 
     @Test
     public void getUdtsBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getUDTs(null, null, null, null),
-                "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
-                        + "REMARKS String,BASE_TYPE short");
+            "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
+                    + "REMARKS String,BASE_TYPE short");
     }
 
     @Test
     public void getSuperTypesBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getSuperTypes(null, null, null),
-                "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String,"
-                        + "SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
+            "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String,"
+                    + "SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
     }
 
     @Test
     public void getFunctionsBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getFunctions(null, null, null),
-                "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short,SPECIFIC_NAME String");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getFunctions(null, null, null),
+            "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short,SPECIFIC_NAME String");
     }
 
     @Test
     public void getSuperTablesBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getSuperTables(null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String");
+            "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String");
     }
 
     @Test
@@ -884,7 +937,7 @@ public class DatabaseMetadataTest extends BaseTest {
         }
     }
 
-    /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned) */
+    /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test
     public void nullCatalogMeansCurrent2() throws Exception {
         try (Connection connection = setConnection("&nullCatalogMeansCurrent=false")) {
@@ -902,12 +955,13 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetTypeInfoBasic() throws SQLException {
-        testResultSetColumns(sharedConnection.getMetaData().getTypeInfo(),
-                "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
-                        + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
-                        + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "
-                        + "AUTO_INCREMENT boolean, LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,"
-                        + "SQL_DATA_TYPE int,SQL_DATETIME_SUB int, NUM_PREC_RADIX int");
+        testResultSetColumns(
+            sharedConnection.getMetaData().getTypeInfo(),
+            "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
+                    + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
+                    + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "
+                    + "AUTO_INCREMENT boolean, LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,"
+                    + "SQL_DATA_TYPE int,SQL_DATETIME_SUB int, NUM_PREC_RADIX int");
     }
 
     @Test
@@ -966,11 +1020,13 @@ public class DatabaseMetadataTest extends BaseTest {
         try (Connection connection = setConnection("&yearIsDateType=false")) {
             connection.createStatement().execute("insert into " + yTable + " values(72)");
 
-            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null);
+            ResultSet rs2 =
+                    connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null);
             assertTrue(rs2.next());
             assertEquals(Types.SMALLINT, rs2.getInt("DATA_TYPE"));
 
-            try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null)) {
+            try (ResultSet rs =
+                         connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null)) {
                 assertTrue(rs.next());
                 assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
             }
@@ -989,11 +1045,13 @@ public class DatabaseMetadataTest extends BaseTest {
         try (Connection connection = setConnection("&yearIsDateType=true")) {
             connection.createStatement().execute("insert into " + yTable + " values(72)");
 
-            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null);
+            ResultSet rs2 =
+                    connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null);
             assertTrue(rs2.next());
             assertEquals(Types.DATE, rs2.getInt("DATA_TYPE"));
 
-            try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null)) {
+            try (ResultSet rs =
+                         connection.getMetaData().getColumns(connection.getCatalog(), null, yTable, null)) {
                 assertTrue(rs.next());
                 assertEquals(Types.DATE, rs.getInt("DATA_TYPE"));
             }
@@ -1020,7 +1078,8 @@ public class DatabaseMetadataTest extends BaseTest {
     public void conj72() throws Exception {
         try (Connection connection = setConnection("&tinyInt1isBit=true")) {
             connection.createStatement().execute("insert into " + conj72 + " values(1)");
-            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, conj72, null);
+            ResultSet rs =
+                    connection.getMetaData().getColumns(connection.getCatalog(), null, conj72, null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
             ResultSet rs1 = connection.createStatement().executeQuery("select * from " + conj72);
@@ -1116,13 +1175,13 @@ public class DatabaseMetadataTest extends BaseTest {
     /**
      * CONJ-401 - getProcedureColumns precision when server doesn't support precision.
      *
-     * @throws SQLException
-     *             if connection error occur
+     * @throws SQLException if connection error occur
      */
     @Test
     public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
-        createProcedure("getProcTimePrecision2",
-                "(IN  I date, " + "IN t1 DATETIME," + "IN t3 timestamp," + "IN t5 time) BEGIN SELECT I; END");
+        createProcedure("getProcTimePrecision2", "(IN  I date, " + "IN t1 DATETIME,"
+                                                 + "IN t3 timestamp,"
+                                                 + "IN t5 time) BEGIN SELECT I; END");
 
         final int precisionField = 8;
         final int lengthField = 9;
@@ -1148,8 +1207,8 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(0, rs.getInt(scaleField));
         // time(0)
         assertTrue(rs.next());
-        // assertEquals(10, rs.getInt(precisionField));
-        // assertEquals(10, rs.getInt(lengthField));
+        //        assertEquals(10, rs.getInt(precisionField));
+        //        assertEquals(10, rs.getInt(lengthField));
         assertEquals(0, rs.getInt(scaleField));
 
         assertFalse(rs.next());
@@ -1158,15 +1217,15 @@ public class DatabaseMetadataTest extends BaseTest {
     /**
      * CONJ-381 - getProcedureColumns returns NULL as TIMESTAMP/DATETIME precision instead of 19.
      *
-     * @throws SQLException
-     *             if connection error occur
+     * @throws SQLException if connection error occur
      */
     @Test
     public void metaTimeProcedureResultSet() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
-        createProcedure("getProcTimePrecision",
-                "(IN  I date, " + "IN t1 DATETIME(0)," + "IN t2 DATETIME(6)," + "IN t3 timestamp(0),"
-                        + "IN t4 timestamp(6)," + "IN t5 time ," + "IN t6 time(6)) BEGIN SELECT I; END");
+        createProcedure("getProcTimePrecision", "(IN  I date, " + "IN t1 DATETIME(0),"
+                                                + "IN t2 DATETIME(6)," + "IN t3 timestamp(0),"
+                                                + "IN t4 timestamp(6)," + "IN t5 time ,"
+                                                + "IN t6 time(6)) BEGIN SELECT I; END");
 
         final int precisionField = 8;
         final int lengthField = 9;
@@ -1224,8 +1283,9 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getProceduresBasic() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, null);
-        testResultSetColumns(rs,
-                "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,RESERVED1 String,RESERVED2 String,RESERVED3 String,PROCEDURE_TYPE int,REMARKS String,SPECIFIC_NAME String");
+        testResultSetColumns(
+            rs,
+            "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,RESERVED1 String,RESERVED2 String,RESERVED3 String,PROCEDURE_TYPE int,REMARKS String,SPECIFIC_NAME String");
     }
 
     @Test
@@ -1242,8 +1302,8 @@ public class DatabaseMetadataTest extends BaseTest {
     public void getIndexInfoTest() {
         try {
             Connection connection = sharedConnection;
-            ResultSet rs = connection.getMetaData().getIndexInfo(null, null, tableName2.toUpperCase(Locale.ROOT), false,
-                    false); // same as oracle driver ,Need to use uppercase table name
+            ResultSet rs = connection.getMetaData().getIndexInfo(null, null,
+                tableName2.toUpperCase(Locale.ROOT), false, false); // same as oracle driver ,Need to use uppercase table name
             int columnCount = rs.getMetaData().getColumnCount();
             Assert.assertEquals(13, columnCount);
             ResultSetMetaData resultSetMetaData = rs.getMetaData();

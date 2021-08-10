@@ -60,8 +60,8 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class SerializableParameter implements Cloneable, ParameterHolder {
 
     protected final boolean noBackSlashEscapes;
-    protected Object object;
-    protected byte[] loadedStream = null;
+    protected Object        object;
+    protected byte[]        loadedStream = null;
 
     public SerializableParameter(Object object, boolean noBackslashEscapes) {
         this.object = object;
@@ -71,10 +71,8 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
     /**
      * Write object to buffer for text protocol.
      *
-     * @param pos
-     *            the stream to write to
-     * @throws IOException
-     *             if error reading stream
+     * @param pos the stream to write to
+     * @throws IOException if error reading stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         if (loadedStream == null) {
@@ -97,8 +95,7 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
      * Return approximated data calculated length.
      *
      * @return approximated data length.
-     * @throws IOException
-     *             if error reading stream
+     * @throws IOException if error reading stream
      */
     public int getApproximateTextProtocolLength() throws IOException {
         writeObjectToBytes();
@@ -108,10 +105,8 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
     /**
      * Write data to socket in binary format.
      *
-     * @param pos
-     *            socket output stream
-     * @throws IOException
-     *             if socket error occur
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (loadedStream == null) {

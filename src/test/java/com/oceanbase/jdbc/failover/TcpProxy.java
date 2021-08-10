@@ -61,18 +61,15 @@ public class TcpProxy {
 
     private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    private final String host;
-    private TcpProxySocket socket;
+    private final String        host;
+    private TcpProxySocket      socket;
 
     /**
      * Initialise proxy.
      *
-     * @param host
-     *            host (ip / dns)
-     * @param remoteport
-     *            port
-     * @throws IOException
-     *             exception
+     * @param host host (ip / dns)
+     * @param remoteport port
+     * @throws IOException exception
      */
     public TcpProxy(String host, int remoteport) throws IOException {
         this.host = host;
@@ -95,13 +92,13 @@ public class TcpProxy {
     /**
      * Stop proxy and restart after X milliseconds.
      *
-     * @param sleepTime
-     *            sleep time in milliseconds
+     * @param sleepTime sleep time in milliseconds
      */
     public void restart(long sleepTime) {
         socket.kill();
         logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
-        Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
+        Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime,
+            TimeUnit.MILLISECONDS);
     }
 
     public void forceClose() {
