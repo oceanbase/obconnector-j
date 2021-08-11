@@ -786,7 +786,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setRowId(final int parameterIndex, final RowId rowid) throws SQLException {
-        throw exceptionFactory.notSupported("RowIDs not supported");
+        if (this.connection.getProtocol().isOracleMode()) {
+            if (rowid == null) {
+                setNull(parameterIndex, ColumnType.ROWID);
+                return;
+            }
+            setParameter(parameterIndex, new StringParameter(rowid.toString(), noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+        } else {
+            throw exceptionFactory.notSupported("RowIDs not supported");
+        }
     }
 
     /**
@@ -1101,6 +1110,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setArray(parameterIndex, (Array) obj);
         } else if (obj instanceof Struct) {
             setStruct(parameterIndex, (Struct) obj);
+        } else if (obj instanceof RowId) {
+            setRowId(parameterIndex, (RowId) obj);
         } else {
             // fallback to sending serialized object
             if (this.connection.getProtocol().isOracleMode()) {

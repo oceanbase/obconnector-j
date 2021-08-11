@@ -46,6 +46,7 @@ package com.oceanbase.jdbc;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -88,6 +89,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
 
     @Test
     public void testScrollableCursor() throws Exception {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
             Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
 

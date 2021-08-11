@@ -53,6 +53,8 @@ public class RowidTest extends BaseOracleTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("test_rowid", "col1 int, col2 varchar(20)");
+        createTable("test_rowid2", "col1 int, col2 varchar(20)");
+        createTable("test_rowid3", "col1 int, col2 varchar(20)");
     }
 
     @Test
@@ -74,6 +76,127 @@ public class RowidTest extends BaseOracleTest {
                     Assert.assertEquals(rowId1.toString(), resultSet.getString("id"));
                 }
             }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void rowidTestForSelect() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into test_rowid2(col1, col2) values(1, 'test1');");
+            stmt.execute("insert into test_rowid2(col1, col2) values(2, 'test2');");
+            PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("select rowid as id, col1 from test_rowid2 where col1 = ?");
+            preparedStatement.setInt(1, 1);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            String rowidStringVal = resultSet.getString("id");
+            RowId rowId1 = (RowId) resultSet.getObject("id");
+            RowId rowId2 = resultSet.getRowId("id");
+            Assert.assertTrue(rowId1.equals(rowId2));
+            Assert.assertEquals(rowId1.toString(), rowId2.toString());
+            Assert.assertEquals(rowId1.toString(), resultSet.getString("id"));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid2 where rowid = ?");
+            preparedStatement.setString(1, rowidStringVal);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            Assert.assertEquals("test1", resultSet.getString(2));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid2 where rowid = ?");
+            preparedStatement.setObject(1, rowId1);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            Assert.assertEquals("test1", resultSet.getString(2));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid2 where rowid = ?");
+            preparedStatement.setRowId(1, rowId2);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            Assert.assertEquals("test1", resultSet.getString(2));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void rowidTestForUpdate() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into test_rowid3(col1, col2) values(1, 'test1');");
+            PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("select rowid as id, col1 from test_rowid3 where col1 = ?");
+            preparedStatement.setInt(1, 1);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            String rowidStringVal = resultSet.getString("id");
+            RowId rowId1 = (RowId) resultSet.getObject("id");
+            RowId rowId2 = resultSet.getRowId("id");
+            Assert.assertTrue(rowId1.equals(rowId2));
+            Assert.assertEquals(rowId1.toString(), rowId2.toString());
+            Assert.assertEquals(rowId1.toString(), resultSet.getString("id"));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("update test_rowid3 set col2 ='newvalue1', col1 = 1  where rowid = ?");
+            preparedStatement.setString(1, rowidStringVal);
+            preparedStatement.execute();
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select rowid as id, col1 from test_rowid3 where col1 = ?");
+            preparedStatement.setInt(1, 1);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            rowidStringVal = resultSet.getString("id");
+            rowId1 = (RowId) resultSet.getObject("id");
+            rowId2 = resultSet.getRowId("id");
+            Assert.assertTrue(rowId1.equals(rowId2));
+            Assert.assertEquals(rowId1.toString(), rowId2.toString());
+            Assert.assertEquals(rowId1.toString(), resultSet.getString("id"));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid3 where rowid = ?");
+            preparedStatement.setString(1, rowidStringVal);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            Assert.assertEquals("newvalue1", resultSet.getString(2));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("update test_rowid3 set col2 ='newvalue2', col1 = 2  where rowid = ?");
+            preparedStatement.setString(1, rowidStringVal);
+            preparedStatement.execute();
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid3 where rowid = ?");
+            preparedStatement.setObject(1, rowId1);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(2, resultSet.getInt(1));
+            Assert.assertEquals("newvalue2", resultSet.getString(2));
+
+            preparedStatement = sharedConnection
+                .prepareStatement("update test_rowid3 set col2 ='newvalue3', col1 = 3  where rowid = ?");
+            preparedStatement.setString(1, rowidStringVal);
+            preparedStatement.execute();
+
+            preparedStatement = sharedConnection
+                .prepareStatement("select * from test_rowid3 where rowid = ?");
+            preparedStatement.setRowId(1, rowId2);
+            resultSet = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(3, resultSet.getInt(1));
+            Assert.assertEquals("newvalue3", resultSet.getString(2));
+
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
