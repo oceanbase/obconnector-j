@@ -1499,10 +1499,16 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public Properties getClientInfo() throws SQLException {
         checkConnection();
+        String sql;
+        if(this.protocol.isOracleMode()) {
+            sql = "SELECT @ApplicationName, @ClientUser, @ClientHostname from dual";
+        } else {
+            sql = "SELECT @ApplicationName, @ClientUser, @ClientHostname";
+        }
         Properties properties = new Properties();
         try (Statement statement = createStatement()) {
             try (ResultSet rs =
-                         statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
+                         statement.executeQuery(sql)) {
                 if (rs.next()) {
                     if (rs.getString(1) != null) {
                         properties.setProperty("ApplicationName", rs.getString(1));
@@ -1587,8 +1593,14 @@ public class OceanBaseConnection implements ConnectionImpl {
                             + name
                             + "\"");
         }
+        String sql;
+        if(this.protocol.isOracleMode()) {
+            sql = "SELECT @" + name + " from dual";
+        } else {
+            sql = "SELECT @" + name;
+        }
         try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery("SELECT @" + name)) {
+            try (ResultSet rs = statement.executeQuery(sql)) {
                 if (rs.next()) {
                     return rs.getString(1);
                 }

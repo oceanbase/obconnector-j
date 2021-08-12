@@ -45,6 +45,7 @@ package com.oceanbase.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Properties;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -385,6 +386,23 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Exception e) {
             Assert.fail();
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void fixGetClientInfo() {
+        try {
+            Properties properties = sharedConnection.getClientInfo();
+            String appName = sharedConnection.getClientInfo("ApplicationName");
+            String clientUser = sharedConnection.getClientInfo("ClientUser");
+            String ClientHostname = sharedConnection.getClientInfo("ClientHostname");
+            Assert.assertEquals(properties.get("ApplicationName"), appName);
+            Assert.assertEquals(properties.get("ClientUser"), clientUser);
+            Assert.assertEquals(properties.get("ClientHostname"), ClientHostname);
+            // These attributes of OceanBase  are all empty now , there is no need to compare values temporarily
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
