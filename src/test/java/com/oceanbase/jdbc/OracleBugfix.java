@@ -63,6 +63,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
+    static String longNameFix               = "longNameFix" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -97,6 +98,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol2, "c1 float");
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
+        createTable(longNameFix, "MONEY  number(38)");
     }
 
     @Test
@@ -406,4 +408,16 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testLongName() {
+        try {
+            Statement statement = sharedConnection.createStatement();
+            ResultSet rs = statement
+                .executeQuery("select MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY from "
+                              + longNameFix + " ");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

@@ -551,7 +551,7 @@ public class Buffer {
                 return NULL_LENGTH;
 
             case 252:
-                return readInt();
+                return readIntV1();
 
             case 253:
                 return readLongIntV1();

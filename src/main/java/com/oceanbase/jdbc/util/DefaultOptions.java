@@ -137,8 +137,9 @@ public enum DefaultOptions {
       "Metadata ResultSetMetaData.getTableName() returns the physical table name. \"useOldAliasMetadataBehavior\""
           + " permits activating the legacy code that sends the table alias if set.",
       false),
-  ALLOW_LOCAL_INFILE(
-      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
+  // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
+//  ALLOW_LOCAL_INFILE(
+//      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
   SESSION_VARIABLES(
       "sessionVariables",
       "1.1.0",
