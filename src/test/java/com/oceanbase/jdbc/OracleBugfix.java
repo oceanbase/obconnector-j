@@ -420,4 +420,29 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testDbWithQuotes() throws SQLException {
+        Connection conn = null;
+        try {
+            String url = System.getProperty("dbWithQuotes");
+            conn = DriverManager.getConnection(url);
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop procedure  pl_t2");
+            } catch (SQLException e) {
+            }
+            statement
+                .execute("create procedure pl_t2 (listing in out varchar2) is begin listing := 'abc';  end pl_t2; ");
+            CallableStatement callableStatement = conn.prepareCall("call pl_t2(?)");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.setString(1, "1212121");
+            callableStatement.execute();
+            Assert.assertEquals("abc", callableStatement.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

@@ -217,7 +217,13 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             }
 
             if (obOracleSchema != null && obOracleSchema.trim().length() > 0) {
-                paramMetaSql.append("' and owner =  '").append(this.obOracleSchema.toUpperCase());
+                String tmp;
+                if (obOracleSchema.startsWith("\"") && obOracleSchema.endsWith("\"")) {
+                    tmp  = obOracleSchema.replace("\"", "");
+                } else {
+                    tmp = this.obOracleSchema.toUpperCase();
+                }
+                paramMetaSql.append("' and owner =  '").append(tmp);
                 paramMetaSql.append("' order by POSITION");
             } else{
                 if(this.obOraclePackageName != null) {

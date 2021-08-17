@@ -264,8 +264,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             if (!socket.isConnected()) {
-                InetSocketAddress sockAddr = options.pipe == null ? new InetSocketAddress(host,
-                    port) : null;
+                InetSocketAddress sockAddr;
+                if (options.socksProxyHost != null && options.socksProxyPort > 0) {
+                    sockAddr = InetSocketAddress.createUnresolved(host, port);
+                } else {
+                    sockAddr = options.pipe == null ? new InetSocketAddress(host, port) : null;
+                }
                 socket.connect(sockAddr, options.connectTimeout);
             }
             return socket;
