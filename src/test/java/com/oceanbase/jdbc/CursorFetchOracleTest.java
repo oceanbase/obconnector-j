@@ -53,11 +53,13 @@ import org.junit.Test;
 public class CursorFetchOracleTest extends BaseOracleTest {
     static String tableName1 = "test_cursor_oracle";
     static String tableName2 = "test_scrollable_cursor_oracle";
+    static String tableName3 = "fix_cursor_without_resultset";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tableName1, "c1 int,c2 varchar(30)");
         createTable(tableName2, "c1 int,c2 varchar(30)");
+        createTable(tableName3, "c1 int,c2 varchar(30)");
     }
 
     @Test
@@ -131,6 +133,32 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             ps.close();
             rs.close();
         } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void fixCursorFetch() {
+        try {
+            Connection conn = setConnection("&useCursorFetch=true");
+            Statement statement = conn.createStatement();
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                "insert into " + tableName3 + " values(1,'varcharvalue')",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            preparedStatement.setFetchSize(10);
+            preparedStatement.setQueryTimeout(0);
+            preparedStatement.execute();
+            ResultSet resultSet = statement.executeQuery("select count(*) from " + tableName3);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            preparedStatement = conn.prepareStatement("update   " + tableName3
+                                                      + " set c2 = 'varcharval2' where c1 = 1",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            preparedStatement.setFetchSize(10);
+            preparedStatement.setQueryTimeout(0);
+            preparedStatement.execute();
+        } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
         }
