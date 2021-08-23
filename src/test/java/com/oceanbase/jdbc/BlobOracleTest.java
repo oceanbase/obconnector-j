@@ -647,14 +647,6 @@ public class BlobOracleTest extends BaseOracleTest {
         assertEquals(3, c2.length());
     }
 
-    public static Connection getObOracleConnectionWithoutPS() throws Exception {
-        final String url = "jdbc:oceanbase://11.159.217.1:10003/SYS?useSSL=false&useServerPrepStmts=false&serverTimezone=UTC";
-        final String username = "admin@oracle";
-        final String password = "admin";
-        Class.forName("com.oceanbase.jdbc.Driver");
-        return DriverManager.getConnection(url, username, password);
-    }
-
     @Test
   public void conj77() throws Exception {
 
