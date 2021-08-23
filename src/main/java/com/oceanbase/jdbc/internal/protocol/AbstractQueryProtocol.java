@@ -1132,7 +1132,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           withRefCursor = true;
         }
       }
-      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && !(parameterCount == 0 &&  ci.length == 0)) {
+      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && ci.length != 0 ) {
         ComStmtExecute.send(
                 writer,
                 serverPrepareResult.getStatementId(),

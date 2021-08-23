@@ -153,11 +153,20 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(1, resultSet.getInt(1));
             preparedStatement = conn.prepareStatement("update   " + tableName3
-                                                      + " set c2 = 'varcharval2' where c1 = 1",
+                                                      + " set c2 = 'varcharval2' where c1 = ?",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             preparedStatement.setFetchSize(10);
             preparedStatement.setQueryTimeout(0);
+            preparedStatement.setInt(1, 1);
             preparedStatement.execute();
+            preparedStatement = conn.prepareStatement("select * from    " + tableName3
+                                                      + "  where c1 = 1",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            preparedStatement.setFetchSize(10);
+            preparedStatement.setQueryTimeout(0);
+            ResultSet resultSet1 = preparedStatement.executeQuery();
+            Assert.assertTrue(resultSet1.next());
+            Assert.assertEquals(1, resultSet1.getInt(1));
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

@@ -71,7 +71,7 @@ public class NewFeatureTest extends BaseTest {
             Class.forName("com.oceanbase.jdbc.Driver");
             Connection conn = DriverManager.getConnection(url);
             Statement statement = conn.createStatement();
-            statement.execute("alter proxyconfig set enable_client_ssl=false;");
+            statement.execute("alter proxyconfig set enable_client_ssl=true;");
             statement.execute("alter proxyconfig set enable_client_ssl=false;");
             ResultSet rs = statement.executeQuery("show proxyconfig");
             int count = rs.getMetaData().getColumnCount();
