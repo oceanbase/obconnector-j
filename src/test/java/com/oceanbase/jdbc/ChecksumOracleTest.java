@@ -43,12 +43,14 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import org.junit.*;
+import static org.junit.Assert.*;
+
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.*;
+
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 
 /**
  * Checksum is a mechanism rather than an interface. Our test case can only test whether it can run normally after being turned on or off

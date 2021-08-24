@@ -43,7 +43,6 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
-import com.oceanbase.jdbc.ObArray;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -51,6 +50,8 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
+
+import com.oceanbase.jdbc.ObArray;
 
 public class ArrayImpl extends ComplexData implements ObArray {
 

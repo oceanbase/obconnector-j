@@ -65,11 +65,11 @@ import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 

@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math;
 
 import java.io.Serializable;
 import java.util.Arrays;
+
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.Utils;
 
 /**

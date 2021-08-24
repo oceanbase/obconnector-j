@@ -55,6 +55,7 @@ import static com.oceanbase.jdbc.internal.com.Packet.ERROR;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.util.Utils;
@@ -92,7 +93,7 @@ public class ReadInitialHandShakePacket {
         protocolVersion = buffer.readByte();
         serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         // server send truncated threadId (4 byte out of 8)
-        serverThreadId = buffer.readInt();
+        serverThreadId = buffer.readLongV1();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
         int serverCapabilities2FirstBytes = buffer.readShort() & 0x0000ffff;

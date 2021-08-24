@@ -59,8 +59,8 @@ import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
-import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 

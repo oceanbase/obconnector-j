@@ -60,14 +60,16 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import com.oceanbase.jdbc.internal.util.pool.Pools;
-import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 import org.junit.Assume;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.pool.Pools;
+import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 
 public class OceanBasePoolDataSourceTest extends BaseTest {
 

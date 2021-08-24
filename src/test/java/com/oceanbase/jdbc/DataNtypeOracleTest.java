@@ -43,9 +43,7 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.OutputStream;
 import java.io.Reader;
@@ -55,7 +53,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
 
 public class DataNtypeOracleTest extends BaseOracleTest {
 

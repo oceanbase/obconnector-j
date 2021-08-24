@@ -64,6 +64,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+
 import javax.net.SocketFactory;
 
 import com.oceanbase.jdbc.UrlParser;
@@ -913,6 +914,7 @@ public class Utils {
           if (isOracleMode) {
             if (state == LexState.NameBinding) {
               state = LexState.Normal; // := is not name binding
+              paramSb.setLength(0);
             }
             if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
               endingSemicolon = false;

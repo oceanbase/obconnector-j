@@ -54,6 +54,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.Test;
 
 public class CatalogTest extends BaseTest {

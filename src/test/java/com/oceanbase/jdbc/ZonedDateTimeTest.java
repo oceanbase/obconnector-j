@@ -43,16 +43,16 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class ZonedDateTimeTest extends BaseOracleTest {
     static String zonedDateTimeTable = "zonedDataTimeTest";

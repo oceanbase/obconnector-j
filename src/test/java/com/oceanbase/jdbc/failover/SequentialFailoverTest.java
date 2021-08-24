@@ -59,15 +59,16 @@ import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 /**
  * Test for sequential connection exemple mvn test

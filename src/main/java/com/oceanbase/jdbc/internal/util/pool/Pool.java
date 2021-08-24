@@ -61,20 +61,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 
 import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.UrlParser;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 import com.oceanbase.jdbc.OceanBasePooledConnection;
+import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.oceanbase.jdbc.internal.util.scheduler.OceanBaseThreadFactory;
 import com.oceanbase.jdbc.util.Options;
 
 public class Pool implements AutoCloseable, PoolMBean {

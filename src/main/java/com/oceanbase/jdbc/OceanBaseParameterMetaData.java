@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;

@@ -52,11 +52,12 @@ package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
 import java.sql.SQLException;
+
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
-import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 

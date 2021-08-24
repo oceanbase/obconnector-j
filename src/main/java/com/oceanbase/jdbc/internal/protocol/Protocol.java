@@ -64,16 +64,16 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
+import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.OceanBaseStatement;
-import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.util.Options;
 
 public interface Protocol {
@@ -81,6 +81,8 @@ public interface Protocol {
     ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException;
 
     boolean getAutocommit() throws SQLException;
+
+    void setAutoCommit(boolean autoCommit) throws SQLException;
 
     boolean noBackslashEscapes();
 
@@ -144,6 +146,8 @@ public interface Protocol {
     String getDatabase();
 
     String getUsername();
+
+    void setUsername(String username);
 
     boolean ping() throws SQLException;
 
@@ -311,5 +315,7 @@ public interface Protocol {
     long getLastPacketSendTimestamp();
 
     void clearNetworkStatistics();
+
+    void changeUser(String user, String pwd) throws SQLException;
 
 }

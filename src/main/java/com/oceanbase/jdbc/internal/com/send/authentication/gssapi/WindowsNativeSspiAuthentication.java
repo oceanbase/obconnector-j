@@ -50,13 +50,15 @@
  */
 package com.oceanbase.jdbc.internal.com.send.authentication.gssapi;
 
-import com.sun.jna.platform.win32.Sspi;
-import com.sun.jna.platform.win32.SspiUtil;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.sun.jna.platform.win32.Sspi;
+import com.sun.jna.platform.win32.SspiUtil;
+
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 

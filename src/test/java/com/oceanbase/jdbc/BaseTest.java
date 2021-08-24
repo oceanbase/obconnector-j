@@ -52,10 +52,6 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import com.oceanbase.jdbc.failover.TcpProxy;
-import com.oceanbase.jdbc.internal.failover.AbstractMastersListener;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
-import com.sun.jna.Platform;
 import java.io.*;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
@@ -65,11 +61,17 @@ import java.sql.*;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
+
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+
+import com.oceanbase.jdbc.failover.TcpProxy;
+import com.oceanbase.jdbc.internal.failover.AbstractMastersListener;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
+import com.sun.jna.Platform;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:oceanbase://localhost:3306/testj?user=root

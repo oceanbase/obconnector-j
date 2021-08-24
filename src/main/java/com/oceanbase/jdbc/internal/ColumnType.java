@@ -59,8 +59,8 @@ import java.sql.Types;
 
 import com.oceanbase.jdbc.Blob;
 import com.oceanbase.jdbc.Clob;
-import com.oceanbase.jdbc.util.Options;
 import com.oceanbase.jdbc.extend.datatype.*;
+import com.oceanbase.jdbc.util.Options;
 
 public enum ColumnType {
 

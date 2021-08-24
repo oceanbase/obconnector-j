@@ -50,9 +50,10 @@
  */
 package com.oceanbase.jdbc.internal.io.socket;
 
+import java.io.IOException;
+
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.sun.jna.Platform;
-import java.io.IOException;
 
 public class SocketUtility {
 

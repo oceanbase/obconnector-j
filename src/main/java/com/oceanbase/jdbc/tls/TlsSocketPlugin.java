@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.tls;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.SQLException;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;

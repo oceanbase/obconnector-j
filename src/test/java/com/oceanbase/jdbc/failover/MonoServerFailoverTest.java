@@ -57,12 +57,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.oceanbase.jdbc.internal.protocol.Protocol;
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public class MonoServerFailoverTest extends BaseMonoServer {
 

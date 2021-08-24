@@ -56,8 +56,10 @@ import static org.junit.Assert.fail;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
+
 import org.junit.Assume;
 import org.junit.Test;
 

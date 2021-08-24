@@ -43,12 +43,12 @@
  */
 package com.oceanbase.jdbc.jdbc2.optional;
 
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.OceanBaseXaResource;
-
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+
+import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.OceanBaseXaResource;
 
 /**
  * Compatible with Mysql connector J interface JDBC4MysqlXAConnection

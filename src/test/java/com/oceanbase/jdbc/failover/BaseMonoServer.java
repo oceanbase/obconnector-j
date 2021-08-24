@@ -57,6 +57,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 public abstract class BaseMonoServer extends BaseMultiHostTest {

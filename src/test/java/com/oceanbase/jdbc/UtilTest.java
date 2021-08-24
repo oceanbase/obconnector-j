@@ -56,9 +56,10 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.oceanbase.jdbc.internal.util.Utils;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.Utils;
 
 public class UtilTest extends BaseTest {
 
@@ -128,6 +129,44 @@ public class UtilTest extends BaseTest {
                        + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
                        + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
                        + "FROM all_arguments";
+        String sql14 = "DECLARE\n" + "  V_TABLENAME      VARCHAR2(20);\n"
+                       + "  V_NUMBER         NUMBER;\n" + "BEGIN\n"
+                       + "  V_TABLENAME     := :V_TABLENAME ;\n"
+                       + "  V_NUMBER     := to_number(:NUMBER1) ;\n"
+                       + "  proc_dropifexists(V_TABLENAME);\n" + "\n" + "end ; ";
+        String sql15 = "DECLARE\n"
+                       + "  V_FREEVOL      SUBS_PRESENT.Free_Volume%TYPE;\n"
+                       + "  V_USAGEVOL     SUBS_PRESENT.Usage_Volume%TYPE;\n"
+                       + "  V_OVERVOL      SUBS_PRESENT.Over_Volume%TYPE;\n"
+                       + "  V_TARIFFPLAN   SUBS_PRESENT.Tariff_Plan_Id%TYPE;\n"
+                       + "  V_ENDTIME      VARCHAR2(20);\n"
+                       + "  V_ATTRADD      SUBS_PRESENT.Attr_Add_Code%TYPE;\n"
+                       + "  V_PRODUCTOID   SUBS_PRESENT.Product_Oid%TYPE;\n"
+                       + "  V_KEYID        SUBS_PRESENT.Key_Id%TYPE;\n"
+                       + "  V_PRESENTID    SUBS_PRESENT.Present_Id%TYPE;\n"
+                       + "  V_ATTRID       SUBS_PRESENT.Attr_Id%TYPE;\n"
+                       + "  V_SUBSID       SUBS_PRESENT.Subs_Id%TYPE;\n"
+                       + "  V_MINCYCLE     SUBS_PRESENT.Min_Cycle_Id%TYPE;\n"
+                       + "  V_MAXCYCLE     SUBS_PRESENT.Max_Cycle_Id%TYPE;\n"
+                       + "  V_ORIGINSOURCE SUBS_PRESENT.Origin_Source%TYPE;\n"
+                       + "BEGIN\n"
+                       + "  V_FREEVOL      := to_number(:FREEVOL );\n"
+                       + "  V_USAGEVOL     := to_number(:USAGEVOL );\n"
+                       + "  V_OVERVOL      := to_number(:OVERVOL );\n"
+                       + "  V_TARIFFPLAN   := to_number(:TARIFFPLAN );\n"
+                       + "  V_ENDTIME      := :ENDTIME ;\n"
+                       + "  V_ATTRADD      := :ATTRADD ;\n"
+                       + "  V_PRODUCTOID   := :PRODUCTOID ;\n"
+                       + "  V_ORIGINSOURCE := :ORIGINSOURCE ;\n"
+                       + "  V_KEYID        := :KEYID ;\n"
+                       + "  V_PRESENTID    := :PRESENTID ;\n"
+                       + "  V_ATTRID       := :ATTRID ;\n"
+                       + "  V_SUBSID       := :SUBSID ;\n"
+                       + "  V_MINCYCLE     := :MINCYCLE ;\n"
+                       + "  V_MAXCYCLE     := :MAXCYCLE ;\n"
+                       + "\n"
+                       + "  sync_subs_present(V_FREEVOL,V_USAGEVOL,V_OVERVOL,V_TARIFFPLAN,V_ENDTIME,V_ATTRADD     ,V_PRODUCTOID,V_KEYID,V_PRESENTID,V_ATTRID,V_SUBSID,V_MINCYCLE,V_MAXCYCLE,V_ORIGINSOURCE);\n"
+                       + "\n" + "end ;\n";
         Assert.assertEquals("insert  into t values( 'wo',?,?)  ",
             Utils.trimSQLString(sql1, false, true));
         Assert.assertEquals("{? = call testproc(?,'test',?,?)};",
@@ -164,5 +203,46 @@ public class UtilTest extends BaseTest {
         Assert.assertEquals("{? = call /* sfs */testproc(?,'test',?,?)};",
             Utils.trimSQLString(sql2, false, true, true));
 
+        Assert.assertEquals("DECLARE\n" + "  V_TABLENAME      VARCHAR2(20);\n"
+                            + "  V_NUMBER         NUMBER;\n" + "BEGIN\n"
+                            + "  V_TABLENAME     := ? ;\n" + "  V_NUMBER     := to_number(?) ;\n"
+                            + "  proc_dropifexists(V_TABLENAME);\n" + "\n" + "end ; ",
+            Utils.trimSQLString(sql14, false, true, true));
+
+        Assert
+            .assertEquals(
+                "DECLARE\n"
+                        + "  V_FREEVOL      SUBS_PRESENT.Free_Volume%TYPE;\n"
+                        + "  V_USAGEVOL     SUBS_PRESENT.Usage_Volume%TYPE;\n"
+                        + "  V_OVERVOL      SUBS_PRESENT.Over_Volume%TYPE;\n"
+                        + "  V_TARIFFPLAN   SUBS_PRESENT.Tariff_Plan_Id%TYPE;\n"
+                        + "  V_ENDTIME      VARCHAR2(20);\n"
+                        + "  V_ATTRADD      SUBS_PRESENT.Attr_Add_Code%TYPE;\n"
+                        + "  V_PRODUCTOID   SUBS_PRESENT.Product_Oid%TYPE;\n"
+                        + "  V_KEYID        SUBS_PRESENT.Key_Id%TYPE;\n"
+                        + "  V_PRESENTID    SUBS_PRESENT.Present_Id%TYPE;\n"
+                        + "  V_ATTRID       SUBS_PRESENT.Attr_Id%TYPE;\n"
+                        + "  V_SUBSID       SUBS_PRESENT.Subs_Id%TYPE;\n"
+                        + "  V_MINCYCLE     SUBS_PRESENT.Min_Cycle_Id%TYPE;\n"
+                        + "  V_MAXCYCLE     SUBS_PRESENT.Max_Cycle_Id%TYPE;\n"
+                        + "  V_ORIGINSOURCE SUBS_PRESENT.Origin_Source%TYPE;\n"
+                        + "BEGIN\n"
+                        + "  V_FREEVOL      := to_number(? );\n"
+                        + "  V_USAGEVOL     := to_number(? );\n"
+                        + "  V_OVERVOL      := to_number(? );\n"
+                        + "  V_TARIFFPLAN   := to_number(? );\n"
+                        + "  V_ENDTIME      := ? ;\n"
+                        + "  V_ATTRADD      := ? ;\n"
+                        + "  V_PRODUCTOID   := ? ;\n"
+                        + "  V_ORIGINSOURCE := ? ;\n"
+                        + "  V_KEYID        := ? ;\n"
+                        + "  V_PRESENTID    := ? ;\n"
+                        + "  V_ATTRID       := ? ;\n"
+                        + "  V_SUBSID       := ? ;\n"
+                        + "  V_MINCYCLE     := ? ;\n"
+                        + "  V_MAXCYCLE     := ? ;\n"
+                        + "\n"
+                        + "  sync_subs_present(V_FREEVOL,V_USAGEVOL,V_OVERVOL,V_TARIFFPLAN,V_ENDTIME,V_ATTRADD     ,V_PRODUCTOID,V_KEYID,V_PRESENTID,V_ATTRID,V_SUBSID,V_MINCYCLE,V_MAXCYCLE,V_ORIGINSOURCE);\n"
+                        + "\n" + "end ;" + "\n", Utils.trimSQLString(sql15, false, true, true));
     }
 }

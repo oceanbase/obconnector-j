@@ -55,9 +55,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 
-import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.Curve;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * Parameter specification for an EdDSA algorithm.

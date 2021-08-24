@@ -56,11 +56,11 @@ import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Results {
 

@@ -57,10 +57,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
-import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.failover.impl.MastersSlavesListener;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MastersSlavesProtocol extends MasterProtocol {
 

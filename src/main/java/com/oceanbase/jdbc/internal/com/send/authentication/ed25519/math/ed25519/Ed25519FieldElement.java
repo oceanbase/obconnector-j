@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
 import java.util.Arrays;
+
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.Utils;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.Field;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;

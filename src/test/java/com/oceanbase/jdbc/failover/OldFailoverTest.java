@@ -52,8 +52,10 @@ package com.oceanbase.jdbc.failover;
 
 import java.sql.Connection;
 import java.sql.Statement;
+
 import org.junit.Assert;
 import org.junit.Test;
+
 import com.oceanbase.jdbc.BaseTest;
 
 public class OldFailoverTest extends BaseTest {

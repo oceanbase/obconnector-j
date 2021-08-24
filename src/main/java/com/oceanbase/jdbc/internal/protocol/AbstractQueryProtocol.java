@@ -70,7 +70,9 @@ import com.oceanbase.jdbc.LocalInfileInterceptor;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -79,11 +81,9 @@ import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
-import com.oceanbase.jdbc.internal.com.send.ComQuery;
-import com.oceanbase.jdbc.internal.com.send.ComStmtExecute;
-import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
-import com.oceanbase.jdbc.internal.com.send.SendChangeDbPacket;
+import com.oceanbase.jdbc.internal.com.send.*;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -97,12 +97,10 @@ import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.internal.util.exceptions.OceanBaseSqlException;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import com.oceanbase.jdbc.internal.util.exceptions.OceanBaseSqlException;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
-import com.oceanbase.jdbc.internal.io.LruTraceCache;
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
@@ -111,7 +109,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       new HashSet<>(Arrays.asList(1205, 1213, 1614));
 
   private ThreadPoolExecutor readScheduler = null;
-  private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
   private long maxRows; /* max rows returned by a statement */
   private volatile int statementIdToRelease = -1;
@@ -1115,6 +1112,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       int parameterCount = serverPrepareResult.getParameters().length;
 
+
       for (int i = 0; i < parameterCount; i++) {
         if (parameters[i].isLongData()) {
           writer.startPacket(0);
@@ -1134,14 +1132,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           withRefCursor = true;
         }
       }
-      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && ci.length != 0 ) {
         ComStmtExecute.send(
                 writer,
                 serverPrepareResult.getStatementId(),
                 parameters,
                 parameterCount,
                 serverPrepareResult.getParameterTypeHeader(),
-                Packet.CURSOR_TYPE_READ_ONLY,
+                Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
                 this);
         results.setStatementId(serverPrepareResult.getStatementId());
         results.setToCursorFetch(true);
@@ -1221,6 +1219,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       reader.clearNetworkStatistics();
   }
 
+  @Override
+  public void changeUser(String user, String pwd) throws SQLException {
+    cmdPrologue();
+    try {
+      Credential  credential = new Credential(user,pwd);
+      String clientIp = this.socket.getLocalAddress().getHostAddress();
+      SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
+              serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
+                      : 0x01), options, authenticationPluginType, seed, clientIp,this.isOracleMode());
+      getResult(new Results());
+    } catch (IOException e) {
+      throw exceptionWithQuery(
+              " change user failed.", handleIoException(e), explicitClosed);
+    }
+    setUsername(user);
+    postConnectionQueries();
+  }
+
 
   /** Rollback transaction. */
   public void rollback() throws SQLException {
@@ -1239,6 +1255,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       lock.unlock();
     }
+  }
+
+  @Override
+  public void setUsername(String username) {
+      this.username = username;
   }
 
   /**
@@ -1452,7 +1473,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   @Override
   public boolean getAutocommit() {
-    return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
+    return this.autoCommit;
+  }
+
+  @Override
+  public void setAutoCommit(boolean autoCommit) throws SQLException {
+    if (this.autoCommit != autoCommit) {
+      executeQuery("set autocommit = " + (autoCommit ? "1" : "0"));
+    } else {
+      return ;
+    }
+    this.autoCommit = autoCommit;
   }
 
   @Override
@@ -1552,6 +1583,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTransactionIsolation(final int level) throws SQLException {
     cmdPrologue();
     lock.lock();
+    if(transactionIsolationLevel == level) {
+      return ;
+    }
     try {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (level) {

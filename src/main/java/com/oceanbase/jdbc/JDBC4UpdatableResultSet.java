@@ -50,16 +50,6 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.com.read.dao.Results;
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableColumnDefinition;
-import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.internal.com.send.parameters.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -70,6 +60,16 @@ import java.sql.Clob;
 import java.time.*;
 import java.util.Arrays;
 import java.util.TimeZone;
+
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableColumnDefinition;
+import com.oceanbase.jdbc.internal.com.send.parameters.*;
+import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class JDBC4UpdatableResultSet extends SelectResultSet {
 

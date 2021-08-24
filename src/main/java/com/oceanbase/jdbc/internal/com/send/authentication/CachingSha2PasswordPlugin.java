@@ -58,6 +58,7 @@ import java.security.PublicKey;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;

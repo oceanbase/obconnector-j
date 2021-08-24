@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.read.dao;
 
 import java.sql.ResultSet;
+
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public interface CmdInformation {

@@ -43,14 +43,15 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.extend.datatype.RowObCursorData;
+import com.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 public class RefCursor extends SelectResultSet {
     private RowObCursorData rowObCursorData;
@@ -96,6 +97,7 @@ public class RefCursor extends SelectResultSet {
             this.columnInformationLength = ci.length;
             this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
                 .getStatement().getMaxFieldSize(), options);
+            this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
         }
         try {
             getCursorFetchData();

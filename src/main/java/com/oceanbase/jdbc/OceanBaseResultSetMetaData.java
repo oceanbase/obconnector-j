@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.ObOracleDefs;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;

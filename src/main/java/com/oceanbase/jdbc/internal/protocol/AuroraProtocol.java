@@ -62,9 +62,9 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.failover.impl.AuroraListener;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
-import com.oceanbase.jdbc.internal.io.LruTraceCache;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 

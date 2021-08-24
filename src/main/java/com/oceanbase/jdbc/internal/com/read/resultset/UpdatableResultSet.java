@@ -50,13 +50,13 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.JDBC4UpdatableResultSet;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 public class UpdatableResultSet extends JDBC4UpdatableResultSet {
     /**

@@ -50,18 +50,16 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
 public class StoredProcedureOracleTest extends BaseOracleTest {
 

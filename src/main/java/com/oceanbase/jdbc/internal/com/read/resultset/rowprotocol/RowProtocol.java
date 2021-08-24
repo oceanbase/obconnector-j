@@ -67,8 +67,8 @@ import java.util.regex.Pattern;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
 
 public abstract class RowProtocol {

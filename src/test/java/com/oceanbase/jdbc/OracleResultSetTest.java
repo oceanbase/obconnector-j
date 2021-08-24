@@ -50,12 +50,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.*;
 
 public class OracleResultSetTest extends BaseOracleTest {
 

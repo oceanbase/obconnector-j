@@ -58,11 +58,11 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
-import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.spec.EdDSANamedCurveTable;
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
+import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.spec.EdDSANamedCurveTable;
 import com.oceanbase.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;

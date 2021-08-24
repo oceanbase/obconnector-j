@@ -43,17 +43,18 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
-import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.regex.Pattern;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 
 public class DataTypeOracleCompleteTest extends BaseOracleTest {
 
@@ -1190,16 +1191,6 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
                 Assert.assertTrue("",
                     e.getClass().getName().contains("SQLFeatureNotSupportedException"));
             }
-        }
-
-        try {
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId(2).getBytes()).trim()));
-            Assert.assertTrue("getBinaryStream is not equals",
-                testStr.equals(new String(resultSet.getRowId("strm").getBytes()).trim()));
-        } catch (Exception e) {
-            Assert.assertTrue("", e.getClass().getName()
-                .contains("SQLFeatureNotSupportedException"));
         }
     }
 

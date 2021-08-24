@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.io.Reader;
+
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBReaderParameter implements Cloneable, ParameterHolder {
 

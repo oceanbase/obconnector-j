@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
 
 public class ProcTest extends BaseTest {
     public static String procName  = "testProc" + getRandomString(5);

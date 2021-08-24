@@ -55,6 +55,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
 import com.oceanbase.jdbc.internal.util.DeRegister;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.constant.Version;

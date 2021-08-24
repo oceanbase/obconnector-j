@@ -43,17 +43,17 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.sql.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.TimeZone;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
+import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 
 public class OracleTimeZoneTablesImported extends BaseOracleTest {
     static String tztable1 = "tztest1";

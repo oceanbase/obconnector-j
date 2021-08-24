@@ -56,14 +56,14 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.Identifier;
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
 
 public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {

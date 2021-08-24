@@ -50,6 +50,15 @@
  */
 package com.oceanbase.jdbc.failover;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.*;
+
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.ObPrepareStatement;
 import com.oceanbase.jdbc.ObResultSet;
@@ -58,14 +67,6 @@ import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.*;
-
-import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
 

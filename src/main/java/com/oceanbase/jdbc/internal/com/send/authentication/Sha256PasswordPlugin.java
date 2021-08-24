@@ -61,7 +61,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.Cipher;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;

@@ -66,17 +66,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.UrlParser;
-import com.oceanbase.jdbc.internal.util.SqlStates;
-import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
-import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.OceanBaseStatement;
+import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.thread.ConnectionValidator;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.SqlStates;
+import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
+import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public abstract class AbstractMastersListener implements Listener {
 

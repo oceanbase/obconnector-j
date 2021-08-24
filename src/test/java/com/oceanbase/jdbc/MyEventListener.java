@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.SQLException;
+
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.StatementEvent;

@@ -54,9 +54,10 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
 public class ClientPreparedStatementParsingTest extends BaseTest {

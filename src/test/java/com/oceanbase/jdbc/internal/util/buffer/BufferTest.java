@@ -50,9 +50,10 @@
  */
 package com.oceanbase.jdbc.internal.util.buffer;
 
-import com.oceanbase.jdbc.internal.com.read.Buffer;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.com.read.Buffer;
 
 public class BufferTest {
 

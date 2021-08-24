@@ -56,12 +56,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import javax.sql.DataSource;
 
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class ErrorMessageTest extends BaseTest {
 

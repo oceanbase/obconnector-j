@@ -56,6 +56,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.*;
+
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -64,9 +65,9 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
-import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.util.Utils;
 
 public class HostnameVerifierImpl implements HostnameVerifier {
 

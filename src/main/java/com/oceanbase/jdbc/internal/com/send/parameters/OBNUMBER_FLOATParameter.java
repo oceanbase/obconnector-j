@@ -45,8 +45,8 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBNUMBER_FLOATParameter implements Cloneable, ParameterHolder {
     private final float value;

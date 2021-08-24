@@ -59,10 +59,10 @@ import java.text.NumberFormat;
 import java.util.List;
 
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
 
 public class ProtocolLoggingProxy implements InvocationHandler {

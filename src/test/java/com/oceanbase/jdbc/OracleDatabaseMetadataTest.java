@@ -50,15 +50,15 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * @Author : wb-xsy @Description @Date : 2020/9/25 16:48
@@ -139,7 +139,6 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
             int columnCount = rs.getMetaData().getColumnCount();
             Assert.assertEquals(13, columnCount);
             ResultSetMetaData resultSetMetaData = rs.getMetaData();
-            Assert.assertTrue(rs.next());
             Assert.assertTrue(rs.next());
             for (int i = 1; i <= columnCount; i++) {
                 System.out.print("column " + resultSetMetaData.getColumnName(i));

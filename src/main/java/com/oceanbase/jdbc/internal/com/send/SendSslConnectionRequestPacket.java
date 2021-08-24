@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
+
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 /** Used for starting ssl connections. */

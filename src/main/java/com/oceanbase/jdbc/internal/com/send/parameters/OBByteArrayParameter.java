@@ -50,11 +50,11 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.util.Arrays;
+
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBByteArrayParameter implements Cloneable, ParameterHolder {
 

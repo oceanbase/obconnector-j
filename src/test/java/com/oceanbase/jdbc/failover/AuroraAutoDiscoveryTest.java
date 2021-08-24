@@ -55,9 +55,10 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Connection;
 import java.util.List;
 
+import org.junit.*;
+
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.*;
 
 public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 

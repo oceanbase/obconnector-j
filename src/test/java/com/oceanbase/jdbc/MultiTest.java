@@ -54,6 +54,7 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.Properties;
+
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;

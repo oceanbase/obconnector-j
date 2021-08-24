@@ -53,9 +53,9 @@ package com.oceanbase.jdbc.util;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
+import com.oceanbase.jdbc.credential.CredentialPlugin;
 import com.oceanbase.jdbc.internal.util.OptionUtils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import com.oceanbase.jdbc.credential.CredentialPlugin;
 
 public enum DefaultOptions {
   USER("user", "1.0.0", "Database user name", false),
@@ -137,8 +137,9 @@ public enum DefaultOptions {
       "Metadata ResultSetMetaData.getTableName() returns the physical table name. \"useOldAliasMetadataBehavior\""
           + " permits activating the legacy code that sends the table alias if set.",
       false),
-  ALLOW_LOCAL_INFILE(
-      "allowLocalInfile", Boolean.TRUE, "1.2.1", "Permit loading data from file", false),
+  // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
+//  ALLOW_LOCAL_INFILE(
+//      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
   SESSION_VARIABLES(
       "sessionVariables",
       "1.1.0",
@@ -333,7 +334,7 @@ public enum DefaultOptions {
       false),
   ASSURE_READONLY(
       "assureReadOnly",
-      Boolean.FALSE,
+      Boolean.TRUE,
       "1.3.0",
       "Ensure that when Connection.setReadOnly(true) is called, host is in read-only mode by "
           + "setting the session transaction to read-only.",

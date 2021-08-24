@@ -50,10 +50,6 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -66,6 +62,10 @@ import java.util.Locale;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 

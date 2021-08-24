@@ -56,10 +56,11 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.oceanbase.jdbc.HostAddress;
-import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import org.junit.Assume;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.HostAddress;
+import com.oceanbase.jdbc.ServerSidePreparedStatement;
 
 public abstract class BaseReplication extends BaseMonoServer {
 

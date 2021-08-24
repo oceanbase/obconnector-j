@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import java.util.Arrays;
+
 import javax.transaction.xa.Xid;
 
 public class OceanBaseXid implements Xid {

@@ -58,13 +58,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class FailoverProxy implements InvocationHandler {
 

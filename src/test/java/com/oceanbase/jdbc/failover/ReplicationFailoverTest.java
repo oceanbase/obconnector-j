@@ -58,11 +58,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public class ReplicationFailoverTest extends BaseReplication {
 

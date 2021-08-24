@@ -52,14 +52,16 @@ package com.oceanbase.jdbc.internal.osgi;
 
 import java.sql.SQLException;
 import java.util.Properties;
+
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
 
-import com.oceanbase.jdbc.Driver;
-import com.oceanbase.jdbc.OceanBasePoolDataSource;
-import com.oceanbase.jdbc.OceanBaseDataSource;
 import org.osgi.service.jdbc.DataSourceFactory;
+
+import com.oceanbase.jdbc.Driver;
+import com.oceanbase.jdbc.OceanBaseDataSource;
+import com.oceanbase.jdbc.OceanBasePoolDataSource;
 
 public class OceanBaseDataSourceFactory implements DataSourceFactory {
 

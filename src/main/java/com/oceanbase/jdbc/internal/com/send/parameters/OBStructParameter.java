@@ -43,13 +43,13 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+
 import com.oceanbase.jdbc.ObStruct;
 import com.oceanbase.jdbc.extend.datatype.ComplexUtil;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.util.Options;
-
-import java.io.IOException;
 
 public class OBStructParameter implements Cloneable, ParameterHolder {
     ObStruct structValue;

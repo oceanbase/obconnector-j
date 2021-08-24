@@ -62,11 +62,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.sql.SQLException;
+
 import javax.net.ssl.*;
 
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.tls.TlsSocketPlugin;
 import com.oceanbase.jdbc.util.Options;
 

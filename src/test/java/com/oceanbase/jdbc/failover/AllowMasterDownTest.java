@@ -54,10 +54,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
 import com.oceanbase.jdbc.BaseTest;
 
 public class AllowMasterDownTest extends BaseTest {

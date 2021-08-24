@@ -123,7 +123,9 @@ public class CmdInformationSingle implements CmdInformation {
      */
     public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
         if (insertId == 0) {
-            return SelectResultSet.createEmptyResultSet();
+            // for update sql
+            long[] insertIds = new long[0];
+            return SelectResultSet.createGeneratedData(insertIds, protocol, true);
         }
         if (updateCount > 1 && sql != null && !isDuplicateKeyUpdate(sql)) {
             long[] insertIds = new long[(int) updateCount];

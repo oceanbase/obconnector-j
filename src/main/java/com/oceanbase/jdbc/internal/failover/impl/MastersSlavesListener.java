@@ -61,6 +61,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.AbstractMastersSlavesListener;
 import com.oceanbase.jdbc.internal.failover.HandleErrorResult;
@@ -69,14 +70,13 @@ import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MastersSlavesProtocol;
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import com.oceanbase.jdbc.OceanBaseStatement;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 /** this class handle the operation when multiple hosts. */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {

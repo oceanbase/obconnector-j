@@ -43,10 +43,10 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
-import com.oceanbase.jdbc.ObStruct;
-
 import java.sql.SQLException;
 import java.util.Map;
+
+import com.oceanbase.jdbc.ObStruct;
 
 public class StructImpl extends ComplexData implements ObStruct {
     public StructImpl(ComplexDataType type) {

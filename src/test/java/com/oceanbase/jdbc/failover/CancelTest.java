@@ -55,11 +55,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.sql.*;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public class CancelTest extends BaseMultiHostTest {
 

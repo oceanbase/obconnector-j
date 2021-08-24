@@ -50,13 +50,13 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 

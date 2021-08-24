@@ -52,7 +52,6 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import com.sun.jna.Platform;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -65,14 +64,18 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.sql.*;
 import java.util.*;
+
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import com.oceanbase.jdbc.tls.TlsSocketPluginLoader;
 import com.oceanbase.jdbc.util.Options;
+import com.sun.jna.Platform;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
