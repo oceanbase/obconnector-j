@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;

@@ -50,9 +50,9 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.sql.SQLException;
+
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class ServerSidePreparedStatement extends JDBC4ServerPreparedStatement {
     /**

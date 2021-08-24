@@ -56,10 +56,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.util.DefaultOptions;
 
 public class ParserTest extends BaseTest {

@@ -65,11 +65,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareStatementTest extends BaseTest {
 

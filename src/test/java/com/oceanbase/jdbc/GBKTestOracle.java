@@ -43,12 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.nio.charset.Charset;
-import java.sql.*;
 
 public class GBKTestOracle extends BaseOracleTest {
     static String nchartable = "nchartest" + getRandomString(10);

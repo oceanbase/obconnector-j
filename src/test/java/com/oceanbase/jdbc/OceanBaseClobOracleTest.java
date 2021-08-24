@@ -50,9 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -61,7 +59,9 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class OceanBaseClobOracleTest extends BaseOracleTest {
 

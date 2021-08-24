@@ -48,9 +48,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.sql.SQLException;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 /**
  * @author hongwei.yhw

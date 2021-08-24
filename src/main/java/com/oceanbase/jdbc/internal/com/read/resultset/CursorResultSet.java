@@ -43,16 +43,15 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
 public class CursorResultSet extends SelectResultSet {
-    int     statementId;
-    boolean isLastRow = false;
+    int statementId;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
                            Protocol protocol, boolean callableResult, boolean eofDeprecated,
@@ -104,13 +103,54 @@ public class CursorResultSet extends SelectResultSet {
     }
 
     @Override
-    public boolean last() throws SQLException {
-        throw new SQLException("Operation not supported for streaming result set");
+    public boolean absolute(int row) throws SQLException {
+        while (!isLastRow && (row > dataSize || row < -dataSize)) {
+            cursorFetch();
+        }
+
+        if (row >= 0) {
+            if (row <= dataSize) {
+                rowPointer = row - 1;
+                return true;
+            }
+            rowPointer = dataSize; // go to afterLast() position
+            return false;
+        } else {
+            if (row >= -dataSize) {
+                // absolute position reverse from ending resultSet
+                rowPointer = dataSize + row;
+                return true;
+            }
+            rowPointer = -1; // go to before first position
+            return false;
+        }
     }
 
     @Override
-    public void beforeFirst() throws SQLException {
-        throw new SQLException("Operation not supported for streaming result set");
+    public boolean relative(int rows) throws SQLException {
+        int newPos = rowPointer + rows;
+        if (newPos < 0) {
+            rowPointer = -1;
+            return false;
+        }
+        return absolute(newPos + 1);
+    }
+
+    @Override
+    public boolean last() throws SQLException {
+        while (!isLastRow) {
+            cursorFetch();
+        }
+        rowPointer = dataSize - 1;
+        return dataSize > 0;
+    }
+
+    @Override
+    public void afterLast() throws SQLException {
+        while (!isLastRow) {
+            cursorFetch();
+        }
+        rowPointer = dataSize;
     }
 
 }

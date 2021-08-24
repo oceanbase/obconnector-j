@@ -56,8 +56,9 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import org.junit.*;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 /**
  * Exemple mvn test

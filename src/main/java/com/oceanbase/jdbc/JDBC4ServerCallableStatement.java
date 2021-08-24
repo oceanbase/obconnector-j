@@ -195,8 +195,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 ColumnType columnTypes = ci[i - 1].getColumnType();
                 if (columnTypes == ColumnType.COMPLEX || columnTypes == ColumnType.ARRAY
                     || columnTypes == ColumnType.STRUCT) {
-                    selectResultSet.getArray(i);
-
+                    selectResultSet.getComplex(i);
                 } else if (columnTypes == ColumnType.CURSOR) {
                     selectResultSet.getComplexCursor(i);
                 }

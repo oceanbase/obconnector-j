@@ -57,11 +57,12 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.util.Properties;
 
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.oceanbase.jdbc.Driver;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.Assert;
-import org.junit.Test;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 

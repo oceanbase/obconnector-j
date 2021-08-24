@@ -110,6 +110,10 @@ public class Blob implements ObBlob, Serializable {
         length = 0;
     }
 
+    public static Blob getEmptyBLOB() throws SQLException {
+        return null;
+    }
+
     public Blob(Blob other) {
         data = other.data;
         offset = other.offset;

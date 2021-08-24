@@ -43,12 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import org.junit.*;
 
 /**
  * The test depends on the ob version .Version 2.2.52 has no problems, but 2.2.60 has errors !
@@ -82,6 +83,7 @@ public class ComplexOracleTest extends BaseOracleTest {
         createTable(struct3, "c1 date");
         createTable(raw1, "c1 int ,c2 raw(100)");
         createTable(refcursor1, "c1 varchar(20), c2 number");
+        createTable("T_NESTED_ARRAY", "c1 number, c2 int");
     }
 
     public void showArrayRes(Array array) throws Exception {
@@ -116,14 +118,9 @@ public class ComplexOracleTest extends BaseOracleTest {
         Assume.assumeTrue(sharedUsePrepare());
         Connection conn = null;
         try {
-            conn = sharedPSConnection;
+            conn = sharedConnection;
             PreparedStatement ps = null;
             Statement stmt = conn.createStatement();
-            try {
-                stmt.execute("drop type my_obj");
-            } catch (SQLException e) {
-                //                e.printStackTrace();
-            }
             stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c1 int, c3 date)");
             stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj");
 
@@ -145,14 +142,6 @@ public class ComplexOracleTest extends BaseOracleTest {
                     intArray[i] = i;
                 }
             }
-            //            String[] strArray = new String[10];
-            //            for (int i = 0; i < 10; ++i) {
-            //                if (i % 2 == 0) {
-            //                    strArray[i] = "luyun_" + i;
-            //                } else {
-            //                    strArray[i] = null;
-            //                }
-            //            }
 
             java.sql.Timestamp[] dateArray = new Timestamp[10];
             for (int i = 0; i < 10; ++i) {
@@ -166,10 +155,8 @@ public class ComplexOracleTest extends BaseOracleTest {
             for (int i = 0; i < 10; ++i) {
                 structArray[i] = conn.createStruct("my_obj", new Object[] { intArray[i],
                         dateArray[i] });
-                //                        strArray[i], dateArray[i] });
             }
             Array array = conn.createArrayOf("my_obj", structArray);
-            //            ((ArrayImpl)array).getComplexType().setTypeName("obj_array");
             {
                 System.out.println("=======prepareStatement input test =============");
                 ps = conn.prepareStatement("call my_proc_objarr(?)");
@@ -179,22 +166,27 @@ public class ComplexOracleTest extends BaseOracleTest {
 
                 ps = conn.prepareStatement("select * from " + array1);
                 ResultSet rs = ps.executeQuery();
+                int i = 0;
                 while (rs.next()) {
-                    System.out.println(rs.getInt("c1"));
+                    if (intArray[i] == null) {
+                        Assert.assertEquals(0, rs.getInt("c1"));
+                    } else {
+                        Assert.assertEquals(intArray[i].intValue(), rs.getInt("c1"));
+                    }
+                    i++;
                 }
                 ps.close();
-
-                //                ps = conn.prepareStatement("select * from " + array2);
-                //                rs = ps.executeQuery();
-                //                while (rs.next()) {
-                //                    System.out.println(rs.getString("c1"));
-                //                }
-                //                ps.close();
-
                 ps = conn.prepareStatement("select * from " + array3);
                 rs = ps.executeQuery();
+                i = 0;
                 while (rs.next()) {
-                    System.out.println(rs.getDate("c1"));
+                    if (rs.getDate("c1") == null) {
+                        Assert.assertEquals(null, dateArray[i]);
+                    } else {
+                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs
+                            .getDate("c1").toString());
+                    }
+                    i++;
                 }
                 ps.close();
             }
@@ -207,22 +199,33 @@ public class ComplexOracleTest extends BaseOracleTest {
 
                 ps = conn.prepareStatement("select * from " + array1);
                 ResultSet rs = ps.executeQuery();
+                int i = 0;
                 while (rs.next()) {
-                    System.out.println(rs.getInt("c1"));
+                    if (i == 10) {
+                        i = 0;
+                    }
+                    if (intArray[i] == null) {
+                        Assert.assertEquals(0, rs.getInt("c1"));
+                    } else {
+                        Assert.assertEquals(intArray[i].intValue(), rs.getInt("c1"));
+                    }
+                    i++;
                 }
                 ps.close();
-
-                //                ps = conn.prepareStatement("select * from " + array2);
-                //                rs = ps.executeQuery();
-                //                while (rs.next()) {
-                //                    System.out.println(rs.getString("c1"));
-                //                }
-                //                ps.close();
-
                 ps = conn.prepareStatement("select * from " + array3);
                 rs = ps.executeQuery();
+                i = 0;
                 while (rs.next()) {
-                    System.out.println(rs.getDate("c1"));
+                    if (i == 10) {
+                        i = 0;
+                    }
+                    if (rs.getDate("c1") == null) {
+                        Assert.assertEquals(null, dateArray[i]);
+                    } else {
+                        Assert.assertEquals(new Date(dateArray[i].getTime()).toString(), rs
+                            .getDate("c1").toString());
+                    }
+                    i++;
                 }
                 ps.close();
             }
@@ -251,11 +254,222 @@ public class ComplexOracleTest extends BaseOracleTest {
                 csmt.registerOutParameter(1, Types.ARRAY, "obj_array");
                 csmt.execute();
                 Array resArray = csmt.getArray(1);
+                Assert.assertNotNull(resArray.getArray());
                 showArrayRes(resArray);
             }
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void getStructTest1() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
+        Connection conn = null;
+        try {
+            conn = sharedPSConnection;
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE or replace  TYPE my_obj_1 force as object (c1 int, c3 int)");
+
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_1(x OUT my_obj_1) IS "
+                                 + " begin "
+                                 + "    x:= my_obj_1(1,2); "
+                                 + "    x.c1 := 1;"
+                                 + "  x.c3 := 2;" + " END;";
+            stmt.execute(createPlSql);
+            System.out.println("=========callable stmt test==========");
+            CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_1(?)");
+            csmt.registerOutParameter(1, Types.STRUCT, "MY_OBJ_1");
+            csmt.execute();
+            Struct struct = (Struct) csmt.getObject(1);
+            Assert.assertEquals("MY_OBJ_1", struct.getSQLTypeName());
+            Object[] objects = struct.getAttributes();
+            Assert.assertEquals(1, ((BigDecimal) objects[0]).intValue());
+            Assert.assertEquals(2, ((BigDecimal) objects[1]).intValue());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void setStructTest1() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
+        Connection conn = null;
+        try {
+            conn = sharedPSConnection;
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE or replace  TYPE my_obj_2 force as object (c1 int, c3 int)");
+            Object[] objects = new Object[] { 1, 2 };
+            Struct struct = conn.createStruct("my_obj_2", objects);
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_2(x IN my_obj_2,y OUT my_obj_2) IS "
+                                 + " begin "
+                                 + "    y:= my_obj_2(1,2); "
+                                 + "    y.c1 := x.c1;"
+                                 + "  y.c3 := x.c3;" + " END;";
+            stmt.execute(createPlSql);
+            System.out.println("=========callable stmt test==========");
+            CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_2(?,?)");
+            csmt.setObject(1, struct);
+            csmt.registerOutParameter(2, Types.STRUCT, "MY_OBJ_2");
+            csmt.execute();
+            Struct structOutput = (Struct) csmt.getObject(2);
+            Assert.assertEquals("MY_OBJ_2", structOutput.getSQLTypeName());
+            Object[] attrs = structOutput.getAttributes();
+            Assert.assertEquals(1, ((BigDecimal) attrs[0]).intValue());
+            Assert.assertEquals(2, ((BigDecimal) attrs[1]).intValue());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    /*
+       Multi-level structure test case . Observer not support now.
+     */
+    @Ignore
+    public void getStructTest2() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
+        Connection conn = null;
+        try {
+            conn = sharedConnection;
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE or replace  TYPE subtype1 force as object (c1 int, c2 int)");
+            stmt.execute("CREATE or replace  TYPE type1 force as object (c1 int, c2 subtype1 )");
+            String createPlSql = "CREATE OR REPLACE PROCEDURE type_proc(x OUT type1)  is "
+                                 + "    st1 subtype1;" + " begin " + "    st1.c1 := 1;"
+                                 + "  st1.c2 := 2;" + "    x.c1 := 1;" + "  x.c2 := st1;" + " END;";
+            stmt.execute(createPlSql);
+            System.out.println("=========callable stmt test==========");
+            CallableStatement csmt = conn.prepareCall("call type_proc(?)");
+            csmt.registerOutParameter(1, Types.STRUCT, "TYPE1");
+            csmt.execute();
+            Struct struct = (Struct) csmt.getObject(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void functionReturnValueTest() throws Exception {
+        Assume.assumeTrue(sharedUsePrepare());
+        Connection conn = sharedConnection;
+
+        String sql1 = "drop table resFun";
+        String sql2 = "create table resFun(var1 varchar2(50),var2 varchar2(50),var3 varchar2(50))";
+        String sql3 = "create or replace type type1 is varray(3) of number";
+        String sql4 = "create or replace function func19\n" + "return type1\n" + "is\n"
+                      + "var type1;\n" + "begin\n" + "var :=type1(9,8,7);\n" + "return var;\n"
+                      + "end;";
+        String sql5 = "declare\n" + "var type1;\n" + "begin\n" + "var :=func19();\n"
+                      + "for i in 1..var.count loop\n"
+                      + "insert into resFun values (i,i,var(i));\n" + "end loop;\n" + "end;";
+        String preCall = "begin\n" + "? :=func19();\n" + "end;";
+
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute(sql1);
+        } catch (Exception e) {
+        }
+
+        stmt.execute(sql2);
+        stmt.execute(sql3);
+        stmt.execute(sql4);
+        stmt.execute(sql5);
+        stmt.close();
+        CallableStatement cstmt = null;
+        ResultSet resultSet = null;
+        try {
+            cstmt = conn.prepareCall(preCall);
+            cstmt.registerOutParameter(1, Types.ARRAY, "TYPE1");
+            cstmt.execute();
+
+            Array array = cstmt.getArray(1);
+            resultSet = array.getResultSet();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(9, resultSet.getInt(2));
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(8, resultSet.getInt(2));
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(7, resultSet.getInt(2));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNestedArray() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table t_nested_array");
+            } catch (SQLException e) {
+                //            e.printStackTrace();
+            }
+            conn.createStatement().execute("create table t_nested_array (c1 number,c2 int)");
+            String sql = "create or replace type t_array is table of number";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            assertEquals(0, ps.executeUpdate());
+
+            sql = "create or replace procedure test_insert (a in number,b in t_array) is begin "
+                  + "for i in 1..b.count loop "
+                  + "insert into t_nested_array values (a,b(i)); end loop; end";
+            assertEquals(0, conn.prepareStatement(sql).executeUpdate());
+            CallableStatement cs = conn.prepareCall("{call test_insert(?, ?)}");
+            cs.setInt(1, 1);
+            cs.setArray(2, conn.createArrayOf("number", new Integer[] { 5, 6 }));
+            cs.execute();
+            String createPlSql = "CREATE OR REPLACE PROCEDURE test_select(x OUT t_array) IS"
+                                 + " i int :=1;" + " BEGIN" + " x.extend(10);"
+                                 + "  for idx in 1..5 loop" + "    x(idx):= i;" + "    i := i + 2;"
+                                 + "  end loop;" + "END;";
+            conn.createStatement().execute(createPlSql);
+            assertEquals(0, conn.prepareStatement(sql).executeUpdate());
+            cs = conn.prepareCall("{call test_select( ?)}");
+            cs.registerOutParameter(1, Types.ARRAY);
+            cs.execute();
+            Array array = cs.getArray(1);
+            Object[] objects = (Object[]) array.getArray();
+            int intarray[] = new int[] { 1, 3, 5, 7 };
+            for (int i = 0; i < 4; i++) {
+                Assert.assertEquals(intarray[i], ((BigDecimal) objects[i]).intValue());
+            }
+            assertNotNull(cs.getArray(1).getArray());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void getArrayBugFix() {
+        String c_type = "create or replace type ty is table of int;";
+        String c_proc = "create or replace procedure proc(x out ty) is begin null; x := ty(); end;";
+        Connection conn = null;
+        String sql = "{call proc(?)}";
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute(c_type);
+            stmt.execute(c_proc);
+            CallableStatement ps = conn.prepareCall(sql);
+            ps.registerOutParameter(1, Types.ARRAY, "TY");
+            ps.execute();
+            Object arr[] = (Object[]) (ps.getArray(1).getArray());
+            Assert.assertNotNull(arr);
+            assertNotNull(ps.getArray(1).getArray());
+            ps.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -373,4 +587,51 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void cursorGetValeByName() {
+        Connection conn = null;
+        CallableStatement cstmt = null;
+        ResultSet cursor;
+        try {
+            conn = sharedConnection;
+            {
+                String[] sqls = {
+                        "drop table t1 cascade constraints purge;",
+                        "create table t1(c1 binary_double);",
+                        "insert into t1 values(1);",
+                        "insert into t1 values(2);",
+                        "create or replace procedure get_jobs(tcur out sys_refcursor)\n" + "is\n"
+                                + "BEGIN\n" + "  open tcur for SELECT * from t1;\n" + "END;", };
+                for (int i = 0; i < sqls.length; i++) {
+                    try {
+                        conn.createStatement().execute(sqls[i]);
+                    } catch (SQLException e) {
+                        //
+                    }
+                }
+            }
+            PreparedStatement pstmt;
+            String sql;
+            sql = "select c1 from t1";
+            pstmt = conn.prepareStatement(sql);
+            cursor = pstmt.executeQuery();
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("1.0", cursor.getString("c1"));
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("2.0", cursor.getString("c1"));
+            sql = "{call get_jobs(?)}";
+            cstmt = conn.prepareCall(sql);
+            cstmt.registerOutParameter(1, Types.REF);
+            cstmt.execute();
+            cursor = (ResultSet) cstmt.getObject(1);
+            cursor.setFetchSize(2);
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("1.0", cursor.getString("c1"));
+            Assert.assertTrue(cursor.next());
+            Assert.assertEquals("2.0", cursor.getString("c1"));
+        } catch (Throwable te) {
+            te.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

@@ -46,6 +46,7 @@ package com.oceanbase.jdbc.extend.datatype;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 

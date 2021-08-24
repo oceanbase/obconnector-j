@@ -43,14 +43,18 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 public class NewFeatureOracleTest extends BaseOracleTest {
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("testcommit", "c1 int");
+    }
+
     @Test
     public void testSocksProxy() {
         try {
@@ -60,8 +64,75 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(1, resultSet.getInt(1));
         } catch (SQLException e) {
-            Assert.fail();
             e.printStackTrace();
+            Assert.fail();
         }
     }
+
+    // SET SESSION TRANSACTION xxx twice
+    @Test
+    public void testReadOnly() {
+        try {
+            boolean isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+            sharedConnection.setReadOnly(isReadOnly);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+            sharedConnection.setReadOnly(!isReadOnly);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, true);
+            sharedConnection.setReadOnly(false);
+            isReadOnly = sharedConnection.isReadOnly();
+            Assert.assertEquals(isReadOnly, false);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAutoCommit() {
+        try {
+            boolean autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, true);
+            sharedConnection.setAutoCommit(false);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, false);
+            sharedConnection.setAutoCommit(false);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, false);
+            sharedConnection.setAutoCommit(true);
+            autoCommit = sharedConnection.getAutoCommit();
+            Assert.assertEquals(autoCommit, true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTransactionIsolation() {
+        try {
+            int level = sharedConnection.getTransactionIsolation();
+            Assert.assertEquals(2, level);
+            sharedConnection.setTransactionIsolation(level);
+            level = sharedConnection.getTransactionIsolation();
+            Assert.assertEquals(2, level);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testUrlCharsetError() {
+        try {
+            Connection conn = setConnection("&characterEncoding=UTF-8");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

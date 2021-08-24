@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.send.authentication.gssapi.GssUtility;

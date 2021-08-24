@@ -55,9 +55,10 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.*;
+
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.*;
 
 /**
  * Aurora test suite. Some environment parameter must be set : - defaultAuroraUrl : example

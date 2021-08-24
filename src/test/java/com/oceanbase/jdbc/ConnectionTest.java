@@ -59,8 +59,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
 
-import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.junit.*;
+
+import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class ConnectionTest extends BaseTest {
 

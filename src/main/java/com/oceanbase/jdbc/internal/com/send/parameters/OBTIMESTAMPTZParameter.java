@@ -45,10 +45,7 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.TimeZone;
-import com.oceanbase.jdbc.extend.datatype.TIMESTAMP;
+
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;

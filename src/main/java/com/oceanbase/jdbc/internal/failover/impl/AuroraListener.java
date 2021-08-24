@@ -63,12 +63,12 @@ import java.util.regex.Pattern;
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.protocol.AuroraProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraListener extends MastersSlavesListener {
 

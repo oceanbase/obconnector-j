@@ -60,15 +60,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+
 import com.oceanbase.jdbc.*;
 import com.oceanbase.jdbc.internal.failover.AbstractMastersListener;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 
 /**
  * Base util class. For testing example mvn test

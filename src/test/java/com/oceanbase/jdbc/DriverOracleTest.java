@@ -52,9 +52,6 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import com.oceanbase.jdbc.internal.util.DeRegister;
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import com.sun.jna.Platform;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
@@ -64,8 +61,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.*;
+
+import com.oceanbase.jdbc.internal.util.DeRegister;
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.util.DefaultOptions;
+import com.sun.jna.Platform;
 
 public class DriverOracleTest extends BaseOracleTest {
 

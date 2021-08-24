@@ -43,10 +43,10 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.extend.datatype.*;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import com.oceanbase.jdbc.extend.datatype.*;
 
 public interface ObResultSet extends ResultSet {
     TIMESTAMPTZ getTIMESTAMPTZ(int columnIndex) throws SQLException;

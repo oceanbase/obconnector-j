@@ -54,6 +54,7 @@ import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.sql.*;
+
 import org.junit.Test;
 
 public class ScalarFunctionsTest extends BaseTest {

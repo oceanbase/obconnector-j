@@ -43,10 +43,10 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.sql.SQLException;
+
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBSerializableParameter extends SerializableParameter {
     public OBSerializableParameter(Object object, boolean noBackslashEscapes) throws SQLException {

@@ -52,8 +52,8 @@ package com.oceanbase.jdbc.internal.util.dao;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareResult implements PrepareResult {

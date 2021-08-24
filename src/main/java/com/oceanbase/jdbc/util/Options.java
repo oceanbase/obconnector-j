@@ -110,7 +110,7 @@ public class Options implements Cloneable {
   public boolean dumpQueriesOnException;
   public boolean useOldAliasMetadataBehavior;
   public boolean useMysqlMetadata;
-  public boolean allowLocalInfile = true;
+  public boolean allowLocalInfile = false;
   public boolean cachePrepStmts = true;
   public int prepStmtCacheSize = 250;
   public int prepStmtCacheSqlLimit = 2048;
@@ -144,7 +144,7 @@ public class Options implements Cloneable {
   public Long slowQueryThresholdNanos;
 
   // HA options
-  public boolean assureReadOnly;
+  public boolean assureReadOnly = true;
   public boolean autoReconnect;
   public boolean failOnReadOnly;
   public int retriesAllDown = 120;

@@ -61,15 +61,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBasePoolDataSource;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 /**
  * test for galera The node must be configure with specific names : node 1 : wsrep_node_name =

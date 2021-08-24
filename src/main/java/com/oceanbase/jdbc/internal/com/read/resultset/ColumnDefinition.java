@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.com.read.resultset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.constant.ColumnFlags;

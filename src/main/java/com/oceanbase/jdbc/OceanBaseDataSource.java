@@ -56,6 +56,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
+
 import javax.sql.*;
 
 import com.oceanbase.jdbc.internal.util.constant.HaMode;

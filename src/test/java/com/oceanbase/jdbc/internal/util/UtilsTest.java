@@ -52,9 +52,10 @@ package com.oceanbase.jdbc.internal.util;
 
 import static org.junit.Assert.*;
 
+import org.junit.Test;
+
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
-import org.junit.Test;
 
 public class UtilsTest {
 

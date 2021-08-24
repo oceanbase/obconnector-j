@@ -50,9 +50,10 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
-import com.oceanbase.jdbc.internal.ColumnType;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.ColumnType;
 
 public class ColumnDefinitionTest {
 

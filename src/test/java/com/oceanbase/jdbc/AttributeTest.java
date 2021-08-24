@@ -55,9 +55,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import org.junit.Assume;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class AttributeTest extends BaseTest {
     /*

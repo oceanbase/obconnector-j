@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;

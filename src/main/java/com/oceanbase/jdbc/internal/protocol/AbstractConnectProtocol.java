@@ -1,54 +1,56 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc.internal.protocol;
+
+import static java.sql.Connection.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,12 +63,10 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -75,6 +75,11 @@ import javax.net.ssl.SSLSocketFactory;
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
+import com.oceanbase.jdbc.authentication.AuthenticationPluginLoader;
+import com.oceanbase.jdbc.credential.Credential;
+import com.oceanbase.jdbc.credential.CredentialPlugin;
+import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -85,18 +90,6 @@ import com.oceanbase.jdbc.internal.com.send.SendHandshakeResponsePacket;
 import com.oceanbase.jdbc.internal.com.send.SendSslConnectionRequestPacket;
 import com.oceanbase.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
-import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
-import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
-import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
-import com.oceanbase.jdbc.authentication.AuthenticationPluginLoader;
-import com.oceanbase.jdbc.credential.Credential;
-import com.oceanbase.jdbc.credential.CredentialPlugin;
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.input.DecompressPacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -106,6 +99,13 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.StandardPacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
+import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
+import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.tls.TlsSocketPlugin;
 import com.oceanbase.jdbc.tls.TlsSocketPluginLoader;
 import com.oceanbase.jdbc.util.Options;
@@ -115,12 +115,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private static final byte[]           SESSION_QUERY                = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
-                                                                          + "@@auto_increment_increment")
+                                                                          + "@@auto_increment_increment,"
+                                                                          + "@@tx_isolation AS tx_isolation,"
+                                                                          + "@@session.tx_read_only AS tx_read_only")
                                                                            .getBytes(StandardCharsets.UTF_8);
     private static final byte[]           SESSION_QUERY_ORACLE         = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
-                                                                          + "@@auto_increment_increment from dual")
+                                                                          + "@@auto_increment_increment,"
+                                                                          + "@@tx_isolation AS tx_isolation,"
+                                                                          + "@@session.tx_read_only AS tx_read_only "
+                                                                          + "from dual")
                                                                            .getBytes(StandardCharsets.UTF_8);
     private static final byte[]           IS_MASTER_QUERY              = "select @@innodb_read_only"
                                                                            .getBytes(StandardCharsets.UTF_8);
@@ -133,7 +138,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected final UrlParser             urlParser;
     protected final Options               options;
     protected final LruTraceCache         traceCache;
-    private final String                  username;
+    protected String                      username;
     private final GlobalStateInfo         globalInfo;
     public boolean                        hasWarnings                  = false;
     public Results                        activeStreamingResult        = null;
@@ -165,6 +170,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode;                                                              /* is server in oracle mode */
     private boolean                       importedTimeZoneTables;                                                    /* is server time zone impoted */
+    public boolean                        autoCommit;
+    public int                            transactionIsolationLevel    = 0;
+    protected byte[]                      seed;
+    long                                  clientCapabilities           = 0;
+    String                                authenticationPluginType;
+    byte                                  exchangeCharset;
+    String                                host;
 
     /**
      * Get a protocol instance.
@@ -252,8 +264,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             if (!socket.isConnected()) {
-                InetSocketAddress sockAddr = options.pipe == null ? new InetSocketAddress(host,
-                    port) : null;
+                InetSocketAddress sockAddr;
+                if (options.socksProxyHost != null && options.socksProxyPort > 0) {
+                    sockAddr = InetSocketAddress.createUnresolved(host, port);
+                } else {
+                    sockAddr = options.pipe == null ? new InetSocketAddress(host, port) : null;
+                }
                 socket.connect(sockAddr, options.connectTimeout);
             }
             return socket;
@@ -431,16 +447,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void forceAbort() {
-    try (MasterProtocol copiedProtocol =
-        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
-      copiedProtocol.setHostAddress(getHostAddress());
-      copiedProtocol.connect();
-      // no lock, because there is already a query running that possessed the lock.
-      copiedProtocol.executeQuery("KILL " + serverThreadId);
-    } catch (SQLException sqle) {
-      // eat
+        try (MasterProtocol copiedProtocol =
+                     new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
+            copiedProtocol.setHostAddress(getHostAddress());
+            copiedProtocol.connect();
+            // no lock, because there is already a query running that possessed the lock.
+            copiedProtocol.executeQuery("KILL " + serverThreadId);
+        } catch (SQLException sqle) {
+            // eat
+        }
     }
-  }
 
     private void abortActiveStream() {
         try {
@@ -554,7 +570,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 && credentialPlugin.defaultAuthenticationPluginType() != null) {
                 authenticationPluginType = credentialPlugin.defaultAuthenticationPluginType();
             }
-
+            seed = greetingPacket.getSeed();
+            this.authenticationPluginType = authenticationPluginType;
+            this.host = host;
+            this.exchangeCharset = exchangeCharset;
+            this.clientCapabilities = clientCapabilities;
             authenticationHandler(exchangeCharset, clientCapabilities, authenticationPluginType,
                 greetingPacket.getSeed(), options, database, credential, host);
 
@@ -829,88 +849,104 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void postConnectionQueries() throws SQLException {
-    try {
+    protected void postConnectionQueries() throws SQLException {
+        try {
 
-      if (options.usePipelineAuth
-          && (options.socketTimeout == null
-              || options.socketTimeout == 0
-              || options.socketTimeout > 500)) {
-        // set a timeout to avoid hang in case server doesn't support pipelining
-        socket.setSoTimeout(500);
-      }
+            if (options.usePipelineAuth
+                    && (options.socketTimeout == null
+                    || options.socketTimeout == 0
+                    || options.socketTimeout > 500)) {
+                // set a timeout to avoid hang in case server doesn't support pipelining
+                socket.setSoTimeout(500);
+            }
 
-      boolean mustLoadAdditionalInfo = true;
-      if (globalInfo != null) {
-        if (globalInfo.isAutocommit() == options.autocommit) {
-          mustLoadAdditionalInfo = false;
-        }
-      }
-        if (mustLoadAdditionalInfo) {
-            if(!options.connectProxy) {
-                Map<String, String> serverData = new TreeMap<>();
-                if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
-                    try {
-                        sendPipelineAdditionalData();
-                        readPipelineAdditionalData(serverData);
-                    } catch (SQLException sqle) {
-                        if ("08".equals(sqle.getSQLState())) {
-                            throw sqle;
+            boolean mustLoadAdditionalInfo = true;
+            if (globalInfo != null) {
+                if (globalInfo.isAutocommit() == options.autocommit) {
+                    mustLoadAdditionalInfo = false;
+                }
+            }
+            if (mustLoadAdditionalInfo) {
+                if (!options.connectProxy) {
+                    Map<String, String> serverData = new TreeMap<>();
+                    if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
+                        try {
+                            sendPipelineAdditionalData();
+                            readPipelineAdditionalData(serverData);
+                        } catch (SQLException sqle) {
+                            if ("08".equals(sqle.getSQLState())) {
+                                throw sqle;
+                            }
+                            // in case pipeline is not supported
+                            // (proxy flush socket after reading first packet)
+                            additionalData(serverData);
                         }
-                        // in case pipeline is not supported
-                        // (proxy flush socket after reading first packet)
+                    } else {
                         additionalData(serverData);
                     }
-                } else {
-                    additionalData(serverData);
+                    writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+                    autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+                    String tmp = serverData.get("tx_read_only");
+                    if(tmp.equals("OFF") || tmp.equals("ON") ) {
+                        readOnly = tmp.equals("OFF") ? false : true;
+                    } else {
+                        readOnly = Integer.parseInt(tmp) == 0 ? false : true;
+                    }
+                    if(!readOnly) {
+                        tmp = "0";
+                    } else {
+                        tmp = "1";
+                    }
+                    Map<String, Integer> mapTransIsolationNameToValue = new HashMap<String, Integer>(8);
+                    mapTransIsolationNameToValue.put("READ-UNCOMMITED", TRANSACTION_READ_UNCOMMITTED);
+                    mapTransIsolationNameToValue.put("READ-UNCOMMITTED", TRANSACTION_READ_UNCOMMITTED);
+                    mapTransIsolationNameToValue.put("READ-COMMITTED", TRANSACTION_READ_COMMITTED);
+                    mapTransIsolationNameToValue.put("REPEATABLE-READ", TRANSACTION_REPEATABLE_READ);
+                    mapTransIsolationNameToValue.put("SERIALIZABLE", TRANSACTION_SERIALIZABLE);
+                    this.transactionIsolationLevel = mapTransIsolationNameToValue.get(serverData.get("tx_isolation"));
+                    loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
                 }
-
-                writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-                autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
-                loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
+            } else {
+                writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
+                autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
+                loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
             }
-        } else {
 
-            writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
-            autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
-            loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
+
+            reader.setServerThreadId(this.serverThreadId, isMasterConnection());
+            writer.setServerThreadId(this.serverThreadId, isMasterConnection());
+
+            activeStreamingResult = null;
+            hostFailed = false;
+
+            if (options.usePipelineAuth) {
+                // reset timeout to configured value
+                if (options.socketTimeout != null) {
+                    socket.setSoTimeout(options.socketTimeout);
+                } else {
+                    socket.setSoTimeout(0);
+                }
+            }
+
+        } catch (SocketTimeoutException timeoutException) {
+            destroySocket();
+            String msg = "Socket error during post connection queries: " + timeoutException.getMessage();
+            if (options.usePipelineAuth) {
+                msg +=
+                        "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
+            }
+            throw exceptionFactory.create(msg, "08000", timeoutException);
+        } catch (IOException ioException) {
+            destroySocket();
+            throw exceptionFactory.create(
+                    "Socket error during post connection queries: " + ioException.getMessage(),
+                    "08000",
+                    ioException);
+        } catch (SQLException sqlException) {
+            destroySocket();
+            throw sqlException;
         }
-
-
-      reader.setServerThreadId(this.serverThreadId, isMasterConnection());
-      writer.setServerThreadId(this.serverThreadId, isMasterConnection());
-
-      activeStreamingResult = null;
-      hostFailed = false;
-
-      if (options.usePipelineAuth) {
-        // reset timeout to configured value
-        if (options.socketTimeout != null) {
-          socket.setSoTimeout(options.socketTimeout);
-        } else {
-          socket.setSoTimeout(0);
-        }
-      }
-
-    } catch (SocketTimeoutException timeoutException) {
-      destroySocket();
-      String msg = "Socket error during post connection queries: " + timeoutException.getMessage();
-      if (options.usePipelineAuth) {
-        msg +=
-            "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
-      }
-      throw exceptionFactory.create(msg, "08000", timeoutException);
-    } catch (IOException ioException) {
-      destroySocket();
-      throw exceptionFactory.create(
-          "Socket error during post connection queries: " + ioException.getMessage(),
-          "08000",
-          ioException);
-    } catch (SQLException sqlException) {
-      destroySocket();
-      throw sqlException;
     }
-  }
 
     /**
      * Send all additional needed values. Command are send one after the other, assuming that command
@@ -937,6 +973,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // after setting autocommit, we can rely on serverStatus value
         StringBuilder sessionOption = new StringBuilder("autocommit=")
             .append(options.autocommit ? "1" : "0");
+        this.autoCommit = options.autocommit;
         /* FIXME oceanbase not suppport client session track yet
         if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
           if (options.trackSchema) {
@@ -1001,11 +1038,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         ResultSet resultSet = results.getResultSet();
         if (resultSet != null) {
             resultSet.next();
-
             serverData.put("max_allowed_packet", resultSet.getString(1));
             serverData.put("system_time_zone", resultSet.getString(2));
             serverData.put("time_zone", resultSet.getString(3));
             serverData.put("auto_increment_increment", resultSet.getString(4));
+            serverData.put("tx_isolation", resultSet.getString(5));
+            serverData.put("tx_read_only", resultSet.getString(6));
 
         } else {
             throw exceptionFactory.create(
@@ -1083,7 +1121,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             Results results = new Results();
             executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                                         + "'max_allowed_packet'," + "'system_time_zone',"
-                                        + "'time_zone'," + "'auto_increment_increment')");
+                                        + "'tx_read_only'," + "'tx_isolation'," + "'time_zone',"
+                                        + "'auto_increment_increment')");
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
             if (resultSet != null) {
@@ -1404,68 +1443,68 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException exception
      */
     public void connectWithoutProxy() throws SQLException {
-    if (!isClosed()) {
-      close();
-    }
-
-    List<HostAddress> hostAddresses = urlParser.getHostAddresses();
-    LinkedList<HostAddress> hosts = new LinkedList<>(hostAddresses);
-
-    if (urlParser.getHaMode().equals(HaMode.LOADBALANCE)) {
-      Collections.shuffle(hosts);
-    }
-
-    // CONJ-293 : handle name-pipe without host
-    if (hosts.isEmpty()) {
-      if (options.pipe != null) {
-        try {
-          createConnection(null, username);
-          return;
-        } catch (SQLException exception) {
-          throw ExceptionFactory.INSTANCE.create(
-              String.format(
-                  "Could not connect to named pipe '%s' : %s%s",
-                  options.pipe, exception.getMessage(), getTraces()),
-              "08000",
-              exception);
+        if (!isClosed()) {
+            close();
         }
-      } else {
-        throw ExceptionFactory.INSTANCE.create(
-            "No host is defined and pipe option is not set. "
-                + "Check if connection string respect format "
-                + "(jdbc:(mysql|mariadb):[replication:|loadbalance:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]])",
-            "08000");
-      }
-    }
 
-    // There could be several addresses given in the URL spec, try all of them, and throw exception
-    // if all hosts
-    // fail.
-    while (!hosts.isEmpty()) {
-      currentHost = hosts.poll();
-      try {
-        createConnection(currentHost, username);
-        return;
-      } catch (SQLException e) {
+        List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+        LinkedList<HostAddress> hosts = new LinkedList<>(hostAddresses);
+
+        if (urlParser.getHaMode().equals(HaMode.LOADBALANCE)) {
+            Collections.shuffle(hosts);
+        }
+
+        // CONJ-293 : handle name-pipe without host
         if (hosts.isEmpty()) {
-          if (e.getSQLState() != null) {
-            throw ExceptionFactory.INSTANCE.create(
-                String.format(
-                    "Could not connect to %s : %s%s",
-                    HostAddress.toString(hostAddresses), e.getMessage(), getTraces()),
-                e.getSQLState(),
-                e.getErrorCode(),
-                e);
-          }
-          throw ExceptionFactory.INSTANCE.create(
-              String.format(
-                  "Could not connect to %s. %s%s", currentHost, e.getMessage(), getTraces()),
-              "08000",
-              e);
+            if (options.pipe != null) {
+                try {
+                    createConnection(null, username);
+                    return;
+                } catch (SQLException exception) {
+                    throw ExceptionFactory.INSTANCE.create(
+                            String.format(
+                                    "Could not connect to named pipe '%s' : %s%s",
+                                    options.pipe, exception.getMessage(), getTraces()),
+                            "08000",
+                            exception);
+                }
+            } else {
+                throw ExceptionFactory.INSTANCE.create(
+                        "No host is defined and pipe option is not set. "
+                                + "Check if connection string respect format "
+                                + "(jdbc:(mysql|mariadb):[replication:|loadbalance:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]])",
+                        "08000");
+            }
         }
-      }
+
+        // There could be several addresses given in the URL spec, try all of them, and throw exception
+        // if all hosts
+        // fail.
+        while (!hosts.isEmpty()) {
+            currentHost = hosts.poll();
+            try {
+                createConnection(currentHost, username);
+                return;
+            } catch (SQLException e) {
+                if (hosts.isEmpty()) {
+                    if (e.getSQLState() != null) {
+                        throw ExceptionFactory.INSTANCE.create(
+                                String.format(
+                                        "Could not connect to %s : %s%s",
+                                        HostAddress.toString(hostAddresses), e.getMessage(), getTraces()),
+                                e.getSQLState(),
+                                e.getErrorCode(),
+                                e);
+                    }
+                    throw ExceptionFactory.INSTANCE.create(
+                            String.format(
+                                    "Could not connect to %s. %s%s", currentHost, e.getMessage(), getTraces()),
+                            "08000",
+                            e);
+                }
+            }
+        }
     }
-  }
 
     /**
      * Indicate for Old reconnection if can reconnect without throwing exception.

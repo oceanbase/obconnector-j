@@ -54,6 +54,7 @@ import static org.junit.Assert.fail;
 
 import java.nio.charset.Charset;
 import java.sql.*;
+
 import org.junit.Assume;
 import org.junit.Test;
 

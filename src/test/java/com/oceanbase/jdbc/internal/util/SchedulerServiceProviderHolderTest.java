@@ -57,12 +57,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.oceanbase.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
-import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class SchedulerServiceProviderHolderTest {
 

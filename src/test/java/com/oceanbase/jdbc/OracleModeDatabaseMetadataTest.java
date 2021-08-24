@@ -50,15 +50,16 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
 
@@ -361,7 +362,14 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     @Test
     public void testGetTableTypes() throws SQLException {
         ResultSet rs = sharedConnection.getMetaData().getTableTypes();
-        rs.next();
+        Assert.assertTrue(rs.next());
+
+        assertEquals("TABLE", rs.getString(1));
+        Assert.assertTrue(rs.next());
+
+        assertEquals("VIEW", rs.getString(1));
+
+        Assert.assertTrue(rs.next());
         assertEquals("SYNONYM", rs.getString(1));
     }
 

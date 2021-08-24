@@ -43,14 +43,14 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class CheckSumForGB2321Test extends BaseOracleTest {
     @Test

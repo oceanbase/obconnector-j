@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 /** Very basic info about the parameterized query, only reliable method is getParameterCount(). */

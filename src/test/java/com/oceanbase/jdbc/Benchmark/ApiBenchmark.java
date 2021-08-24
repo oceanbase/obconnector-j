@@ -43,9 +43,10 @@
  */
 package com.oceanbase.jdbc.Benchmark;
 
-import com.oceanbase.jdbc.internal.util.Utils;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
+
+import com.oceanbase.jdbc.internal.util.Utils;
 
 @Warmup(iterations = 3)
 public class ApiBenchmark {

@@ -54,11 +54,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
-import java.sql.SQLException;
 import java.util.TimeZone;
 
-import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 @SuppressWarnings("RedundantThrows")
 public interface PacketOutputStream {

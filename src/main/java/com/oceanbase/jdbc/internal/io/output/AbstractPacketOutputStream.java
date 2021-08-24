@@ -55,8 +55,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.TimeZone;
 
-import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements
                                                                            PacketOutputStream {

@@ -43,13 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
+
 import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-
-import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 
 public interface ObPrepareStatement extends PreparedStatement {
     void setINTERVALDS(int parameterIndex, INTERVALDS intervalds) throws java.sql.SQLException;

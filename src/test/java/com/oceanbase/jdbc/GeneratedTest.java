@@ -55,6 +55,7 @@ import static org.junit.Assert.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 

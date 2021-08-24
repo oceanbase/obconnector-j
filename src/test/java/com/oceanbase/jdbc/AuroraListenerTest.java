@@ -54,9 +54,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.sql.SQLException;
 
+import org.junit.Ignore;
+
 import com.oceanbase.jdbc.internal.failover.impl.AuroraListener;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
-import org.junit.Ignore;
 
 public class AuroraListenerTest {
 

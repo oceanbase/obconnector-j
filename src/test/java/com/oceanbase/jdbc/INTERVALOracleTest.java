@@ -43,13 +43,16 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.sql.*;
+
+import org.junit.*;
+
 import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
-import org.junit.*;
-import java.sql.*;
-import oracle.jdbc.*;
 
-import static org.junit.Assert.*;
+import oracle.jdbc.*;
 
 /**
  *  The test depends on the ob version .Version 2.2.52 has no problems, but 2.2.60 has errors !

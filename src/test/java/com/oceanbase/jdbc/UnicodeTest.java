@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 

@@ -50,14 +50,14 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.extend.datatype.ComplexUtil;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.util.Options;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 public class OBArrayParameter implements Cloneable, ParameterHolder {
     ObArray arrayValue;

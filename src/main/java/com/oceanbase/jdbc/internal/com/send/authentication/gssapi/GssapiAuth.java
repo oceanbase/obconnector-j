@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.com.send.authentication.gssapi;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 

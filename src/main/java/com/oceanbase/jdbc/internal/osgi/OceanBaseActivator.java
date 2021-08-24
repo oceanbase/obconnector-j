@@ -55,14 +55,15 @@ import java.sql.SQLException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import com.oceanbase.jdbc.Driver;
-import com.oceanbase.jdbc.internal.util.constant.Version;
-import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import com.oceanbase.jdbc.OceanBaseDatabaseMetaData;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.jdbc.DataSourceFactory;
+
+import com.oceanbase.jdbc.Driver;
+import com.oceanbase.jdbc.OceanBaseDatabaseMetaData;
+import com.oceanbase.jdbc.internal.util.constant.Version;
+import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 /** The MariaDbActivator registers the JDBC Service with the OSGi-Framework. */
 public class OceanBaseActivator implements BundleActivator {

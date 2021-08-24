@@ -50,8 +50,8 @@
  */
 package com.oceanbase.jdbc.credential.aws;
 
-import com.oceanbase.jdbc.HostAddress;
-import com.oceanbase.jdbc.credential.Credential;
+import java.util.Properties;
+
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -59,7 +59,8 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
 import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
-import java.util.Properties;
+import com.oceanbase.jdbc.HostAddress;
+import com.oceanbase.jdbc.credential.Credential;
 
 public class AwsCredentialGenerator {
 

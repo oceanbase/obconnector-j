@@ -50,15 +50,15 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class OracleConnectionCompatibilityTest extends BaseOracleTest {
 
@@ -136,13 +136,6 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         assertEquals(true, support);
         assertEquals(Connection.TRANSACTION_SERIALIZABLE,
             sharedConnection.getTransactionIsolation());
-    }
-
-    @Test
-    public void testReadOnly() throws SQLException {
-        assertEquals(false, sharedConnection.isReadOnly());
-        sharedConnection.setReadOnly(true);
-        assertEquals(true, sharedConnection.isReadOnly());
     }
 
     @Test

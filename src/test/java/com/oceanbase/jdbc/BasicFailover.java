@@ -57,6 +57,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
+
 import org.junit.Test;
 
 public class BasicFailover extends BaseTest {

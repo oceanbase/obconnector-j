@@ -53,13 +53,15 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.sun.jna.Platform;
 import java.io.File;
 import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.sun.jna.Platform;
 
 public class Sha256AuthenticationTest extends BaseTest {
 

@@ -50,7 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -60,7 +60,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import org.junit.*;
 
 public class BlobOracleTest extends BaseOracleTest {
 
@@ -647,14 +647,6 @@ public class BlobOracleTest extends BaseOracleTest {
         assertEquals(3, c2.length());
     }
 
-    public static Connection getObOracleConnectionWithoutPS() throws Exception {
-        final String url = "jdbc:oceanbase://11.159.217.1:10003/SYS?useSSL=false&useServerPrepStmts=false&serverTimezone=UTC";
-        final String username = "admin@oracle";
-        final String password = "admin";
-        Class.forName("com.oceanbase.jdbc.Driver");
-        return DriverManager.getConnection(url, username, password);
-    }
-
     @Test
   public void conj77() throws Exception {
 
@@ -1079,6 +1071,31 @@ public class BlobOracleTest extends BaseOracleTest {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testEmpty() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table emptylob ");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create  table emptylob(c1 blob,c2 clob)");
+            PreparedStatement preparedStatement = conn
+                .prepareStatement("insert into emptylob values(?,?)");
+            preparedStatement.setBlob(1, com.oceanbase.jdbc.Blob.getEmptyBLOB());
+            preparedStatement.setClob(2, com.oceanbase.jdbc.Clob.getEmptyCLOB());
+            preparedStatement.execute();
+            ResultSet resultSet = stmt.executeQuery("select count(*) from emptylob ");
+            Assert.assertTrue(resultSet.next());
+            System.out.println("resultSet.getInt(1) = " + resultSet.getInt(1));
+            Assert.assertEquals(1, resultSet.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

@@ -43,20 +43,22 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
-import com.oceanbase.jdbc.jdbc2.optional.MysqlXid;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.transaction.xa.XAException;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.Xid;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
+import com.oceanbase.jdbc.jdbc2.optional.MysqlXid;
 
 public class OceanbaseOracleXATest extends BaseOracleTest {
     public static String tableName1 = "tablename1";

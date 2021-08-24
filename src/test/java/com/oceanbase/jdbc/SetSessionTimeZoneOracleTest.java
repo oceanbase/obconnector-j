@@ -50,12 +50,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class SetSessionTimeZoneOracleTest extends BaseOracleTest {
     @Test

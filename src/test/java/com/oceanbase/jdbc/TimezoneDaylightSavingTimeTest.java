@@ -61,8 +61,9 @@ import java.util.Locale;
 import java.util.Scanner;
 import java.util.TimeZone;
 
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.junit.*;
+
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
 @SuppressWarnings("deprecation")

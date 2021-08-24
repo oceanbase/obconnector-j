@@ -50,14 +50,27 @@
  */
 package com.oceanbase.jdbc;
 
+import java.io.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
 import java.sql.Clob;
+import java.sql.Date;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.oceanbase.jdbc.extend.datatype.*;
+import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
+import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMP;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
-import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
-import com.oceanbase.jdbc.extend.datatype.INTERVALYM;
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
@@ -70,23 +83,9 @@ import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtoco
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
-import com.oceanbase.jdbc.extend.datatype.*;
-import com.oceanbase.jdbc.internal.com.Packet;
-import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
-
-import java.io.*;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.sql.*;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class JDBC4ResultSet implements ResultSetImpl {
 
@@ -109,7 +108,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected boolean                       noBackslashEscapes;
     private Protocol                        protocol;
     private PacketInputStream               reader;
-    private boolean                         isEof;
+    protected boolean                       isEof;
+    protected boolean                       isLastRow           = false;
     private boolean                         callableResult;
     private OceanBaseStatement              statement;
     public RowProtocol                      row;
@@ -121,7 +121,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private int                             resultSetScrollType;
     protected int                           rowPointer;
     private int                             discardedRows       = 0;
-    private ColumnLabelIndexer              columnLabelIndexer;
+    protected ColumnLabelIndexer            columnLabelIndexer;
     private int                             lastRowPointer      = -1;
     private boolean                         isClosed;
     private boolean                         eofDeprecated;
@@ -241,7 +241,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.columnInformationLength = opt.columnInformationLength;
         this.complexData = opt.complexData;
         this.complexEndPos = opt.complexEndPos;
-        ;
+
         this.reader = opt.reader;
         this.isEof = opt.isEof;
         timeZone = protocol.getTimeZone();
@@ -320,11 +320,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      * @return resultset
      */
-
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, protocol.isOracleMode());
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode());
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -409,7 +408,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException if any error occur
      */
     public void fetchRemaining() throws SQLException {
-        if (!isEof) {
+        if (streaming && !isEof) {
             lock.lock();
             try {
                 lastRowPointer = -1;
@@ -484,7 +483,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-
     protected boolean readNextValue() throws IOException, SQLException {
         byte[] buf = this.reader.getPacketArray(false);
 
@@ -522,9 +520,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 if (callableResult) { //TODO check it set MORE_RESULTS_EXISTS in callableResult,
                     //serverStatus |= MORE_RESULTS_EXISTS;
                 }
-
             } else {
-
                 // OK_Packet with a 0xFE header
                 int pos = skipLengthEncodedValue(buf, 1); // skip update count
                 pos = skipLengthEncodedValue(buf, pos); // skip insert id
@@ -537,7 +533,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
                 protocol.removeActiveStreamingResult();
             }
-
+            if ((serverStatus & ServerStatus.LAST_ROW_SENT) != 0) {
+                isLastRow = true;
+            }
             resetVariables();
             return false;
         }
@@ -653,8 +651,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * Close resultSet.
      */
     public void close() throws SQLException {
-        isClosed = true;
-        if (!isEof) {
+        if (streaming && !isEof) {
             lock.lock();
             try {
                 while (!isEof) {
@@ -670,8 +667,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 resetVariables();
                 lock.unlock();
             }
+            resetVariables();
         }
-        resetVariables();
 
         // keep garbage easy
         for (int i = 0; i < data.length; i++) {
@@ -682,6 +679,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
             statement.checkCloseOnCompletion(this);
             statement = null;
         }
+
+        isClosed = true;
     }
 
     private void resetVariables() {
@@ -905,7 +904,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         fetchRemaining();
 
         if (row >= 0) {
-
             if (row <= dataSize) {
                 rowPointer = row - 1;
                 return true;
@@ -913,9 +911,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
             rowPointer = dataSize; // go to afterLast() position
             return false;
-
         } else {
-
             if (dataSize + row >= 0) {
                 // absolute position reverse from ending resultSet
                 rowPointer = dataSize + row;
@@ -1523,6 +1519,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
         switch (type) {
+            case COMPLEX:
+                return getComplex(columnIndex);
             case STRUCT:
                 return getStruct(columnIndex);
             case ARRAY:
@@ -1533,10 +1531,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return getBlob(columnIndex);
             case OBCLOB:
                 return getClob(columnIndex);
-                //            case BINARY_FLOAT:
-                //                return getFloat(columnIndex);
-                //            case BINARY_DOUBLE:
-                //                return getDouble(columnIndex);
+            case ROWID:
+                return new RowIdImpl(getString(columnIndex));
             default:
                 break;
         }
@@ -1886,6 +1882,30 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
     }
 
+    public Object getComplex(int columnIndex) throws SQLException {
+        if (!this.getProtocol().isOracleMode()) {
+            throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
+        }
+        checkObjectRange(columnIndex);
+        int internalColumnIndex = columnIndex - 1;
+        Connection conn = this.statement.getConnection(); // fixme to be the complex connection
+        if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
+            String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            Object ret = null;
+            if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
+                ret = row.getInternalArray(columnsInformation[columnIndex - 1], type);
+                complexEndPos[columnIndex - 1] = row.pos;
+            } else if (type.getType() == ComplexDataType.TYPE_OBJECT) {
+                ret = row.getInternalStruct(columnsInformation[columnIndex - 1], type);
+                complexEndPos[columnIndex - 1] = row.pos;
+            }
+            return ret;
+        } else {
+            throw new SQLException("the field type is not FIELD_TYPE_COMPLEX");
+        }
+    }
+
     public Array getArray(String columnLabel) throws SQLException {
         return getArray(findColumn(columnLabel));
     }
@@ -1971,14 +1991,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public RowId getRowId(int columnIndex) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
+        return new RowIdImpl(getString(columnIndex));
     }
 
     /**
      * {inheritDoc}.
      */
     public RowId getRowId(String columnLabel) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
+        return getRowId(findColumn(columnLabel));
     }
 
     /**

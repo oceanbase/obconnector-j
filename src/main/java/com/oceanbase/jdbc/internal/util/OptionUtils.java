@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.util;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import com.oceanbase.jdbc.util.DefaultOptions;
 
 public class OptionUtils {

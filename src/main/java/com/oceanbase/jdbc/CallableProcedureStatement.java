@@ -58,6 +58,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -194,8 +195,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      */
     private int indexToOutputIndex(int parameterIndex) throws SQLException {
         try {
-            if (this.isObFunction) {
-                return 1; //for ObFunciton only
+            if (this.isObFunction && !this.protocol.isOracleMode()) {
+                return 1; //for mysql ObFunciton only
             }
             if (outputParameterMapper[parameterIndex - 1] == -1) {
                 // this is not an outputParameter

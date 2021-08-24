@@ -50,9 +50,9 @@
  */
 package com.oceanbase.jdbc.internal.util.dao;
 
-import com.oceanbase.jdbc.OceanBaseConnection;
-
 import java.sql.CallableStatement;
+
+import com.oceanbase.jdbc.OceanBaseConnection;
 
 public interface CloneableCallableStatement extends CallableStatement {
 

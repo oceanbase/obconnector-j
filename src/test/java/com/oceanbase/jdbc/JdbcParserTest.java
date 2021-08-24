@@ -56,10 +56,11 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Properties;
 
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
+import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
 import com.oceanbase.jdbc.util.Options;
 
 @SuppressWarnings("ConstantConditions")

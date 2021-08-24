@@ -43,16 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
-import com.oceanbase.jdbc.internal.util.Utils;
-import oracle.jdbc.OracleCallableStatement;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
+import java.util.Properties;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class OracleBugfix extends BaseOracleTest {
     static String testTMTable               = "test_timestamp" + getRandomString(5);
@@ -66,6 +63,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
+    static String longNameFix               = "longNameFix" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -100,6 +98,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol2, "c1 float");
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
+        createTable(longNameFix, "MONEY  number(38)");
     }
 
     @Test
@@ -389,6 +388,60 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Exception e) {
             Assert.fail();
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void fixGetClientInfo() {
+        try {
+            Properties properties = sharedConnection.getClientInfo();
+            String appName = sharedConnection.getClientInfo("ApplicationName");
+            String clientUser = sharedConnection.getClientInfo("ClientUser");
+            String ClientHostname = sharedConnection.getClientInfo("ClientHostname");
+            Assert.assertEquals(properties.get("ApplicationName"), appName);
+            Assert.assertEquals(properties.get("ClientUser"), clientUser);
+            Assert.assertEquals(properties.get("ClientHostname"), ClientHostname);
+            // These attributes of OceanBase  are all empty now , there is no need to compare values temporarily
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testLongName() {
+        try {
+            Statement statement = sharedConnection.createStatement();
+            ResultSet rs = statement
+                .executeQuery("select MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY-MONEY+MONEY from "
+                              + longNameFix + " ");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testDbWithQuotes() throws SQLException {
+        Connection conn = null;
+        try {
+            String url = System.getProperty("dbWithQuotes");
+            conn = DriverManager.getConnection(url);
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop procedure  pl_t2");
+            } catch (SQLException e) {
+            }
+            statement
+                .execute("create procedure pl_t2 (listing in out varchar2) is begin listing := 'abc';  end pl_t2; ");
+            CallableStatement callableStatement = conn.prepareCall("call pl_t2(?)");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.setString(1, "1212121");
+            callableStatement.execute();
+            Assert.assertEquals("abc", callableStatement.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 

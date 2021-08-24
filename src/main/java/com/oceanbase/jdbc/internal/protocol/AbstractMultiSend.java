@@ -59,16 +59,16 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.util.BulkStatus;
 import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public abstract class AbstractMultiSend {
 

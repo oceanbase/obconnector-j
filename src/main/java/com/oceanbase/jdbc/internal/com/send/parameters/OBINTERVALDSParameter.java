@@ -43,11 +43,11 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+
+import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
-
-import java.io.IOException;
 
 public class OBINTERVALDSParameter implements Cloneable, ParameterHolder {
     INTERVALDS                  intervaldsValue;

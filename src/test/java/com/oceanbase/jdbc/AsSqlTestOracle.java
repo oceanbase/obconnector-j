@@ -50,14 +50,14 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 public class AsSqlTestOracle extends BaseOracleTest {
     static String tableName2 = "sqlcost" + getRandomString(5);

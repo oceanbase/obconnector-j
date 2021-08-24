@@ -43,12 +43,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.regex.Pattern;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class DataTypeMysqlCompleteTest extends BaseTest {
 

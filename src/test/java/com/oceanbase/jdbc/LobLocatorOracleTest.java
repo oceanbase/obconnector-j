@@ -43,15 +43,15 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.sql.*;
 
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class LobLocatorOracleTest extends BaseOracleTest {
     public static String tableBlob             = "test_blob";

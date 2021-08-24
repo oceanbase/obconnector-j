@@ -43,13 +43,12 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class StoredProcedureOracleBasicTest extends BaseOracleTest {
     @Test
@@ -490,7 +489,6 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
         }
     }
 
-    // function name has out arguments not supported
     @Test
     public void odcFcuntionCommandTest2() {
         try {
@@ -524,6 +522,245 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             Assert.assertEquals(20, callableStatement.getInt(1));
 
         } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void odcFcuntionCommandTest3() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop function func_test3");
+            } catch (SQLException e) {
+                //
+            }
+            conn.createStatement()
+                .execute(
+                    "create or replace function func_test3\n(p1 int, p2 int, total out int) return int as v_result int; begin\n"
+                            + " total := p1+p2; return total; end;");
+            CallableStatement callableStatement = conn
+                .prepareCall("{? = call \nfunc_test3\n(?,?,?)}");
+            System.out.println("index binding");
+
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.registerOutParameter(4, Types.INTEGER);
+            callableStatement.setInt(2, 10);
+            callableStatement.setInt(3, 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+            System.out.println("name binding");
+            callableStatement = conn.prepareCall("{? = call func_test2(?,?,?)}");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.registerOutParameter(4, Types.INTEGER);
+            callableStatement.setInt("p1", 10);
+            callableStatement.setInt("p2", 10);
+            callableStatement.execute();
+            Assert.assertEquals(20, callableStatement.getInt(1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void functionWithOutputParams() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop function func_test_4");
+            } catch (SQLException e) {
+                //
+            }
+            conn.createStatement()
+                .execute(
+                    "create or replace function func_test_4(p1 in varchar2, p2 out varchar2, p3 out varchar2) return  NUMBER as ret NUMBER; begin\n"
+                            + " p2 := '44';" + " p3 := '33';" + "return 250; end;");
+            CallableStatement callableStatement = conn.prepareCall("{? = call func_test_4(?,?,?)}");
+
+            callableStatement.registerOutParameter(1, Types.NUMERIC);
+            callableStatement.setString(2, "xxx");
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+            callableStatement.registerOutParameter(4, Types.VARCHAR);
+            callableStatement.execute();
+            int retVal = callableStatement.getInt(1);
+            Assert.assertEquals(retVal, 250);
+            String p2 = callableStatement.getString(3);
+            Assert.assertEquals("44", p2);
+            String p3 = callableStatement.getString(4);
+            Assert.assertEquals("33", p3);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareCallWithNormalSql() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table tabletest_normal_sql");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table tabletest_normal_sql(c1 int,c2 varchar2(200))");
+            callableStatement.execute();
+            callableStatement = conn.prepareCall("insert into tabletest_normal_sql values(?,?)");
+            callableStatement.setInt(1, 1);
+            callableStatement.setString(2, "string_val");
+            callableStatement.execute();
+            callableStatement = conn.prepareCall("select * from tabletest_normal_sql");
+            ResultSet rs = callableStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals("string_val", rs.getString(2));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareCallWithWrongSql() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table tabletest_wrong_sql");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table tabletest_wrong_sql(c1 int,c2 varchar2(200))");
+            callableStatement.execute();
+            callableStatement = conn
+                .prepareCall("insert into tabletest_wrong_sql values(:name2,:name2) :name3");
+            callableStatement.setInt(1, 1);
+            callableStatement.setString(2, "string_val");
+            callableStatement.execute();
+            Assert.fail(); // The program cannot be executed to this code segment
+        } catch (Throwable e) {
+            Assert.assertNotNull(e);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void prepareCalllAnonymousBlockWithName() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table result_table");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table result_table(c1 varchar2(200),c2 number)");
+            callableStatement.execute();
+            String sql = "DECLARE\n" + "  V_TABLENAME      VARCHAR2(20);\n"
+                         + "  V_NUMBER         NUMBER;\n" + "BEGIN\n"
+                         + "  V_TABLENAME     := :V_TABLENAME ;\n"
+                         + "  V_NUMBER     := to_number(:NUMBER1) ;\n"
+                         + "  insert into result_table values(V_TABLENAME,V_NUMBER);\n" + "\n"
+                         + "end ; ";
+            callableStatement = conn.prepareCall(sql);
+            callableStatement.setString(1, "test_val");
+            callableStatement.setInt(2, 100);
+            callableStatement.execute();
+            callableStatement = conn.prepareCall("select * from result_table");
+            ResultSet rs = callableStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(2));
+            Assert.assertEquals("test_val", rs.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareAnonymousBlockWithName() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table result_table");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table result_table(c1 varchar2(200),c2 number)");
+            callableStatement.execute();
+            String sql = "DECLARE\n" + "  V_TABLENAME      VARCHAR2(20);\n"
+                         + "  V_NUMBER         NUMBER;\n" + "BEGIN\n"
+                         + "  V_TABLENAME     := :V_TABLENAME ;\n"
+                         + "  V_NUMBER     := to_number(:NUMBER1) ;\n"
+                         + "  insert into result_table values(V_TABLENAME,V_NUMBER);\n" + "\n"
+                         + "end ; ";
+            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+            preparedStatement.setString(1, "test_val");
+            preparedStatement.setInt(2, 100);
+            preparedStatement.execute();
+            preparedStatement = conn.prepareStatement("select * from result_table");
+            ResultSet rs = preparedStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(2));
+            Assert.assertEquals("test_val", rs.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareAnonymousBlockWithName2() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table result_table2");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table result_table2(c1 varchar2(200),c2 number)");
+            callableStatement.execute();
+            String sql = "DECLARE\n" + "  V_FREEVOL      NUMBER;\n" + "  V_USAGEVOL     NUMBER;\n"
+                         + "  V_OVERVOL      NUMBER;\n" + "  V_TARIFFPLAN   NUMBER;\n"
+                         + "  V_ENDTIME      VARCHAR2(20);\n" + "  V_ATTRADD      VARCHAR2(20);\n"
+                         + "BEGIN\n" + "  V_FREEVOL      := to_number(:FREEVOL );\n"
+                         + "  V_USAGEVOL     := to_number(:USAGEVOL );\n"
+                         + "  V_OVERVOL      := to_number(:OVERVOL );\n"
+                         + "  V_TARIFFPLAN   := to_number(:TARIFFPLAN );\n"
+                         + "  V_ENDTIME      := :ENDTIME ;\n" + "  V_ATTRADD      := :ATTRADD ;\n"
+                         + "\n" + "  insert into result_table2 values(V_ENDTIME,V_FREEVOL);\n"
+                         + "\n" + "end ;\n";
+            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+            preparedStatement.setString(5, "test_val_5");
+            preparedStatement.setString(6, "test_val_6");
+            preparedStatement.setInt(1, 100);
+            preparedStatement.setInt(2, 200);
+            preparedStatement.setInt(3, 300);
+            preparedStatement.setInt(4, 400);
+            preparedStatement.execute();
+            preparedStatement = conn.prepareStatement("select * from result_table2");
+            ResultSet rs = preparedStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(2));
+            Assert.assertEquals("test_val_5", rs.getString(1));
+        } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }

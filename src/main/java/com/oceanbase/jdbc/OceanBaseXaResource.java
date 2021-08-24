@@ -48,9 +48,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+
 import com.oceanbase.jdbc.internal.util.Utils;
 
 public class OceanBaseXaResource implements XAResource {
