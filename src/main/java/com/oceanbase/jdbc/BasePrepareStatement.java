@@ -283,6 +283,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
+        if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob()
+            && this.options.useServerPrepStmts == false) {
+            if (((Blob) blob).getLocator() != null) {
+                setParameter(parameterIndex, new OBEmptyLobParameter(0));
+                return;
+            }
+        }
         if (this.connection.getProtocol().isOracleMode()) {
             if (((Blob) blob).getLocator() != null) {
                 if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
@@ -400,6 +407,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
+        if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && options.useServerPrepStmts == false) {
+            setParameter(parameterIndex, new OBEmptyLobParameter(1));
+            return;
+        }
+
         if (this.connection.getProtocol().isOracleMode() && (((Blob) clob).getLocator() != null)
             && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
             byte[] data = ((Clob) clob).getLocator().binaryData;

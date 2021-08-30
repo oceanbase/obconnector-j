@@ -111,7 +111,13 @@ public class Blob implements ObBlob, Serializable {
     }
 
     public static Blob getEmptyBLOB() throws SQLException {
-        return null;
+        byte[] emptyData = new byte[40];
+        emptyData[0] = 33;
+        emptyData[1] = 66;
+        emptyData[2] = 79;
+        emptyData[3] = 76;
+        emptyData[4] = 1;
+        return new Blob(true, emptyData, null, null);
     }
 
     public Blob(Blob other) {
@@ -167,7 +173,7 @@ public class Blob implements ObBlob, Serializable {
         }
         // readLong in 1.x is equivalent to readInt in 2.0,readLongLong in 1.x is equivalent to readLong in 2.0.
         { /* Has Locator with Blob */
-            if (null != data && null != conn) {
+            if (null != data) {
                 Buffer buffer = new Buffer(data);
                 if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
                     locator = new ObLobLocator();
@@ -182,7 +188,8 @@ public class Blob implements ObBlob, Serializable {
                     locator.payloadSize = buffer.readLongV1();
                     locator.binaryData = buffer.getByteBuffer();
                     if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
-                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER
+                        && conn != null) {
                         locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
                         this.data = (buffer.getBytes((int) locator.payloadSize)); // binary data less than MAX_INT
                         this.length = (int) locator.payloadSize;
@@ -610,5 +617,16 @@ public class Blob implements ObBlob, Serializable {
             setLocator(r.locator);
             this.data = r.data;
         }
+    }
+
+    public boolean isEmptyLob() {
+        if (this.locator != null) {
+            return locator.payloadSize == 0;
+        } else {
+            if (data == null || data.length == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -76,7 +76,13 @@ public class Clob extends Blob implements ObClob, Serializable {
     }
 
     public static Clob getEmptyCLOB() throws SQLException {
-        return null;
+        byte[] emptyData = new byte[40];
+        emptyData[0] = 33;
+        emptyData[1] = 66;
+        emptyData[2] = 79;
+        emptyData[3] = 76;
+        emptyData[4] = 1;
+        return new Clob(true, emptyData, null, null);
     }
 
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
@@ -111,7 +117,7 @@ public class Clob extends Blob implements ObClob, Serializable {
                 throw new SQLException("Unsupported character encoding");
             }
         } else {
-            if (null != data && null != conn) {
+            if (null != data) {
                 Buffer buffer = new Buffer(data);
                 this.encoding = encoding;
                 if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
@@ -127,7 +133,8 @@ public class Clob extends Blob implements ObClob, Serializable {
                     locator.payloadSize = buffer.readLongV1();
                     locator.binaryData = buffer.getByteBuffer();
                     if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
-                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER) {
+                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER
+                        && conn != null) {
                         locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
                         locator.connection = conn;
                         try {
