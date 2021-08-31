@@ -45,6 +45,7 @@ package com.oceanbase.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import org.junit.Assert;
@@ -439,6 +440,100 @@ public class OracleBugfix extends BaseOracleTest {
             callableStatement.setString(1, "1212121");
             callableStatement.execute();
             Assert.assertEquals("abc", callableStatement.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // fix array.delete return value
+    @org.junit.Test
+    public  void test34971515() throws Exception {
+        Connection conn = sharedConnection;
+        ArrayList<Object> res_list = new ArrayList<>();
+        String sql3 = "create or replace type var_t1 is varray(3) of number";
+        String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
+                "begin\n" +
+                "var :=var_t1(1,2,3);\n" +
+                "var.delete();\n"+
+                "end;";
+
+
+        String paraCall = "call pro1(?)";
+        Statement stmt = conn.createStatement();
+        stmt.execute(sql3);
+        stmt.execute(sql4);
+        CallableStatement cst = null;
+
+        try {
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
+            cst.execute();
+
+                Array array = cst.getArray(1);
+                Object[] arrobj = (Object[]) array.getArray();
+                Assert.assertNotNull(arrobj);
+
+        } catch (Exception e) {
+            res_list.add(e);
+            e.printStackTrace();
+        }
+    }
+
+    // array support char elements
+    @org.junit.Test
+    public void test34946578() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            String sql3 = "create or replace type var_t2 is varray(3) of char";
+            String sql4 = "create or replace procedure pro2(var out var_t2) is\n" + "begin\n"
+                          + "var :=var_t2('a','b','c');\n" + "end;";
+
+            String paraCall = "call pro2(?)";
+            Statement stmt;
+            stmt = conn.createStatement();
+            stmt.execute(sql3);
+            stmt.execute(sql4);
+            CallableStatement cst = null;
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T2");
+            cst.execute();
+
+            Array array = cst.getArray(1);
+
+            Object[] arrobj = (Object[]) array.getArray();
+            Assert.assertEquals('a', arrobj[0]);
+            Assert.assertEquals('b', arrobj[1]);
+            Assert.assertEquals('c', arrobj[2]);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // fix the type of raw element
+    @org.junit.Test
+    public void test34971454() {
+        try {
+            Connection conn = sharedConnection;
+            String sql3 = "create or replace type var_t3 is varray(3) of raw(10)";
+            String sql4 = "create or replace procedure pro3(var out var_t3) is\n" + "begin\n"
+                          + "var :=var_t3(hextoraw('ff'),hextoraw('fa'),hextoraw('fc'));\n"
+                          + "end;";
+            String paraCall = "call pro3(?)";
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql3);
+            stmt.execute(sql4);
+            CallableStatement cst;
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T3");
+            cst.execute();
+            Array array = cst.getArray(1);
+            Object[] arrobj = (Object[]) array.getArray();
+            Assert.assertNotNull(array);
+            for (int i = 0; i < arrobj.length; i++) {
+                Assert.assertEquals(byte[].class, arrobj[i].getClass());
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

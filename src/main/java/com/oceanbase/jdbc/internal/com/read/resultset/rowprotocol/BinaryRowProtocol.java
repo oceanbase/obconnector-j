@@ -1949,9 +1949,12 @@ public class BinaryRowProtocol extends RowProtocol {
                 value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8).trim());
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
-            case ComplexDataType.TYPE_RAW:
                 b = packet.readLenByteArray(0);
                 value = new String(b, 0, b.length, StandardCharsets.UTF_8);
+                break;
+            case ComplexDataType.TYPE_RAW:
+                b = packet.readLenByteArray(0);
+                value = b;
                 break;
             case ComplexDataType.TYPE_DATE:
                 value = getComplexDate(packet.readLenByteArray(0));
@@ -1961,6 +1964,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_OBJECT:
                 value = getComplexStruct(packet, type);
+                break;
+            case ComplexDataType.TYPE_CHAR:
+                b = packet.readLenByteArray(0);
+                value = (char) (b[0]);
                 break;
             default:
                 throw new SQLException("unsupported complex data type");

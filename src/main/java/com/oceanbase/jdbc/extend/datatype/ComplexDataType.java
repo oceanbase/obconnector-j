@@ -62,7 +62,8 @@ public class ComplexDataType {
     public static final int   TYPE_COLLECTION = 4;
     public static final int   TYPE_CURSOR     = 5;
     public static final int   TYPE_RAW        = 6;
-    public static final int   TYPE_MAX        = 7;
+    public static final int   TYPE_CHAR       = 7;
+    public static final int   TYPE_MAX        = 8;
 
     public ComplexDataType(String typeName, String schemaName, int type) {
         this.schemaName = schemaName;
@@ -167,6 +168,10 @@ public class ComplexDataType {
         if (attrType.equalsIgnoreCase("RAW")) {
             return TYPE_RAW;
         }
+        if (attrType.equalsIgnoreCase("CHAR")) {
+            return TYPE_CHAR;
+        }
+
         return TYPE_MAX;
     }
 
