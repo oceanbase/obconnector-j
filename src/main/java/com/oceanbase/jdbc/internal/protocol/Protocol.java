@@ -169,14 +169,6 @@ public interface Protocol {
                       final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters,
                       int timeout) throws SQLException;
 
-    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
-                               final ClientPrepareResult prepareResult,
-                               final List<ParameterHolder[]> parametersList, boolean hasLongData)
-                                                                                                 throws SQLException;
-
-    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
-                                                                                                   throws SQLException;
-
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                               Results results, ParameterHolder[] parameters) throws SQLException;
 
@@ -184,6 +176,14 @@ public interface Protocol {
                                ServerPrepareResult serverPrepareResult, Results results,
                                String sql, List<ParameterHolder[]> parameterList,
                                boolean hasLongData) throws SQLException;
+
+    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
+                               final ClientPrepareResult prepareResult,
+                               final List<ParameterHolder[]> parametersList, boolean hasLongData)
+                                                                                                 throws SQLException;
+
+    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
+                                                                                                   throws SQLException;
 
     void getResult(Results results) throws SQLException;
 
