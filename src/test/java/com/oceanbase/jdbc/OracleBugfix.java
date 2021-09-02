@@ -48,6 +48,9 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,6 +68,8 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
     static String longNameFix               = "longNameFix" + getRandomString(5);
+    static String blobFix                   = "blobFix" + getRandomString(5);
+    static String clobFix                   = "clobFix" + getRandomString(5);
     static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
     static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
 
@@ -102,6 +107,8 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
         createTable(longNameFix, "MONEY  number(38)");
+        createTable(blobFix, "c1 blob");
+        createTable(clobFix, "c1 clob");
         createProcedure(binaryNumberProc1, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
                                            + "var2 := var1;\n" + "end;");
         createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
@@ -453,6 +460,20 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @org.junit.Test
+    public void test36103306() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = conn.prepareStatement("insert into " + blobFix
+                                                         + "(c1) values(?)");
+            ps.setBlob(1, new SerialBlob(new byte[] { (byte) 0x00, 0x32, 0x32 }));
+            ps.execute();
+        } catch (Throwable e) {
+            Assert.assertNotNull(e);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void testProcBinaryInterger() {
         try {
             Connection conn = sharedConnection;
@@ -469,6 +490,19 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @org.junit.Test
+    public void test36103306_1() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobFix
+                                                         + "(c1) values(?)");
+            ps.setClob(1, new SerialClob(new char[] { 'a', 'b', 'c' }));
+            ps.execute();
+        } catch (Throwable e) {
+            Assert.assertNotNull(e);
+            e.printStackTrace();
+        }
+    }
+
     public void testProcBinaryInterger2() {
         try {
             Connection conn = sharedConnection;
