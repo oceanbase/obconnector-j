@@ -630,6 +630,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp)
                                                                                  throws SQLException {
+
         if (connection.getProtocol().isOracleMode()) {
             setTIMESTAMP(parameterIndex, timestamp);
         } else {
@@ -639,6 +640,21 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
             setParameter(parameterIndex, new TimestampParameter(timestamp, protocol.getTimeZone(),
                 useFractionalSeconds));
+        }
+    }
+
+    public void setLocalDateTime(final int parameterIndex, final LocalDateTime localDateTime)
+                                                                                             throws SQLException {
+
+        if (connection.getProtocol().isOracleMode()) {
+            if (localDateTime == null) {
+                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
+                return;
+            }
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(Timestamp.valueOf(localDateTime),
+                TimeZone.getDefault(), useFractionalSeconds));
+        } else {
+            // not supported
         }
     }
 
@@ -1102,7 +1118,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         } else if (obj instanceof java.sql.Clob) {
             setClob(parameterIndex, (java.sql.Clob) obj);
         } else if (obj instanceof LocalDateTime) {
-            setTimestamp(parameterIndex, Timestamp.valueOf((LocalDateTime) obj));
+            setLocalDateTime(parameterIndex, (LocalDateTime) obj);
         } else if (obj instanceof Instant) {
             setTimestamp(parameterIndex, Timestamp.from((Instant) obj));
         } else if (obj instanceof LocalDate) {

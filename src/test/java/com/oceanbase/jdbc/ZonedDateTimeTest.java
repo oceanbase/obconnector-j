@@ -86,7 +86,6 @@ public class ZonedDateTimeTest extends BaseOracleTest {
                 assertEquals(t1.toString(), "2019-09-13 17:16:17.00000092");
                 assertEquals(t2.toString(), "2019-09-14 05:16:17.00000092");
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

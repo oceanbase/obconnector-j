@@ -367,21 +367,21 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
-                Date date = getInternalDate(columnInfo, cal, timeZone);
+                Date date = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                 if (date == null) {
                     return null;
                 }
                 return date.toString();
             case YEAR:
                 if (options.yearIsDateType) {
-                    Date dateInter = getInternalDate(columnInfo, cal, timeZone);
+                    Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (dateInter == null) ? null : dateInter.toString();
                 }
                 return String.valueOf(getInternalSmallInt(columnInfo));
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     return null;
                 }
@@ -996,9 +996,10 @@ public class BinaryRowProtocol extends RowProtocol {
             if (userCalendar != null) {
                 cal = userCalendar;
             } else {
-                cal = Calendar.getInstance(timeZone);
+                cal = Calendar.getInstance(TimeZone.getDefault());
             }
-            return getInternalTIMESTAMP(columnInfo, userCalendar, timeZone).timestampValue(cal);
+            return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                .timestampValue(cal);
         }
 
         int year = 1970;
@@ -1082,7 +1083,7 @@ public class BinaryRowProtocol extends RowProtocol {
         if (userCalendar != null) {
             calendar = userCalendar;
         } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-            calendar = Calendar.getInstance(timeZone);
+            calendar = Calendar.getInstance(TimeZone.getDefault());
         } else {
             calendar = Calendar.getInstance();
         }

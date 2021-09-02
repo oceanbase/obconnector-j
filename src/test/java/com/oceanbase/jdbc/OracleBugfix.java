@@ -45,8 +45,12 @@ package com.oceanbase.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
@@ -68,6 +72,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
     static String longNameFix               = "longNameFix" + getRandomString(5);
+    static String testTimeStamp             = "testTimeStamp" + getRandomString(5);
     static String blobFix                   = "blobFix" + getRandomString(5);
     static String clobFix                   = "clobFix" + getRandomString(5);
     static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
@@ -107,6 +112,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
         createTable(longNameFix, "MONEY  number(38)");
+        createTable(testTimeStamp, "id number not null , c01 timestamp, c02 date");
         createTable(blobFix, "c1 blob");
         createTable(clobFix, "c1 clob");
         createProcedure(binaryNumberProc1, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
@@ -456,6 +462,77 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    public LocalDateTime getLocalDateTimeNano(String value) {
+        DateTimeFormatter localDateFormatterNano = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE).appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME).toFormatter();
+        return LocalDateTime.parse(value, localDateFormatterNano);
+    }
+
+    @org.junit.Test
+    public void testTimeZone() {
+        TimeZone tzDefault = TimeZone.getDefault();
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String insertTableSql = "insert into " + testTimeStamp + " values(?,?,?)";
+            TimeZone timeZone = TimeZone.getTimeZone("GMT" + "+08:00");
+            timeZone.setID("+08:00");
+            TimeZone.setDefault(timeZone);
+
+            PreparedStatement ps2 = conn.prepareStatement(insertTableSql);
+            ps2.setObject(1, 2);
+            ps2.setObject(2, getLocalDateTimeNano("1988-09-09 15:43:01"));
+            ps2.setObject(3, getLocalDateTimeNano("1988-09-09 15:43:01"));
+            ps2.executeUpdate();
+            ps2.close();
+            ResultSet resultSet = stmt.executeQuery("select * from " + testTimeStamp);
+            String value = "1988-09-09 15:43:01.0";
+            String dateValue = "1988-09-09";
+            Assert.assertTrue(resultSet.next());
+            String timeStampStr = resultSet.getString(2);
+            Assert.assertEquals(value, timeStampStr);
+            String timeStampStr2 = resultSet.getString(3);
+            Assert.assertEquals(value, timeStampStr2);
+            Timestamp ts = resultSet.getTimestamp(2);
+            Assert.assertEquals(value, ts.toString());
+            Date date = resultSet.getDate(3);
+            Assert.assertEquals(dateValue, date.toString());
+            Timestamp ts2 = resultSet.getTimestamp(3);
+            Assert.assertEquals(value, ts2.toString());
+            Object obj1 = resultSet.getObject(2);
+            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            Object obj2 = resultSet.getObject(3);
+            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from "
+                                                                        + testTimeStamp);
+            resultSet = preparedStatement.executeQuery();
+
+            Assert.assertTrue(resultSet.next());
+
+            timeStampStr = resultSet.getString(2);
+            Assert.assertEquals(value, timeStampStr);
+            timeStampStr2 = resultSet.getString(3);
+            Assert.assertEquals(value, timeStampStr2);
+            ts = resultSet.getTimestamp(2);
+            Assert.assertEquals(value, ts.toString());
+            date = resultSet.getDate(3);
+            Assert.assertEquals(dateValue, date.toString());
+            ts2 = resultSet.getTimestamp(3);
+            Assert.assertEquals(value, ts2.toString());
+            obj1 = resultSet.getObject(2);
+            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            obj2 = resultSet.getObject(3);
+            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            TimeZone.setDefault(tzDefault);
         }
     }
 
