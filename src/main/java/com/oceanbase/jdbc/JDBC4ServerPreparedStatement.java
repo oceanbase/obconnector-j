@@ -454,12 +454,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   protected void validParameters() throws SQLException {
-    for (int i = 0; i < parameterCount; i++) {
-      if (currentParameterHolder.get(i) == null) {
-        logger.error("Parameter at position {} is not set", (i + 1));
-        throw exceptionFactory
-                .raiseStatementError(connection, this)
-                .create("Parameter at position " + (i + 1) + " is not set", "07004");
+    if (!(this instanceof JDBC4ServerCallableStatement)) {
+      for (int i = 0; i < parameterCount; i++) {
+        if (currentParameterHolder.get(i) == null) {
+          logger.error("Parameter at position {} is not set", (i + 1));
+          throw exceptionFactory
+                  .raiseStatementError(connection, this)
+                  .create("Parameter at position " + (i + 1) + " is not set", "07004");
+        }
       }
     }
   }

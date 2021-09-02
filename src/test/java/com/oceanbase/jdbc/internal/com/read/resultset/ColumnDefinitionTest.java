@@ -62,7 +62,7 @@ public class ColumnDefinitionTest {
         String column4BytesUtf8 = "_\uD83D\uDE0E\uD83D\uDE0E\uD83C\uDF36\uD83C\uDF36\uD83C\uDFA4\uD83C\uDFA4\uD83E\uDD42\uD83E\uDD42";
         //        String column4BytesUtf8 = "myname1111111111111111111111111111111111";
         ColumnDefinition col = ColumnDefinition.create(column4BytesUtf8 + column4BytesUtf8,
-            ColumnType.STRING, false);
+            ColumnType.STRING, false, "UTF-8");
         Assert.assertEquals("", col.getDatabase());
         Assert.assertEquals("", col.getTable());
         Assert.assertEquals("", col.getOriginalTable());

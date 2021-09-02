@@ -65,6 +65,8 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
     static String longNameFix               = "longNameFix" + getRandomString(5);
+    static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
+    static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -100,6 +102,10 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
         createTable(longNameFix, "MONEY  number(38)");
+        createProcedure(binaryNumberProc1, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
+                                           + "var2 := var1;\n" + "end;");
+        createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
+                                           + "var2 := var1;\n" + "end;");
     }
 
     @Test
@@ -446,6 +452,39 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @org.junit.Test
+    public void testProcBinaryInterger() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("{call " + binaryNumberProc1
+                                                                   + "(1,?)}");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.execute();
+            Assert.assertEquals("1", callableStatement.getString(1));
+            Assert.assertEquals(1, callableStatement.getInt(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testProcBinaryInterger2() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("{call " + binaryNumberProc2
+                                                                   + "(?,?)}");
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.setInt(1, 1);
+            callableStatement.execute();
+            Assert.assertEquals("1", callableStatement.getString(2));
+            Assert.assertEquals(1, callableStatement.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
     // fix array.delete return value
     @org.junit.Test
     public  void test34971515() throws Exception {
@@ -505,6 +544,22 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertEquals('a', arrobj[0]);
             Assert.assertEquals('b', arrobj[1]);
             Assert.assertEquals('c', arrobj[2]);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void chineseColumnName() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select '中文' as \"列1\" from dual");
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertEquals("列1", resultSetMetaData.getColumnName(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("中文", rs.getString(1));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

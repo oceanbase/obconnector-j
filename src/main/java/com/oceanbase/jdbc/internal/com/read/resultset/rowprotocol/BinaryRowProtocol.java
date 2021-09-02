@@ -341,6 +341,8 @@ public class BinaryRowProtocol extends RowProtocol {
 
             case BIT:
                 return String.valueOf(parseBit());
+            case NUMBER:
+                return zeroFillingIfNeeded(String.valueOf(getInternalInt(columnInfo)), columnInfo);
             case TINYINT:
                 return zeroFillingIfNeeded(String.valueOf(getInternalTinyInt(columnInfo)),
                     columnInfo);

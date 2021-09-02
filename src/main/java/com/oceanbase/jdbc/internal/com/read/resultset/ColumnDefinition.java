@@ -50,6 +50,8 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -106,6 +108,7 @@ public class ColumnDefinition {
     private int                complexVersion          = 0;
     private final boolean      isOracleMode;
     private int                precisionAdjustFactor   = 0;
+    private String             encoding                = "UTF-8";
 
     /**
      * Constructor for extent.
@@ -142,7 +145,7 @@ public class ColumnDefinition {
      *
      * @param buffer buffer
      */
-    public ColumnDefinition(Buffer buffer, boolean OracleMode) {
+    public ColumnDefinition(Buffer buffer, boolean OracleMode, String encoding) {
         this.buffer = buffer;
         // has41NewNewProt fixme :Value should be based on connection properties
 
@@ -233,6 +236,7 @@ public class ColumnDefinition {
                     break;
             }
         }
+        this.encoding = encoding;
     }
 
     /**
@@ -242,7 +246,8 @@ public class ColumnDefinition {
      * @param type column type
      * @return ColumnInformation
      */
-    public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode) {
+    public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode,
+                                          String encoding) {
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 
         byte[] arr = new byte[19 + 2 * nameBytes.length];
@@ -296,7 +301,7 @@ public class ColumnDefinition {
 
         arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
 
-        return new ColumnDefinition(new Buffer(arr), isOracleMode);
+        return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding);
     }
 
     private int adjustStartForFieldLength(int nameStart, int nameLength) {
@@ -476,16 +481,9 @@ public class ColumnDefinition {
         return getStringFromBytes(this.complexTypeNameStart, this.complexTypeNameLength);
     }
 
-    public static String toAsciiString(byte[] buffer, int startPos, int length) {
-        char[] charArray = new char[length];
-        int readpoint = startPos;
-
-        for (int i = 0; i < length; i++) {
-            charArray[i] = (char) buffer[readpoint];
-            readpoint++;
-        }
-
-        return new String(charArray);
+    private String toAsciiString(byte[] buffer, int startPos, int length) {
+        Charset cs = Charset.forName(encoding);
+        return cs.decode(ByteBuffer.wrap(buffer, startPos, length)).toString();
     }
 
     private String getStringFromBytes(int stringStart, int stringLength) {

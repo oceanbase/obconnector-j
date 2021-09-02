@@ -98,7 +98,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     static {
         INSERT_ID_COLUMNS = new ColumnDefinition[1];
-        INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, false);
+        INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, false,
+            "UTF-8");
     }
 
     protected TimeZone                      timeZone;
@@ -323,7 +324,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode());
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(),protocol.getOptions().characterEncoding);
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -361,7 +362,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         //boolean isOracleMode = this.protocol.isOracleMode();
         for (int i = 0; i < columnNameLength; i++) {
-            columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode());
+            columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode(),protocol.getOptions().characterEncoding);
         }
 
         List<byte[]> rows = new ArrayList<>();
