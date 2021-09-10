@@ -77,6 +77,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String clobFix                   = "clobFix" + getRandomString(5);
     static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
     static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
+    static String testRaw                   = "testRaw" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -119,6 +120,7 @@ public class OracleBugfix extends BaseOracleTest {
                                            + "var2 := var1;\n" + "end;");
         createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
                                            + "var2 := var1;\n" + "end;");
+        createTable(testRaw, "c1 raw(20),c2 int");
     }
 
     @Test
@@ -705,5 +707,26 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testRawFix() {
+        try {
+            Connection conn = sharedConnection;
+            Statement statement = conn.createStatement();
+            statement.execute("insert into " + testRaw + " values(utl_raw.cast_to_raw('阿里'),1)");
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from " + testRaw
+                                                                        + " where c1 = ?");
+            preparedStatement.setBytes(1, "阿里".getBytes());
+            ResultSet resultSet = preparedStatement.executeQuery();
+            Assert.assertNotNull(resultSet.next());
+            Assert.assertEquals("阿里", new String(resultSet.getBytes(1)));
+            Assert.assertEquals(1, resultSet.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
 
 }
