@@ -283,23 +283,36 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        if (this.connection.getProtocol().isOracleMode()) {
-            if (((Blob) blob).getLocator() != null) {
-                if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
-                    setLobLocator(parameterIndex, blob);
+        if (blob instanceof com.oceanbase.jdbc.Blob) {
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob()
+                && this.options.useServerPrepStmts == false) {
+                if (((Blob) blob).getLocator() != null) {
+                    setParameter(parameterIndex, new OBEmptyLobParameter(0));
+                    return;
+                }
+            }
+            if (this.connection.getProtocol().isOracleMode()) {
+                if (((Blob) blob).getLocator() != null) {
+                    if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
+                        setLobLocator(parameterIndex, blob);
+                    } else {
+                        setParameter(parameterIndex,
+                            new OBStreamParameter(true, blob.getBinaryStream(), blob.length(),
+                                noBackslashEscapes));
+                    }
                 } else {
-                    setParameter(parameterIndex, new OBStreamParameter(true,
-                        blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+                    setParameter(parameterIndex,
+                        new OBStreamParameter(false, blob.getBinaryStream(), blob.length(),
+                            noBackslashEscapes));
                 }
             } else {
-                setParameter(parameterIndex, new OBStreamParameter(false, blob.getBinaryStream(),
-                    blob.length(), noBackslashEscapes));
+                setParameter(parameterIndex,
+                    new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
             }
+            hasLongData = true;
         } else {
-            setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(),
-                noBackslashEscapes));
+            throw exceptionFactory.notSupported(blob.getClass().getName() + " is not supported");
         }
-        hasLongData = true;
     }
 
     public void setLobLocator(final int parameterIndex, final java.sql.Blob blob)
@@ -400,16 +413,28 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        if (this.connection.getProtocol().isOracleMode() && (((Blob) clob).getLocator() != null)
-            && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
-            byte[] data = ((Clob) clob).getLocator().binaryData;
-            setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
-                noBackslashEscapes));
+        if (clob instanceof com.oceanbase.jdbc.Clob) {
+            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob()
+                && options.useServerPrepStmts == false) {
+                setParameter(parameterIndex, new OBEmptyLobParameter(1));
+                return;
+            }
+
+            if (this.connection.getProtocol().isOracleMode()
+                && (((Blob) clob).getLocator() != null)
+                && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+                byte[] data = ((Clob) clob).getLocator().binaryData;
+                setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
+                    noBackslashEscapes));
+            } else {
+                setParameter(parameterIndex,
+                    new ReaderParameter(clob.getCharacterStream(), clob.length(),
+                        noBackslashEscapes));
+            }
+            hasLongData = true;
         } else {
-            setParameter(parameterIndex,
-                new ReaderParameter(clob.getCharacterStream(), clob.length(), noBackslashEscapes));
+            throw exceptionFactory.notSupported(clob.getClass().getName() + " is not supported");
         }
-        hasLongData = true;
     }
 
     /**
@@ -605,6 +630,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp)
                                                                                  throws SQLException {
+
         if (connection.getProtocol().isOracleMode()) {
             setTIMESTAMP(parameterIndex, timestamp);
         } else {
@@ -614,6 +640,21 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
             setParameter(parameterIndex, new TimestampParameter(timestamp, protocol.getTimeZone(),
                 useFractionalSeconds));
+        }
+    }
+
+    public void setLocalDateTime(final int parameterIndex, final LocalDateTime localDateTime)
+                                                                                             throws SQLException {
+
+        if (connection.getProtocol().isOracleMode()) {
+            if (localDateTime == null) {
+                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
+                return;
+            }
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(Timestamp.valueOf(localDateTime),
+                TimeZone.getDefault(), useFractionalSeconds));
+        } else {
+            // not supported
         }
     }
 
@@ -1077,7 +1118,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         } else if (obj instanceof java.sql.Clob) {
             setClob(parameterIndex, (java.sql.Clob) obj);
         } else if (obj instanceof LocalDateTime) {
-            setTimestamp(parameterIndex, Timestamp.valueOf((LocalDateTime) obj));
+            setLocalDateTime(parameterIndex, (LocalDateTime) obj);
         } else if (obj instanceof Instant) {
             setTimestamp(parameterIndex, Timestamp.from((Instant) obj));
         } else if (obj instanceof LocalDate) {

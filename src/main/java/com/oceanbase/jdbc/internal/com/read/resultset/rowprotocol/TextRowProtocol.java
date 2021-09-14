@@ -235,7 +235,7 @@ public class TextRowProtocol extends RowProtocol {
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
-                Date date = getInternalDate(columnInfo, cal, timeZone);
+                Date date = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                 if (date == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
@@ -246,14 +246,15 @@ public class TextRowProtocol extends RowProtocol {
                 return date.toString();
             case YEAR:
                 if (options.yearIsDateType) {
-                    Date date1 = getInternalDate(columnInfo, cal, timeZone);
+                    Date date1 = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (date1 == null) ? null : date1.toString();
                 }
                 break;
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                // use local time zone
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
@@ -745,6 +746,7 @@ public class TextRowProtocol extends RowProtocol {
                     return timestamp.timestampValue(cal);
             }
         }
+        // other time type use system timezone
         switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
@@ -795,7 +797,7 @@ public class TextRowProtocol extends RowProtocol {
                 if (userCalendar != null) {
                     calendar = userCalendar;
                 } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-                    calendar = Calendar.getInstance(timeZone);
+                    calendar = Calendar.getInstance(TimeZone.getDefault());
                 } else {
                     calendar = Calendar.getInstance();
                 }
@@ -817,8 +819,8 @@ public class TextRowProtocol extends RowProtocol {
             case TIME:
                 // time does not go after millisecond
                 String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
-                Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar, timeZone)
-                    .getTime());
+                Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar,
+                    TimeZone.getDefault()).getTime());
                 tt.setNanos(extractNanos(rawValue));
                 return tt;
 
@@ -827,9 +829,10 @@ public class TextRowProtocol extends RowProtocol {
                 if (userCalendar != null) {
                     cal = userCalendar;
                 } else {
-                    cal = Calendar.getInstance(timeZone);
+                    cal = Calendar.getInstance(TimeZone.getDefault());
                 }
-                return getInternalTIMESTAMP(columnInfo, userCalendar, timeZone).timestampValue(cal);
+                return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                    .timestampValue(cal);
 
             default:
                 String value = new String(buf, pos, length, StandardCharsets.UTF_8);

@@ -45,7 +45,15 @@ package com.oceanbase.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.util.ArrayList;
 import java.util.Properties;
+import java.util.TimeZone;
+
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -64,6 +72,12 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
     static String longNameFix               = "longNameFix" + getRandomString(5);
+    static String testTimeStamp             = "testTimeStamp" + getRandomString(5);
+    static String blobFix                   = "blobFix" + getRandomString(5);
+    static String clobFix                   = "clobFix" + getRandomString(5);
+    static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
+    static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
+    static String testRaw                   = "testRaw" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -99,6 +113,14 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testNumberCol3, "c1 decimal");
         createTable(testNumberCol4, "c1 number");
         createTable(longNameFix, "MONEY  number(38)");
+        createTable(testTimeStamp, "id number not null , c01 timestamp, c02 date");
+        createTable(blobFix, "c1 blob");
+        createTable(clobFix, "c1 clob");
+        createProcedure(binaryNumberProc1, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
+                                           + "var2 := var1;\n" + "end;");
+        createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
+                                           + "var2 := var1;\n" + "end;");
+        createTable(testRaw, "c1 raw(20),c2 int");
     }
 
     @Test
@@ -444,5 +466,267 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    public LocalDateTime getLocalDateTimeNano(String value) {
+        DateTimeFormatter localDateFormatterNano = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE).appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME).toFormatter();
+        return LocalDateTime.parse(value, localDateFormatterNano);
+    }
+
+    @org.junit.Test
+    public void testTimeZone() {
+        TimeZone tzDefault = TimeZone.getDefault();
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String insertTableSql = "insert into " + testTimeStamp + " values(?,?,?)";
+            TimeZone timeZone = TimeZone.getTimeZone("GMT" + "+08:00");
+            timeZone.setID("+08:00");
+            TimeZone.setDefault(timeZone);
+
+            PreparedStatement ps2 = conn.prepareStatement(insertTableSql);
+            ps2.setObject(1, 2);
+            ps2.setObject(2, getLocalDateTimeNano("1988-09-09 15:43:01"));
+            ps2.setObject(3, getLocalDateTimeNano("1988-09-09 15:43:01"));
+            ps2.executeUpdate();
+            ps2.close();
+            ResultSet resultSet = stmt.executeQuery("select * from " + testTimeStamp);
+            String value = "1988-09-09 15:43:01.0";
+            String dateValue = "1988-09-09";
+            Assert.assertTrue(resultSet.next());
+            String timeStampStr = resultSet.getString(2);
+            Assert.assertEquals(value, timeStampStr);
+            String timeStampStr2 = resultSet.getString(3);
+            Assert.assertEquals(value, timeStampStr2);
+            Timestamp ts = resultSet.getTimestamp(2);
+            Assert.assertEquals(value, ts.toString());
+            Date date = resultSet.getDate(3);
+            Assert.assertEquals(dateValue, date.toString());
+            Timestamp ts2 = resultSet.getTimestamp(3);
+            Assert.assertEquals(value, ts2.toString());
+            Object obj1 = resultSet.getObject(2);
+            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            Object obj2 = resultSet.getObject(3);
+            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from "
+                                                                        + testTimeStamp);
+            resultSet = preparedStatement.executeQuery();
+
+            Assert.assertTrue(resultSet.next());
+
+            timeStampStr = resultSet.getString(2);
+            Assert.assertEquals(value, timeStampStr);
+            timeStampStr2 = resultSet.getString(3);
+            Assert.assertEquals(value, timeStampStr2);
+            ts = resultSet.getTimestamp(2);
+            Assert.assertEquals(value, ts.toString());
+            date = resultSet.getDate(3);
+            Assert.assertEquals(dateValue, date.toString());
+            ts2 = resultSet.getTimestamp(3);
+            Assert.assertEquals(value, ts2.toString());
+            obj1 = resultSet.getObject(2);
+            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            obj2 = resultSet.getObject(3);
+            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            TimeZone.setDefault(tzDefault);
+        }
+    }
+
+    @org.junit.Test
+    public void test36103306() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = conn.prepareStatement("insert into " + blobFix
+                                                         + "(c1) values(?)");
+            ps.setBlob(1, new SerialBlob(new byte[] { (byte) 0x00, 0x32, 0x32 }));
+            ps.execute();
+        } catch (Throwable e) {
+            Assert.assertNotNull(e);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testProcBinaryInterger() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("{call " + binaryNumberProc1
+                                                                   + "(1,?)}");
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.execute();
+            Assert.assertEquals("1", callableStatement.getString(1));
+            Assert.assertEquals(1, callableStatement.getInt(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void test36103306_1() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobFix
+                                                         + "(c1) values(?)");
+            ps.setClob(1, new SerialClob(new char[] { 'a', 'b', 'c' }));
+            ps.execute();
+        } catch (Throwable e) {
+            Assert.assertNotNull(e);
+            e.printStackTrace();
+        }
+    }
+
+    public void testProcBinaryInterger2() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("{call " + binaryNumberProc2
+                                                                   + "(?,?)}");
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.setInt(1, 1);
+            callableStatement.execute();
+            Assert.assertEquals("1", callableStatement.getString(2));
+            Assert.assertEquals(1, callableStatement.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // fix array.delete return value
+    @org.junit.Test
+    public  void test34971515() throws Exception {
+        Connection conn = sharedConnection;
+        ArrayList<Object> res_list = new ArrayList<>();
+        String sql3 = "create or replace type var_t1 is varray(3) of number";
+        String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
+                "begin\n" +
+                "var :=var_t1(1,2,3);\n" +
+                "var.delete();\n"+
+                "end;";
+
+
+        String paraCall = "call pro1(?)";
+        Statement stmt = conn.createStatement();
+        stmt.execute(sql3);
+        stmt.execute(sql4);
+        CallableStatement cst = null;
+
+        try {
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
+            cst.execute();
+
+                Array array = cst.getArray(1);
+                Object[] arrobj = (Object[]) array.getArray();
+                Assert.assertNotNull(arrobj);
+
+        } catch (Exception e) {
+            res_list.add(e);
+            e.printStackTrace();
+        }
+    }
+
+    // array support char elements
+    @org.junit.Test
+    public void test34946578() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            String sql3 = "create or replace type var_t2 is varray(3) of char";
+            String sql4 = "create or replace procedure pro2(var out var_t2) is\n" + "begin\n"
+                          + "var :=var_t2('a','b','c');\n" + "end;";
+
+            String paraCall = "call pro2(?)";
+            Statement stmt;
+            stmt = conn.createStatement();
+            stmt.execute(sql3);
+            stmt.execute(sql4);
+            CallableStatement cst = null;
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T2");
+            cst.execute();
+
+            Array array = cst.getArray(1);
+
+            Object[] arrobj = (Object[]) array.getArray();
+            Assert.assertEquals('a', arrobj[0]);
+            Assert.assertEquals('b', arrobj[1]);
+            Assert.assertEquals('c', arrobj[2]);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void chineseColumnName() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select '中文' as \"列1\" from dual");
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertEquals("列1", resultSetMetaData.getColumnName(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("中文", rs.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // fix the type of raw element
+    @org.junit.Test
+    public void test34971454() {
+        try {
+            Connection conn = sharedConnection;
+            String sql3 = "create or replace type var_t3 is varray(3) of raw(10)";
+            String sql4 = "create or replace procedure pro3(var out var_t3) is\n" + "begin\n"
+                          + "var :=var_t3(hextoraw('ff'),hextoraw('fa'),hextoraw('fc'));\n"
+                          + "end;";
+            String paraCall = "call pro3(?)";
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql3);
+            stmt.execute(sql4);
+            CallableStatement cst;
+            cst = conn.prepareCall(paraCall);
+            cst.registerOutParameter(1, Types.ARRAY, "VAR_T3");
+            cst.execute();
+            Array array = cst.getArray(1);
+            Object[] arrobj = (Object[]) array.getArray();
+            Assert.assertNotNull(array);
+            for (int i = 0; i < arrobj.length; i++) {
+                Assert.assertEquals(byte[].class, arrobj[i].getClass());
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRawFix() {
+        try {
+            Connection conn = sharedConnection;
+            Statement statement = conn.createStatement();
+            statement.execute("insert into " + testRaw + " values(utl_raw.cast_to_raw('阿里'),1)");
+            PreparedStatement preparedStatement = conn.prepareStatement("select * from " + testRaw
+                                                                        + " where c1 = ?");
+            preparedStatement.setBytes(1, "阿里".getBytes());
+            ResultSet resultSet = preparedStatement.executeQuery();
+            Assert.assertNotNull(resultSet.next());
+            Assert.assertEquals("阿里", new String(resultSet.getBytes(1)));
+            Assert.assertEquals(1, resultSet.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
 
 }

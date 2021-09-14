@@ -75,7 +75,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   private OceanBaseResultSetMetaData metadata;
   private OceanBaseParameterMetaData parameterMetaData;
   protected Map<Integer, ParameterHolder> currentParameterHolder;
-  private List<ParameterHolder[]> queryParameters = new ArrayList<>();
+  protected List<ParameterHolder[]> queryParameters = new ArrayList<>();
   private boolean mustExecuteOnMaster;
   private long     checksum = 1;
 
@@ -115,7 +115,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     mustExecuteOnMaster = protocol.isMasterConnection();
     if (!protocol.isOracleMode()) {
       if (!sql.startsWith("CALL") && !sql.startsWith("call")) {
-              prepare(this.sql);
+        prepare(this.sql);
       }
     } else {
       prepare(sql);
@@ -130,7 +130,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    * @throws CloneNotSupportedException if any error occur.
    */
   public JDBC4ServerPreparedStatement clone(OceanBaseConnection connection)
-      throws CloneNotSupportedException {
+          throws CloneNotSupportedException {
     JDBC4ServerPreparedStatement clone = (JDBC4ServerPreparedStatement) super.clone(connection);
     clone.metadata = metadata;
     clone.parameterMetaData = parameterMetaData;
@@ -151,48 +151,48 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     return clone;
   }
 
-    private void prepare(String sql) throws SQLException {
+  private void prepare(String sql) throws SQLException {
+    try {
+      ObCrc32C crc32C = new ObCrc32C();
+      crc32C.reset();
+      byte[] b; //  Consider the case of multiple character set
+      try {
+        b = sql.getBytes(options.characterEncoding);
+      } catch (UnsupportedEncodingException e) {
         try {
-            ObCrc32C crc32C = new ObCrc32C();
-            crc32C.reset();
-            byte[] b; //  Consider the case of multiple character set
-            try {
-                b = sql.getBytes(options.characterEncoding);
-            } catch (UnsupportedEncodingException e) {
-                try {
-                    this.close();
-                } catch (Exception ee) {
-                    // eat exception.
-                }
-                SQLException sqlException = new SQLException("sql string getBytes error" + e.getMessage());
-                logger.error("error preparing query", sqlException);
-                throw exceptionFactory.raiseStatementError(connection, this).create(sqlException);
-            }
-            crc32C.update(b, 0, b.length);
-            this.checksum = crc32C.getValue();
-            serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
-            setMetaFromResult(); // Get result for prepare, but the type not precision.
-        } catch (SQLException e) {
-            try {
-                this.close();
-            } catch (Exception ee) {
-                // eat exception.
-            }
-            logger.error("error preparing query", e);
-            throw exceptionFactory.raiseStatementError(connection, this).create(e);
+          this.close();
+        } catch (Exception ee) {
+          // eat exception.
         }
+        SQLException sqlException = new SQLException("sql string getBytes error" + e.getMessage());
+        logger.error("error preparing query", sqlException);
+        throw exceptionFactory.raiseStatementError(connection, this).create(sqlException);
+      }
+      crc32C.update(b, 0, b.length);
+      this.checksum = crc32C.getValue();
+      serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
+      setMetaFromResult(); // Get result for prepare, but the type not precision.
+    } catch (SQLException e) {
+      try {
+        this.close();
+      } catch (Exception ee) {
+        // eat exception.
+      }
+      logger.error("error preparing query", e);
+      throw exceptionFactory.raiseStatementError(connection, this).create(e);
     }
+  }
 
   private void setMetaFromResult() {
     parameterCount = serverPrepareResult.getParameters().length;
     metadata =
-        new OceanBaseResultSetMetaData(
-            serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false,this.protocol.isOracleMode());
+            new OceanBaseResultSetMetaData(
+                    serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false,this.protocol.isOracleMode());
     parameterMetaData = new OceanBaseParameterMetaData(serverPrepareResult.getParameters());
   }
 
   public void setParameter(final int parameterIndex, final ParameterHolder holder)
-      throws SQLException {
+          throws SQLException {
     currentParameterHolder.put(parameterIndex - 1, holder);
   }
 
@@ -211,8 +211,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public void addBatch(final String sql) throws SQLException {
     throw exceptionFactory
-        .raiseStatementError(connection, this)
-        .create("Cannot do addBatch(String) on preparedStatement");
+            .raiseStatementError(connection, this)
+            .create("Cannot do addBatch(String) on preparedStatement");
   }
 
   public void clearBatch() {
@@ -308,23 +308,23 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       }
 
       results =
-          new Results(
-              this,
-              0,
-              true,
-              queryParameterSize,
-              true,
-              resultSetScrollType,
-              resultSetConcurrency,
-              autoGeneratedKeys,
-              protocol.getAutoIncrementIncrement(),
-              null,
-              null);
+              new Results(
+                      this,
+                      0,
+                      true,
+                      queryParameterSize,
+                      true,
+                      resultSetScrollType,
+                      resultSetConcurrency,
+                      autoGeneratedKeys,
+                      protocol.getAutoIncrementIncrement(),
+                      null,
+                      null);
 
       // if  multi send capacity
       protocol.setChecksum(this.checksum);
       if ((options.useBatchMultiSend || options.useBulkStmts)
-          && (protocol.executeBatchServer(
+              && (protocol.executeBatchServer(
               mustExecuteOnMaster,
               serverPrepareResult,
               results,
@@ -348,11 +348,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             protocol.stopIfInterrupted();
             serverPrepareResult.resetParameterTypeHeader();
             protocol.executePreparedQuery(
-                mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                    mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
           } catch (SQLException queryException) {
             if (options.continueBatchOnError
-                && protocol.isConnected()
-                && !protocol.isInterrupted()) {
+                    && protocol.isConnected()
+                    && !protocol.isInterrupted()) {
               if (exception == null) {
                 exception = queryException;
               }
@@ -367,7 +367,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           try {
             serverPrepareResult.resetParameterTypeHeader();
             protocol.executePreparedQuery(
-                mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                    mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
           } catch (SQLException queryException) {
             if (options.continueBatchOnError) {
               if (exception == null) {
@@ -397,11 +397,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     executing = true;
     if (closed) {
       throw exceptionFactory
-          .raiseStatementError(connection, this)
-          .create("execute() is called on closed statement");
+              .raiseStatementError(connection, this)
+              .create("execute() is called on closed statement");
     }
     protocol.prologProxy(
-        serverPrepareResult, maxRows, protocol.getProxy() != null, connection, this);
+            serverPrepareResult, maxRows, protocol.getProxy() != null, connection, this);
   }
 
   @Override
@@ -417,7 +417,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     }
     return SelectResultSet.createEmptyResultSet();
   }
-   public ColumnDefinition[]  cursorFetch(int cursorId, int fetchSize) throws SQLException {
+  public ColumnDefinition[]  cursorFetch(int cursorId, int fetchSize) throws SQLException {
     ColumnDefinition[] ci = this.protocol.sendFechRowViaCursor(serverPrepareResult,cursorId,fetchSize,results);
     results.commandEnd();
     return ci;
@@ -454,12 +454,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   protected void validParameters() throws SQLException {
-    for (int i = 0; i < parameterCount; i++) {
-      if (currentParameterHolder.get(i) == null) {
-        logger.error("Parameter at position {} is not set", (i + 1));
-        throw exceptionFactory
-            .raiseStatementError(connection, this)
-            .create("Parameter at position " + (i + 1) + " is not set", "07004");
+    if (!(this instanceof JDBC4ServerCallableStatement)) {
+      for (int i = 0; i < parameterCount; i++) {
+        if (currentParameterHolder.get(i) == null) {
+          logger.error("Parameter at position {} is not set", (i + 1));
+          throw exceptionFactory
+                  .raiseStatementError(connection, this)
+                  .create("Parameter at position " + (i + 1) + " is not set", "07004");
+        }
       }
     }
   }
@@ -475,25 +477,25 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       }
 
       ParameterHolder[] parameterHolders =
-          currentParameterHolder.values().toArray(new ParameterHolder[0]);
+              currentParameterHolder.values().toArray(new ParameterHolder[0]);
 
       results =
-          new Results(
-              this,
-              fetchSize,
-              false,
-              1,
-              true,
-              resultSetScrollType,
-              resultSetConcurrency,
-              autoGeneratedKeys,
-              protocol.getAutoIncrementIncrement(),
-              sql,
-              parameterHolders);
+              new Results(
+                      this,
+                      fetchSize,
+                      false,
+                      1,
+                      true,
+                      resultSetScrollType,
+                      resultSetConcurrency,
+                      autoGeneratedKeys,
+                      protocol.getAutoIncrementIncrement(),
+                      sql,
+                      parameterHolders);
       protocol.setChecksum(this.checksum);
       serverPrepareResult.resetParameterTypeHeader();
       protocol.executePreparedQuery(
-          mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
+              mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
       protocol.resetChecksum();
       results.commandEnd();
       if (results.getCallableResultSet() != null) {

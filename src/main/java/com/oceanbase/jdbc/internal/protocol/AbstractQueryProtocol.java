@@ -1680,7 +1680,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
             for (int i = 0; i < fieldCount; i++) {
-                ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode());
+                ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(),options.characterEncoding);
             }
 
             if (!eofDeprecated) {
@@ -2001,7 +2001,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // read columns information's
       ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
       for (int i = 0; i < fieldCount; i++) {
-        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode());
+        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(),options.characterEncoding);
       }
 
       boolean callableResult = false;

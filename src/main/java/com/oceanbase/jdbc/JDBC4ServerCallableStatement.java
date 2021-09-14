@@ -231,7 +231,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         return paramNameBuf.toString();
     }
 
-    private void setInOutParamsOnServer() throws SQLException {
+    private int setInOutParamsOnServer() throws SQLException {
         int size = this.params.size();
         setInputOutputParameterMap();
         for (int i = 0; i < size; i++) {
@@ -253,6 +253,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 this.connection.createStatement().execute(query);
             }
         }
+
         boolean afterFirst = false;
         int index = sql.indexOf('?');
         StringBuilder querySB = new StringBuilder();
@@ -276,7 +277,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 }
             }
         }
-        this.connection.createStatement().execute(sqlString);
+        int r = this.connection.createStatement().executeUpdate(sqlString);
+
         StringBuilder selectSB = new StringBuilder();
         selectSB.append("SELECT ");
         afterFirst = false;
@@ -300,6 +302,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             resultSet.next();
             outputResultSet = (SelectResultSet) resultSet;
         }
+
+        return r;
     }
 
     private void executeProcedureOnServer() throws SQLException {
@@ -357,9 +361,36 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     @Override
     public int[] executeBatch() throws SQLException {
         if (!hasInOutParameters) {
-            return super.executeBatch();
+            if (!this.connection.getProtocol().isOracleMode() && !isObFunction) {
+                int querySize = queryParameters.size();
+                if (querySize == 0) {
+                    return new int[0];
+                }
+                return executeBatchInternal(querySize);
+            } else {
+                return super.executeBatch();
+            }
         } else {
             throw new SQLException("executeBatch not permit for procedure with output parameter");
         }
+    }
+
+    /**
+     * execute batch one by one for mysql mode procedure
+     * @param querySize
+     * @return int array of the row count for SQL Data Manipulation Language (DML) statements
+     * @throws SQLException
+     */
+    private int[] executeBatchInternal(int querySize) throws SQLException {
+        int[] rows = new int[querySize];
+        for (int i = 0; i < querySize; i++) {
+            ParameterHolder[] parameterHolder = queryParameters.get(i);
+            currentParameterHolder.clear();
+            for (int j = 0; j < parameterHolder.length; j++) {
+                currentParameterHolder.put(j, parameterHolder[j]);
+            }
+            rows[i] = setInOutParamsOnServer();
+        }
+        return rows;
     }
 }
