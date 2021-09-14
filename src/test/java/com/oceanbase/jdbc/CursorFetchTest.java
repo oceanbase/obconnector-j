@@ -46,6 +46,7 @@ package com.oceanbase.jdbc;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -91,8 +92,10 @@ public class CursorFetchTest extends BaseTest {
 
     @Test
     public void testScrollableCursor() throws Exception {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
-            Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+
+            Connection conn = setConnection("&useCursorFetch=true");
 
             String query = "insert into " + tableName2 + " values(1,'1+string')";
             for (int i = 2; i <= 100; i++) {

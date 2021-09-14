@@ -341,6 +341,8 @@ public class BinaryRowProtocol extends RowProtocol {
 
             case BIT:
                 return String.valueOf(parseBit());
+            case NUMBER:
+                return zeroFillingIfNeeded(String.valueOf(getInternalInt(columnInfo)), columnInfo);
             case TINYINT:
                 return zeroFillingIfNeeded(String.valueOf(getInternalTinyInt(columnInfo)),
                     columnInfo);
@@ -365,21 +367,21 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
-                Date date = getInternalDate(columnInfo, cal, timeZone);
+                Date date = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                 if (date == null) {
                     return null;
                 }
                 return date.toString();
             case YEAR:
                 if (options.yearIsDateType) {
-                    Date dateInter = getInternalDate(columnInfo, cal, timeZone);
+                    Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (dateInter == null) ? null : dateInter.toString();
                 }
                 return String.valueOf(getInternalSmallInt(columnInfo));
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     return null;
                 }
@@ -994,9 +996,10 @@ public class BinaryRowProtocol extends RowProtocol {
             if (userCalendar != null) {
                 cal = userCalendar;
             } else {
-                cal = Calendar.getInstance(timeZone);
+                cal = Calendar.getInstance(TimeZone.getDefault());
             }
-            return getInternalTIMESTAMP(columnInfo, userCalendar, timeZone).timestampValue(cal);
+            return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                .timestampValue(cal);
         }
 
         int year = 1970;
@@ -1080,7 +1083,7 @@ public class BinaryRowProtocol extends RowProtocol {
         if (userCalendar != null) {
             calendar = userCalendar;
         } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-            calendar = Calendar.getInstance(timeZone);
+            calendar = Calendar.getInstance(TimeZone.getDefault());
         } else {
             calendar = Calendar.getInstance();
         }
@@ -1949,9 +1952,12 @@ public class BinaryRowProtocol extends RowProtocol {
                 value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8).trim());
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
-            case ComplexDataType.TYPE_RAW:
                 b = packet.readLenByteArray(0);
                 value = new String(b, 0, b.length, StandardCharsets.UTF_8);
+                break;
+            case ComplexDataType.TYPE_RAW:
+                b = packet.readLenByteArray(0);
+                value = b;
                 break;
             case ComplexDataType.TYPE_DATE:
                 value = getComplexDate(packet.readLenByteArray(0));
@@ -1961,6 +1967,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_OBJECT:
                 value = getComplexStruct(packet, type);
+                break;
+            case ComplexDataType.TYPE_CHAR:
+                b = packet.readLenByteArray(0);
+                value = (char) (b[0]);
                 break;
             default:
                 throw new SQLException("unsupported complex data type");

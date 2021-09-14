@@ -66,7 +66,7 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
         byte[] x = bytes;
         StringBuilder sb = new StringBuilder();
         for (byte b : x) {
-            sb.append(String.format("%02x", b));
+            sb.append(String.format("%02X", b));
         }
         x = sb.toString().getBytes();
         this.bytes = x;
