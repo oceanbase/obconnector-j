@@ -56,9 +56,7 @@ import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,15 +116,15 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
      *
      * @throws SQLException if error append during loading metaData
      */
-    @Override
-    public void readMetadataFromDbIfRequired() throws SQLException {
+
+    public void readMetadataFromDbIfRequired(String query, String arguments, Boolean isObFunction)
+                                                                                                  throws SQLException {
         if (valid) {
             return;
         }
-
-        //readMetadata();
+        this.query = query;
         queryMetaInfos(false);
-        valid = true;
+        resetParams(arguments, isObFunction);
     }
 
     private int mapMariaDbTypeToJdbc(String str) {
@@ -465,8 +463,6 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
 
             String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String typeName = paramTypesRs.getString("DATA_TYPE");
-            //int jdbcType = MysqlDefs.mysqlToJavaType(typeName);
-            //ColumnType.getColumnTypeName(typeName);
             //TODO need add currect jdbcType
             int jdbcType = mapMariaDbTypeToJdbc(typeName);//ColumnType.classFromJavaType(1);
             int precision = paramTypesRs.getInt("DATA_PRECISION");
@@ -476,11 +472,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
                 isOutParameter, jdbcType, typeName, precision, scale, nullability, inOutModifier);
 
-            //this.parameterList.add(paramInfoToAdd);
             this.params.add(paramInfoToAdd);
             this.mapNameToParamter.put(paramName, paramInfoToAdd);
-            //this.parameterMap.put(paramName, paramInfoToAdd);
-            //++this.numParameters;
         }
     }
 }

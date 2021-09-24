@@ -723,7 +723,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
         if (this.protocol.isOracleMode() && !matcher.matches()) { // oracle mode prepare sql by prepareCall
             return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
-                null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+                null, null, resultSetType, resultSetConcurrency, exceptionFactory, true);
         } else {
 
             if (!matcher.matches()) {
@@ -818,12 +818,13 @@ public class OceanBaseConnection implements ConnectionImpl {
             } else {
                 return new OceanBaseProcedureStatement(true, "BEGIN ?:=" + databaseAndProcedure
                                                              + arguments + ";END;",
-                    (OceanBaseConnection) this, procedureName, database, resultSetType,
+                    (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             }
         } else {
             return new OceanBaseProcedureStatement(false, query, (OceanBaseConnection) this,
-                procedureName, database, resultSetType, resultSetConcurrency, exceptionFactory);
+                procedureName, database, arguments, resultSetType, resultSetConcurrency,
+                exceptionFactory);
         }
     }
 

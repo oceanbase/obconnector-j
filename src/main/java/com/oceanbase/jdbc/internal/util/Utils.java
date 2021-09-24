@@ -990,6 +990,124 @@ public class Utils {
     return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
   }
 
+  private static int indexOfNextChar(int startingPosition, int stopPosition, String searchIn,
+                                     String openingMarkers, String closingMarkers) {
+    if (searchIn == null) {
+      return -1;
+    }
+
+    int searchInLength = searchIn.length();
+
+    if (startingPosition >= searchInLength) {
+      return -1;
+    }
+
+    char c0 = Character.MIN_VALUE;
+    char c1 = searchIn.charAt(startingPosition);
+    char c2 = startingPosition + 1 < searchInLength ? searchIn.charAt(startingPosition + 1)
+            : Character.MIN_VALUE;
+
+    for (int i = startingPosition; i <= stopPosition; i++) {
+      c0 = c1;
+      c1 = c2;
+      c2 = i + 2 < searchInLength ? searchIn.charAt(i + 2) : Character.MIN_VALUE;
+
+      int markerIndex = -1;
+
+      if ((markerIndex = openingMarkers.indexOf(c0)) != -1) {
+        int nestedMarkersCount = 0;
+        char openingMarker = c0;
+        char closingMarker = closingMarkers.charAt(markerIndex);
+        while (++i <= stopPosition
+                && ((c0 = searchIn.charAt(i)) != closingMarker || nestedMarkersCount != 0)) {
+          if (c0 == openingMarker) {
+            nestedMarkersCount++;
+          } else if (c0 == closingMarker) {
+            nestedMarkersCount--;
+          } else if ( c0 == '\\') {
+            i++;
+          }
+        }
+        c1 = i + 1 < searchInLength ? searchIn.charAt(i + 1) : Character.MIN_VALUE;
+        c2 = i + 2 < searchInLength ? searchIn.charAt(i + 2) : Character.MIN_VALUE;
+
+      } else {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+  public static int nextDelimiterPos( String searchIn,int startingPosition, String searchFor,
+                                      String openingMarkers, String closingMarkers) {
+    if (searchIn == null || searchFor == null) {
+      return -1;
+    }
+
+    int searchInLength = searchIn.length();
+    int searchForLength = searchFor.length();
+    int stopSearchingAt = searchInLength - searchForLength;
+    if (startingPosition > stopSearchingAt || searchForLength == 0) {
+      return -1;
+    }
+    char firstCharOfSearchForUc = Character.toUpperCase(searchFor.charAt(0));
+    char firstCharOfSearchForLc = Character.toLowerCase(searchFor.charAt(0));
+    for (int i = startingPosition; i <= stopSearchingAt; i++) {
+      i = indexOfNextChar(i, stopSearchingAt, searchIn, openingMarkers, closingMarkers);
+
+      if (i == -1) {
+        return -1;
+      }
+
+      char c = searchIn.charAt(i);
+      if((c == firstCharOfSearchForLc || c == firstCharOfSearchForUc) && searchIn.toUpperCase(Locale.ROOT).substring(i).startsWith(searchFor)) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+  public static  List<ParsedCallParameters> argumentsSplit(String arguments, String delimiter, String markers,
+                                                           String markerCloses) {
+    if (arguments == null) {
+      return null;
+    }
+    arguments = arguments.substring(arguments.indexOf("(") + 1,arguments.lastIndexOf(")"));
+    List<ParsedCallParameters> retList = new ArrayList<>();
+    boolean trim = true;
+    if (delimiter == null) {
+      throw new IllegalArgumentException();
+    }
+    int delimPos = 0;
+    int currentPos = 0;
+    while((delimPos = nextDelimiterPos(arguments,currentPos, delimiter, markers,
+            markerCloses)) != -1) {
+      String token = arguments.substring(currentPos,delimPos);
+      if (trim) {
+        token = token.trim();
+      }
+      if(token.startsWith(":") || token.startsWith("?")) {
+        retList.add(new ParsedCallParameters(true,token));
+      } else {
+        retList.add(new ParsedCallParameters(false,token));
+      }
+      currentPos = delimPos + 1;
+    }
+    if (currentPos < arguments.length()) {
+      String token = arguments.substring(currentPos);
+
+      if (trim) {
+        token = token.trim();
+      }
+      if(token.startsWith(":") || token.startsWith("?")) {
+        retList.add(new ParsedCallParameters(true,token));
+      } else {
+        retList.add(new ParsedCallParameters(false,token));
+      }
+    }
+    return retList;
+  }
+
   public static int getStatementType(String queryString) {
     if (queryString.substring(0, 4).equalsIgnoreCase("with")) {
       return OceanBaseStatement.STMT_SELECT;

@@ -104,6 +104,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     protected boolean                     hasLongData              = false;
     private boolean                       useFractionalSeconds;
     private boolean                       noBackslashEscapes;
+    protected String                      originString             = null;
     protected Map<String, Integer>        indexMap;
 
     /**

@@ -61,6 +61,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
@@ -200,15 +201,55 @@ public class CallableParameterMetaData implements ParameterMetaData {
             callParameter.setInput(false);
             params.add(callParameter);
         }
-        valid = true;
+        valid = false;
     }
 
-    public void readMetadataFromDbIfRequired(String query) throws SQLException {
+    public void readMetadataFromDbIfRequired(String query, String arguments, Boolean isObFunction)
+                                                                                                  throws SQLException {
         if (valid) {
             return;
         }
         this.query = query;
         readMetadata();
+        resetParams(arguments, isObFunction);
+    }
+
+    void resetParams(String arguments,boolean isObFunction) {
+        int parameterCount = params.size();
+        List<CallParameter>     currentParams  = new ArrayList<>(parameterCount);
+
+        int[] placeholderToParameterIndexMap = new int[parameterCount];
+        for (int i = 0; i < parameterCount; i++) {
+            placeholderToParameterIndexMap[i] = -1; // not param
+        }
+        arguments = Utils.trimSQLString(arguments, false, true, false);
+        List<ParsedCallParameters> paramList = Utils.argumentsSplit(arguments, ",", "'\"",
+            "'\"");
+        int placeholderCount = 0;
+        if (isObFunction) {
+            paramList.add(0, new ParsedCallParameters(true, "?"));
+        }
+        for (int i = 0; i < paramList.size(); i++) {
+            if (paramList.get(i).isParam()) { // ? or  name binding param
+                placeholderToParameterIndexMap[placeholderCount++] = i;
+            }
+        }
+        parameterCount = placeholderCount;
+        for (int index = 0; index < this.params.size(); index++) {
+            if(placeholderToParameterIndexMap != null) {
+                int localIndex = placeholderToParameterIndexMap[index];
+                if(localIndex != -1) {
+                    CallParameter parameter = params.get(localIndex );
+                    currentParams.add(parameter);
+                }
+            } else {
+                CallParameter parameter = params.get(index + 1);
+                if (parameter.getIndex() != -1) {
+                    currentParams.add(parameter);
+                }
+            }
+        }
+        this.params = currentParams;
         valid = true;
     }
 
@@ -341,23 +382,6 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
         params = new ArrayList<>();
-        Vector<Boolean> vec = new Vector<>();
-        String querySql = Utils.trimSQLString(this.query,this.con.getProtocol().noBackslashEscapes(),this.con.getProtocol().isOracleMode());
-        int startIndex = querySql.indexOf('(');
-        if(startIndex == -1) { // prepareCall without parenthesi
-            querySql = querySql + "()";
-            startIndex = 0;
-        }
-        int endIndex = querySql.lastIndexOf(')');
-        String tmp = querySql.substring(startIndex + 1, endIndex);
-        String[] split = tmp.split(",");
-        for (String s : split) {
-            if (s.matches("\\s*\\?\\s*")) {
-                vec.add(true);
-            } else {
-                vec.add(false);
-            }
-        }
         int index = 1;
         int i = 0;
         if(isFunction) {
@@ -403,13 +427,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 callParameter.setScale(Integer.valueOf(scale));
             }
             params.add(callParameter);
-            if (vec.get(i) == false) {
-                i++;
-                callParameter.setIndex(-1);
-            } else {
-                callParameter.setIndex(index++);
-                i++;
-            }
+            callParameter.setIndex(index++);
         }
     }
 

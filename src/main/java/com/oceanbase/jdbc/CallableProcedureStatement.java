@@ -77,6 +77,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
     protected String                    originalSql;
+    protected String                    arguments             = null;
 
     //protected CallableStatementParamInfo paramInfo;
 
@@ -145,7 +146,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired();
+        parameterMetadata.readMetadataFromDbIfRequired(this.sql, this.arguments, this.isObFunction);
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
             if (!this.protocol.isOracleMode()) {

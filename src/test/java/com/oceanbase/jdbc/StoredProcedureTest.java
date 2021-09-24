@@ -614,11 +614,9 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals(4f, callableStatement.getInt(1), .001);
         assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
-        assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
+        assertEquals(2, callableStatement.getParameterMetaData().getParameterCount());
         assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
-        assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
-        assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
-        assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4));
+        assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(2));
     }
 
     @Test
@@ -818,7 +816,7 @@ public class StoredProcedureTest extends BaseTest {
   public void testHugeNumberOfParameters() throws Exception {
     StringBuilder procDef = new StringBuilder("(");
     StringBuilder param = new StringBuilder();
-    for (int i = 0; i < 274; i++) {
+    for (int i = 0; i < 5; i++) {
       if (i != 0) {
         procDef.append(",");
         param.append(",");
@@ -834,7 +832,9 @@ public class StoredProcedureTest extends BaseTest {
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall(
             "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
-      callableStatement.registerOutParameter(274, Types.VARCHAR);
+        for (int i = 0; i < 5; i++) {
+            callableStatement.registerOutParameter(i+1 , Types.VARCHAR);
+        }
       callableStatement.execute();
     }
   }

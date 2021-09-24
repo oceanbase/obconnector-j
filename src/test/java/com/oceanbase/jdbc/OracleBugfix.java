@@ -78,6 +78,8 @@ public class OracleBugfix extends BaseOracleTest {
     static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
     static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
     static String testRaw                   = "testRaw" + getRandomString(5);
+    static String testProceSetdefaultVal    = "testProceSetdefaultVal" + getRandomString(5);
+    static String testFunction              = "testfunction" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -121,6 +123,34 @@ public class OracleBugfix extends BaseOracleTest {
         createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
                                            + "var2 := var1;\n" + "end;");
         createTable(testRaw, "c1 raw(20),c2 int");
+
+        createProcedure(
+            testProceSetdefaultVal,
+            "(cycle# in number,c_num in number,v_cycle out number ,v_mulbillcycle out number,v_mulbillcycle_end out number) is \n"
+                    + "i_date  date; \n"
+                    + " i_day varchar2(4);\n"
+                    + "v_date date; \n"
+                    + " v_end_day varchar2(4)\n;"
+                    + "begin"
+                    + " if cycle# is null then \n"
+                    + "RAISE_APPLICATION_ERROR(-20001,'输入日期不能为空');\n"
+                    + "end if ;\n"
+                    + " i_date := to_date(to_char(cycle#), 'yyyymmdd'); \n"
+                    + " i_day := to_char(i_date,'dd') ; \n"
+                    + "v_date := add_months(i_date,c_num) ; \n"
+                    + "v_cycle := to_number(to_char(trunc(v_date, 'MM'), 'yyyymm'));\n"
+                    + " if i_date = last_day(i_date) then \n"
+                    + "v_end_day := '31' ; \n"
+                    + " else \n"
+                    + "v_end_day := i_day ; \n"
+                    + " end if ;\n"
+                    + "v_mulbillcycle := to_number(to_char(v_cycle)||i_day); \n"
+                    + " v_mulbillcycle_end := to_number(to_char(v_cycle)||v_end_day);\n"
+                    + "end "
+                    + testProceSetdefaultVal + ";\n");
+        createFunction(testFunction,
+            "(c1 varchar2,c2 int,c3 out  int,c4 in int )   return number is \n" + "begin \n"
+                    + "   c3 := 3; \n" + "   return 1;\n" + "end ");
     }
 
     @Test
@@ -728,5 +758,52 @@ public class OracleBugfix extends BaseOracleTest {
 
     }
 
+    @org.junit.Test
+    public void tesOracleModeProc() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("call " + testProceSetdefaultVal
+                                                                   + "(?,0,?,?,?)");
+            callableStatement.setInt(1, 20210709);
+            callableStatement.setInt(2, -2);
+            callableStatement.registerOutParameter(3, Types.NUMERIC);
+            callableStatement.registerOutParameter(4, Types.NUMERIC);
+            callableStatement.execute();
+            Assert.assertEquals(202107, callableStatement.getInt(3));
+            Assert.assertEquals(20210709, callableStatement.getInt(4));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void tesOracleModeFunction() {
+        try {
+
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("? = call " + testFunction
+                                                                   + "('fsfsfs',100,?,?)");
+            callableStatement.registerOutParameter(1, Types.NUMERIC);
+            callableStatement.registerOutParameter(2, Types.NUMERIC);
+            //            callableStatement.setInt(3, 20);
+            callableStatement.setInt("c3", 20);
+            callableStatement.execute();
+            Assert.assertEquals(1, callableStatement.getInt(1));
+            Assert.assertEquals(3, callableStatement.getInt(2));
+            callableStatement = conn.prepareCall("? = call " + testFunction + "('fsfsfs',?,?,?)");
+            callableStatement.registerOutParameter(1, Types.NUMERIC);
+            callableStatement.registerOutParameter(3, Types.NUMERIC);
+            callableStatement.setInt("c2", 100);
+            callableStatement.setInt(4, 20);
+            callableStatement.execute();
+            Assert.assertEquals(1, callableStatement.getInt(1));
+            Assert.assertEquals(3, callableStatement.getInt(3));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 
 }

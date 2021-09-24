@@ -55,12 +55,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
@@ -88,17 +91,19 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
      */
     public JDBC4ServerCallableStatement(boolean isObFunction, String query,
                                         OceanBaseConnection connection, String procedureName,
-                                        String database, int resultSetType,
+                                        String database, String arguments, int resultSetType,
                                         int resultSetConcurrency, ExceptionFactory exceptionFactory)
                                                                                                     throws SQLException {
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
             exceptionFactory);
         this.isObFunction = isObFunction;
-
-        if (!protocol.isOracleMode()) {
-            this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
-            this.parameterMetadata.readMetadataFromDbIfRequired(query);
+        this.arguments = arguments;
+        if (!this.connection.getProtocol().isOracleMode()) {
+            this.parameterMetadata = new CallableParameterMetaData(connection, database,
+                procedureName, false);
         } else {
+            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
+                procedureName, isObFunction);
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database, procedureName, isObFunction);
             if (protocol.supportStmtPrepareExecute()) {
                 this.parameterMetadata.params = new ArrayList<CallParameter>();
@@ -106,7 +111,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 this.params = new ArrayList<>(parameterCount);
                 return;
             }
-            this.parameterMetadata.readMetadataFromDbIfRequired();
         }
 
         setParamsAccordingToSetArguments();
@@ -115,12 +119,13 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     public JDBC4ServerCallableStatement(boolean isObFunction, String query,
                                         OceanBaseConnection connection, String procedureName,
-                                        String database, int resultSetType,
+                                        String database, String arguments, int resultSetType,
                                         int resultSetConcurrency,
                                         ExceptionFactory exceptionFactory, boolean isAnonymousBlock)
                                                                                                     throws SQLException {
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
             exceptionFactory);
+        this.arguments = arguments;
         this.isObFunction = isObFunction;
         this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
             procedureName, isObFunction);
@@ -130,16 +135,21 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
-        if (parameterCount > this.parameterMetadata.getParameterCount()) {
-            throw new SQLException("Internal error for arguments number: parameter size not equal with prepare.");
-        }
-        parameterCount = this.parameterMetadata.getParameterCount();
-        params = new ArrayList<>(parameterCount);
-        for (int index = 0; index < this.parameterMetadata.getParameterCount(); index++) {
-            CallParameter parameter = this.parameterMetadata.getParam(index + 1);
-            if(parameter.getIndex() != -1) {
-                this.params.add(parameter); //TODO if check registerOutputParamter need to add it by arguments
+        if(parameterCount == -1) {
+            if(arguments == null || arguments.equals("")) {
+                parameterCount = 0;
+            } else {
+                List<ParsedCallParameters> paramList = Utils.argumentsSplit(arguments, ",", "'\"",
+                        "'\"");
+                parameterCount = paramList.size();
             }
+            if(isObFunction) {
+                parameterCount ++;
+            }
+        }
+        params = new ArrayList<>(parameterCount);
+        for (int index = 0; index < parameterCount; index++) {
+            params.add(new CallParameter());
         }
     }
 
@@ -254,12 +264,26 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     }
 
     private int setInOutParamsOnServer() throws SQLException {
+        this.parameterMetadata.readMetadataFromDbIfRequired();
         int size = this.params.size();
+        List<String> intoutParams = new ArrayList<>(size);
         setInputOutputParameterMap();
+        validAllParameters();
+        for (int i = 0; i < size; i++) {
+            CallParameter inParamInfo = params.get(i);
+            String paramName = parameterMetadata.params.get(i).getName();
+            String inOutParameterName;
+            if (paramName == null) {
+                throw new SQLException("param[" + i + "] name is null.");
+            } else {
+                inOutParameterName = mangleParameterName(paramName);
+            }
+            intoutParams.add(inOutParameterName);
+        }
         for (int i = 0; i < size; i++) {
             CallParameter inParamInfo = params.get(i);
             if (inParamInfo.isInput() && inParamInfo.isOutput()) {
-                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                String inOutParameterName = intoutParams.get(i);
                 StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
                 ParameterHolder holder = currentParameterHolder.get(i);
                 queryBuf.append("SET ");
@@ -286,7 +310,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             for (int i = 0; i < size; i++) {
                 CallParameter inParamInfo = params.get(i);
                 if (inParamInfo.isOutput()) {
-                    String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                    String inOutParameterName = intoutParams.get(i);
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                     sqlString = sqlString.replaceFirst("\\?", inOutParameterName);
                 } else {
@@ -311,7 +335,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 if (afterFirst) {
                     selectSB.append(",");
                 }
-                String inOutParameterName = mangleParameterName(inParamInfo.getName());
+                String inOutParameterName = intoutParams.get(i);
                 inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                 selectSB.append(inOutParameterName);
                 afterFirst = true;
@@ -326,24 +350,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
 
         return r;
-    }
-
-    private void executeProcedureOnServer() throws SQLException {
-        int size = this.params.size();
-        for (int i = 0; i < size; i++) {
-            CallParameter inParamInfo = params.get(i);
-            if (inParamInfo.isInput() || inParamInfo.isOutput()) {
-                String inOutParameterName = mangleParameterName(inParamInfo.getName());
-                StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
-                ParameterHolder holder = currentParameterHolder.get(i);
-                queryBuf.append("call ");
-                queryBuf.append(inOutParameterName);
-                queryBuf.append("");
-                queryBuf.append(holder.toString());
-                String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
-                this.connection.createStatement().execute(query);
-            }
-        }
     }
 
     @Override
