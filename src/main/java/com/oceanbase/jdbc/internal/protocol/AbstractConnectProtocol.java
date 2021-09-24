@@ -161,11 +161,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected final List<String>          galeraAllowedStates;
     private HostAddress                   currentHost;
     private boolean                       hostFailed;
-    private String                        serverVersion;
     private boolean                       serverMariaDb;
+    private String                        serverVersion;
     private int                           majorVersion;
     private int                           minorVersion;
     private int                           patchVersion;
+    private String                        obServerVersion;
+    private boolean                       supportStmtPrepareExecute;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode;                                                              /* is server in oracle mode */
@@ -538,7 +540,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         assignStream(this.socket, options);
 
         try {
-
             // parse server greeting packet.
             final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -558,7 +559,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sslWrapper(host, socket, options, greetingPacket.getServerCapabilities(),
                 clientCapabilities, exchangeCharset, serverThreadId);
             if (Boolean.TRUE.equals(options.useSsl)) {
-
                 if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
                     exceptionFactory.create(
                         "Trying to connect with ssl, but ssl not enabled in the server", "08000");
@@ -1520,6 +1520,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return serverVersion;
     }
 
+    public void setObServerVersion(String version) {
+        this.obServerVersion = version;
+        if (isOracleMode && options.useOraclePrepareExecute && options.useServerPrepStmts
+            && options.useCursorFetch && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+            supportStmtPrepareExecute = true;
+        } else {
+            supportStmtPrepareExecute = false;
+        }
+    }
+
+    public String getObServerVersion() {
+        return obServerVersion;
+    }
+
+    public boolean supportStmtPrepareExecute() {
+        return supportStmtPrepareExecute;
+    }
+
     public boolean getReadonly() {
         return readOnly;
     }
@@ -1557,7 +1575,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return username;
     }
 
-    private void parseVersion(String serverVersion) {
+    public void parseVersion(String serverVersion) {
         int length = serverVersion.length();
         char car;
         int offset = 0;

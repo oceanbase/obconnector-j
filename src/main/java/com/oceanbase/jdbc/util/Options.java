@@ -1,52 +1,52 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc.util;
 
@@ -176,16 +176,18 @@ public class Options implements Cloneable {
   public boolean useOceanBaseProtocolV20 = true;
   public boolean useFormatExceptionMessage = false;
   public boolean allowSendParamTypes = false;
-  public int  complexDataCacheSize = 50;
+  public int complexDataCacheSize = 50;
   public boolean cacheComplexData = true;
   public boolean useSqlStringCache = false;
   public boolean useServerPsStmtChecksum = true;
-  public String  characterEncoding   = "utf8";
+  public String characterEncoding = "utf8";
   public boolean useCursorFetch = false;
   public boolean supportNameBinding = true;
   public String socksProxyHost;
-  public int  socksProxyPort = 1080;
-  public boolean connectProxy      = false;
+  public int socksProxyPort = 1080;
+  public boolean connectProxy = false;
+  public boolean useOraclePrepareExecute = false;
+
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -524,21 +526,24 @@ public class Options implements Cloneable {
       return false;
     }
     if (characterEncoding != opt.characterEncoding) {
-	    return false;
+      return false;
     }
     if (useCursorFetch != opt.useCursorFetch) {
-	    return false;
+      return false;
     }
     if (supportNameBinding != opt.supportNameBinding) {
       return false;
     }
-    if (!Objects.equals(socksProxyHost,opt.socksProxyHost)) {
+    if (!Objects.equals(socksProxyHost, opt.socksProxyHost)) {
       return false;
     }
     if (socksProxyPort != opt.socksProxyPort) {
-       return false;
+      return false;
     }
     if (connectProxy != opt.connectProxy) {
+      return false;
+    }
+    if (useOraclePrepareExecute != opt.useOraclePrepareExecute) {
       return false;
     }
     return Objects.equals(minPoolSize, opt.minPoolSize);
@@ -556,8 +561,7 @@ public class Options implements Cloneable {
     result = 31 * result + (keyStore != null ? keyStore.hashCode() : 0);
     result = 31 * result + (keyStorePassword != null ? keyStorePassword.hashCode() : 0);
     result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
-    result =
-        31 * result + (enabledSslProtocolSuites != null ? enabledSslProtocolSuites.hashCode() : 0);
+    result = 31 * result + (enabledSslProtocolSuites != null ? enabledSslProtocolSuites.hashCode() : 0);
     result = 31 * result + (useFractionalSeconds ? 1 : 0);
     result = 31 * result + (pinGlobalTxToPhysicalConnection ? 1 : 0);
     result = 31 * result + (socketFactory != null ? socketFactory.hashCode() : 0);
@@ -576,9 +580,7 @@ public class Options implements Cloneable {
     result = 31 * result + (rewriteBatchedStatements ? 1 : 0);
     result = 31 * result + (useCompression ? 1 : 0);
     result = 31 * result + (interactiveClient ? 1 : 0);
-    result =
-        31 * result
-            + (passwordCharacterEncoding != null ? passwordCharacterEncoding.hashCode() : 0);
+    result = 31 * result + (passwordCharacterEncoding != null ? passwordCharacterEncoding.hashCode() : 0);
     result = 31 * result + (useSsl ? 1 : 0);
     result = 31 * result + (enabledSslCipherSuites != null ? enabledSslCipherSuites.hashCode() : 0);
     result = 31 * result + (sessionVariables != null ? sessionVariables.hashCode() : 0);
@@ -614,8 +616,7 @@ public class Options implements Cloneable {
     result = 31 * result + (log ? 1 : 0);
     result = 31 * result + (profileSql ? 1 : 0);
     result = 31 * result + maxQuerySizeToLog;
-    result =
-        31 * result + (slowQueryThresholdNanos != null ? slowQueryThresholdNanos.hashCode() : 0);
+    result = 31 * result + (slowQueryThresholdNanos != null ? slowQueryThresholdNanos.hashCode() : 0);
     result = 31 * result + (assureReadOnly ? 1 : 0);
     result = 31 * result + (autoReconnect ? 1 : 0);
     result = 31 * result + (failOnReadOnly ? 1 : 0);
@@ -649,12 +650,13 @@ public class Options implements Cloneable {
     result = 31 * result + (cacheComplexData ? 1 : 0);
     result = 31 * result + (useSqlStringCache ? 1 : 0);
     result = 31 * result + (useServerPsStmtChecksum ? 1 : 0);
-    result = 31 * result + (characterEncoding != null ?  characterEncoding.hashCode() : 0);
+    result = 31 * result + (characterEncoding != null ? characterEncoding.hashCode() : 0);
     result = 31 * result + (useCursorFetch ? 1 : 0);
     result = 31 * result + (supportNameBinding ? 1 : 0);
     result = 31 * result + (socksProxyHost != null ? socksProxyHost.hashCode() : 0);
     result = 31 * result + socksProxyPort;
     result = 31 * result + (connectProxy ? 1 : 0);
+    result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
     return result;
   }
 

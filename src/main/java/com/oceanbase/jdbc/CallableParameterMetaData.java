@@ -56,10 +56,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,23 +66,24 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static final Pattern        PARAMETER_PATTERN = Pattern
-                                                              .compile(
-                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                  Pattern.CASE_INSENSITIVE);
-    private static final Pattern        RETURN_PATTERN    = Pattern
-                                                              .compile(
-                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
-                                                                  Pattern.CASE_INSENSITIVE);
-    protected final OceanBaseConnection con;
-    protected final String              name;
-    protected List<CallParameter>       params;
-    protected String                    obOraclePackageName;
-    protected String                    obOracleSchema;
-    protected String                    database;
-    protected boolean                   valid;
-    protected boolean                   isFunction;
-    protected String                    query;
+    private static final Pattern         PARAMETER_PATTERN = Pattern
+                                                               .compile(
+                                                                   "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                   Pattern.CASE_INSENSITIVE);
+    private static final Pattern         RETURN_PATTERN    = Pattern
+                                                               .compile(
+                                                                   "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                   Pattern.CASE_INSENSITIVE);
+    protected final OceanBaseConnection  con;
+    protected final String               name;
+    protected List<CallParameter>        params;
+    protected Map<String, CallParameter> mapNameToParamter;
+    protected String                     obOraclePackageName;
+    protected String                     obOracleSchema;
+    protected String                     database;
+    protected boolean                    valid;
+    protected boolean                    isFunction;
+    protected String                     query;
 
     public String getProName() {
         return name;

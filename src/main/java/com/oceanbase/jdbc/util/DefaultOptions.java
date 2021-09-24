@@ -823,7 +823,15 @@ public enum DefaultOptions {
           Boolean.TRUE,
           "2.2.2",
           "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
-          false);
+          false
+  ),
+  USE_ORACLE_PREPARE_EXECUTE(
+          "useOraclePrepareExecute",
+          Boolean.FALSE,
+          "2.2.6",
+          "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
+          false
+  );
 
   private final String optionName;
   private final String description;
@@ -1111,9 +1119,13 @@ public enum DefaultOptions {
         }
       }
 
-      // special case : field with multiple default according to HA_MODE
+      // field with multiple default according to HA_MODE
       if (options.socketTimeout == null) {
         options.socketTimeout = ((Integer[]) SOCKET_TIMEOUT.defaultValue)[haMode.ordinal()];
+      }
+      // cursor functionality is available only for server-side prepared statements
+      if (options.useCursorFetch) {
+        options.useServerPrepStmts = true;
       }
 
     } catch (NoSuchFieldException | IllegalAccessException n) {

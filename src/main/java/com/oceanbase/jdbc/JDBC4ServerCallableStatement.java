@@ -50,9 +50,11 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -92,15 +94,21 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
             exceptionFactory);
         this.isObFunction = isObFunction;
-        if (!this.connection.getProtocol().isOracleMode()) {
-            this.parameterMetadata = new CallableParameterMetaData(connection, database,
-                procedureName, false);
+
+        if (!protocol.isOracleMode()) {
+            this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
             this.parameterMetadata.readMetadataFromDbIfRequired(query);
         } else {
-            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
-                procedureName, isObFunction);
+            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database, procedureName, isObFunction);
+            if (protocol.supportStmtPrepareExecute()) {
+                this.parameterMetadata.params = new ArrayList<CallParameter>();
+                this.parameterMetadata.mapNameToParamter = new HashMap<>();
+                this.params = new ArrayList<>(parameterCount);
+                return;
+            }
             this.parameterMetadata.readMetadataFromDbIfRequired();
         }
+
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
@@ -205,7 +213,21 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder)
                                                                                     throws SQLException {
-        params.get(parameterIndex - 1).setInput(true);
+        try {
+            params.get(parameterIndex - 1).setInput(true);
+        } catch (IndexOutOfBoundsException e) {
+            if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
+                && parameterIndex <= parameterCount) {
+                CallParameter paramInfoToAdd = new CallParameter(null, parameterIndex - 1, true,
+                    false, holder.getColumnType().getSqlType(), holder.getColumnType()
+                        .getTypeName(), 0, 0, DatabaseMetaData.procedureNullable,
+                    DatabaseMetaData.procedureColumnIn);
+                params.add(paramInfoToAdd);
+            } else {
+                throw e;
+            }
+        }
+
         super.setParameter(parameterIndex, holder);
     }
 
@@ -333,7 +355,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 return true;
             }
             validAllParameters();
-            super.executeInternal(fetchSize);
+            super.execute();
+            // TODO: set this.parameterMetadata according to results from server
             retrieveOutputResult();
             return results != null && results.getResultSet() != null;
         } finally {
@@ -355,13 +378,12 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 super.setParameter(index + 1, new NullParameter());
             }
         }
-        validParameters();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
         if (!hasInOutParameters) {
-            if (!this.connection.getProtocol().isOracleMode() && !isObFunction) {
+            if (!protocol.isOracleMode() && !isObFunction) {
                 int querySize = queryParameters.size();
                 if (querySize == 0) {
                     return new int[0];

@@ -51,6 +51,7 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class CursorResultSet extends SelectResultSet {
+
     int statementId;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,

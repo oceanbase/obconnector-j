@@ -1,52 +1,52 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc.internal.util;
 
@@ -67,6 +67,7 @@ import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
+import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
@@ -88,17 +89,18 @@ import com.oceanbase.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class Utils {
 
+  private static int parameterCount;
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
   private static final Pattern IP_V4 =
-          Pattern.compile(
-                  "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
-                          + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
-                          + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+      Pattern.compile(
+          "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
+              + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
+              + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
   private static final Pattern IP_V6 = Pattern.compile("^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}$");
   private static final Pattern IP_V6_COMPRESSED =
-          Pattern.compile(
-                  "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
-                          + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
+      Pattern.compile(
+          "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
+              + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
 
   private static final SocketHandlerFunction socketHandler;
 
@@ -108,7 +110,7 @@ public class Utils {
       init = SocketUtility.getSocketHandler();
     } catch (Throwable t) {
       SocketHandlerFunction defaultSocketHandler =
-              (options, host) -> Utils.standardSocket(options, host);
+          (options, host) -> Utils.standardSocket(options, host);
       init = defaultSocketHandler;
     }
     socketHandler = init;
@@ -129,7 +131,7 @@ public class Utils {
       try {
         @SuppressWarnings("unchecked")
         Class<? extends SocketFactory> socketFactoryClass =
-                (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+            (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
         if (socketFactoryClass != null) {
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
@@ -140,10 +142,10 @@ public class Utils {
         }
       } catch (Exception exp) {
         throw new IOException(
-                "Socket factory failed to initialized with option \"socketFactory\" set to \""
-                        + options.socketFactory
-                        + "\"",
-                exp);
+            "Socket factory failed to initialized with option \"socketFactory\" set to \""
+                + options.socketFactory
+                + "\"",
+            exp);
       }
     }
     socketFactory = SocketFactory.getDefault();
@@ -154,7 +156,7 @@ public class Utils {
     String socksProxyHost = options.socksProxyHost;
     int socksProxyPort = options.socksProxyPort;
     return new Socket(new java.net.Proxy(java.net.Proxy.Type.SOCKS, new InetSocketAddress(socksProxyHost,
-            socksProxyPort)));
+        socksProxyPort)));
   }
 
 
@@ -297,10 +299,10 @@ public class Utils {
     }
 
     for (;
-        ((input[index] >= 'a' && input[index] <= 'z')
-                || (input[index] >= 'A' && input[index] <= 'Z'))
-            && index < input.length;
-        index++) {
+         ((input[index] >= 'a' && input[index] <= 'z')
+             || (input[index] >= 'A' && input[index] <= 'Z'))
+             && index < input.length;
+         index++) {
       sb.append(input[index]);
     }
     String func = sb.toString().toLowerCase(Locale.ROOT);
@@ -473,7 +475,7 @@ public class Utils {
     }
     throw new SQLException("unknown escape sequence " + escaped);
   }
-  
+
 
   /**
    * Escape sql String.
@@ -606,14 +608,14 @@ public class Utils {
     boolean inComment = false;
     boolean isSlashSlashComment = false; // slash and double dash
     boolean isDoubleDashComment = false;
-    boolean inDoubleDashComment  = false;
+    boolean inDoubleDashComment = false;
     boolean add = false;
     boolean skip = false;
     boolean afterDoubleDash = false;
     for (int i = 0; i < charArray.length; i++) {
       char car = charArray[i];
-      if(afterDoubleDash && isDoubleDashComment && inComment) {
-        if(car == 127 || car < 33 ) {
+      if (afterDoubleDash && isDoubleDashComment && inComment) {
+        if (car == 127 || car < 33) {
           inDoubleDashComment = true;
           afterDoubleDash = false;
         } else {
@@ -714,15 +716,15 @@ public class Utils {
         }
       }
       lastChar = car;
-      if(i == charArray.length - 1) {
+      if (i == charArray.length - 1) {
         add = true;
       }
       escapeSequenceBuf.append(car);
-      if(skip) {
+      if (skip) {
         escapeSequenceBuf.setLength(0);
         skip = false;
       }
-      if(add) {
+      if (add) {
         sqlBuffer.append(escapeSequenceBuf);
         add = false;
         escapeSequenceBuf.setLength(0);
@@ -746,10 +748,11 @@ public class Utils {
    * @param queryString  original sql string
    * @param noBackslashEscapes  must backslash be escaped
    * @param isOracleMode  oracle mode
-   * @param skipComment  don not remove the comment 
+   * @param skipComment  don not remove the comment
    * @return
    */
-  public static String   trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode,boolean skipComment){
+  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
+    parameterCount = 0;
     StringBuilder trimedSqlString = new StringBuilder();
     boolean multipleQueriesPrepare = true;
     LexState state = LexState.Normal;
@@ -766,18 +769,21 @@ public class Utils {
     StringBuilder paramSb = new StringBuilder();
     boolean includeCurChar = false;
     int commentStart = 0;
+
     for (int i = 0; i < queryLength; i++) {
-      if(i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
+      if (i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
         endNameBinding = true;
         includeCurChar = true;
       }
+
       char car = query[i];
       if (state == LexState.Escape
-              && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
-        state =LexState.String;
+          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+        state = LexState.String;
         lastChar = car;
         continue;
       }
+
       switch (car) {
         case '*':
           if (state == LexState.Normal && lastChar == '/') {
@@ -790,8 +796,8 @@ public class Utils {
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
             slashend = true;
-            if(skipComment) {
-              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1 ));
+            if (skipComment) {
+              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1));
             } else {
               if (commentStart != 0) {
                 trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
@@ -827,8 +833,8 @@ public class Utils {
           if (state == LexState.EOLComment) {
             multipleQueriesPrepare = true;
             state = LexState.Normal;
-            if(skipComment) {
-              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1 ));
+            if (skipComment) {
+              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1));
             } else {
               if (commentStart != 0) {
                 trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
@@ -843,6 +849,7 @@ public class Utils {
             }
           }
           break;
+
         case '"':
           if (state == LexState.Normal) {
             state = LexState.String;
@@ -873,6 +880,7 @@ public class Utils {
             state = LexState.Escape;
           }
           break;
+
         case ';':
           if (isOracleMode) {
             if (state == LexState.NameBinding) {
@@ -885,13 +893,16 @@ public class Utils {
             multipleQueriesPrepare = false;
           }
           break;
+
         case '?':
           if (state == LexState.Normal) {
             trimedSqlString.append(queryString.substring(lastParameterPosition, i));
             trimedSqlString.append("?");
             lastParameterPosition = i + 1;
+            parameterCount++;
           }
           break;
+
         case '`':
           if (state == LexState.Backtick) {
             state = LexState.Normal;
@@ -899,6 +910,7 @@ public class Utils {
             state = LexState.Backtick;
           }
           break;
+
         case ':':
           if (isOracleMode) {
             if (state == LexState.Normal) {
@@ -910,6 +922,7 @@ public class Utils {
             }
           }
           break;
+
         case '=':
           if (isOracleMode) {
             if (state == LexState.NameBinding) {
@@ -922,6 +935,7 @@ public class Utils {
             }
           }
           break;
+
         case ' ':
         case ',':
         case ')':
@@ -933,21 +947,20 @@ public class Utils {
             }
           }
           break;
+
         default:
           // multiple queries
-
           if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) {
             endingSemicolon = false;
             multipleQueriesPrepare = true;
           }
-
           break;
       }
-      if (isOracleMode && state == LexState.NameBinding && ((int) car >= 40) && !endNameBinding ) {
+      if (isOracleMode && state == LexState.NameBinding && ((int) car >= 40) && !endNameBinding) {
         paramSb.append(car);
       }
       if (isOracleMode && state == LexState.NameBinding && endNameBinding) {
-        if(!includeCurChar) {
+        if (!includeCurChar) {
           trimedSqlString.append(queryString.substring(lastParameterPosition, i - paramSb.length()));
           trimedSqlString.append("?");
           lastParameterPosition = i;
@@ -961,6 +974,7 @@ public class Utils {
         paramSb.setLength(0);
         endNameBinding = false;
         state = LexState.Normal;
+        parameterCount++;
       }
       lastChar = car;
     }
@@ -971,11 +985,42 @@ public class Utils {
     }
     return trimedSqlString.toString();
   }
-  public static String   trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
-    return trimSQLString(queryString,noBackslashEscapes,isOracleMode,false);
+
+  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
+    return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
   }
 
+  public static int getStatementType(String queryString) {
+    if (queryString.substring(0, 4).equalsIgnoreCase("with")) {
+      return OceanBaseStatement.STMT_SELECT;
+    } else if (queryString.substring(0, 6).equalsIgnoreCase("select")) {
+      return OceanBaseStatement.STMT_SELECT;
+    } else if (queryString.substring(0, 6).equalsIgnoreCase("update")) {
+      return OceanBaseStatement.STMT_UPDATE;
+    } else if (queryString.substring(0, 6).equalsIgnoreCase("delete")) {
+      return OceanBaseStatement.STMT_DELETE;
+    } else if (queryString.substring(0, 6).equalsIgnoreCase("insert")) {
+      return OceanBaseStatement.STMT_INSERT;
+    } else if (queryString.substring(0, 6).equalsIgnoreCase("create")) {
+      return OceanBaseStatement.STMT_CREATE;
+    } else if (queryString.substring(0, 4).equalsIgnoreCase("drop")) {
+      return OceanBaseStatement.STMT_DROP;
+    } else if (queryString.substring(0, 5).equalsIgnoreCase("alter")) {
+      return OceanBaseStatement.STMT_ALTER;
+    } else if (queryString.substring(0, 5).equalsIgnoreCase("begin")) {
+      return OceanBaseStatement.STMT_BEGIN;
+    } else if (queryString.substring(0, 7).equalsIgnoreCase("declare")) {
+      return OceanBaseStatement.STMT_DECLARE;
+    } else if (queryString.substring(0, 4).equalsIgnoreCase("call")) {
+      return OceanBaseStatement.STMT_CALL;
+    } else {
+      return OceanBaseStatement.STMT_UNKNOWN;
+    }
+  }
 
+  public static int getParameterCount() {
+    return parameterCount;
+  }
 
   /**
    * Retrieve protocol corresponding to the failover options. if no failover option, protocol will
@@ -1000,7 +1045,7 @@ public class Utils {
             (Protocol)
                 Proxy.newProxyInstance(
                     AuroraProtocol.class.getClassLoader(),
-                    new Class[] {Protocol.class},
+                    new Class[]{Protocol.class},
                     new FailoverProxy(
                         new AuroraListener(urlParser, globalInfo), lock, traceCache)));
       case REPLICATION:
@@ -1009,7 +1054,7 @@ public class Utils {
             (Protocol)
                 Proxy.newProxyInstance(
                     MastersSlavesProtocol.class.getClassLoader(),
-                    new Class[] {Protocol.class},
+                    new Class[]{Protocol.class},
                     new FailoverProxy(
                         new MastersSlavesListener(urlParser, globalInfo), lock, traceCache)));
       case LOADBALANCE:
@@ -1019,7 +1064,7 @@ public class Utils {
             (Protocol)
                 Proxy.newProxyInstance(
                     MasterProtocol.class.getClassLoader(),
-                    new Class[] {Protocol.class},
+                    new Class[]{Protocol.class},
                     new FailoverProxy(
                         new MastersFailoverListener(urlParser, globalInfo), lock, traceCache)));
       default:
@@ -1037,7 +1082,7 @@ public class Utils {
       return (Protocol)
           Proxy.newProxyInstance(
               MasterProtocol.class.getClassLoader(),
-              new Class[] {Protocol.class},
+              new Class[]{Protocol.class},
               new ProtocolLoggingProxy(protocol, urlParser.getOptions()));
     }
     return protocol;
@@ -1421,7 +1466,7 @@ public class Utils {
    * @return true if correspond
    */
   public static boolean validateFileName(
-          String sql, ParameterHolder[] parameters, String fileName) {
+      String sql, ParameterHolder[] parameters, String fileName) {
     Pattern pattern =
         Pattern.compile(
             "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"

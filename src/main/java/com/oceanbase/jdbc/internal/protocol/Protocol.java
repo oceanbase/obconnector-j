@@ -66,6 +66,7 @@ import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -122,6 +123,12 @@ public interface Protocol {
 
     String getServerVersion();
 
+    void setObServerVersion(String version);
+
+    String getObServerVersion();
+
+    boolean supportStmtPrepareExecute();
+
     boolean isConnected();
 
     boolean getReadonly() throws SQLException;
@@ -172,6 +179,11 @@ public interface Protocol {
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                               Results results, ParameterHolder[] parameters) throws SQLException;
 
+    ServerPrepareResult executePreparedQuery(boolean mustExecuteOnMaster, int iterationCount,
+                                             int parameterCount,
+                                             ServerPrepareResult serverPrepareResult,
+                                             Results results) throws SQLException;
+
     boolean executeBatchServer(boolean mustExecuteOnMaster,
                                ServerPrepareResult serverPrepareResult, Results results,
                                String sql, List<ParameterHolder[]> parameterList,
@@ -204,6 +216,8 @@ public interface Protocol {
     int getMajorServerVersion();
 
     int getMinorServerVersion();
+
+    void parseVersion(String serverVersion);
 
     boolean versionGreaterOrEqual(int major, int minor, int patch);
 
@@ -262,9 +276,15 @@ public interface Protocol {
 
     ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 
+    void readOkPacket(Buffer buffer, Results results);
+
     void readEofPacket() throws SQLException, IOException;
 
     void skipEofPacket() throws SQLException, IOException;
+
+    SQLException readErrorPacket(Buffer buffer, Results results);
+
+    void readResultSet(ColumnDefinition[] ci, Results results) throws SQLException;
 
     void changeSocketTcpNoDelay(boolean setTcpNoDelay);
 
@@ -300,6 +320,14 @@ public interface Protocol {
     void resetChecksum();
 
     long getChecksum();
+
+    void setIterationCount(int iterationCount);
+
+    int getIterationCount();
+
+    void setExecuteMode(int executeMode);
+
+    int getExecuteMode();
 
     ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
                                             int fetchSize, Results results) throws SQLException;
