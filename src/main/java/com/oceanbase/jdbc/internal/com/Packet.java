@@ -55,7 +55,6 @@ package com.oceanbase.jdbc.internal.com;
  * packets require a previous result set stream.
  */
 public class Packet {
-
     public static final byte ERROR                        = (byte) 0xff;
     public static final byte OK                           = (byte) 0x00;
     public static final byte EOF                          = (byte) 0xfe;
@@ -76,6 +75,8 @@ public class Packet {
     public static final byte COM_STMT_BULK_EXECUTE        = (byte) 0xfa;
     public static final byte COM_MULTI                    = (byte) 0xfe;
     public static final byte COM_CHANGE_USER              = (byte) 0x11;
+    public static final byte COM_STMT_SEND_PIECE_DATA     = (byte) 0xa2;
+    public static final byte COM_STMT_GET_PIECE_DATA      = (byte) 0xa3;
 
     // prepare statement cursor flag.
     public static final byte CURSOR_TYPE_NO_CURSOR        = (byte) 0x00;
@@ -107,4 +108,8 @@ public class Packet {
     public static final int  OCI_RETURN_ROW_COUNT_ARRAY   = 0x00100000; // Per Iter DML Row Count mode
     /*---------------------------------------------------------------------------*/
 
+    public static final byte OCI_ONE_PIECE                = (byte) 0x00;
+    public static final byte OCI_FIRST_PIECE              = (byte) 0x01;
+    public static final byte OCI_NEXT_PIECE               = (byte) 0x02;
+    public static final byte OCI_LAST_PIECE               = (byte) 0x03;
 }

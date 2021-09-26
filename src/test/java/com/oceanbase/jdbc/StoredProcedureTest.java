@@ -788,6 +788,8 @@ public class StoredProcedureTest extends BaseTest {
             CallableStatement callableStatement = sharedConnection
                 .prepareCall("{CALL testProcedureParenthesis}");
             callableStatement.execute();
+            callableStatement = sharedConnection.prepareCall("{CALL testProcedureParenthesis()}");
+            callableStatement.execute();
             callableStatement = sharedConnection.prepareCall("{? = CALL testFunctionParenthesis}");
             callableStatement.execute();
             Assert.assertEquals(100, callableStatement.getInt(1));

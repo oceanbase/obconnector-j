@@ -823,8 +823,20 @@ public enum DefaultOptions {
           Boolean.TRUE,
           "2.2.2",
           "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
-          false
-  ),
+          false),
+  PIECE_LENGTH(
+          "pieceLength",
+          1000,
+          0,
+          "2.2.6",
+          "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",
+          false),
+  USE_PIECE_DATA(
+          "usePieceData",
+          Boolean.TRUE,
+          "2.2.6",
+                  "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
+                  false),
   USE_ORACLE_PREPARE_EXECUTE(
           "useOraclePrepareExecute",
           Boolean.FALSE,

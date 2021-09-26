@@ -82,6 +82,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import com.oceanbase.jdbc.internal.com.send.*;
+import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -425,14 +426,33 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       int parameterCount = serverPrepareResult.getParameters().length;
 
-      for (int i = 0; i < parameterCount; i++) {
-        if (parameters[i].isLongData()) {
-          writer.startPacket(0);
-          writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-          writer.writeInt(serverPrepareResult.getStatementId());
-          writer.writeShort((short) i);
-          parameters[i].writeBinary(writer);
-          writer.flush();
+      // send binary data in a separate stream
+      if (isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
+        for (int i = 0; i < parameterCount; i++) {
+          if (parameters[i].isLongData()) {
+            boolean continueWrite = true;
+            boolean first = true;
+            while (continueWrite) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+              writer.writeInt(serverPrepareResult.getStatementId());
+              writer.writeShort((short) (i));
+              continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer,first, options);
+              first = false;
+              getResult(results);
+            }
+          }
+        }
+      } else {
+        for (int i = 0; i < parameterCount; i++) {
+          if (parameters[i].isLongData()) {
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+            writer.writeInt(serverPrepareResult.getStatementId());
+            writer.writeShort((short) i);
+            parameters[i].writeBinary(writer);
+            writer.flush();
+          }
         }
       }
       writer.setTimeZone(this.getServerTimeZone());
@@ -1177,15 +1197,30 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               "Parameter at position " + (paramCount - 1) + " is not set", "07004");
         }
 
+
         // send binary data in a separate stream
-        for (int i = 0; i < paramCount; i++) {
-          if (parameters[i].isLongData()) {
-            writer.startPacket(0);
-            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-            writer.writeInt(statementId);
-            writer.writeShort((short) i);
-            parameters[i].writeBinary(writer);
-            writer.flush();
+        if(isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
+          for (int i = 0; i < paramCount; i++) {
+            if (parameters[i].isLongData()) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+              writer.writeInt(statementId);
+              writer.writeShort((short) i);
+              writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
+              parameters[i].writeBinary(writer);
+              writer.flush();
+            }
+          }
+        } else {
+          for (int i = 0; i < paramCount; i++) {
+            if (parameters[i].isLongData()) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+              writer.writeInt(statementId);
+              writer.writeShort((short) i);
+              parameters[i].writeBinary(writer);
+              writer.flush();
+            }
           }
         }
 

@@ -222,11 +222,14 @@ public class CallableParameterMetaData implements ParameterMetaData {
         for (int i = 0; i < parameterCount; i++) {
             placeholderToParameterIndexMap[i] = -1; // not param
         }
-        arguments = Utils.trimSQLString(arguments, false, true, false);
-        List<ParsedCallParameters> paramList = Utils.argumentsSplit(arguments, ",", "'\"",
-            "'\"");
+        List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>() ;
+        if(arguments!=null) {
+            arguments = Utils.trimSQLString(arguments, false, true, false);
+            paramList = Utils.argumentsSplit(arguments, ",", "'\"",
+                "'\"");
+        }
         int placeholderCount = 0;
-        if (isObFunction) {
+        if (isObFunction ) {
             paramList.add(0, new ParsedCallParameters(true, "?"));
         }
         for (int i = 0; i < paramList.size(); i++) {

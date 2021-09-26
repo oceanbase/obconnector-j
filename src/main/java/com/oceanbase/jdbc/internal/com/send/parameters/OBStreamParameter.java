@@ -47,9 +47,11 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.util.Options;
 
-public class OBStreamParameter implements Cloneable, ParameterHolder {
+public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
 
     private final InputStream is;
     private final long        length;
@@ -143,7 +145,7 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return this.hasLobLocator ? ColumnType.OBBLOB : ColumnType.BLOB;
+        return this.hasLobLocator ? ColumnType.OBBLOB : ColumnType.STRING;
     }
 
     public boolean isNullData() {
@@ -152,5 +154,49 @@ public class OBStreamParameter implements Cloneable, ParameterHolder {
 
     public boolean isLongData() {
         return this.hasLobLocator ? false : true;
+    }
+
+    @Override
+    public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
+                                                                                            throws IOException {
+        int pieceLen = options.pieceLength;
+        byte piece;
+        byte[] buffer = new byte[pieceLen];
+        int len = is.read(buffer);
+        boolean ret = false;
+        if (len < 0) {
+            writer.write(Packet.OCI_LAST_PIECE);
+            writer.write(0);
+            writer.writeLong(0);
+            writer.flush();
+            return false;
+        }
+        byte[] data = new byte[len];
+
+        System.arraycopy(buffer, 0, data, 0, len);
+        StringBuilder sb = new StringBuilder();
+        for (byte b : data) {
+            sb.append(String.format("%02x", b));
+        }
+        data = sb.toString().getBytes();
+        if (first && data.length == pieceLen) {
+            piece = Packet.OCI_FIRST_PIECE;
+            ret = true;
+        } else if (first && data.length < pieceLen) {
+            piece = Packet.OCI_LAST_PIECE;
+            ret = false;
+        } else if (!first && data.length == pieceLen) {
+            piece = Packet.OCI_NEXT_PIECE;
+            ret = true;
+        } else {
+            piece = Packet.OCI_LAST_PIECE;
+            ret = false;
+        }
+        writer.write(piece);
+        writer.write(0);
+        writer.writeLong(data.length);
+        writer.write(data);
+        writer.flush();
+        return ret;
     }
 }

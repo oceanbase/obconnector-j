@@ -420,12 +420,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 return;
             }
 
-            if (this.connection.getProtocol().isOracleMode()
-                && (((Blob) clob).getLocator() != null)
-                && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
-                byte[] data = ((Clob) clob).getLocator().binaryData;
-                setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
-                    noBackslashEscapes));
+            if (this.connection.getProtocol().isOracleMode()) {
+                if ((((Blob) clob).getLocator() != null)
+                    && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+                    byte[] data = ((Clob) clob).getLocator().binaryData;
+                    setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
+                        noBackslashEscapes));
+                } else {
+                    setParameter(parameterIndex, new OBReaderParameter(clob.getCharacterStream(),
+                        clob.length(), noBackslashEscapes));
+                }
             } else {
                 setParameter(parameterIndex,
                     new ReaderParameter(clob.getCharacterStream(), clob.length(),
