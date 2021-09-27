@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -68,7 +67,7 @@ public class SendChangeDbPacket {
     public static void send(final PacketOutputStream pos, final String database) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_INIT_DB);
-        pos.write(database.getBytes(StandardCharsets.UTF_8));
+        pos.write(database.getBytes(pos.getCharset()));
         pos.flush();
     }
 }

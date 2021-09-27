@@ -110,9 +110,9 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       if(!options.useServerPrepStmts && this.protocol.isOracleMode() && options.supportNameBinding) {
         sqlString = Utils.trimSQLString(sqlString,protocol.noBackslashEscapes(),protocol.isOracleMode(),true);
       }
-      prepareResult = ClientPrepareResult.rewritableParts(sqlString, protocol.noBackslashEscapes(), protocol.isOracleMode());
+      prepareResult = ClientPrepareResult.rewritableParts(sqlString, protocol.noBackslashEscapes(), protocol.isOracleMode(),protocol.getEncoding());
     } else {
-      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode());
+      prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes(), protocol.isOracleMode(),protocol.getEncoding());
     }
     parameters = new ParameterHolder[prepareResult.getParamCount()];
   }

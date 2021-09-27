@@ -93,7 +93,7 @@ public class ClientPrepareResultTest {
     }
 
     private boolean checkRewritable(String query) {
-        return ClientPrepareResult.rewritableParts(query, true, false)
+        return ClientPrepareResult.rewritableParts(query, true, false, "UTF-8")
             .isQueryMultiValuesRewritable();
     }
 }

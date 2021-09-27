@@ -346,4 +346,6 @@ public interface Protocol {
 
     void changeUser(String user, String pwd) throws SQLException;
 
+    String getEncoding();
+
 }

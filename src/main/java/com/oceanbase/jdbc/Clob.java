@@ -53,7 +53,6 @@ package com.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
@@ -73,6 +72,7 @@ public class Clob extends Blob implements ObClob, Serializable {
      */
     public Clob(byte[] bytes) {
         super(bytes);
+        this.encoding = Charset.defaultCharset().name();
     }
 
     public static Clob getEmptyCLOB() throws SQLException {
@@ -87,6 +87,7 @@ public class Clob extends Blob implements ObClob, Serializable {
 
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
         super(bytes, exceptionInterceptor);
+        this.encoding = Charset.defaultCharset().name();
     }
 
     /**
@@ -99,6 +100,7 @@ public class Clob extends Blob implements ObClob, Serializable {
 
     public Clob(byte[] bytes, int offset, int length) {
         super(bytes, offset, length);
+        this.encoding = Charset.defaultCharset().name();
     }
 
     public Clob(String charDataInit, ExceptionInterceptor exceptionInterceptor) {
@@ -164,6 +166,7 @@ public class Clob extends Blob implements ObClob, Serializable {
      */
     public Clob() {
         super();
+        this.encoding = Charset.defaultCharset().name();
     }
 
     public synchronized ObLobLocator getLocator() {
@@ -193,7 +196,8 @@ public class Clob extends Blob implements ObClob, Serializable {
      * @return string value of blob content.
      */
     public String toString() {
-        return new String(data, offset, length, StandardCharsets.UTF_8);
+        Charset charset = Charset.forName(encoding);
+        return new String(data, offset, length, charset);
     }
 
     /**
@@ -274,7 +278,11 @@ public class Clob extends Blob implements ObClob, Serializable {
     public Writer setCharacterStream(long pos) throws SQLException {
         int bytePosition = utf8Position((int) pos - 1);
         OutputStream stream = setBinaryStream(bytePosition + 1);
-        return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
+        try {
+            return new OutputStreamWriter(stream, encoding);
+        } catch (UnsupportedEncodingException e) {
+            throw new SQLException("Unsupported character encoding " + this.encoding);
+        }
     }
 
     public InputStream getAsciiStream() throws SQLException {
@@ -344,7 +352,11 @@ public class Clob extends Blob implements ObClob, Serializable {
             }
         } else {
             int bytePosition = utf8Position((int) pos - 1);
-            super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
+            try {
+                super.setBytes(bytePosition + 1 - offset, str.getBytes(encoding));
+            } catch (UnsupportedEncodingException e) {
+                throw new SQLException("Unsupported character encoding " + this.encoding);
+            }
             return str.length();
         }
         return 0;

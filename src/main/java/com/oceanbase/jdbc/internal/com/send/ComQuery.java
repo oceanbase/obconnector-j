@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -76,7 +75,8 @@ public class ComQuery {
                                                                                  throws IOException {
         out.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
-            out.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+            out.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes(out
+                .getCharset()));
         }
         if (clientPrepareResult.isRewriteType()) {
 
@@ -269,13 +269,13 @@ public class ComQuery {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         // index is already set to 1 for first one
-        writer.write(firstQuery.getBytes(StandardCharsets.UTF_8));
+        writer.write(firstQuery.getBytes(writer.getCharset()));
 
         int index = currentIndex;
 
         // add query with ";"
         while (index < queries.size()) {
-            byte[] sqlByte = queries.get(index).getBytes(StandardCharsets.UTF_8);
+            byte[] sqlByte = queries.get(index).getBytes(writer.getCharset());
             if (!writer.checkRemainingSize(sqlByte.length + 1)) {
                 break;
             }
@@ -315,7 +315,8 @@ public class ComQuery {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
-            pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+            pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes(pos
+                .getCharset()));
         }
         pos.write(sqlBytes);
         pos.flush();
@@ -350,7 +351,8 @@ public class ComQuery {
                                        int queryTimeout) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
-        pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+        pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes(pos
+            .getCharset()));
         for (byte[] bytes : sqlBytes) {
             pos.write(bytes);
         }

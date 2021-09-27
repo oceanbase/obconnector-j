@@ -256,7 +256,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       cmdPrologue(); // ?
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_PREPARE);
-      writer.write(sql);
+      writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
 
       ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
@@ -267,7 +267,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       lock.unlock();
     }
   }
-
   /**
    * Execute internal query.
    *
@@ -296,7 +295,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
-      writer.write(sql);
+      writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
       getResult(results);
 
@@ -1038,6 +1037,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     }.executeBatch();
   }
+
+
 
   /**
    * Execute list of queries. This method is used when using text batch statement and using

@@ -52,7 +52,6 @@ package com.oceanbase.jdbc.internal.com.read.resultset;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
 
@@ -248,7 +247,9 @@ public class ColumnDefinition {
      */
     public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode,
                                           String encoding) {
-        byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+        Charset charset = Charset.forName(encoding);
+        byte[] nameBytes = name.getBytes(charset);
+        // todo check the encoding
 
         byte[] arr = new byte[19 + 2 * nameBytes.length];
         int pos = 0;
@@ -260,7 +261,6 @@ public class ColumnDefinition {
         for (int i = 0; i < 4; i++) {
             arr[pos++] = 0;
         }
-
         // lenenc_str     name
         // lenenc_str     org_name
         for (int i = 0; i < 2; i++) {
@@ -320,14 +320,6 @@ public class ColumnDefinition {
         return nameStart + 8;
     }
 
-    private String getString(int idx) {
-        buffer.position = 0;
-        for (int i = 0; i < idx; i++) {
-            buffer.skipLengthEncodedBytes();
-        }
-        return buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
-    }
-
     public String getDatabase() {
         return getStringFromBytes(databaseNameStart, databaseNameLength);
     }
@@ -345,7 +337,6 @@ public class ColumnDefinition {
     }
 
     public String getOriginalName() {
-        //        return getString(5);
         return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
     }
 

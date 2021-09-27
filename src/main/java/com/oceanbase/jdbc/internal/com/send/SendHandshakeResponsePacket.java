@@ -74,21 +74,15 @@ public class SendHandshakeResponsePacket {
 
     private static final Supplier<String> pidRequest                        = PidFactory
                                                                                 .getInstance();
-    private static final byte[]           _CLIENT_NAME                      = "__client_name"
-                                                                                .getBytes();
-    private static final byte[]           _CLIENT_VERSION                   = "__client_version"
-                                                                                .getBytes();
-    private static final byte[]           _SERVER_HOST                      = "__server_host"
-                                                                                .getBytes();
-    private static final byte[]           _CLIENT_IP                        = "__client_ip"
-                                                                                .getBytes();
-    private static final byte[]           _OS                               = "__os".getBytes();
-    private static final byte[]           _PID                              = "__pid".getBytes();
-    private static final byte[]           _THREAD                           = "__thread".getBytes();
-    private static final byte[]           _JAVA_VENDOR                      = "__java_vendor"
-                                                                                .getBytes();
-    private static final byte[]           _JAVA_VERSION                     = "__java_version"
-                                                                                .getBytes();
+    private static final String           _CLIENT_NAME                      = "__client_name";
+    private static final String           _CLIENT_VERSION                   = "__client_version";
+    private static final String           _SERVER_HOST                      = "__server_host";
+    private static final String           _CLIENT_IP                        = "__client_ip";
+    private static final String           _OS                               = "__os";
+    private static final String           _PID                              = "__pid";
+    private static final String           _THREAD                           = "__thread";
+    private static final String           _JAVA_VENDOR                      = "__java_vendor";
+    private static final String           _JAVA_VERSION                     = "__java_version";
 
     private static final String           OB_PROXY_PARTITION_HIT            = "ob_proxy_partition_hit";
     private static final String           OB_STATEMENT_TRACE_ID             = "ob_statement_trace_id";
@@ -304,35 +298,34 @@ public class SendHandshakeResponsePacket {
                                                String host, Options options, String clientIp)
                                                                                              throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
+        buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
+        buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
 
-        buffer.writeStringSmallLength(_CLIENT_NAME);
-        buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME);
+        buffer.writeStringSmallLength(_CLIENT_VERSION.getBytes(pos.getCharset()));
+        buffer.writeStringLength(Version.version, pos.getCharset());
 
-        buffer.writeStringSmallLength(_CLIENT_VERSION);
-        buffer.writeStringLength(Version.version);
+        buffer.writeStringSmallLength(_SERVER_HOST.getBytes(pos.getCharset()));
+        buffer.writeStringLength((host != null) ? host : "", pos.getCharset());
 
-        buffer.writeStringSmallLength(_SERVER_HOST);
-        buffer.writeStringLength((host != null) ? host : "");
+        buffer.writeStringSmallLength(_CLIENT_IP.getBytes(pos.getCharset()));
+        buffer.writeStringLength((clientIp != null) ? clientIp : "", pos.getCharset());
 
-        buffer.writeStringSmallLength(_CLIENT_IP);
-        buffer.writeStringLength((clientIp != null) ? clientIp : "");
-
-        buffer.writeStringSmallLength(_OS);
-        buffer.writeStringLength(System.getProperty("os.name"));
+        buffer.writeStringSmallLength(_OS.getBytes(pos.getCharset()));
+        buffer.writeStringLength(System.getProperty("os.name"), pos.getCharset());
         String pid = pidRequest.get();
         if (pid != null) {
-            buffer.writeStringSmallLength(_PID);
-            buffer.writeStringLength(pid);
+            buffer.writeStringSmallLength(_PID.getBytes(pos.getCharset()));
+            buffer.writeStringLength(pid, pos.getCharset());
         }
 
-        buffer.writeStringSmallLength(_THREAD);
-        buffer.writeStringLength(Long.toString(Thread.currentThread().getId()));
+        buffer.writeStringSmallLength(_THREAD.getBytes(pos.getCharset()));
+        buffer.writeStringLength(Long.toString(Thread.currentThread().getId()), pos.getCharset());
 
-        buffer.writeStringLength(_JAVA_VENDOR);
-        buffer.writeStringLength(System.getProperty("java.vendor"));
+        buffer.writeStringLength(_JAVA_VENDOR.getBytes(pos.getCharset()));
+        buffer.writeStringLength(System.getProperty("java.vendor"), pos.getCharset());
 
-        buffer.writeStringSmallLength(_JAVA_VERSION);
-        buffer.writeStringLength(System.getProperty("java.version"));
+        buffer.writeStringSmallLength(_JAVA_VERSION.getBytes(pos.getCharset()));
+        buffer.writeStringLength(System.getProperty("java.version"), pos.getCharset());
 
         if (connectionAttributes != null) {
             StringTokenizer tokenizer = new StringTokenizer(connectionAttributes, ",");
@@ -340,11 +333,11 @@ public class SendHandshakeResponsePacket {
                 String token = tokenizer.nextToken();
                 int separator = token.indexOf(":");
                 if (separator != -1) {
-                    buffer.writeStringLength(token.substring(0, separator));
-                    buffer.writeStringLength(token.substring(separator + 1));
+                    buffer.writeStringLength(token.substring(0, separator), pos.getCharset());
+                    buffer.writeStringLength(token.substring(separator + 1), pos.getCharset());
                 } else {
-                    buffer.writeStringLength(token);
-                    buffer.writeStringLength("");
+                    buffer.writeStringLength(token, pos.getCharset());
+                    buffer.writeStringLength("", pos.getCharset());
                 }
             }
         }
@@ -358,8 +351,8 @@ public class SendHandshakeResponsePacket {
             capFlag &= (~OB_CAP_USE_OCEANBASE_2_0_PROTOCOL);
         }
         // add ob_connector_capability_flag for oceanbase server
-        buffer.writeStringSmallLength("__proxy_capability_flag".getBytes());
-        buffer.writeStringLength(String.valueOf(capFlag));
+        buffer.writeStringSmallLength("__proxy_capability_flag".getBytes(pos.getCharset()));
+        buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);
         pos.write(buffer.buf, 0, buffer.position);

@@ -100,6 +100,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         INSERT_ID_COLUMNS = new ColumnDefinition[1];
         INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT, false,
             "UTF-8");
+        // used for empty result set
     }
 
     protected TimeZone                      timeZone;
@@ -1068,8 +1069,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return blob.getBinaryStream();
         }
-        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(),
-            StandardCharsets.UTF_8).getBytes());
+        try {
+            return new ByteArrayInputStream(new String(row.buf, row.pos,
+                row.getLengthMaxFieldSize(), protocol.getEncoding()).getBytes());
+        } catch (UnsupportedEncodingException e) {
+            throw new SQLException("Unsupported character encoding " + protocol.getEncoding());
+        }
     }
 
     /**
@@ -1218,12 +1223,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public double getDouble(int columnIndex) throws SQLException {
 
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
-        switch (type) {
-        //            case BINARY_FLOAT:
-        //                return (double) getFloat(columnIndex);
-            default:
-                break;
-        }
         checkObjectRange(columnIndex);
         return row.getInternalDouble(columnsInformation[columnIndex - 1]);
     }
@@ -1248,16 +1247,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
      */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         ColumnType type = columnsInformation[columnIndex - 1].getColumnType();
-        switch (type) {
-        //            case BINARY_FLOAT:
-        //                Float f = getFloat(columnIndex);
-        //                return new BigDecimal(Float.toString(f));
-        //            case BINARY_DOUBLE:
-        //                Double d = getDouble(columnIndex);
-        //                return new BigDecimal(Double.toString(d));
-            default:
-                break;
-        }
         checkObjectRange(columnIndex);
         return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
@@ -1815,7 +1804,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
             .getType()) {
-            String encoding = this.options.nonMappedOptions.getProperty("characterEncoding");
+            String encoding = this.options.characterEncoding;
             if (encoding == null) {
                 encoding = "UTF8";
             }
