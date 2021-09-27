@@ -1158,11 +1158,6 @@ public enum DefaultOptions {
    */
   public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
 
-    // disable use server prepare id using client rewrite
-    if (options.rewriteBatchedStatements) {
-      options.useServerPrepStmts = false;
-    }
-
     // pipe cannot use read and write socket simultaneously
     if (options.pipe != null) {
       options.useBatchMultiSend = false;

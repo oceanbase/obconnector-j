@@ -45,11 +45,18 @@ package com.oceanbase.jdbc;
 
 import java.sql.*;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.*;
 
 public class NewFeatureTest extends BaseTest {
+    public static String batchTable  = "batch" + getRandomString(10);
+    public static String batchTable2 = "batch2" + getRandomString(10);
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable(batchTable, "c1  int, c2 int , c3 int  ,test varchar(10)");
+        createTable(batchTable2, "c1  int, c2 int , c3 int  ,test varchar(10)");
+    }
+
     @Test
     public void testSocksProxy() {
         try {
@@ -197,6 +204,104 @@ public class NewFeatureTest extends BaseTest {
         try {
             Connection conn = setConnection("&characterEncoding=UTF-8");
         } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNewRewrite() throws SQLException {
+        try {
+            Connection conn = setConnection();
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + batchTable
+                                                         + " values(?,100,?,?) ");
+            ps.setInt(1, 1);
+            ps.setInt(2, 30);
+            ps.setString(3, "str1");
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.setInt(2, 30);
+            ps.setString(3, "str1");
+            ps.addBatch();
+            ps.setInt(1, 3);
+            ps.setInt(2, 30);
+            ps.setString(3, "str1");
+            ps.addBatch();
+            ps.setInt(1, 4);
+            ps.setInt(2, 30);
+            ps.setString(3, "str1");
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = stmt.executeQuery("select count(*) from " + batchTable);
+            Assert.assertNotNull(rs.next());
+            Assert.assertEquals(rs.getInt(1), 4);
+            rs = stmt.executeQuery("select * from " + batchTable);
+            Assert.assertNotNull(rs.next());
+            Assert.assertEquals(rs.getInt(1), 1);
+            Assert.assertEquals(rs.getInt(2), 100);
+            Assert.assertEquals(rs.getInt(3), 30);
+            Assert.assertEquals(rs.getString(4), "str1");
+            ps = conn.prepareStatement("update " + batchTable + " set c2 = ? where  c1 = ? ");
+            ps.setInt(1, 1000);
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setInt(1, 2000);
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setInt(1, 3000);
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNewRewrite2() throws SQLException {
+        try {
+            Connection conn = setConnection();
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + batchTable2
+                                                         + " values(?,100,?,'str1') /*comment*/");
+            ps.setInt(1, 1);
+            ps.setInt(2, 30);
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.setInt(2, 30);
+            ps.addBatch();
+            ps.setInt(1, 3);
+            ps.setInt(2, 30);
+            ps.addBatch();
+            ps.setInt(1, 4);
+            ps.setInt(2, 30);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = stmt.executeQuery("select count(*) from " + batchTable2);
+            Assert.assertNotNull(rs.next());
+            Assert.assertEquals(rs.getInt(1), 4);
+            rs = stmt.executeQuery("select * from " + batchTable2);
+            Assert.assertNotNull(rs.next());
+            Assert.assertEquals(rs.getInt(1), 1);
+            Assert.assertEquals(rs.getInt(2), 100);
+            Assert.assertEquals(rs.getInt(3), 30);
+            Assert.assertEquals(rs.getString(4), "str1");
+            ps = conn.prepareStatement("update " + batchTable2 + " set c2 = ? where  c1 = ? ");
+            ps.setInt(1, 1000);
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setInt(1, 2000);
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setInt(1, 3000);
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+
+        } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }

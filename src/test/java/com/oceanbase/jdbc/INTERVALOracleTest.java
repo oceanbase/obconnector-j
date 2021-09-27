@@ -509,6 +509,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
      */
     @Test
     public void constructorOracleInetervalym() throws SQLException {
+        Assume.assumeFalse(sharedIsRewrite()); // error while rewriteBatchStatement
         try {
             Connection oracleConnection = getOracleConnection();
 

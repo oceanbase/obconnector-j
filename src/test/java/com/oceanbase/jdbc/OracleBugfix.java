@@ -805,5 +805,4 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
-
 }
