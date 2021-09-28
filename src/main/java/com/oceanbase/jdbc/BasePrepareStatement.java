@@ -574,8 +574,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal != null ? cal.getTimeZone()
-            : TimeZone.getDefault(), useFractionalSeconds));
+        if (this.protocol.isOracleMode()) {
+            Timestamp ts = new Timestamp(time.getTime());
+            TimeZone tz = protocol.getTimeZone();
+            setParameter(parameterIndex, new TimestampParameter(ts, tz, useFractionalSeconds));
+        } else {
+            setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
+                useFractionalSeconds));
+        }
     }
 
     /**
@@ -593,8 +599,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
-            useFractionalSeconds));
+        if (this.protocol.isOracleMode()) {
+            Timestamp ts = new Timestamp(time.getTime());
+            TimeZone tz = protocol.getTimeZone();
+            setParameter(parameterIndex, new TimestampParameter(ts, tz, useFractionalSeconds));
+        } else {
+            setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
+                useFractionalSeconds));
+        }
     }
 
     /**
