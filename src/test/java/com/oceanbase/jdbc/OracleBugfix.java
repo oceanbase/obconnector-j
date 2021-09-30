@@ -81,6 +81,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testProceSetdefaultVal    = "testProceSetdefaultVal" + getRandomString(5);
     static String testFunction              = "testfunction" + getRandomString(5);
     static String testDate                  = "testDate" + getRandomString(5);
+    static String testDate2                  = "testDate2" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -153,6 +154,7 @@ public class OracleBugfix extends BaseOracleTest {
             "(c1 varchar2,c2 int,c3 out  int,c4 in int )   return number is \n" + "begin \n"
                     + "   c3 := 3; \n" + "   return 1;\n" + "end ");
         createTable(testDate, "c1 date");
+        createTable(testDate2, "a int, b date, c date");
     }
 
     @Test
@@ -820,6 +822,21 @@ public class OracleBugfix extends BaseOracleTest {
             ResultSet rs = conn.createStatement().executeQuery("select c1 from " + testDate);
             Assert.assertTrue(rs.next());
             Assert.assertEquals("1970-01-01", rs.getDate(1).toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+
+    @org.junit.Test
+    public void testSetTimeForDate2() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = sharedConnection.prepareStatement("select a from "+testDate2+" where nvl(b, ? + 1) > c");
+            Time testTime = new Time(12, 0, 0);
+            ps.setTime(1, testTime);
+            ps.executeQuery();
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

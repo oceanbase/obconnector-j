@@ -577,7 +577,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         if (this.protocol.isOracleMode()) {
             Timestamp ts = new Timestamp(time.getTime());
             TimeZone tz = protocol.getTimeZone();
-            setParameter(parameterIndex, new TimestampParameter(ts, tz, useFractionalSeconds));
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(ts, tz, useFractionalSeconds));
         } else {
             setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
                 useFractionalSeconds));
@@ -602,7 +602,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         if (this.protocol.isOracleMode()) {
             Timestamp ts = new Timestamp(time.getTime());
             TimeZone tz = protocol.getTimeZone();
-            setParameter(parameterIndex, new TimestampParameter(ts, tz, useFractionalSeconds));
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(ts, tz, useFractionalSeconds));
         } else {
             setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
                 useFractionalSeconds));
