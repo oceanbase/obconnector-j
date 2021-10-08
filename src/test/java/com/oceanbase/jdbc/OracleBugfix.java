@@ -82,6 +82,9 @@ public class OracleBugfix extends BaseOracleTest {
     static String testFunction              = "testfunction" + getRandomString(5);
     static String testDate                  = "testDate" + getRandomString(5);
     static String testDate2                 = "testDate2" + getRandomString(5);
+    static String funcWithoutParam          = "funcWithoutParam" + getRandomString(5);
+    static String procWithoutParam          = "procWithoutParam" + getRandomString(5);
+    static String test                      = "test" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -153,6 +156,10 @@ public class OracleBugfix extends BaseOracleTest {
         createFunction(testFunction,
             "(c1 varchar2,c2 int,c3 out  int,c4 in int )   return number is \n" + "begin \n"
                     + "   c3 := 3; \n" + "   return 1;\n" + "end ");
+        createFunction(funcWithoutParam, "    return  number is\n" + "begin\n" + "    null;\n"
+                                         + "    return 2;\n" + "end ;");
+        createTable(test,"c1 int");
+        createProcedure(procWithoutParam, " as begin insert into "+test+" values(1); end;");
         createTable(testDate, "c1 date");
         createTable(testDate2, "a int, b date, c date");
     }
@@ -837,6 +844,45 @@ public class OracleBugfix extends BaseOracleTest {
             Time testTime = new Time(12, 0, 0);
             ps.setTime(1, testTime);
             ps.executeQuery();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testFuntionWithoutParam() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("?= call " + funcWithoutParam);
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.execute();
+            Assert.assertEquals(2, callableStatement.getInt(1));
+            callableStatement = conn.prepareCall("?= call " + funcWithoutParam + "()");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.execute();
+            Assert.assertEquals(2, callableStatement.getInt(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+
+    @org.junit.Test
+    public void testProcWithoutParam() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("call " + procWithoutParam);
+            callableStatement.execute();
+            ResultSet rs = conn.createStatement().executeQuery("select count(*) from " + test);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1,rs.getInt(1));
+            callableStatement = conn.prepareCall("call " + procWithoutParam+"()");
+            callableStatement.execute();
+            rs = conn.createStatement().executeQuery("select count(*) from " + test);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2,rs.getInt(1));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

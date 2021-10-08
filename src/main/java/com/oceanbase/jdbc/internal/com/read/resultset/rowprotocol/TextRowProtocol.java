@@ -224,12 +224,12 @@ public class TextRowProtocol extends RowProtocol {
             case RAW: {
                 byte[] data = new byte[length];
                 System.arraycopy(buf, pos, data, 0, length);
-                boolean wasNullFlag; // todo where to use
+                boolean wasNullFlag;
                 if (data != null) {
                     wasNullFlag = false;
                     StringBuilder sb = new StringBuilder();
                     for (byte b : data) {
-                        sb.append(String.format("%02x", b));
+                        sb.append(String.format("%02X", b));
                     }
                     return sb.toString();
                 } else {
