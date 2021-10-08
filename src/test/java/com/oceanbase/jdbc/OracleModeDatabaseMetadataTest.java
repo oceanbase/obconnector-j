@@ -343,7 +343,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         createTable("test_getTables", "a INT NOT NULL primary key, b VARCHAR(32), c INT , "
                                       + "d VARCHAR(5)", null);
         ResultSet rs = sharedConnection.getMetaData().getTables(sharedConnection.getCatalog(),
-            sharedConnection.getSchema(), "test_getTables", null);
+            sharedConnection.getSchema(), "TEST_GETTABLES", null);
         rs.next();
 
         assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
@@ -793,6 +793,71 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    @Test
+    public void fixGetTables() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table \"Abc\"");
+            } catch (SQLException e) {
+                // eat exception
+            }
+            stmt.execute("create table  \"Abc\"(c1 int)");
+            ResultSet rs = sharedConnection.getMetaData().getTables(null,
+                sharedConnection.getSchema(), "Abc", null);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("Abc", rs.getString("TABLE_NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void fixGetColumns() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table \"Xyz\"");
+            } catch (SQLException e) {
+                // eat exception
+            }
+            stmt.execute("create table  \"Xyz\"(c1 int)");
+            ResultSet rs = sharedConnection.getMetaData().getColumns(null,
+                sharedConnection.getSchema(), "Xyz", null);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("Xyz", rs.getString("TABLE_NAME"));
+            Assert.assertEquals("C1", rs.getString("COLUMN_NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void fixGetColumns2() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table \"Qwe\"");
+            } catch (SQLException e) {
+                // eat exception
+            }
+            stmt.execute("create table  \"Qwe\"(\"coL\" int)");
+            ResultSet rs = sharedConnection.getMetaData().getColumns(null,
+                sharedConnection.getSchema(), "Qwe", "COL");
+            Assert.assertFalse(rs.next());
+            rs = sharedConnection.getMetaData().getColumns(null, sharedConnection.getSchema(),
+                "Qwe", "coL");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("Qwe", rs.getString("TABLE_NAME"));
+            Assert.assertEquals("coL", rs.getString("COLUMN_NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }

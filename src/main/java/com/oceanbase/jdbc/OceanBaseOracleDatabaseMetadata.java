@@ -168,7 +168,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         sql = sql + var7;
         PreparedStatement stmt = this.connection.prepareStatement(sql);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
-        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
+        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
         ResultSet resultSet = stmt.executeQuery();
         if (stmt != null) {
             stmt.close();

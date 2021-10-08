@@ -81,7 +81,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testProceSetdefaultVal    = "testProceSetdefaultVal" + getRandomString(5);
     static String testFunction              = "testfunction" + getRandomString(5);
     static String testDate                  = "testDate" + getRandomString(5);
-    static String testDate2                  = "testDate2" + getRandomString(5);
+    static String testDate2                 = "testDate2" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -828,12 +828,12 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
-
     @org.junit.Test
     public void testSetTimeForDate2() {
         try {
             Connection conn = sharedConnection;
-            PreparedStatement ps = sharedConnection.prepareStatement("select a from "+testDate2+" where nvl(b, ? + 1) > c");
+            PreparedStatement ps = sharedConnection.prepareStatement("select a from " + testDate2
+                                                                     + " where nvl(b, ? + 1) > c");
             Time testTime = new Time(12, 0, 0);
             ps.setTime(1, testTime);
             ps.executeQuery();
