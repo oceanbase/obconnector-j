@@ -79,7 +79,6 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
 
     @Test
     public void testLongStoreProcedureWithFullName() throws Exception {
-        //for issue https://aone.alibaba-inc.com/v2/project/906355/req/32951377
         String procedureName = "calc_add_" + System.currentTimeMillis();
 
         createProcedureWithPackage(
