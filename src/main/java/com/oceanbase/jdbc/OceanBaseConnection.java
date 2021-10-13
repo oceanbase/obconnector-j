@@ -825,7 +825,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                     resultSetConcurrency, exceptionFactory);
             }
         } else {
-            if (databaseAndProcedure != null && arguments == null ) { // for call procname,add () to the end
+            if (databaseAndProcedure != null && arguments == null) { // for call procname,add () to the end
                 String callableSql = "call " + databaseAndProcedure + "()";
                 return new OceanBaseProcedureStatement(false, callableSql,
                     (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,

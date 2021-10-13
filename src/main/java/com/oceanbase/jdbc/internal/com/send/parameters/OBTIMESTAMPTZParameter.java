@@ -101,24 +101,10 @@ public class OBTIMESTAMPTZParameter implements Cloneable, ParameterHolder {
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         byte[] data = ts.getBytes();
-        int length = data.length + 2;
+        int length = data.length;
+        data[11] = (byte) ORACLE_TIME_SCALE;
         pos.write((byte) length);
-        if (!isTZTablesImported) {
-            pos.write(data, 0, data.length);
-            pos.write(data, 0, 11);
-            pos.write((byte) ORACLE_TIME_SCALE);
-            pos.write(data, 12, length - 14);
-            int len = data[14];
-            pos.write((byte) len); // tz name len
-            pos.write(data, 15, len); // tz abbr len
-            pos.write((byte) 0);
-        } else {
-            pos.write(data, 0, 11);
-            pos.write((byte) ORACLE_TIME_SCALE);
-            pos.write(data, 12, length - 14);
-            pos.write((byte) 0); // tz name len
-            pos.write((byte) 0); // tz abbr len
-        }
+        pos.write(data, 0, data.length);
     }
 
     public ColumnType getColumnType() {

@@ -46,6 +46,8 @@ package com.oceanbase.jdbc;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
@@ -85,6 +87,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String funcWithoutParam          = "funcWithoutParam" + getRandomString(5);
     static String procWithoutParam          = "procWithoutParam" + getRandomString(5);
     static String test                      = "test" + getRandomString(5);
+    static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -158,10 +161,21 @@ public class OracleBugfix extends BaseOracleTest {
                     + "   c3 := 3; \n" + "   return 1;\n" + "end ");
         createFunction(funcWithoutParam, "    return  number is\n" + "begin\n" + "    null;\n"
                                          + "    return 2;\n" + "end ;");
-        createTable(test,"c1 int");
-        createProcedure(procWithoutParam, " as begin insert into "+test+" values(1); end;");
+        createTable(test, "c1 int");
+        createProcedure(procWithoutParam, " as begin insert into " + test + " values(1); end;");
         createTable(testDate, "c1 date");
         createTable(testDate2, "a int, b date, c date");
+        createTable(zonedDateTimeTable,
+            "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
+        //        createTable(zonedDateTimeTable, "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE");
+    }
+
+    public static ZonedDateTime getZonedDateTime(String value) {
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE).appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME).appendLiteral(' ').appendZoneOrOffsetId()
+            .toFormatter();
+        return ZonedDateTime.parse(value.trim(), dateTimeFormatter);
     }
 
     @Test
@@ -641,37 +655,37 @@ public class OracleBugfix extends BaseOracleTest {
 
     // fix array.delete return value
     @org.junit.Test
-    public  void test34971515() throws Exception {
-        Connection conn = sharedConnection;
-        ArrayList<Object> res_list = new ArrayList<>();
-        String sql3 = "create or replace type var_t1 is varray(3) of number";
-        String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
-                "begin\n" +
-                "var :=var_t1(1,2,3);\n" +
-                "var.delete();\n"+
-                "end;";
+  public void test34971515() throws Exception {
+    Connection conn = sharedConnection;
+    ArrayList<Object> res_list = new ArrayList<>();
+    String sql3 = "create or replace type var_t1 is varray(3) of number";
+    String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
+        "begin\n" +
+        "var :=var_t1(1,2,3);\n" +
+        "var.delete();\n" +
+        "end;";
 
 
-        String paraCall = "call pro1(?)";
-        Statement stmt = conn.createStatement();
-        stmt.execute(sql3);
-        stmt.execute(sql4);
-        CallableStatement cst = null;
+    String paraCall = "call pro1(?)";
+    Statement stmt = conn.createStatement();
+    stmt.execute(sql3);
+    stmt.execute(sql4);
+    CallableStatement cst = null;
 
-        try {
-            cst = conn.prepareCall(paraCall);
-            cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
-            cst.execute();
+    try {
+      cst = conn.prepareCall(paraCall);
+      cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
+      cst.execute();
 
-                Array array = cst.getArray(1);
-                Object[] arrobj = (Object[]) array.getArray();
-                Assert.assertNotNull(arrobj);
+      Array array = cst.getArray(1);
+      Object[] arrobj = (Object[]) array.getArray();
+      Assert.assertNotNull(arrobj);
 
-        } catch (Exception e) {
-            res_list.add(e);
-            e.printStackTrace();
-        }
+    } catch (Exception e) {
+      res_list.add(e);
+      e.printStackTrace();
     }
+  }
 
     // array support char elements
     @org.junit.Test
@@ -868,7 +882,6 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
-
     @org.junit.Test
     public void testProcWithoutParam() {
         try {
@@ -877,15 +890,36 @@ public class OracleBugfix extends BaseOracleTest {
             callableStatement.execute();
             ResultSet rs = conn.createStatement().executeQuery("select count(*) from " + test);
             Assert.assertTrue(rs.next());
-            Assert.assertEquals(1,rs.getInt(1));
-            callableStatement = conn.prepareCall("call " + procWithoutParam+"()");
+            Assert.assertEquals(1, rs.getInt(1));
+            callableStatement = conn.prepareCall("call " + procWithoutParam + "()");
             callableStatement.execute();
             rs = conn.createStatement().executeQuery("select count(*) from " + test);
             Assert.assertTrue(rs.next());
-            Assert.assertEquals(2,rs.getInt(1));
+            Assert.assertEquals(2, rs.getInt(1));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testZoneDate() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            String sql = "insert into " + zonedDateTimeTable + " values(?,?, ?,?)";
+            LocalDateTime ldt = LocalDateTime.of(2019, 9, 13, 17, 16, 17, 920);
+            ZonedDateTime zny = ldt.atZone(ZoneId.of("Asia/Shanghai"));
+            PreparedStatement ps1 = sharedConnection.prepareStatement(sql);
+            ps1.setObject(1, 1);
+            ps1.setObject(2, zny);
+            ps1.setObject(3, 2);
+            ps1.setObject(4, zny);
+            ps1.executeUpdate();
+            ResultSet rs = stmt.executeQuery("select * from " + zonedDateTimeTable);
+            Assert.assertTrue(rs.next());
+        } catch (Throwable e) {
+            Assert.fail();
+            e.printStackTrace();
         }
     }
 }
