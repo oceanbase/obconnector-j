@@ -142,6 +142,7 @@ public abstract class RowProtocol {
       case NVARCHAR2:
       case NCHAR:
       case RAW:
+      case STRING:
         return Charset.forName(this.options.characterEncoding);
       default:
         break;

@@ -922,4 +922,18 @@ public class OracleBugfix extends BaseOracleTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testGBK() {
+        try {
+            Connection conn = setConnection("&characterEncoding=gbk");
+            Statement stmt = conn.createStatement();
+            ResultSet resultSet = stmt.executeQuery("select '中文ab' from dual");
+            resultSet.next();
+            Assert.assertEquals("中文ab",resultSet.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
