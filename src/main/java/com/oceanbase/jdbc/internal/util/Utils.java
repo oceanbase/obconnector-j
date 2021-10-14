@@ -990,81 +990,74 @@ public class Utils {
     return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
   }
 
-  private static int indexOfNextChar(int startingPosition, int stopPosition, String searchIn,
-                                     String openingMarkers, String closingMarkers) {
-    if (searchIn == null) {
+  private static int nextCharIndex(int startPos, int stopPos, String searchedString,
+                                     String leftMarks, String rightMarks) {
+    if (searchedString == null) {
+      return -1;
+    }
+    int searchStringLength = searchedString.length();
+
+    if (startPos >= searchStringLength) {
       return -1;
     }
 
-    int searchInLength = searchIn.length();
-
-    if (startingPosition >= searchInLength) {
-      return -1;
-    }
-
-    char c0 = Character.MIN_VALUE;
-    char c1 = searchIn.charAt(startingPosition);
-    char c2 = startingPosition + 1 < searchInLength ? searchIn.charAt(startingPosition + 1)
+    char charVal0 = Character.MIN_VALUE;
+    char charVal1 = searchedString.charAt(startPos);
+    char charVal2 = startPos + 1 < searchStringLength ? searchedString.charAt(startPos + 1)
             : Character.MIN_VALUE;
 
-    for (int i = startingPosition; i <= stopPosition; i++) {
-      c0 = c1;
-      c1 = c2;
-      c2 = i + 2 < searchInLength ? searchIn.charAt(i + 2) : Character.MIN_VALUE;
+    for (int i = startPos; i <= stopPos; i++) {
+      charVal0 = charVal1;
+      charVal1 = charVal2;
+      charVal2 = i + 2 < searchStringLength ? searchedString.charAt(i + 2) : Character.MIN_VALUE;
 
       int markerIndex = -1;
 
-      if ((markerIndex = openingMarkers.indexOf(c0)) != -1) {
+      if ((markerIndex = leftMarks.indexOf(charVal0)) != -1) {
         int nestedMarkersCount = 0;
-        char openingMarker = c0;
-        char closingMarker = closingMarkers.charAt(markerIndex);
-        while (++i <= stopPosition
-                && ((c0 = searchIn.charAt(i)) != closingMarker || nestedMarkersCount != 0)) {
-          if (c0 == openingMarker) {
+        char openingMarker = charVal0;
+        char closingMarker = rightMarks.charAt(markerIndex);
+        while (++i <= stopPos
+                && ((charVal0 = searchedString.charAt(i)) != closingMarker || nestedMarkersCount != 0)) {
+          if (charVal0 == openingMarker) {
             nestedMarkersCount++;
-          } else if (c0 == closingMarker) {
+          } else if (charVal0 == closingMarker) {
             nestedMarkersCount--;
-          } else if ( c0 == '\\') {
+          } else if ( charVal0 == '\\') {
             i++;
           }
         }
-        c1 = i + 1 < searchInLength ? searchIn.charAt(i + 1) : Character.MIN_VALUE;
-        c2 = i + 2 < searchInLength ? searchIn.charAt(i + 2) : Character.MIN_VALUE;
-
+        charVal1 = i + 1 < searchStringLength ? searchedString.charAt(i + 1) : Character.MIN_VALUE;
+        charVal2 = i + 2 < searchStringLength ? searchedString.charAt(i + 2) : Character.MIN_VALUE;
       } else {
         return i;
       }
     }
-
     return -1;
   }
-  public static int nextDelimiterPos( String searchIn,int startingPosition, String searchFor,
-                                      String openingMarkers, String closingMarkers) {
-    if (searchIn == null || searchFor == null) {
+  public static int nextDelimiterPos( String stringToSearched,int startingPosition, String stringToSearch,
+                                      String leftMarks, String rightMarks) {
+    if (stringToSearched == null || stringToSearch == null) {
       return -1;
     }
-
-    int searchInLength = searchIn.length();
-    int searchForLength = searchFor.length();
-    int stopSearchingAt = searchInLength - searchForLength;
-    if (startingPosition > stopSearchingAt || searchForLength == 0) {
+    int stringToSearchedLen = stringToSearched.length();
+    int stringToSearchLen   = stringToSearch.length();
+    int stopSearchingAt = stringToSearchedLen - stringToSearchLen;
+    if (startingPosition > stopSearchingAt || stringToSearchLen == 0) {
       return -1;
     }
-    char firstCharOfSearchForUc = Character.toUpperCase(searchFor.charAt(0));
-    char firstCharOfSearchForLc = Character.toLowerCase(searchFor.charAt(0));
+    char firstUc = Character.toUpperCase(stringToSearch.charAt(0));
+    char firstLc = Character.toLowerCase(stringToSearch.charAt(0));
     for (int i = startingPosition; i <= stopSearchingAt; i++) {
-      i = indexOfNextChar(i, stopSearchingAt, searchIn, openingMarkers, closingMarkers);
-
+      i = nextCharIndex(i, stopSearchingAt, stringToSearched, leftMarks, rightMarks);
       if (i == -1) {
         return -1;
       }
-
-      char c = searchIn.charAt(i);
-      if((c == firstCharOfSearchForLc || c == firstCharOfSearchForUc) && searchIn.toUpperCase(Locale.ROOT).substring(i).startsWith(searchFor)) {
+      char c = stringToSearched.charAt(i);
+      if((c == firstLc || c == firstUc) && stringToSearched.toUpperCase(Locale.ROOT).substring(i).startsWith(stringToSearch)) {
         return i;
       }
     }
-
     return -1;
   }
   public static  List<ParsedCallParameters> argumentsSplit(String arguments, String delimiter, String markers,
