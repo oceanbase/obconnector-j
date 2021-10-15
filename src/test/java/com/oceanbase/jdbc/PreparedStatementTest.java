@@ -54,6 +54,7 @@ import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.sql.*;
+import java.time.LocalDateTime;
 
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -87,6 +88,7 @@ public class PreparedStatementTest extends BaseTest {
             "id int not null primary key auto_increment, test longblob");
         createTable("PreparedStatementTest2", "my_col varchar(20)");
         createTable("PreparedStatementTest3", "my_col varchar(20)");
+        createTable("test_set_params", "c1 int, c2 varchar(20), c3 Timestamp");
     }
 
     @Test
@@ -163,20 +165,20 @@ public class PreparedStatementTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-  public void reexecuteStatementTest() throws SQLException {
-    // set the allowMultiQueries parameter
-    try (Connection connection = setConnection("&allowMultiQueries=true")) {
-      try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
-        stmt.setFetchSize(Integer.MIN_VALUE);
-        ResultSet rs = stmt.executeQuery();
-        assertTrue(rs.next());
+    public void reexecuteStatementTest() throws SQLException {
+        // set the allowMultiQueries parameter
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
+                stmt.setFetchSize(Integer.MIN_VALUE);
+                ResultSet rs = stmt.executeQuery();
+                assertTrue(rs.next());
 
-        try (ResultSet rs2 = stmt.executeQuery()) {
-          assertTrue(rs2.next());
+                try (ResultSet rs2 = stmt.executeQuery()) {
+                  assertTrue(rs2.next());
+                }
+            }
         }
-      }
     }
-  }
 
     @Test
     public void testNoSuchTableBatchUpdate() throws SQLException {
@@ -281,27 +283,26 @@ public class PreparedStatementTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-  public void testFallbackPrepare() throws SQLException {
-    createTable(
-        "testFallbackPrepare",
-        "`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL",
-        "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    try (Connection connection = setConnection()) {
-      Statement stmt = connection.createStatement();
-      stmt.execute("SET @@character_set_connection = 'utf8mb4'");
-      stmt.execute(
-          "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE 'jj' COLLATE utf8mb4_unicode_ci");
+    public void testFallbackPrepare() throws SQLException {
+        createTable(
+            "testFallbackPrepare",
+            "`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL",
+            "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("SET @@character_set_connection = 'utf8mb4'");
+            stmt.execute(
+              "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE 'jj' COLLATE utf8mb4_unicode_ci");
 
-      try (PreparedStatement preparedStatement =
-          connection.prepareStatement(
-              "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci")) {
-        preparedStatement.setString(1, "jj");
-        preparedStatement.execute();
-      } catch (SQLException sqle) {
-        fail("Must not have issue, because must fallback on client prepare");
-      }
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                  "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci")) {
+                preparedStatement.setString(1, "jj");
+                preparedStatement.execute();
+            } catch (SQLException sqle) {
+                fail("Must not have issue, because must fallback on client prepare");
+            }
+        }
     }
-  }
 
     /**
      * CONJ-263: Exception must be throwing exception if exception append in multiple query.
@@ -605,4 +606,23 @@ public class PreparedStatementTest extends BaseTest {
       assertEquals(10_000L, stmt.getLargeMaxRows());
     }
   }
+
+    @Test
+    public void compareWithText() throws SQLException {
+        PreparedStatement pstmt = sharedConnection
+            .prepareStatement("insert into test_set_params values(?,?,?)");
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "abcdefg");
+        pstmt.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+        pstmt.executeUpdate();
+
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        PreparedStatement pstmt1 = conn
+            .prepareStatement("insert into test_set_params values(?,?,?)");
+        pstmt1.setInt(1, 2);
+        pstmt1.setString(2, "hijklmn");
+        pstmt1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+        pstmt1.executeUpdate();
+
+    }
 }

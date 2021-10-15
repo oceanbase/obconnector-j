@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
@@ -161,4 +162,6 @@ public interface PacketOutputStream {
     long getTimestampBeforeFlush();
 
     void clearNetworkStatistics();
+
+    Charset getCharset();
 }

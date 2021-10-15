@@ -411,23 +411,20 @@ public class BaseOracleTest {
       throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
-      /*
-      create or replace procedure proc_dropifexists(
-            p_table in varchar2 \
-        ) is \
-            v_count number(10); \
-        begin \
-           select count(*) \
-           into v_count \
-           from user_objects \
-           where object_name = upper(p_table); \
-           if v_count > 0 then \
-              execute immediate 'drop table ' || p_table ||' purge'; \
-           end if; \
-        end; \
-       */
-
-     stmt.execute("call proc_dropifexists('" + tableName + "')");
+//      stmt.execute("create or replace procedure proc_dropifexists(\n" +
+//              "    p_table in varchar2\n" +
+//              ") is\n" +
+//              "    v_count number(10);\n" +
+//              "begin\n" +
+//              "    select count(*)\n" +
+//              "    into v_count\n" +
+//              "    from all_objects\n" +
+//              "    where object_name = upper(p_table) and owner = 'UNITTESTS';\n" +
+//              "    if v_count > 0 then\n" +
+//              "        execute immediate 'drop table ' || p_table ||' purge';\n" +
+//              "    end if;\n" +
+//              "end;");
+      stmt.execute("call proc_dropifexists('" + tableName + "')");
       stmt.execute(
           "create table "
               + tableName
@@ -485,12 +482,9 @@ public class BaseOracleTest {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop procedure IF EXISTS " + packageName+"."+name);
-      //create or replace package test is procedure calc_add_10; end;
-      String headQuery = "create or replace package "+packageName + " is procedure " + name + head;
-      System.out.println(headQuery);
+      String headQuery = "create or replace package " + packageName + " is procedure " + name + head;
       stmt.execute(headQuery);
       String query = "create or replace package body " + packageName + " is procedure " + name + body;
-      System.out.println(query);
       stmt.execute(query);
       tempProcedureList.add(name);
     }
@@ -1121,8 +1115,7 @@ public class BaseOracleTest {
    * @return true if PreparedStatement will use Prepare.
    */
   public boolean sharedUsePrepare() {
-    return urlParser.getOptions().useServerPrepStmts
-        && !urlParser.getOptions().rewriteBatchedStatements;
+    return urlParser.getOptions().useServerPrepStmts;
   }
 
   /**

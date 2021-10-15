@@ -86,6 +86,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             resultSetType, resultSetConcurrency, exceptionFactory);
         parameterMetadata = new CallableParameterMetaData(connection, databaseName, procedureName,
             true);
+        this.arguments = arguments;
         super.initFunctionData(getParameterCount() + 1);
     }
 

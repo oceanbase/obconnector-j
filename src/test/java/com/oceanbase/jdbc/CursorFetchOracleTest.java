@@ -46,7 +46,6 @@ package com.oceanbase.jdbc;
 import java.sql.*;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -91,7 +90,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
 
     @Test
     public void testScrollableCursor() throws Exception {
-        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+        //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
             Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
 
@@ -107,10 +106,18 @@ public class CursorFetchOracleTest extends BaseOracleTest {
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ps.setFetchSize(40);
             ResultSet rs = ps.executeQuery();
-
+            //            int i = 0;
+            //            while (rs.next()) {
+            //                i++;
+            //            }
             Assert.assertTrue(rs.next());
             Assert.assertFalse(rs.previous());
-
+            try {
+                rs.getInt(1);
+                Assert.fail("Current position is before the first row");
+            } catch (SQLException e) {
+                System.out.println(e.getErrorCode());
+            }
             Assert.assertTrue(rs.absolute(39));
             Assert.assertEquals(39, rs.getInt(1));
             Assert.assertTrue(rs.relative(2));
@@ -141,7 +148,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     @Test
     public void fixCursorFetch() {
         try {
-            Connection conn = setConnection("&useCursorFetch=true");
+            Connection conn = setConnection("&useCurso·rFetch=true");
             Statement statement = conn.createStatement();
             PreparedStatement preparedStatement = conn.prepareStatement(
                 "insert into " + tableName3 + " values(1,'varcharvalue')",

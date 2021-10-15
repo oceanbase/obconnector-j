@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.io.TraceObject;
@@ -70,7 +71,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
     private long                timestampBeforeFlush = 0;
 
     public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
-        super(out, options.maxQuerySizeToLog, threadId);
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
     }
 
     public int getMaxPacketLength() {
@@ -108,6 +109,11 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
     @Override
     public void clearNetworkStatistics() {
         timestampBeforeFlush = 0;
+    }
+
+    @Override
+    public Charset getCharset() {
+        return charset;
     }
 
     /**

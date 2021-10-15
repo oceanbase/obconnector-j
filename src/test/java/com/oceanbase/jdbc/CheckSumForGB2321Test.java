@@ -134,7 +134,7 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
                                        + "      1 = 1\n"
                                        + "      and gt.gradecode = ug.gradecode\n"
                                        + "      and ug.usercode = u.usercode\n"
-                                       + "      and u.usercode = 'zhouwenjun@sinosafe.com.cn'\n"
+                                       + "      and u.usercode = 'email@xxxxx.com.cn'\n"
                                        + "      and u.validind = '1'\n"
                                        + "      and ug.validind = '1'\n" + "  )\n"
                                        + "  and t.systemcode = 'lawsuit'\n"

@@ -46,6 +46,8 @@ package com.oceanbase.jdbc;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
@@ -78,6 +80,16 @@ public class OracleBugfix extends BaseOracleTest {
     static String binaryNumberProc1         = "binaryNumberProc1" + getRandomString(5);
     static String binaryNumberProc2         = "binaryNumberProc2" + getRandomString(5);
     static String testRaw                   = "testRaw" + getRandomString(5);
+    static String testProceSetdefaultVal    = "testProceSetdefaultVal" + getRandomString(5);
+    static String testFunction              = "testfunction" + getRandomString(5);
+    static String testDate                  = "testDate" + getRandomString(5);
+    static String testDate2                 = "testDate2" + getRandomString(5);
+    static String funcWithoutParam          = "funcWithoutParam" + getRandomString(5);
+    static String procWithoutParam          = "procWithoutParam" + getRandomString(5);
+    static String test                      = "test" + getRandomString(5);
+    static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
+    static String varchar2Number            = "varchar2Number" + getRandomString(5);
+    static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -121,6 +133,53 @@ public class OracleBugfix extends BaseOracleTest {
         createProcedure(binaryNumberProc2, "(var1 in int,var2 out binary_integer) is\n" + "begin\n"
                                            + "var2 := var1;\n" + "end;");
         createTable(testRaw, "c1 raw(20),c2 int");
+
+        createProcedure(
+            testProceSetdefaultVal,
+            "(cycle# in number,c_num in number,v_cycle out number ,v_mulbillcycle out number,v_mulbillcycle_end out number) is \n"
+                    + "i_date  date; \n"
+                    + " i_day varchar2(4);\n"
+                    + "v_date date; \n"
+                    + " v_end_day varchar2(4)\n;"
+                    + "begin"
+                    + " if cycle# is null then \n"
+                    + "RAISE_APPLICATION_ERROR(-20001,'输入日期不能为空');\n"
+                    + "end if ;\n"
+                    + " i_date := to_date(to_char(cycle#), 'yyyymmdd'); \n"
+                    + " i_day := to_char(i_date,'dd') ; \n"
+                    + "v_date := add_months(i_date,c_num) ; \n"
+                    + "v_cycle := to_number(to_char(trunc(v_date, 'MM'), 'yyyymm'));\n"
+                    + " if i_date = last_day(i_date) then \n"
+                    + "v_end_day := '31' ; \n"
+                    + " else \n"
+                    + "v_end_day := i_day ; \n"
+                    + " end if ;\n"
+                    + "v_mulbillcycle := to_number(to_char(v_cycle)||i_day); \n"
+                    + " v_mulbillcycle_end := to_number(to_char(v_cycle)||v_end_day);\n"
+                    + "end "
+                    + testProceSetdefaultVal + ";\n");
+        createFunction(testFunction,
+            "(c1 varchar2,c2 int,c3 out  int,c4 in int )   return number is \n" + "begin \n"
+                    + "   c3 := 3; \n" + "   return 1;\n" + "end ");
+        createFunction(funcWithoutParam, "    return  number is\n" + "begin\n" + "    null;\n"
+                                         + "    return 2;\n" + "end ;");
+        createTable(test, "c1 int");
+        createProcedure(procWithoutParam, " as begin insert into " + test + " values(1); end;");
+        createTable(testDate, "c1 date");
+        createTable(testDate2, "a int, b date, c date");
+
+        createTable(zonedDateTimeTable,
+            "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
+        createTable(varchar2Number, "c1 varchar2(200)");
+        createTable(nvarchar2Number, "c1 nvarchar2(200)");
+    }
+
+    public static ZonedDateTime getZonedDateTime(String value) {
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE).appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME).appendLiteral(' ').appendZoneOrOffsetId()
+            .toFormatter();
+        return ZonedDateTime.parse(value.trim(), dateTimeFormatter);
     }
 
     @Test
@@ -600,37 +659,37 @@ public class OracleBugfix extends BaseOracleTest {
 
     // fix array.delete return value
     @org.junit.Test
-    public  void test34971515() throws Exception {
-        Connection conn = sharedConnection;
-        ArrayList<Object> res_list = new ArrayList<>();
-        String sql3 = "create or replace type var_t1 is varray(3) of number";
-        String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
-                "begin\n" +
-                "var :=var_t1(1,2,3);\n" +
-                "var.delete();\n"+
-                "end;";
+  public void test34971515() throws Exception {
+    Connection conn = sharedConnection;
+    ArrayList<Object> res_list = new ArrayList<>();
+    String sql3 = "create or replace type var_t1 is varray(3) of number";
+    String sql4 = "create or replace procedure pro1(var out var_t1) is\n" +
+        "begin\n" +
+        "var :=var_t1(1,2,3);\n" +
+        "var.delete();\n" +
+        "end;";
 
 
-        String paraCall = "call pro1(?)";
-        Statement stmt = conn.createStatement();
-        stmt.execute(sql3);
-        stmt.execute(sql4);
-        CallableStatement cst = null;
+    String paraCall = "call pro1(?)";
+    Statement stmt = conn.createStatement();
+    stmt.execute(sql3);
+    stmt.execute(sql4);
+    CallableStatement cst = null;
 
-        try {
-            cst = conn.prepareCall(paraCall);
-            cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
-            cst.execute();
+    try {
+      cst = conn.prepareCall(paraCall);
+      cst.registerOutParameter(1, Types.ARRAY, "VAR_T1");
+      cst.execute();
 
-                Array array = cst.getArray(1);
-                Object[] arrobj = (Object[]) array.getArray();
-                Assert.assertNotNull(arrobj);
+      Array array = cst.getArray(1);
+      Object[] arrobj = (Object[]) array.getArray();
+      Assert.assertNotNull(arrobj);
 
-        } catch (Exception e) {
-            res_list.add(e);
-            e.printStackTrace();
-        }
+    } catch (Exception e) {
+      res_list.add(e);
+      e.printStackTrace();
     }
+  }
 
     // array support char elements
     @org.junit.Test
@@ -728,5 +787,215 @@ public class OracleBugfix extends BaseOracleTest {
 
     }
 
+    @org.junit.Test
+    public void tesOracleModeProc() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("call " + testProceSetdefaultVal
+                                                                   + "(?,0,?,?,?)");
+            callableStatement.setInt(1, 20210709);
+            callableStatement.setInt(2, -2);
+            callableStatement.registerOutParameter(3, Types.NUMERIC);
+            callableStatement.registerOutParameter(4, Types.NUMERIC);
+            callableStatement.execute();
+            Assert.assertEquals(202107, callableStatement.getInt(3));
+            Assert.assertEquals(20210709, callableStatement.getInt(4));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 
+    @org.junit.Test
+    public void tesOracleModeFunction() {
+        try {
+
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("? = call " + testFunction
+                                                                   + "('fsfsfs',100,?,?)");
+            callableStatement.registerOutParameter(1, Types.NUMERIC);
+            callableStatement.registerOutParameter(2, Types.NUMERIC);
+            //            callableStatement.setInt(3, 20);
+            callableStatement.setInt("c3", 20);
+            callableStatement.execute();
+            Assert.assertEquals(1, callableStatement.getInt(1));
+            Assert.assertEquals(3, callableStatement.getInt(2));
+            callableStatement = conn.prepareCall("? = call " + testFunction + "('fsfsfs',?,?,?)");
+            callableStatement.registerOutParameter(1, Types.NUMERIC);
+            callableStatement.registerOutParameter(3, Types.NUMERIC);
+            callableStatement.setInt("c2", 100);
+            callableStatement.setInt(4, 20);
+            callableStatement.execute();
+            Assert.assertEquals(1, callableStatement.getInt(1));
+            Assert.assertEquals(3, callableStatement.getInt(3));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testSetTimeForDate() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
+                                                                     + " values(?)");
+            Time testTime = new Time(12, 0, 0);
+            ps.setTime(1, testTime);
+            ps.execute();
+            ResultSet rs = conn.createStatement().executeQuery("select c1 from " + testDate);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("1970-01-01", rs.getDate(1).toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testSetTimeForDate2() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement ps = sharedConnection.prepareStatement("select a from " + testDate2
+                                                                     + " where nvl(b, ? + 1) > c");
+            Time testTime = new Time(12, 0, 0);
+            ps.setTime(1, testTime);
+            ps.executeQuery();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testFuntionWithoutParam() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("?= call " + funcWithoutParam);
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.execute();
+            Assert.assertEquals(2, callableStatement.getInt(1));
+            callableStatement = conn.prepareCall("?= call " + funcWithoutParam + "()");
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.execute();
+            Assert.assertEquals(2, callableStatement.getInt(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @org.junit.Test
+    public void testProcWithoutParam() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = conn.prepareCall("call " + procWithoutParam);
+            callableStatement.execute();
+            ResultSet rs = conn.createStatement().executeQuery("select count(*) from " + test);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            callableStatement = conn.prepareCall("call " + procWithoutParam + "()");
+            callableStatement.execute();
+            rs = conn.createStatement().executeQuery("select count(*) from " + test);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testZoneDate() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            String sql = "insert into " + zonedDateTimeTable + " values(?,?, ?,?)";
+            LocalDateTime ldt = LocalDateTime.of(2019, 9, 13, 17, 16, 17, 920);
+            ZonedDateTime zny = ldt.atZone(ZoneId.of("Asia/Shanghai"));
+            PreparedStatement ps1 = sharedConnection.prepareStatement(sql);
+            ps1.setObject(1, 1);
+            ps1.setObject(2, zny);
+            ps1.setObject(3, 2);
+            ps1.setObject(4, zny);
+            ps1.executeUpdate();
+            ResultSet rs = stmt.executeQuery("select * from " + zonedDateTimeTable);
+            Assert.assertTrue(rs.next());
+        } catch (Throwable e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testGBK() {
+        try {
+            Connection conn = setConnection("&characterEncoding=gbk");
+            Statement stmt = conn.createStatement();
+            ResultSet resultSet = stmt.executeQuery("select '中文ab' from dual");
+            resultSet.next();
+            Assert.assertEquals("中文ab", resultSet.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testVarchar2Number() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + varchar2Number + " values('100')");
+            ResultSet rs1 = stmt.executeQuery("select c1 from " + varchar2Number);
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+            PreparedStatement ps = sharedConnection.prepareStatement("select c1 from "
+                                                                     + varchar2Number);
+            rs1 = ps.executeQuery();
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNvarchar2Number() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + nvarchar2Number + " values('100')");
+            ResultSet rs1 = stmt.executeQuery("select c1 from " + nvarchar2Number);
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+            PreparedStatement ps = sharedConnection.prepareStatement("select c1 from "
+                                                                     + nvarchar2Number);
+            rs1 = ps.executeQuery();
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

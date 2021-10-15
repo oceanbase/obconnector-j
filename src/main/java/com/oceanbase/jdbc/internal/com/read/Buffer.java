@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc.internal.com.read;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Buffer {
@@ -401,8 +400,8 @@ public class Buffer {
      *
      * @param value value to write
      */
-    public void writeStringLength(String value) {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+    public void writeStringLength(String value, Charset charset) {
+        byte[] bytes = value.getBytes(charset);
         int length = bytes.length;
         while (remaining() < length + 9) {
             grow();

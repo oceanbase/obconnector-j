@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.LocalDate;
@@ -133,7 +134,22 @@ public abstract class RowProtocol {
     this.buf = buf;
     index = -1;
   }
+  Charset getCurrentEncoding(ColumnType columnType) {
+    switch (columnType) {
+      case VARCHAR:
+      case VARCHAR2:
+      case VARSTRING:
+      case NVARCHAR2:
+      case NCHAR:
+      case RAW:
+      case STRING:
+        return Charset.forName(this.options.characterEncoding);
+      default:
+        break;
+    }
+    return  StandardCharsets.UTF_8;
 
+  }
   public abstract void setPosition(int position);
 
   public int getLengthMaxFieldSize() {
@@ -169,7 +185,9 @@ public abstract class RowProtocol {
   public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
   public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
   public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
-
+  public String getEncoding() {
+    return options.characterEncoding;
+  }
   public TIMESTAMP getInternalTIMESTAMP(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
@@ -185,7 +203,8 @@ public abstract class RowProtocol {
 
       return buildTIMETAMP(buf, pos, length);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -214,7 +233,8 @@ public abstract class RowProtocol {
       timestamptz.setByte(11, returnBytes[11]);
       return timestamptz;
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -241,7 +261,8 @@ public abstract class RowProtocol {
       System.arraycopy(buf, pos, returnBytes, 0, length);
       return new TIMESTAMPLTZ(returnBytes);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -412,7 +433,8 @@ public abstract class RowProtocol {
       System.arraycopy(buf,pos,b,0,length);
       return new NUMBER(b);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -426,7 +448,8 @@ public abstract class RowProtocol {
     if (lastValueWasNull()) {
       return null;
     }
-    String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+    // todo check the encoding
     if (columnInfo.getColumnType() == ColumnType.NUMBER_FLOAT) {
       return new NUMBER_FLOAT(new Float(value), buf);
     } else {
@@ -446,7 +469,8 @@ public abstract class RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.BINARY_DOUBLE) {
       return new BINARY_DOUBLE(buf[pos]);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -463,7 +487,8 @@ public abstract class RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.BINARY_FLOAT) {
       return new BINARY_FLOAT(buf[pos]);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
           "Value type \""
               + columnInfo.getColumnType().getTypeName()
@@ -479,7 +504,7 @@ public abstract class RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.INTERVALDS) {
       return new INTERVALDS(buf);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
       throw new SQLException(
               "Value type \""
                       + columnInfo.getColumnType().getTypeName()
@@ -496,7 +521,8 @@ public abstract class RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.INTERVALYM) {
       return new INTERVALYM(buf);
     } else {
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+      // todo check the encoding
       throw new SQLException(
               "Value type \""
                       + columnInfo.getColumnType().getTypeName()

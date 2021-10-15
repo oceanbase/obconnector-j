@@ -47,9 +47,11 @@ import java.io.IOException;
 import java.io.Reader;
 
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.util.Options;
 
-public class OBReaderParameter implements Cloneable, ParameterHolder {
+public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
 
     private final Reader  reader;
     private final long    length;
@@ -60,8 +62,8 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     /**
      * Constructor.
      *
-     * @param reader reader to write
-     * @param length max length to write (can be null)
+     * @param reader             reader to write
+     * @param length             max length to write (can be null)
      * @param noBackslashEscapes must backslash be escape
      */
     public OBReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
@@ -78,6 +80,7 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
 
     public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length,
                              boolean noBackslashEscapes) {
+
         this.reader = null;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
@@ -130,7 +133,7 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return this.hasLobLocator ? ColumnType.OBCLOB : ColumnType.STRING;
+        return this.hasLobLocator ? ColumnType.OBCLOB : ColumnType.BLOB;
     }
 
     @Override
@@ -144,5 +147,42 @@ public class OBReaderParameter implements Cloneable, ParameterHolder {
 
     public boolean isLongData() {
         return this.hasLobLocator ? false : true;
+    }
+
+    @Override
+    public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
+                                                                                            throws IOException {
+        int pieceLen = options.pieceLength;
+        byte piece;
+        char[] buffer = new char[pieceLen];
+        int len = reader.read(buffer);
+        boolean ret = false;
+        if (len < 0) {
+            writer.write(Packet.OCI_LAST_PIECE);
+            writer.write(0);
+            writer.writeLong(0);
+            writer.flush();
+            return false;
+        }
+        byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
+        if (first && data.length == pieceLen) {
+            piece = Packet.OCI_FIRST_PIECE;
+            ret = true;
+        } else if (first && data.length < pieceLen) {
+            piece = Packet.OCI_LAST_PIECE;
+            ret = false;
+        } else if (!first && data.length == pieceLen) {
+            piece = Packet.OCI_NEXT_PIECE;
+            ret = true;
+        } else {
+            piece = Packet.OCI_LAST_PIECE;
+            ret = false;
+        }
+        writer.write(piece);
+        writer.write(0);
+        writer.writeLong(data.length);
+        writer.write(data);
+        writer.flush();
+        return ret;
     }
 }

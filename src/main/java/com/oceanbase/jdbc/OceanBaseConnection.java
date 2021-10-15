@@ -292,7 +292,21 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
 
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
-        return new OceanBaseConnection(protocol);
+        OceanBaseConnection conn = new OceanBaseConnection(protocol);
+
+        if (!protocol.getOptions().connectProxy) {
+            // get_ob_server_version
+            String sql = protocol.isOracleMode() ? "select @@version_comment, @@version from dual where rownum <= 1"
+                : "select @@version_comment, @@version limit 1";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            rs.next();
+            protocol.setObServerVersion(rs.getString(2));
+            rs.close();
+            stmt.close();
+        }
+
+        return conn;
     }
 
     public static String quoteIdentifier(String string) {
@@ -709,7 +723,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
         if (this.protocol.isOracleMode() && !matcher.matches()) { // oracle mode prepare sql by prepareCall
             return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
-                null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+                null, null, resultSetType, resultSetConcurrency, exceptionFactory, true);
         } else {
 
             if (!matcher.matches()) {
@@ -742,7 +756,8 @@ public class OceanBaseConnection implements ConnectionImpl {
                     }
                 }
                 // Convert the arguments string to normal format
-                if (this.protocol.isOracleMode() && options.supportNameBinding && isFunction) {
+                if (this.protocol.isOracleMode() && options.supportNameBinding && isFunction
+                    && arguments != null) {
                     arguments = Utils.trimSQLString(arguments, protocol.noBackslashEscapes(),
                         protocol.isOracleMode(), false);
                 }
@@ -802,14 +817,24 @@ public class OceanBaseConnection implements ConnectionImpl {
                     databaseAndProcedure, (arguments == null) ? "()" : arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             } else {
-                return new OceanBaseProcedureStatement(true, "BEGIN ?:=" + databaseAndProcedure
-                                                             + arguments + ";END;",
-                    (OceanBaseConnection) this, procedureName, database, resultSetType,
+                return new OceanBaseProcedureStatement(true, "BEGIN ?:="
+                                                             + databaseAndProcedure
+                                                             + ((arguments == null) ? "()"
+                                                                 : arguments) + ";END;",
+                    (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             }
         } else {
-            return new OceanBaseProcedureStatement(false, query, (OceanBaseConnection) this,
-                procedureName, database, resultSetType, resultSetConcurrency, exceptionFactory);
+            if (databaseAndProcedure != null && arguments == null) { // for call procname,add () to the end
+                String callableSql = "call " + databaseAndProcedure + "()";
+                return new OceanBaseProcedureStatement(false, callableSql,
+                    (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
+                    resultSetConcurrency, exceptionFactory);
+            } else {
+                return new OceanBaseProcedureStatement(false, query, (OceanBaseConnection) this,
+                    procedureName, database, arguments, resultSetType, resultSetConcurrency,
+                    exceptionFactory);
+            }
         }
     }
 

@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.io.output;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 
@@ -78,8 +79,9 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private boolean             lastPacketExactMaxPacketLength = false;
     private long                timestampBeforeFlush           = 0;
 
-    public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
-        super(out, maxQuerySizeToLog, threadId);
+    public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
+                                      String encoding) {
+        super(out, maxQuerySizeToLog, threadId, encoding);
     }
 
     public int getMaxPacketLength() {
@@ -122,42 +124,47 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         timestampBeforeFlush = 0;
     }
 
+    @Override
+    public Charset getCharset() {
+        return charset;
+    }
+
     /**
-     * Flush the internal buffer.
-     *
-     * <p>Compression add a 7 header :
-     *
-     * <ol>
-     *   <li>3 byte compression length
-     *   <li>1 byte compress sequence number
-     *   <li>3 bytes uncompress length
-     * </ol>
-     *
-     * <p>in case packet isn't compressed (last 3 bytes == 0):
-     *
-     * <ol>
-     *   <li>3 byte uncompress length
-     *   <li>1 byte compress sequence number
-     *   <li>3 bytes with 0 value
-     * </ol>
-     *
-     * <p>Content correspond to standard content.
-     *
-     * <ol>
-     *   <li>3 byte length
-     *   <li>1 byte sequence number (!= than compress sequence number)
-     *   <li>sub-content
-     * </ol>
-     *
-     * <p>Problem is when standard content is bigger than 16mb : content will not send 4byte standard
-     * header + 16mb content, since packet are limited to 16mb then 4 bytes standard header + 16mb - 4
-     * bytes content. the ending 4 bytes are waiting to be send. next packet will then send the
-     * waiting data before next packet, putting more waiting data is needed. if ending data is exactly
-     * MAX_PACKET_LENGTH length, then an empty packet must be send.
-     *
-     * @param commandEnd command end
-     * @throws IOException id connection error occur.
-     */
+       * Flush the internal buffer.
+       *
+       * <p>Compression add a 7 header :
+       *
+       * <ol>
+       *   <li>3 byte compression length
+       *   <li>1 byte compress sequence number
+       *   <li>3 bytes uncompress length
+       * </ol>
+       *
+       * <p>in case packet isn't compressed (last 3 bytes == 0):
+       *
+       * <ol>
+       *   <li>3 byte uncompress length
+       *   <li>1 byte compress sequence number
+       *   <li>3 bytes with 0 value
+       * </ol>
+       *
+       * <p>Content correspond to standard content.
+       *
+       * <ol>
+       *   <li>3 byte length
+       *   <li>1 byte sequence number (!= than compress sequence number)
+       *   <li>sub-content
+       * </ol>
+       *
+       * <p>Problem is when standard content is bigger than 16mb : content will not send 4byte standard
+       * header + 16mb content, since packet are limited to 16mb then 4 bytes standard header + 16mb - 4
+       * bytes content. the ending 4 bytes are waiting to be send. next packet will then send the
+       * waiting data before next packet, putting more waiting data is needed. if ending data is exactly
+       * MAX_PACKET_LENGTH length, then an empty packet must be send.
+       *
+       * @param commandEnd command end
+       * @throws IOException id connection error occur.
+       */
     protected void flushBuffer(boolean commandEnd) throws IOException {
         if (enableNetworkStatistics) {
             timestampBeforeFlush = System.currentTimeMillis();

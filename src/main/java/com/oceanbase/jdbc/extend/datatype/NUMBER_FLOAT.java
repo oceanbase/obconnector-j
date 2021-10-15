@@ -45,6 +45,7 @@ package com.oceanbase.jdbc.extend.datatype;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -68,7 +69,7 @@ public class NUMBER_FLOAT extends Datum {
     }
 
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(String.valueOf(value).getBytes());
+        pos.write(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
     }
 
     public int getApproximateTextProtocolLength() {

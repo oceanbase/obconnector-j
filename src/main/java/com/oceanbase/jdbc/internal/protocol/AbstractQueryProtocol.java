@@ -1,52 +1,52 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc.internal.protocol;
 
@@ -82,6 +82,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import com.oceanbase.jdbc.internal.com.send.*;
+import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -105,16 +106,17 @@ import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
-  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
-      new HashSet<>(Arrays.asList(1205, 1213, 1614));
+  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES = new HashSet<>(Arrays.asList(1205, 1213, 1614));
 
   private ThreadPoolExecutor readScheduler = null;
   private InputStream localInfileInputStream;
-  private long maxRows; /* max rows returned by a statement */
+  private long maxRows; //returned by a statement
   private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
   private long checksum = 1;
+  private int iterationCount;
+  private int executeMode;
   private boolean enableNetworkStatistics = false;
 
   /**
@@ -179,7 +181,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   private OceanBaseSqlException exceptionWithQuery(
-      String sql, SQLException sqlException, boolean explicitClosed) {
+      String sql,
+      SQLException sqlException,
+      boolean explicitClosed) {
     OceanBaseSqlException ex;
     if (explicitClosed) {
       ex =
@@ -221,6 +225,49 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   /**
+   * Prepare query on server side. Will permit to know the parameter number of the query, and permit
+   * to send only the data on next results.
+   *
+   * <p>For failover, two additional information are in the result-set object : - current connection
+   * : Since server maintain a state of this prepare statement, all query will be executed on this
+   * particular connection. - executeOnMaster : state of current connection when creating this
+   * prepareStatement (if was on master, will only be executed on master. If was on a slave, can be
+   * execute temporary on master, but we keep this flag, so when a slave is connected back to
+   * relaunch this query on slave)
+   *
+   * @param sql the query
+   * @param executeOnMaster state of current connection when creating this prepareStatement
+   * @return a ServerPrepareResult object that contain prepare result information.
+   * @throws SQLException if any error occur on connection.
+   */
+  @Override
+  public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
+
+    lock.lock();
+    try {
+      // search in cache first
+      if (options.cachePrepStmts && options.useServerPrepStmts) {
+        ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
+        if (pr != null && pr.incrementShareCounter()) {
+          return pr;
+        }
+      }
+
+      cmdPrologue(); // ?
+      writer.startPacket(0);
+      writer.write(Packet.COM_STMT_PREPARE);
+      writer.write(sql.getBytes(options.characterEncoding));
+      writer.flush();
+
+      ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
+      return comStmtPrepare.read(reader, eofDeprecated);
+    } catch (IOException e) {
+      throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
+    } finally {
+      lock.unlock();
+    }
+  }
+  /**
    * Execute internal query.
    *
    * <p>!! will not support multi values queries !!
@@ -241,15 +288,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   @Override
-  public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql)
-      throws SQLException {
+  public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException {
 
     cmdPrologue();
     try {
 
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
-      writer.write(sql);
+      writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
       getResult(results);
 
@@ -264,9 +310,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
-  public void executeQuery(
-      boolean mustExecuteOnMaster, Results results, final String sql, Charset charset)
-      throws SQLException {
+  public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException {
     cmdPrologue();
     try {
 
@@ -296,8 +340,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       boolean mustExecuteOnMaster,
       Results results,
       final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters)
-      throws SQLException {
+      ParameterHolder[] parameters) throws SQLException {
     cmdPrologue();
     try {
 
@@ -337,8 +380,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       final ClientPrepareResult clientPrepareResult,
       ParameterHolder[] parameters,
-      int queryTimeout)
-      throws SQLException {
+      int queryTimeout) throws SQLException {
     cmdPrologue();
     try {
 
@@ -364,6 +406,171 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   /**
+   * Execute a query that is already prepared.
+   *
+   * @param mustExecuteOnMaster must execute on master
+   * @param serverPrepareResult prepare result
+   * @param results execution result
+   * @param parameters parameters
+   * @throws SQLException exception
+   */
+  @Override
+  public void executePreparedQuery(
+      boolean mustExecuteOnMaster,
+      ServerPrepareResult serverPrepareResult,
+      Results results,
+      ParameterHolder[] parameters) throws SQLException {
+
+    cmdPrologue();
+    try {
+      int parameterCount = serverPrepareResult.getParameters().length;
+
+      // send binary data in a separate stream
+      if (isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
+        for (int i = 0; i < parameterCount; i++) {
+          if (parameters[i].isLongData()) {
+            boolean continueWrite = true;
+            boolean first = true;
+            while (continueWrite) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+              writer.writeInt(serverPrepareResult.getStatementId());
+              writer.writeShort((short) (i));
+              continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer,first, options);
+              first = false;
+              getResult(results);
+            }
+          }
+        }
+      } else {
+        for (int i = 0; i < parameterCount; i++) {
+          if (parameters[i].isLongData()) {
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+            writer.writeInt(serverPrepareResult.getStatementId());
+            writer.writeShort((short) i);
+            parameters[i].writeBinary(writer);
+            writer.flush();
+          }
+        }
+      }
+      writer.setTimeZone(this.getServerTimeZone());
+
+      // send execute query
+      boolean withRefCursor = false;
+      ColumnDefinition[] ci = serverPrepareResult.getColumns();
+      for (ColumnDefinition columnDefinition : ci) {
+        if (columnDefinition.getColumnType() == ColumnType.CURSOR) {
+          withRefCursor = true;
+          break;
+        }
+      }
+
+      if (!withRefCursor && options.useCursorFetch && options.useServerPrepStmts && results.getFetchSize() > 0
+          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && ci.length != 0) {
+        // use any kind of cursor
+        ComStmtExecute.send(
+            writer,
+            serverPrepareResult.getStatementId(),
+            parameters,
+            parameterCount,
+            serverPrepareResult.getParameterTypeHeader(),
+            Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
+            this);
+        results.setStatementId(serverPrepareResult.getStatementId());
+        results.setToCursorFetch(true);
+      } else {
+        // not use cursor
+        ComStmtExecute.send(
+            writer,
+            serverPrepareResult.getStatementId(),
+            parameters,
+            parameterCount,
+            serverPrepareResult.getParameterTypeHeader(),
+            Packet.CURSOR_TYPE_NO_CURSOR,
+            this);
+      }
+      getResult(results);
+      results.setToCursorFetch(false);
+
+    } catch (SQLException qex) {
+      throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
+    } catch (IOException e) {
+      throw exceptionWithQuery(parameters, serverPrepareResult, handleIoException(e), false);
+    }
+  }
+
+  @Override
+  public ServerPrepareResult executePreparedQuery(
+      boolean mustExecuteOnMaster,
+      int iterationCount,
+      int parameterCount,
+      ServerPrepareResult serverPrepareResult,
+      Results results) throws SQLException {
+
+    cmdPrologue();
+    try {
+      ParameterHolder[] parameters = results.getParameters();
+      for (int i = 0; i < parameters.length; i++) {
+        if (parameters[i].isLongData()) {
+          writer.startPacket(0);
+          writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+          writer.writeInt(results.getStatementId());
+          writer.writeShort((short) i);
+          parameters[i].writeBinary(writer);
+          writer.flush();
+        }
+      }
+
+      writer.setTimeZone(this.getServerTimeZone());
+
+      // send execute query
+      int columnCount = 0;
+      boolean withRefCursor = false;
+      if (serverPrepareResult != null) {
+        ColumnDefinition[] ci = serverPrepareResult.getColumns();
+        columnCount = ci.length;
+        for (ColumnDefinition columnDefinition : ci) {
+          if (columnDefinition.getColumnType() == ColumnType.CURSOR) {
+            withRefCursor = true;
+            break;
+          }
+        }
+      }
+
+      if (!withRefCursor && columnCount != 0 && options.useCursorFetch && options.useServerPrepStmts
+          && results.getFetchSize() > 0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+        ComStmtPrepareExecute.send(
+            writer,
+            results,
+            parameterCount,
+            serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null,
+            Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
+            this);
+        results.setStatementId(serverPrepareResult.getStatementId());
+        results.setToCursorFetch(true);
+      } else {
+        ComStmtPrepareExecute.send(
+            writer,
+            results,
+            parameterCount,
+            serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null,
+            Packet.CURSOR_TYPE_NO_CURSOR,
+            this);
+      }
+      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, results);
+      // getResult(results);
+      results.setToCursorFetch(false);
+      return serverPrepareResult;
+    } catch (SQLException qex) {
+      throw exceptionWithQuery(results.getParameters(), serverPrepareResult, qex, false);
+    } catch (IOException e) {
+      throw exceptionWithQuery(results.getParameters(), serverPrepareResult, handleIoException(e), false);
+    }
+
+  }
+
+  /**
    * Execute clientPrepareQuery batch.
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
@@ -378,8 +585,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       final ClientPrepareResult prepareResult,
       final List<ParameterHolder[]> parametersList,
-      boolean hasLongData)
-      throws SQLException {
+      boolean hasLongData) throws SQLException {
 
     // ***********************************************************************************************************
     // Multiple solution for batching :
@@ -637,8 +843,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private void executeBatchMulti(
       Results results,
       final ClientPrepareResult clientPrepareResult,
-      final List<ParameterHolder[]> parametersList)
-      throws SQLException {
+      final List<ParameterHolder[]> parametersList) throws SQLException {
 
     cmdPrologue();
     initializeBatchReader();
@@ -706,8 +911,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if any exception occur
    */
   public void executeBatchStmt(
-      boolean mustExecuteOnMaster, Results results, final List<String> queries)
-      throws SQLException {
+      boolean mustExecuteOnMaster,
+      Results results,
+      final List<String> queries) throws SQLException {
     cmdPrologue();
     if (this.options.rewriteBatchedStatements) {
 
@@ -832,49 +1038,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }.executeBatch();
   }
 
-  /**
-   * Prepare query on server side. Will permit to know the parameter number of the query, and permit
-   * to send only the data on next results.
-   *
-   * <p>For failover, two additional information are in the result-set object : - current connection
-   * : Since server maintain a state of this prepare statement, all query will be executed on this
-   * particular connection. - executeOnMaster : state of current connection when creating this
-   * prepareStatement (if was on master, will only be executed on master. If was on a slave, can be
-   * execute temporary on master, but we keep this flag, so when a slave is connected back to
-   * relaunch this query on slave)
-   *
-   * @param sql the query
-   * @param executeOnMaster state of current connection when creating this prepareStatement
-   * @return a ServerPrepareResult object that contain prepare result information.
-   * @throws SQLException if any error occur on connection.
-   */
-  @Override
-  public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
 
-    lock.lock();
-    try {
-      // search in cache first
-      if (options.cachePrepStmts && options.useServerPrepStmts) {
-        ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
-        if (pr != null && pr.incrementShareCounter()) {
-          return pr;
-        }
-      }
-
-      cmdPrologue(); // ?
-      writer.startPacket(0);
-      writer.write(Packet.COM_STMT_PREPARE);
-      writer.write(sql);
-      writer.flush();
-
-      ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-      return comStmtPrepare.read(reader, eofDeprecated);
-    } catch (IOException e) {
-      throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
-    } finally {
-      lock.unlock();
-    }
-  }
 
   /**
    * Execute list of queries. This method is used when using text batch statement and using
@@ -885,8 +1049,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param queries list of queries
    * @throws SQLException exception
    */
-  private void executeBatchAggregateSemiColon(Results results, final List<String> queries)
-      throws SQLException {
+  private void executeBatchAggregateSemiColon(Results results, final List<String> queries) throws SQLException {
 
     String firstSql = null;
     int currentIndex = 0;
@@ -942,8 +1105,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       final ClientPrepareResult prepareResult,
       List<ParameterHolder[]> parameterList,
-      boolean rewriteValues)
-      throws SQLException {
+      boolean rewriteValues) throws SQLException {
 
     cmdPrologue();
 
@@ -999,8 +1161,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       String sql,
       final List<ParameterHolder[]> parametersList,
-      boolean hasLongData)
-      throws SQLException {
+      boolean hasLongData) throws SQLException {
 
     cmdPrologue();
 
@@ -1037,15 +1198,30 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               "Parameter at position " + (paramCount - 1) + " is not set", "07004");
         }
 
+
         // send binary data in a separate stream
-        for (int i = 0; i < paramCount; i++) {
-          if (parameters[i].isLongData()) {
-            writer.startPacket(0);
-            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-            writer.writeInt(statementId);
-            writer.writeShort((short) i);
-            parameters[i].writeBinary(writer);
-            writer.flush();
+        if(isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
+          for (int i = 0; i < paramCount; i++) {
+            if (parameters[i].isLongData()) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+              writer.writeInt(statementId);
+              writer.writeShort((short) i);
+              writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
+              parameters[i].writeBinary(writer);
+              writer.flush();
+            }
+          }
+        } else {
+          for (int i = 0; i < paramCount; i++) {
+            if (parameters[i].isLongData()) {
+              writer.startPacket(0);
+              writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+              writer.writeInt(statementId);
+              writer.writeShort((short) i);
+              parameters[i].writeBinary(writer);
+              writer.flush();
+            }
           }
         }
 
@@ -1057,7 +1233,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             parameterTypeHeader,
             writer,
             Packet.CURSOR_TYPE_NO_CURSOR,
-                getProtocol());
+            getProtocol());
         writer.flush();
       }
 
@@ -1089,102 +1265,28 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     return true;
   }
 
-  /**
-   * Execute a query that is already prepared.
-   *
-   * @param mustExecuteOnMaster must execute on master
-   * @param serverPrepareResult prepare result
-   * @param results execution result
-   * @param parameters parameters
-   * @throws SQLException exception
-   */
-  @Override
-  public void executePreparedQuery(
-      boolean mustExecuteOnMaster,
-      ServerPrepareResult serverPrepareResult,
-      Results results,
-      ParameterHolder[] parameters)
-      throws SQLException {
-
+  public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
-
     try {
-
-      int parameterCount = serverPrepareResult.getParameters().length;
-
-
-      for (int i = 0; i < parameterCount; i++) {
-        if (parameters[i].isLongData()) {
-          writer.startPacket(0);
-          writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-          writer.writeInt(serverPrepareResult.getStatementId());
-          writer.writeShort((short) i);
-          parameters[i].writeBinary(writer);
-          writer.flush();
-        }
-      }
-      writer.setTimeZone(this.getServerTimeZone());
-      // send execute query
-      boolean withRefCursor = false;
-      ColumnDefinition[] ci = serverPrepareResult.getColumns();
-      for (int i = 0;i<ci.length;i++) {
-        if (ci[i].getColumnType() == ColumnType.CURSOR) {
-          withRefCursor = true;
-        }
-      }
-      if (withRefCursor == false && options.useCursorFetch == true && options.useServerPrepStmts == true && results.getFetchSize() >0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && ci.length != 0 ) {
-        ComStmtExecute.send(
-                writer,
-                serverPrepareResult.getStatementId(),
-                parameters,
-                parameterCount,
-                serverPrepareResult.getParameterTypeHeader(),
-                Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
-                this);
-        results.setStatementId(serverPrepareResult.getStatementId());
-        results.setToCursorFetch(true);
+      writer.startPacket(0);
+      writer.write(Packet.COM_STMT_FETCH);
+      writer.writeInt(cursorId);
+      writer.writeInt(fetchSize);
+      writer.flush();
+      if (this.isOracleMode()) {
+        return getResultWithoutValue(results);
       } else {
-        ComStmtExecute.send(
-                writer,
-                serverPrepareResult.getStatementId(),
-                parameters,
-                parameterCount,
-                serverPrepareResult.getParameterTypeHeader(),
-                Packet.CURSOR_TYPE_NO_CURSOR,
-                this);
+        return null;
       }
-      getResult(results);
-      results.setToCursorFetch(false);
-
-    } catch (SQLException qex) {
-      throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
     } catch (IOException e) {
-      throw exceptionWithQuery(parameters, serverPrepareResult, handleIoException(e), false);
+      throw exceptionWithQuery(
+          " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
     }
   }
 
-    public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
-        cmdPrologue();
-        try {
-            writer.startPacket(0);
-            writer.write(Packet.COM_STMT_FETCH);
-            writer.writeInt(cursorId);
-            writer.writeInt(fetchSize);
-            writer.flush();
-            if (this.isOracleMode()) {
-               return  getResultWithoutValue(results);
-            } else {
-              return null;
-            }
-        } catch (IOException e) {
-            throw exceptionWithQuery(
-                    " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
-        }
-    }
-
   @Override
   public long getLastPacketCostTime() throws SQLException {
-    if(!enableNetworkStatistics) {
+    if (!enableNetworkStatistics) {
       throw new SQLException("Cant get network cost info while setNetworkStatisticsFlag(true)");
     } else {
       return reader.getTimestampAfterRead() - writer.getTimestampBeforeFlush();
@@ -1193,9 +1295,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void setNetworkStatisticsFlag(boolean flag) {
-      enableNetworkStatistics = flag;
-      writer.enableNetworkStatistics(flag);
-      reader.enableNetworkStatistics(flag);
+    enableNetworkStatistics = flag;
+    writer.enableNetworkStatistics(flag);
+    reader.enableNetworkStatistics(flag);
   }
 
   @Override
@@ -1215,23 +1317,23 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void clearNetworkStatistics() {
-      writer.clearNetworkStatistics();
-      reader.clearNetworkStatistics();
+    writer.clearNetworkStatistics();
+    reader.clearNetworkStatistics();
   }
 
   @Override
   public void changeUser(String user, String pwd) throws SQLException {
     cmdPrologue();
     try {
-      Credential  credential = new Credential(user,pwd);
+      Credential credential = new Credential(user, pwd);
       String clientIp = this.socket.getLocalAddress().getHostAddress();
       SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
-              serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
-                      : 0x01), options, authenticationPluginType, seed, clientIp,this.isOracleMode());
+          serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
+              : 0x01), options, authenticationPluginType, seed, clientIp, this.isOracleMode());
       getResult(new Results());
     } catch (IOException e) {
       throw exceptionWithQuery(
-              " change user failed.", handleIoException(e), explicitClosed);
+          " change user failed.", handleIoException(e), explicitClosed);
     }
     setUsername(user);
     postConnectionQueries();
@@ -1259,7 +1361,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void setUsername(String username) {
-      this.username = username;
+    this.username = username;
   }
 
   /**
@@ -1457,7 +1559,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void cancelCurrentQuery() throws SQLException {
     try (MasterProtocol copiedProtocol =
-        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
+             new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
       copiedProtocol.setHostAddress(getHostAddress());
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
@@ -1481,7 +1583,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (this.autoCommit != autoCommit) {
       executeQuery("set autocommit = " + (autoCommit ? "1" : "0"));
     } else {
-      return ;
+      return;
     }
     this.autoCommit = autoCommit;
   }
@@ -1583,8 +1685,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTransactionIsolation(final int level) throws SQLException {
     cmdPrologue();
     lock.lock();
-    if(transactionIsolationLevel == level) {
-      return ;
+    if (transactionIsolationLevel == level) {
+      return;
     }
     try {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
@@ -1623,87 +1725,86 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void getResult(Results results) throws SQLException {
-
     readPacket(results);
 
-    while(hasMoreResults()) {
-       readPacket(results);
+    while (hasMoreResults()) {
+      readPacket(results);
     }
   }
 
-    public ColumnDefinition[]  getResultWithoutValue(Results results) throws SQLException {
+  public ColumnDefinition[] getResultWithoutValue(Results results) throws SQLException {
 
-        Buffer buffer;
-        ColumnDefinition[] ci = null;
-        try {
-            buffer = reader.getPacket(true);
-        } catch (IOException e) {
-            throw handleIoException(e);
-        }
-
-        switch (buffer.getByteAt(0)) {
-
-            // *********************************************************************************************************
-            // * OK response
-            // *********************************************************************************************************
-            case Packet.OK:
-                readOkPacket(buffer, results);
-                break;
-
-            // *********************************************************************************************************
-            // * ERROR response
-            // *********************************************************************************************************
-            case Packet.ERROR:
-                throw readErrorPacket(buffer, results);
-
-                // *********************************************************************************************************
-                // * LOCAL INFILE response
-                // *********************************************************************************************************
-            case Packet.LOCAL_INFILE:
-                readLocalInfilePacket(buffer, results);
-                break;
-
-            // *********************************************************************************************************
-            // * ResultSet
-            // *********************************************************************************************************
-            default:
-               ci = readResultSetColumnDef(buffer, results);
-                break;
-        }
-        return ci;
-
+    Buffer buffer;
+    ColumnDefinition[] ci = null;
+    try {
+      buffer = reader.getPacket(true);
+    } catch (IOException e) {
+      throw handleIoException(e);
     }
 
-    private ColumnDefinition[] readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
-        long fieldCount = buffer.getLengthEncodedNumeric();
-        // read columns information's
-        try {
-            ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
-            for (int i = 0; i < fieldCount; i++) {
-                ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(),options.characterEncoding);
-            }
+    switch (buffer.getByteAt(0)) {
 
-            if (!eofDeprecated) {
-                Buffer bufferEof = reader.getPacket(true);
-                if (bufferEof.readByte() != Packet.EOF) {
-                    // using IOException to close connection,
-                    throw new IOException(
-                            "Packets out of order when reading field packets, expected was EOF stream."
-                                    + ((options.enablePacketDebug)
-                                    ? getTraces()
-                                    : "Packet contents (hex) = "
-                                    + Utils.hexdump(
-                                    options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
-                }
-                bufferEof.skipBytes(2);
-                bufferEof.readShort();
-            }
-            return ci;
-        } catch (IOException e) {
-            throw handleIoException(e);
-        }
+      // *********************************************************************************************************
+      // * OK response
+      // *********************************************************************************************************
+      case Packet.OK:
+        readOkPacket(buffer, results);
+        break;
 
+      // *********************************************************************************************************
+      // * ERROR response
+      // *********************************************************************************************************
+      case Packet.ERROR:
+        throw readErrorPacket(buffer, results);
+
+        // *********************************************************************************************************
+        // * LOCAL INFILE response
+        // *********************************************************************************************************
+      case Packet.LOCAL_INFILE:
+        readLocalInfilePacket(buffer, results);
+        break;
+
+      // *********************************************************************************************************
+      // * ResultSet
+      // *********************************************************************************************************
+      default:
+        ci = readResultSetColumnDef(buffer, results);
+        break;
     }
+    return ci;
+
+  }
+
+  private ColumnDefinition[] readResultSetColumnDef(Buffer buffer, Results results) throws SQLException {
+    long fieldCount = buffer.getLengthEncodedNumeric();
+    // read columns information's
+    try {
+      ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
+      for (int i = 0; i < fieldCount; i++) {
+        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.characterEncoding);
+      }
+
+      if (!eofDeprecated) {
+        Buffer bufferEof = reader.getPacket(true);
+        if (bufferEof.readByte() != Packet.EOF) {
+          // using IOException to close connection,
+          throw new IOException(
+              "Packets out of order when reading field packets, expected was EOF stream."
+                  + ((options.enablePacketDebug)
+                  ? getTraces()
+                  : "Packet contents (hex) = "
+                  + Utils.hexdump(
+                  options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
+        }
+        bufferEof.skipBytes(2);
+        bufferEof.readShort();
+      }
+      return ci;
+    } catch (IOException e) {
+      throw handleIoException(e);
+    }
+
+  }
 
   /**
    * Read server response packet.
@@ -1723,16 +1824,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     switch (buffer.getByteAt(0)) {
 
-        // *********************************************************************************************************
-        // * OK response
-        // *********************************************************************************************************
+      // *********************************************************************************************************
+      // * OK response
+      // *********************************************************************************************************
       case Packet.OK:
         readOkPacket(buffer, results);
         break;
 
-        // *********************************************************************************************************
-        // * ERROR response
-        // *********************************************************************************************************
+      // *********************************************************************************************************
+      // * ERROR response
+      // *********************************************************************************************************
       case Packet.ERROR:
         throw readErrorPacket(buffer, results);
 
@@ -1743,35 +1844,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         readLocalInfilePacket(buffer, results);
         break;
 
-        // *********************************************************************************************************
-        // * ResultSet
-        // *********************************************************************************************************
+      // *********************************************************************************************************
+      // * ResultSet
+      // *********************************************************************************************************
       default:
-        readResultSet(buffer, results);
+        long fieldCount = buffer.getLengthEncodedNumeric();
+        ColumnDefinition[] columns = new ColumnDefinition[(int) fieldCount];
+        readResultSet(columns, results);
         break;
     }
-  }
-
-  /**
-   * Read OK_Packet.
-   *
-   * @param buffer current buffer
-   * @param results result object
-   * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
-   */
-  private void readOkPacket(Buffer buffer, Results results) {
-    buffer.skipByte(); // fieldCount
-    final long updateCount = buffer.getLengthEncodedNumeric();
-    final long insertId = buffer.getLengthEncodedNumeric();
-
-    serverStatus = buffer.readShort();
-    hasWarnings = (buffer.readShort() > 0);
-
-    if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
-      handleStateChange(buffer, results);
-    }
-
-    results.addStats(updateCount, insertId, hasMoreResults());
   }
 
   private void handleStateChange(Buffer buf, Results results) {
@@ -1818,7 +1899,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if cannot retrieve auto increment value
    */
   public int getAutoIncrementIncrement() throws SQLException {
-    if(!options.connectProxy) {
+    if (!options.connectProxy) {
       if (autoIncrementIncrement == 0) {
         lock.lock();
         try {
@@ -1842,6 +1923,28 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   /**
+   * Read OK_Packet.
+   *
+   * @param buffer current buffer
+   * @param results result object
+   * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
+   */
+  public void readOkPacket(Buffer buffer, Results results) {
+    buffer.skipByte(); // fieldCount
+    final long updateCount = buffer.getLengthEncodedNumeric();
+    final long insertId = buffer.getLengthEncodedNumeric();
+
+    serverStatus = buffer.readShort();
+    hasWarnings = (buffer.readShort() > 0);
+
+    if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
+      handleStateChange(buffer, results);
+    }
+
+    results.addStats(updateCount, insertId, hasMoreResults());
+  }
+
+  /**
    * Read ERR_Packet.
    *
    * @param buffer current buffer
@@ -1849,32 +1952,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @return SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
    */
-  private SQLException readErrorPacket(Buffer buffer, Results results) {
+  public SQLException readErrorPacket(Buffer buffer, Results results) {
     removeHasMoreResults();
     this.hasWarnings = false;
-    buffer.skipByte();
-    final int errorNumber = buffer.readShort();
-    String message;
-    String sqlState;
-    if (buffer.readByte() == '#') {
-      sqlState = new String(buffer.readRawBytes(5));
-      message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-    } else {
-      // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-      buffer.position -= 1;
-      message =
-          new String(
-              buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
-      sqlState = "HY000";
-    }
+
+    ErrorPacket ep = new ErrorPacket(buffer);
+
     results.addStatsError(false);
-
-    // force current status to in transaction to ensure rollback/commit, since command may have
-    // issue a transaction
+    // force current status to in transaction to ensure rollback/commit, since command may have issue a transaction
     serverStatus |= ServerStatus.IN_TRANSACTION;
-
     removeActiveStreamingResult();
-    return new SQLException(message, sqlState, errorNumber);
+
+    if (1054 == ep.getErrorCode()) {
+      return new SQLException(
+          ep.getMessage()
+              + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+              + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+          ep.getSqlState(), ep.getErrorCode());
+    } else {
+      return new SQLException(ep.getMessage(), ep.getSqlState(), ep.getErrorCode());
+    }
   }
 
   /**
@@ -1886,7 +1983,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
    */
   private void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
-
     int seq = 2;
     buffer.getLengthEncodedNumeric(); // field pos
     String fileName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
@@ -1988,61 +2084,57 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Read ResultSet Packet.
    *
-   * @param buffer current buffer
    * @param results result object
    * @throws SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/resultset/">resultSet packets</a>
    */
-  private void readResultSet(Buffer buffer, Results results) throws SQLException {
-    long fieldCount = buffer.getLengthEncodedNumeric();
-
+  public void readResultSet(ColumnDefinition[] ci, Results results) throws SQLException {
     try {
-
       // read columns information's
-      ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
-      for (int i = 0; i < fieldCount; i++) {
-        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(),options.characterEncoding);
+      for (int i = 0; i < ci.length; i++) {
+        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.characterEncoding);
       }
 
       boolean callableResult = false;
       boolean isPsOutParamter = false;
       if (!eofDeprecated) {
-        // read EOF packet
-        // EOF status is mandatory because :
-        // - Call query will have an callable resultSet for OUT parameters
-        //   -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
-        // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more
-        // result flag"
+        /** read EOF packet
+         * EOF status is mandatory because :
+         * Call query will have an callable resultSet for OUT parameters
+         * -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
+         * after a callable resultSet, a OK packet is send, but mysql does send the bad "more result flag"
+         */
         Buffer bufferEof = reader.getPacket(true);
         if (bufferEof.readByte() != Packet.EOF) {
           // using IOException to close connection,
           throw new IOException(
               "Packets out of order when reading field packets, expected was EOF stream."
                   + ((options.enablePacketDebug)
-                      ? getTraces()
-                      : "Packet contents (hex) = "
-                          + Utils.hexdump(
-                              options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
+                  ? getTraces()
+                  : "Packet contents (hex) = "
+                  + Utils.hexdump(
+                  options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
         }
         bufferEof.skipBytes(2); // Skip warningCount
         short currentStatus = bufferEof.readShort();
         /**
-         * We dont send an ok packet after all result set rows;Ob server send a execution response pacet ,but the PS_OUT_PARAMETERS is set
+         * We don't send an ok packet after all result set rows;
+         * Ob server send an execution response packet, but the PS_OUT_PARAMETERS is set
          */
-        callableResult = (currentStatus& ServerStatus.PS_OUT_PARAMETERS) != 0;
+        callableResult = (currentStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
       }
 
       SelectResultSet selectResultSet;
       if (results.isToCursorFetch()) {
-        selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated,isPsOutParamter);
+        selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
       } else if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
         selectResultSet =
-            new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
+            new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       } else {
         // remove fetch size to permit updating results without creating new connection
         results.removeFetchSize();
         selectResultSet =
-            new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated,isPsOutParamter);
+            new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       }
       results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
 
@@ -2056,8 +2148,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       long maxRows,
       boolean hasProxy,
       OceanBaseConnection connection,
-      OceanBaseStatement statement)
-      throws SQLException {
+      OceanBaseStatement statement) throws SQLException {
     prolog(maxRows, hasProxy, connection, statement);
   }
 
@@ -2071,8 +2162,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if any error occur.
    */
   public void prolog(
-          long maxRows, boolean hasProxy, OceanBaseConnection connection, OceanBaseStatement statement)
-      throws SQLException {
+      long maxRows,
+      boolean hasProxy,
+      OceanBaseConnection connection,
+      OceanBaseStatement statement) throws SQLException {
     if (explicitClosed) {
       throw new SQLNonTransientConnectionException(
           "execute() is called on closed connection", "08000");
@@ -2095,13 +2188,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     connection.reenableWarnings();
   }
 
-  public ServerPrepareResult addPrepareInCache(
-      String key, ServerPrepareResult serverPrepareResult) {
+  public ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult) {
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }
 
   private void cmdPrologue() throws SQLException {
-
     // load active result if any so buffer are clean for next query
     if (activeStreamingResult != null) {
       activeStreamingResult.loadFully(false, this);
@@ -2147,8 +2238,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   // TODO set all client affected variables when implementing CONJ-319
   public void resetStateAfterFailover(
-      long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
-      throws SQLException {
+      long maxRows,
+      int transactionIsolationLevel,
+      String database,
+      boolean autocommit) throws SQLException {
     setMaxRows(maxRows);
 
     if (transactionIsolationLevel != 0) {
@@ -2266,9 +2359,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw new SQLTimeoutException("Timeout during batch execution");
     }
   }
+
   @Override
   public void setChecksum(long checksum) {
     this.checksum = checksum;
+  }
+
+  @Override
+  public long getChecksum() {
+    return checksum;
   }
 
   @Override
@@ -2277,7 +2376,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
-  public long getChecksum() {
-    return checksum;
+  public void setIterationCount(int iterationCount) {
+    this.iterationCount = iterationCount;
+  }
+
+  @Override
+  public int getIterationCount() {
+    return iterationCount;
+  }
+
+  @Override
+  public void setExecuteMode(int executeMode) {
+    this.executeMode = executeMode;
+  }
+
+  @Override
+  public int getExecuteMode() {
+    return executeMode;
   }
 }

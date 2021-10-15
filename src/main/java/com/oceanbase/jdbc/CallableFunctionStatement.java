@@ -68,6 +68,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     protected CallableParameterMetaData parameterMetadata;
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     private CallParameter[]             params;
+    protected String                    arguments = null;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -125,7 +126,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     protected abstract SelectResultSet getResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery);
+        parameterMetadata.readMetadataFromDbIfRequired(this.originString, this.arguments, true);
         return parameterMetadata;
     }
 
@@ -137,7 +138,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery);
+        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery, this.arguments, true);
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
             if (!this.protocol.isOracleMode() && name != null) {

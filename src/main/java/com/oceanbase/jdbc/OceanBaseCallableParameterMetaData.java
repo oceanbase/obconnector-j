@@ -56,23 +56,21 @@ import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class OceanBaseCallableParameterMetaData extends CallableParameterMetaData {
 
-    private static final Pattern       PARAMETER_PATTERN = Pattern
-                                                             .compile(
-                                                                 "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                 Pattern.CASE_INSENSITIVE);
-    private static final Pattern       RETURN_PATTERN    = Pattern
-                                                             .compile(
-                                                                 "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
-                                                                 Pattern.CASE_INSENSITIVE);
+    private static final Pattern PARAMETER_PATTERN = Pattern
+                                                       .compile(
+                                                           "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                           Pattern.CASE_INSENSITIVE);
+    private static final Pattern RETURN_PATTERN    = Pattern
+                                                       .compile(
+                                                           "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                           Pattern.CASE_INSENSITIVE);
+
     /*
     private final OceanBaseConnection con;
     private final String name;
@@ -81,7 +79,6 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     private boolean valid;
     private boolean isFunction;
      */
-    private Map<String, CallParameter> mapNameToParamter;
 
     public String getProName() {
         return name;
@@ -119,14 +116,15 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
      *
      * @throws SQLException if error append during loading metaData
      */
-    @Override
-    public void readMetadataFromDbIfRequired() throws SQLException {
+
+    public void readMetadataFromDbIfRequired(String query, String arguments, Boolean isObFunction)
+                                                                                                  throws SQLException {
         if (valid) {
             return;
         }
-        //readMetadata();
+        this.query = query;
         queryMetaInfos(false);
-        valid = true;
+        resetParams(arguments, isObFunction);
     }
 
     private int mapMariaDbTypeToJdbc(String str) {
@@ -203,8 +201,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     }
 
     private void queryMetaInfos(boolean isFunction) throws SQLException {
-
         this.mapNameToParamter = new HashMap<>();
+
         try (Statement stmt = con.createStatement()) {
             String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
@@ -430,7 +428,6 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     }
 
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
-        int i = 0;
         this.params = new ArrayList<CallParameter>();
         if (isFunction) {
             CallParameter callParameter = new CallParameter();
@@ -439,17 +436,17 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             callParameter.setName("functionreturn");
             params.add(callParameter);
         }
+
+        int i = 0;
         while (paramTypesRs.next()) {
-            String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String inOut = paramTypesRs.getString("IN_OUT");
             int inOutModifier = DatabaseMetaData.procedureColumnUnknown;
             boolean isOutParameter = false;
             boolean isInParameter = false;
+
             if (this.getParameterCount() == 0 && this.isFunction) {
                 isOutParameter = true;
-                isInParameter = false;
             } else if (null == inOut || inOut.equalsIgnoreCase("IN")) {
-                isOutParameter = false;
                 isInParameter = true;
                 inOutModifier = DatabaseMetaData.procedureColumnIn;
             } else if (inOut.equalsIgnoreCase("INOUT")) {
@@ -458,31 +455,25 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 inOutModifier = DatabaseMetaData.procedureColumnInOut;
             } else if (inOut.equalsIgnoreCase("OUT")) {
                 isOutParameter = true;
-                isInParameter = false;
                 inOutModifier = DatabaseMetaData.procedureColumnOut;
             } else {
                 isInParameter = true;
-                isOutParameter = false;
                 inOutModifier = DatabaseMetaData.procedureColumnIn;
             }
 
+            String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String typeName = paramTypesRs.getString("DATA_TYPE");
-            int precision = paramTypesRs.getInt("DATA_PRECISION");
-            int scale = paramTypesRs.getInt("DATA_SCALE");
-            //int jdbcType = MysqlDefs.mysqlToJavaType(typeName);
-            //ColumnType.getColumnTypeName(typeName);
             //TODO need add currect jdbcType
             int jdbcType = mapMariaDbTypeToJdbc(typeName);//ColumnType.classFromJavaType(1);
+            int precision = paramTypesRs.getInt("DATA_PRECISION");
+            int scale = paramTypesRs.getInt("DATA_SCALE");
             short nullability = DatabaseMetaData.procedureNullable;
 
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
                 isOutParameter, jdbcType, typeName, precision, scale, nullability, inOutModifier);
 
-            //this.parameterList.add(paramInfoToAdd);
             this.params.add(paramInfoToAdd);
             this.mapNameToParamter.put(paramName, paramInfoToAdd);
-            //this.parameterMap.put(paramName, paramInfoToAdd);
-            //++this.numParameters;
         }
     }
 }
