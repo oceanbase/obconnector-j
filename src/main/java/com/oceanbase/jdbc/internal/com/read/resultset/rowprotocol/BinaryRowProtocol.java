@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
@@ -321,6 +322,7 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                                  throws SQLException {
+        Charset charset = Charset.forName(this.options.characterEncoding);
         if ((lastValueNull & BIT_LAST_FIELD_NULL) != 0) {
             switch (columnInfo.getColumnType()) {
                 case BINARY_DOUBLE:
@@ -335,9 +337,10 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
-                        StandardCharsets.UTF_8).substring(0, Math.min(getMaxFieldSize(), length));
+                        getCurrentEncoding(columnInfo.getColumnType())).substring(0,
+                        Math.min(getMaxFieldSize(), length));
                 }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
 
             case BIT:
                 return String.valueOf(parseBit());
@@ -410,7 +413,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 return sb.toString();
             case VARSTRING:
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
             case BINARY_DOUBLE:
                 Double d = getInternalDouble(columnInfo);
                 return Double.toString(d);
@@ -419,10 +422,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 return Float.toString(f);
             default:
                 if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
-                        StandardCharsets.UTF_8).substring(0, Math.min(getMaxFieldSize(), length));
+                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)
+                        .substring(0, Math.min(getMaxFieldSize(), length));
                 }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                return new String(buf, pos, length, charset);
         }
     }
 
@@ -480,7 +483,10 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-                value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+            case VARCHAR2:
+            case NVARCHAR2:
+                value = Long.parseLong(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
                 break;
             default:
                 throw new SQLException("getInt not available for data field type "
@@ -565,7 +571,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARCHAR:
                 case OBDECIMAL:
                 case STRING:
-                    return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                case VARCHAR2:
+                case NVARCHAR2:
+                    return Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                 default:
                     throw new SQLException("getLong not available for data field type "
                                            + columnInfo.getColumnType().getJavaTypeName());
@@ -575,7 +584,8 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String valueParams = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
                     return Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
@@ -640,7 +650,8 @@ public class BinaryRowProtocol extends RowProtocol {
 
                 return Float.intBitsToFloat(asInt);
             case NUMBER_FLOAT:
-                String str = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String str = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 Float f = Float.valueOf(str);
                 return f;
             case DOUBLE:
@@ -649,8 +660,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
                 try {
-                    return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                        .getColumnType())));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getFloat for data field with type "
@@ -658,7 +672,8 @@ public class BinaryRowProtocol extends RowProtocol {
                     throw sqlException;
                 }
             case OBDECIMAL:
-                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String val = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.floatValue();
             default:
@@ -727,8 +742,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
                 try {
-                    return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Double.valueOf(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getDouble for data field with type "
@@ -747,9 +765,10 @@ public class BinaryRowProtocol extends RowProtocol {
                                    | ((long) (buf[pos + 7] & 0xff) << 56);
 
                 return Double.longBitsToDouble(valueAsLong);
-                //                return Double.parseDouble(new String(buf, pos, length, StandardCharsets.UTF_8));
+                //                return Double.parseDouble(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
-                String val = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String val = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.doubleValue();
             default:
@@ -807,10 +826,13 @@ public class BinaryRowProtocol extends RowProtocol {
             case DECIMAL:
             case VARSTRING:
             case VARCHAR:
+            case VARCHAR2:
+            case NVARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
-                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
+                return new BigDecimal(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim());
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());
@@ -843,7 +865,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIME:
                 throw new SQLException("Cannot read Date using a Types.TIME field");
             case STRING:
-                String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String rawValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 if ("0000-00-00".equals(rawValue)) {
                     lastValueNull |= BIT_LAST_ZERO_DATE;
                     return null;
@@ -1040,7 +1063,8 @@ public class BinaryRowProtocol extends RowProtocol {
 
             case STRING:
             case VARSTRING:
-                String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String rawValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 if (rawValue.startsWith("0000-00-00 00:00:00")) {
                     lastValueNull |= BIT_LAST_ZERO_DATE;
                     return null;
@@ -1261,7 +1285,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return getInternalBigDecimal(columnInfo).longValue() != 0;
             default:
-                final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
+                final String rawVal = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 return !("false".equals(rawVal) || "0".equals(rawVal));
         }
     }
@@ -1311,8 +1336,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARSTRING:
                 case VARCHAR:
                 case OBDECIMAL:
+                case VARCHAR2:
+                case NVARCHAR2:
                 case STRING:
-                    value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    value = Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
@@ -1323,7 +1351,8 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String valueParams = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
                     value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
@@ -1388,9 +1417,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     return bigDecimal.shortValue();
                 case VARSTRING:
                 case VARCHAR:
+                case VARCHAR2:
+                case NVARCHAR2:
                 case OBDECIMAL:
                 case STRING:
-                    value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    value = Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                     break;
                 default:
                     throw new SQLException("getShort not available for data field type "
@@ -1401,7 +1433,8 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String valueParams = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String valueParams = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
                     value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
@@ -1439,7 +1472,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 return value.toString();
             }
         }
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = new String(buf, pos, length,
+            getCurrentEncoding(columnInfo.getColumnType()));
         if ("0000-00-00".equals(rawValue)) {
             return null;
         }
@@ -1539,7 +1573,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
-                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
+                return new BigInteger(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim());
         }
     }
 
@@ -1591,7 +1626,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case Types.CHAR:
 
                 // string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String raw = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 if (raw.startsWith("0000-00-00 00:00:00")) {
                     return null;
                 }
@@ -1684,7 +1720,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 case Types.VARCHAR:
                 case Types.LONGVARCHAR:
                 case Types.CHAR:
-                    String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
                     try {
                         return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
                     } catch (DateTimeParseException dateParserEx) {
@@ -1767,7 +1804,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case Types.LONGVARCHAR:
             case Types.CHAR:
                 // string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String raw = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 try {
                     return LocalTime.parse(raw,
                         DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
@@ -1825,7 +1863,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case Types.LONGVARCHAR:
             case Types.CHAR:
                 // string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String raw = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 if (raw.startsWith("0000-00-00")) {
                     return null;
                 }
@@ -1946,14 +1985,16 @@ public class BinaryRowProtocol extends RowProtocol {
     private Object getComplexAttrData(Buffer packet, ComplexDataType type) throws SQLException {
         Object value = null;
         byte[] b = null;
+        Charset charset = Charset.forName(this.getProtocol().getEncoding());
         switch (type.getType()) {
             case ComplexDataType.TYPE_NUMBER:
                 b = packet.readLenByteArray(0);
                 value = new BigDecimal(new String(b, 0, b.length, StandardCharsets.UTF_8).trim());
+                // number type use UTF-8 to convert
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
                 b = packet.readLenByteArray(0);
-                value = new String(b, 0, b.length, StandardCharsets.UTF_8);
+                value = new String(b, 0, b.length, charset);
                 break;
             case ComplexDataType.TYPE_RAW:
                 b = packet.readLenByteArray(0);

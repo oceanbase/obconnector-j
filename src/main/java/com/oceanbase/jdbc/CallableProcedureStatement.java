@@ -77,6 +77,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
     protected String                    originalSql;
+    protected String                    arguments             = null;
 
     //protected CallableStatementParamInfo paramInfo;
 
@@ -145,7 +146,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired();
+        parameterMetadata.readMetadataFromDbIfRequired(this.sql, this.arguments, this.isObFunction);
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
             if (!this.protocol.isOracleMode()) {
@@ -618,11 +619,22 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
-        //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
-        CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.setOutput(true);
-        callParameter.setOutputSqlType(sqlType);
-        callParameter.setScale(scale);
+        try {
+            //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
+            CallParameter callParameter = getParameter(parameterIndex);
+            callParameter.setOutput(true);
+            callParameter.setOutputSqlType(sqlType);
+            callParameter.setScale(scale);
+        } catch (SQLException e) {
+            if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
+                && parameterIndex <= parameterCount) {
+                CallParameter paramInfoToAdd = new CallParameter("functionreturn", parameterIndex,
+                    false, true, sqlType, null, 0, scale, 0, DatabaseMetaData.procedureColumnReturn);
+                params.add(paramInfoToAdd);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override

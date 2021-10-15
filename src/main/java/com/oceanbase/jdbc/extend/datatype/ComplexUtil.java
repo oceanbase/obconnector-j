@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc.extend.datatype;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -199,10 +200,10 @@ public class ComplexUtil {
             case ComplexDataType.TYPE_NUMBER:
                 String valueStr = String.valueOf((Integer) value);
                 pos.writeFieldLength(valueStr.getBytes().length);
-                pos.write(valueStr.getBytes());
+                pos.write(valueStr.getBytes(StandardCharsets.UTF_8));
                 return;
             case ComplexDataType.TYPE_DATE:
-                storeDateTime(pos, (java.util.Date) value, ColumnType.DATETIME.getType(), options); // todo
+                storeDateTime(pos, (java.util.Date) value, ColumnType.DATETIME.getType(), options);
                 return;
             case ComplexDataType.TYPE_VARCHAR2:
             case ComplexDataType.TYPE_RAW:
@@ -211,7 +212,7 @@ public class ComplexUtil {
                     pos.writeFieldLength(tmp.length);
                     pos.write(tmp);
                 } else {
-                    byte[] tmp = ((String) value).getBytes();
+                    byte[] tmp = ((String) value).getBytes(); // 
                     pos.writeFieldLength(tmp.length);
                     pos.write(tmp);
                 }

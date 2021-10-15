@@ -823,7 +823,27 @@ public enum DefaultOptions {
           Boolean.TRUE,
           "2.2.2",
           "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
-          false);
+          false),
+  PIECE_LENGTH(
+          "pieceLength",
+          1000,
+          0,
+          "2.2.6",
+          "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",
+          false),
+  USE_PIECE_DATA(
+          "usePieceData",
+          Boolean.TRUE,
+          "2.2.6",
+                  "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
+                  false),
+  USE_ORACLE_PREPARE_EXECUTE(
+          "useOraclePrepareExecute",
+          Boolean.FALSE,
+          "2.2.6",
+          "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
+          false
+  );
 
   private final String optionName;
   private final String description;
@@ -1111,9 +1131,13 @@ public enum DefaultOptions {
         }
       }
 
-      // special case : field with multiple default according to HA_MODE
+      // field with multiple default according to HA_MODE
       if (options.socketTimeout == null) {
         options.socketTimeout = ((Integer[]) SOCKET_TIMEOUT.defaultValue)[haMode.ordinal()];
+      }
+      // cursor functionality is available only for server-side prepared statements
+      if (options.useCursorFetch) {
+        options.useServerPrepStmts = true;
       }
 
     } catch (NoSuchFieldException | IllegalAccessException n) {
@@ -1133,11 +1157,6 @@ public enum DefaultOptions {
    * @param credentialPlugin credential plugin
    */
   public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
-
-    // disable use server prepare id using client rewrite
-    if (options.rewriteBatchedStatements) {
-      options.useServerPrepStmts = false;
-    }
 
     // pipe cannot use read and write socket simultaneously
     if (options.pipe != null) {

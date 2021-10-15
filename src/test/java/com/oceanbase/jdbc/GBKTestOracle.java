@@ -52,11 +52,19 @@ import org.junit.Test;
 public class GBKTestOracle extends BaseOracleTest {
     static String nchartable = "nchartest" + getRandomString(10);
     static String dateTest   = "dateTest" + getRandomString(10);
+    static String varchar1   = "varchar1" + getRandomString(10);
+    static String varchar2   = "varchar2" + getRandomString(10);
+    static String varchar3   = "varchar3" + getRandomString(10);
+    static String number1    = "number1" + getRandomString(10);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(nchartable, "c1 NVARCHAR2(150)");
         createTable(dateTest, "c1 nchar(200),c2 nvarchar2(200)");
+        createTable(varchar1, "c1 varchar2(200)");
+        createTable(varchar2, "c1 varchar2(200)");
+        createTable(varchar3, "c1 varchar2(200)");
+        createTable(number1, "c1 int");
     }
 
     @Test
@@ -88,12 +96,93 @@ public class GBKTestOracle extends BaseOracleTest {
             stmt.execute("insert into " + dateTest + " values('我是123abc','我是abc123')");
             ResultSet resultSet = stmt.executeQuery("select * from " + dateTest);
             Assert.assertTrue(resultSet.next());
-            // return value length  of  getNString  is 200
             Assert.assertTrue(resultSet.getNString(1).contains("我是123abc"));
             Assert.assertTrue(resultSet.getNString(2).contains("我是abc123"));
             Assert.assertTrue(resultSet.next());
             Assert.assertTrue(resultSet.getNString(1).contains("我是123abc"));
             Assert.assertTrue(resultSet.getNString(2).contains("我是abc123"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // test for GBK String
+    @Test
+    public void testCharacterEncodingStatement() {
+        try {
+            Connection conn = setConnection("&characterEncoding=GBK");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into " + varchar1 + " values('我是123abc')");
+            ResultSet resultSet = stmt.executeQuery("select * from " + varchar1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+            PreparedStatement ps = conn.prepareStatement("select * from " + varchar1);
+            resultSet = ps.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCharacterEncodingPrepareStatment() {
+        try {
+            Connection conn = setConnection("&characterEncoding=GBK");
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + varchar2 + " values(?)");
+            ps.setString(1, "我是123abc");
+            ps.execute();
+            ResultSet resultSet = stmt.executeQuery("select * from " + varchar2);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+            ps = conn.prepareStatement("select * from " + varchar2);
+            resultSet = ps.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCharacterEncodingPrepareStatment2() {
+        try {
+            Connection conn = setConnection("&characterEncoding=GBK");
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + varchar3
+                                                         + " values('我是123abc')");
+            ps.execute();
+            ResultSet resultSet = stmt.executeQuery("select * from " + varchar3);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+            ps = conn.prepareStatement("select * from " + varchar3);
+            resultSet = ps.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("我是123abc"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // test for GBK NUMBER
+    @Test
+    public void testCharacterEncodingStatementNumber() {
+        try {
+            Connection conn = setConnection("&characterEncoding=GBK");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into " + number1 + " values(100)");
+            ResultSet resultSet = stmt.executeQuery("select * from " + number1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("100"));
+            PreparedStatement ps = conn.prepareStatement("select * from " + number1);
+            resultSet = ps.executeQuery();
+            Assert.assertTrue(resultSet.next());
+            Assert.assertTrue(resultSet.getString(1).contains("100"));
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

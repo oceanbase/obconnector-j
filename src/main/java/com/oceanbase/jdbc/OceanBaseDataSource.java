@@ -515,4 +515,23 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
             }
         }
     }
+
+    /**
+     * Sets the URL for this connection
+     *
+     * @param url
+     *            the URL for this connection
+     */
+    public void setURL(String url) throws SQLException {
+        setUrl(url);
+    }
+
+    /**
+     * Returns the URL for this connection
+     *
+     * @return the URL for this connection
+     */
+    public String getURL() {
+        return url;
+    }
 }

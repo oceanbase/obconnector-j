@@ -464,8 +464,16 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
             parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.TIME);
             return;
         }
-        parameterHolders[columnIndex - 1] = new TimeParameter(time, TimeZone.getDefault(),
-            options.useFractionalSeconds);
+        if (this.connection.getProtocol().isOracleMode()) {
+            Timestamp ts = new Timestamp(time.getTime());
+            TimeZone tz = this.connection.getProtocol().getTimeZone();
+            parameterHolders[columnIndex - 1] = new TimestampParameter(ts, tz,
+                options.useFractionalSeconds);
+        } else {
+            parameterHolders[columnIndex - 1] = new TimeParameter(time, TimeZone.getDefault(),
+                options.useFractionalSeconds);
+        }
+
     }
 
     /** {inheritDoc}. */

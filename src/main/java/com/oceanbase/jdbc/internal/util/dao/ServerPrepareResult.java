@@ -58,12 +58,12 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareResult implements PrepareResult {
 
+    private final String             sql;
+    private int                      statementId;
     private final ColumnDefinition[] columns;
     private final ColumnDefinition[] parameters;
-    private final String             sql;
-    private final AtomicBoolean      inCache      = new AtomicBoolean();
-    private int                      statementId;
     private ColumnType[]             parameterTypeHeader;
+    private final AtomicBoolean      inCache      = new AtomicBoolean();
     private Protocol                 unProxiedProtocol;
     // share indicator
     private volatile int             shareCounter = 1;
@@ -84,8 +84,8 @@ public class ServerPrepareResult implements PrepareResult {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;
-        this.unProxiedProtocol = unProxiedProtocol;
         this.parameterTypeHeader = new ColumnType[parameters.length];
+        this.unProxiedProtocol = unProxiedProtocol;
     }
 
     public void resetParameterTypeHeader() {

@@ -52,8 +52,6 @@ package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
 import java.text.DateFormat;
@@ -158,59 +156,6 @@ public class TextRowProtocol extends RowProtocol {
         this.lastValueNull = length == NULL_LENGTH ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
     }
 
-    //
-    //    private final float getFloatFromString(String val, int columnIndex) throws SQLException {
-    //        try {
-    //            if ((val != null)) {
-    //                if (val.length() == 0) {
-    //                    return convertToZeroWithEmptyCheck();
-    //                }
-    //
-    //                float f = Float.parseFloat(val);
-    //
-    //                if (this.jdbcCompliantTruncationForReads) {
-    //                    if (f == Float.MIN_VALUE || f == Float.MAX_VALUE) {
-    //                        double valAsDouble = Double.parseDouble(val);
-    //
-    //                        // Straight comparison is not reliable when at absolute endpoints of Float.MIN_VALUE or  Float.MAX_VALUE, so use epsillons with DOUBLEs
-    //
-    //                        if ((valAsDouble < Float.MIN_VALUE - MIN_DIFF_PREC)
-    //                                || (valAsDouble > Float.MAX_VALUE - MAX_DIFF_PREC)) {
-    //                            throwRangeException(String.valueOf(valAsDouble), columnIndex,
-    //                                    Types.FLOAT);
-    //                        }
-    //                    }
-    //                }
-    //
-    //                return f;
-    //            }
-    //
-    //            return 0; // for NULL
-    //        } catch (NumberFormatException nfe) {
-    //            try {
-    //                Double valueAsDouble = new Double(val);
-    //                float valueAsFloat = valueAsDouble.floatValue();
-    //
-    //                if (this.jdbcCompliantTruncationForReads) {
-    //
-    //                    if (this.jdbcCompliantTruncationForReads
-    //                            && valueAsFloat == Float.NEGATIVE_INFINITY
-    //                            || valueAsFloat == Float.POSITIVE_INFINITY) {
-    //                        throwRangeException(valueAsDouble.toString(), columnIndex, Types.FLOAT);
-    //                    }
-    //                }
-    //
-    //                return valueAsFloat;
-    //            } catch (NumberFormatException newNfe) {
-    //                // ignore, it's not a number
-    //            }
-    //
-    //            throw SQLError.createSQLException(
-    //                    Messages.getString("ResultSet.Invalid_value_for_getFloat()_-____200") + val
-    //                            + Messages.getString("ResultSet.___in_column__201") + columnIndex,
-    //                    SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
-    //        }
-    //    }
     /**
      * Get String from raw text format.
      *
@@ -225,13 +170,13 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-        Charset charset = Charset.forName(this.options.characterEncoding);
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return String.valueOf(parseBit());
             case DOUBLE:
             case FLOAT:
-                return zeroFillingIfNeeded(new String(buf, pos, length, charset), columnInfo);
+                return zeroFillingIfNeeded(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())), columnInfo);
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
@@ -239,7 +184,8 @@ public class TextRowProtocol extends RowProtocol {
                 if (date == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, charset);
+                        return new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType()));
                     }
                     return null;
                 }
@@ -258,17 +204,12 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length, charset);
+                        return new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType()));
                     }
                     return null;
                 }
                 return timestamp.toString();
-                //            case TIMESTAMP_TZ:
-                //                TIMESTAMPTZ timestamptz = getInternalTIMESTAMPTZ(columnInfo, cal, timeZone);
-                //                return timestamptz.toResultSetString(getProtocol().getTimeZone());
-                //            case TIMESTAMP_LTZ:
-                //                TIMESTAMPLTZ timestampltz = getInternalTIMESTAMPLTZ(columnInfo, cal, timeZone);
-                //                return timestampltz.toResultSetString(getProtocol().getTimeZone());
             case INTERVALDS:
                 INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
                 return intervalds.toString();
@@ -283,12 +224,12 @@ public class TextRowProtocol extends RowProtocol {
             case RAW: {
                 byte[] data = new byte[length];
                 System.arraycopy(buf, pos, data, 0, length);
-                boolean wasNullFlag; // todo where to use
+                boolean wasNullFlag;
                 if (data != null) {
                     wasNullFlag = false;
                     StringBuilder sb = new StringBuilder();
                     for (byte b : data) {
-                        sb.append(String.format("%02x", b));
+                        sb.append(String.format("%02X", b));
                     }
                     return sb.toString();
                 } else {
@@ -297,10 +238,12 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, charset));
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
                 return Float.toString(f);
             case BINARY_DOUBLE:
-                Double d = Double.valueOf(new String(buf, pos, length, charset));
+                Double d = Double.valueOf(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())));
                 return Double.toString(d);
             case NULL:
                 return null;
@@ -309,11 +252,12 @@ public class TextRowProtocol extends RowProtocol {
         }
 
         if (maxFieldSize > 0) {
-            return new String(buf, pos, Math.min(maxFieldSize * 3, length), charset).substring(0,
+            return new String(buf, pos, Math.min(maxFieldSize * 3, length),
+                getCurrentEncoding(columnInfo.getColumnType())).substring(0,
                 Math.min(maxFieldSize, length));
         }
 
-        return new String(buf, pos, length, charset);
+        return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
     }
 
     /**
@@ -347,25 +291,27 @@ public class TextRowProtocol extends RowProtocol {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(buf, pos, length,
-                        StandardCharsets.UTF_8));
+                        getCurrentEncoding(columnInfo.getColumnType())));
+                    // check
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '"
                                                + columnInfo.getName()
                                                + "' : value "
                                                + new String(buf, pos, length,
-                                                   StandardCharsets.UTF_8)
+                                                   getCurrentEncoding(columnInfo.getColumnType()))
                                                + " is not in Long range", "22003", 1264);
                     }
                     return floatValue.longValue();
                 case DOUBLE:
                     Double doubleValue = Double.valueOf(new String(buf, pos, length,
-                        StandardCharsets.UTF_8));
+                        getCurrentEncoding(columnInfo.getColumnType())));
+                    // check
                     if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '"
                                                + columnInfo.getName()
                                                + "' : value "
                                                + new String(buf, pos, length,
-                                                   StandardCharsets.UTF_8)
+                                                   getCurrentEncoding(columnInfo.getColumnType()))
                                                + " is not in Long range", "22003", 1264);
                     }
                     return doubleValue.longValue();
@@ -398,18 +344,21 @@ public class TextRowProtocol extends RowProtocol {
                                                + columnInfo.getName()
                                                + "' for value "
                                                + new String(buf, pos, length,
-                                                   StandardCharsets.UTF_8), "22003", 1264);
+                                                   getCurrentEncoding(columnInfo.getColumnType())),
+                            "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
                 default:
-                    return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8)
-                        .trim());
+                    return Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
             }
 
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String value = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
+            // check
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Long.parseLong(value.substring(0, value.indexOf(".")));
@@ -448,17 +397,21 @@ public class TextRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case VARCHAR2:
+            case NVARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
             case NUMBER_FLOAT:
             case BINARY_FLOAT:
                 try {
-                    return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                        .getColumnType())));
+                    // check
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format \""
-                                + new String(buf, pos, length, StandardCharsets.UTF_8)
+                                + new String(buf, pos, length,
+                                    getCurrentEncoding(columnInfo.getColumnType()))
                                 + "\" for getFloat for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
@@ -466,10 +419,11 @@ public class TextRowProtocol extends RowProtocol {
                     throw sqlException;
                 }
                 //            case BINARY_DOUBLE:
-                //                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                //                Double d = Double.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
                 //                return (float)d;
             case OBDECIMAL:
-                String value = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
+                String value = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim();
                 BigDecimal bigDecimal = new BigDecimal(value);
                 return bigDecimal.floatValue();
             default:
@@ -509,11 +463,13 @@ public class TextRowProtocol extends RowProtocol {
 
             case BINARY_DOUBLE:
                 try {
-                    return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Double.valueOf(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format \""
-                                + new String(buf, pos, length, StandardCharsets.UTF_8)
+                                + new String(buf, pos, length,
+                                    getCurrentEncoding(columnInfo.getColumnType()))
                                 + "\" for getDouble for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
@@ -522,10 +478,12 @@ public class TextRowProtocol extends RowProtocol {
                 }
             case BINARY_FLOAT:
             case NUMBER_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
                 return (double) f;
             case OBDECIMAL:
-                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String value = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(value);
                 return bigDecimal.doubleValue();
             default:
@@ -551,15 +509,20 @@ public class TextRowProtocol extends RowProtocol {
 
         switch (columnInfo.getColumnType()) {
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
+                // check
                 return BigDecimal.valueOf(f);
             case BINARY_DOUBLE:
-                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Double d = Double.valueOf(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())));
+                // check
                 return BigDecimal.valueOf(d);
             default:
                 break;
         }
-        String value = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
+        String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()))
+            .trim();
         return new BigDecimal(value);
     }
 
@@ -592,7 +555,8 @@ public class TextRowProtocol extends RowProtocol {
                     if (b < '0' || b > '9') {
                         throw new SQLException("cannot parse data in date string '"
                                                + new String(buf, pos, length,
-                                                   StandardCharsets.UTF_8) + "'");
+                                                   getCurrentEncoding(columnInfo.getColumnType()))
+                                               + "'");
                     }
                     datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
                 }
@@ -641,7 +605,7 @@ public class TextRowProtocol extends RowProtocol {
                     DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     sdf.setTimeZone(timeZone);
                     java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                        StandardCharsets.UTF_8));
+                        getCurrentEncoding(columnInfo.getColumnType())));
                     return new Date(utilDate.getTime());
 
                 } catch (ParseException e) {
@@ -679,7 +643,8 @@ public class TextRowProtocol extends RowProtocol {
             throw new SQLException("Cannot read Time using a Types.DATE field");
 
         } else {
-            String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String raw = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
             if (!options.useLegacyDatetimeCode
                 && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
                 throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
@@ -772,7 +737,8 @@ public class TextRowProtocol extends RowProtocol {
                     if (b < '0' || b > '9') {
                         throw new SQLException("cannot parse data in timestamp string '"
                                                + new String(buf, pos, length,
-                                                   StandardCharsets.UTF_8) + "'");
+                                                   getCurrentEncoding(columnInfo.getColumnType()))
+                                               + "'");
                     }
 
                     timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
@@ -818,7 +784,8 @@ public class TextRowProtocol extends RowProtocol {
 
             case TIME:
                 // time does not go after millisecond
-                String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String rawValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar,
                     TimeZone.getDefault()).getTime());
                 tt.setNanos(extractNanos(rawValue));
@@ -835,7 +802,8 @@ public class TextRowProtocol extends RowProtocol {
                     .timestampValue(cal);
 
             default:
-                String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+                String value = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
                 throw new SQLException("Value type \"" + columnInfo.getColumnType().getTypeName()
                                        + "\" with value \"" + value
                                        + "\" cannot be parse as Timestamp");
@@ -957,10 +925,12 @@ public class TextRowProtocol extends RowProtocol {
             case NUMBER_FLOAT:
                 return getInternalNumber(columnInfo).bigDecimalValue();
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
                 return f;
             case BINARY_DOUBLE:
-                Double d = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                Double d = Double.valueOf(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())));
                 return d;
             case NVARCHAR2:
             case NCHAR:
@@ -999,7 +969,8 @@ public class TextRowProtocol extends RowProtocol {
         if (columnInfo.getColumnType() == ColumnType.BIT) {
             return parseBit() != 0;
         }
-        final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8).trim();
+        final String rawVal = new String(buf, pos, length,
+            getCurrentEncoding(columnInfo.getColumnType())).trim();
         return !("false".equals(rawVal) || "0".equals(rawVal));
     }
 
@@ -1046,7 +1017,8 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
 
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = new String(buf, pos, length,
+            getCurrentEncoding(columnInfo.getColumnType()));
         if ("0000-00-00".equals(rawValue)) {
             return null;
         }
@@ -1068,7 +1040,8 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
-        return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8).trim());
+        return new BigInteger(new String(buf, pos, length,
+            getCurrentEncoding(columnInfo.getColumnType())).trim());
     }
 
     /**
@@ -1090,7 +1063,7 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
 
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
 
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIMESTAMP:
@@ -1149,7 +1122,8 @@ public class TextRowProtocol extends RowProtocol {
         ZoneId zoneId = timeZone.toZoneId().normalized();
         if (zoneId instanceof ZoneOffset) {
             ZoneOffset zoneOffset = (ZoneOffset) zoneId;
-            String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+            String raw = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
             switch (columnInfo.getColumnType().getSqlType()) {
                 case Types.TIMESTAMP:
                     if (raw.startsWith("0000-00-00 00:00:00")) {
@@ -1228,7 +1202,7 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
 
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
 
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIME:
@@ -1275,7 +1249,7 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
 
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
 
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.DATE:
@@ -1329,7 +1303,8 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return new NUMBER_FLOAT(0.0f);
         }
-        return new NUMBER_FLOAT(new Float(new String(buf, pos, length, StandardCharsets.UTF_8)));
+        return new NUMBER_FLOAT(new Float(new String(buf, pos, length,
+            getCurrentEncoding(columnInfo.getColumnType()))));
     }
 
     public BINARY_DOUBLE getInternalBINARY_DOUBLE() {

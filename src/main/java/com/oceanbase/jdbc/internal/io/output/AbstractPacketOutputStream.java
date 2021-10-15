@@ -51,7 +51,7 @@
 package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.TimeZone;
 
@@ -83,6 +83,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected long            threadId;
     private TimeZone          tm                         = null;
     protected boolean         enableNetworkStatistics    = false;
+    protected Charset         charset                    = null;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
@@ -91,12 +92,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      * @param maxQuerySizeToLog maximum query size to log
      * @param threadId thread id
      */
-    public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
+    public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
+                                      String encoding) {
         super(out);
         buf = new byte[SMALL_BUFFER_SIZE];
         this.maxQuerySizeToLog = maxQuerySizeToLog;
         cmdLength = 0;
         this.threadId = threadId;
+        this.charset = Charset.forName(encoding);
     }
 
     public void setTimeZone(TimeZone tm) {
@@ -543,7 +546,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
         // not enough space remaining
         if (charsLength * 3 + 2 >= buf.length - pos) {
-            byte[] arr = str.getBytes(StandardCharsets.UTF_8);
+            byte[] arr = str.getBytes(this.charset);
             if (escape) {
                 write(QUOTE);
                 writeBytesEscaped(arr, arr.length, noBackslashEscapes);
@@ -766,7 +769,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         char[] buffer = new char[4096];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
-            byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
             if (escape) {
                 writeBytesEscaped(data, data.length, noBackslashEscapes);
             } else {
@@ -789,7 +792,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         char[] buffer = new char[4096];
         int len;
         while (length > 0 && (len = reader.read(buffer, 0, Math.min((int) length, 4096))) >= 0) {
-            byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
             if (escape) {
                 writeBytesEscaped(data, data.length, noBackslashEscapes);
             } else {

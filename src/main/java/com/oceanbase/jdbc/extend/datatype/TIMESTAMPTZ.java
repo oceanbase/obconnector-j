@@ -440,7 +440,7 @@ public class TIMESTAMPTZ extends Datum {
         if (isTZTablesImported) {
             resultBytes = new byte[SIZE_TIMESTAMPTZ + tzLen + 2];
         } else {
-            resultBytes = new byte[SIZE_TIMESTAMPTZ];
+            resultBytes = new byte[SIZE_TIMESTAMPTZ + 2];
         }
         int offset = calendar.getTimeZone().getRawOffset();
         localCalendar.setTime(timestamp);
@@ -458,9 +458,12 @@ public class TIMESTAMPTZ extends Datum {
             resultBytes[13] = (byte) (offset < 0 ? (-offset % HOUR_MILLISECOND / MINUTE_MILLISECOND)
                 : (offset % HOUR_MILLISECOND / MINUTE_MILLISECOND));
             if (isTZTablesImported && !isGMT) {
-                resultBytes[14] = (byte) (tzLen);
+                resultBytes[14] = (byte) (tzLen); // tz name len
                 System.arraycopy(tz.getBytes(), 0, resultBytes, 15, tzLen);
-                resultBytes[14 + 1 + tzLen] = (byte) (0);
+                resultBytes[14 + tzLen + 1] = (byte) (0); // tz abbr len
+            } else {
+                resultBytes[14] = (byte) 0; // tz name len
+                resultBytes[15] = (byte) 0; // tz abbr len
             }
             return resultBytes;
         } else {

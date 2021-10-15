@@ -1074,8 +1074,7 @@ public class BaseTest {
    * @return true if PreparedStatement will use Prepare.
    */
   public boolean sharedUsePrepare() {
-    return urlParser.getOptions().useServerPrepStmts
-        && !urlParser.getOptions().rewriteBatchedStatements;
+    return urlParser.getOptions().useServerPrepStmts;
   }
 
   /**

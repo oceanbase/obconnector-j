@@ -41,23 +41,23 @@
  * OF SUCH DAMAGE.
  *
  */
-package com.oceanbase.obproxy.mysql.jdbc;
 
-import java.sql.*;
+package com.oceanbase.jdbc.internal.util;
 
-import com.oceanbase.jdbc.internal.util.DeRegister;
+public class ParsedCallParameters {
+    private boolean isParam;
+    private String  name;
 
-public class Driver extends com.oceanbase.jdbc.Driver {
-
-    static {
-        try {
-            DriverManager.registerDriver(new com.oceanbase.jdbc.Driver(), new DeRegister());
-        } catch (SQLException e) {
-            throw new RuntimeException("Could not register driver", e);
-        }
+    public ParsedCallParameters(boolean isParam, String name) {
+        this.isParam = isParam;
+        this.name = name;
     }
 
-    public Driver() throws SQLException {
-        // Required for Class.forName().newInstance()
+    public boolean isParam() {
+        return isParam;
+    }
+
+    public String getName() {
+        return name;
     }
 }

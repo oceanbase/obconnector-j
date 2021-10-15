@@ -112,26 +112,22 @@ import com.oceanbase.jdbc.util.Options;
 
 public abstract class AbstractConnectProtocol implements Protocol {
 
-    private static final byte[]           SESSION_QUERY                = ("SELECT @@max_allowed_packet,"
+    private static final String           SESSION_QUERY                = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
                                                                           + "@@auto_increment_increment,"
                                                                           + "@@tx_isolation AS tx_isolation,"
-                                                                          + "@@session.tx_read_only AS tx_read_only")
-                                                                           .getBytes(StandardCharsets.UTF_8);
-    private static final byte[]           SESSION_QUERY_ORACLE         = ("SELECT @@max_allowed_packet,"
+                                                                          + "@@session.tx_read_only AS tx_read_only");
+    private static final String           SESSION_QUERY_ORACLE         = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
                                                                           + "@@auto_increment_increment,"
                                                                           + "@@tx_isolation AS tx_isolation,"
                                                                           + "@@session.tx_read_only AS tx_read_only "
-                                                                          + "from dual")
-                                                                           .getBytes(StandardCharsets.UTF_8);
-    private static final byte[]           IS_MASTER_QUERY              = "select @@innodb_read_only"
-                                                                           .getBytes(StandardCharsets.UTF_8);
+                                                                          + "from dual");
+    private static final String           IS_MASTER_QUERY              = "select @@innodb_read_only";
     protected static final String         CHECK_GALERA_STATE_QUERY     = "show status like 'wsrep_local_state'";
-    private static final byte[]           ALTER_SESSION_TIMEZONE_QUERY = "ALTER SESSION SET TIME_ZONE='"
-                                                                           .getBytes(StandardCharsets.UTF_8);
+    private static final String           ALTER_SESSION_TIMEZONE_QUERY = "ALTER SESSION SET TIME_ZONE='";
     private static final Logger           logger                       = LoggerFactory
                                                                            .getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock         lock;
@@ -161,15 +157,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected final List<String>          galeraAllowedStates;
     private HostAddress                   currentHost;
     private boolean                       hostFailed;
-    private String                        serverVersion;
     private boolean                       serverMariaDb;
+    private String                        serverVersion;
     private int                           majorVersion;
     private int                           minorVersion;
     private int                           patchVersion;
+    private String                        obServerVersion;
+    private boolean                       supportStmtPrepareExecute;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
-    private boolean                       isOracleMode;                                                              /* is server in oracle mode */
-    private boolean                       importedTimeZoneTables;                                                    /* is server time zone impoted */
+    private boolean                       isOracleMode;                                                               /* is server in oracle mode */
+    private boolean                       importedTimeZoneTables;                                                     /* is server time zone impoted */
     public boolean                        autoCommit;
     public int                            transactionIsolationLevel    = 0;
     protected byte[]                      seed;
@@ -538,7 +536,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         assignStream(this.socket, options);
 
         try {
-
             // parse server greeting packet.
             final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -558,7 +555,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sslWrapper(host, socket, options, greetingPacket.getServerCapabilities(),
                 clientCapabilities, exchangeCharset, serverThreadId);
             if (Boolean.TRUE.equals(options.useSsl)) {
-
                 if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
                     exceptionFactory.create(
                         "Trying to connect with ssl, but ssl not enabled in the server", "08000");
@@ -795,7 +791,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void compressionHandler(Options options) {
         if (options.useCompression) {
             writer = new CompressPacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, serverThreadId);
+                options.maxQuerySizeToLog, serverThreadId, options.characterEncoding);
             reader = new DecompressPacketInputStream(
                 ((StandardPacketInputStream) reader).getInputStream(), options.maxQuerySizeToLog,
                 serverThreadId);
@@ -1003,7 +999,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         if (isOracleMode) {
-            writer.write(SESSION_QUERY_ORACLE);
+            writer.write(SESSION_QUERY_ORACLE.getBytes());
         } else {
             writer.write(SESSION_QUERY);
         }
@@ -1520,6 +1516,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return serverVersion;
     }
 
+    public void setObServerVersion(String version) {
+        this.obServerVersion = version;
+        if (isOracleMode && options.useOraclePrepareExecute && options.useServerPrepStmts
+            && options.useCursorFetch && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+            supportStmtPrepareExecute = true;
+        } else {
+            supportStmtPrepareExecute = false;
+        }
+    }
+
+    public String getObServerVersion() {
+        return obServerVersion;
+    }
+
+    public boolean supportStmtPrepareExecute() {
+        return supportStmtPrepareExecute;
+    }
+
     public boolean getReadonly() {
         return readOnly;
     }
@@ -1557,7 +1571,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return username;
     }
 
-    private void parseVersion(String serverVersion) {
+    public void parseVersion(String serverVersion) {
         int length = serverVersion.length();
         char car;
         int offset = 0;
@@ -1782,5 +1796,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     @Override
     public boolean isTZTablesImported() {
         return this.importedTimeZoneTables;
+    }
+
+    @Override
+    public String getEncoding() {
+        return this.options.characterEncoding;
     }
 }

@@ -109,10 +109,10 @@ public class ComStmtExecute {
             }
             pos.write(nullBitsBuffer, 0, nullCount);
 
-            // check if parameters type (using setXXX) have change since previous request, and resend new
-            // header type if so
+            // check if parameters type (using setXXX) have change since previous request,
+            // and resend new header type if so
             boolean mustSendHeaderType = false;
-            if (parameterTypeHeader[0] == null) {
+            if (parameterTypeHeader != null && parameterTypeHeader[0] == null) {
                 mustSendHeaderType = true;
             } else {
                 for (int i = 0; i < parameterCount; i++) {
@@ -125,7 +125,7 @@ public class ComStmtExecute {
 
             if (mustSendHeaderType) {
                 pos.write((byte) 0x01);
-                // Store types of parameters in first in first package that is sent to the server.
+                // Store types of parameters in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getColumnType();
                     pos.writeShort(parameterTypeHeader[i].getType());

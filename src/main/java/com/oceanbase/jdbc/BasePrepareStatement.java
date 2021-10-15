@@ -420,12 +420,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 return;
             }
 
-            if (this.connection.getProtocol().isOracleMode()
-                && (((Blob) clob).getLocator() != null)
-                && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
-                byte[] data = ((Clob) clob).getLocator().binaryData;
-                setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
-                    noBackslashEscapes));
+            if (this.connection.getProtocol().isOracleMode()) {
+                if ((((Blob) clob).getLocator() != null)
+                    && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+                    byte[] data = ((Clob) clob).getLocator().binaryData;
+                    setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
+                        noBackslashEscapes));
+                } else {
+                    setParameter(parameterIndex, new OBReaderParameter(clob.getCharacterStream(),
+                        clob.length(), noBackslashEscapes));
+                }
             } else {
                 setParameter(parameterIndex,
                     new ReaderParameter(clob.getCharacterStream(), clob.length(),
@@ -570,8 +574,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal != null ? cal.getTimeZone()
-            : TimeZone.getDefault(), useFractionalSeconds));
+        if (this.protocol.isOracleMode()) {
+            Timestamp ts = new Timestamp(time.getTime());
+            TimeZone tz = protocol.getTimeZone();
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(ts, tz, useFractionalSeconds));
+        } else {
+            setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
+                useFractionalSeconds));
+        }
     }
 
     /**
@@ -589,8 +599,14 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, ColumnType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
-            useFractionalSeconds));
+        if (this.protocol.isOracleMode()) {
+            Timestamp ts = new Timestamp(time.getTime());
+            TimeZone tz = protocol.getTimeZone();
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(ts, tz, useFractionalSeconds));
+        } else {
+            setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
+                useFractionalSeconds));
+        }
     }
 
     /**

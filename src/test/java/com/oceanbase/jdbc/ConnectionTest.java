@@ -60,6 +60,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 
 import org.junit.*;
+import org.junit.Test;
 
 import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 

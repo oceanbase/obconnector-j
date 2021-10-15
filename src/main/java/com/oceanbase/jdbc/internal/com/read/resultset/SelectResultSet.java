@@ -60,6 +60,7 @@ import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class SelectResultSet extends JDBC4ResultSet {
+
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                            PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
                            boolean isPsOutParameter) throws IOException, SQLException {
