@@ -88,6 +88,8 @@ public class OracleBugfix extends BaseOracleTest {
     static String procWithoutParam          = "procWithoutParam" + getRandomString(5);
     static String test                      = "test" + getRandomString(5);
     static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
+    static String varchar2Number            = "varchar2Number" + getRandomString(5);
+    static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -165,9 +167,11 @@ public class OracleBugfix extends BaseOracleTest {
         createProcedure(procWithoutParam, " as begin insert into " + test + " values(1); end;");
         createTable(testDate, "c1 date");
         createTable(testDate2, "a int, b date, c date");
+
         createTable(zonedDateTimeTable,
             "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
-        //        createTable(zonedDateTimeTable, "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE");
+        createTable(varchar2Number, "c1 varchar2(200)");
+        createTable(nvarchar2Number, "c1 nvarchar2(200)");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -930,7 +934,65 @@ public class OracleBugfix extends BaseOracleTest {
             Statement stmt = conn.createStatement();
             ResultSet resultSet = stmt.executeQuery("select '中文ab' from dual");
             resultSet.next();
-            Assert.assertEquals("中文ab",resultSet.getString(1));
+            Assert.assertEquals("中文ab", resultSet.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testVarchar2Number() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + varchar2Number + " values('100')");
+            ResultSet rs1 = stmt.executeQuery("select c1 from " + varchar2Number);
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+            PreparedStatement ps = sharedConnection.prepareStatement("select c1 from "
+                                                                     + varchar2Number);
+            rs1 = ps.executeQuery();
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNvarchar2Number() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + nvarchar2Number + " values('100')");
+            ResultSet rs1 = stmt.executeQuery("select c1 from " + nvarchar2Number);
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+            PreparedStatement ps = sharedConnection.prepareStatement("select c1 from "
+                                                                     + nvarchar2Number);
+            rs1 = ps.executeQuery();
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(100, rs1.getInt(1));
+            Assert.assertEquals((byte) 100, rs1.getByte(1));
+            Assert.assertEquals((short) 100, rs1.getShort(1));
+            Assert.assertEquals((long) 100, rs1.getLong(1));
+            Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
+            Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

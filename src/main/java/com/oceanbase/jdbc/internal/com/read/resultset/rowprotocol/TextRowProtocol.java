@@ -397,6 +397,7 @@ public class TextRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case VARCHAR2:
+            case NVARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case BIGINT:

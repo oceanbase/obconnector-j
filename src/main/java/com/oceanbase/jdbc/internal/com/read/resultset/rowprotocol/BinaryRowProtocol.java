@@ -483,6 +483,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
                 value = Long.parseLong(new String(buf, pos, length, getCurrentEncoding(columnInfo
                     .getColumnType())));
                 break;
@@ -569,6 +571,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARCHAR:
                 case OBDECIMAL:
                 case STRING:
+                case VARCHAR2:
+                case NVARCHAR2:
                     return Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
                 default:
@@ -656,6 +660,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
                 try {
                     return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
                         .getColumnType())));
@@ -736,6 +742,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
                 try {
                     return Double.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
@@ -818,6 +826,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case DECIMAL:
             case VARSTRING:
             case VARCHAR:
+            case VARCHAR2:
+            case NVARCHAR2:
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
@@ -1326,6 +1336,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARSTRING:
                 case VARCHAR:
                 case OBDECIMAL:
+                case VARCHAR2:
+                case NVARCHAR2:
                 case STRING:
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
@@ -1405,6 +1417,8 @@ public class BinaryRowProtocol extends RowProtocol {
                     return bigDecimal.shortValue();
                 case VARSTRING:
                 case VARCHAR:
+                case VARCHAR2:
+                case NVARCHAR2:
                 case OBDECIMAL:
                 case STRING:
                     value = Long.parseLong(new String(buf, pos, length,
