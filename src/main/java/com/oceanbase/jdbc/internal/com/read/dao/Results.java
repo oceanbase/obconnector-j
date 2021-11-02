@@ -86,6 +86,7 @@ public class Results {
     private int                    autoIncrement;
     private boolean                rewritten;
     private CmdInformation         cmdInformation;
+    private boolean                batchSucceed = false;
 
     /**
      * Single Text query. /! use internally, because autoincrement value is not right for
@@ -486,4 +487,17 @@ public class Results {
     public int getStatementId() {
         return this.statementId;
     }
+
+    public void setParameters(ParameterHolder[] parameters) {
+        this.parameters = parameters;
+    }
+
+    public boolean getBatchSucceed() {
+        return batchSucceed;
+    }
+
+    public void setBatchSucceed(boolean succeed) {
+        this.batchSucceed = succeed;
+    }
+
 }

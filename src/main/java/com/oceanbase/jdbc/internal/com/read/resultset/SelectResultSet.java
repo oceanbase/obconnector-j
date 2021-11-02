@@ -64,14 +64,12 @@ public class SelectResultSet extends JDBC4ResultSet {
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                            PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
                            boolean isPsOutParameter) throws IOException, SQLException {
-        super(columnDefinition, results, protocol, reader, callableResult, eofDeprecated,
-            isPsOutParameter);
+        super(columnDefinition, results, protocol, reader, callableResult, eofDeprecated, isPsOutParameter);
     }
 
     public SelectResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                            boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
-                                                                                                   throws IOException,
-                                                                                                   SQLException {
+                           throws IOException, SQLException {
         super(columnDefinition, results, protocol, callableResult, eofDeprecated, isPsOutParameter);
     }
 

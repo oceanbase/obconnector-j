@@ -154,6 +154,7 @@ public class ComStmtExecute {
                 holder.writeBinary(pos);
             }
         }
+        pos.flush();
     }
 
     /**

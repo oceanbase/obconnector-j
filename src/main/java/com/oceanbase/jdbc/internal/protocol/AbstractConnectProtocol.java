@@ -1369,7 +1369,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException if connection error occur
      */
     public void skipEofPacket() throws SQLException, IOException {
-        Buffer buffer = reader.getPacket(true);
+        Buffer buffer = reader.getPacket(false);
         switch (buffer.getByteAt(0)) {
             case Packet.EOF:
                 break;
@@ -1518,8 +1518,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public void setObServerVersion(String version) {
         this.obServerVersion = version;
-        if (isOracleMode && options.useOraclePrepareExecute && options.useServerPrepStmts
-            && options.useCursorFetch && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+        if (isOracleMode && options.useServerPrepStmts && options.useOraclePrepareExecute
+            && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
             supportStmtPrepareExecute = true;
         } else {
             supportStmtPrepareExecute = false;

@@ -56,6 +56,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -64,27 +65,28 @@ import org.junit.Test;
  */
 public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
 
+    private Connection conn = sharedConnection;
+
     @Test
     public void normalSqlTest() throws SQLException {
         createTable("test_set_params", "c1 int, c2 varchar(20), c3 Timestamp");
 
-        // COM_QUERY
-        PreparedStatement ps = sharedConnection
-            .prepareStatement("insert into test_set_params values(?,?,?)");
-        ps.setInt(1, 1);
-        ps.setString(2, "abcdefg");
-        ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
-        assertEquals(1, ps.executeUpdate());
-
         // not select
-        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
         PreparedStatement ps1 = conn.prepareStatement("insert into test_set_params values(?,?,?)");
+
+        ps1.setInt(1, 1);
+        ps1.setString(2, "abcdefg");
+        ps1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+        assertEquals(1, ps1.executeUpdate());
+
+        // reuse a statement
         ps1.setInt(1, 2);
         ps1.setString(2, "hijklmn");
         ps1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
         assertEquals(1, ps1.executeUpdate());
 
-        // reuse a statement
+        ps1 = conn.prepareStatement("insert into test_set_params values(?,?,?)");
         ps1.setInt(1, 3);
         ps1.setString(2, "opqrst");
         ps1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
@@ -109,9 +111,9 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
     @Test
     public void functionCallTest() throws SQLException {
         createFunction("testFunctionCall",
-            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND");
+            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
 
-        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
         CallableStatement cs = conn.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
         cs.registerOutParameter(1, Types.INTEGER);
         cs.setFloat(2, 1);
@@ -120,13 +122,20 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         assertFalse(cs.execute());
         assertEquals(6f, cs.getInt(1), .001);
 
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 2);
+        cs.setInt(3, 3);
+        cs.setInt(4, 4);
+        assertEquals(0, cs.executeUpdate());
+        assertEquals(9f, cs.getInt(1), .001);
+
         // reuse a statement, and set by name
         cs.registerOutParameter(1, Types.INTEGER);
         cs.setFloat("a", 4);
-        cs.setInt("b", 1);
+        cs.setInt("b", 2);
         cs.setInt("c", 1);
         assertEquals(0, cs.executeUpdate());
-        assertEquals(6f, cs.getInt(1), .001);
+        assertEquals(7f, cs.getInt(1), .001);
 
     }
 
@@ -135,22 +144,20 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         createProcedureWithPackage("test", "calc_add", "(a1 IN int, a2 IN int, a3 OUT int);end;",
             "(a1 IN int, a2 IN int, a3 OUT int) is\nbegin\n a3 := a1 + a2;\nend;\nend;");
 
-        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
         CallableStatement cs = conn.prepareCall("call test.calc_add(?, ?, ?)");
         cs.setInt(1, 1);
         cs.setInt(2, 2);
         cs.registerOutParameter(3, Types.INTEGER);
         assertFalse(cs.execute());
-        //System.out.println("cs.execute() return: " + (cs.execute() ? "true" : "false"));
         assertEquals(3, cs.getInt(3));
 
         // reuse a statement, and set by name
-        cs.setInt(1, 2);
-        cs.setInt(2, 4);
-        cs.registerOutParameter(3, Types.INTEGER);
+        cs.setInt("a1", 2);
+        cs.setInt("a2", 4);
+        cs.registerOutParameter("a3", Types.INTEGER);
         assertEquals(0, cs.executeUpdate());
-        //System.out.println("cs.executeUpdate() return: " + cs.executeUpdate());
-        assertEquals(6, cs.getInt(3));
+        assertEquals(6, cs.getInt("a3"));
 
     }
 }

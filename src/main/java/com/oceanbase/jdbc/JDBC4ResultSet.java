@@ -116,7 +116,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private OceanBaseStatement              statement;
     public RowProtocol                      row;
     private int                             dataFetchTime;
-    private boolean                         streaming;
+    protected boolean                         streaming;
     protected byte[][]                      data;
     protected int                           dataSize;
     private int                             fetchSize;
@@ -146,8 +146,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException if any connection error occur
      */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-                          PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
-                          boolean isPsOutParameter) throws IOException, SQLException {
+                          PacketInputStream reader, boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
+                          throws IOException, SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -159,7 +159,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.columnInformationLength = columnDefinition.length;
         this.complexData = new ComplexData[columnInformationLength];
         this.complexEndPos = new int[columnInformationLength];
-        this.reader = reader;
         this.isEof = false;
         timeZone = protocol.getTimeZone();
         if (results.isBinaryFormat()) {
@@ -178,6 +177,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.eofDeprecated = eofDeprecated;
         this.isPsOutParameter = isPsOutParameter;
 
+        this.reader = reader;
         if (fetchSize == 0 || callableResult) {
             this.data = new byte[10][];
             fetchAllResults();
@@ -194,8 +194,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
-                                                                                                  throws IOException,
-                                                                                                  SQLException {
+                          throws IOException, SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -224,8 +223,19 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.callableResult = callableResult;
         this.eofDeprecated = eofDeprecated;
         this.isPsOutParameter = isPsOutParameter;
+
         this.reader = protocol.getReader();
         data = new byte[Math.max(10, fetchSize)][];
+        if (protocol.supportStmtPrepareExecute()) {
+            // for new PS protocol, ResultSet reads data from socket while constructing
+            this.lock = protocol.getLock();
+            nextStreamingValue();
+
+            // if last row hasn't been sent, there is a EOF packet in socket need to be read
+            if (!isEof && !eofDeprecated) {
+                protocol.skipEofPacket();
+            }
+        }
     }
 
     public boolean assign(JDBC4ResultSet opt) {
@@ -2817,5 +2827,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.dataSize = 0;
         this.rowPointer = -1;
         this.lastRowPointer = -1;
+    }
+
+    public boolean isEof() {
+        return isEof;
     }
 }

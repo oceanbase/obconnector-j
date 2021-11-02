@@ -259,8 +259,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
 
-      ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-      return comStmtPrepare.read(reader, eofDeprecated);
+            return ComStmtPrepare.read(reader, eofDeprecated, this, sql);
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     } finally {
@@ -352,9 +351,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts());
         }
       } else {
-        writer.startPacket(0);
         ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
-        writer.flush();
       }
       getResult(results);
 
@@ -392,9 +389,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts(), queryTimeout);
         }
       } else {
-        writer.startPacket(0);
         ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
-        writer.flush();
       }
       getResult(results);
 
@@ -466,30 +461,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-      if (!withRefCursor && options.useCursorFetch && options.useServerPrepStmts && results.getFetchSize() > 0
-          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY && ci.length != 0) {
-        // use any kind of cursor
-        ComStmtExecute.send(
-            writer,
-            serverPrepareResult.getStatementId(),
-            parameters,
-            parameterCount,
-            serverPrepareResult.getParameterTypeHeader(),
-            Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
-            this);
-        results.setStatementId(serverPrepareResult.getStatementId());
-        results.setToCursorFetch(true);
+      byte cursorFlag = 0;
+      if (!withRefCursor && ci.length != 0 && options.useCursorFetch && results.getFetchSize() > 0
+              && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT ) {
+          if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+//              if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
+                  cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
+//              } else {
+//                  cursorFlag = Packet.CURSOR_TYPE_SCROLLABLE;
+//              }
+          } else {
+              cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
+          }
+          results.setStatementId(serverPrepareResult.getStatementId());
+          results.setToCursorFetch(true);
       } else {
-        // not use cursor
-        ComStmtExecute.send(
-            writer,
-            serverPrepareResult.getStatementId(),
-            parameters,
-            parameterCount,
-            serverPrepareResult.getParameterTypeHeader(),
-            Packet.CURSOR_TYPE_NO_CURSOR,
-            this);
+          cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
+      ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters, parameterCount,
+              serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
+
       getResult(results);
       results.setToCursorFetch(false);
 
@@ -500,17 +491,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
+    /**
+     * Execute a query that is to be prepared on server in Oracle mode
+     *
+     * @throws SQLException exception
+     */
   @Override
   public ServerPrepareResult executePreparedQuery(
-      boolean mustExecuteOnMaster,
-      int iterationCount,
       int parameterCount,
+      ParameterHolder[] parameters,
       ServerPrepareResult serverPrepareResult,
-      Results results) throws SQLException {
+      Results results) throws SQLException{
 
     cmdPrologue();
     try {
-      ParameterHolder[] parameters = results.getParameters();
       for (int i = 0; i < parameters.length; i++) {
         if (parameters[i].isLongData()) {
           writer.startPacket(0);
@@ -538,28 +532,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-      if (!withRefCursor && columnCount != 0 && options.useCursorFetch && options.useServerPrepStmts
-          && results.getFetchSize() > 0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-        ComStmtPrepareExecute.send(
-            writer,
-            results,
-            parameterCount,
-            serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null,
-            Packet.CURSOR_TYPE_READ_ONLY,  // on server side, cursorFlag is ignored in old version
-            this);
-        results.setStatementId(serverPrepareResult.getStatementId());
+      byte cursorFlag = 0;
+      if (!withRefCursor && options.useCursorFetch && results.getFetchSize() > 0
+            && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT) {
+        if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+            if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
+                cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
+            } else {
+                cursorFlag = Packet.CURSOR_TYPE_SCROLLABLE;
+            }
+        } else {
+            cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
+        }
         results.setToCursorFetch(true);
       } else {
-        ComStmtPrepareExecute.send(
-            writer,
-            results,
-            parameterCount,
-            serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null,
-            Packet.CURSOR_TYPE_NO_CURSOR,
-            this);
+        cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
-      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, results);
-      // getResult(results);
+      ComStmtPrepareExecute.send(writer, results, parameterCount, parameters,
+              serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this);
+
+      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
       results.setToCursorFetch(false);
       return serverPrepareResult;
     } catch (SQLException qex) {
@@ -567,7 +559,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw exceptionWithQuery(results.getParameters(), serverPrepareResult, handleIoException(e), false);
     }
-
   }
 
   /**
@@ -693,14 +684,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       SQLException exception = null;
 
-      // **************************************************************************************
       // send PREPARE if needed
-      // **************************************************************************************
       if (serverPrepareResult == null) {
         tmpServerPrepareResult = prepare(sql, true);
       }
 
-      // **************************************************************************************
       // send BULK
       // **************************************************************************************
       int statementId =
@@ -1038,8 +1026,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }.executeBatch();
   }
 
-
-
   /**
    * Execute list of queries. This method is used when using text batch statement and using
    * rewriting (allowMultiQueries || rewriteBatchedStatements). queries will be send to server
@@ -1143,127 +1129,109 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-  /**
-   * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
-   *
-   * @param mustExecuteOnMaster must normally be executed on master connection
-   * @param serverPrepareResult prepare result. can be null if not prepared.
-   * @param results execution results
-   * @param sql sql query if needed to be prepared
-   * @param parametersList parameter list
-   * @param hasLongData has long data (stream)
-   * @return executed
-   * @throws SQLException if parameter error or connection error occur.
-   */
-  public boolean executeBatchServer(
-      boolean mustExecuteOnMaster,
-      ServerPrepareResult serverPrepareResult,
-      Results results,
-      String sql,
-      final List<ParameterHolder[]> parametersList,
-      boolean hasLongData) throws SQLException {
+    /**
+     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
+     *
+     * @param serverPrepareResult prepare result. can be null if not prepared.
+     * @param results             execution results
+     * @param sql                 sql query if needed to be prepared
+     * @param parametersList      parameter list
+     * @param hasLongData         has long data (stream)
+     * @return executed
+     * @throws SQLException if parameter error or connection error occur.
+     */
+    public ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult, Results results,
+                                                  String sql, final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
 
-    cmdPrologue();
+        cmdPrologue();
 
-    if (options.useBulkStmts
-        && !hasLongData
-        && results.getAutoGeneratedKeys() == Statement.NO_GENERATED_KEYS
-        && versionGreaterOrEqual(10, 2, 7)
-        && executeBulkBatch(results, sql, serverPrepareResult, parametersList)) {
-      return true;
-    }
-
-    if (!options.useBatchMultiSend) {
-      return false;
-    }
-    initializeBatchReader();
-    new AbstractMultiSend(
-        this, writer, results, serverPrepareResult, parametersList, true, sql, readScheduler) {
-      @Override
-      public void sendCmd(
-          PacketOutputStream writer,
-          Results results,
-          List<ParameterHolder[]> parametersList,
-          List<String> queries,
-          int paramCount,
-          BulkStatus status,
-          PrepareResult prepareResult)
-          throws SQLException, IOException {
-
-        ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-
-        // validate parameter set
-        if (parameters.length < paramCount) {
-          throw new SQLException(
-              "Parameter at position " + (paramCount - 1) + " is not set", "07004");
+        // TODO: server does not support "COM_STMT_BULK_EXECUTE" feature yet
+        if (options.useBulkStmts && !hasLongData
+                && results.getAutoGeneratedKeys() == Statement.NO_GENERATED_KEYS
+                && versionGreaterOrEqual(10, 2, 7)
+                && executeBulkBatch(results, sql, serverPrepareResult, parametersList)) {
+            results.setBatchSucceed(true);
+            return serverPrepareResult;
         }
 
-
-        // send binary data in a separate stream
-        if(isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
-          for (int i = 0; i < paramCount; i++) {
-            if (parameters[i].isLongData()) {
-              writer.startPacket(0);
-              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
-              writer.writeInt(statementId);
-              writer.writeShort((short) i);
-              writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
-              parameters[i].writeBinary(writer);
-              writer.flush();
-            }
-          }
-        } else {
-          for (int i = 0; i < paramCount; i++) {
-            if (parameters[i].isLongData()) {
-              writer.startPacket(0);
-              writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-              writer.writeInt(statementId);
-              writer.writeShort((short) i);
-              parameters[i].writeBinary(writer);
-              writer.flush();
-            }
-          }
+        if (!options.useBatchMultiSend) {
+            results.setBatchSucceed(false);
+            return serverPrepareResult;
         }
 
-        writer.startPacket(0);
-        ComStmtExecute.writeCmd(
-            statementId,
-            parameters,
-            paramCount,
-            parameterTypeHeader,
-            writer,
-            Packet.CURSOR_TYPE_NO_CURSOR,
-            getProtocol());
-        writer.flush();
-      }
+        initializeBatchReader();
+        ServerPrepareResult tempServerPrepareResult = null;
+        serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
+            @Override
+            public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
+                                List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
 
-      @Override
-      public SQLException handleResultException(
-          SQLException qex,
-          Results results,
-          List<ParameterHolder[]> parametersList,
-          List<String> queries,
-          int currentCounter,
-          int sendCmdCounter,
-          int paramCount,
-          PrepareResult prepareResult) {
-        return OceanBaseSqlException.of(qex, prepareResult.getSql());
-      }
+                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
 
-      @Override
-      public int getParamCount() {
-        return getPrepareResult() == null
-            ? parametersList.get(0).length
-            : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
-      }
+                // validate parameter set
+                if (parameters.length < paramCount) {
+                    throw new SQLException(
+                            "Parameter at position " + (paramCount - 1) + " is not set", "07004");
+                }
 
-      @Override
-      public int getTotalExecutionNumber() {
-        return parametersList.size();
-      }
-    }.executeBatch();
-    return true;
-  }
+                // send binary data in a separate stream
+                if (isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
+                    for (int i = 0; i < paramCount; i++) {
+                        if (parameters[i].isLongData()) {
+                            writer.startPacket(0);
+                            writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                            writer.writeInt(statementId);
+                            writer.writeShort((short) i);
+                            writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
+                            parameters[i].writeBinary(writer);
+                            writer.flush();
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < paramCount; i++) {
+                        if (parameters[i].isLongData()) {
+                            writer.startPacket(0);
+                            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+                            writer.writeInt(statementId);
+                            writer.writeShort((short) i);
+                            parameters[i].writeBinary(writer);
+                            writer.flush();
+                        }
+                    }
+                }
+
+                if (supportStmtPrepareExecute()) {
+                    results.setParameters(parameters);
+                    ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
+                } else {
+                    writer.startPacket(0);
+                    ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader,
+                            writer, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
+                }
+            }
+
+            @Override
+            public SQLException handleResultException(SQLException qex, Results results, List<ParameterHolder[]> parametersList,
+                                                      List<String> queries, int currentCounter, int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
+
+                return OceanBaseSqlException.of(qex, prepareResult.getSql());
+            }
+
+            @Override
+            public int getParamCount() {
+
+                return getPrepareResult() == null ? parametersList.get(0).length
+                        : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
+            }
+
+            @Override
+            public int getTotalExecutionNumber() {
+                return parametersList.size();
+            }
+        }.executeBatch();
+        results.setBatchSucceed(true);
+        return serverPrepareResult;
+    }
 
   public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
@@ -2104,7 +2072,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
          * -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
          * after a callable resultSet, a OK packet is send, but mysql does send the bad "more result flag"
          */
-        Buffer bufferEof = reader.getPacket(true);
+        Buffer bufferEof = reader.getPacket(false);
         if (bufferEof.readByte() != Packet.EOF) {
           // using IOException to close connection,
           throw new IOException(
@@ -2125,19 +2093,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       SelectResultSet selectResultSet;
-      if (results.isToCursorFetch()) {
+      if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
+        results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
+        selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
+      } else if (results.isToCursorFetch()) {
         selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
-      } else if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-        selectResultSet =
-            new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       } else {
-        // remove fetch size to permit updating results without creating new connection
-        results.removeFetchSize();
-        selectResultSet =
-            new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
+        selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       }
-      results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
 
+      results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
     } catch (IOException e) {
       throw handleIoException(e);
     }
@@ -2394,4 +2359,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public int getExecuteMode() {
     return executeMode;
   }
+
+  @Override
+  public void setComStmtPrepareExecuteField(int iterationCount, int executeMode, long checksum) {
+      this.iterationCount = iterationCount;
+      this.executeMode = executeMode;
+      this.checksum = checksum;
+  }
+
 }

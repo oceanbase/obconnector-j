@@ -58,14 +58,15 @@ import java.util.concurrent.Callable;
 
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
+import com.oceanbase.jdbc.internal.com.send.ComStmtPrepareExecute;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.util.BulkStatus;
 import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
-    private final ComStmtPrepare          comStmtPrepare;
     private final BulkStatus              status;
     private final int                     sendCmdInitialCounter;
     private final Protocol                protocol;
@@ -73,6 +74,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final AbstractMultiSend       bulkSend;
     private final List<ParameterHolder[]> parametersList;
     private final List<String>            queries;
+    private final String                  sql;
     private final Results                 results;
     private final int                     paramCount;
     private final AsyncMultiReadResult    asyncMultiReadResult;
@@ -80,7 +82,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     /**
      * Read results async to avoid local and remote networking stack buffer overflow "lock".
      *
-     * @param comStmtPrepare current prepare
      * @param status bulk status
      * @param protocol protocol
      * @param readPrepareStmtResult must read prepare statement result
@@ -91,11 +92,10 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
      * @param queries queries
      * @param prepareResult prepare result
      */
-    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status, Protocol protocol,
+    public AsyncMultiRead(BulkStatus status, Protocol protocol,
                           boolean readPrepareStmtResult, AbstractMultiSend bulkSend,
                           int paramCount, Results results, List<ParameterHolder[]> parametersList,
-                          List<String> queries, PrepareResult prepareResult) {
-        this.comStmtPrepare = comStmtPrepare;
+                          List<String> queries, String sql, PrepareResult prepareResult) {
         this.status = status;
         this.sendCmdInitialCounter = status.sendCmdCounter - 1;
         this.protocol = protocol;
@@ -105,6 +105,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         this.results = results;
         this.parametersList = parametersList;
         this.queries = queries;
+        this.sql = sql;
         this.asyncMultiReadResult = new AsyncMultiReadResult(prepareResult);
     }
 
@@ -122,8 +123,10 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
         if (readPrepareStmtResult) {
             try {
-                asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getReader(),
-                    protocol.isEofDeprecated()));
+                if (!protocol.supportStmtPrepareExecute()) {
+                    asyncMultiReadResult.setPrepareResult(ComStmtPrepare.read(protocol.getReader(),
+                        protocol.isEofDeprecated(), protocol, sql));
+                }
             } catch (SQLException queryException) {
                 asyncMultiReadResult.setException(queryException);
             }
@@ -132,12 +135,17 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         // read all corresponding results
         int counter = 0;
 
-        // ensure to not finished loop while all bulk has not been send
+        // ensure to not finish loop while all bulk has not been send
         outerloop: while (!status.sendEnded || counter < status.sendSubCmdCounter) {
             // read results for each send data
             while (counter < status.sendSubCmdCounter) {
                 try {
-                    protocol.getResult(results);
+                    if (protocol.supportStmtPrepareExecute()) {
+                        asyncMultiReadResult.setPrepareResult(ComStmtPrepareExecute.read(protocol,
+                            protocol.getReader(), (ServerPrepareResult) asyncMultiReadResult.getPrepareResult(), results));
+                    } else {
+                        protocol.getResult(results);
+                    }
                 } catch (SQLException qex) {
                     if (qex instanceof SQLNonTransientConnectionException
                         || qex instanceof SQLTransientConnectionException) {

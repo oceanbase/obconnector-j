@@ -135,7 +135,18 @@ public class OceanBaseStatement implements Statement, Cloneable {
   private int maxFieldSize;
   private boolean escape = true;
 
-  /**
+  protected String    originalSql;
+  protected String    parameterSql;
+  protected String    utickSql;
+  protected String    processedSql;
+  protected String    rowidSql;
+  protected String    actualSql;
+  protected String    simpleSql;
+  protected int       sqlType;
+  protected boolean   includeRowid;
+  protected int       parameterCount = -1;                    // from originalSql, must be correct
+
+    /**
    * Creates a new Statement.
    *
    * @param connection the connection to return in getConnection.
@@ -159,7 +170,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
     this.exceptionFactory = exceptionFactory;
-    this.fetchSize = this.options.defaultFetchSize;
+    if (protocol.isOracleMode() && !this.isFetchSizeSet && this.options.defaultFetchSize == 0) {
+        this.fetchSize = 10;
+    } else {
+        this.fetchSize = this.options.defaultFetchSize;
+    }
   }
 
   /**
@@ -1569,5 +1584,13 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public Results getResults() {
     return results;
+  }
+
+  public String getOriginalSql() {
+    return originalSql;
+  }
+
+  public int getSqlType() {
+    return sqlType;
   }
 }

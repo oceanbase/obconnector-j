@@ -89,7 +89,6 @@ import com.oceanbase.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class Utils {
 
-  private static int parameterCount;
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
   private static final Pattern IP_V4 =
       Pattern.compile(
@@ -743,6 +742,10 @@ public class Utils {
     NameBinding /* in name binding such as :name */
   }
 
+  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
+    return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
+  }
+
   /**
    *  Adjust the string to have no comments and the name binding  parameters to ? format
    * @param queryString  original sql string
@@ -752,7 +755,11 @@ public class Utils {
    * @return
    */
   public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
-    parameterCount = 0;
+    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment)[0];
+  }
+
+  public static String[] trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
+    int parameterCount = 0;
     StringBuilder trimedSqlString = new StringBuilder();
     boolean multipleQueriesPrepare = true;
     LexState state = LexState.Normal;
@@ -983,12 +990,11 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParameterPosition, queryLength));
     }
-    return trimedSqlString.toString();
+
+    return new String[]{trimedSqlString.toString(), String.valueOf(parameterCount)};
   }
 
-  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
-    return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
-  }
+
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
                                      String leftMarks, String rightMarks) {
@@ -1127,10 +1133,6 @@ public class Utils {
     } else {
       return OceanBaseStatement.STMT_UNKNOWN;
     }
-  }
-
-  public static int getParameterCount() {
-    return parameterCount;
   }
 
   /**

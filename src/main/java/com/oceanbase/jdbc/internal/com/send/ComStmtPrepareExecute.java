@@ -40,19 +40,18 @@ public class ComStmtPrepareExecute {
      * @throws IOException if a connection error occur
      */
     public static void send(final PacketOutputStream pos, Results results,
-                            final int parameterCount, ColumnType[] parameterTypeHeader,
+                            final int parameterCount, ParameterHolder[] parameters, ColumnType[] parameterTypeHeader,
                             byte cursorFlag, Protocol protocol) throws IOException, SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_PREPARE_EXECUTE);
         pos.writeInt(results.getStatementId());
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
-        ParameterHolder lengthEncodedString = new OBStringParameter(results.getSql(),
-            protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
+        ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement().getOriginalSql(),
+                protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
 
-        ParameterHolder[] parameters = results.getParameters();
         if (parameterCount > 0) {
             // create null-bitmap
             int nullCount = (parameterCount + 7) / 8;
@@ -125,9 +124,9 @@ public class ComStmtPrepareExecute {
     }
 
     public static ServerPrepareResult read(Protocol protocol, PacketInputStream reader,
-                                           Results results) throws IOException, SQLException {
+                   ServerPrepareResult serverPrepareResult, Results results) throws IOException, SQLException {
         boolean eofDeprecated = protocol.isEofDeprecated();
-        Buffer buffer = reader.getPacket(true);
+        Buffer buffer = reader.getPacket(false);
         byte firstByte = buffer.getByteAt(0);
 
         switch (firstByte) {
@@ -158,7 +157,7 @@ public class ComStmtPrepareExecute {
                     protocol.readResultSet(columns, results);
                 }
 
-                buffer = reader.getPacket(true);
+                buffer = reader.getPacket(false);
                 switch (buffer.getByteAt(0)) {
                     case Packet.OK:
                         protocol.readOkPacket(buffer, results);
@@ -167,19 +166,7 @@ public class ComStmtPrepareExecute {
                         throw protocol.readErrorPacket(buffer, results);
                 }
 
-                String sql = results.getSql();
-                ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId,
-                    columns, params, protocol);
-                if (protocol.getOptions().cachePrepStmts
-                    && protocol.getOptions().useServerPrepStmts && sql != null
-                    && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
-                    String key = protocol.getDatabase() + "-" + sql;
-                    ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
-                        serverPrepareResult);
-                    serverPrepareResult = cachedServerPrepareResult != null ? cachedServerPrepareResult
-                        : serverPrepareResult;
-                }
-                return serverPrepareResult;
+                return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(results.getSql(), statementId, columns, params, protocol);
 
             case Packet.ERROR:
                 throw protocol.readErrorPacket(buffer, results);

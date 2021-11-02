@@ -48,6 +48,7 @@ import java.sql.SQLException;
 
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class CursorResultSet extends SelectResultSet {
@@ -78,8 +79,7 @@ public class CursorResultSet extends SelectResultSet {
         }
         int numToFetch = this.getFetchSize();
         try {
-            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
-                numToFetch);
+            ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId, numToFetch);
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;
