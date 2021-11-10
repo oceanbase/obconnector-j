@@ -1369,7 +1369,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException if connection error occur
      */
     public void skipEofPacket() throws SQLException, IOException {
-        Buffer buffer = reader.getPacket(false);
+        Buffer buffer = reader.getPacket(true);
         switch (buffer.getByteAt(0)) {
             case Packet.EOF:
                 break;

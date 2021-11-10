@@ -62,17 +62,6 @@ public class CursorResultSet extends SelectResultSet {
         this.statementId = results.getStatementId();
     }
 
-    @Override
-    public boolean next() throws SQLException {
-        if (super.next()) {
-            return true;
-        } else {
-            super.resetState();
-            cursorFetch();
-            return super.next();
-        }
-    }
-
     private void cursorFetch() throws SQLException {
         if (isLastRow) {
             return;
@@ -100,6 +89,17 @@ public class CursorResultSet extends SelectResultSet {
         int fetchSizeTmp = this.getFetchSize();
         while (fetchSizeTmp >= 0 && super.readNextValue()) {
             fetchSizeTmp--;
+        }
+    }
+
+    @Override
+    public boolean next() throws SQLException {
+        if (super.next()) {
+            return true;
+        } else {
+            super.resetState();
+            cursorFetch();
+            return super.next();
         }
     }
 

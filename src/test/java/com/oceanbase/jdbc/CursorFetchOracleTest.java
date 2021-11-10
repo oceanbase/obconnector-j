@@ -148,7 +148,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testScrollableCursor() throws Exception {
         //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
-            //Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+            Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
             PreparedStatement ps = connection.prepareStatement("select * from " + tableName1,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ps.setFetchSize(40);
@@ -160,7 +160,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
                 rs.getInt(1);
                 Assert.fail("Current position is before the first row");
             } catch (SQLException e) {
-                System.out.println(e.getErrorCode());
+                Assert.assertEquals(0, e.getErrorCode());
             }
             Assert.assertTrue(rs.absolute(39));
             Assert.assertEquals(39, rs.getInt(1));

@@ -462,17 +462,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      if (!withRefCursor && ci.length != 0 && options.useCursorFetch && results.getFetchSize() > 0
-              && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT ) {
-          if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+      if (!withRefCursor && ci.length != 0 && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
+              && options.useCursorFetch && results.getFetchSize() > 0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+//          if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
 //              if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
                   cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
 //              } else {
 //                  cursorFlag = Packet.CURSOR_TYPE_SCROLLABLE;
 //              }
-          } else {
-              cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
-          }
+//          } else {
+//              cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
+//          }
           results.setStatementId(serverPrepareResult.getStatementId());
           results.setToCursorFetch(true);
       } else {
@@ -850,9 +850,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           throws IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-        writer.startPacket(0);
         ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
-        writer.flush();
       }
 
       @Override
@@ -1204,9 +1202,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     results.setParameters(parameters);
                     ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
                 } else {
-                    writer.startPacket(0);
-                    ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader,
-                            writer, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
+                    ComStmtExecute.send(writer, statementId, parameters, paramCount, parameterTypeHeader,
+                            Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
                 }
             }
 
@@ -2072,7 +2069,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
          * -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
          * after a callable resultSet, a OK packet is send, but mysql does send the bad "more result flag"
          */
-        Buffer bufferEof = reader.getPacket(false);
+        Buffer bufferEof = reader.getPacket(true);
         if (bufferEof.readByte() != Packet.EOF) {
           // using IOException to close connection,
           throw new IOException(

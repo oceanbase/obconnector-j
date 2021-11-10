@@ -116,7 +116,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private OceanBaseStatement              statement;
     public RowProtocol                      row;
     private int                             dataFetchTime;
-    protected boolean                         streaming;
+    protected boolean                       streaming;
     protected byte[][]                      data;
     protected int                           dataSize;
     private int                             fetchSize;
@@ -134,7 +134,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private boolean                         isPsOutParameter;
 
     /**
-     * Create Streaming resultSet.
+     * Create a complete or streaming resultSet.
      *
      * @param columnDefinition column information
      * @param results          results
@@ -192,6 +192,18 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
     }
 
+    /**
+     * Create a cursor result set
+     *
+     * @param columnDefinition
+     * @param results
+     * @param protocol
+     * @param callableResult
+     * @param eofDeprecated
+     * @param isPsOutParameter
+     * @throws IOException
+     * @throws SQLException
+     */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
                           throws IOException, SQLException {
@@ -504,7 +516,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             protocol.removeHasMoreResults();
             protocol.setHasWarnings(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
-            resetVariables();
+            isEof = true;
             throw ExceptionFactory.INSTANCE.create(errorPacket.getMessage(),
                 errorPacket.getSqlState(), errorPacket.getErrorCode());
         }
@@ -548,7 +560,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if ((serverStatus & ServerStatus.LAST_ROW_SENT) != 0) {
                 isLastRow = true;
             }
-            resetVariables();
+            isEof = true;
             return false;
         }
 
@@ -646,7 +658,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      */
     public void abort() throws SQLException {
         isClosed = true;
-        resetVariables();
+        isEof = true;
 
         // keep garbage easy
         for (int i = 0; i < data.length; i++) {
@@ -676,10 +688,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             } catch (IOException ioe) {
                 throw handleIoException(ioe);
             } finally {
-                resetVariables();
+                isEof = true;
                 lock.unlock();
             }
-            resetVariables();
         }
 
         // keep garbage easy
@@ -697,45 +708,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     private void resetVariables() {
         isEof = true;
-    }
-
-    @Override
-    public boolean next() throws SQLException {
-        if (isClosed) {
-            throw new SQLException("Operation not permit on a closed resultSet", "HY000");
-        }
-        if (rowPointer < dataSize - 1) {
-            rowPointer++;
-            return true;
-        } else {
-            if (streaming && !isEof) {
-                lock.lock();
-                try {
-                    if (!isEof) {
-                        nextStreamingValue();
-                    }
-                } catch (IOException ioe) {
-                    throw handleIoException(ioe);
-                } finally {
-                    lock.unlock();
-                }
-
-                if (resultSetScrollType == TYPE_FORWARD_ONLY) {
-                    // resultSet has been cleared. next value is pointer 0.
-                    rowPointer = 0;
-                    return dataSize > 0;
-                } else {
-                    // cursor can move backward, so driver must keep the results.
-                    // results have been added to current resultSet
-                    rowPointer++;
-                    return dataSize > rowPointer;
-                }
-            }
-
-            // all data are reads and pointer is after last
-            rowPointer = dataSize;
-            return false;
-        }
     }
 
     private void checkObjectRange(int position) throws SQLException {
@@ -783,14 +755,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean isAfterLast() throws SQLException {
         checkClose();
         if (rowPointer < dataSize) {
-
             // has remaining results
             return false;
-
         } else {
-
             if (streaming && !isEof) {
-
                 // has to read more result to know if it's finished or not
                 // (next packet may be new data or an EOF packet indicating that there is no more data)
                 lock.lock();
@@ -891,15 +859,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     @Override
-    public int getRow() throws SQLException {
-        checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            return discardedRows + rowPointer + 1;
-        }
-        return rowPointer + 1;
-    }
-
-    @Override
     public boolean absolute(int row) throws SQLException {
         checkClose();
 
@@ -965,6 +924,54 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return rowPointer != -1;
         }
         return false;
+    }
+
+    @Override
+    public boolean next() throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Operation not permit on a closed resultSet", "HY000");
+        }
+        if (rowPointer < dataSize - 1) {
+            rowPointer++;
+            return true;
+        } else {
+            if (streaming && !isEof) {
+                lock.lock();
+                try {
+                    if (!isEof) {
+                        nextStreamingValue();
+                    }
+                } catch (IOException ioe) {
+                    throw handleIoException(ioe);
+                } finally {
+                    lock.unlock();
+                }
+
+                if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+                    // resultSet has been cleared. next value is pointer 0.
+                    rowPointer = 0;
+                    return dataSize > 0;
+                } else {
+                    // cursor can move backward, so driver must keep the results.
+                    // results have been added to current resultSet
+                    rowPointer++;
+                    return dataSize > rowPointer;
+                }
+            }
+
+            // all data are reads and pointer is after last
+            rowPointer = dataSize;
+            return false;
+        }
+    }
+
+    @Override
+    public int getRow() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            return discardedRows + rowPointer + 1;
+        }
+        return rowPointer + 1;
     }
 
     @Override

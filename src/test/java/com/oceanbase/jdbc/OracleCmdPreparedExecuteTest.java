@@ -56,7 +56,6 @@ import java.sql.*;
 import java.time.LocalDateTime;
 
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -65,14 +64,12 @@ import org.junit.Test;
  */
 public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
 
-    private Connection conn = sharedConnection;
-
     @Test
     public void normalSqlTest() throws SQLException {
         createTable("test_set_params", "c1 int, c2 varchar(20), c3 Timestamp");
 
         // not select
-        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         PreparedStatement ps1 = conn.prepareStatement("insert into test_set_params values(?,?,?)");
 
         ps1.setInt(1, 1);
@@ -113,7 +110,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         createFunction("testFunctionCall",
             "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
 
-        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         CallableStatement cs = conn.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
         cs.registerOutParameter(1, Types.INTEGER);
         cs.setFloat(2, 1);
@@ -144,7 +141,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         createProcedureWithPackage("test", "calc_add", "(a1 IN int, a2 IN int, a3 OUT int);end;",
             "(a1 IN int, a2 IN int, a3 OUT int) is\nbegin\n a3 := a1 + a2;\nend;\nend;");
 
-        //Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         CallableStatement cs = conn.prepareCall("call test.calc_add(?, ?, ?)");
         cs.setInt(1, 1);
         cs.setInt(2, 2);

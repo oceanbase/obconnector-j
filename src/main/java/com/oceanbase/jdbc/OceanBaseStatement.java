@@ -170,7 +170,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
     this.exceptionFactory = exceptionFactory;
-    if (protocol.isOracleMode() && !this.isFetchSizeSet && this.options.defaultFetchSize == 0) {
+    if (protocol.isOracleMode() && options.defaultFetchSize == 0) {
         this.fetchSize = 10;
     } else {
         this.fetchSize = this.options.defaultFetchSize;

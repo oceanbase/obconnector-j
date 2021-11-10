@@ -126,7 +126,7 @@ public class ComStmtPrepareExecute {
     public static ServerPrepareResult read(Protocol protocol, PacketInputStream reader,
                    ServerPrepareResult serverPrepareResult, Results results) throws IOException, SQLException {
         boolean eofDeprecated = protocol.isEofDeprecated();
-        Buffer buffer = reader.getPacket(false);
+        Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(0);
 
         switch (firstByte) {
@@ -157,7 +157,7 @@ public class ComStmtPrepareExecute {
                     protocol.readResultSet(columns, results);
                 }
 
-                buffer = reader.getPacket(false);
+                buffer = reader.getPacket(true);
                 switch (buffer.getByteAt(0)) {
                     case Packet.OK:
                         protocol.readOkPacket(buffer, results);
