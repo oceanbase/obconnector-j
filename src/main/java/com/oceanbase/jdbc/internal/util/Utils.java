@@ -1608,4 +1608,12 @@ public class Utils {
     Quote,
     Escape /* found backslash */
   }
+
+  public static  boolean convertStringToBoolean(String str)  {
+    if ((str != null) && (str.length() > 0)) {
+      int c = Character.toLowerCase(str.charAt(0));
+      return ((c == 't') || (c == 'y') || (c == '1') || str.equals("-1"));
+    }
+    return false;
+  }
 }

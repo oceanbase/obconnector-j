@@ -69,6 +69,7 @@ import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
@@ -1298,7 +1299,7 @@ public class BinaryRowProtocol extends RowProtocol {
             default:
                 final String rawVal = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
-                return !("false".equals(rawVal) || "0".equals(rawVal));
+                return Utils.convertStringToBoolean(rawVal);
         }
     }
 

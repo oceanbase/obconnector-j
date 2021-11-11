@@ -90,6 +90,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
     static String varchar2Number            = "varchar2Number" + getRandomString(5);
     static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
+    static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -172,6 +173,7 @@ public class OracleBugfix extends BaseOracleTest {
             "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
         createTable(varchar2Number, "c1 varchar2(200)");
         createTable(nvarchar2Number, "c1 nvarchar2(200)");
+        createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -993,6 +995,49 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertEquals((long) 100, rs1.getLong(1));
             Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
             Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetBoolean() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + convertCharToBoolean + " values('n','n'),('y','y'),('t','t'),('f','f'),('1','1'),('-1','-1'),('0','0'),('x','z'),('string value','string values2'),(null,null)");
+            ResultSet rs = stmt.executeQuery("select * from " + convertCharToBoolean);
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            // other string values are all false
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

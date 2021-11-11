@@ -66,6 +66,7 @@ import java.util.TimeZone;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
@@ -971,7 +972,7 @@ public class TextRowProtocol extends RowProtocol {
         }
         final String rawVal = new String(buf, pos, length,
             getCurrentEncoding(columnInfo.getColumnType())).trim();
-        return !("false".equals(rawVal) || "0".equals(rawVal));
+        return Utils.convertStringToBoolean(rawVal);
     }
 
     /**
