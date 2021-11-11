@@ -833,7 +833,7 @@ public enum DefaultOptions {
           false),
   USE_PIECE_DATA(
           "usePieceData",
-          Boolean.TRUE,
+          Boolean.FALSE,
           "2.2.6",
                   "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
                   false),
@@ -1158,6 +1158,10 @@ public enum DefaultOptions {
    */
   public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
 
+    if(options.usePieceData) {
+      options.useOraclePrepareExecute = true;
+      options.useCursorFetch = true;
+    }
     // pipe cannot use read and write socket simultaneously
     if (options.pipe != null) {
       options.useBatchMultiSend = false;

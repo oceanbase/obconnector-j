@@ -196,8 +196,12 @@ public class Clob extends Blob implements ObClob, Serializable {
      * @return string value of blob content.
      */
     public String toString() {
-        Charset charset = Charset.forName(encoding);
-        return new String(data, offset, length, charset);
+        if(charData !=null) {
+            return charData;
+        } else {
+            Charset charset = Charset.forName(encoding);
+            return new String(data, offset, length, charset);
+        }
     }
 
     /**

@@ -41,10 +41,14 @@ public class ComStmtPrepareExecute {
      */
     public static void send(final PacketOutputStream pos, Results results,
                             final int parameterCount, ParameterHolder[] parameters, ColumnType[] parameterTypeHeader,
-                            byte cursorFlag, Protocol protocol) throws IOException, SQLException {
+                            byte cursorFlag, Protocol protocol,ServerPrepareResult serverPrepareResult) throws IOException, SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_PREPARE_EXECUTE);
-        pos.writeInt(results.getStatementId());
+        if (serverPrepareResult == null) {
+            pos.writeInt(results.getStatementId());
+        } else {
+            pos.writeInt(serverPrepareResult.getStatementId());
+        }
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
         ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement().getOriginalSql(),

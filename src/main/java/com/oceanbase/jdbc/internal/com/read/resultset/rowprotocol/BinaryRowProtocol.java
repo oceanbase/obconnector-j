@@ -62,6 +62,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
 import com.oceanbase.jdbc.extend.datatype.*;
@@ -420,6 +421,16 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_FLOAT:
                 Float f = getInternalFloat(columnInfo);
                 return Float.toString(f);
+            case OBCLOB:
+                if(options.supportLobLocator) {
+                    String encoding = this.options.characterEncoding;
+                    byte[] data = new byte[buf.length];
+                    System.arraycopy(buf,pos, data, 0, length);
+                    Clob c = new com.oceanbase.jdbc.Clob(true, data, encoding,null);
+                    return  c.toString();
+                } else {
+                    return new String(buf , pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+                }
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)

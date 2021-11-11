@@ -258,8 +258,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.write(Packet.COM_STMT_PREPARE);
       writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
-
-            return ComStmtPrepare.read(reader, eofDeprecated, this, sql);
+      return ComStmtPrepare.read(reader, eofDeprecated, this, sql);
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     } finally {
@@ -420,24 +419,33 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       int parameterCount = serverPrepareResult.getParameters().length;
 
-      // send binary data in a separate stream
-      if (isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
-        for (int i = 0; i < parameterCount; i++) {
-          if (parameters[i].isLongData()) {
-            boolean continueWrite = true;
-            boolean first = true;
-            while (continueWrite) {
-              writer.startPacket(0);
-              writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
-              writer.writeInt(serverPrepareResult.getStatementId());
-              writer.writeShort((short) (i));
-              continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer,first, options);
-              first = false;
-              getResult(results);
+      if(isOracleMode()) {
+        // send binary data in a separate stream
+        if ( options.useServerPrepStmts && options.usePieceData) {
+          for (int i = 0; i < parameterCount; i++) {
+            if (parameters[i].isLongData()) {
+              boolean continueWrite = true;
+              boolean first = true;
+              while (continueWrite) {
+                writer.startPacket(0);
+                writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                writer.writeInt(serverPrepareResult.getStatementId());
+                writer.writeShort((short) (i));
+                continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer, first, options);
+                first = false;
+                getResult(results);
+              }
             }
           }
         }
-      } else {
+        else {
+          for (int i = 0; i < parameterCount; i++) {
+            if (parameters[i].isLongData()) {
+              throw new SQLException("Not supported send long data on ob oracle");
+            }
+          }
+        }
+      }else { // mysql
         for (int i = 0; i < parameterCount; i++) {
           if (parameters[i].isLongData()) {
             writer.startPacket(0);
@@ -505,14 +513,47 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     cmdPrologue();
     try {
-      for (int i = 0; i < parameters.length; i++) {
-        if (parameters[i].isLongData()) {
-          writer.startPacket(0);
-          writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-          writer.writeInt(results.getStatementId());
-          writer.writeShort((short) i);
-          parameters[i].writeBinary(writer);
-          writer.flush();
+      if(isOracleMode()) {
+        // use send piece data
+        if (options.useServerPrepStmts && options.usePieceData) {
+          boolean first = true;
+          for (int i = 0; i < parameterCount; i++) {
+            if (parameters[i].isLongData()) {
+              boolean continueWrite = true;
+              while (continueWrite) {
+                if (first && serverPrepareResult == null) {
+                  // prepre here
+                  serverPrepareResult = prepare(results.getStatement().getOriginalSql(), true);
+                  first = false;
+                }
+                writer.startPacket(0);
+                writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                writer.writeInt(serverPrepareResult.getStatementId());
+                writer.writeShort((short) (i));
+                continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer, first, options);
+                first = false;
+                getResult(results);
+              }
+            }
+          }
+        } else {
+          for (int i = 0; i < parameterCount; i++) {
+            if (parameters[i].isLongData()) {
+                throw new SQLException("Not supported send long data on ob oracle");
+              }
+            }
+          }
+      } else {
+        // mysql mode
+        for (int i = 0; i < parameters.length; i++) {
+          if (parameters[i].isLongData()) {
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+            writer.writeInt(results.getStatementId());
+            writer.writeShort((short) i);
+            parameters[i].writeBinary(writer);
+            writer.flush();
+          }
         }
       }
 
@@ -532,7 +573,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-      byte cursorFlag = 0;
+     byte cursorFlag = 0;
       if (!withRefCursor && options.useCursorFetch && results.getFetchSize() > 0
             && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT) {
         if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
@@ -549,7 +590,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
       ComStmtPrepareExecute.send(writer, results, parameterCount, parameters,
-              serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this);
+              serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this,serverPrepareResult);
 
       serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
       results.setToCursorFetch(false);
@@ -1172,35 +1213,44 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             "Parameter at position " + (paramCount - 1) + " is not set", "07004");
                 }
 
-                // send binary data in a separate stream
-                if (isOracleMode() && options.useServerPrepStmts && options.usePieceData) {
-                    for (int i = 0; i < paramCount; i++) {
+                if (isOracleMode()) {
+                   // send binary data in a separate stream
+                   if (options.useServerPrepStmts && options.usePieceData) {
+                      for (int i = 0; i < paramCount; i++) {
                         if (parameters[i].isLongData()) {
-                            writer.startPacket(0);
-                            writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
-                            writer.writeInt(statementId);
-                            writer.writeShort((short) i);
-                            writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
-                            parameters[i].writeBinary(writer);
-                            writer.flush();
+                          writer.startPacket(0);
+                          writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                          writer.writeInt(statementId);
+                          writer.writeShort((short) i);
+                          writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
+                          parameters[i].writeBinary(writer);
+                          writer.flush();
                         }
-                    }
-                } else {
-                    for (int i = 0; i < paramCount; i++) {
-                        if (parameters[i].isLongData()) {
-                            writer.startPacket(0);
-                            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-                            writer.writeInt(statementId);
-                            writer.writeShort((short) i);
-                            parameters[i].writeBinary(writer);
-                            writer.flush();
-                        }
-                    }
+                      }
+                   }
+                   else {
+                       for (int i = 0; i < paramCount; i++) {
+                         if (parameters[i].isLongData()) {
+                           throw new SQLException("Not supported send long data on ob oracle");
+                         }
+                       }
+                   }
+                } else {  // mysql mode
+                  for (int i = 0; i < paramCount; i++) {
+                    if (parameters[i].isLongData()) {
+                      writer.startPacket(0);
+                      writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+                      writer.writeInt(statementId);
+                      writer.writeShort((short) i);
+                      parameters[i].writeBinary(writer);
+                      writer.flush();
+                  }
                 }
+              }
 
-                if (supportStmtPrepareExecute()) {
+              if (supportStmtPrepareExecute()) {
                     results.setParameters(parameters);
-                    ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
+                    ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol(),tempServerPrepareResult);
                 } else {
                     ComStmtExecute.send(writer, statementId, parameters, paramCount, parameterTypeHeader,
                             Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());

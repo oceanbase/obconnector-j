@@ -186,7 +186,7 @@ public class Options implements Cloneable {
     public String socksProxyHost;
     public int socksProxyPort = 1080;
     public boolean connectProxy = false;
-    public boolean usePieceData = true;
+    public boolean usePieceData = false;
     public int  pieceLength = 1000;
   public boolean useOraclePrepareExecute = false;
     @Override

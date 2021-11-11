@@ -1585,6 +1585,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
         ColumnDefinition col = columnsInformation[columnIndex - 1];
 
         if (type.equals(String.class)) {
+            if (columnsInformation[columnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+                .getType()) {
+                String encoding = this.options.characterEncoding;
+                byte[] data = new byte[row.length];
+                System.arraycopy(row.buf, row.pos, data, 0, row.length);
+                com.oceanbase.jdbc.Clob clob =  new com.oceanbase.jdbc.Clob(true, data, encoding, this.statement.getConnection());
+                return (T)clob.toString();
+            }
             return (T) row.getInternalString(col, null, timeZone);
 
         } else if (type.equals(Integer.class)) {
