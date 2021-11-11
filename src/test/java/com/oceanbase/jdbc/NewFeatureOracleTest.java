@@ -49,6 +49,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.sql.*;
 
 import org.junit.Assert;
@@ -60,6 +61,8 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("testcommit", "c1 int");
+        createTable("stringTest", "c1 varchar2(200),c2 varchar2(200),c3 varchar2(200),c4 varchar2(200),c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200)");
+
     }
 
     @Test
@@ -846,6 +849,48 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+
+    @Test
+    public void testStringBatch() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            Statement stmt = conn.createStatement();
+            PreparedStatement preparedStatement = conn
+                .prepareStatement("insert into stringtest values(?,?,?,?,?,?,?,?,?,null,null)");
+            int val = 0;
+            // 30000 * 9 > 65535 （the prepare parameters limit）
+            for (int i = 0; i < 30000; i++) {
+                preparedStatement.setString(1, "string value");
+                preparedStatement.setString(2, "string value");
+                preparedStatement.setString(3, "string value");
+                preparedStatement.setString(4, "string value");
+                preparedStatement.setLong(5, val++);
+
+                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+                preparedStatement.setDate(7, null);
+
+                preparedStatement.setString(8, "string value");
+                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            long result = val;
+            ResultSet rs = stmt.executeQuery("select * from stringtest");
+            val = 0;
+            long count = 0;
+            while (rs.next()) {
+                count++;
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            Assert.assertEquals(count,30000);
+            Assert.assertEquals(val, result);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
     }
 
 }
