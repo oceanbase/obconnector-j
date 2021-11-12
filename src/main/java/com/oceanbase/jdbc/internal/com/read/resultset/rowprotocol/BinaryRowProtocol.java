@@ -423,14 +423,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 Float f = getInternalFloat(columnInfo);
                 return Float.toString(f);
             case OBCLOB:
-                if(options.supportLobLocator) {
+                if (options.supportLobLocator) {
                     String encoding = this.options.characterEncoding;
                     byte[] data = new byte[buf.length];
-                    System.arraycopy(buf,pos, data, 0, length);
-                    Clob c = new com.oceanbase.jdbc.Clob(true, data, encoding,null);
-                    return  c.toString();
+                    System.arraycopy(buf, pos, data, 0, length);
+                    Clob c = new com.oceanbase.jdbc.Clob(true, data, encoding, null);
+                    return c.toString();
                 } else {
-                    return new String(buf , pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+                    return new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
                 }
             default:
                 if (getMaxFieldSize() > 0) {
@@ -1276,26 +1277,23 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return false;
         }
+        if (columnInfo.getColumnType() == ColumnType.BIT) {
+            return parseBit() != 0;
+        }
+        long boolVal = 0;
         switch (columnInfo.getColumnType()) {
-            case BIT:
-                return parseBit() != 0;
             case TINYINT:
-                return getInternalTinyInt(columnInfo) != 0;
             case SMALLINT:
             case YEAR:
-                return getInternalSmallInt(columnInfo) != 0;
             case INTEGER:
             case MEDIUMINT:
-                return getInternalMediumInt(columnInfo) != 0;
             case BIGINT:
-                return getInternalLong(columnInfo) != 0;
             case FLOAT:
-                return getInternalFloat(columnInfo) != 0;
             case DOUBLE:
-                return getInternalDouble(columnInfo) != 0;
             case DECIMAL:
             case OLDDECIMAL:
-                return getInternalBigDecimal(columnInfo).longValue() != 0;
+                boolVal = getInternalLong(columnInfo);
+                return  (boolVal >0 || boolVal == -1);
             default:
                 final String rawVal = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));

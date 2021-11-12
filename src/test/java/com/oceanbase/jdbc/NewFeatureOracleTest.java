@@ -61,7 +61,9 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("testcommit", "c1 int");
-        createTable("stringTest", "c1 varchar2(200),c2 varchar2(200),c3 varchar2(200),c4 varchar2(200),c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200)");
+        createTable(
+            "stringTest",
+            "c1 varchar2(200),c2 varchar2(200),c3 varchar2(200),c4 varchar2(200),c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200)");
 
     }
 
@@ -842,15 +844,14 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             ps = conn.prepareStatement(sqlselect);
             ResultSet rs = ps.executeQuery();
             Assert.assertTrue(rs.next());
-            Object obj =  rs.getObject(3, String.class);
+            Object obj = rs.getObject(3, String.class);
             Assert.assertTrue(obj instanceof String);
-            Assert.assertEquals("string values",obj);
+            Assert.assertEquals("string values", obj);
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }
     }
-
 
     @Test
     public void testStringBatch() {
@@ -884,13 +885,27 @@ public class NewFeatureOracleTest extends BaseOracleTest {
                 count++;
                 Assert.assertEquals(val++, rs.getLong(5));
             }
-            Assert.assertEquals(count,30000);
+            Assert.assertEquals(count, 30000);
             Assert.assertEquals(val, result);
+            preparedStatement = conn.prepareStatement("update stringtest set c1 = ? where c5 = ?");
+            val = 0;
+            for (int i = 0; i < 300; i++) {
+                preparedStatement.setString(1, "string value updated");
+                preparedStatement.setInt(2, val++);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            rs = stmt.executeQuery("select * from stringtest where  rownum <= 300 order by c5");
+            val = 0;
+            while (rs.next()) {
+                Assert.assertEquals(val++, rs.getLong(5));
+                Assert.assertEquals("string value updated", rs.getString(1));
+                count++;
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }
 
     }
-
 }

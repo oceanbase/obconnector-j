@@ -50,6 +50,10 @@
  */
 package com.oceanbase.jdbc;
 
+import java.io.UnsupportedEncodingException;
+import java.sql.*;
+import java.util.*;
+
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -62,10 +66,6 @@ import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.ObCrc32C;
-
-import java.io.UnsupportedEncodingException;
-import java.sql.*;
-import java.util.*;
 
 public class JDBC4ServerPreparedStatement extends BasePrepareStatement implements Cloneable {
 
@@ -342,6 +342,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       int preIndex = 0;
       ParameterHolder[] currentQueryParameters = null;
       String curString = originalSql;
+      boolean isInsert = false;
+      // rewrite batch not work for update sql
       while (continueRewrite) {
         if (options.rewriteBatchedStatements) {
           if ((remainParameterSize * parameterCountReal) > maxParamtersNum) {
@@ -393,6 +395,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             currentQueryParameters = allParams;
             this.originalSql = sb.toString();
             prepare(originalSql);
+            isInsert = true;
+          } else {
+            isInsert = false;
           }
         } else {
           continueRewrite = false;
@@ -427,7 +432,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
         // send query one by one, reading results for each query before sending another one
         SQLException exception = null;
-        if (options.rewriteBatchedStatements) {
+        if (options.rewriteBatchedStatements && isInsert ) {
           ParameterHolder[] parameterHolder = currentQueryParameters;
           try {
             if (queryTimeout > 0) {

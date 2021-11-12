@@ -962,7 +962,7 @@ public class TextRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return boolean value
      */
-    public boolean getInternalBoolean(ColumnDefinition columnInfo) {
+    public boolean getInternalBoolean(ColumnDefinition columnInfo)throws  SQLException {
         if (lastValueWasNull()) {
             return false;
         }
@@ -970,9 +970,25 @@ public class TextRowProtocol extends RowProtocol {
         if (columnInfo.getColumnType() == ColumnType.BIT) {
             return parseBit() != 0;
         }
-        final String rawVal = new String(buf, pos, length,
-            getCurrentEncoding(columnInfo.getColumnType())).trim();
-        return Utils.convertStringToBoolean(rawVal);
+        long boolVal = 0;
+        switch (columnInfo.getColumnType()) {
+            case TINYINT:
+            case SMALLINT:
+            case YEAR:
+            case INTEGER:
+            case MEDIUMINT:
+            case BIGINT:
+            case FLOAT:
+            case DOUBLE:
+            case DECIMAL:
+            case OLDDECIMAL:
+                boolVal = getInternalLong(columnInfo);
+                return  (boolVal >0 || boolVal == -1);
+            default:
+                final String rawVal = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
+                return Utils.convertStringToBoolean(rawVal);
+        }
     }
 
     /**
