@@ -521,7 +521,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (parameters[i].isLongData()) {
               boolean continueWrite = true;
               while (continueWrite) {
-                if (first && serverPrepareResult == null) {
+                if (first) {
                   // prepre here
                   serverPrepareResult = prepare(results.getStatement().getOriginalSql(), true);
                   first = false;

@@ -190,6 +190,7 @@ public class Options implements Cloneable {
     public int  pieceLength = 1000;
     public boolean useOraclePrepareExecute = false;
     public boolean autoDeserialize = false;
+    public int     maxBatchTotalParamsNum = 30000;
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -557,7 +558,11 @@ public class Options implements Cloneable {
         if(autoDeserialize != opt.autoDeserialize) {
           return false;
         }
+        if (maxBatchTotalParamsNum != opt.maxBatchTotalParamsNum) {
+          return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
+
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -675,6 +680,7 @@ public class Options implements Cloneable {
         result = 31 * result + pieceLength;
         result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
         result = 31 * result + (autoDeserialize ? 1 : 0);
+        result = 31 * result + (maxBatchTotalParamsNum);
         return result;
     }
     @Override

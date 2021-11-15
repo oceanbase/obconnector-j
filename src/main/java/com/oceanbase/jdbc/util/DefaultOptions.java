@@ -848,9 +848,16 @@ public enum DefaultOptions {
           "autoDeserialize",
           Boolean.FALSE,
           "2.2.7",
-                  "Should the driver automatically detect and de-serialize objects stored in BLOB fields?",
+                  "",
                   false
-  );
+  ),
+  MAX_BATCH_TOTOAL_PARAMS_NUM(
+          "maxBatchTotalParamsNum",
+                  30000,
+                  0,
+                  "2.2.6",
+                  "When using executeBatch, the maximum number of spliced parameters",
+                  false);
 
   private final String optionName;
   private final String description;

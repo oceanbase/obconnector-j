@@ -70,7 +70,6 @@ import com.oceanbase.jdbc.util.ObCrc32C;
 public class JDBC4ServerPreparedStatement extends BasePrepareStatement implements Cloneable {
 
   private static final Logger logger = LoggerFactory.getLogger(JDBC4ServerPreparedStatement.class);
-  private static final int maxParamtersNum = 60000;
   protected Map<Integer, ParameterHolder> currentParameterHolder;                 // from setXXX(), size may not equal to parameterCount
   protected List<ParameterHolder[]> queryParameters = new ArrayList<>();    // for batch
   protected ServerPrepareResult serverPrepareResult = null;             // from server's response to prepare request
@@ -326,7 +325,17 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     executeBatchInternal(queryParameterSize);
     return results.getCmdInformation().getLargeUpdateCounts();
   }
-
+  boolean hasLongData(ParameterHolder[] parameterHolders) {
+    if (parameterHolders == null) {
+      return false;
+    }
+    for(ParameterHolder var : parameterHolders) {
+      if(var.isLongData()) {
+        return true;
+      }
+    }
+    return  false;
+  }
   private void executeBatchInternal(int queryParameterSize) throws SQLException {
     lock.lock();
     executing = true;
@@ -346,8 +355,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       // rewrite batch not work for update sql
       while (continueRewrite) {
         if (options.rewriteBatchedStatements) {
-          if ((remainParameterSize * parameterCountReal) > maxParamtersNum) {
-            currentTurnParamSize = (maxParamtersNum / parameterCountReal);
+          if ((remainParameterSize * parameterCountReal) > options.maxBatchTotalParamsNum) {
+            currentTurnParamSize = (options.maxBatchTotalParamsNum / parameterCountReal);
             remainParameterSize -= currentTurnParamSize;
           } else {
             continueRewrite = false;
@@ -442,7 +451,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
               serverPrepareResult.resetParameterTypeHeader();
             }
             if (protocol.supportStmtPrepareExecute()) {
-              serverPrepareResult = protocol.executePreparedQuery(parameterCountReal, parameterHolder, serverPrepareResult, results);
+              // under rewriteBatchedStatements
+              serverPrepareResult = protocol.executePreparedQuery(parameterHolder.length, parameterHolder, serverPrepareResult, results);
+              if(!hasLongData(parameterHolder)) {
+                serverPrepareResult = null; // reset serverPrepareResult every time
+              }
             } else {
               protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
             }

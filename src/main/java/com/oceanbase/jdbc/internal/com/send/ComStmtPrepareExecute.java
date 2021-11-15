@@ -40,8 +40,10 @@ public class ComStmtPrepareExecute {
      * @throws IOException if a connection error occur
      */
     public static void send(final PacketOutputStream pos, Results results,
-                            final int parameterCount, ParameterHolder[] parameters, ColumnType[] parameterTypeHeader,
-                            byte cursorFlag, Protocol protocol,ServerPrepareResult serverPrepareResult) throws IOException, SQLException {
+                            final int parameterCount, ParameterHolder[] parameters,
+                            ColumnType[] parameterTypeHeader, byte cursorFlag, Protocol protocol,
+                            ServerPrepareResult serverPrepareResult) throws IOException,
+                                                                    SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_PREPARE_EXECUTE);
         if (serverPrepareResult == null) {
@@ -142,12 +144,11 @@ public class ComStmtPrepareExecute {
                 final int statementId = buffer.readInt();
                 results.setStatementId(statementId);
                 final int numColumns = buffer.readShort() & 0xffff;
-                final short numParams = buffer.readShort();
+                final int numParams = buffer.readIntV1();
                 final byte reserved1 = buffer.readByte();
                 final short warningCount = buffer.readShort();
                 final int extendFlag = buffer.readInt();
                 final byte hasResultSet = buffer.readByte();
-
                 ColumnDefinition[] params = new ColumnDefinition[numParams];
                 if (numParams > 0) {
                     for (int i = 0; i < numParams; i++) {
