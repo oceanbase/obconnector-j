@@ -44,10 +44,8 @@
 
 package com.oceanbase.jdbc;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+import java.time.LocalDateTime;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -57,6 +55,7 @@ public class Bugfix extends BaseTest {
     static String testProceSetdefaultVal = "testProceSetdefaultVal" + getRandomString(5);
     static String testFunction           = "testfunction" + getRandomString(5);
     static String testSwap               = "testSwap" + getRandomString(5);
+    static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -73,6 +72,7 @@ public class Bugfix extends BaseTest {
                     + "begin \n"
                     + "DECLARE tmp  INT DEFAULT 0;\n set tmp = c1 ;\n set c1 := c2 ;\nset c2 := tmp  ;\n"
                     + "end ");
+        createTable(testDateAndTS, "c1 date ,c2 timestamp");
     }
 
     @Test
@@ -152,6 +152,37 @@ public class Bugfix extends BaseTest {
             callableStatement.execute();
             Assert.assertEquals(20, callableStatement.getInt(1));
             Assert.assertEquals(10, callableStatement.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTimestampToLocalDate() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into "
+                                                                        + testDateAndTS
+                                                                        + " values(?,?)");
+            Date date = new Date(System.currentTimeMillis());
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+            preparedStatement.setDate(1, date);
+            preparedStatement.setTimestamp(2, timestamp);
+            preparedStatement.execute();
+
+            ResultSet rs = stmt.executeQuery("select * from " + testDateAndTS);
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
+            preparedStatement = conn.prepareStatement("select * from " + testDateAndTS);
+            rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

@@ -95,6 +95,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String varchar2Number            = "varchar2Number" + getRandomString(5);
     static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
     static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
+    static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -178,6 +179,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(varchar2Number, "c1 varchar2(200)");
         createTable(nvarchar2Number, "c1 nvarchar2(200)");
         createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
+        createTable(testDateAndTS, "c1 date ,c2 timestamp");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -1198,7 +1200,35 @@ public class OracleBugfix extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+    public void testTimestampToLocalDate() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into "
+                                                                        + testDateAndTS
+                                                                        + " values(?,?)");
+            Date date = new Date(System.currentTimeMillis());
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+            preparedStatement.setDate(1, date);
+            preparedStatement.setTimestamp(2, timestamp);
+            preparedStatement.execute();
+
+            ResultSet rs = stmt.executeQuery("select * from " + testDateAndTS);
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
+            preparedStatement = conn.prepareStatement("select * from " + testDateAndTS);
+            rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
 
     }
-
 }
