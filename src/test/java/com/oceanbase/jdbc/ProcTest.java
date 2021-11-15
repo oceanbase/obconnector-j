@@ -88,7 +88,7 @@ public class ProcTest extends BaseTest {
     public void testBatch() throws Exception {
         createTable("testBatchTable", "field1 INT");
         createProcedure("testBatch",
-                "(IN foo int)\nbegin\nINSERT INTO testBatchTable VALUES (foo);\nend\n");
+            "(IN foo int)\nbegin\nINSERT INTO testBatchTable VALUES (foo);\nend\n");
         Statement stmt = sharedConnection.createStatement();
 
         CallableStatement storedProc = sharedConnection.prepareCall("{call testBatch(?)}");

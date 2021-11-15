@@ -92,10 +92,10 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
      * @param queries queries
      * @param prepareResult prepare result
      */
-    public AsyncMultiRead(BulkStatus status, Protocol protocol,
-                          boolean readPrepareStmtResult, AbstractMultiSend bulkSend,
-                          int paramCount, Results results, List<ParameterHolder[]> parametersList,
-                          List<String> queries, String sql, PrepareResult prepareResult) {
+    public AsyncMultiRead(BulkStatus status, Protocol protocol, boolean readPrepareStmtResult,
+                          AbstractMultiSend bulkSend, int paramCount, Results results,
+                          List<ParameterHolder[]> parametersList, List<String> queries, String sql,
+                          PrepareResult prepareResult) {
         this.status = status;
         this.sendCmdInitialCounter = status.sendCmdCounter - 1;
         this.protocol = protocol;
@@ -141,8 +141,11 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
             while (counter < status.sendSubCmdCounter) {
                 try {
                     if (protocol.supportStmtPrepareExecute()) {
-                        asyncMultiReadResult.setPrepareResult(ComStmtPrepareExecute.read(protocol,
-                            protocol.getReader(), (ServerPrepareResult) asyncMultiReadResult.getPrepareResult(), results));
+                        asyncMultiReadResult
+                            .setPrepareResult(ComStmtPrepareExecute.read(protocol,
+                                protocol.getReader(),
+                                (ServerPrepareResult) asyncMultiReadResult.getPrepareResult(),
+                                results));
                     } else {
                         protocol.getResult(results);
                     }

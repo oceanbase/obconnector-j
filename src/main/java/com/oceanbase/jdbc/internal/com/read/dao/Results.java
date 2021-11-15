@@ -64,7 +64,7 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Results {
 
-    private int                    statementId = 0;
+    private int                    statementId  = 0;
     private OceanBaseStatement     statement;
     private String                 sql;
     private ParameterHolder[]      parameters;

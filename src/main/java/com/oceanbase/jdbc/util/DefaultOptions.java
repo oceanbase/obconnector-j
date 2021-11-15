@@ -843,6 +843,13 @@ public enum DefaultOptions {
           "2.2.6",
           "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
           false
+  ),
+  AUTO_DESERIALIZE(
+          "autoDeserialize",
+          Boolean.FALSE,
+          "2.2.7",
+                  "Should the driver automatically detect and de-serialize objects stored in BLOB fields?",
+                  false
   );
 
   private final String optionName;

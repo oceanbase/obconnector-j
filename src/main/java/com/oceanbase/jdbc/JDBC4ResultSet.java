@@ -146,8 +146,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException if any connection error occur
      */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-                          PacketInputStream reader, boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
-                          throws IOException, SQLException {
+                          PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
+                          boolean isPsOutParameter) throws IOException, SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -206,7 +206,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
      */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
-                          throws IOException, SQLException {
+                                                                                                  throws IOException,
+                                                                                                  SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -1590,8 +1591,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 String encoding = this.options.characterEncoding;
                 byte[] data = new byte[row.length];
                 System.arraycopy(row.buf, row.pos, data, 0, row.length);
-                com.oceanbase.jdbc.Clob clob =  new com.oceanbase.jdbc.Clob(true, data, encoding, this.statement.getConnection());
-                return (T)clob.toString();
+                com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(true, data, encoding,
+                    this.statement.getConnection());
+                return (T) clob.toString();
             }
             return (T) row.getInternalString(col, null, timeZone);
 
@@ -1737,9 +1739,19 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (col.getColumnType() == ColumnType.INTERVALDS) {
                 return (T) getINTERVALDS(columnIndex);
             }
+        } else if (options.autoDeserialize) {
+            try {
+                return type.cast(getObject(columnIndex));
+            } catch (ClassCastException classCastException) {
+                SQLException exception = new SQLException("Type class '" + type.getName()
+                                                          + "' is not supported");
+                exception.initCause(classCastException);
+                throw exception;
+            }
         }
-        throw ExceptionFactory.INSTANCE.notSupported("Type class '" + type.getName()
-                                                     + "' is not supported");
+        SQLException exception = new SQLException("Type class '" + type.getName()
+                                                  + "' is not supported");
+        throw exception;
     }
 
     @SuppressWarnings("unchecked")

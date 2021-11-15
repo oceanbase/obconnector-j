@@ -683,6 +683,38 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void supportGetObjectCharacter() {
+        try {
+            Connection conn = setConnection("&autoDeserialize=false");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table ctest1");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table ctest1 (c1 char(1));");
+            stmt.execute("insert into ctest1 values('c')");
+            ResultSet rs = stmt.executeQuery("select c1 from ctest1");
+            Assert.assertTrue(rs.next());
+            try {
+                Object obj = rs.getObject(1, Character.class);
+            } catch (Throwable e1) {
+                Assert.assertTrue(e1 instanceof SQLException);
+            }
+            conn = setConnection("&autoDeserialize=true");
+            rs = stmt.executeQuery("select c1 from ctest1");
+            Assert.assertTrue(rs.next());
+            try {
+                Object obj = rs.getObject(1, Character.class);
+            } catch (Throwable e1) {
+                Assert.assertTrue(e1 instanceof SQLException);
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
     @org.junit.Test
     public void testSendPiece() {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);

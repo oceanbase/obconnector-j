@@ -50,9 +50,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class CursorFetchOracleTest extends BaseOracleTest {
-    static String tableName1 = "test_cursor_oracle";
-    static String tableName2 = "test_batch_oracle";
-    static String tableName3 = "fix_cursor_without_resultset";
+    static String      tableName1 = "test_cursor_oracle";
+    static String      tableName2 = "test_batch_oracle";
+    static String      tableName3 = "fix_cursor_without_resultset";
     private Connection connection = sharedConnection;
 
     @BeforeClass()
@@ -110,7 +110,8 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testExecuteBatch() {
         try {
             //Connection connection = setConnection("&autocommit=false&rewriteBatchedStatements=false&useBatchMultiSend=true&useBulkStmts=true");
-            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2 + " values(?,?,?)");
+            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2
+                                                                 + " values(?,?,?)");
 
             stmt.setString(1, "str1");
             stmt.setString(2, "str2");

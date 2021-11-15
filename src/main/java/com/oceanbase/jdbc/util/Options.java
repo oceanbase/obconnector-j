@@ -188,7 +188,8 @@ public class Options implements Cloneable {
     public boolean connectProxy = false;
     public boolean usePieceData = false;
     public int  pieceLength = 1000;
-  public boolean useOraclePrepareExecute = false;
+    public boolean useOraclePrepareExecute = false;
+    public boolean autoDeserialize = false;
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -550,9 +551,12 @@ public class Options implements Cloneable {
         if (pieceLength != opt.pieceLength) {
             return false;
         }
-      if (useOraclePrepareExecute != opt.useOraclePrepareExecute) {
-        return false;
-      }
+        if (useOraclePrepareExecute != opt.useOraclePrepareExecute) {
+          return false;
+        }
+        if(autoDeserialize != opt.autoDeserialize) {
+          return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -670,6 +674,7 @@ public class Options implements Cloneable {
         result = 31 * result + (usePieceData ? 1 : 0);
         result = 31 * result + pieceLength;
         result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
+        result = 31 * result + (autoDeserialize ? 1 : 0);
         return result;
     }
     @Override

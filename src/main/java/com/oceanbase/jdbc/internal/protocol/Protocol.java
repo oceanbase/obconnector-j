@@ -186,7 +186,7 @@ public interface Protocol {
     ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult,
                                            Results results, String sql,
                                            List<ParameterHolder[]> parameterList,
-                               boolean hasLongData) throws SQLException;
+                                           boolean hasLongData) throws SQLException;
 
     boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
                                final ClientPrepareResult prepareResult,

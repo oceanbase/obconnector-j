@@ -51,8 +51,9 @@ public class ComStmtPrepareExecute {
         }
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
-        ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement().getOriginalSql(),
-                protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
+        ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement()
+            .getOriginalSql(), protocol.noBackslashEscapes(),
+            protocol.getOptions().characterEncoding);
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
 
@@ -128,7 +129,9 @@ public class ComStmtPrepareExecute {
     }
 
     public static ServerPrepareResult read(Protocol protocol, PacketInputStream reader,
-                   ServerPrepareResult serverPrepareResult, Results results) throws IOException, SQLException {
+                                           ServerPrepareResult serverPrepareResult, Results results)
+                                                                                                    throws IOException,
+                                                                                                    SQLException {
         boolean eofDeprecated = protocol.isEofDeprecated();
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(0);
@@ -170,7 +173,8 @@ public class ComStmtPrepareExecute {
                         throw protocol.readErrorPacket(buffer, results);
                 }
 
-                return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(results.getSql(), statementId, columns, params, protocol);
+                return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(
+                    results.getSql(), statementId, columns, params, protocol);
 
             case Packet.ERROR:
                 throw protocol.readErrorPacket(buffer, results);
