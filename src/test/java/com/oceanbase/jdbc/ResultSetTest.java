@@ -1314,4 +1314,60 @@ public class ResultSetTest extends BaseTest {
         } finally {
         }
     }
+
+    @Test
+    public void testFindColumn() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        try {
+            stmt.execute("drop table test_findColumn");
+        } catch (SQLException e) {
+        }
+
+        stmt.execute("CREATE TABLE test_findColumn (\n"
+                     + "  rankCode varchar(10) NOT NULL,\n"
+                     + "  rankName varchar(70) DEFAULT NULL,\n"
+                     + "  parentRankCode varchar(10) DEFAULT NULL,\n"
+                     + "  rankLevel varchar(2) DEFAULT NULL,\n"
+                     + "  rankType varchar(20) DEFAULT NULL,\n"
+                     + "  rankLayer varchar(2) DEFAULT NULL,\n"
+                     + "  PRIMARY KEY (rankCode)\n"
+                     + ") DEFAULT CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC COMPRESSION = 'zstd_1.0' REPLICA_NUM = 3 BLOCK_SIZE = 16384 USE_BLOOM_FILTER = FALSE TABLET_SIZE = 134217728 PCTFREE = 0 COMMENT = '职业代码表';");
+
+        stmt.execute("INSERT INTO `test_findColumn` (`rankCode`,`rankName`,`parentRankCode`,`rankLevel`,`rankType`,`rankLayer`) VALUES ('4020805','光电火控工程技术人员','40208','','3','4');\n");
+        stmt.execute("INSERT INTO `test_findColumn` (`rankCode`,`rankName`,`parentRankCode`,`rankLevel`,`rankType`,`rankLayer`) VALUES ('40211','电子工程技术人员','402','','','3');\n");
+        stmt.execute("INSERT INTO `test_findColumn` (`rankCode`,`rankName`,`parentRankCode`,`rankLevel`,`rankType`,`rankLayer`) VALUES ('4021101','电子材料工程技术人员','40211','','2','4');\n");
+        stmt.execute("INSERT INTO `test_findColumn` (`rankCode`,`rankName`,`parentRankCode`,`rankLevel`,`rankType`,`rankLayer`) VALUES ('4021102','电子元器件工程技术人员','40211','','2','4');\n");
+
+        JDBC4ResultSet rs = (JDBC4ResultSet) stmt
+            .executeQuery("        select\n"
+                          + "        d.rankCode as rankCodeF,\n"
+                          + "        d.rankName as rankNameF,\n"
+                          + "        c.rankCode as rankCodeS,\n"
+                          + "        c.rankName as rankNameS,\n"
+                          + "        b.rankCode as rankCodeT,\n"
+                          + "        b.rankName as rankNameT,\n"
+                          + "        a.rankCode as rankCode,\n"
+                          + "        a.rankName as rankName,\n"
+                          + "        a.rankType as rankType\n"
+                          + "        FROM\n"
+                          + "        test_findColumn a join test_findColumn b on a.parentRankCode  = b.rankCode and b.rankLayer = '3'\n"
+                          + "        join test_findColumn c on b.parentRankCode  = c.rankCode and c.rankLayer  = '2'\n"
+                          + "        join test_findColumn d on c.parentRankCode = d.rankCode and d.rankLayer = '1'\n"
+                          + "        where\n" + "        a.rankLayer = '4'\n"
+                          + "        AND a.rankName LIKE '%'");
+
+        int rankcodeIndex = rs.findColumn("rankcode");
+
+        Assert.assertTrue("rankcode"
+            .equalsIgnoreCase(rs.getMetaData().getColumnName(rankcodeIndex)));
+
+        rs = (JDBC4ResultSet) stmt.executeQuery("select * from test_findColumn");
+
+        rankcodeIndex = rs.findColumn("rankcode");
+
+        Assert.assertTrue("rankcode"
+            .equalsIgnoreCase(rs.getMetaData().getColumnName(rankcodeIndex)));
+
+    }
 }

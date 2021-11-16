@@ -132,6 +132,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public ComplexData[]                    complexData;
     public int[]                            complexEndPos;
     private boolean                         isPsOutParameter;
+    private ResultSetMetaData               metaData;
 
     /**
      * Create a complete or streaming resultSet.
@@ -1763,7 +1764,26 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public int findColumn(String columnLabel) throws SQLException {
-        return columnLabelIndexer.getIndex(columnLabel) + 1;
+        int index = columnLabelIndexer.getIndex(columnLabel);
+
+        if (metaData != null && columnLabel.equalsIgnoreCase(metaData.getColumnName(index))){
+            return index;
+        }else {
+            this.forceAlias = true;
+            metaData = this.getMetaData();
+            if (index == 0 || !columnLabel.equalsIgnoreCase(metaData.getColumnName(index))){
+                HashMap<String, Integer> map = new HashMap<>();
+                for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                    String columnName = metaData.getColumnName(i);
+                    map.put(columnName.toLowerCase(Locale.ROOT),i);
+                }
+                columnLabelIndexer.setAliasMap(map);
+                return columnLabelIndexer.getIndex(columnLabel);
+            }else {
+                return index;
+            }
+        }
+
     }
 
     /**
