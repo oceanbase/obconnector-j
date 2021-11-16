@@ -496,6 +496,9 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
             if (connectTimeoutInMs != null) {
                 props.setProperty("connectTimeout", String.valueOf(connectTimeoutInMs));
             }
+            if (port != null) {
+                props.setProperty("port", String.valueOf(port));
+            }
 
             urlParser = UrlParser.parse(url, props);
 
