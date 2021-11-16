@@ -1201,6 +1201,8 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
     public void testTimestampToLocalDate() {
         try {
             Connection conn = sharedConnection;
