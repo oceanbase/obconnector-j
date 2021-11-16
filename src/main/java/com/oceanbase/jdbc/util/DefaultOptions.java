@@ -826,7 +826,7 @@ public enum DefaultOptions {
           false),
   PIECE_LENGTH(
           "pieceLength",
-          1000,
+          1048576,
           0,
           "2.2.6",
           "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",

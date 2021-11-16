@@ -179,13 +179,14 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
             sb.append(String.format("%02x", b));
         }
         data = sb.toString().getBytes();
-        if (first && data.length == pieceLen) {
+        int lastLen = is.available();
+        if (first && lastLen != 0 ) {
             piece = Packet.OCI_FIRST_PIECE;
             ret = true;
-        } else if (first && data.length < pieceLen) {
+        } else if (first && lastLen == 0) {
             piece = Packet.OCI_LAST_PIECE;
             ret = false;
-        } else if (!first && data.length == pieceLen) {
+        } else if (!first && lastLen != 0) {
             piece = Packet.OCI_NEXT_PIECE;
             ret = true;
         } else {

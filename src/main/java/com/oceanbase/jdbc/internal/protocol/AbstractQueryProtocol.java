@@ -433,7 +433,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.writeShort((short) (i));
                 continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer, first, options);
                 first = false;
-                getResult(results);
+                getResult(new Results());
               }
             }
           }
@@ -532,7 +532,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.writeShort((short) (i));
                 continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer, first, options);
                 first = false;
-                getResult(results);
+                getResult(new Results());
               }
             }
           }

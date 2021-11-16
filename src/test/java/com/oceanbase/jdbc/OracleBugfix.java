@@ -43,9 +43,10 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -55,6 +56,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -62,6 +64,7 @@ import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -97,6 +100,10 @@ public class OracleBugfix extends BaseOracleTest {
     static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
     static String convertBlobToBytes        = "convertBlobToBytes" + getRandomString(5);
     static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
+    static String testReaderToCLob          = "testReaderToCLob" + getRandomString(5);
+    static String testReaderToCLob2         = "testReaderToCLob2" + getRandomString(5);
+    static String testLargeStream           = "testLargeStream" + getRandomString(5);
+    static String testLargeReader           = "testLargeReader" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -182,6 +189,10 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
         createTable(convertBlobToBytes, "c1 int ,c2 blob");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
+        createTable(testReaderToCLob, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(testReaderToCLob2, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(testLargeStream, "c1 blob,c2 varchar2(20)");
+        createTable(testLargeReader, "c1 clob,c2 varchar2(20)");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -1103,6 +1114,7 @@ public class OracleBugfix extends BaseOracleTest {
 
     @Test
     public void testSendBatchBugForRwrite() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true&maxBatchTotalParamsNum=200");
             Statement stmt = conn.createStatement();
@@ -1259,4 +1271,119 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void executeUpdateSendPiece() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            PreparedStatement ps = conn.prepareStatement("insert into " + testReaderToCLob
+                                                         + " values(?, ?, ?, ?)");
+            String str = "\u571e\u58dc";
+            ps.setCharacterStream(1, new StringReader(str));
+            ps.setObject(3, str);
+            ps.setInt(2, 100);
+            ps.setInt(4, 100);
+            assertEquals(1, ps.executeUpdate());
+            assertEquals(1, ps.getUpdateCount());
+            ps = conn.prepareStatement("select * from " + testReaderToCLob);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(str, rs.getString(3));
+            assertEquals(100, rs.getInt(2));
+            assertEquals(100, rs.getInt(4));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testSendPieceBatchNums() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + testReaderToCLob2
+                                                         + " values(?, ?, ?, ?)");
+            String str = "\u571e\u58dc";
+            int num = 3;
+            for (int i = 0; i < 3; i++) {
+                ps.setCharacterStream(1, new StringReader(str));
+                ps.setObject(3, str);
+                ps.setInt(2, 100);
+                ps.setInt(4, 100);
+                ps.addBatch();
+            }
+            int[] ints = ps.executeBatch();
+            System.out.println(Arrays.toString(ints));
+            assertEquals(num, ints.length);
+            ResultSet rs = stmt.executeQuery("select * from " + testReaderToCLob2);
+            while (rs.next()) {
+                assertEquals(str, rs.getString(1));
+                assertEquals(str, rs.getString(3));
+                assertEquals(100, rs.getInt(2));
+                assertEquals(100, rs.getInt(4));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testLargeStreamValue() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            int size = 1024 * 1024 * 40; // 40mb
+            byte[] theBlob = new byte[size];
+            InputStream stream = new ByteArrayInputStream(theBlob);
+            int pos = 0;
+            int ch = 0;
+            ResultSet rs;
+            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeStream
+                                                         + " values(?, ?)");
+            ps.setAsciiStream(1, stream);
+            ps.setString(2, "aaa");
+            ps.execute();
+            ps = conn.prepareStatement("select * from " + testLargeStream);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            InputStream is = rs.getAsciiStream(1);
+            while ((ch = is.read()) != -1) {
+                assertEquals(theBlob[pos++], ch);
+            }
+            Assert.assertEquals(size, pos);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testLargeReaderValue() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            String str = getRandomString(1024 * 1024 * 40); // 40MB
+            StringReader stringReader = new StringReader(str);
+            ResultSet rs;
+            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeReader
+                                                         + " values(?, ?)");
+            ps.setClob(1, stringReader);
+            ps.setString(2, "aaa");
+            ps.execute();
+            ps = conn.prepareStatement("select * from " + testLargeReader);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            String str1 = rs.getString(1);
+            Assert.assertEquals(str1, str);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

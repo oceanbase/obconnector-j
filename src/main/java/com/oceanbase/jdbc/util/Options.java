@@ -187,7 +187,7 @@ public class Options implements Cloneable {
     public int socksProxyPort = 1080;
     public boolean connectProxy = false;
     public boolean usePieceData = false;
-    public int  pieceLength = 1000;
+    public int  pieceLength = 1048576;
     public boolean useOraclePrepareExecute = false;
     public boolean autoDeserialize = false;
     public int     maxBatchTotalParamsNum = 30000;

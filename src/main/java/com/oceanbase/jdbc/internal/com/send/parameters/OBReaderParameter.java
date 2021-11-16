@@ -165,13 +165,13 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
             return false;
         }
         byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
-        if (first && data.length == pieceLen) {
+        if (first && reader.ready()) {
             piece = Packet.OCI_FIRST_PIECE;
             ret = true;
-        } else if (first && data.length < pieceLen) {
+        } else if (first && !reader.ready()) {
             piece = Packet.OCI_LAST_PIECE;
             ret = false;
-        } else if (!first && data.length == pieceLen) {
+        } else if (!first && reader.ready()) {
             piece = Packet.OCI_NEXT_PIECE;
             ret = true;
         } else {
