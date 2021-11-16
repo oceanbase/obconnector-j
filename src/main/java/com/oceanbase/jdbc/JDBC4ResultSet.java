@@ -1617,6 +1617,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return (T) (Byte) row.getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
+            if (col.getColumnType() == ColumnType.OBBLOB) {
+                String encoding = this.options.characterEncoding;
+                if (encoding == null) {
+                    encoding = "UTF8";
+                }
+                byte[] data = new byte[row.length];
+                System.arraycopy(row.buf, row.pos, data, 0, row.length);
+                Blob blob = new com.oceanbase.jdbc.Blob(true, data, encoding,
+                    this.statement.getConnection());
+                return (T) blob.getBytes(1, (int) blob.length());
+            }
             byte[] data = new byte[row.getLengthMaxFieldSize()];
             System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
             return (T) data;

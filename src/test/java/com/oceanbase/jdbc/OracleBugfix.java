@@ -95,6 +95,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String varchar2Number            = "varchar2Number" + getRandomString(5);
     static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
     static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
+    static String convertBlobToBytes        = "convertBlobToBytes" + getRandomString(5);
     static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
 
     @BeforeClass()
@@ -179,6 +180,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(varchar2Number, "c1 varchar2(200)");
         createTable(nvarchar2Number, "c1 nvarchar2(200)");
         createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
+        createTable(convertBlobToBytes, "c1 int ,c2 blob");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
     }
 
@@ -1203,6 +1205,31 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void getObjectFromBlob() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            byte[] value = "中文".getBytes();
+            PreparedStatement ps = conn.prepareStatement("insert into " + convertBlobToBytes
+                + " values(?,?)");
+            ps.setInt(1, 1);
+            ps.setBytes(2, value);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select * from " + convertBlobToBytes);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals("中文", new String(rs.getObject(2, byte[].class)));
+            ps = conn.prepareStatement("select * from " + convertBlobToBytes);
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals("中文", new String(rs.getObject(2, byte[].class)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+    @Test
     public void testTimestampToLocalDate() {
         try {
             Connection conn = sharedConnection;
@@ -1231,6 +1258,5 @@ public class OracleBugfix extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
-
     }
 }
