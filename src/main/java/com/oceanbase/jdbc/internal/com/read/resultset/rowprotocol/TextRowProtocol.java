@@ -962,7 +962,7 @@ public class TextRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return boolean value
      */
-    public boolean getInternalBoolean(ColumnDefinition columnInfo)throws  SQLException {
+    public boolean getInternalBoolean(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
             return false;
         }
@@ -983,7 +983,7 @@ public class TextRowProtocol extends RowProtocol {
             case DECIMAL:
             case OLDDECIMAL:
                 boolVal = getInternalLong(columnInfo);
-                return  (boolVal >0 || boolVal == -1);
+                return (boolVal > 0 || boolVal == -1);
             default:
                 final String rawVal = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
@@ -1081,22 +1081,24 @@ public class TextRowProtocol extends RowProtocol {
         }
 
         String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
-
+        LocalDateTime localDateTime;
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIMESTAMP:
-                if (raw.startsWith("0000-00-00 00:00:00")) {
+            case Types.DATE:
+                Calendar cal = Calendar.getInstance(timeZone);
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                if (timestamp == null) {
                     return null;
                 }
                 try {
-                    LocalDateTime localDateTime = LocalDateTime.parse(raw,
+                    localDateTime = LocalDateTime.parse(timestamp.toString(),
                         TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
-                    return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
                 } catch (DateTimeParseException dateParserEx) {
                     throw new SQLException(
-                        raw
+                        timestamp.toString()
                                 + " cannot be parse as LocalDateTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
                 }
-
+                break;
             case Types.VARCHAR:
             case Types.LONGVARCHAR:
             case Types.CHAR:
@@ -1104,18 +1106,37 @@ public class TextRowProtocol extends RowProtocol {
                     return null;
                 }
                 try {
-                    return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
+                    if (getProtocol().isOracleMode()) {
+                        localDateTime = LocalDateTime.parse(raw,
+                            TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
+                    } else {
+                        cal = Calendar.getInstance(timeZone);
+                        timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                        if (timestamp == null) {
+                            return null;
+                        }
+                        try {
+                            localDateTime = LocalDateTime.parse(timestamp.toString(),
+                                TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
+                        } catch (DateTimeParseException dateParserEx) {
+                            throw new SQLException(
+                                timestamp.toString()
+                                        + " cannot be parse as LocalDateTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
+                        }
+                    }
                 } catch (DateTimeParseException dateParserEx) {
                     throw new SQLException(
                         raw
                                 + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
                                 + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
                 }
+                break;
 
             default:
                 throw new SQLException("Cannot read " + clazz.getName() + " using a "
                                        + columnInfo.getColumnType().getJavaTypeName() + " field");
         }
+        return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
     }
 
     /**

@@ -1293,7 +1293,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case DECIMAL:
             case OLDDECIMAL:
                 boolVal = getInternalLong(columnInfo);
-                return  (boolVal >0 || boolVal == -1);
+                return (boolVal > 0 || boolVal == -1);
             default:
                 final String rawVal = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
@@ -1606,9 +1606,21 @@ public class BinaryRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
-
+        if (getProtocol().isOracleMode()) {
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                Timestamp oracleTimestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                if (oracleTimestamp == null) {
+                    return null;
+                }
+                LocalDateTime localDateTimeNoTimeZone = oracleTimestamp.toLocalDateTime();
+                return localDateTimeNoTimeZone.atZone(timeZone.toZoneId());
+            }
+        }
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIMESTAMP:
+            case Types.DATE:
                 int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
                 int month = buf[pos + 2];
                 int day = buf[pos + 3];
@@ -1634,7 +1646,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case Types.VARCHAR:
             case Types.LONGVARCHAR:
             case Types.CHAR:
-
                 // string conversion
                 String raw = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
