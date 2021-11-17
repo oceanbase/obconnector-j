@@ -60,7 +60,7 @@ import java.util.Arrays;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class Clob extends Blob implements ObClob, Serializable {
+public class Clob extends Lob implements ObClob {
 
     private static final long serialVersionUID = -3066501059817815286L;
     private static int        maxLength        = 1 * 1024 * 1024 * 1024;

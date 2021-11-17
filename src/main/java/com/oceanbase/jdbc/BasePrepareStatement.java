@@ -420,7 +420,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
 
             if (this.connection.getProtocol().isOracleMode()) {
-                if ((((Blob) clob).getLocator() != null)
+                if ((((Clob) clob).getLocator() != null)
                     && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
                     byte[] data = ((Clob) clob).getLocator().binaryData;
                     setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),

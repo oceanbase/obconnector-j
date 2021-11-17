@@ -50,6 +50,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.sql.Clob;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -97,6 +98,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
     static String varchar2Number            = "varchar2Number" + getRandomString(5);
     static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
+    static String clobAndBlob               = "clobAndBlob" + getRandomString(5);
     static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
     static String convertBlobToBytes        = "convertBlobToBytes" + getRandomString(5);
     static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
@@ -186,6 +188,7 @@ public class OracleBugfix extends BaseOracleTest {
             "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
         createTable(varchar2Number, "c1 varchar2(200)");
         createTable(nvarchar2Number, "c1 nvarchar2(200)");
+        createTable(clobAndBlob, "c1 clob,c2 blob");
         createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
         createTable(convertBlobToBytes, "c1 int ,c2 blob");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
@@ -1021,6 +1024,23 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testClobAndBlob() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + clobAndBlob + " values('100',rawtohex('xxxxx'))");
+            ResultSet rs1 = stmt.executeQuery("select * from " + clobAndBlob);
+            Assert.assertTrue(rs1.next());
+            Object clobObj = rs1.getObject(1);
+            Object blobObj = rs1.getObject(2);
+            Assert.assertTrue(clobObj instanceof java.sql.Clob);
+            Assert.assertFalse(clobObj instanceof java.sql.Blob);
+            Assert.assertTrue(blobObj instanceof java.sql.Blob);
+            Assert.assertFalse(blobObj instanceof java.sql.Clob);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
     public void testGetBoolean() {
         try {
             Statement stmt = sharedConnection.createStatement();
