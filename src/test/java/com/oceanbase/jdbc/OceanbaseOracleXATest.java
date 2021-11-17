@@ -280,6 +280,7 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
             sqlException.printStackTrace();
         }
     }
+
     // error on observer 3.x
     @Ignore
     public void obOracleXARecover() throws Exception {

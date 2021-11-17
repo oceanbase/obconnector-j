@@ -409,11 +409,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case RAW:
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
-                StringBuilder sb = new StringBuilder();
-                for (byte b : returnBytes) {
-                    sb.append(String.format("%02x", b));
-                }
-                return sb.toString();
+                return Utils.toHexString(returnBytes);
             case VARSTRING:
                 return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
             case BINARY_DOUBLE:

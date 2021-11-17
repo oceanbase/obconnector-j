@@ -1041,6 +1041,7 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
     public void testGetBoolean() {
         try {
             Statement stmt = sharedConnection.createStatement();
@@ -1243,7 +1244,7 @@ public class OracleBugfix extends BaseOracleTest {
             Statement stmt = conn.createStatement();
             byte[] value = "中文".getBytes();
             PreparedStatement ps = conn.prepareStatement("insert into " + convertBlobToBytes
-                + " values(?,?)");
+                                                         + " values(?,?)");
             ps.setInt(1, 1);
             ps.setBytes(2, value);
             ps.execute();
@@ -1261,6 +1262,7 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
     @Test
     public void testTimestampToLocalDate() {
         try {

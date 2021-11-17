@@ -228,11 +228,7 @@ public class TextRowProtocol extends RowProtocol {
                 boolean wasNullFlag;
                 if (data != null) {
                     wasNullFlag = false;
-                    StringBuilder sb = new StringBuilder();
-                    for (byte b : data) {
-                        sb.append(String.format("%02X", b));
-                    }
-                    return sb.toString();
+                    return Utils.toHexString(data);
                 } else {
                     wasNullFlag = true;
                     return null;

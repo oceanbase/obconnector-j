@@ -738,6 +738,7 @@ public class OracleResultSetTest extends BaseOracleTest {
                 "Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
     }
+
     // fix it later
     @Ignore
     public void firstForwardTest() throws SQLException {

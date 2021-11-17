@@ -1608,7 +1608,35 @@ public class Utils {
     Quote,
     Escape /* found backslash */
   }
+  private static final char[] DIGITS_LOWER = { '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
+  private static final char[] DIGITS_UPPER = { '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+  protected static char[] encodeHex(byte[] data, char[] toDigits) {
+    int l = data.length;
+    char[] out = new char[l << 1];
+    for (int i = 0, j = 0; i < l; i++) {
+      out[j++] = toDigits[(0xF0 & data[i]) >>> 4];
+      out[j++] = toDigits[0x0F & data[i]];
+    }
+    return out;
+  }
+
+  public static String encodeHexStr(byte[] data) {
+    return encodeHexStr(data, false); // ob support upper case
+  }
+  public static String encodeHexStr(byte[] data, boolean toLowerCase) {
+    return encodeHexStr(data, toLowerCase ? DIGITS_LOWER : DIGITS_UPPER);
+  }
+  protected static String encodeHexStr(byte[] data, char[] toDigits) {
+    return new String(encodeHex(data, toDigits));
+  }
+
+  public static String toHexString(byte[]data) {
+    return encodeHexStr(data);
+  }
   public static  boolean convertStringToBoolean(String str)  {
     if ((str != null) && (str.length() > 0)) {
       int c = Character.toLowerCase(str.charAt(0));
