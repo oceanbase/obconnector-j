@@ -252,18 +252,19 @@ public class DataSourceTest extends BaseTest {
         assertEquals(10, ds.getLoginTimeout());
     }
 
-  @Test
-  public void testSetPort() throws SQLException {
-    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+    @Test
+    public void testSetPort() throws SQLException {
+        Assume.assumeFalse(options.useSsl != null && options.useSsl);
 
-    OceanBaseDataSource ds = new OceanBaseDataSource(hostname == null ? "localhost" : hostname,3306,database);
-    Assert.assertEquals(3306,ds.getPort());
-    ds.setPort(port);
-    Assert.assertEquals(port,ds.getPort());
-    ds.setUser(username);
-    ds.setPassword(password);
+        OceanBaseDataSource ds = new OceanBaseDataSource(hostname == null ? "localhost" : hostname,
+            3306, database);
+        Assert.assertEquals(3306, ds.getPort());
+        ds.setPort(port);
+        Assert.assertEquals(port, ds.getPort());
+        ds.setUser(username);
+        ds.setPassword(password);
 
-    Connection conn = ds.getConnection();
-    assertTrue(conn.createStatement().execute("Select 1"));
-  }
+        Connection conn = ds.getConnection();
+        assertTrue(conn.createStatement().execute("Select 1"));
+    }
 }

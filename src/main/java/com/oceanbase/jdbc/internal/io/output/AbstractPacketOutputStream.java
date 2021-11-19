@@ -759,6 +759,26 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         }
     }
 
+    public void writeEscapeQuote(Reader reader, boolean noBackslashEscapes) throws IOException {
+        char[] buffer = new char[4096];
+        int len;
+        while ((len = reader.read(buffer)) >= 0) {
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
+            writeBytesEscapedQuote(data, data.length, noBackslashEscapes);
+        }
+    }
+
+    public void writeEscapeQuote(Reader reader, long length, boolean noBackslashEscapes)
+                                                                                        throws IOException {
+        char[] buffer = new char[4096];
+        int len;
+        while (length > 0 && (len = reader.read(buffer, 0, Math.min((int) length, 4096))) >= 0) {
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
+            writeBytesEscapedQuote(data, data.length, noBackslashEscapes);
+            length -= len;
+        }
+    }
+
     /**
      * Write reader into socket.
      *

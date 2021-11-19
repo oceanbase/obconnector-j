@@ -98,9 +98,9 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         if (!hasLobLocator && reader != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
-                pos.write(reader, false, noBackslashEscapes);
+                pos.writeEscapeQuote(reader, noBackslashEscapes);
             } else {
-                pos.write(reader, length, false, noBackslashEscapes);
+                pos.writeEscapeQuote(reader, length, noBackslashEscapes);
             }
             pos.write(QUOTE);
         }

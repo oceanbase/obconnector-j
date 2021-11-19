@@ -673,8 +673,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         return true;
     }
 
-    public ResultSet keysQuery(String parentSchema, String parentTable, String foreignSchema, String foreignTable, String orderBy)
-                                                                                               throws SQLException {
+    public ResultSet keysQuery(String parentSchema, String parentTable, String foreignSchema,
+                               String foreignTable, String orderBy) throws SQLException {
         int index = 1;
         int parentTableIndex = parentTable != null ? index++ : 0;
         int foreignTableIndex = foreignTable != null ? index++ : 0;

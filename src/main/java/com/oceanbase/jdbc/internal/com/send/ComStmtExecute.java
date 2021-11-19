@@ -84,7 +84,8 @@ public class ComStmtExecute {
     public static void send(final PacketOutputStream pos, final int statementId,
                             final ParameterHolder[] parameters, final int parameterCount,
                             ColumnType[] parameterTypeHeader, byte cursorFlag, Protocol protocol)
-                            throws IOException, SQLException {
+                                                                                                 throws IOException,
+                                                                                                 SQLException {
         pos.startPacket(0);
 
         pos.write(Packet.COM_STMT_EXECUTE);
@@ -139,7 +140,7 @@ public class ComStmtExecute {
                             ((OBStructParameter) obj).storeStructTypeInfo(pos);
                         } else {
                             throw new SQLException(
-                                    "complex param type is not supported， only array is supported");
+                                "complex param type is not supported， only array is supported");
                         }
                     }
                 }

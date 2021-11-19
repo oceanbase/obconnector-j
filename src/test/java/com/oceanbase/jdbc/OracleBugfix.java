@@ -105,6 +105,9 @@ public class OracleBugfix extends BaseOracleTest {
     static String testReaderToCLob2         = "testReaderToCLob2" + getRandomString(5);
     static String testLargeStream           = "testLargeStream" + getRandomString(5);
     static String testLargeReader           = "testLargeReader" + getRandomString(5);
+    static String testSetDate               = "testSetDate" + getRandomString(5);
+    static String testSetReaderToClob       = "testSetReaderToClob" + getRandomString(5);
+    static String testEmpty                 = "testEmpty" + getRandomString(5);
     static String pieceReuse                = "pieceReuse" + getRandomString(5);
 
     @BeforeClass()
@@ -196,6 +199,9 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testReaderToCLob2, "c1 clob, c2 number, c3 clob, c4 int");
         createTable(testLargeStream, "c1 blob,c2 varchar2(20)");
         createTable(testLargeReader, "c1 clob,c2 varchar2(20)");
+        createTable(testSetDate, "c1 date");
+        createTable(testSetReaderToClob, "c1 clob");
+        createTable(testEmpty, "c1 blob,c2 clob");
         createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
     }
 
@@ -1426,6 +1432,45 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testSetDate() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
+                                                                     + " values(?)");
+            Date date = new Date(18, 10, 11);
+            ps.setDate(1, date);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select c1 from " + testDate);
+            Assert.assertTrue(rs.next());
+            Date date1 = rs.getDate(1);
+            Assert.assertEquals(date1, date);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testSetReaderToClob() {
+        Assume.assumeFalse(sharedUsePrepare());
+        try {
+            PreparedStatement statement = sharedConnection.prepareStatement("insert into "
+                                                                            + testSetReaderToClob
+                                                                            + " values(?)");
+            String value = "test ''\0\n\\";
+            StringReader stringReader = new StringReader(value);
+            statement.setClob(1, stringReader);
+            statement.executeUpdate();
+            ResultSet rs = statement.executeQuery("select c1 from " + testSetReaderToClob);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(value, rs.getString(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
     public void testSendPieceReuseConn() {
         Assume.assumeTrue(sharedUsePrepare());
         try {
@@ -1484,4 +1529,25 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testEmpty() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testEmpty
+                                                                     + " values(?,?)");
+            ps.setBlob(1, Blob.getEmptyBLOB());
+            ps.setClob(2, Clob.getEmptyCLOB());
+            ps.execute();
+            ps.clearParameters();
+            ps.setBytes(1, new byte[] { '1', '@', 'a', 'A' });
+            ps.setString(2, "中文\nabc");
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select count(*) from " + testEmpty);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }

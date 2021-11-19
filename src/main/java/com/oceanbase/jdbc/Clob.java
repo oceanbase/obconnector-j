@@ -82,7 +82,8 @@ public class Clob extends Lob implements ObClob {
         emptyData[2] = 79;
         emptyData[3] = 76;
         emptyData[4] = 1;
-        return new Clob(true, emptyData, null, null);
+        return new Clob(true, emptyData, Charset.defaultCharset().name(), null);
+
     }
 
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
@@ -196,7 +197,7 @@ public class Clob extends Lob implements ObClob {
      * @return string value of blob content.
      */
     public String toString() {
-        if(charData !=null) {
+        if (charData != null) {
             return charData;
         } else {
             Charset charset = Charset.forName(encoding);
