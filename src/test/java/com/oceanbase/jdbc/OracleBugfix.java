@@ -50,7 +50,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.sql.Clob;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -106,6 +105,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testReaderToCLob2         = "testReaderToCLob2" + getRandomString(5);
     static String testLargeStream           = "testLargeStream" + getRandomString(5);
     static String testLargeReader           = "testLargeReader" + getRandomString(5);
+    static String pieceReuse                = "pieceReuse" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -196,6 +196,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testReaderToCLob2, "c1 clob, c2 number, c3 clob, c4 int");
         createTable(testLargeStream, "c1 blob,c2 varchar2(20)");
         createTable(testLargeReader, "c1 clob,c2 varchar2(20)");
+        createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -1405,6 +1406,65 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Throwable e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testSendPieceReuseConn() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            Statement stmt = conn.createStatement();
+            for (int j = 0; j < 5; j++) {
+                System.out.println("test turn  = " + j);
+                for (int i = 0; i < 20; i++) {
+                    PreparedStatement ps = conn.prepareStatement("insert into " + pieceReuse
+                                                                 + " values(?,?,?,?)");
+                    String str = "abcd";
+                    if (i >= 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.execute();
+                    if (i <= 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.execute();
+
+                    ps = conn.prepareStatement("insert into " + pieceReuse + " values(?,?,?,?)");
+                    if (i > 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.addBatch();
+                    if (i > 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.addBatch();
+                    ps.executeBatch();
+                }
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 

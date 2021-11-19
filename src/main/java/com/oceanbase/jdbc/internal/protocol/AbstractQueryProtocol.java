@@ -525,6 +525,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                   // prepre here
                   serverPrepareResult = prepare(results.getStatement().getOriginalSql(), true);
                   first = false;
+                  serverPrepareResult.resetParameterTypeHeader();
                 }
                 writer.startPacket(0);
                 writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
