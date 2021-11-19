@@ -1025,6 +1025,21 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testConnectionVariables() {
+        try {
+            Connection conn1 = setConnection("&usePipelineAuth=true");
+            Connection conn2 = setConnection("&usePipelineAuth=false");
+            Connection conn3 = setConnection("&usePipelineAuth=false&characterEncoding=utf-8");
+            Connection conn4 = setConnection("&usePipelineAuth=false&characterEncoding=utf8");
+            Connection conn5 = setConnection("&usePipelineAuth=true&characterEncoding=utf-8");
+            Connection conn6 = setConnection("&usePipelineAuth=true&characterEncoding=utf8");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testClobAndBlob() {
         try {
             Statement stmt = sharedConnection.createStatement();
@@ -1043,6 +1058,7 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
     public void testGetBoolean() {
         try {
             Statement stmt = sharedConnection.createStatement();

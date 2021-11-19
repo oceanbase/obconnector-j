@@ -293,19 +293,6 @@ public class OceanBaseConnection implements ConnectionImpl {
 
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         OceanBaseConnection conn = new OceanBaseConnection(protocol);
-
-        if (!protocol.getOptions().connectProxy) {
-            // get_ob_server_version
-            String sql = protocol.isOracleMode() ? "select @@version_comment, @@version from dual where rownum <= 1"
-                : "select @@version_comment, @@version limit 1";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            rs.next();
-            protocol.setObServerVersion(rs.getString(2));
-            rs.close();
-            stmt.close();
-        }
-
         return conn;
     }
 
