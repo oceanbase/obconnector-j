@@ -642,7 +642,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
         .getFetchSize() > 0) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql);
       pstmt.setFetchSize(this.fetchSize);
-      return pstmt.executeQuery();
+      pstmt.executeQuery();
+      this.results =((ServerSidePreparedStatement)pstmt).results;
+      return results.getResultSet();
     } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
       return results.getResultSet();
     }
@@ -826,6 +828,24 @@ public class OceanBaseStatement implements Statement, Cloneable {
         results.close();
       }
 
+      if (connection == null
+          || connection.pooledConnection == null
+          || connection.pooledConnection.noStmtEventListeners()) {
+        return;
+      }
+      connection.pooledConnection.fireStatementClosed(this);
+    } finally {
+      protocol = null;
+      connection = null;
+      lock.unlock();
+    }
+  }
+
+
+  public void realClose() throws SQLException {
+    lock.lock();
+    try {
+      closed = true;
       if (connection == null
           || connection.pooledConnection == null
           || connection.pooledConnection.noStmtEventListeners()) {

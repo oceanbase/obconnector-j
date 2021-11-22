@@ -451,7 +451,10 @@ public class Results {
         return SelectResultSet.createEmptyResultSet();
     }
 
-    public void close() {
+    public void close() throws SQLException {
+        if (statement != null) {
+            statement.realClose();
+        }
         statement = null;
         fetchSize = 0;
     }

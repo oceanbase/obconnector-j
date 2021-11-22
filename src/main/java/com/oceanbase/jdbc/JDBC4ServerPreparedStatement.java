@@ -686,7 +686,54 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         // eat
       }
     }
-    super.close();
+    lock.lock();
+    try {
+      closed = true;
+      if (results != null) {
+        if (results.getFetchSize() != 0) {
+          skipMoreResults();
+        }
+
+        results.close();
+      }
+
+      if (connection == null
+          || connection.pooledConnection == null
+          || connection.pooledConnection.noStmtEventListeners()) {
+        return;
+      }
+      connection.pooledConnection.fireStatementClosed(this);
+    } finally {
+      protocol = null;
+      connection = null;
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void realClose() throws  SQLException {
+    if (protocol != null && serverPrepareResult != null) {
+      try {
+        serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+      } catch (SQLException e) {
+        // eat
+      }
+    }
+    lock.lock();
+    try {
+      closed = true;
+
+      if (connection == null
+          || connection.pooledConnection == null
+          || connection.pooledConnection.noStmtEventListeners()) {
+        return;
+      }
+      connection.pooledConnection.fireStatementClosed(this);
+    } finally {
+      protocol = null;
+      connection = null;
+      lock.unlock();
+    }
   }
 
   /**

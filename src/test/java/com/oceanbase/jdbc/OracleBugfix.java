@@ -870,6 +870,7 @@ public class OracleBugfix extends BaseOracleTest {
     public void testSetTimeForDate() {
         try {
             Connection conn = sharedConnection;
+            conn.createStatement().execute("delete from " + testDate);
             PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
                                                                      + " values(?)");
             Time testTime = new Time(12, 0, 0);
@@ -1435,6 +1436,7 @@ public class OracleBugfix extends BaseOracleTest {
     public void testSetDate() {
         try {
             Statement stmt = sharedConnection.createStatement();
+            sharedConnection.createStatement().execute("delete from " + testDate);
             PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
                                                                      + " values(?)");
             Date date = new Date(18, 10, 11);
@@ -1521,6 +1523,22 @@ public class OracleBugfix extends BaseOracleTest {
                     ps.setInt(4, 100);
                     ps.addBatch();
                     ps.executeBatch();
+                    ps = conn.prepareStatement("select * from " + pieceReuse);
+                    ResultSet rs = ps.executeQuery();
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(str, rs.getString(1));
+                    Assert.assertEquals(str, rs.getString(3));
+                    Assert.assertEquals(100, rs.getInt(2));
+                    Assert.assertEquals(100, rs.getInt(4));
+                    stmt = conn.createStatement();
+                    rs = ps.executeQuery("select * from " + pieceReuse);
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(str, rs.getString(1));
+                    Assert.assertEquals(str, rs.getString(3));
+                    Assert.assertEquals(100, rs.getInt(2));
+                    Assert.assertEquals(100, rs.getInt(4));
+                    ps.close();
+                    stmt.close();
                 }
             }
         } catch (Throwable e) {

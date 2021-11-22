@@ -312,9 +312,9 @@ public enum DefaultOptions {
       false),
   CACHE_PREP_STMTS(
       "cachePrepStmts",
-      Boolean.TRUE,
+      Boolean.FALSE,
       "1.3.0",
-      "enable/disable prepare Statement cache, default true.",
+      "enable/disable prepare Statement cache, default false.",
       false),
   PREP_STMT_CACHE_SIZE(
       "prepStmtCacheSize",
