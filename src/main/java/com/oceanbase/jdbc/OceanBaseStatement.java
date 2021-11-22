@@ -171,6 +171,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     this.options = this.protocol.getOptions();
     this.exceptionFactory = exceptionFactory;
     if (protocol.isOracleMode() && options.defaultFetchSize == 0) {
+        // Oracle JDBC set default fetchSize to 10
         this.fetchSize = 10;
     } else {
         this.fetchSize = this.options.defaultFetchSize;
@@ -638,8 +639,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && this
-        .getFetchSize() > 0) {
+    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true
+            && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
+            && this.getFetchSize() > 0) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql);
       pstmt.setFetchSize(this.fetchSize);
       pstmt.executeQuery();
@@ -1348,15 +1350,19 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @see #getFetchSize
    */
   public void setFetchSize(final int rows) throws SQLException {
-    isFetchSizeSet = true;
-    if (rows < 0 && rows != Integer.MIN_VALUE) {
-      throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size");
-    } else if (rows == Integer.MIN_VALUE) {
-      // for compatibility Integer.MIN_VALUE is transform to 0 => streaming
-      this.fetchSize = 1;
-      return;
+    if (this.maxRows > 0 && rows > this.maxRows
+        || this.protocol.isOracleMode() && rows < 0
+        || !this.protocol.isOracleMode() && rows < 0 && rows != Integer.MIN_VALUE) {
+        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
     }
-    this.fetchSize = rows;
+
+    // Oracle JDBC would change 0 to default, which means there is no need to set
+    if (this.protocol.isOracleMode() && rows != 0
+        || !this.protocol.isOracleMode()) {
+        this.fetchSize = rows;
+    }
+
+    isFetchSizeSet = true;
   }
 
   /**

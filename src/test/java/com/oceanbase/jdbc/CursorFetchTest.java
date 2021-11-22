@@ -92,31 +92,6 @@ public class CursorFetchTest extends BaseTest {
         }
     }
 
-    @Test(expected = SQLException.class)
-    public void forwardOnlyPrepareStmt() throws SQLException {
-        Assume.assumeFalse(sharedIsRewrite());
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM " + tableName,
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery()) {
-                rs.beforeFirst();
-                fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
-            }
-        }
-    }
-
-    @Test(expected = SQLException.class)
-    public void forwardOnlyStmt() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement(
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
-                rs.beforeFirst();
-                fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
-            }
-        }
-    }
-
     @Test
     public void scrollInsensitivePrepareStmt() throws SQLException {
         try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM " + tableName,

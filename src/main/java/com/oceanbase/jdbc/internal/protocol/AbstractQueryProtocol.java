@@ -470,28 +470,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      if (!withRefCursor && ci.length != 0 && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
-              && options.useCursorFetch && results.getFetchSize() > 0 && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-//          if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-//              if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
-                  cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
-//              } else {
-//                  cursorFlag = Packet.CURSOR_TYPE_SCROLLABLE;
-//              }
-//          } else {
-//              cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
-//          }
-          results.setStatementId(serverPrepareResult.getStatementId());
-          results.setToCursorFetch(true);
+      // complete resultSet: MySQL
+      // streaming resultSet: MySQL
+      // cursor resultSet: MySQL, Oracle
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
+            && (isOracleMode()
+              || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
+                && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+                && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+        cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
+        results.setToCursorFetch(true);
+        results.setStatementId(serverPrepareResult.getStatementId());
       } else {
-          cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
+        cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
       ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters, parameterCount,
               serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
 
       getResult(results);
       results.setToCursorFetch(false);
-
     } catch (SQLException qex) {
       throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
     } catch (IOException e) {
@@ -561,11 +558,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.setTimeZone(this.getServerTimeZone());
 
       // send execute query
-      int columnCount = 0;
       boolean withRefCursor = false;
       if (serverPrepareResult != null) {
         ColumnDefinition[] ci = serverPrepareResult.getColumns();
-        columnCount = ci.length;
         for (ColumnDefinition columnDefinition : ci) {
           if (columnDefinition.getColumnType() == ColumnType.CURSOR) {
             withRefCursor = true;
@@ -574,18 +569,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-     byte cursorFlag = 0;
-      if (!withRefCursor && options.useCursorFetch && results.getFetchSize() > 0
-            && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT) {
-        if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-            if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
-                cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
-            } else {
-                cursorFlag = Packet.CURSOR_TYPE_SCROLLABLE;
-            }
-        } else {
-            cursorFlag = Packet.CURSOR_TYPE_FOR_UPDATE;
-        }
+      byte cursorFlag = 0;
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode()) {
+        cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
       } else {
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
@@ -2141,12 +2127,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       SelectResultSet selectResultSet;
+      // boolean "callableResult" is always false
       if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
         results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
         selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       } else if (results.isToCursorFetch()) {
+        // cursor result set
         selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
       } else {
+        // streaming or complete result set
         selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       }
 

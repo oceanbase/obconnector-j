@@ -110,8 +110,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testExecuteBatch() {
         try {
             //Connection connection = setConnection("&autocommit=false&rewriteBatchedStatements=false&useBatchMultiSend=true&useBulkStmts=true");
-            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2
-                                                                 + " values(?,?,?)");
+            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2 + " values(?,?,?)");
 
             stmt.setString(1, "str1");
             stmt.setString(2, "str2");
@@ -146,6 +145,22 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForwardCursor() throws SQLException {
+        Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+        PreparedStatement ps = connection.prepareStatement("select * from " + tableName1,
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        ps.setFetchSize(40);
+        ResultSet rs = ps.executeQuery();
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(++i, rs.getInt(1));
+        }
+
+        ps.close();
+    }
+
+    @Test
     public void testScrollableCursor() throws Exception {
         //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
@@ -163,18 +178,27 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             } catch (SQLException e) {
                 Assert.assertEquals(0, e.getErrorCode());
             }
+
             Assert.assertTrue(rs.absolute(39));
             Assert.assertEquals(39, rs.getInt(1));
             Assert.assertTrue(rs.relative(2));
             Assert.assertEquals(41, rs.getInt(1));
+
+            Assert.assertFalse(rs.isLast());
             Assert.assertTrue(rs.last());
+            Assert.assertTrue(rs.isLast());
             Assert.assertEquals(100, rs.getInt(1));
+
             Assert.assertTrue(rs.previous());
             Assert.assertEquals(99, rs.getInt(1));
+
+            Assert.assertFalse(rs.isFirst());
             Assert.assertTrue(rs.first());
+            Assert.assertTrue(rs.isFirst());
             Assert.assertEquals(1, rs.getInt(1));
 
             Assert.assertFalse(rs.relative(-3));
+
             Assert.assertTrue(rs.isBeforeFirst());
             rs.afterLast();
             Assert.assertTrue(rs.isAfterLast());

@@ -292,8 +292,8 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void isLastTwoRowsTest() throws SQLException {
-        isLastTwoRowsTest(true);
         isLastTwoRowsTest(false);
+        isLastTwoRowsTest(true);
     }
 
     private void isLastTwoRowsTest(boolean fetching) throws SQLException {
@@ -303,6 +303,9 @@ public class ResultSetTest extends BaseTest {
         statement.setFetchSize(1);
       }
       ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
+      Assume.assumeTrue(!sharedOptions().useCursorFetch && statement.getFetchSize() != Integer.MIN_VALUE
+            || sharedOptions().useCursorFetch && statement.getFetchSize() == 0);
+      // Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet
       assertFalse(resultSet.isLast());
       assertTrue(resultSet.next());
       assertFalse(resultSet.isLast());
@@ -606,7 +609,9 @@ public class ResultSetTest extends BaseTest {
 
     insertRows(10);
     try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-
+      Assume.assumeTrue(!sharedOptions().useCursorFetch && statement.getFetchSize() != Integer.MIN_VALUE
+            || sharedOptions().useCursorFetch && statement.getFetchSize() == 0);
+      // Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet
       assertTrue(rs.last());
       assertFalse(rs.isAfterLast());
       assertTrue(rs.isLast());
@@ -694,7 +699,7 @@ public class ResultSetTest extends BaseTest {
         }
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY);
-        stmt.setFetchSize(10);
+        stmt.setFetchSize(Integer.MIN_VALUE);
 
         // reading forward
         ResultSet rs = stmt.executeQuery("select * from testStreamForward");
@@ -718,25 +723,35 @@ public class ResultSetTest extends BaseTest {
 
         // reading backward
         rs = stmt.executeQuery("select * from testStreamForward");
-        rs.afterLast();
+        try {
+            rs.afterLast();
+            fail("Must have thrown exception since afterLast is not possible when fetching");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains(
+                    "Invalid operation on STREAMING ResultSet"));
+        }
         try {
             rs.previous();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
 
         rs = stmt.executeQuery("select * from testStreamForward");
-        assertTrue(rs.last());
-        assertEquals("V19", rs.getString(1));
-
+        try {
+            rs.last();
+            fail("Must have thrown exception since last is not possible when fetching");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains(
+                    "Invalid operation on STREAMING ResultSet"));
+        }
         try {
             rs.first();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
     }
 
@@ -844,15 +859,18 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void firstForwardTest() throws SQLException {
-        // first must always work when not streaming
+        // first must always work when complete
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1");
         assertTrue(rs.first());
         assertFalse(rs.previous());
         assertTrue(rs.absolute(1));
         assertFalse(rs.relative(-1));
+        stmt.close();
 
-        // absolute operation must fail when streaming
+        // absolute operation must fail when cursor or streaming
+        Connection conn = setConnection("&useCursorFetch=true");
+        stmt = conn.createStatement();
         stmt.setFetchSize(1);
         rs = stmt.executeQuery("SELECT 1");
         try {
@@ -860,28 +878,28 @@ public class ResultSetTest extends BaseTest {
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
         try {
             rs.previous();
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
         try {
             rs.absolute(1);
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
         try {
             rs.relative(-1);
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation for result set type TYPE_FORWARD_ONLY"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
     }
 

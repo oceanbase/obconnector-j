@@ -116,11 +116,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private OceanBaseStatement              statement;
     public RowProtocol                      row;
     private int                             dataFetchTime;
-    protected boolean                       streaming;
     protected byte[][]                      data;
     protected int                           dataSize;
     private int                             fetchSize;
-    private int                             resultSetScrollType;
+    protected int                           resultSetScrollType;
     protected int                           rowPointer;
     private int                             discardedRows       = 0;
     protected ColumnLabelIndexer            columnLabelIndexer;
@@ -133,9 +132,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public int[]                            complexEndPos;
     private boolean                         isPsOutParameter;
     private ResultSetMetaData               metaData;
+    private ResultSetClass                  rsClass;
+
+    public enum ResultSetClass {
+        COMPLETE, STREAMING, CURSOR
+    };
 
     /**
-     * Create a complete or streaming resultSet.
+     * Create a complete or streaming resultSet
      *
      * @param columnDefinition column information
      * @param results          results
@@ -179,22 +183,26 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.isPsOutParameter = isPsOutParameter;
 
         this.reader = reader;
-        if (fetchSize == 0 || callableResult) {
-            this.data = new byte[10][];
-            fetchAllResults();
-            streaming = false;
-        } else {
+        if (results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+            && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY
+            && fetchSize == Integer.MIN_VALUE) {
+            // definition of streaming resultSet by MySQL
+            rsClass = ResultSetClass.STREAMING;
+            fetchSize = 1;
             this.lock = protocol.getLock();
             protocol.setActiveStreamingResult(results);
             protocol.removeHasMoreResults();
             data = new byte[Math.max(10, fetchSize)][];
             nextStreamingValue();
-            streaming = true;
+        } else {
+            rsClass = ResultSetClass.COMPLETE;
+            this.data = new byte[10][];
+            fetchAllResults();
         }
     }
 
     /**
-     * Create a cursor result set
+     * Create a cursor resultSet
      *
      * @param columnDefinition
      * @param results
@@ -237,18 +245,15 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.callableResult = callableResult;
         this.eofDeprecated = eofDeprecated;
         this.isPsOutParameter = isPsOutParameter;
+        this.lock = protocol.getLock();
 
         this.reader = protocol.getReader();
+        rsClass = ResultSetClass.CURSOR;
         data = new byte[Math.max(10, fetchSize)][];
         if (protocol.supportStmtPrepareExecute()) {
             // for new PS protocol, ResultSet reads data from socket while constructing
             this.lock = protocol.getLock();
             nextStreamingValue();
-
-            // if last row hasn't been sent, there is a EOF packet in socket need to be read
-            if (!isEof && !eofDeprecated) {
-                protocol.skipEofPacket();
-            }
         }
     }
 
@@ -281,7 +286,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.eofDeprecated = opt.eofDeprecated;
         this.isPsOutParameter = opt.isPsOutParameter;
         this.data = opt.data;
-        this.streaming = opt.streaming;
+        this.rsClass = opt.rsClass;
         return true;
     }
 
@@ -328,7 +333,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = false;
-        this.streaming = false;
+        this.rsClass = ResultSetClass.COMPLETE;
     }
 
     public Protocol getProtocol() {
@@ -428,20 +433,19 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     /**
-     * When protocol has a current Streaming result (this) fetch all to permit another query is
-     * executing.
+     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
      *
      * @throws SQLException if any error occur
      */
     public void fetchRemaining() throws SQLException {
-        if (streaming && !isEof) {
+        if (!isEof) {
             lock.lock();
             try {
                 lastRowPointer = -1;
                 while (!isEof) {
                     addStreamingValue();
                 }
-
+                dataFetchTime++;
             } catch (SQLException queryException) {
                 throw ExceptionFactory.INSTANCE.create(queryException);
             } catch (IOException ioe) {
@@ -449,7 +453,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
             } finally {
                 lock.unlock();
             }
-            dataFetchTime++;
         }
     }
 
@@ -478,7 +481,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private void nextStreamingValue() throws IOException, SQLException {
         lastRowPointer = -1;
 
-        // if resultSet can be back to some previous value
+        // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
         if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             discardedRows += dataSize;
             dataSize = 0;
@@ -499,6 +502,15 @@ public class JDBC4ResultSet implements ResultSetImpl {
         while (fetchSizeTmp > 0 && readNextValue()) {
             fetchSizeTmp--;
         }
+
+        // after fetchSize rows have been read, there must be a EOF packet for cursor resultSet
+        if (!isEof && rsClass == ResultSetClass.CURSOR) {
+            readNextValue();
+            if (!isEof) {
+                throw new SQLException("a EOF packet is supposed to be read");
+            }
+        }
+
         dataFetchTime++;
     }
 
@@ -677,7 +689,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * Close resultSet.
      */
     public void close() throws SQLException {
-        if (streaming && !isEof) {
+        if (rsClass == ResultSetClass.STREAMING && !isEof) {
             lock.lock();
             try {
                 while (!isEof) {
@@ -760,41 +772,50 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // has remaining results
             return false;
         } else {
-            if (streaming && !isEof) {
+            if (rsClass == ResultSetClass.STREAMING && !isEof) {
                 // has to read more result to know if it's finished or not
                 // (next packet may be new data or an EOF packet indicating that there is no more data)
                 lock.lock();
                 try {
-                    // this time, fetch is added even for streaming forward type only to keep current pointer
-                    // row.
-                    if (!isEof) {
-                        addStreamingValue();
-                    }
+                    // this time, fetch is added even for streaming forward type only to keep current pointer row.
+                    addStreamingValue();
                 } catch (IOException ioe) {
                     throw handleIoException(ioe);
                 } finally {
                     lock.unlock();
                 }
 
-                return dataSize == rowPointer;
+                return dataSize == rowPointer && isLastRow;
             }
 
-            // has read all data and pointer is after last result
-            // so result would have to always to be true,
-            // but when result contain no row at all jdbc say that must return false
-            return dataSize > 0 || dataFetchTime > 1;
+            // has read all data and pointer is after last row,
+            // so return true
+            // but when resultSet contain no row at all, ServerStatus.LAST_ROW_SENT is 1 however,
+            // jdbc say that must return false
+            return (dataSize > 0 || dataFetchTime > 1);
         }
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClose();
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: isFirst");
+        }
+
+        if (rsClass == ResultSetClass.CURSOR) {
+            return rowPointer == 0 && dataSize > 0;
+        }
         return dataFetchTime == 1 && rowPointer == 0 && dataSize > 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClose();
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: isLast");
+        }
+
         if (rowPointer < dataSize - 1) {
             return false;
         } else if (isEof) {
@@ -804,7 +825,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // must read next packet to know if next packet is an EOF packet or some additional data
             lock.lock();
             try {
-                if (!isEof) {
+                if (!isEof && rsClass == ResultSetClass.STREAMING) {
                     addStreamingValue();
                 }
             } catch (IOException ioe) {
@@ -826,16 +847,20 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public void beforeFirst() throws SQLException {
         checkClose();
-
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: beforeFirst");
         }
+
         rowPointer = -1;
     }
 
     @Override
     public void afterLast() throws SQLException {
         checkClose();
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: afterLast");
+        }
+
         fetchRemaining();
         rowPointer = dataSize;
     }
@@ -843,9 +868,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public boolean first() throws SQLException {
         checkClose();
-
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: first");
         }
 
         rowPointer = 0;
@@ -855,6 +879,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public boolean last() throws SQLException {
         checkClose();
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: last");
+        }
+
         fetchRemaining();
         rowPointer = dataSize - 1;
         return dataSize > 0;
@@ -863,9 +891,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public boolean absolute(int row) throws SQLException {
         checkClose();
-
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: absolute");
         }
 
         if (row >= 0 && row <= dataSize) {
@@ -899,9 +926,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public boolean relative(int rows) throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        if (rsClass == ResultSetClass.STREAMING) {
+            throw new SQLException("Invalid operation on STREAMING ResultSet: relative");
         }
+
         int newPos = rowPointer + rows;
         if (newPos <= -1) {
             rowPointer = -1;
@@ -918,9 +946,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public boolean previous() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: previous");
         }
+
         if (rowPointer > -1) {
             rowPointer--;
             return rowPointer != -1;
@@ -937,7 +966,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             rowPointer++;
             return true;
         } else {
-            if (streaming && !isEof) {
+            if (rsClass == ResultSetClass.STREAMING && !isEof) {
                 lock.lock();
                 try {
                     if (!isEof) {
@@ -949,7 +978,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     lock.unlock();
                 }
 
-                if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+                if (rsClass != ResultSetClass.COMPLETE) {
                     // resultSet has been cleared. next value is pointer 0.
                     rowPointer = 0;
                     return dataSize > 0;
@@ -970,7 +999,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     @Override
     public int getRow() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             return discardedRows + rowPointer + 1;
         }
         return rowPointer + 1;
@@ -995,28 +1024,43 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     @Override
-    public void setFetchSize(int fetchSize) throws SQLException {
-        if (streaming && fetchSize == 0) {
-            lock.lock();
-            try {
-                // fetch all results
-                while (!isEof) {
-                    addStreamingValue();
-                }
-            } catch (IOException ioe) {
-                throw handleIoException(ioe);
-            } finally {
-                lock.unlock();
-            }
+    public void setFetchSize(int rows) throws SQLException {
+        //        if (streaming && fetchSize == 0) {
+        //            lock.lock();
+        //            try {
+        //                // fetch all results
+        //                while (!isEof) {
+        //                    addStreamingValue();
+        //                }
+        //            } catch (IOException ioe) {
+        //                throw handleIoException(ioe);
+        //            } finally {
+        //                lock.unlock();
+        //            }
+        //
+        //            streaming = dataFetchTime == 1;
+        //        }
+        //        this.fetchSize = fetchSize;
 
-            streaming = dataFetchTime == 1;
+        if (rows < 0) {
+            throw new SQLException("invalid fetch size ");
         }
-        this.fetchSize = fetchSize;
+
+        // Oracle JDBC would change 0 to default
+        if (this.protocol.isOracleMode() && rows == 0) {
+            this.fetchSize = this.statement.fetchSize;
+        } else {
+            this.fetchSize = rows;
+        }
     }
 
     @Override
     public int getType() {
         return resultSetScrollType;
+    }
+
+    public ResultSetClass getRsClass() {
+        return rsClass;
     }
 
     @Override
