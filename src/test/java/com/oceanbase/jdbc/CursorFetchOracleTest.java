@@ -110,7 +110,8 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testExecuteBatch() {
         try {
             //Connection connection = setConnection("&autocommit=false&rewriteBatchedStatements=false&useBatchMultiSend=true&useBulkStmts=true");
-            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2 + " values(?,?,?)");
+            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2
+                                                                 + " values(?,?,?)");
 
             stmt.setString(1, "str1");
             stmt.setString(2, "str2");
@@ -148,7 +149,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testForwardCursor() throws SQLException {
         Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
         PreparedStatement ps = connection.prepareStatement("select * from " + tableName1,
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         ps.setFetchSize(40);
         ResultSet rs = ps.executeQuery();
 

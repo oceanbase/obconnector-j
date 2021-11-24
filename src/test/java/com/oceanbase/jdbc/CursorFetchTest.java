@@ -49,7 +49,6 @@ import static org.junit.Assert.fail;
 import java.sql.*;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

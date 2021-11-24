@@ -727,7 +727,7 @@ public class OracleResultSetTest extends BaseOracleTest {
             fail("Must have thrown exception since afterLast is not possible when fetching");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                    "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
         try {
             rs.previous();
@@ -743,7 +743,7 @@ public class OracleResultSetTest extends BaseOracleTest {
             fail("last operation must fail for TYPE_FORWARD_ONLY cursor");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                    "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
         }
         try {
             rs.first();
@@ -754,7 +754,8 @@ public class OracleResultSetTest extends BaseOracleTest {
         }
     }
 
-    @Ignore // need to rewrite
+    @Ignore
+    // need to rewrite
     public void firstForwardTest() throws SQLException {
         // First must work when complete or scrollable cursor.
         Statement stmt = sharedConnection.createStatement();
@@ -766,7 +767,8 @@ public class OracleResultSetTest extends BaseOracleTest {
 
         // First must fail when forward cursor or streaming.
         // However, there is no streaming ResultSet for oracle at all
-        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT 1 from dual ", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT 1 from dual ",
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         rs = pstmt.executeQuery();
         try {
             rs.first();

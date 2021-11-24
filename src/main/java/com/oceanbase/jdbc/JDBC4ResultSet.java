@@ -848,7 +848,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public void beforeFirst() throws SQLException {
         checkClose();
         if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: beforeFirst");
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: beforeFirst");
         }
 
         rowPointer = -1;
@@ -869,7 +870,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean first() throws SQLException {
         checkClose();
         if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: first");
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: first");
         }
 
         rowPointer = 0;
@@ -947,7 +949,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean previous() throws SQLException {
         checkClose();
         if (rsClass != ResultSetClass.COMPLETE && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: previous");
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: previous");
         }
 
         if (rowPointer > -1) {

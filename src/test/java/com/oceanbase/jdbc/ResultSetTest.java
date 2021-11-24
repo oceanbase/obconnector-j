@@ -727,8 +727,7 @@ public class ResultSetTest extends BaseTest {
             rs.afterLast();
             fail("Must have thrown exception since afterLast is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(
-                    "Invalid operation on STREAMING ResultSet"));
+            assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
         try {
             rs.previous();
@@ -743,8 +742,7 @@ public class ResultSetTest extends BaseTest {
             rs.last();
             fail("Must have thrown exception since last is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(
-                    "Invalid operation on STREAMING ResultSet"));
+            assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
         try {
             rs.first();
