@@ -112,7 +112,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
     originalSql = sql;
     if (!protocol.isOracleMode()) {
-      simpleSql = Utils.trimSQLString(originalSql, protocol.noBackslashEscapes(), false, false);
+      simpleSql = Utils.trimSQLString(originalSql, protocol.noBackslashEscapes(), false, true);
       if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
         prepare(originalSql);
       }
@@ -365,7 +365,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           }
           String sqlString = curString;
           if (protocol.isOracleMode() && options.supportNameBinding) {
-            sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
+            sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true); // with hint ?
           }
           List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.characterEncoding);
           if (list != null) {

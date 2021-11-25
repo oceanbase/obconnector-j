@@ -649,7 +649,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             }
             if (this.protocol.isOracleMode() && options.supportNameBinding) {
                 sqlQuery = Utils.trimSQLString(sqlQuery, protocol.noBackslashEscapes(),
-                    protocol.isOracleMode(), false);
+                    protocol.isOracleMode(), true);
             }
             ClientSidePreparedStatement ret = new ClientSidePreparedStatement(
                 (OceanBaseConnection) this, sqlQuery, resultSetScrollType, resultSetConcurrency,
@@ -746,7 +746,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 if (this.protocol.isOracleMode() && options.supportNameBinding && isFunction
                     && arguments != null) {
                     arguments = Utils.trimSQLString(arguments, protocol.noBackslashEscapes(),
-                        protocol.isOracleMode(), false);
+                        protocol.isOracleMode(), false); // arguments do not need comments
                 }
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,

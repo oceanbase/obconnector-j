@@ -1568,4 +1568,137 @@ public class OracleBugfix extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testHint() {
+        try {
+            try {
+                sharedConnection.createStatement().execute(
+                    "drop outline \"CONCURRENT_LIMIT_2d312698bdea452387c7a523e9631157\"");
+            } catch (SQLException e) {
+            }
+            String sql = "CREATE OUTLINE \"CONCURRENT_LIMIT_2d312698bdea452387c7a523e9631157\" ON '3D8DD579717E266F5DD3DA99A6E8E2EA' USING HINT /*+ max_concurrent(10) */";
+            sharedConnection.prepareStatement(sql).execute();
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareCalllAnonymousBlockWithNameAndHint() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table result_table");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table result_table(c1 varchar2(200),c2 number)");
+            callableStatement.execute();
+            String sql = "DECLARE\n"
+                         + "  V_TABLENAME      VARCHAR2(20);\n"
+                         + "  V_NUMBER         NUMBER;\n"
+                         + "BEGIN\n"
+                         + "  V_TABLENAME     := :V_TABLENAME ;\n"
+                         + "  V_NUMBER     := to_number(:NUMBER1) ;\n"
+                         + "  insert  /*+ ORDERED */ into result_table values(V_TABLENAME,V_NUMBER);\n"
+                         + "\n" + "end ; ";
+            callableStatement = conn.prepareCall(sql);
+            callableStatement.setString(1, "test_val");
+            callableStatement.setInt(2, 100);
+            callableStatement.execute();
+            callableStatement = conn.prepareCall("select * from result_table");
+            ResultSet rs = callableStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(2));
+            Assert.assertEquals("test_val", rs.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testHintBatch() {
+        try {
+            Statement statement = sharedConnection.createStatement();
+            try {
+                sharedConnection.createStatement().execute("drop table testBatchHint");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            sharedConnection.createStatement().execute(
+                "create table testBatchHint(c1 varchar2(200),c2 int)");
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("insert /*+ ORDERED */  into testBatchHint values(?,?)");
+            ps.setString(1, "teststr1");
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setString(1, "teststr2");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setString(1, "teststr3");
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = statement.executeQuery("select * from testBatchHint");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr1", rs.getString(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr2", rs.getString(1));
+            Assert.assertEquals(2, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr3", rs.getString(1));
+            Assert.assertEquals(3, rs.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testHintRewriteBatch() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            Statement statement = sharedConnection.createStatement();
+            try {
+                sharedConnection.createStatement().execute("drop table testBatchRwHint");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            sharedConnection.createStatement().execute(
+                "create table testBatchRwHint(c1 varchar2(200),c2 int)");
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("insert /*+ ORDERED */ into testBatchRwHint values(?,?)");
+            ps.setString(1, "teststr1");
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setString(1, "teststr2");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setString(1, "teststr3");
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = statement.executeQuery("select * from testBatchRwHint");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr1", rs.getString(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr2", rs.getString(1));
+            Assert.assertEquals(2, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr3", rs.getString(1));
+            Assert.assertEquals(3, rs.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

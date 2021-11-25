@@ -224,7 +224,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
         List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>() ;
         if(arguments!=null) {
-            arguments = Utils.trimSQLString(arguments, false, true, false);
+            arguments = Utils.trimSQLString(arguments, false, true, false);  //arguments  remove comments
             paramList = Utils.argumentsSplit(arguments, ",", "'\"",
                 "'\"");
         }
