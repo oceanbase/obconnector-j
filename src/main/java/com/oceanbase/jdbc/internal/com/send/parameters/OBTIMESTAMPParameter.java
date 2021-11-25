@@ -109,18 +109,7 @@ public class OBTIMESTAMPParameter implements Cloneable, ParameterHolder {
             // timestamp '2020-01-01 00:00:00.000'
             pos.write(LITERALS_TIMESTAMP);
             pos.write(QUOTE);
-            pos.write(sdf.format(ts).getBytes());
-            int microseconds = ts.getNanos() / 1000;
-            if (microseconds > 0 && fractionalSeconds) {
-                pos.write('.');
-                int factor = 100000;
-                while (microseconds > 0) {
-                    int dig = microseconds / factor;
-                    pos.write('0' + dig);
-                    microseconds -= dig * factor;
-                    factor /= 10;
-                }
-            }
+            pos.write(ts.toString().getBytes());
             pos.write(QUOTE);
         }
     }

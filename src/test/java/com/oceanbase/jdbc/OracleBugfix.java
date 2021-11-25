@@ -1701,4 +1701,39 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testTimestampNanoBug() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String testTimestampNanos = "test_timestamp_nanos";
+            try {
+                conn.createStatement().execute("drop table " + testTimestampNanos);
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table " + testTimestampNanos
+                            + "(c1 timestamp, c2 timestamp, c3 timestamp)");
+            PreparedStatement ps = conn.prepareStatement("insert into " + testTimestampNanos
+                                                         + " values(?, ?, ?)");
+            Timestamp timestamp1 = Timestamp.valueOf("2012-12-12 12:12:12.987654");
+            Timestamp timestamp2 = Timestamp.valueOf("2012-12-12 12:12:12.987654321");
+            Timestamp timestamp3 = new Timestamp(18, 10, 11, 11, 11, 11, 123456789);
+            ps.setTimestamp(1, timestamp1);
+            ps.setTimestamp(2, timestamp2);
+            ps.setTimestamp(3, timestamp3);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select *  from " + testTimestampNanos);
+            Assert.assertTrue(rs.next());
+            assertEquals(987654000, rs.getTimestamp(1).getNanos());
+            assertEquals(987654000, rs.getTimestamp(2).getNanos());
+            assertEquals(123457000, rs.getTimestamp(3).getNanos());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
