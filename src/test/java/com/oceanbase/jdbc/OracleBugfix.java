@@ -1736,4 +1736,59 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    public static void createTable(String tableName, String tableColumns, Statement stmt)
+                                                                                         throws SQLException {
+        try {
+            stmt.execute("drop table " + tableName + "");
+        } catch (SQLException e) {
+            //            e.printStackTrace();
+        }
+        stmt.execute("create table " + tableName + " (" + tableColumns + ") ");
+    }
+
+    @Test
+    public void testPsCursorBug38105626Fix() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("GROUP_SUBS_MEMBER",
+            " \"OID\" NUMBER(14) NOT NULL ENABLE,\n" + "  \"REGION\" NUMBER(5) NOT NULL ENABLE,\n"
+                    + "  \"GROUPOID\" NUMBER(14),\n" + "  \"MEMTYPE\" NUMBER(2),\n"
+                    + "  \"SUBSID\" NUMBER(14),\n" + "  \"MEMREGION\" NUMBER(5),\n"
+                    + "  \"MEMSERVNUMBER\" VARCHAR2(32),\n" + "  \"PRODID\" VARCHAR2(32),\n"
+                    + "  \"SHORTNUMBER\" VARCHAR2(10),\n" + "  \"STARTDATE\" DATE,\n"
+                    + "  \"APPLYOID\" NUMBER(14),\n" + "  \"CANCELOID\" NUMBER(14),\n"
+                    + "  \"STATUS\" VARCHAR2(16),\n" + "  \"STATUSDATE\" DATE,\n"
+                    + "  \"GRPPKGSUBSID\" NUMBER(14),\n" + "  \"ENDDATE\" DATE,\n"
+                    + "  \"ORDERSTATUS\" NUMBER(1),\n" + "  \"ORDERTIME\" DATE,\n"
+                    + "  \"ORDERRESULT\" VARCHAR2(512),\n" + "  \"OPERTYPE\" VARCHAR2(16),\n"
+                    + "  \"ISPRIMA\" NUMBER(1),\n" + "  \"FAMILYSUBSID\" NUMBER(18),\n"
+                    + "  \"CREATEDATE\" DATE,\n" + "  \"APPLYOPERID\" VARCHAR2(20),\n"
+                    + "  \"STAMPTIME\" DATE,\n" + "  \"SUBSPRODOID\" NUMBER(14),\n"
+                    + "  \"PKGPRODID\" VARCHAR2(32),\n"
+                    + "  CONSTRAINT \"PK_CM_GROUP_MEMBER\" UNIQUE (\"OID\", \"REGION\")", stmt);
+        try {
+
+            String sql = "select /*+ no_rewrite */  1 from group_subs_member a where a.region= :region and a.groupoid= :groupoid and a.memservnumber= :memservnumber  and a.status not like 'stcmR%'  and (a.status !=:STATUSINV or (a.status =:STATUSINV and a.orderstatus =1) )";
+
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "633");
+            pstmt.setString(2, "6338024093254");
+            pstmt.setString(3, "13506338442");
+            pstmt.setString(4, "stcmInv");
+            pstmt.setString(5, "stcmInv");
+            pstmt.execute();
+            System.out.println(0);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.printf(e.toString());
+            Assert.assertTrue("server bug 38105626", false);
+            Assert.fail();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.toString());
+            Assert.fail();
+        }
+    }
 }
