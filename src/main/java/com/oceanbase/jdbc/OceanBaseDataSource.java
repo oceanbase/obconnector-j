@@ -69,7 +69,7 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
     private UrlParser urlParser;
 
     private String    hostname;
-    private Integer   port = 3306;
+    private Integer   port = null;
     private Integer   connectTimeoutInMs;
     private String    database;
     private String    url;
