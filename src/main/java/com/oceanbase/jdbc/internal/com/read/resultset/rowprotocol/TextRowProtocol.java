@@ -1075,7 +1075,18 @@ public class TextRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
-
+        if (getProtocol().isOracleMode()) {
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                Timestamp oracleTimestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                if (oracleTimestamp == null) {
+                    return null;
+                }
+                LocalDateTime localDateTimeNoTimeZone = oracleTimestamp.toLocalDateTime();
+                return localDateTimeNoTimeZone.atZone(timeZone.toZoneId());
+            }
+        }
         String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
         LocalDateTime localDateTime;
         switch (columnInfo.getColumnType().getSqlType()) {

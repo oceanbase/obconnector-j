@@ -1791,4 +1791,107 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testTimestampToLocalDate_2() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt
+                .executeQuery("select sysdate, systimestamp, localtimestamp, current_timestamp from dual");
+            assertTrue(rs.next());
+            rs.getObject(1, LocalDateTime.class);
+            rs.getObject(2, LocalDateTime.class);
+            rs.getObject(3, LocalDateTime.class);
+            rs.getObject(4, LocalDateTime.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void oracleModeGetPrecisionTest() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table varchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table varchartest(c1 varchar2(1),c2 varchar2(2),c3 varchar2(10),c4  varchar2(100))");
+            ResultSet rs = conn.createStatement().executeQuery("select * from varchartest");
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+            try {
+                conn.createStatement().execute("drop table varchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table varchartest(c1 varchar2(1 byte),c2 varchar2(2 byte),c3 varchar2(10 byte),c4  varchar2(100 byte))");
+            rs = conn.createStatement().executeQuery("select * from varchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("varchar2 with byte");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table nvarchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table nvarchartest(c1 nvarchar2(1),c2 nvarchar2(2),c3 nvarchar2(10),c4 nvarchar2(100))");
+            rs = conn.createStatement().executeQuery("select * from nvarchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("nvarchar2");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table chartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table chartest(c1 char(1),c2 char(2),c3 char(10),c4 char(100))");
+            rs = conn.createStatement().executeQuery("select * from chartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("char");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table nchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table nchartest(c1 nchar(1),c2 nchar(2),c3 nchar(10),c4 nchar(100))");
+            rs = conn.createStatement().executeQuery("select * from nchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("nchar");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
