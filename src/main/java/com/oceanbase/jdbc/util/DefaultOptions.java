@@ -312,9 +312,9 @@ public enum DefaultOptions {
       false),
   CACHE_PREP_STMTS(
       "cachePrepStmts",
-      Boolean.TRUE,
+      Boolean.FALSE,
       "1.3.0",
-      "enable/disable prepare Statement cache, default true.",
+      "enable/disable prepare Statement cache, default false.",
       false),
   PREP_STMT_CACHE_SIZE(
       "prepStmtCacheSize",
@@ -826,14 +826,14 @@ public enum DefaultOptions {
           false),
   PIECE_LENGTH(
           "pieceLength",
-          1000,
+          1048576,
           0,
           "2.2.6",
           "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",
           false),
   USE_PIECE_DATA(
           "usePieceData",
-          Boolean.TRUE,
+          Boolean.FALSE,
           "2.2.6",
                   "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
                   false),
@@ -843,7 +843,21 @@ public enum DefaultOptions {
           "2.2.6",
           "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
           false
-  );
+  ),
+  AUTO_DESERIALIZE(
+          "autoDeserialize",
+          Boolean.FALSE,
+          "2.2.7",
+                  "",
+                  false
+  ),
+  MAX_BATCH_TOTOAL_PARAMS_NUM(
+          "maxBatchTotalParamsNum",
+                  30000,
+                  0,
+                  "2.2.6",
+                  "When using executeBatch, the maximum number of spliced parameters",
+                  false);
 
   private final String optionName;
   private final String description;
@@ -1158,6 +1172,10 @@ public enum DefaultOptions {
    */
   public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
 
+    if(options.usePieceData) {
+      options.useOraclePrepareExecute = true;
+      options.useCursorFetch = true;
+    }
     // pipe cannot use read and write socket simultaneously
     if (options.pipe != null) {
       options.useBatchMultiSend = false;

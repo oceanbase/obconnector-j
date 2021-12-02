@@ -373,18 +373,27 @@ public class ColumnDefinition {
             default:
                 break;
         }
+        int maxWidth = maxCharlen[charsetNumber & 0xff];
+        if (maxWidth == 0) {
+            maxWidth = 1;
+        }
         switch (type) {
             case NVARCHAR2:
+            case NCHAR:
+                if (isOracleMode) {
+                    return length / maxWidth;
+                } else {
+                    return length;
+                }
             case VARCHAR2:
             case STRING:
             case VARSTRING:
-            case NCHAR:
             case OBCLOB:
-                int maxWidth = maxCharlen[charsetNumber & 0xff];
-                if (maxWidth == 0) {
-                    maxWidth = 1;
+                if (isOracleMode) {
+                    return length;
+                } else {
+                    return length / maxWidth;
                 }
-                return length / maxWidth;
             default:
                 return length;
         }

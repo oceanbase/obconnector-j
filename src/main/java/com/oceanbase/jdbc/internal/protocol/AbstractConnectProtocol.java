@@ -125,6 +125,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                                           + "@@tx_isolation AS tx_isolation,"
                                                                           + "@@session.tx_read_only AS tx_read_only "
                                                                           + "from dual");
+    private static final String           OB_VERSION_ORACLE_MODE       = ("select @@version_comment, @@version from dual where rownum <= 1");
+    private static final String           OB_VERSION_MYSQL_MODE        = ("select @@version_comment, @@version limit 1");
     private static final String           IS_MASTER_QUERY              = "select @@innodb_read_only";
     protected static final String         CHECK_GALERA_STATE_QUERY     = "show status like 'wsrep_local_state'";
     private static final String           ALTER_SESSION_TIMEZONE_QUERY = "ALTER SESSION SET TIME_ZONE='";
@@ -166,8 +168,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private boolean                       supportStmtPrepareExecute;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
-    private boolean                       isOracleMode;                                                               /* is server in oracle mode */
-    private boolean                       importedTimeZoneTables;                                                     /* is server time zone impoted */
+    private boolean                       isOracleMode;                                                                                      /* is server in oracle mode */
+    private boolean                       importedTimeZoneTables;                                                                            /* is server time zone impoted */
     public boolean                        autoCommit;
     public int                            transactionIsolationLevel    = 0;
     protected byte[]                      seed;
@@ -923,6 +925,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     socket.setSoTimeout(0);
                 }
             }
+            if(!options.connectProxy) {
+                setObServerVersion(getObVersion());
+            }
 
         } catch (SocketTimeoutException timeoutException) {
             destroySocket();
@@ -950,14 +955,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
      *
      * @throws IOException if socket exception occur
      */
-    private void sendPipelineAdditionalData() throws IOException {
+    private void sendPipelineAdditionalData() throws IOException, SQLException {
         sendSessionInfos();
-        if (!isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@session_vars
-            sendRequestSessionVariables();
-        }
-        // for aurora, check that connection is master
-        sendPipelineCheckMaster();
+        getResult(new Results());
+        //        if (!isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@session_vars
+        //            getResult(new Results());
+        //        }
         sendCharsetVariables();
+        getResult(new Results());
     }
 
     private void sendSessionInfos() throws IOException {
@@ -1009,7 +1014,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void sendCharsetVariables() throws IOException {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
-        writer.write("set names " + this.getOptions().characterEncoding);
+        String str;
+        if (this.getOptions().characterEncoding.toUpperCase(Locale.ROOT).equals("UTF-8")) {
+            str = "utf8";
+        } else {
+            str = this.getOptions().characterEncoding;
+        }
+        writer.write("set names " + str);
         writer.flush();
     }
 
@@ -1029,7 +1040,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void readRequestSessionVariables(Map<String, String> serverData) throws SQLException {
         Results results = new Results();
         getResult(results);
-
         results.commandEnd();
         ResultSet resultSet = results.getResultSet();
         if (resultSet != null) {
@@ -1062,22 +1072,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void readPipelineAdditionalData(Map<String, String> serverData) throws SQLException {
+    private void readPipelineAdditionalData(Map<String, String> serverData) throws SQLException,
+                                                                           IOException {
 
         SQLException resultingException = null;
-        // read set session OKPacket
-        try {
-            getResult(new Results());
-        } catch (SQLException sqlException) {
-            // must read all results, will be thrown only when all results are read.
-            resultingException = sqlException;
-        }
 
         boolean canTrySessionWithShow = false;
         if (isOracleMode) { // oracle mode should use SHOW VARIABLES but not SELECT @@
             canTrySessionWithShow = true;
         } else {
             try {
+                sendRequestSessionVariables();
                 readRequestSessionVariables(serverData);
             } catch (SQLException sqlException) {
                 if (resultingException == null) {
@@ -1085,16 +1090,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         "08000", sqlException);
                     canTrySessionWithShow = true;
                 }
-            }
-        }
-
-        try {
-            readPipelineCheckMaster();
-        } catch (SQLException sqlException) {
-            canTrySessionWithShow = false;
-            if (resultingException == null) {
-                throw exceptionFactory.create("could not identified if server is master", "08000",
-                    sqlException);
             }
         }
 
@@ -1196,6 +1191,29 @@ public abstract class AbstractConnectProtocol implements Protocol {
             return count == 0 ? false : true;
         } catch (SQLException e) {
             return false;
+        }
+    }
+
+    private String getObVersion() throws IOException, SQLException {
+        try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            if (isOracleMode) {
+                writer.write(OB_VERSION_ORACLE_MODE.getBytes());
+            } else {
+                writer.write(OB_VERSION_MYSQL_MODE.getBytes());
+            }
+            writer.flush();
+            Results results = new Results();
+            getResult(results);
+            results.commandEnd();
+            ResultSet resultSet = results.getResultSet();
+            resultSet.next();
+            String ret = resultSet.getString(1);
+            resultSet.close();
+            return ret;
+        } catch (SQLException e) {
+            return "";
         }
     }
 
@@ -1518,8 +1536,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public void setObServerVersion(String version) {
         this.obServerVersion = version;
-        if (isOracleMode && options.useOraclePrepareExecute && options.useServerPrepStmts
-            && options.useCursorFetch && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+        if (isOracleMode && options.useServerPrepStmts && options.useOraclePrepareExecute
+            && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
             supportStmtPrepareExecute = true;
         } else {
             supportStmtPrepareExecute = false;

@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.util.Utils;
 
 public class OBSerializableParameter extends SerializableParameter {
     public OBSerializableParameter(Object object, boolean noBackslashEscapes) throws SQLException {
@@ -55,11 +56,7 @@ public class OBSerializableParameter extends SerializableParameter {
             if (loadedStream == null) {
                 writeObjectToBytes();
             }
-            StringBuilder sb = new StringBuilder();
-            for (byte b : loadedStream) {
-                sb.append(String.format("%02x", b));
-            }
-            loadedStream = sb.toString().getBytes();
+            loadedStream = Utils.toHexString(loadedStream).getBytes();
         } catch (IOException e) {
             throw new SQLException("IOException occur:" + e.getMessage());
         }

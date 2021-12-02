@@ -154,7 +154,7 @@ public class BooleanTest extends BaseTest {
       stmt.execute(
           "INSERT INTO booleanAllField VALUES (1, 1, 1, 1, 1, 1, 1, 1, 1, '1', '1', '1', '1', '1')");
       stmt.execute(
-          "INSERT INTO booleanAllField VALUES (1, 2, 2, 2, 2, 2, 2, 2, 2, '2', '2', '2', '2', '2')");
+          "INSERT INTO booleanAllField VALUES (1, 2, 2, 2, 2, 2, 2, 2, 2, 'y', 't', 'Y', '1', '-1')");
 
       ResultSet rs = stmt.executeQuery("SELECT * FROM booleanAllField");
       checkBooleanValue(rs, false, null);

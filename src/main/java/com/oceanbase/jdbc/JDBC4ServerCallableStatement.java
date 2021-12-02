@@ -264,10 +264,10 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     }
 
     private int setInOutParamsOnServer() throws SQLException {
-        this.parameterMetadata.readMetadataFromDbIfRequired(this.originString,this.arguments,this.isObFunction);
+        this.parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments, this.isObFunction);
         this.params = parameterMetadata.params;
         int size = params.size();
-        List<String> intoutParams = new ArrayList<>(params.size());
+        List<String>  intoutParams = new ArrayList<>(params.size());
         setInputOutputParameterMap();
         validAllParameters();
         for (int i = 0; i < size; i++) {
@@ -301,11 +301,11 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
 
         boolean afterFirst = false;
-        int index = sql.indexOf('?');
+        int index = originalSql.indexOf('?');
         StringBuilder querySB = new StringBuilder();
-        String sqlString = sql;
+        String sqlString = originalSql;
         if (index == -1) {
-            querySB.append(sql);
+            querySB.append(originalSql);
         } else {
             for (int i = 0; i < size; i++) {
                 CallParameter inParamInfo = params.get(i);

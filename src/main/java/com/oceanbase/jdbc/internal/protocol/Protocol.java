@@ -179,15 +179,14 @@ public interface Protocol {
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                               Results results, ParameterHolder[] parameters) throws SQLException;
 
-    ServerPrepareResult executePreparedQuery(boolean mustExecuteOnMaster, int iterationCount,
-                                             int parameterCount,
+    ServerPrepareResult executePreparedQuery(int parameterCount, ParameterHolder[] parameters,
                                              ServerPrepareResult serverPrepareResult,
                                              Results results) throws SQLException;
 
-    boolean executeBatchServer(boolean mustExecuteOnMaster,
-                               ServerPrepareResult serverPrepareResult, Results results,
-                               String sql, List<ParameterHolder[]> parameterList,
-                               boolean hasLongData) throws SQLException;
+    ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult,
+                                           Results results, String sql,
+                                           List<ParameterHolder[]> parameterList,
+                                           boolean hasLongData) throws SQLException;
 
     boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
                                final ClientPrepareResult prepareResult,
@@ -328,6 +327,8 @@ public interface Protocol {
     void setExecuteMode(int executeMode);
 
     int getExecuteMode();
+
+    public void setComStmtPrepareExecuteField(int iterationCount, int executeMode, long checksum);
 
     ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
                                             int fetchSize, Results results) throws SQLException;

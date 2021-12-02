@@ -56,6 +56,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -262,4 +263,16 @@ public class DataSourcePoolTest extends BaseTest {
       assertEquals(10, ds.getLoginTimeout());
     }
   }
+
+    @Test
+    public void getConnectionWithUrl() {
+        try {
+            OceanBaseDataSource ds = new OceanBaseDataSource();
+            ds.setUrl(connUri);
+            Connection conn = ds.getConnection();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

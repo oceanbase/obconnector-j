@@ -135,7 +135,18 @@ public class OceanBaseStatement implements Statement, Cloneable {
   private int maxFieldSize;
   private boolean escape = true;
 
-  /**
+  protected String    originalSql;
+  protected String    parameterSql;
+  protected String    utickSql;
+  protected String    processedSql;
+  protected String    rowidSql;
+  protected String    actualSql;
+  protected String    simpleSql;
+  protected int       sqlType;
+  protected boolean   includeRowid;
+  protected int       parameterCount = -1;                    // from originalSql, must be correct
+
+    /**
    * Creates a new Statement.
    *
    * @param connection the connection to return in getConnection.
@@ -159,7 +170,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
     this.exceptionFactory = exceptionFactory;
-    this.fetchSize = this.options.defaultFetchSize;
+    if (protocol.isOracleMode() && options.defaultFetchSize == 0) {
+        // Oracle JDBC set default fetchSize to 10
+        this.fetchSize = 10;
+    } else {
+        this.fetchSize = this.options.defaultFetchSize;
+    }
   }
 
   /**
@@ -623,11 +639,14 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && this
-        .getFetchSize() > 0) {
+    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true
+            && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
+            && this.getFetchSize() > 0) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql);
       pstmt.setFetchSize(this.fetchSize);
-      return pstmt.executeQuery();
+      pstmt.executeQuery();
+      this.results =((ServerSidePreparedStatement)pstmt).results;
+      return results.getResultSet();
     } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
       return results.getResultSet();
     }
@@ -811,6 +830,24 @@ public class OceanBaseStatement implements Statement, Cloneable {
         results.close();
       }
 
+      if (connection == null
+          || connection.pooledConnection == null
+          || connection.pooledConnection.noStmtEventListeners()) {
+        return;
+      }
+      connection.pooledConnection.fireStatementClosed(this);
+    } finally {
+      protocol = null;
+      connection = null;
+      lock.unlock();
+    }
+  }
+
+
+  public void realClose() throws SQLException {
+    lock.lock();
+    try {
+      closed = true;
       if (connection == null
           || connection.pooledConnection == null
           || connection.pooledConnection.noStmtEventListeners()) {
@@ -1313,15 +1350,19 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @see #getFetchSize
    */
   public void setFetchSize(final int rows) throws SQLException {
-    isFetchSizeSet = true;
-    if (rows < 0 && rows != Integer.MIN_VALUE) {
-      throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size");
-    } else if (rows == Integer.MIN_VALUE) {
-      // for compatibility Integer.MIN_VALUE is transform to 0 => streaming
-      this.fetchSize = 1;
-      return;
+    if (this.maxRows > 0 && rows > this.maxRows
+        || this.protocol.isOracleMode() && rows < 0
+        || !this.protocol.isOracleMode() && rows < 0 && rows != Integer.MIN_VALUE) {
+        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
     }
-    this.fetchSize = rows;
+
+    // Oracle JDBC would change 0 to default, which means there is no need to set
+    if (this.protocol.isOracleMode() && rows != 0
+        || !this.protocol.isOracleMode()) {
+        this.fetchSize = rows;
+    }
+
+    isFetchSizeSet = true;
   }
 
   /**
@@ -1569,5 +1610,13 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public Results getResults() {
     return results;
+  }
+
+  public String getOriginalSql() {
+    return originalSql;
+  }
+
+  public int getSqlType() {
+    return sqlType;
   }
 }

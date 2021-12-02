@@ -71,7 +71,6 @@ public class ErrorPacket {
             buffer.skipByte(); // skip '#'
             sqlState = buffer.readString(5);
             message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-            // not supported error message encoding now !
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,

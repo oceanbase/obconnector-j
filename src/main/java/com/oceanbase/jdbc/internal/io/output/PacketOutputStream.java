@@ -94,6 +94,11 @@ public interface PacketOutputStream {
     void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes)
                                                                                       throws IOException;
 
+    void writeEscapeQuote(Reader reader, boolean noBackslashEscapes) throws IOException;
+
+    void writeEscapeQuote(Reader reader, long length, boolean noBackslashEscapes)
+                                                                                 throws IOException;
+
     void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
 
     void writeBytesEscapedQuote(byte[] bytes, int len, boolean noBackslashEscapes)

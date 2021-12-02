@@ -55,6 +55,7 @@ import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.util.Utils;
 
 public class OBByteArrayParameter implements Cloneable, ParameterHolder {
 
@@ -63,13 +64,7 @@ public class OBByteArrayParameter implements Cloneable, ParameterHolder {
 
     public OBByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
         this.noBackslashEscapes = noBackslashEscapes;
-        byte[] x = bytes;
-        StringBuilder sb = new StringBuilder();
-        for (byte b : x) {
-            sb.append(String.format("%02X", b));
-        }
-        x = sb.toString().getBytes();
-        this.bytes = x;
+        this.bytes = Utils.toHexString(bytes).getBytes();
     }
 
     /**

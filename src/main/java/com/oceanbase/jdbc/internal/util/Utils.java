@@ -89,7 +89,6 @@ import com.oceanbase.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class Utils {
 
-  private static int parameterCount;
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
   private static final Pattern IP_V4 =
       Pattern.compile(
@@ -743,6 +742,10 @@ public class Utils {
     NameBinding /* in name binding such as :name */
   }
 
+  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
+    return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
+  }
+
   /**
    *  Adjust the string to have no comments and the name binding  parameters to ? format
    * @param queryString  original sql string
@@ -752,7 +755,11 @@ public class Utils {
    * @return
    */
   public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
-    parameterCount = 0;
+    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment)[0];
+  }
+
+  public static String[] trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
+    int parameterCount = 0;
     StringBuilder trimedSqlString = new StringBuilder();
     boolean multipleQueriesPrepare = true;
     LexState state = LexState.Normal;
@@ -983,12 +990,11 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParameterPosition, queryLength));
     }
-    return trimedSqlString.toString();
+
+    return new String[]{trimedSqlString.toString(), String.valueOf(parameterCount)};
   }
 
-  public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode) {
-    return trimSQLString(queryString, noBackslashEscapes, isOracleMode, false);
-  }
+
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
                                      String leftMarks, String rightMarks) {
@@ -1127,10 +1133,6 @@ public class Utils {
     } else {
       return OceanBaseStatement.STMT_UNKNOWN;
     }
-  }
-
-  public static int getParameterCount() {
-    return parameterCount;
   }
 
   /**
@@ -1605,5 +1607,41 @@ public class Utils {
     String, /* inside string */
     Quote,
     Escape /* found backslash */
+  }
+  private static final char[] DIGITS_LOWER = { '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+  private static final char[] DIGITS_UPPER = { '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+  protected static char[] encodeHex(byte[] data, char[] toDigits) {
+    int l = data.length;
+    char[] out = new char[l << 1];
+    for (int i = 0, j = 0; i < l; i++) {
+      out[j++] = toDigits[(0xF0 & data[i]) >>> 4];
+      out[j++] = toDigits[0x0F & data[i]];
+    }
+    return out;
+  }
+
+  public static String encodeHexStr(byte[] data) {
+    return encodeHexStr(data, false); // ob support upper case
+  }
+  public static String encodeHexStr(byte[] data, boolean toLowerCase) {
+    return encodeHexStr(data, toLowerCase ? DIGITS_LOWER : DIGITS_UPPER);
+  }
+  protected static String encodeHexStr(byte[] data, char[] toDigits) {
+    return new String(encodeHex(data, toDigits));
+  }
+
+  public static String toHexString(byte[]data) {
+    return encodeHexStr(data);
+  }
+  public static  boolean convertStringToBoolean(String str)  {
+    if ((str != null) && (str.length() > 0)) {
+      int c = Character.toLowerCase(str.charAt(0));
+      return ((c == 't') || (c == 'y') || (c == '1') || str.equals("-1"));
+    }
+    return false;
   }
 }

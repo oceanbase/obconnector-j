@@ -60,7 +60,7 @@ import java.util.Arrays;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class Clob extends Blob implements ObClob, Serializable {
+public class Clob extends Lob implements ObClob {
 
     private static final long serialVersionUID = -3066501059817815286L;
     private static int        maxLength        = 1 * 1024 * 1024 * 1024;
@@ -82,7 +82,8 @@ public class Clob extends Blob implements ObClob, Serializable {
         emptyData[2] = 79;
         emptyData[3] = 76;
         emptyData[4] = 1;
-        return new Clob(true, emptyData, null, null);
+        return new Clob(true, emptyData, Charset.defaultCharset().name(), null);
+
     }
 
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
@@ -196,8 +197,12 @@ public class Clob extends Blob implements ObClob, Serializable {
      * @return string value of blob content.
      */
     public String toString() {
-        Charset charset = Charset.forName(encoding);
-        return new String(data, offset, length, charset);
+        if (charData != null) {
+            return charData;
+        } else {
+            Charset charset = Charset.forName(encoding);
+            return new String(data, offset, length, charset);
+        }
     }
 
     /**
