@@ -73,6 +73,7 @@ public class ComQuery {
                                   final ClientPrepareResult clientPrepareResult,
                                   ParameterHolder[] parameters, int queryTimeout)
                                                                                  throws IOException {
+        out.startPacket(0);
         out.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
             out.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes(out
@@ -97,6 +98,7 @@ public class ComQuery {
                 out.write(clientPrepareResult.getQueryParts().get(i + 1));
             }
         }
+        out.flush();
     }
 
     /**

@@ -64,7 +64,7 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Results {
 
-    private int                    statementId = 0;
+    private int                    statementId  = 0;
     private OceanBaseStatement     statement;
     private String                 sql;
     private ParameterHolder[]      parameters;
@@ -86,6 +86,7 @@ public class Results {
     private int                    autoIncrement;
     private boolean                rewritten;
     private CmdInformation         cmdInformation;
+    private boolean                batchSucceed = false;
 
     /**
      * Single Text query. /! use internally, because autoincrement value is not right for
@@ -450,7 +451,10 @@ public class Results {
         return SelectResultSet.createEmptyResultSet();
     }
 
-    public void close() {
+    public void close() throws SQLException {
+        if (statement != null) {
+            statement.realClose();
+        }
         statement = null;
         fetchSize = 0;
     }
@@ -486,4 +490,17 @@ public class Results {
     public int getStatementId() {
         return this.statementId;
     }
+
+    public void setParameters(ParameterHolder[] parameters) {
+        this.parameters = parameters;
+    }
+
+    public boolean getBatchSucceed() {
+        return batchSucceed;
+    }
+
+    public void setBatchSucceed(boolean succeed) {
+        this.batchSucceed = succeed;
+    }
+
 }

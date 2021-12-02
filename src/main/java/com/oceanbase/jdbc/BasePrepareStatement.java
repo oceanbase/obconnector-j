@@ -104,7 +104,6 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     protected boolean                     hasLongData              = false;
     private boolean                       useFractionalSeconds;
     private boolean                       noBackslashEscapes;
-    protected String                      originString             = null;
     protected Map<String, Integer>        indexMap;
 
     /**
@@ -421,7 +420,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
 
             if (this.connection.getProtocol().isOracleMode()) {
-                if ((((Blob) clob).getLocator() != null)
+                if ((((Clob) clob).getLocator() != null)
                     && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
                     byte[] data = ((Clob) clob).getLocator().binaryData;
                     setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
@@ -546,7 +545,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (connection.getProtocol().isOracleMode()) {
-            setTIMESTAMP(parameterIndex, new Timestamp(date.getTime()));
+            Timestamp timestamp = new Timestamp(date.getTime());
+            if (timestamp == null) {
+                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
+                return;
+            }
+            setParameter(parameterIndex, new OBTIMESTAMPParameter(timestamp,
+                protocol.getTimeZone(), useFractionalSeconds, true));
         } else {
             setParameter(parameterIndex,
                 new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));

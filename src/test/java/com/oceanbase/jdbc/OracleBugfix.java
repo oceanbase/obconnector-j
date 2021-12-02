@@ -43,6 +43,11 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -51,6 +56,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -58,6 +64,7 @@ import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -90,6 +97,18 @@ public class OracleBugfix extends BaseOracleTest {
     static String zonedDateTimeTable        = "zonedDateTime" + getRandomString(5);
     static String varchar2Number            = "varchar2Number" + getRandomString(5);
     static String nvarchar2Number           = "nvarchar2Number" + getRandomString(5);
+    static String clobAndBlob               = "clobAndBlob" + getRandomString(5);
+    static String convertCharToBoolean      = "convertCharToBoolean" + getRandomString(5);
+    static String convertBlobToBytes        = "convertBlobToBytes" + getRandomString(5);
+    static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
+    static String testReaderToCLob          = "testReaderToCLob" + getRandomString(5);
+    static String testReaderToCLob2         = "testReaderToCLob2" + getRandomString(5);
+    static String testLargeStream           = "testLargeStream" + getRandomString(5);
+    static String testLargeReader           = "testLargeReader" + getRandomString(5);
+    static String testSetDate               = "testSetDate" + getRandomString(5);
+    static String testSetReaderToClob       = "testSetReaderToClob" + getRandomString(5);
+    static String testEmpty                 = "testEmpty" + getRandomString(5);
+    static String pieceReuse                = "pieceReuse" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -172,6 +191,18 @@ public class OracleBugfix extends BaseOracleTest {
             "a NUMBER(6), b TIMESTAMP(6) WITH TIME ZONE,c int,d  TIMESTAMP(6) WITH TIME ZONE");
         createTable(varchar2Number, "c1 varchar2(200)");
         createTable(nvarchar2Number, "c1 nvarchar2(200)");
+        createTable(clobAndBlob, "c1 clob,c2 blob");
+        createTable(convertCharToBoolean, "c1 nvarchar2(200),c2 varchar2(200)");
+        createTable(convertBlobToBytes, "c1 int ,c2 blob");
+        createTable(testDateAndTS, "c1 date ,c2 timestamp");
+        createTable(testReaderToCLob, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(testReaderToCLob2, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(testLargeStream, "c1 blob,c2 varchar2(20)");
+        createTable(testLargeReader, "c1 clob,c2 varchar2(20)");
+        createTable(testSetDate, "c1 date");
+        createTable(testSetReaderToClob, "c1 clob");
+        createTable(testEmpty, "c1 blob,c2 clob");
+        createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -839,6 +870,7 @@ public class OracleBugfix extends BaseOracleTest {
     public void testSetTimeForDate() {
         try {
             Connection conn = sharedConnection;
+            conn.createStatement().execute("delete from " + testDate);
             PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
                                                                      + " values(?)");
             Time testTime = new Time(12, 0, 0);
@@ -993,6 +1025,870 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertEquals((long) 100, rs1.getLong(1));
             Assert.assertEquals("100.0", Float.toString(rs1.getFloat(1)));
             Assert.assertEquals("100.0", Double.toString(rs1.getFloat(1)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testConnectionVariables() {
+        try {
+            Connection conn1 = setConnection("&usePipelineAuth=true");
+            Connection conn2 = setConnection("&usePipelineAuth=false");
+            Connection conn3 = setConnection("&usePipelineAuth=false&characterEncoding=utf-8");
+            Connection conn4 = setConnection("&usePipelineAuth=false&characterEncoding=utf8");
+            Connection conn5 = setConnection("&usePipelineAuth=true&characterEncoding=utf-8");
+            Connection conn6 = setConnection("&usePipelineAuth=true&characterEncoding=utf8");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testClobAndBlob() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + clobAndBlob + " values('100',rawtohex('xxxxx'))");
+            ResultSet rs1 = stmt.executeQuery("select * from " + clobAndBlob);
+            Assert.assertTrue(rs1.next());
+            Object clobObj = rs1.getObject(1);
+            Object blobObj = rs1.getObject(2);
+            Assert.assertTrue(clobObj instanceof java.sql.Clob);
+            Assert.assertFalse(clobObj instanceof java.sql.Blob);
+            Assert.assertTrue(blobObj instanceof java.sql.Blob);
+            Assert.assertFalse(blobObj instanceof java.sql.Clob);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetBoolean() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into "
+                         + convertCharToBoolean
+                         + " values('n','n'),('y','y'),('t','t'),('f','f'),('1','1'),('-1','-1'),('0','0'),('x','z'),('string value','string values2'),(null,null)");
+            ResultSet rs = stmt.executeQuery("select * from " + convertCharToBoolean);
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getBoolean(1));
+            Assert.assertTrue(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            // other string values are all false
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.getBoolean(1));
+            Assert.assertFalse(rs.getBoolean(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testSendBatchBug37854707() {
+        try {
+            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true");
+            String clobTest1 = "t_clob";
+            try {
+                conn.createStatement().execute("drop table t_clob");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table t_clob(c1 clob, c2 number, c3 clob, c4 int)");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest1
+                                                         + " values(?, ?, ?, ?)");
+            String str = "\u571e\u58dc";
+            ps.setCharacterStream(1, new StringReader(str));
+            ps.setObject(3, str);
+            ps.setInt(2, 100);
+            ps.setInt(4, 100);
+            ps.addBatch();
+
+            ps.setCharacterStream(1, new StringReader(str));
+            ps.setObject(3, str);
+            ps.setInt(2, 100);
+            ps.setInt(4, 100);
+            ps.addBatch();
+            ps.executeBatch();
+            ps = conn.prepareStatement("select * from " + clobTest1);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(str, rs.getString(3));
+            assertEquals(100, rs.getInt(2));
+            assertEquals(100, rs.getInt(4));
+
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(str, rs.getString(3));
+            assertEquals(100, rs.getInt(2));
+            assertEquals(100, rs.getInt(4));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testSendBatchBugForRwrite() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true&maxBatchTotalParamsNum=200");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table rewriteclob");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table rewriteclob(c1 clob,c2 varchar2(200),c3 varchar2(200),c4 clob,c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200))");
+            PreparedStatement preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            int val = 0;
+            preparedStatement.setCharacterStream(1, new StringReader("string value"));
+            preparedStatement.setString(2, "string value");
+            preparedStatement.setString(3, "string value");
+            preparedStatement.setString(4, "string value");
+            preparedStatement.setLong(5, val++);
+
+            preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+            preparedStatement.setDate(7, null);
+
+            preparedStatement.setString(8, "string value");
+            preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+            preparedStatement.execute();
+            ResultSet rs = stmt.executeQuery("select * from rewriteclob");
+            val = 0;
+            while (rs.next()) {
+                Assert.assertEquals("string value", rs.getString(1));
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            stmt.execute("delete from rewriteclob");
+            int batchTimes = 99;
+            val = 0;
+            System.out.println("test piece");
+            preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            for (int i = 0; i < batchTimes; i++) {
+                preparedStatement.setCharacterStream(1, new StringReader("string value")); //  test for long data
+                preparedStatement.setString(2, "string value");
+                preparedStatement.setString(3, "string value");
+                preparedStatement.setCharacterStream(4, new StringReader("string value")); // test for long data
+                preparedStatement.setLong(5, val++);
+
+                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+                preparedStatement.setDate(7, null);
+
+                preparedStatement.setString(8, "string value");
+                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+                preparedStatement.addBatch();
+            }
+            val = 0;
+            preparedStatement.executeBatch();
+            rs = stmt.executeQuery("select * from rewriteclob");
+            long count = 0;
+            while (rs.next()) {
+                count++;
+                if (count < 10) {
+                    Assert.assertEquals("string value", rs.getString(1));
+                    Assert.assertEquals("string value", rs.getString(4));
+                }
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            Assert.assertEquals(batchTimes, count);
+
+            stmt.execute("delete from rewriteclob");
+
+            batchTimes = 30001;
+            val = 0;
+            preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            for (int i = 0; i < batchTimes; i++) {
+                preparedStatement.setString(1, "string value");
+                preparedStatement.setString(2, "string value");
+                preparedStatement.setString(3, "string value");
+                preparedStatement.setString(4, "string value");
+                preparedStatement.setLong(5, val++);
+                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+                preparedStatement.setDate(7, null);
+                preparedStatement.setString(8, "string value");
+                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+                preparedStatement.addBatch();
+            }
+            val = 0;
+            preparedStatement.executeBatch();
+            rs = stmt.executeQuery("select * from rewriteclob");
+            count = 0;
+            while (rs.next()) {
+                count++;
+                if (count < 10) {
+                    Assert.assertEquals("string value", rs.getString(1));
+                    Assert.assertEquals("string value", rs.getString(4));
+                }
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            Assert.assertEquals(batchTimes, count);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void getObjectFromBlob() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            byte[] value = "中文".getBytes();
+            PreparedStatement ps = conn.prepareStatement("insert into " + convertBlobToBytes
+                                                         + " values(?,?)");
+            ps.setInt(1, 1);
+            ps.setBytes(2, value);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select * from " + convertBlobToBytes);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals("中文", new String(rs.getObject(2, byte[].class)));
+            ps = conn.prepareStatement("select * from " + convertBlobToBytes);
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals("中文", new String(rs.getObject(2, byte[].class)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTimestampToLocalDate() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into "
+                                                                        + testDateAndTS
+                                                                        + " values(?,?)");
+            Date date = new Date(System.currentTimeMillis());
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+            preparedStatement.setDate(1, date);
+            preparedStatement.setTimestamp(2, timestamp);
+            preparedStatement.execute();
+
+            ResultSet rs = stmt.executeQuery("select * from " + testDateAndTS);
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
+            preparedStatement = conn.prepareStatement("select * from " + testDateAndTS);
+            rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                Object c1 = rs.getObject(1, LocalDateTime.class);
+                Object c2 = rs.getObject(2, LocalDateTime.class);
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void executeUpdateSendPiece() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            PreparedStatement ps = conn.prepareStatement("insert into " + testReaderToCLob
+                                                         + " values(?, ?, ?, ?)");
+            String str = "\u571e\u58dc";
+            ps.setCharacterStream(1, new StringReader(str));
+            ps.setObject(3, str);
+            ps.setInt(2, 100);
+            ps.setInt(4, 100);
+            assertEquals(1, ps.executeUpdate());
+            assertEquals(1, ps.getUpdateCount());
+            ps = conn.prepareStatement("select * from " + testReaderToCLob);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(str, rs.getString(3));
+            assertEquals(100, rs.getInt(2));
+            assertEquals(100, rs.getInt(4));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testSendPieceBatchNums() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + testReaderToCLob2
+                                                         + " values(?, ?, ?, ?)");
+            String str = "\u571e\u58dc";
+            int num = 3;
+            for (int i = 0; i < 3; i++) {
+                ps.setCharacterStream(1, new StringReader(str));
+                ps.setObject(3, str);
+                ps.setInt(2, 100);
+                ps.setInt(4, 100);
+                ps.addBatch();
+            }
+            int[] ints = ps.executeBatch();
+            System.out.println(Arrays.toString(ints));
+            assertEquals(num, ints.length);
+            ResultSet rs = stmt.executeQuery("select * from " + testReaderToCLob2);
+            while (rs.next()) {
+                assertEquals(str, rs.getString(1));
+                assertEquals(str, rs.getString(3));
+                assertEquals(100, rs.getInt(2));
+                assertEquals(100, rs.getInt(4));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testLargeStreamValue() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            int size = 1024 * 1024 * 40; // 40mb
+            byte[] theBlob = new byte[size];
+            InputStream stream = new ByteArrayInputStream(theBlob);
+            int pos = 0;
+            int ch = 0;
+            ResultSet rs;
+            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeStream
+                                                         + " values(?, ?)");
+            ps.setAsciiStream(1, stream);
+            ps.setString(2, "aaa");
+            ps.execute();
+            ps = conn.prepareStatement("select * from " + testLargeStream);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            InputStream is = rs.getAsciiStream(1);
+            while ((ch = is.read()) != -1) {
+                assertEquals(theBlob[pos++], ch);
+            }
+            Assert.assertEquals(size, pos);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testLargeReaderValue() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            String str = getRandomString(1024 * 1024 * 40); // 40MB
+            StringReader stringReader = new StringReader(str);
+            ResultSet rs;
+            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeReader
+                                                         + " values(?, ?)");
+            ps.setClob(1, stringReader);
+            ps.setString(2, "aaa");
+            ps.execute();
+            ps = conn.prepareStatement("select * from " + testLargeReader);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            String str1 = rs.getString(1);
+            Assert.assertEquals(str1, str);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testSetDate() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            sharedConnection.createStatement().execute("delete from " + testDate);
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testDate
+                                                                     + " values(?)");
+            Date date = new Date(18, 10, 11);
+            ps.setDate(1, date);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select c1 from " + testDate);
+            Assert.assertTrue(rs.next());
+            Date date1 = rs.getDate(1);
+            Assert.assertEquals(date1, date);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testSetReaderToClob() {
+        Assume.assumeFalse(sharedUsePrepare());
+        try {
+            PreparedStatement statement = sharedConnection.prepareStatement("insert into "
+                                                                            + testSetReaderToClob
+                                                                            + " values(?)");
+            String value = "test ''\0\n\\";
+            StringReader stringReader = new StringReader(value);
+            statement.setClob(1, stringReader);
+            statement.executeUpdate();
+            ResultSet rs = statement.executeQuery("select c1 from " + testSetReaderToClob);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(value, rs.getString(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testSendPieceReuseConn() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true");
+            Statement stmt = conn.createStatement();
+            for (int j = 0; j < 5; j++) {
+                System.out.println("test turn  = " + j);
+                for (int i = 0; i < 20; i++) {
+                    PreparedStatement ps = conn.prepareStatement("insert into " + pieceReuse
+                                                                 + " values(?,?,?,?)");
+                    String str = "abcd";
+                    if (i >= 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.execute();
+                    if (i <= 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.execute();
+
+                    ps = conn.prepareStatement("insert into " + pieceReuse + " values(?,?,?,?)");
+                    if (i > 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.addBatch();
+                    if (i > 10) {
+                        ps.setObject(1, str);
+                    } else {
+                        ps.setCharacterStream(1, new StringReader(str));
+                    }
+                    ps.setObject(3, str);
+                    ps.setInt(2, 100);
+                    ps.setInt(4, 100);
+                    ps.addBatch();
+                    ps.executeBatch();
+                    ps = conn.prepareStatement("select * from " + pieceReuse);
+                    ResultSet rs = ps.executeQuery();
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(str, rs.getString(1));
+                    Assert.assertEquals(str, rs.getString(3));
+                    Assert.assertEquals(100, rs.getInt(2));
+                    Assert.assertEquals(100, rs.getInt(4));
+                    stmt = conn.createStatement();
+                    rs = ps.executeQuery("select * from " + pieceReuse);
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(str, rs.getString(1));
+                    Assert.assertEquals(str, rs.getString(3));
+                    Assert.assertEquals(100, rs.getInt(2));
+                    Assert.assertEquals(100, rs.getInt(4));
+                    ps.close();
+                    stmt.close();
+                }
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testEmpty() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testEmpty
+                                                                     + " values(?,?)");
+            ps.setBlob(1, Blob.getEmptyBLOB());
+            ps.setClob(2, Clob.getEmptyCLOB());
+            ps.execute();
+            ps.clearParameters();
+            ps.setBytes(1, new byte[] { '1', '@', 'a', 'A' });
+            ps.setString(2, "中文\nabc");
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select count(*) from " + testEmpty);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testHint() {
+        try {
+            try {
+                sharedConnection.createStatement().execute(
+                    "drop outline \"CONCURRENT_LIMIT_2d312698bdea452387c7a523e9631157\"");
+            } catch (SQLException e) {
+            }
+            String sql = "CREATE OUTLINE \"CONCURRENT_LIMIT_2d312698bdea452387c7a523e9631157\" ON '3D8DD579717E266F5DD3DA99A6E8E2EA' USING HINT /*+ max_concurrent(10) */";
+            sharedConnection.prepareStatement(sql).execute();
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void prepareCalllAnonymousBlockWithNameAndHint() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement callableStatement = null;
+            try {
+                callableStatement = conn.prepareCall("drop table result_table");
+                callableStatement.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            callableStatement = conn
+                .prepareCall("create table result_table(c1 varchar2(200),c2 number)");
+            callableStatement.execute();
+            String sql = "DECLARE\n"
+                         + "  V_TABLENAME      VARCHAR2(20);\n"
+                         + "  V_NUMBER         NUMBER;\n"
+                         + "BEGIN\n"
+                         + "  V_TABLENAME     := :V_TABLENAME ;\n"
+                         + "  V_NUMBER     := to_number(:NUMBER1) ;\n"
+                         + "  insert  /*+ ORDERED */ into result_table values(V_TABLENAME,V_NUMBER);\n"
+                         + "\n" + "end ; ";
+            callableStatement = conn.prepareCall(sql);
+            callableStatement.setString(1, "test_val");
+            callableStatement.setInt(2, 100);
+            callableStatement.execute();
+            callableStatement = conn.prepareCall("select * from result_table");
+            ResultSet rs = callableStatement.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(100, rs.getInt(2));
+            Assert.assertEquals("test_val", rs.getString(1));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testHintBatch() {
+        try {
+            Statement statement = sharedConnection.createStatement();
+            try {
+                sharedConnection.createStatement().execute("drop table testBatchHint");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            sharedConnection.createStatement().execute(
+                "create table testBatchHint(c1 varchar2(200),c2 int)");
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("insert /*+ ORDERED */  into testBatchHint values(?,?)");
+            ps.setString(1, "teststr1");
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setString(1, "teststr2");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setString(1, "teststr3");
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = statement.executeQuery("select * from testBatchHint");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr1", rs.getString(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr2", rs.getString(1));
+            Assert.assertEquals(2, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr3", rs.getString(1));
+            Assert.assertEquals(3, rs.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testHintRewriteBatch() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            Statement statement = sharedConnection.createStatement();
+            try {
+                sharedConnection.createStatement().execute("drop table testBatchRwHint");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            sharedConnection.createStatement().execute(
+                "create table testBatchRwHint(c1 varchar2(200),c2 int)");
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("insert /*+ ORDERED */ into testBatchRwHint values(?,?)");
+            ps.setString(1, "teststr1");
+            ps.setInt(2, 1);
+            ps.addBatch();
+            ps.setString(1, "teststr2");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.setString(1, "teststr3");
+            ps.setInt(2, 3);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = statement.executeQuery("select * from testBatchRwHint");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr1", rs.getString(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr2", rs.getString(1));
+            Assert.assertEquals(2, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("teststr3", rs.getString(1));
+            Assert.assertEquals(3, rs.getInt(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTimestampNanoBug() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String testTimestampNanos = "test_timestamp_nanos";
+            try {
+                conn.createStatement().execute("drop table " + testTimestampNanos);
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table " + testTimestampNanos
+                            + "(c1 timestamp, c2 timestamp, c3 timestamp)");
+            PreparedStatement ps = conn.prepareStatement("insert into " + testTimestampNanos
+                                                         + " values(?, ?, ?)");
+            Timestamp timestamp1 = Timestamp.valueOf("2012-12-12 12:12:12.987654");
+            Timestamp timestamp2 = Timestamp.valueOf("2012-12-12 12:12:12.987654321");
+            Timestamp timestamp3 = new Timestamp(18, 10, 11, 11, 11, 11, 123456789);
+            ps.setTimestamp(1, timestamp1);
+            ps.setTimestamp(2, timestamp2);
+            ps.setTimestamp(3, timestamp3);
+            ps.execute();
+            ResultSet rs = stmt.executeQuery("select *  from " + testTimestampNanos);
+            Assert.assertTrue(rs.next());
+            assertEquals(987654000, rs.getTimestamp(1).getNanos());
+            assertEquals(987654000, rs.getTimestamp(2).getNanos());
+            assertEquals(123457000, rs.getTimestamp(3).getNanos());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    public static void createTable(String tableName, String tableColumns, Statement stmt)
+                                                                                         throws SQLException {
+        try {
+            stmt.execute("drop table " + tableName + "");
+        } catch (SQLException e) {
+            //            e.printStackTrace();
+        }
+        stmt.execute("create table " + tableName + " (" + tableColumns + ") ");
+    }
+
+    @Test
+    public void testPsCursorBug38105626Fix() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("GROUP_SUBS_MEMBER",
+            " \"OID\" NUMBER(14) NOT NULL ENABLE,\n" + "  \"REGION\" NUMBER(5) NOT NULL ENABLE,\n"
+                    + "  \"GROUPOID\" NUMBER(14),\n" + "  \"MEMTYPE\" NUMBER(2),\n"
+                    + "  \"SUBSID\" NUMBER(14),\n" + "  \"MEMREGION\" NUMBER(5),\n"
+                    + "  \"MEMSERVNUMBER\" VARCHAR2(32),\n" + "  \"PRODID\" VARCHAR2(32),\n"
+                    + "  \"SHORTNUMBER\" VARCHAR2(10),\n" + "  \"STARTDATE\" DATE,\n"
+                    + "  \"APPLYOID\" NUMBER(14),\n" + "  \"CANCELOID\" NUMBER(14),\n"
+                    + "  \"STATUS\" VARCHAR2(16),\n" + "  \"STATUSDATE\" DATE,\n"
+                    + "  \"GRPPKGSUBSID\" NUMBER(14),\n" + "  \"ENDDATE\" DATE,\n"
+                    + "  \"ORDERSTATUS\" NUMBER(1),\n" + "  \"ORDERTIME\" DATE,\n"
+                    + "  \"ORDERRESULT\" VARCHAR2(512),\n" + "  \"OPERTYPE\" VARCHAR2(16),\n"
+                    + "  \"ISPRIMA\" NUMBER(1),\n" + "  \"FAMILYSUBSID\" NUMBER(18),\n"
+                    + "  \"CREATEDATE\" DATE,\n" + "  \"APPLYOPERID\" VARCHAR2(20),\n"
+                    + "  \"STAMPTIME\" DATE,\n" + "  \"SUBSPRODOID\" NUMBER(14),\n"
+                    + "  \"PKGPRODID\" VARCHAR2(32),\n"
+                    + "  CONSTRAINT \"PK_CM_GROUP_MEMBER\" UNIQUE (\"OID\", \"REGION\")", stmt);
+        try {
+
+            String sql = "select /*+ no_rewrite */  1 from group_subs_member a where a.region= :region and a.groupoid= :groupoid and a.memservnumber= :memservnumber  and a.status not like 'stcmR%'  and (a.status !=:STATUSINV or (a.status =:STATUSINV and a.orderstatus =1) )";
+
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "633");
+            pstmt.setString(2, "6338024093254");
+            pstmt.setString(3, "13506338442");
+            pstmt.setString(4, "stcmInv");
+            pstmt.setString(5, "stcmInv");
+            pstmt.execute();
+            System.out.println(0);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.printf(e.toString());
+            Assert.assertTrue("server bug 38105626", false);
+            Assert.fail();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.toString());
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTimestampToLocalDate_2() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt
+                .executeQuery("select sysdate, systimestamp, localtimestamp, current_timestamp from dual");
+            assertTrue(rs.next());
+            rs.getObject(1, LocalDateTime.class);
+            rs.getObject(2, LocalDateTime.class);
+            rs.getObject(3, LocalDateTime.class);
+            rs.getObject(4, LocalDateTime.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void oracleModeGetPrecisionTest() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table varchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table varchartest(c1 varchar2(1),c2 varchar2(2),c3 varchar2(10),c4  varchar2(100))");
+            ResultSet rs = conn.createStatement().executeQuery("select * from varchartest");
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+            try {
+                conn.createStatement().execute("drop table varchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table varchartest(c1 varchar2(1 byte),c2 varchar2(2 byte),c3 varchar2(10 byte),c4  varchar2(100 byte))");
+            rs = conn.createStatement().executeQuery("select * from varchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("varchar2 with byte");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table nvarchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement()
+                .execute(
+                    "create table nvarchartest(c1 nvarchar2(1),c2 nvarchar2(2),c3 nvarchar2(10),c4 nvarchar2(100))");
+            rs = conn.createStatement().executeQuery("select * from nvarchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("nvarchar2");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table chartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table chartest(c1 char(1),c2 char(2),c3 char(10),c4 char(100))");
+            rs = conn.createStatement().executeQuery("select * from chartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("char");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
+
+            try {
+                conn.createStatement().execute("drop table nchartest");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table nchartest(c1 nchar(1),c2 nchar(2),c3 nchar(10),c4 nchar(100))");
+            rs = conn.createStatement().executeQuery("select * from nchartest");
+            resultSetMetaData = rs.getMetaData();
+            System.out.println("nchar");
+            Assert.assertEquals(1, resultSetMetaData.getPrecision(1));
+            Assert.assertEquals(2, resultSetMetaData.getPrecision(2));
+            Assert.assertEquals(10, resultSetMetaData.getPrecision(3));
+            Assert.assertEquals(100, resultSetMetaData.getPrecision(4));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

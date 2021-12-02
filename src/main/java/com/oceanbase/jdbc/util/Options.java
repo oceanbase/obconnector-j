@@ -111,7 +111,7 @@ public class Options implements Cloneable {
     public boolean useOldAliasMetadataBehavior;
     public boolean useMysqlMetadata;
     public boolean allowLocalInfile = false;
-    public boolean cachePrepStmts = true;
+    public boolean cachePrepStmts = false;
     public int prepStmtCacheSize = 250;
     public int prepStmtCacheSqlLimit = 2048;
     public boolean useLegacyDatetimeCode = false;
@@ -186,9 +186,11 @@ public class Options implements Cloneable {
     public String socksProxyHost;
     public int socksProxyPort = 1080;
     public boolean connectProxy = false;
-    public boolean usePieceData = true;
-    public int  pieceLength = 1000;
-  public boolean useOraclePrepareExecute = false;
+    public boolean usePieceData = false;
+    public int  pieceLength = 1048576;
+    public boolean useOraclePrepareExecute = false;
+    public boolean autoDeserialize = false;
+    public int     maxBatchTotalParamsNum = 30000;
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -550,10 +552,17 @@ public class Options implements Cloneable {
         if (pieceLength != opt.pieceLength) {
             return false;
         }
-      if (useOraclePrepareExecute != opt.useOraclePrepareExecute) {
-        return false;
-      }
+        if (useOraclePrepareExecute != opt.useOraclePrepareExecute) {
+          return false;
+        }
+        if(autoDeserialize != opt.autoDeserialize) {
+          return false;
+        }
+        if (maxBatchTotalParamsNum != opt.maxBatchTotalParamsNum) {
+          return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
+
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -670,6 +679,8 @@ public class Options implements Cloneable {
         result = 31 * result + (usePieceData ? 1 : 0);
         result = 31 * result + pieceLength;
         result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
+        result = 31 * result + (autoDeserialize ? 1 : 0);
+        result = 31 * result + (maxBatchTotalParamsNum);
         return result;
     }
     @Override

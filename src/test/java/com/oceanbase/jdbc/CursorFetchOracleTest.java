@@ -50,105 +50,31 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class CursorFetchOracleTest extends BaseOracleTest {
-    static String tableName1 = "test_cursor_oracle";
-    static String tableName2 = "test_scrollable_cursor_oracle";
-    static String tableName3 = "fix_cursor_without_resultset";
+    static String      tableName1 = "test_cursor_oracle";
+    static String      tableName2 = "test_batch_oracle";
+    static String      tableName3 = "fix_cursor_without_resultset";
+    private Connection connection = sharedConnection;
 
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable(tableName1, "c1 int,c2 varchar(30)");
-        createTable(tableName2, "c1 int,c2 varchar(30)");
-        createTable(tableName3, "c1 int,c2 varchar(30)");
-    }
+        createTable(tableName1, "c1 int, c2 varchar(30), constraint pk primary key(c1)");
+        createTable(tableName2, "c1 varchar(30), c2 varchar(30), c3 varchar(30)");
+        createTable(tableName3, "c1 int, c2 varchar(30)");
 
-    @Test
-    public void testCursorFetch() {
-        try {
-            Connection conn = setConnection("&useCursorFetch=true");
-            Statement statement = conn.createStatement();
-            int i;
-            String query = "insert into " + tableName1 + " values(1,'1+string')";
-            for (i = 2; i < 100; i++) {
-                query += ",(" + i + ",'" + i + "+string')";
-            }
-            statement.execute(query);
-            statement.setFetchSize(50);
-            ResultSet rs = statement.executeQuery("select * from " + tableName1 + "");
-            int count = 1;
-            int j = 1;
-            while (rs.next()) {
-                Assert.assertEquals(j, rs.getInt(1));
-                Assert.assertEquals(j + "+string", rs.getString(2));
-                j++;
-                count++;
-            }
-            Assert.assertEquals(count, 100);
-        } catch (SQLException e) {
-            e.printStackTrace();
+        String query = "insert all";
+        for (int i = 1; i <= 100; i++) {
+            query += " into " + tableName1 + " values(" + i + ",'" + i + "+string')";
         }
-    }
+        query += "select * from dual";
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute(query);
 
-    @Test
-    public void testScrollableCursor() throws Exception {
-        //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
-        try {
-            Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
-
-            String query = "insert all";
-            for (int i = 1; i <= 100; i++) {
-                query += " into " + tableName2 + " values(" + i + ",'" + i + "+string')";
-            }
-            query += "select * from dual";
-            Statement stmt = conn.createStatement();
-            stmt.execute(query);
-
-            PreparedStatement ps = conn.prepareStatement("select * from " + tableName2,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            ps.setFetchSize(40);
-            ResultSet rs = ps.executeQuery();
-            //            int i = 0;
-            //            while (rs.next()) {
-            //                i++;
-            //            }
-            Assert.assertTrue(rs.next());
-            Assert.assertFalse(rs.previous());
-            try {
-                rs.getInt(1);
-                Assert.fail("Current position is before the first row");
-            } catch (SQLException e) {
-                System.out.println(e.getErrorCode());
-            }
-            Assert.assertTrue(rs.absolute(39));
-            Assert.assertEquals(39, rs.getInt(1));
-            Assert.assertTrue(rs.relative(2));
-            Assert.assertEquals(41, rs.getInt(1));
-            Assert.assertTrue(rs.last());
-            Assert.assertEquals(100, rs.getInt(1));
-            Assert.assertTrue(rs.previous());
-            Assert.assertEquals(99, rs.getInt(1));
-            Assert.assertTrue(rs.first());
-            Assert.assertEquals(1, rs.getInt(1));
-
-            Assert.assertFalse(rs.relative(-3));
-            Assert.assertTrue(rs.isBeforeFirst());
-            rs.afterLast();
-            Assert.assertTrue(rs.isAfterLast());
-            rs.beforeFirst();
-            Assert.assertTrue(rs.isBeforeFirst());
-
-            stmt.close();
-            ps.close();
-            rs.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
     }
 
     @Test
     public void fixCursorFetch() {
         try {
-            Connection conn = setConnection("&useCurso·rFetch=true");
+            Connection conn = setConnection("&useCursorFetch=true");
             Statement statement = conn.createStatement();
             PreparedStatement preparedStatement = conn.prepareStatement(
                 "insert into " + tableName3 + " values(1,'varcharvalue')",
@@ -179,4 +105,144 @@ public class CursorFetchOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testExecuteBatch() {
+        try {
+            //Connection connection = setConnection("&autocommit=false&rewriteBatchedStatements=false&useBatchMultiSend=true&useBulkStmts=true");
+            PreparedStatement stmt = connection.prepareStatement("insert into " + tableName2
+                                                                 + " values(?,?,?)");
+
+            stmt.setString(1, "str1");
+            stmt.setString(2, "str2");
+            stmt.setString(3, "str3");
+            stmt.addBatch();
+
+            stmt.setString(1, "var1");
+            stmt.setString(2, "var2");
+            stmt.setString(3, "var3");
+            stmt.addBatch();
+
+            //            stmt.setString(1, "chr1");
+            //            stmt.setString(2, "chr2");
+            //            stmt.setString(3, "chr3");
+            //            stmt.addBatch();
+
+            stmt.executeBatch();
+
+            ResultSet rs = connection.createStatement().executeQuery("select * from " + tableName2);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("str1", rs.getString(1));
+            Assert.assertEquals("str2", rs.getString(2));
+            Assert.assertEquals("str3", rs.getString(3));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("var1", rs.getString(1));
+            Assert.assertEquals("var2", rs.getString(2));
+            Assert.assertEquals("var3", rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testForwardCursor() throws SQLException {
+        Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+        PreparedStatement ps = connection.prepareStatement("select * from " + tableName1,
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        ps.setFetchSize(40);
+        ResultSet rs = ps.executeQuery();
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(++i, rs.getInt(1));
+        }
+
+        ps.close();
+    }
+
+    @Test
+    public void testScrollableCursor() throws Exception {
+        //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+        try {
+            Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+            PreparedStatement ps = connection.prepareStatement("select * from " + tableName1,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ps.setFetchSize(40);
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertTrue(rs.next());
+            Assert.assertFalse(rs.previous());
+            try {
+                rs.getInt(1);
+                Assert.fail("Current position is before the first row");
+            } catch (SQLException e) {
+                Assert.assertEquals(0, e.getErrorCode());
+            }
+
+            Assert.assertTrue(rs.absolute(39));
+            Assert.assertEquals(39, rs.getInt(1));
+            Assert.assertTrue(rs.relative(2));
+            Assert.assertEquals(41, rs.getInt(1));
+
+            Assert.assertFalse(rs.isLast());
+            Assert.assertTrue(rs.last());
+            Assert.assertTrue(rs.isLast());
+            Assert.assertEquals(100, rs.getInt(1));
+
+            Assert.assertTrue(rs.previous());
+            Assert.assertEquals(99, rs.getInt(1));
+
+            Assert.assertFalse(rs.isFirst());
+            Assert.assertTrue(rs.first());
+            Assert.assertTrue(rs.isFirst());
+            Assert.assertEquals(1, rs.getInt(1));
+
+            Assert.assertFalse(rs.relative(-3));
+
+            Assert.assertTrue(rs.isBeforeFirst());
+            rs.afterLast();
+            Assert.assertTrue(rs.isAfterLast());
+            rs.beforeFirst();
+            Assert.assertTrue(rs.isBeforeFirst());
+
+            ps.close();
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    public void testSensitiveResultSet() {
+        try {
+            //Connection connection = setConnection("&useServerPrepStmts=false&useCursorFetch=false");
+            PreparedStatement ps = connection.prepareStatement("select c1, c2 from " + tableName1,
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            ps.setFetchSize(10);
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertEquals(10, ps.getFetchSize());
+            Assert.assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+            Assert.assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            /** 中断，省略更新记录
+             * update test_cursor_mysql set c2='-1+changed' where c1=1;
+             * update test_cursor_mysql set c2='-3+changed' where c1=3;
+             * commit;
+             */
+            rs.refreshRow();
+            Assert.assertEquals("-1+changed", rs.getString(2));
+            Assert.assertTrue(rs.absolute(3));
+            Assert.assertEquals("-3+changed", rs.getString(2));
+
+            ps.close();
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

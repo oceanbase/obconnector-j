@@ -51,7 +51,5 @@ public interface ObClob extends Clob {
 
     void setLocator(ObLobLocator locator);
 
-    void trimBlobToServer(int len) throws SQLException;
-
     void updateClobToServer(long writeAt, byte[] bytes, int offset, int length) throws SQLException;
 }

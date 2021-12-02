@@ -62,12 +62,14 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
@@ -407,11 +409,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case RAW:
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
-                StringBuilder sb = new StringBuilder();
-                for (byte b : returnBytes) {
-                    sb.append(String.format("%02x", b));
-                }
-                return sb.toString();
+                return Utils.toHexString(returnBytes);
             case VARSTRING:
                 return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
             case BINARY_DOUBLE:
@@ -420,6 +418,17 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_FLOAT:
                 Float f = getInternalFloat(columnInfo);
                 return Float.toString(f);
+            case OBCLOB:
+                if (options.supportLobLocator) {
+                    String encoding = this.options.characterEncoding;
+                    byte[] data = new byte[buf.length];
+                    System.arraycopy(buf, pos, data, 0, length);
+                    Clob c = new com.oceanbase.jdbc.Clob(true, data, encoding, null);
+                    return c.toString();
+                } else {
+                    return new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                }
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)
@@ -1264,30 +1273,27 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return false;
         }
+        if (columnInfo.getColumnType() == ColumnType.BIT) {
+            return parseBit() != 0;
+        }
+        long boolVal = 0;
         switch (columnInfo.getColumnType()) {
-            case BIT:
-                return parseBit() != 0;
             case TINYINT:
-                return getInternalTinyInt(columnInfo) != 0;
             case SMALLINT:
             case YEAR:
-                return getInternalSmallInt(columnInfo) != 0;
             case INTEGER:
             case MEDIUMINT:
-                return getInternalMediumInt(columnInfo) != 0;
             case BIGINT:
-                return getInternalLong(columnInfo) != 0;
             case FLOAT:
-                return getInternalFloat(columnInfo) != 0;
             case DOUBLE:
-                return getInternalDouble(columnInfo) != 0;
             case DECIMAL:
             case OLDDECIMAL:
-                return getInternalBigDecimal(columnInfo).longValue() != 0;
+                boolVal = getInternalLong(columnInfo);
+                return (boolVal > 0 || boolVal == -1);
             default:
                 final String rawVal = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
-                return !("false".equals(rawVal) || "0".equals(rawVal));
+                return Utils.convertStringToBoolean(rawVal);
         }
     }
 
@@ -1596,9 +1602,21 @@ public class BinaryRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
-
+        if (getProtocol().isOracleMode()) {
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                Timestamp oracleTimestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                if (oracleTimestamp == null) {
+                    return null;
+                }
+                LocalDateTime localDateTimeNoTimeZone = oracleTimestamp.toLocalDateTime();
+                return localDateTimeNoTimeZone.atZone(timeZone.toZoneId());
+            }
+        }
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIMESTAMP:
+            case Types.DATE:
                 int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
                 int month = buf[pos + 2];
                 int day = buf[pos + 3];
@@ -1624,7 +1642,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case Types.VARCHAR:
             case Types.LONGVARCHAR:
             case Types.CHAR:
-
                 // string conversion
                 String raw = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));

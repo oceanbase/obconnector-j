@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements
@@ -685,19 +686,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         //TODO optimize byte[] to hexbyte[] directly, not use hexString any more
         if (escape) {
             while ((len = is.read(array)) > 0) {
-                StringBuilder sb = new StringBuilder();
-                for (byte b : array) {
-                    sb.append(String.format("%02x", b));
-                }
-                writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
+                writeBytesEscaped(Utils.toHexString(array).getBytes(), (len << 1),
+                    noBackslashEscapes);
             }
         } else {
             while ((len = is.read(array)) > 0) {
-                StringBuilder sb = new StringBuilder();
-                for (byte b : array) {
-                    sb.append(String.format("%02x", b));
-                }
-                write(sb.toString().getBytes(), 0, (len << 1));
+                write(Utils.toHexString(array).getBytes(), 0, (len << 1));
             }
         }
     }
@@ -738,21 +732,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                                                                                                  throws IOException {
         byte[] array = new byte[2048];
         int len;
-        //TODO optimize byte[] to hexbyte[] directly, not use hexString any more
         while (length > 0 && (len = is.read(array, 0, Math.min(2048, (int) length))) > 0) {
-            StringBuilder sb = new StringBuilder();
-            if (escape) {
-                for (byte b : array) {
-                    sb.append(String.format("%02x", b));
-                }
-                writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
-            } else {
-                for (byte b : array) {
-                    sb.append(String.format("%02x", b));
-                }
-                //write(sb.toString().getBytes(), 0, (len << 1));
-                writeBytesEscaped(sb.toString().getBytes(), (len << 1), noBackslashEscapes);
-            }
+            writeBytesEscaped(Utils.toHexString(array).getBytes(), (len << 1), escape);
             length -= len;
         }
     }
@@ -775,6 +756,26 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             } else {
                 write(data);
             }
+        }
+    }
+
+    public void writeEscapeQuote(Reader reader, boolean noBackslashEscapes) throws IOException {
+        char[] buffer = new char[4096];
+        int len;
+        while ((len = reader.read(buffer)) >= 0) {
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
+            writeBytesEscapedQuote(data, data.length, noBackslashEscapes);
+        }
+    }
+
+    public void writeEscapeQuote(Reader reader, long length, boolean noBackslashEscapes)
+                                                                                        throws IOException {
+        char[] buffer = new char[4096];
+        int len;
+        while (length > 0 && (len = reader.read(buffer, 0, Math.min((int) length, 4096))) >= 0) {
+            byte[] data = new String(buffer, 0, len).getBytes(this.charset);
+            writeBytesEscapedQuote(data, data.length, noBackslashEscapes);
+            length -= len;
         }
     }
 

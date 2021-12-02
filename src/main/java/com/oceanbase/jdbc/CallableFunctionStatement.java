@@ -126,7 +126,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     protected abstract SelectResultSet getResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired(this.originString, this.arguments, true);
+        parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments, true);
         return parameterMetadata;
     }
 

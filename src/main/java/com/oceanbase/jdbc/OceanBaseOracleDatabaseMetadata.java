@@ -128,11 +128,9 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             stmt.setString(9, var14);
         }
 
-        ResultSet resultSet = stmt.executeQuery();
-        if (stmt != null) {
-            stmt.close();
-        }
-        return resultSet;
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 
     @Override
@@ -169,21 +167,17 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         PreparedStatement stmt = this.connection.prepareStatement(sql);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
         stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
-        ResultSet resultSet = stmt.executeQuery();
-        if (stmt != null) {
-            stmt.close();
-        }
-        return resultSet;
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 
     @Override
     public ResultSet getSchemas() throws SQLException {
         Statement stmt = this.connection.createStatement();
         String sql = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
+        stmt.closeOnCompletion();
         ResultSet rs = stmt.executeQuery(sql);
-        if (stmt != null) {
-            stmt.close();
-        }
         return rs;
     }
 
@@ -253,10 +247,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                         + "\n" + "ORDER BY table_schem, table_name, ordinal_position\n",
                 schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
                     : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern);
+        stmt.closeOnCompletion();
         ResultSet results = stmt.executeQuery(querySql);
-        if (stmt != null) {
-            stmt.close();
-        }
 //        int count = results.getFetchSize();
         String[] data = new String[24];
         List<String[]> list = new ArrayList<> ();
@@ -377,10 +369,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             String sql = "SELECT username AS table_schem, null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
             PreparedStatement stmt = this.connection.prepareStatement(sql);
             stmt.setString(1, schemaPattern);
+            stmt.closeOnCompletion();
             ResultSet rs = stmt.executeQuery();
-            if (stmt != null) {
-                stmt.close();
-            }
             return rs;
         }
     }
@@ -429,10 +419,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             stmt.setString(2, var7);
             stmt.setString(3, var8);
         }
+        stmt.closeOnCompletion();
         ResultSet rs = stmt.executeQuery();
-        if (stmt != null) {
-            stmt.close();
-        }
         return rs;
     }
 
@@ -449,13 +437,13 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public ResultSet getTablePrivileges(String catalog, String schemaPattern,
                                         String tableNamePattern) throws SQLException {
-        PreparedStatement pstmt = this.connection
+        PreparedStatement stmt = this.connection
             .prepareStatement("SELECT NULL AS table_cat,\n       table_schema AS table_schem,\n       table_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_tab_privs\nWHERE table_schema LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\nORDER BY table_schem, table_name, privilege\n");
-        pstmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
-        pstmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
-        pstmt.closeOnCompletion();
-        ResultSet resultSet = pstmt.executeQuery();
-        return resultSet;
+        stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
+        stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
@@ -492,26 +480,26 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         String sql5 = "order by non_unique, type, index_name, ordinal_position\n";
         String sql6 = sql + "union\n" + sql2 + sql3 + sql4 + sql5;
         stmt.closeOnCompletion();
-        ResultSet resultSet = stmt.executeQuery(sql6);
-        return resultSet;
+        ResultSet rs = stmt.executeQuery(sql6);
+        return rs;
     }
 
     public ResultSet getPrimaryKeys(String catalog, String schema, String table)
                                                                                 throws SQLException {
 
-        PreparedStatement pstmt = this.connection
+        PreparedStatement stmt = this.connection
             .prepareStatement("SELECT NULL AS table_cat,\n       c.owner AS table_schem,\n       c.table_name,\n       c.column_name,\n       c.position AS key_seq,\n       c.constraint_name AS pk_name\nFROM all_cons_columns c, all_constraints k\nWHERE k.constraint_type = 'P'\n  AND k.table_name = ?\n  AND k.owner like ? escape '/'\n  AND k.constraint_name = c.constraint_name \n  AND k.table_name = c.table_name \n  AND k.owner = c.owner \nORDER BY column_name\n");
-        pstmt.setString(1, table);
-        pstmt.setString(2, schema == null ? "%" : schema);
-        pstmt.closeOnCompletion();
-        ResultSet resultSet = pstmt.executeQuery();
-        return resultSet;
+        stmt.setString(1, table);
+        stmt.setString(2, schema == null ? "%" : schema);
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope,
                                           final boolean nullable) throws SQLException {
 
-        PreparedStatement pstmt = this.connection
+        PreparedStatement stmt = this.connection
             .prepareStatement("SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
                               + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
                               + "       0 AS decimal_digits, 2 AS pseudo_column\n"
@@ -580,36 +568,36 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                               + "  AND t.column_name = i.column_name\n");
         switch (scope) {
             case 1:
-                pstmt.setInt(1, 1);
-                pstmt.setInt(2, 1);
+                stmt.setInt(1, 1);
+                stmt.setInt(2, 1);
                 break;
             case 2:
-                pstmt.setInt(1, 0);
-                pstmt.setInt(2, 1);
+                stmt.setInt(1, 0);
+                stmt.setInt(2, 1);
                 break;
             case 0:
             default:
-                pstmt.setInt(1, 0);
-                pstmt.setInt(2, 0);
+                stmt.setInt(1, 0);
+                stmt.setInt(2, 0);
                 break;
         }
-        pstmt.setString(3, table);
-        pstmt.setString(4, schema == null ? "%" : schema);
-        pstmt.setString(5, nullable ? "X" : "Y");
-        pstmt.closeOnCompletion();
-        ResultSet resultSet = pstmt.executeQuery();
-        return resultSet;
+        stmt.setString(3, table);
+        stmt.setString(4, schema == null ? "%" : schema);
+        stmt.setString(5, nullable ? "X" : "Y");
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 
     public ResultSet getColumnPrivileges(String catalog, String schema, String table,
                                          String columnNamePattern) throws SQLException {
-        PreparedStatement pstmt = this.connection
+        PreparedStatement stmt = this.connection
             .prepareStatement("SELECT NULL AS table_cat,\n       OWNER AS table_schem,\n       table_name,\n       column_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_col_privs\nWHERE OWNER LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\n  AND column_name LIKE ? ESCAPE '/'\nORDER BY column_name, privilege\n");
-        pstmt.setString(1, schema == null ? "%" : schema);
-        pstmt.setString(2, table == null ? "%" : table.toUpperCase());
-        pstmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
-        pstmt.closeOnCompletion();
-        return pstmt.executeQuery();
+        stmt.setString(1, schema == null ? "%" : schema);
+        stmt.setString(2, table == null ? "%" : table.toUpperCase());
+        stmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
+        stmt.closeOnCompletion();
+        return stmt.executeQuery();
     }
 
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
@@ -685,39 +673,39 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         return true;
     }
 
-    public ResultSet keysQuery(String var1, String var2, String var3, String var4, String var5)
-                                                                                               throws SQLException {
-        int var6 = 1;
-        int var7 = var2 != null ? var6++ : 0;
-        int var8 = var4 != null ? var6++ : 0;
-        int var9 = var1 != null && var1.length() > 0 ? var6++ : 0;
-        int var10 = var3 != null && var3.length() > 0 ? var6++ : 0;
-        PreparedStatement var11 = this.connection
+    public ResultSet keysQuery(String parentSchema, String parentTable, String foreignSchema,
+                               String foreignTable, String orderBy) throws SQLException {
+        int index = 1;
+        int parentTableIndex = parentTable != null ? index++ : 0;
+        int foreignTableIndex = foreignTable != null ? index++ : 0;
+        int parentSchemaIndex = parentSchema != null && parentSchema.length() > 0 ? index++ : 0;
+        int foreignSchemaIndex = foreignSchema != null && foreignSchema.length() > 0 ? index++ : 0;
+        PreparedStatement stmt = this.connection
             .prepareStatement("SELECT NULL AS pktable_cat,\n       p.owner as pktable_schem,\n       p.table_name as pktable_name,\n       pc.column_name as pkcolumn_name,\n       NULL as fktable_cat,\n       f.owner as fktable_schem,\n       f.table_name as fktable_name,\n       fc.column_name as fkcolumn_name,\n       fc.position as key_seq,\n       NULL as update_rule,\n       decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,\n       f.constraint_name as fk_name,\n       p.constraint_name as pk_name,\n       decode(f.deferrable,       'DEFERRABLE',5      ,'NOT DEFERRABLE',7      , 'DEFERRED', 6      ) deferrability \n      FROM all_cons_columns pc, all_constraints p,\n      all_cons_columns fc, all_constraints f\nWHERE 1 = 1\n"
-                              + (var7 != 0 ? "  AND p.table_name = ?\n" : "")
-                              + (var8 != 0 ? "  AND f.table_name = ?\n" : "")
-                              + (var9 != 0 ? "  AND p.owner = ?\n" : "")
-                              + (var10 != 0 ? "  AND f.owner = ?\n" : "")
+                              + (parentTableIndex != 0 ? "  AND p.table_name = ?\n" : "")
+                              + (foreignTableIndex != 0 ? "  AND f.table_name = ?\n" : "")
+                              + (parentSchemaIndex != 0 ? "  AND p.owner = ?\n" : "")
+                              + (foreignSchemaIndex != 0 ? "  AND f.owner = ?\n" : "")
                               + "  AND f.constraint_type = 'R'\n  AND p.owner = f.r_owner\n  AND p.constraint_name = f.r_constraint_name\n  AND p.constraint_type = 'P'\n  AND pc.owner = p.owner\n  AND pc.constraint_name = p.constraint_name\n  AND pc.table_name = p.table_name\n  AND fc.owner = f.owner\n  AND fc.constraint_name = f.constraint_name\n  AND fc.table_name = f.table_name\n  AND fc.position = pc.position\n"
-                              + var5);
-        if (var7 != 0) {
-            var11.setString(var7, var2);
+                              + orderBy);
+        if (parentTableIndex != 0) {
+            stmt.setString(parentTableIndex, parentTable);
         }
 
-        if (var8 != 0) {
-            var11.setString(var8, var4);
+        if (foreignTableIndex != 0) {
+            stmt.setString(foreignTableIndex, foreignTable);
         }
 
-        if (var9 != 0) {
-            var11.setString(var9, var1);
+        if (parentSchemaIndex != 0) {
+            stmt.setString(parentSchemaIndex, parentSchema);
         }
 
-        if (var10 != 0) {
-            var11.setString(var10, var3);
+        if (foreignSchemaIndex != 0) {
+            stmt.setString(foreignSchemaIndex, foreignSchema);
         }
 
-        var11.closeOnCompletion();
-        ResultSet resultSet = var11.executeQuery();
-        return resultSet;
+        stmt.closeOnCompletion();
+        ResultSet rs = stmt.executeQuery();
+        return rs;
     }
 }

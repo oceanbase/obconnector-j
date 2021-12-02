@@ -49,7 +49,6 @@ import static org.junit.Assert.fail;
 import java.sql.*;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -59,7 +58,7 @@ public class CursorFetchTest extends BaseTest {
 
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable(tableName, "c1 int,c2 varchar(30)");
+        createTable(tableName, "c1 int, c2 varchar(30), constraint pk primary key(c1)");
 
         if (testSingleHost) {
             String query = "insert into " + tableName + " values(1,'1+string')";
@@ -92,34 +91,9 @@ public class CursorFetchTest extends BaseTest {
         }
     }
 
-    @Test(expected = SQLException.class)
-    public void forwardOnlyPrepareStmt() throws SQLException {
-        Assume.assumeFalse(sharedIsRewrite());
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM test_cursor_mysql",
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery()) {
-                rs.beforeFirst();
-                fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
-            }
-        }
-    }
-
-    @Test(expected = SQLException.class)
-    public void forwardOnlyStmt() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement(
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM test_cursor_mysql")) {
-                rs.beforeFirst();
-                fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
-            }
-        }
-    }
-
     @Test
     public void scrollInsensitivePrepareStmt() throws SQLException {
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM test_cursor_mysql",
+        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM " + tableName,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
             stmt.setFetchSize(2);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -135,7 +109,7 @@ public class CursorFetchTest extends BaseTest {
         try (Statement stmt = sharedConnection.createStatement(
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
             stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM test_cursor_mysql")) {
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                 rs.beforeFirst();
             } catch (SQLException sqle) {
                 fail("beforeFirst() should work on a TYPE_SCROLL_INSENSITIVE result set");
@@ -144,13 +118,13 @@ public class CursorFetchTest extends BaseTest {
     }
 
     @Test
-    public void testScrollableCursor() throws Exception {
+    public void testScrollableCursor() {
         //Assume.assumeTrue(sharedUsePrepare());
         try {
             Connection conn = setConnection("&useServerPrepStmts=false&useCursorFetch=true");
             PreparedStatement ps = conn.prepareStatement("select * from " + tableName,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            ps.setFetchSize(110);
+            ps.setFetchSize(40);
             ResultSet rs = ps.executeQuery();
 
             Assert.assertTrue(rs.next());
@@ -185,6 +159,45 @@ public class CursorFetchTest extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    public void testSensitiveResultSet() {
+        try {
+            Connection conn = setConnection("&useServerPrepStmts=false&useCursorFetch=true");
+            PreparedStatement ps = conn.prepareStatement("select c1, c2 from " + tableName,
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            ps.setFetchSize(10);
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertEquals(10, ps.getFetchSize());
+            Assert.assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+            Assert.assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            /** 中断，省略更新记录
+             * use unittests;
+             * update test_cursor_mysql set c2='-1+changed' where c1=1;
+             * update test_cursor_mysql set c2='-3+changed' where c1=3;
+             * commit;
+             */
+            rs.refreshRow();
+            Assert.assertEquals("-1+changed", rs.getString(2));
+
+            Assert.assertTrue(rs.absolute(3));
+            Assert.assertEquals("3+string", rs.getString(2));
+            rs.refreshRow();
+            Assert.assertEquals("-3+changed", rs.getString(2));
+
+            rs.beforeFirst();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("-1+changed", rs.getString(2));
+
+            ps.close();
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

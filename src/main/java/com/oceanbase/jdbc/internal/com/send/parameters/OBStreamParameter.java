@@ -49,6 +49,7 @@ import java.io.InputStream;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
 public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
@@ -174,18 +175,15 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
         byte[] data = new byte[len];
 
         System.arraycopy(buffer, 0, data, 0, len);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : data) {
-            sb.append(String.format("%02x", b));
-        }
-        data = sb.toString().getBytes();
-        if (first && data.length == pieceLen) {
+        data = Utils.toHexString(data).getBytes();
+        int lastLen = is.available();
+        if (first && lastLen != 0) {
             piece = Packet.OCI_FIRST_PIECE;
             ret = true;
-        } else if (first && data.length < pieceLen) {
+        } else if (first && lastLen == 0) {
             piece = Packet.OCI_LAST_PIECE;
             ret = false;
-        } else if (!first && data.length == pieceLen) {
+        } else if (!first && lastLen != 0) {
             piece = Packet.OCI_NEXT_PIECE;
             ret = true;
         } else {

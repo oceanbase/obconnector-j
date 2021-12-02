@@ -61,17 +61,6 @@ public class CursorResultSet extends SelectResultSet {
         this.statementId = results.getStatementId();
     }
 
-    @Override
-    public boolean next() throws SQLException {
-        if (super.next()) {
-            return true;
-        } else {
-            super.resetState();
-            cursorFetch();
-            return super.next();
-        }
-    }
-
     private void cursorFetch() throws SQLException {
         if (isLastRow) {
             return;
@@ -104,7 +93,60 @@ public class CursorResultSet extends SelectResultSet {
     }
 
     @Override
+    public boolean isLast() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && getProtocol().isOracleMode()) {
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet for oracle mode: isLast");
+        }
+
+        if (rowPointer < dataSize - 1) {
+            return false;
+        } else if (isEof) {
+            return isLastRow && rowPointer == dataSize - 1 && dataSize > 0;
+        } else {
+            cursorFetch();
+
+            if (isEof) {
+                return isLastRow && rowPointer == dataSize - 1 && dataSize > 0;
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public void afterLast() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: afterLast");
+        }
+
+        while (!isLastRow) {
+            cursorFetch();
+        }
+        rowPointer = dataSize;
+    }
+
+    @Override
+    public boolean last() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: last");
+        }
+
+        while (!isLastRow) {
+            cursorFetch();
+        }
+        rowPointer = dataSize - 1;
+        return dataSize > 0;
+    }
+
+    @Override
     public boolean absolute(int row) throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: absolute");
+        }
+
         while (!isLastRow && (row > dataSize || row < -dataSize)) {
             cursorFetch();
         }
@@ -129,6 +171,11 @@ public class CursorResultSet extends SelectResultSet {
 
     @Override
     public boolean relative(int rows) throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException(
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet: relative");
+        }
+
         int newPos = rowPointer + rows;
         if (newPos < 0) {
             rowPointer = -1;
@@ -138,20 +185,18 @@ public class CursorResultSet extends SelectResultSet {
     }
 
     @Override
-    public boolean last() throws SQLException {
-        while (!isLastRow) {
-            cursorFetch();
+    public boolean next() throws SQLException {
+        if (super.next()) {
+            return true;
+        } else {
+            if (!isLastRow) {
+                super.resetState();
+                cursorFetch();
+                return super.next();
+            } else {
+                return false;
+            }
         }
-        rowPointer = dataSize - 1;
-        return dataSize > 0;
-    }
-
-    @Override
-    public void afterLast() throws SQLException {
-        while (!isLastRow) {
-            cursorFetch();
-        }
-        rowPointer = dataSize;
     }
 
 }

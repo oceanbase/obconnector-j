@@ -98,9 +98,9 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         if (!hasLobLocator && reader != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
-                pos.write(reader, false, noBackslashEscapes);
+                pos.writeEscapeQuote(reader, noBackslashEscapes);
             } else {
-                pos.write(reader, length, false, noBackslashEscapes);
+                pos.writeEscapeQuote(reader, length, noBackslashEscapes);
             }
             pos.write(QUOTE);
         }
@@ -165,13 +165,13 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
             return false;
         }
         byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
-        if (first && data.length == pieceLen) {
+        if (first && reader.ready()) {
             piece = Packet.OCI_FIRST_PIECE;
             ret = true;
-        } else if (first && data.length < pieceLen) {
+        } else if (first && !reader.ready()) {
             piece = Packet.OCI_LAST_PIECE;
             ret = false;
-        } else if (!first && data.length == pieceLen) {
+        } else if (!first && reader.ready()) {
             piece = Packet.OCI_NEXT_PIECE;
             ret = true;
         } else {

@@ -64,24 +64,16 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class ComStmtPrepare {
 
-    private final Protocol protocol;
-    private final String   sql;
-
-    public ComStmtPrepare(Protocol protocol, String sql) {
-        this.protocol = protocol;
-        this.sql = sql;
-    }
-
     /**
      * Send directly to socket the sql data.
      *
      * @param pos the writer
      * @throws IOException if connection error occur
      */
-    public void send(PacketOutputStream pos) throws IOException {
+    public static void send(PacketOutputStream pos, String sql) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_PREPARE);
-        pos.write(this.sql);
+        pos.write(sql);
         pos.flush();
     }
 
@@ -94,9 +86,9 @@ public class ComStmtPrepare {
      * @throws IOException if connection has error
      * @throws SQLException if server answer with error.
      */
-    public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated)
-                                                                                    throws IOException,
-                                                                                    SQLException {
+    public static ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated,
+                                           Protocol protocol, String sql) throws IOException,
+                                                                         SQLException {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
@@ -118,7 +110,7 @@ public class ComStmtPrepare {
             if (numParams > 0) {
                 for (int i = 0; i < numParams; i++) {
                     params[i] = new ColumnDefinition(reader.getPacket(false),
-                        this.protocol.isOracleMode(), this.protocol.getOptions().characterEncoding);
+                        protocol.isOracleMode(), protocol.getOptions().characterEncoding);
                 }
 
                 if (numColumns > 0) {
@@ -127,8 +119,7 @@ public class ComStmtPrepare {
                     }
                     for (int i = 0; i < numColumns; i++) {
                         columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            this.protocol.isOracleMode(),
-                            this.protocol.getOptions().characterEncoding);
+                            protocol.isOracleMode(), protocol.getOptions().characterEncoding);
                     }
                 }
                 if (!eofDeprecated) {
@@ -138,8 +129,7 @@ public class ComStmtPrepare {
                 if (numColumns > 0) {
                     for (int i = 0; i < numColumns; i++) {
                         columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            this.protocol.isOracleMode(),
-                            this.protocol.getOptions().characterEncoding);
+                            protocol.isOracleMode(), protocol.getOptions().characterEncoding);
                     }
                     if (!eofDeprecated) {
                         protocol.readEofPacket();
@@ -169,7 +159,7 @@ public class ComStmtPrepare {
         }
     }
 
-    private SQLException buildErrorException(Buffer buffer) {
+    private static SQLException buildErrorException(Buffer buffer) {
         ErrorPacket ep = new ErrorPacket(buffer);
         String message = ep.getMessage();
         if (1054 == ep.getErrorCode()) {

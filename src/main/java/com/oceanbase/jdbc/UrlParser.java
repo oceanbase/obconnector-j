@@ -268,6 +268,11 @@ public class UrlParser implements Cloneable {
         LoggerFactory.init(urlParser.options.log || urlParser.options.profileSql
                            || urlParser.options.slowQueryThresholdNanos != null);
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
+        if (properties.get("port") != null) {
+            urlParser.addresses.forEach(
+                    address -> address.port = Integer.parseInt((String) properties.get("port"))
+            );
+        }
     }
 
     private static HaMode parseHaMode(String url, int separator) {

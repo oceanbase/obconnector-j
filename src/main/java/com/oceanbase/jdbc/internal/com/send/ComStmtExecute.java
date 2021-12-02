@@ -64,13 +64,13 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 public class ComStmtExecute {
 
     /**
-     * Write COM_STMT_EXECUTE sub-command to output buffer.
+     * Send a prepare statement binary stream.
      *
+     * @param pos database socket
      * @param statementId prepareResult object received after preparation.
      * @param parameters parameters
      * @param parameterCount parameters number
-     * @param parameterTypeHeader parameters header1
-     * @param pos outputStream
+     * @param parameterTypeHeader parameters header
      * @param cursorFlag cursor flag. Possible values :
      *     <ol>
      *       <li>CURSOR_TYPE_NO_CURSOR = fetch all
@@ -81,10 +81,13 @@ public class ComStmtExecute {
      *
      * @throws IOException if a connection error occur
      */
-    public static void writeCmd(final int statementId, final ParameterHolder[] parameters,
-                                final int parameterCount, ColumnType[] parameterTypeHeader,
-                                final PacketOutputStream pos, final byte cursorFlag,
-                                Protocol protocol) throws IOException, SQLException {
+    public static void send(final PacketOutputStream pos, final int statementId,
+                            final ParameterHolder[] parameters, final int parameterCount,
+                            ColumnType[] parameterTypeHeader, byte cursorFlag, Protocol protocol)
+                                                                                                 throws IOException,
+                                                                                                 SQLException {
+        pos.startPacket(0);
+
         pos.write(Packet.COM_STMT_EXECUTE);
         pos.writeInt(statementId);
         pos.write(cursorFlag);
@@ -154,34 +157,7 @@ public class ComStmtExecute {
                 holder.writeBinary(pos);
             }
         }
-    }
 
-    /**
-     * Send a prepare statement binary stream.
-     *
-     * @param pos database socket
-     * @param statementId prepareResult object received after preparation.
-     * @param parameters parameters
-     * @param parameterCount parameters number
-     * @param parameterTypeHeader parameters header
-     * @param cursorFlag cursor flag. Possible values :
-     *     <ol>
-     *       <li>CURSOR_TYPE_NO_CURSOR = fetch all
-     *       <li>CURSOR_TYPE_READ_ONLY = fetch by bunch
-     *       <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?
-     *       <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working
-     *     </ol>
-     *
-     * @throws IOException if a connection error occur
-     */
-    public static void send(final PacketOutputStream pos, final int statementId,
-                            final ParameterHolder[] parameters, final int parameterCount,
-                            ColumnType[] parameterTypeHeader, byte cursorFlag, Protocol protocol)
-                                                                                                 throws IOException,
-                                                                                                 SQLException {
-        pos.startPacket(0);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag,
-            protocol);
         pos.flush();
     }
 }

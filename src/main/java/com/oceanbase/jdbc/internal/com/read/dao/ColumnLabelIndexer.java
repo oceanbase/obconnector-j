@@ -142,4 +142,8 @@ public class ColumnLabelIndexer {
     }
     return res;
   }
+
+    public void setAliasMap(Map<String, Integer> map) {
+        this.aliasMap = map;
+    }
 }

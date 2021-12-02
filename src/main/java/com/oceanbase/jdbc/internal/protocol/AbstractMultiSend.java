@@ -62,6 +62,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
+import com.oceanbase.jdbc.internal.com.send.ComStmtPrepareExecute;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.util.BulkStatus;
@@ -219,43 +220,40 @@ public abstract class AbstractMultiSend {
     int totalExecutionNumber = getTotalExecutionNumber();
     SQLException exception = null;
     BulkStatus status = new BulkStatus();
-
-    ComStmtPrepare comStmtPrepare = null;
     FutureTask<AsyncMultiReadResult> futureReadTask = null;
-
     int requestNumberByBulk;
     int paramCount = estimatedParameterCount;
+
     try {
       do {
         status.sendEnded = false;
         status.sendSubCmdCounter = 0;
-        requestNumberByBulk =
-            Math.min(
-                totalExecutionNumber - status.sendCmdCounter,
-                protocol.getOptions().useBatchMultiSendNumber);
+                requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchMultiSendNumber);
         protocol.changeSocketTcpNoDelay(false); // enable NAGLE algorithm temporary.
 
         // add prepare sub-command
-        if (readPrepareStmtResult && prepareResult == null) {
-
-          comStmtPrepare = new ComStmtPrepare(protocol, sql);
-          comStmtPrepare.send(writer);
+        if (!protocol.supportStmtPrepareExecute() && readPrepareStmtResult && prepareResult == null) {
+          ComStmtPrepare.send(writer, sql);
 
           // read prepare result
-          prepareResult = comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated());
+          prepareResult = ComStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated(), protocol, sql);
           statementId = ((ServerPrepareResult) prepareResult).getStatementId();
           paramCount = getParamCount();
         }
 
         boolean useCurrentThread = false;
-
         for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
           sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
+
           status.sendSubCmdCounter++;
           status.sendCmdCounter++;
           if (useCurrentThread) {
             try {
-              protocol.getResult(results);
+              if (protocol.supportStmtPrepareExecute()) {
+                prepareResult = ComStmtPrepareExecute.read(getProtocol(), protocol.getReader(), (ServerPrepareResult) prepareResult, results);
+              } else {
+                protocol.getResult(results);
+              }
             } catch (SQLException qex) {
               if (((readPrepareStmtResult && prepareResult == null)
                   || !protocol.getOptions().continueBatchOnError)) {
@@ -266,24 +264,18 @@ public abstract class AbstractMultiSend {
             }
           } else if (futureReadTask == null) {
             try {
-              futureReadTask =
-                  new FutureTask<>(
-                      new AsyncMultiRead(
-                          comStmtPrepare,
-                          status,
-                          protocol,
-                          false,
-                          this,
-                          paramCount,
-                          results,
-                          parametersList,
-                          queries,
-                          prepareResult));
+              futureReadTask = new FutureTask<>(
+                                  new AsyncMultiRead(status, protocol, false, this,
+                                        paramCount, results, parametersList, queries, sql, prepareResult));
               readScheduler.execute(futureReadTask);
             } catch (RejectedExecutionException r) {
               useCurrentThread = true;
               try {
-                protocol.getResult(results);
+                if (protocol.supportStmtPrepareExecute()) {
+                  prepareResult = ComStmtPrepareExecute.read(getProtocol(), protocol.getReader(), (ServerPrepareResult) prepareResult, results);
+                } else {
+                  protocol.getResult(results);
+                }
               } catch (SQLException qex) {
                 if (((readPrepareStmtResult && prepareResult == null)
                     || !protocol.getOptions().continueBatchOnError)) {
@@ -295,16 +287,14 @@ public abstract class AbstractMultiSend {
             }
           }
         }
-
         status.sendEnded = true;
+
         if (!useCurrentThread) {
           protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
           try {
             AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
 
-            if (binaryProtocol
-                && prepareResult == null
-                && asyncMultiReadResult.getPrepareResult() != null) {
+            if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
               prepareResult = asyncMultiReadResult.getPrepareResult();
               statementId = ((ServerPrepareResult) prepareResult).getStatementId();
               paramCount = prepareResult.getParamCount();

@@ -58,50 +58,9 @@ import java.sql.Types;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-/**
- * The LobLocator for OceanBase Blob/Clob object. It will be send when the serverCapabilities's OB_CLIENT_SUPPORT_LOB_LOCATOR has been set. Server will
- * update data base on the <code>ObLobLocator</code> object. Length for the <code>ObLobLocator</code> is OB_LOG_LOCATOR_HEADER(40), and it has payloadOffset
- * length rowId, and the data left if data store on the database.
- * Such as:
- *      magic_code_:		21 42 4f 4c
- *      version_:			01 00 00 00
- *      snapshot_version_:	89 ae d4 cb 3f af 05 00
- *      table_id_:			7b c3 00 00 00 e9 03 00
- *      column_id_:		    11 00 00 00
- *      flags_：			00 00
- *      option_:			00 00
- *      payload_offset_:	11 00 00 00
- *      payload_size_:		03 00 00 00
- *      row_id_:		    2a 41 41 49 4b 41 51 41 41 41 41 41 41 41 41 41 3d
- *      data_(payload):	    61 62 63 #will be store to Blob/Clob object
- *
- */
-class ObLobLocator {
-    protected long                         magicCode;                 // uint32_t magic_code_;
-    protected long                         version;                   // uint32_t version_;
-    protected long                         snapshotVersion;           // int64_t  snapshot_version_;
-    protected byte[]                       tableId;                   // uint64_t table_id_;
-    protected long                         columnId;                  // uint32_t column_id_;
-    protected int                          flags;                     // uint16_t flags_;
-    protected int                          option;                    // uint16_t option_;
-    protected long                         payloadOffset;             // uint32_t payload_offset_;
-    protected long                         payloadSize;               // uint32_t payload_size_;
-    protected byte[]                       rowId;                     // row_id length == payloadOffset
-    protected byte[]                       binaryData;                // binary to data to send
-    public static int                      OB_LOG_LOCATOR_HEADER = 40;
-    protected volatile OceanBaseConnection connection;
-}
+public class Blob extends Lob implements ObBlob {
 
-public class Blob implements ObBlob, Serializable {
-
-    private static final long      serialVersionUID     = -4736603161284649490L;
-    protected byte[]               data                 = null;
-    protected transient int        offset;
-    protected transient int        length;
-    protected ObLobLocator         locator              = null;
-    protected String               encoding             = null;
-    protected String               charData             = null;
-    protected ExceptionInterceptor exceptionInterceptor = null;
+    private static final long serialVersionUID = -4736603161284649490L;
 
     /** Creates an empty blob. */
     public Blob() {
@@ -227,74 +186,6 @@ public class Blob implements ObBlob, Serializable {
      */
     public long length() {
         return length;
-    }
-
-    /**
-     * Retrieves all or part of the <code>BLOB</code> value that this <code>Blob</code> object
-     * represents, as an array of bytes. This <code>byte</code> array contains up to <code>length
-     * </code> consecutive bytes starting at position <code>pos</code>.
-     *
-     * @param pos the ordinal position of the first byte in the <code>BLOB</code> value to be
-     *     extracted; the first byte is at position 1
-     * @param length  the number of consecutive bytes to be copied; the value for length must be 0 or
-     *     greater
-     * @return a byte array containing up to <code>length</code> consecutive bytes from the <code>BLOB
-     *     </code> value designated by this <code>Blob</code> object, starting with the byte at
-     *     position <code>pos</code>
-     * @throws SQLException if there is an error accessing the <code>BLOB</code> value; if pos is less
-     *     than 1 or length is less than 0
-     * @see #setBytes
-     * @since 1.2
-     */
-    public byte[] getBytes(final long pos, final int length) throws SQLException {
-        if (pos < 1) {
-            throw ExceptionFactory.INSTANCE.create(String.format(
-                "Out of range (position should be > 0, but is %s)", pos));
-        }
-        final int offset = this.offset + (int) (pos - 1);
-        int len = length > this.length ? this.length : length;
-        byte[] result = new byte[len];
-        System.arraycopy(data, offset, result, 0, Math.min(this.length - (int) (pos - 1), length));
-        return result;
-    }
-
-    /**
-     * Retrieves the <code>BLOB</code> value designated by this <code>Blob</code> instance as a
-     * stream.
-     *
-     * @return a stream containing the <code>BLOB</code> data
-     * @throws SQLException if something went wrong
-     * @see #setBinaryStream
-     */
-    public InputStream getBinaryStream() throws SQLException {
-        return getBinaryStream(1, length);
-    }
-
-    /**
-     * Returns an <code>InputStream</code> object that contains a partial <code>Blob</code> value,
-     * starting with the byte specified by pos, which is length bytes in length.
-     *
-     * @param pos the offset to the first byte of the partial value to be retrieved. The first byte in
-     *     the <code>Blob</code> is at position 1
-     * @param length the length in bytes of the partial value to be retrieved
-     * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
-     * @throws SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
-     *     <code>Blob</code> or if pos + length is greater than the number of bytes in the <code>Blob
-     *     </code>
-     */
-    public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
-        if (pos < 1) {
-            throw ExceptionFactory.INSTANCE.create("Out of range (position should be > 0)");
-        }
-        if (pos - 1 > this.length) {
-            throw ExceptionFactory.INSTANCE.create("Out of range (position > stream size)");
-        }
-        if (pos + length - 1 > this.length) {
-            throw ExceptionFactory.INSTANCE
-                .create("Out of range (position + length - 1 > streamSize)");
-        }
-
-        return new ByteArrayInputStream(data, this.offset + (int) pos - 1, (int) length);
     }
 
     public Reader getCharacterStream() throws SQLException {
@@ -504,20 +395,6 @@ public class Blob implements ObBlob, Serializable {
     }
 
     /**
-     * This method frees the <code>Blob</code> object and releases the resources that it holds. The
-     * object is invalid once the <code>free</code> method is called.
-     *
-     * <p>After <code>free</code> has been called, any attempt to invoke a method other than <code>
-     * free</code> will result in a <code>SQLException</code> being thrown. If <code>free</code> is
-     * called multiple times, the subsequent calls to <code>free</code> are treated as a no-op.
-     */
-    public void free() {
-        this.data = new byte[0];
-        this.offset = 0;
-        this.length = 0;
-    }
-
-    /**
      * 
      * @return
      */
@@ -619,14 +496,4 @@ public class Blob implements ObBlob, Serializable {
         }
     }
 
-    public boolean isEmptyLob() {
-        if (this.locator != null) {
-            return locator.payloadSize == 0;
-        } else {
-            if (data == null || data.length == 0) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

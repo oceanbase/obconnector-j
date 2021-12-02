@@ -83,4 +83,30 @@ public class ProcTest extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testBatch() throws Exception {
+        createTable("testBatchTable", "field1 INT");
+        createProcedure("testBatch",
+            "(IN foo int)\nbegin\nINSERT INTO testBatchTable VALUES (foo);\nend\n");
+        Statement stmt = sharedConnection.createStatement();
+
+        CallableStatement storedProc = sharedConnection.prepareCall("{call testBatch(?)}");
+        int numBatches = 3;
+        for (int i = 0; i < numBatches; i++) {
+            storedProc.setInt(1, i + 1);
+            storedProc.addBatch();
+        }
+        int[] counts = storedProc.executeBatch();
+        Assert.assertEquals(numBatches, counts.length);
+        //        for (int i = 0; i < numBatches; i++) {
+        //            Assert.assertEquals(1, counts[i]);   // wrong server result
+        //        }
+
+        ResultSet rs = stmt.executeQuery("SELECT field1 FROM testBatchTable ORDER BY field1 ASC");
+        for (int i = 0; i < numBatches; i++) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(i + 1, rs.getInt(1));
+        }
+    }
 }

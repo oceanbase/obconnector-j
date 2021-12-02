@@ -69,7 +69,7 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
     private UrlParser urlParser;
 
     private String    hostname;
-    private Integer   port = 3306;
+    private Integer   port = null;
     private Integer   connectTimeoutInMs;
     private String    database;
     private String    url;
@@ -495,6 +495,9 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
             }
             if (connectTimeoutInMs != null) {
                 props.setProperty("connectTimeout", String.valueOf(connectTimeoutInMs));
+            }
+            if (port != null) {
+                props.setProperty("port", String.valueOf(port));
             }
 
             urlParser = UrlParser.parse(url, props);
