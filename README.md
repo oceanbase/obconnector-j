@@ -4,29 +4,24 @@
   </a>
 </p>
 
-# Oceanbase Client for Java
+# OceanBase Client for Java
 OceanBase Client for Java is a JDBC 4.2 compatible driver, used to connect applications developed in Java to OceanBase Database Server.
 
 # Compatibility
 ## Server Compatibility
 OceanBase Client for Java is compatible with all OceanBase Database Server versions.
 ## Java Compatibility
-OceanBase Client for Java is developed based on java 8, please confirm your java version.
+OceanBase Client for Java is developed based on Java 8, please confirm your Java version.
 ## Obtaining the driver
-**For users who upgrade from version prior to 2.2.0:**
-
-- Upgrade to JDK 8 if you are running any lower version.
-- Change package path to `com.oceanbase.jdbc` .
-- Change Maven groupId to `com.oceanbase` .
-
-maven : 
+The driver (jar) can be downloaded from maven: 
 ```script
 <dependency>
     <groupId>com.oceanbase</groupId>
     <artifactId>oceanbase-client</artifactId>
+    <version>2.2.7</version>
 </dependency>
 ```
-## Build from source
+## Building from source
 ```script
  mvn clean package -DskipTests
  ```

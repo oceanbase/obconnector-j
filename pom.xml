@@ -21,16 +21,17 @@
             <name>LGPL-2.1</name>
         </license>
     </licenses>
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <url>http://repo.alibaba-inc.com/mvn/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <url>http://repo.alibaba-inc.com/mvn/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
+
+    <developers>
+        <developer>
+            <id>oceanbaseJdbcDevelopers</id>
+            <name>oceanbase jdbc developers</name>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/oceanbase/ob-connector-j.git</connection>
+        <url>https://github.com/oceanbase/ob-connector-j</url>
+    </scm>
 
     <properties>
         <jna.version>5.5.0</jna.version>
