@@ -261,7 +261,8 @@ public class OceanBaseXaResource implements XAResource {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_PREPARE(?) from dual");
             ObStruct xidObj = genOracleXid(xid);
-            dispatchOracleCommand(commandBuf.toString(), xidObj);
+            int xaRet = dispatchOracleCommand(commandBuf.toString(), xidObj);
+            return xaRet;
         } else {
             execute("XA PREPARE " + xidToString(xid));
         }
@@ -469,12 +470,12 @@ public class OceanBaseXaResource implements XAResource {
         }
     }
 
-    private ResultSet dispatchOracleCommand(String command, ObStruct xid) throws XAException {
+    private int dispatchOracleCommand(String command, ObStruct xid) throws XAException {
         return dispatchOracleCommand(command, xid, null);
     }
 
-    private ResultSet dispatchOracleCommand(String command, ObStruct xid, Object param)
-                                                                                       throws XAException {
+    private int dispatchOracleCommand(String command, ObStruct xid, Object param)
+                                                                                 throws XAException {
         java.sql.PreparedStatement psStmt = null;
         try {
 
@@ -487,21 +488,27 @@ public class OceanBaseXaResource implements XAResource {
             if (param != null) {
                 psStmt.setObject(2, param);
             }
+            ResultSet rs = null;
+            try {
+                rs = psStmt.executeQuery();
+                // Whether the execution succeeds or fails, a result set will be returned
+                if (rs.next()) {
+                    int xaRet = rs.getInt(1);
 
-            ResultSet rs = psStmt.executeQuery();
-            // Whether the execution succeeds or fails, a result set will be returned
-            if (rs.next()) {
-                int xaRet = rs.getInt(1);
-
-                if (xaRet < 0) {
-                    XAException xaException = new XAException(xaRet);
-                    throw xaException;
+                    if (xaRet < 0) {
+                        XAException xaException = new XAException(xaRet);
+                        throw xaException;
+                    }
+                    return xaRet;
+                } else {
+                    throw new XAException(XAException.XAER_RMFAIL);
                 }
-            } else {
-                throw new XAException(XAException.XAER_RMFAIL);
+            } finally {
+                if (rs != null) {
+                    rs.close();
+                }
             }
 
-            return rs;
         } catch (SQLException sqlEx) {
             sqlEx.printStackTrace();
             throw new XAException(XAException.XAER_RMFAIL);
