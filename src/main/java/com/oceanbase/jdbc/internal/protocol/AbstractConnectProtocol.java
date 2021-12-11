@@ -397,19 +397,23 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (lock != null) {
             locked = lock.tryLock();
         }
-        this.connected = false;
         try {
-            /* If a streaming result set is open, close it.*/
-            skip();
-        } catch (Exception e) {
-            /* eat exception */
-        }
+            this.connected = false;
+            try {
+                /* If a streaming result set is open, close it.*/
+                skip();
+            } catch (Exception e) {
+                /* eat exception */
+            }
 
-        SendClosePacket.send(writer);
-        closeSocket(reader, writer, socket);
-        cleanMemory();
-        if (locked) {
-            lock.unlock();
+            SendClosePacket.send(writer);
+            closeSocket(reader, writer, socket);
+            cleanMemory();
+
+        } finally {
+            if (locked) {
+                lock.unlock();
+            }
         }
     }
 
@@ -421,28 +425,31 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (lock != null) {
             lockStatus = lock.tryLock();
         }
-        this.connected = false;
+        try {
+            this.connected = false;
 
-        abortActiveStream();
+            abortActiveStream();
 
-        if (!lockStatus) {
-            // lock not available : query is running
-            // force end by executing an KILL connection
-            forceAbort();
-            try {
-                socket.setSoTimeout(10);
-                socket.setSoLinger(true, 0);
-            } catch (IOException ioException) {
-                // eat
+            if (!lockStatus) {
+                // lock not available : query is running
+                // force end by executing an KILL connection
+                forceAbort();
+                try {
+                    socket.setSoTimeout(10);
+                    socket.setSoLinger(true, 0);
+                } catch (IOException ioException) {
+                    // eat
+                }
+            } else {
+                SendClosePacket.send(writer);
             }
-        } else {
-            SendClosePacket.send(writer);
-        }
 
-        closeSocket(reader, writer, socket);
-        cleanMemory();
-        if (lockStatus) {
-            lock.unlock();
+            closeSocket(reader, writer, socket);
+            cleanMemory();
+        } finally {
+            if (lockStatus) {
+                lock.unlock();
+            }
         }
     }
 

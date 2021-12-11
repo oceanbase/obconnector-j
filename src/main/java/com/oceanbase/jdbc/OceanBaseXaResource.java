@@ -114,9 +114,17 @@ public class OceanBaseXaResource implements XAResource {
         XAException xaException;
         if (xaErrorCode != 0) {
             xaException = new XAException(xaErrorCode);
+
         } else {
             xaException = new XAException(sqle.getMessage());
         }
+        xaException.initCause(sqle);
+        return xaException;
+    }
+
+    private XAException mapXaException2(SQLException sqle) {
+        XAException xaException;
+        xaException = new XAException(XAException.XAER_RMFAIL);
         xaException.initCause(sqle);
         return xaException;
     }
@@ -200,7 +208,7 @@ public class OceanBaseXaResource implements XAResource {
                     this.isChangedCommit = false;
                 }
             } catch (SQLException e) {
-                throw new XAException(XAException.XAER_PROTO);
+                throw mapXaException2(e);
             }
         } else {
             if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
@@ -328,7 +336,7 @@ public class OceanBaseXaResource implements XAResource {
                     psStmt.close();
                 }
             } catch (SQLException sqlEx) { // NOPMD
-                throw new XAException(XAException.XAER_RMFAIL);
+                throw mapXaException2(sqlEx);
             }
         }
         int numXids = recoveredXidList.size();
@@ -429,7 +437,7 @@ public class OceanBaseXaResource implements XAResource {
                     this.isChangedCommit = false;
                 }
             } catch (SQLException e) {
-                throw new XAException(XAException.XAER_RMFAIL);
+                throw mapXaException2(e);
             }
             try {
                 dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
@@ -441,7 +449,7 @@ public class OceanBaseXaResource implements XAResource {
                         this.isChangedCommit = false;
                     }
                 } catch (SQLException se) { // NOPMD
-
+                    throw mapXaException2(se);
                 }
                 throw e;
             }
@@ -466,7 +474,7 @@ public class OceanBaseXaResource implements XAResource {
 
             return (ObStruct) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
         } catch (SQLException sqlEx) {
-            throw new XAException(XAException.XAER_INVAL);
+            throw mapXaException2(sqlEx);
         }
     }
 
@@ -511,13 +519,13 @@ public class OceanBaseXaResource implements XAResource {
 
         } catch (SQLException sqlEx) {
             sqlEx.printStackTrace();
-            throw new XAException(XAException.XAER_RMFAIL);
+            throw mapXaException2(sqlEx);
         } finally {
             if (psStmt != null) {
                 try {
                     psStmt.close();
                 } catch (SQLException sqlEx) { // NOPMD
-                    throw new XAException(XAException.XAER_RMFAIL);
+                    throw mapXaException2(sqlEx);
                 }
             }
         }
