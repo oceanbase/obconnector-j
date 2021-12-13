@@ -2314,6 +2314,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 "HY000",
                 initialException);
           }
+          cleanMemory();
 
           return new SQLTransientConnectionException(
               initialException.getMessage() + traces, "HY000", initialException);

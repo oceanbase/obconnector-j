@@ -62,11 +62,16 @@ import java.util.TimeZone;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
 
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
+import com.oceanbase.jdbc.jdbc2.optional.MysqlXid;
 
 public class OracleBugfix extends BaseOracleTest {
     static String testTMTable               = "test_timestamp" + getRandomString(5);
@@ -1892,6 +1897,83 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testXAReconnect1() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&cachePrepStmts=true&autoReconnect=true");
+
+            conn.createStatement().execute("set wait_timeout=5");
+
+            JDBC4MysqlXAConnection mysqlXAConnection = new JDBC4MysqlXAConnection(
+                (OceanBaseConnection) conn);
+            String gtridStr = "gtrid_test_wgs_ob_oracle_xa_one_phase_reconn";
+            String bqualStr = "bqual_test_wgs_ob_oracle_xa_one_phase_reconn";
+
+            Xid xid = new MysqlXid(gtridStr.getBytes(), bqualStr.getBytes(), 123);
+            try {
+                mysqlXAConnection.start(xid, XAResource.TMNOFLAGS);
+                // ps test
+                PreparedStatement pstmt = null;
+                ResultSet rs = null;
+                pstmt = conn.prepareStatement("select 1 from dual");
+                rs = pstmt.executeQuery();
+
+                while (rs.next()) {
+                    System.out.println(rs.getInt(1));
+                }
+
+                pstmt.close();
+
+                mysqlXAConnection.end(xid, XAResource.TMSUCCESS);
+                mysqlXAConnection.prepare(xid);
+                mysqlXAConnection.commit(xid, false);
+                Thread.sleep(7000);
+                try {
+                    conn.createStatement().execute("select 1 from dual");
+                } catch (Exception e) {
+                    //throw
+                }
+                mysqlXAConnection.start(xid, XAResource.TMNOFLAGS);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testXAReconnect2() throws SQLException, InterruptedException {
+        Assume.assumeTrue(sharedUsePrepare());
+        Connection conn = setConnection("&cachePrepStmts=true&autoReconnect=true");
+        Statement stmt = conn.createStatement();
+        PreparedStatement ps = conn.prepareStatement("select 1 from dual");
+        ResultSet rs = ps.executeQuery();
+        stmt.execute("SET SESSION wait_timeout = 4");
+        Thread.sleep(5000);
+        try {
+            stmt.execute("select 3 from dual");// reconnect
+        } catch (SQLNonTransientConnectionException e) {
+            e.printStackTrace();
+            Assert.fail("Must have send a SQLTransientConnectionException !");
+        } catch (SQLTransientConnectionException e) {
+            try {
+                stmt.execute("select 4 from dual");
+                ps = conn.prepareStatement("select 1 from dual");
+                rs = ps.executeQuery();
+            } catch (SQLException ee) {
+                ee.printStackTrace();
+                Assert.fail("Must have reconnect automatically !");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail("Must have reconnect automatically !");
         }
     }
 }
