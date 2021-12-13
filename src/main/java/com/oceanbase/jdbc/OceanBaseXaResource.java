@@ -114,9 +114,17 @@ public class OceanBaseXaResource implements XAResource {
         XAException xaException;
         if (xaErrorCode != 0) {
             xaException = new XAException(xaErrorCode);
+
         } else {
             xaException = new XAException(sqle.getMessage());
         }
+        xaException.initCause(sqle);
+        return xaException;
+    }
+
+    private XAException mapXaException2(SQLException sqle) {
+        XAException xaException;
+        xaException = new XAException(XAException.XAER_RMFAIL);
         xaException.initCause(sqle);
         return xaException;
     }
@@ -200,7 +208,7 @@ public class OceanBaseXaResource implements XAResource {
                     this.isChangedCommit = false;
                 }
             } catch (SQLException e) {
-                throw new XAException(XAException.XAER_PROTO);
+                throw mapXaException2(e);
             }
         } else {
             if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
@@ -261,7 +269,8 @@ public class OceanBaseXaResource implements XAResource {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_PREPARE(?) from dual");
             ObStruct xidObj = genOracleXid(xid);
-            dispatchOracleCommand(commandBuf.toString(), xidObj);
+            int xaRet = dispatchOracleCommand(commandBuf.toString(), xidObj);
+            return xaRet;
         } else {
             execute("XA PREPARE " + xidToString(xid));
         }
@@ -327,7 +336,7 @@ public class OceanBaseXaResource implements XAResource {
                     psStmt.close();
                 }
             } catch (SQLException sqlEx) { // NOPMD
-                throw new XAException(XAException.XAER_RMFAIL);
+                throw mapXaException2(sqlEx);
             }
         }
         int numXids = recoveredXidList.size();
@@ -428,7 +437,7 @@ public class OceanBaseXaResource implements XAResource {
                     this.isChangedCommit = false;
                 }
             } catch (SQLException e) {
-                throw new XAException(XAException.XAER_RMFAIL);
+                throw mapXaException2(e);
             }
             try {
                 dispatchOracleCommand(commandBuf.toString(), xidObj, Integer.valueOf(flags));
@@ -440,7 +449,7 @@ public class OceanBaseXaResource implements XAResource {
                         this.isChangedCommit = false;
                     }
                 } catch (SQLException se) { // NOPMD
-
+                    throw mapXaException2(se);
                 }
                 throw e;
             }
@@ -465,16 +474,16 @@ public class OceanBaseXaResource implements XAResource {
 
             return (ObStruct) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
         } catch (SQLException sqlEx) {
-            throw new XAException(XAException.XAER_INVAL);
+            throw mapXaException2(sqlEx);
         }
     }
 
-    private ResultSet dispatchOracleCommand(String command, ObStruct xid) throws XAException {
+    private int dispatchOracleCommand(String command, ObStruct xid) throws XAException {
         return dispatchOracleCommand(command, xid, null);
     }
 
-    private ResultSet dispatchOracleCommand(String command, ObStruct xid, Object param)
-                                                                                       throws XAException {
+    private int dispatchOracleCommand(String command, ObStruct xid, Object param)
+                                                                                 throws XAException {
         java.sql.PreparedStatement psStmt = null;
         try {
 
@@ -487,30 +496,36 @@ public class OceanBaseXaResource implements XAResource {
             if (param != null) {
                 psStmt.setObject(2, param);
             }
+            ResultSet rs = null;
+            try {
+                rs = psStmt.executeQuery();
+                // Whether the execution succeeds or fails, a result set will be returned
+                if (rs.next()) {
+                    int xaRet = rs.getInt(1);
 
-            ResultSet rs = psStmt.executeQuery();
-            // Whether the execution succeeds or fails, a result set will be returned
-            if (rs.next()) {
-                int xaRet = rs.getInt(1);
-
-                if (xaRet < 0) {
-                    XAException xaException = new XAException(xaRet);
-                    throw xaException;
+                    if (xaRet < 0) {
+                        XAException xaException = new XAException(xaRet);
+                        throw xaException;
+                    }
+                    return xaRet;
+                } else {
+                    throw new XAException(XAException.XAER_RMFAIL);
                 }
-            } else {
-                throw new XAException(XAException.XAER_RMFAIL);
+            } finally {
+                if (rs != null) {
+                    rs.close();
+                }
             }
 
-            return rs;
         } catch (SQLException sqlEx) {
             sqlEx.printStackTrace();
-            throw new XAException(XAException.XAER_RMFAIL);
+            throw mapXaException2(sqlEx);
         } finally {
             if (psStmt != null) {
                 try {
                     psStmt.close();
                 } catch (SQLException sqlEx) { // NOPMD
-                    throw new XAException(XAException.XAER_RMFAIL);
+                    throw mapXaException2(sqlEx);
                 }
             }
         }
