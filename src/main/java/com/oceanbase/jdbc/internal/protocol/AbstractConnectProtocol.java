@@ -491,7 +491,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void cleanMemory() {
+    protected void cleanMemory() {
         if (options.cachePrepStmts && options.useServerPrepStmts) {
             serverPrepareStatementCache.clear();
         }
