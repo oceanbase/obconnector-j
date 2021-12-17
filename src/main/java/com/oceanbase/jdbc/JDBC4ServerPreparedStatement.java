@@ -65,7 +65,7 @@ import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.util.ObCrc32C;
+import com.oceanbase.jdbc.util.OceanBaseCRC32C;
 
 public class JDBC4ServerPreparedStatement extends BasePrepareStatement implements Cloneable {
 
@@ -164,7 +164,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   private void prepare(String sql) throws SQLException {
     try {
-      ObCrc32C crc32C = new ObCrc32C();
+      OceanBaseCRC32C crc32C = new OceanBaseCRC32C();
       crc32C.reset();
       byte[] b; //  Consider the case of multiple character set
       try {
