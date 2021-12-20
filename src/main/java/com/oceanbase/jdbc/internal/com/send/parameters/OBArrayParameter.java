@@ -68,10 +68,6 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
         this.options = options;
     }
 
-    /**
-     * see complex data type protocol
-     * https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
-     */
     public void storeArrayTypeInfo(PacketOutputStream packet) throws IOException, SQLException {
         ObArray array = arrayValue;
         packet.writeFieldLength(0);

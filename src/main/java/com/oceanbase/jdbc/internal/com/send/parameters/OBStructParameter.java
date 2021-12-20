@@ -55,10 +55,6 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
     ObStruct structValue;
     Options  options;
 
-    /**
-     * see complex data type protocol
-     * https://yuque.antfin-inc.com/docs/share/61b0c815-c64b-40d4-a121-aa808e8bea1f
-     */
     public void storeStructTypeInfo(PacketOutputStream packet) throws IOException {
 
         ObStruct struct = structValue;
