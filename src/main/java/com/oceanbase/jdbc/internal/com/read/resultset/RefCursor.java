@@ -98,6 +98,7 @@ public class RefCursor extends SelectResultSet {
             this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
                 .getStatement().getMaxFieldSize(), options);
             this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
+            this.row.setProtocol(this.getProtocol());
         }
         try {
             getCursorFetchData();

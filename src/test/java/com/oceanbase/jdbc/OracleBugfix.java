@@ -1976,4 +1976,38 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail("Must have reconnect automatically !");
         }
     }
+
+    @Test
+    public void testRefCursorResultSet() {
+        try {
+            Assume.assumeTrue(sharedUsePrepare());
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_timestamp_cursor");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table test_timestamp_cursor (test_timestamp DATE)");
+            stmt.execute("insert into test_timestamp_cursor values (to_date('2021-12-24 14:45:56','yyyy-mm-dd hh24:mi:ss'))");
+            stmt.execute("create or replace procedure p_sms_send( ref_cursor  out sys_refcursor) as\n"
+                         + "v_sql       varchar2(2000);\n"
+                         + "begin\n"
+                         + "  v_sql := 'SELECT * FROM test_timestamp_cursor WHERE rownum<=1';\n"
+                         + "  open ref_cursor for v_sql;\n" + "\n" + "end;");
+
+            CallableStatement cs = conn.prepareCall("call P_SMS_SEND(?)");
+            cs.registerOutParameter(1, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet) cs.getObject(1);
+            Assert.assertTrue(rs.next());
+            Timestamp t = rs.getTimestamp(1);
+
+            ResultSet rs1 = stmt.executeQuery("select * from test_timestamp_cursor");
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(rs1.getTimestamp(1).toString(), "2021-12-24 14:45:56.0");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
