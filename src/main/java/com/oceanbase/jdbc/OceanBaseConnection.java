@@ -709,12 +709,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         // Support for Oracle anonymous block
 
         String querySetToServer = sql;
-        String uppserSQL = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
-            .toUpperCase(Locale.ROOT).trim();
         Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
         if (this.protocol.isOracleMode() && !matcher.matches()) { // oracle mode prepare sql by prepareCall
-            return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
-                null, null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+            if (options.supportNameBinding) {
+                querySetToServer = Utils.trimSQLString(sql, protocol.noBackslashEscapes(),
+                    protocol.isOracleMode(), true);
+            }
+            return new OceanBaseProcedureStatement(false, querySetToServer,
+                (OceanBaseConnection) this, "", null, null, resultSetType, resultSetConcurrency,
+                exceptionFactory, true);
         } else {
 
             if (!matcher.matches()) {
