@@ -2010,4 +2010,16 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGetUsernameNpe() {
+        try {
+            String userName = sharedConnection.getMetaData().getUserName();
+            Assert.assertEquals("TESTER", userName);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

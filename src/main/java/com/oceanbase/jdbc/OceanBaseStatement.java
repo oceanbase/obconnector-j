@@ -630,7 +630,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public boolean execute(final String sql, final String[] columnNames) throws SQLException {
     return executeInternal(sql, fetchSize, Statement.RETURN_GENERATED_KEYS);
   }
-
+  public boolean isCurorResultSet() {
+     return  (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true
+        && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
+        && this.getFetchSize() > 0);
+  }
   /**
    * executes a select query.
    *
@@ -639,10 +643,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true
-            && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
-            && this.getFetchSize() > 0) {
-      PreparedStatement pstmt = this.connection.prepareStatement(sql);
+    if (isCurorResultSet()) {
+      PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       pstmt.setFetchSize(this.fetchSize);
       pstmt.executeQuery();
       this.results =((ServerSidePreparedStatement)pstmt).results;
