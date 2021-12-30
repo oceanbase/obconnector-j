@@ -649,6 +649,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 } catch (SQLException e) {
                     // on some specific case, server cannot prepared data (CONJ-238)
                     // will use clientPreparedStatement
+                    if (!options.emulateUnsupportedPstmts) {
+                        throw e;
+                    }
                 }
             }
             if (this.protocol.isOracleMode() && options.supportNameBinding) {

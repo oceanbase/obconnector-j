@@ -857,7 +857,14 @@ public enum DefaultOptions {
                   0,
                   "2.2.6",
                   "When using executeBatch, the maximum number of spliced parameters",
-                  false);
+                  false),
+  EMULATE_UNSUPPORTED_PSTMTS(
+          "emulateUnsupportedPstmts",
+          Boolean.FALSE,
+          "2.2.8",
+          "If ps is abnormal, it will be degraded to the text protocol, otherwise it throws exception",
+          true
+  );
 
   private final String optionName;
   private final String description;
