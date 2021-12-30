@@ -888,7 +888,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     @Test
     public void testStringBatch() {
         try {
-            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            Connection conn = setConnection("&rewriteBatchedStatements=true&maxBatchTotalParamsNum=5000");
             Statement stmt = conn.createStatement();
             PreparedStatement preparedStatement = conn
                 .prepareStatement("insert into stringtest values(?,?,?,?,?,?,?,?,?,null,null)");

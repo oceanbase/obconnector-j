@@ -1977,6 +1977,50 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    //When rewriteBatchedStatements=true, the length of updateCounts is always equal to the number of addBatch
+    @Test
+    public void testContinueBatchOnErrorFalse() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            int count = 2;
+            while (count > 0) {
+                Connection conn = setConnectionOrigin("?continueBatchOnError=false&rewriteBatchedStatements=false&useServerPrepStmts="
+                                                      + (count == 2 ? "false" : "true"));
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute("drop table rewriteErrors");
+                } catch (SQLException e) {
+                    //            e.printStackTrace();
+                }
+                stmt.execute("create table rewriteErrors (field1 int not null primary key)");
+                PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
+                int a = 5;
+                ps.setInt(1, a);
+                ps.addBatch();
+                int num = 10;
+                for (int i = 1; i <= num; i++) {
+                    ps.setInt(1, i);
+                    ps.addBatch();
+                }
+                try {
+                    int[] counts1 = ps.executeBatch();
+                } catch (BatchUpdateException e) {
+                    int[] counts = e.getUpdateCounts();
+                    Assert.assertEquals(a, counts.length);
+                }
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rewriteErrors");
+                rs.next();
+                Assert.assertEquals(a, rs.getInt(1));
+                conn.close();
+                count--;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
     @Test
     public void testRefCursorResultSet() {
         try {
@@ -2012,6 +2056,42 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testContinueBatchOnErrorFalseWithPrepExecute() {
+        try {
+            Connection conn = setConnectionOrigin("?continueBatchOnError=false&rewriteBatchedStatements=false&useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table rewriteErrors");
+            } catch (SQLException e) {
+                //            e.printStackTrace();
+            }
+            stmt.execute("create table rewriteErrors (field1 int not null primary key)");
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
+            int a = 5;
+            ps.setInt(1, a);
+            ps.addBatch();
+            int num = 10;
+            for (int i = 1; i <= num; i++) {
+                ps.setInt(1, i);
+                ps.addBatch();
+            }
+            try {
+                int[] counts1 = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int[] counts = e.getUpdateCounts();
+                Assert.assertEquals(a, counts.length);
+            }
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rewriteErrors");
+            rs.next();
+            Assert.assertEquals(a, rs.getInt(1));
+            conn.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testGetUsernameNpe() {
         try {
             String userName = sharedConnection.getMetaData().getUserName();
@@ -2021,5 +2101,4 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
-
 }

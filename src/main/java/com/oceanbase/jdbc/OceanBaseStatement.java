@@ -347,6 +347,20 @@ public class OceanBaseStatement implements Statement, Cloneable {
     } else {
       ret = results.getCmdInformation().getUpdateCounts();
     }
+    if(!options.continueBatchOnError) {
+      int end = 0;
+      for (int i = 0; i < ret.length; i++) {
+        if (ret[i] == Statement.EXECUTE_FAILED) {
+          end = i;
+          break;
+        }
+      }
+      if (end != 0) {
+        int[] tmp = new int[end];
+        System.arraycopy(ret, 0, tmp, 0, end);
+        ret = tmp;
+      }
+    }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
 
