@@ -57,6 +57,7 @@ public class Bugfix extends BaseTest {
     static String testFunction           = "testfunction" + getRandomString(5);
     static String testSwap               = "testSwap" + getRandomString(5);
     static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
+    static String refreshRow             = "refreshRow" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -74,6 +75,7 @@ public class Bugfix extends BaseTest {
                     + "DECLARE tmp  INT DEFAULT 0;\n set tmp = c1 ;\n set c1 := c2 ;\nset c2 := tmp  ;\n"
                     + "end ");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
+        createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
     }
 
     @Test
@@ -246,6 +248,44 @@ public class Bugfix extends BaseTest {
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRefreshRow() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=false");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into " + refreshRow + " values(100,'100+string')");
+            PreparedStatement ps = conn.prepareStatement("select  c1, c2 from " + refreshRow + "\n"
+                                                         + "where 2 = ?",
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            ps.setInt(1, 2);
+
+            ResultSet rs = ps.executeQuery();
+            Assert.assertEquals(0, ps.getFetchSize());
+            Assert.assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+            Assert.assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("100+string", rs.getString(2));
+
+            Connection another = setConnectionOrigin("?useServerPrepStmts=true");
+            stmt = another.createStatement();
+
+            stmt.execute("update " + refreshRow + "  set c2='-1000000+changed' where c1=100");
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("100+string", rs.getString(2));
+            rs.refreshRow();
+            Assert.assertEquals("-1000000+changed", rs.getString(2));
+
+            stmt.execute("delete from " + refreshRow + " where c1=100");
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("-1000000+changed", rs.getString(2));
+            rs.refreshRow();// Origin  MySQL JDBC throws  java.sql.SQLException: refreshRow() called on row that has been deleted or had primary key changed
+        } catch (Throwable e) {
+            Assert.assertEquals(
+                "refreshRow() called on row that has been deleted or had primary key changed.",
+                e.getMessage());
         }
     }
 }

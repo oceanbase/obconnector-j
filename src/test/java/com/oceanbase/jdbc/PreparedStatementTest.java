@@ -628,14 +628,16 @@ public class PreparedStatementTest extends BaseTest {
         Assert.assertTrue(sharedOptions().useServerPrepStmts);
 
         try {
-            PreparedStatement pstmt = sharedConnection.prepareStatement("select *, rowid from PreparedStatementTest3");
+            PreparedStatement pstmt = sharedConnection
+                .prepareStatement("select *, rowid from PreparedStatementTest3");
             fail("PS protocol shouldn't be degraded to TEXT protocol");
         } catch (SQLException e) {
             //
         }
 
         Connection conn = setConnection("&emulateUnsupportedPstmts=true");
-        PreparedStatement pstmt = conn.prepareStatement("select rowid, * from PreparedStatementTest3");
+        PreparedStatement pstmt = conn
+            .prepareStatement("select rowid, * from PreparedStatementTest3");
 
         pstmt.close();
         conn.close();
