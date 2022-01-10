@@ -58,6 +58,7 @@ public class Bugfix extends BaseTest {
     static String testSwap               = "testSwap" + getRandomString(5);
     static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
     static String refreshRow             = "refreshRow" + getRandomString(5);
+    static String testSetObjectBlob      = "testSetObjectBlob" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -76,6 +77,7 @@ public class Bugfix extends BaseTest {
                     + "end ");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
         createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
+        createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
     }
 
     @Test
@@ -286,6 +288,33 @@ public class Bugfix extends BaseTest {
             Assert.assertEquals(
                 "refreshRow() called on row that has been deleted or had primary key changed.",
                 e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSetObjectBlobBug() {
+        try {
+            PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO "
+                                                                     + testSetObjectBlob
+                                                                     + " VALUES (?, ?, ?, ?)");
+            Statement stmt = sharedConnection.createStatement();
+            String str = "中文abc";
+            byte[] bytes = str.getBytes();
+            ps.setObject(1, bytes, Types.BINARY);
+            ps.setObject(2, bytes, Types.VARBINARY);
+            ps.setObject(3, bytes, Types.LONGVARBINARY);
+            ps.setObject(4, bytes, Types.BLOB);
+            ps.execute();
+            Assert.assertEquals(1, ps.getUpdateCount());
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + testSetObjectBlob);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }
