@@ -191,6 +191,7 @@ public class Options implements Cloneable {
     public int  pieceLength = 1048576;
     public boolean useOraclePrepareExecute = false;
     public boolean autoDeserialize = false;
+    public boolean enableQueryTimeouts = true;
     public int     maxBatchTotalParamsNum = 30000;
 
     @Override
@@ -560,6 +561,9 @@ public class Options implements Cloneable {
         if(autoDeserialize != opt.autoDeserialize) {
           return false;
         }
+        if(enableQueryTimeouts != opt.enableQueryTimeouts) {
+        return false;
+      }
         if (maxBatchTotalParamsNum != opt.maxBatchTotalParamsNum) {
           return false;
         }
@@ -685,6 +689,7 @@ public class Options implements Cloneable {
         result = 31 * result + pieceLength;
         result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
         result = 31 * result + (autoDeserialize ? 1 : 0);
+        result = 31 * result + (enableQueryTimeouts ? 1 : 0);
         result = 31 * result + (maxBatchTotalParamsNum);
         result = 31 * result + (emulateUnsupportedPstmts ? 1 : 0);
         return result;

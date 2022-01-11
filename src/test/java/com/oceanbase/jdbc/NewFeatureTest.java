@@ -307,4 +307,27 @@ public class NewFeatureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testSleep() {
+        try {
+            Connection conn = setConnection("&enableQueryTimeouts=false");
+            Statement stmt = conn.createStatement();
+            stmt.setQueryTimeout(4);
+            stmt.executeQuery("select sleep(5)");
+            System.out.println("query finished");
+            conn.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            Connection conn = setConnection("&enableQueryTimeouts=true");
+            Statement stmt = conn.createStatement();
+            stmt.setQueryTimeout(4);
+            stmt.executeQuery("select sleep(5)");
+            System.out.println("query finished");
+        } catch (Throwable e) {
+            Assert.assertTrue(e.getMessage().contains("Query timed out"));
+        }
+    }
 }

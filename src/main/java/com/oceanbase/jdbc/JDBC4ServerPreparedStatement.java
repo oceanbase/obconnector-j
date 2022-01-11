@@ -341,7 +341,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     executing = true;
     try {
       executeQueryPrologue(serverPrepareResult);
-      if (queryTimeout != 0) {
+      if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(true);
       }
       int remainParameterSize = queryParameterSize;
@@ -572,7 +572,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     lock.lock();
     try {
       executeQueryPrologue(serverPrepareResult);
-      if (queryTimeout != 0) {
+      if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(false);
       }
 
@@ -625,7 +625,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     lock.lock();
     try {
       executeQueryPrologue(serverPrepareResult);
-      if (queryTimeout != 0) {
+      if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(false);
       }
 

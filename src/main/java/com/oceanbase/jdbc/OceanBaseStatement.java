@@ -243,7 +243,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           .create("execute() is called on closed statement");
     }
     protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
-    if (queryTimeout != 0 && (!canUseServerTimeout || isBatch)) {
+    if (queryTimeout != 0 && (!canUseServerTimeout || isBatch) && options.enableQueryTimeouts) {
       setTimerTask(isBatch);
     }
   }
