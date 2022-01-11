@@ -2022,6 +2022,36 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testBug38422522() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection();
+            try {
+                conn.createStatement().execute("drop table rewriteBatchLoop");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table rewriteBatchLoop(c1 int,c2 int,c3 varchar2(20))");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into rewriteBatchLoop values(?,?,?)");
+
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    ps.setInt(1, 1);
+                    ps.setInt(2, 1);
+                    ps.setString(3, "fsfsfsfs");
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testRefCursorResultSet() {
         try {
             Assume.assumeTrue(sharedUsePrepare());
@@ -2050,6 +2080,36 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertTrue(rs1.next());
             Assert.assertEquals(rs1.getTimestamp(1).toString(), "2021-12-24 14:45:56.0");
         } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testBug38422522ForPrepExecute() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true");
+            try {
+                conn.createStatement().execute("drop table rewriteBatchLoop");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table rewriteBatchLoop(c1 int,c2 int,c3 varchar2(20))");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into rewriteBatchLoop values(?,?,?)");
+
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    ps.setInt(1, 1);
+                    ps.setInt(2, 1);
+                    ps.setString(3, "fsfsfsfs");
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }

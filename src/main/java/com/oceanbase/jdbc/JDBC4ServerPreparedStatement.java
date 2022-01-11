@@ -404,6 +404,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             currentQueryParameters = allParams;
             this.originalSql = sb.toString();
             prepare(originalSql);
+            parameterCount = parameterCountReal;
             isInsert = true;
           } else {
             isInsert = false;
@@ -459,6 +460,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             } else {
               protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
             }
+            // under rewriteBatchedStatements  reset parameterCount,originalSql to origin
+            parameterCount = parameterCountReal;
+            originalSql = curString;
           } catch (SQLException queryException) {
             if (options.continueBatchOnError) {
               if (exception == null) {
