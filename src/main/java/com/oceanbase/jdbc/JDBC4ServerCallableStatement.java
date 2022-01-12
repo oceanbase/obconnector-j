@@ -104,7 +104,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         } else {
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
                 procedureName, isObFunction);
-            this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database, procedureName, isObFunction);
             if (protocol.supportStmtPrepareExecute()) {
                 this.parameterMetadata.params = new ArrayList<CallParameter>();
                 this.parameterMetadata.mapNameToParamter = new HashMap<>();
@@ -129,9 +128,15 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         this.isObFunction = isObFunction;
         this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
             procedureName, isObFunction);
-        this.parameterMetadata.generateMetadataFromPrepareResultSet(this.serverPrepareResult);
-        setParamsAccordingToSetArguments();
-        setParametersVariables();
+        if (protocol.supportStmtPrepareExecute()) {
+            this.parameterMetadata.params = new ArrayList<CallParameter>();
+            this.parameterMetadata.mapNameToParamter = new HashMap<>();
+            this.params = new ArrayList<>(parameterCount);
+        } else {
+            this.parameterMetadata.generateMetadataFromPrepareResultSet(this.serverPrepareResult);
+            setParamsAccordingToSetArguments();
+            setParametersVariables();
+        }
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
