@@ -1428,4 +1428,5 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
         }
         return super.previous();
     }
+
 }

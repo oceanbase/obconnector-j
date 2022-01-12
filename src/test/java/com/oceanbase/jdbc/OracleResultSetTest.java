@@ -57,6 +57,8 @@ import java.sql.*;
 
 import org.junit.*;
 
+import com.oceanbase.jdbc.internal.util.constant.Version;
+
 public class OracleResultSetTest extends BaseOracleTest {
 
     /**
@@ -551,8 +553,19 @@ public class OracleResultSetTest extends BaseOracleTest {
 
         assertTrue(rs.absolute(-11));
         assertEquals("row40", rs.getString(2).trim());
-        assertTrue(rs.absolute(0));
-        assertTrue(rs.isBeforeFirst());
+
+        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
+            try {
+                rs.absolute(0);
+                fail();
+            } catch (SQLException sqle) {
+                assertEquals("Invalid parameter: absolute(0)", sqle.getMessage());
+            }
+            assertFalse(rs.isBeforeFirst());
+        } else {
+          assertTrue(rs.absolute(0));
+          assertTrue(rs.isBeforeFirst());
+        }
 
         assertFalse(rs.absolute(51));
         assertTrue(rs.isAfterLast());

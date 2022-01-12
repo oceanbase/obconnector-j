@@ -108,8 +108,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   protected final ReentrantLock lock;
-  protected final int resultSetScrollType;
-  protected final int resultSetConcurrency;
+  protected int resultSetScrollType;
+  protected int resultSetConcurrency;
   protected final Options options;
   protected final boolean canUseServerTimeout;
   /** the protocol used to talk to the server. */
@@ -143,8 +143,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected String    actualSql;
   protected String    simpleSql;
   protected int       sqlType;
-  protected boolean   includeRowid;
-  protected int       parameterCount = -1;                    // from originalSql, must be correct
+  protected boolean   addRowid;
+  protected int       selectEndPos = -1;
+  protected int       whereEndPos = -1;
 
     /**
    * Creates a new Statement.
@@ -1628,11 +1629,20 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return results;
   }
 
-  public String getOriginalSql() {
-    return originalSql;
+  public String getActualSql() {
+    return actualSql;
   }
 
   public int getSqlType() {
     return sqlType;
   }
+
+  public boolean isAddRowid() {
+    return addRowid;
+  }
+
+  public int getWhereEndPos() {
+    return whereEndPos;
+  }
+
 }

@@ -108,6 +108,9 @@ public class RefCursor extends SelectResultSet {
     }
 
     private void getCursorFetchData() throws IOException, SQLException {
+        if (dataSize == -1) {
+            dataSize = 0;
+        }
         // read only fetchSize values
         int fetchSizeTmp = this.getFetchSize();
         while (fetchSizeTmp >= 0 && super.readNextValue()) {

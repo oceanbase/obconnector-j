@@ -395,7 +395,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     public int[] executeBatch() throws SQLException {
         if (!hasInOutParameters) {
             if (!protocol.isOracleMode() && !isObFunction) {
-                int querySize = queryParameters.size();
+                int querySize = parametersList.size();
                 if (querySize == 0) {
                     return new int[0];
                 }
@@ -417,7 +417,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     private int[] executeBatchInternal(int querySize) throws SQLException {
         int[] rows = new int[querySize];
         for (int i = 0; i < querySize; i++) {
-            ParameterHolder[] parameterHolder = queryParameters.get(i);
+            ParameterHolder[] parameterHolder = parametersList.get(i);
             currentParameterHolder.clear();
             for (int j = 0; j < parameterHolder.length; j++) {
                 currentParameterHolder.put(j, parameterHolder[j]);

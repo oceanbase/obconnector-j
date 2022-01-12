@@ -70,17 +70,18 @@ import com.oceanbase.jdbc.util.OceanBaseCRC32C;
 public class JDBC4ServerPreparedStatement extends BasePrepareStatement implements Cloneable {
 
   private static final Logger logger = LoggerFactory.getLogger(JDBC4ServerPreparedStatement.class);
-  protected Map<Integer, ParameterHolder> currentParameterHolder;                 // from setXXX(), size may not equal to parameterCount
-  protected List<ParameterHolder[]> queryParameters = new ArrayList<>();    // for batch
-  protected ServerPrepareResult serverPrepareResult = null;             // from server's response to prepare request
-  private boolean isObFunction = false;
-  private boolean sendTypesToServer = false; //Do we need to send/resend types to the server?
-  private boolean mustExecuteOnMaster;
-  private int iterationCount;
-  private int executeMode = 0x0000;
-  private long checksum = 1;
-  private OceanBaseResultSetMetaData metadata;                               // from serverPrepareResult
-  private OceanBaseParameterMetaData parameterMetaData;                      // from serverPrepareResult
+  protected Map<Integer, ParameterHolder>   currentParameterHolder;
+  protected List<ParameterHolder[]>         parametersList = new ArrayList<>();
+  protected ServerPrepareResult             serverPrepareResult = null;
+  private   OceanBaseResultSetMetaData      resultSetMetaData;
+  private   OceanBaseParameterMetaData      parameterMetaData;
+  private   boolean isObFunction = false;
+  private   boolean sendTypesToServer = false;
+  private   boolean mustExecuteOnMaster;
+  private   int     iterationCount;
+  private   int     executeMode = 0x0000;
+  private   long    checksum = 1;
+  private   OceanBaseCRC32C                 crc32C = new OceanBaseCRC32C();
 
   /**
    * Constructor for creating Server prepared statement.
@@ -111,21 +112,34 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     mustExecuteOnMaster = protocol.isMasterConnection();
 
     originalSql = sql;
-    if (!protocol.isOracleMode()) {
-      simpleSql = Utils.trimSQLString(originalSql, protocol.noBackslashEscapes(), false, true);
-      if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
-        prepare(originalSql);
+    String[] tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
+    simpleSql = tmp[0];
+    selectEndPos = Integer.parseInt(tmp[2]);
+    whereEndPos = Integer.parseInt(tmp[3]);
+    sqlType = Utils.getStatementType(simpleSql);
+    actualSql = originalSql;
+    // add rowid if needed
+    if (protocol.isOracleMode() && sqlType == STMT_SELECT) {
+      if (!(resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
+        if (!(resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
+          // sensitive ResultSet needs rowid to refetch
+          addRowid = true;
+          actualSql = actualSql.substring(0, selectEndPos + 1) + " rowid," + actualSql.substring(selectEndPos + 1);
+        }
       }
-    } else {
-      // new PS protocol needs to know the count of parameters without server, and go into prepare() to calculate the checksum
-      String[] tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), true, false);
-      simpleSql = tmp[0];
-      if (protocol.supportStmtPrepareExecute()) {
+    }
+
+    if (!protocol.isOracleMode()) {
+      if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
+        prepare(actualSql);
+      }
+    } else if (protocol.isOracleMode()) {
+      if (!protocol.supportStmtPrepareExecute()) {
+        prepare(actualSql);
+      } else {
         parameterCount = Integer.parseInt(tmp[1]);
       }
-      prepare(originalSql);
     }
-    sqlType = Utils.getStatementType(simpleSql);
   }
 
   /**
@@ -137,79 +151,109 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    */
   public JDBC4ServerPreparedStatement clone(OceanBaseConnection connection) throws CloneNotSupportedException {
     JDBC4ServerPreparedStatement clone = (JDBC4ServerPreparedStatement) super.clone(connection);
-    clone.metadata = metadata;
+    clone.resultSetMetaData = resultSetMetaData;
     clone.parameterMetaData = parameterMetaData;
-    clone.queryParameters = new ArrayList<>();
+    clone.parametersList = new ArrayList<>();
+
+    clone.isObFunction = isObFunction;
     clone.mustExecuteOnMaster = mustExecuteOnMaster;
+    clone.originalSql = originalSql;
+    clone.simpleSql = simpleSql;
+    clone.selectEndPos = selectEndPos;
+    clone.whereEndPos = whereEndPos;
+    clone.sqlType = sqlType;
+    clone.actualSql = actualSql;
+    clone.addRowid = addRowid;
+
     // force prepare
     try {
-      clone.originalSql = originalSql;
       if (!clone.protocol.isOracleMode()) {
         if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
-          clone.prepare(originalSql);
+          clone.prepare(actualSql);
         }
       } else {
         if (clone.protocol.supportStmtPrepareExecute()) {
           clone.parameterCount = parameterCount;
         }
-        clone.prepare(originalSql);
+        clone.prepare(actualSql);
       }
-      clone.sqlType = Utils.getStatementType(simpleSql);
-
     } catch (SQLException e) {
       throw new CloneNotSupportedException("PrepareStatement not ");
     }
     return clone;
   }
 
-  private void prepare(String sql) throws SQLException {
-    try {
-      OceanBaseCRC32C crc32C = new OceanBaseCRC32C();
-      crc32C.reset();
-      byte[] b; //  Consider the case of multiple character set
-      try {
-        b = sql.getBytes(options.characterEncoding);
-      } catch (UnsupportedEncodingException e) {
-        try {
-          this.close();
-        } catch (Exception ee) {
-          // eat exception.
-        }
-        SQLException sqlException = new SQLException("sql string getBytes error" + e.getMessage());
-        logger.error("error preparing query", sqlException);
-        throw exceptionFactory.raiseStatementError(connection, this).create(sqlException);
+  /***
+   * Oracle：The refreshRow method is supported for the following result set categories:
+   * scroll-sensitive/read-only, scroll-sensitive/updatable, scroll-insensitive/updatable
+   * If a result set as mentioned above can't be refreshed due to other restriction like sql syntax,
+   * its scrollType or concurrency will be degraded as following
+   */
+  private void degradeResultSetType() {
+      if ((resultSetScrollType == ResultSet.TYPE_SCROLL_SENSITIVE && resultSetConcurrency == ResultSet.CONCUR_UPDATABLE)
+        || (resultSetScrollType == ResultSet.TYPE_SCROLL_SENSITIVE && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)
+        || (resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE && resultSetConcurrency == ResultSet.CONCUR_UPDATABLE)) {
+          resultSetScrollType = ResultSet.TYPE_SCROLL_INSENSITIVE;
+      } else {
+          resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
       }
-      crc32C.update(b, 0, b.length);
-      this.checksum = crc32C.getValue();
+      resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
+  }
 
+  private void calculateCheckSum(String sql) throws SQLException {
+      try {
+          crc32C.reset();
+          byte[] b; //  Consider the case of multiple character set
+          b = sql.getBytes(options.characterEncoding);
+          crc32C.update(b, 0, b.length);
+          this.checksum = crc32C.getValue();
+      } catch (UnsupportedEncodingException e) {
+          try {
+              this.close();
+          } catch (Exception ee) {
+              // eat exception.
+          }
+          SQLException sqlException = new SQLException("sql string getBytes error" + e.getMessage());
+          logger.error("error preparing query", sqlException);
+          throw exceptionFactory.raiseStatementError(connection, this).create(sqlException);
+      }
+  }
+
+  private void prepare(String sql) throws SQLException {
+    calculateCheckSum(sql);
+
+    try {
       if (!protocol.supportStmtPrepareExecute()) {
         serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
         setMetaFromResult(); // Get result for prepare, but the type not precision.
       }
     } catch (SQLException e) {
-      try {
-        this.close();
-      } catch (Exception ee) {
-        // eat exception.
+      if (addRowid) {
+        degradeResultSetType();
+        addRowid = false;
+        actualSql = originalSql;
+        prepare(actualSql);
+      } else {
+        try {
+          this.close();
+        } catch (Exception ee) {
+          // eat exception.
+        }
+        logger.error("error preparing query", e);
+        throw exceptionFactory.raiseStatementError(connection, this).create(e);
       }
-      logger.error("error preparing query", e);
-      throw exceptionFactory.raiseStatementError(connection, this).create(e);
     }
   }
 
   private void setMetaFromResult() {
-    parameterCount = serverPrepareResult.getParameters().length;
-    metadata = new OceanBaseResultSetMetaData(serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(),
-        false, this.protocol.isOracleMode());
+    parameterCount = serverPrepareResult.getParamCount();
+    resultSetMetaData = new OceanBaseResultSetMetaData(serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(),
+        false, this.protocol.isOracleMode(), addRowid ? 1 : 0);
     parameterMetaData = new OceanBaseParameterMetaData(serverPrepareResult.getParameters());
   }
 
   public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
     currentParameterHolder.put(parameterIndex - 1, holder);
-  }
-
-  protected int getParameterCount() {
-    return parameterCount;
   }
 
   @Override
@@ -219,7 +263,17 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-    return metadata;
+    return resultSetMetaData;
+  }
+
+  public ParameterHolder[] getParameters() {
+    return currentParameterHolder.values().toArray(new ParameterHolder[0]);
+  }
+
+  public void setParameters(ParameterHolder[] paramArray) {
+    for (int i = 0; i < paramArray.length; i++) {
+      currentParameterHolder.put(i, paramArray[i]);
+    }
   }
 
   @Override
@@ -243,7 +297,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public void addBatch() throws SQLException {
     validParameters();
-    queryParameters.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
+    parametersList.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
   }
 
   @Override
@@ -254,7 +308,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   public void clearBatch() {
-    queryParameters.clear();
+    parametersList.clear();
     hasLongData = false;
   }
 
@@ -300,7 +354,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public int[] executeBatch() throws SQLException {
     checkClose();
-    int queryParameterSize = queryParameters.size();
+    int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
       return new int[0];
     }
@@ -318,13 +372,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkClose();
-    int queryParameterSize = queryParameters.size();
+    int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
       return new long[0];
     }
     executeBatchInternal(queryParameterSize);
     return results.getCmdInformation().getLargeUpdateCounts();
   }
+
   boolean hasLongData(ParameterHolder[] parameterHolders) {
     if (parameterHolders == null) {
       return false;
@@ -336,6 +391,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     }
     return  false;
   }
+
   private void executeBatchInternal(int queryParameterSize) throws SQLException {
     lock.lock();
     executing = true;
@@ -365,7 +421,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           }
           String sqlString = curString;
           if (protocol.isOracleMode() && options.supportNameBinding) {
-            sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true); // with hint ?
+            sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
           }
           List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.characterEncoding);
           if (list != null) {
@@ -394,7 +450,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             ParameterHolder[] allParams = new ParameterHolder[total];
             int cur = 0;
             for (int counter = preIndex; counter < currentTurnParamSize + preIndex; counter++) {
-              parameterHolder = queryParameters.get(counter);
+              parameterHolder = parametersList.get(counter);
               for (int i = 0; i < parameterHolder.length; i++) {
                 allParams[cur++] = parameterHolder[i];
               }
@@ -402,8 +458,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             queryParameterSize = 1;
             preIndex = preIndex + currentTurnParamSize;
             currentQueryParameters = allParams;
-            this.originalSql = sb.toString();
-            prepare(originalSql);
+            this.actualSql = sb.toString();
+            prepare(actualSql);
             parameterCount = parameterCountReal;
             isInsert = true;
           } else {
@@ -422,6 +478,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           if (parameterCount > 0) {
             sendTypesToServer = true;
           }
+          calculateCheckSum(actualSql);
           protocol.setComStmtPrepareExecuteField(this.iterationCount, this.executeMode, this.checksum);
         } else {
           protocol.setChecksum(this.checksum);
@@ -429,9 +486,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
         // if multi send capacity
         if (options.useBatchMultiSend || options.useBulkStmts) {
-          serverPrepareResult = protocol.executeBatchServer(serverPrepareResult, results, originalSql, queryParameters, hasLongData);
+          serverPrepareResult = protocol.executeBatchServer(serverPrepareResult, results, actualSql, parametersList, hasLongData);
           if (results.getBatchSucceed()) {
-            if (metadata == null) {
+            if (resultSetMetaData == null) {
               setMetaFromResult(); // first prepare
             }
             protocol.resetChecksum();
@@ -474,7 +531,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           }
         } else {
           for (int counter = 0; counter < queryParameterSize; counter++) {
-            ParameterHolder[] parameterHolder = queryParameters.get(counter);
+            ParameterHolder[] parameterHolder = parametersList.get(counter);
             try {
               if (queryTimeout > 0) {
                 protocol.stopIfInterrupted();
@@ -579,7 +636,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
 
       results = new Results(this, fetchSize, false, 1, true, resultSetScrollType,
-          resultSetConcurrency, autoGeneratedKeys, protocol.getAutoIncrementIncrement(), originalSql, parameterHolders);
+          resultSetConcurrency, autoGeneratedKeys, protocol.getAutoIncrementIncrement(), actualSql, parameterHolders);
 
       protocol.setChecksum(this.checksum);
       serverPrepareResult.resetParameterTypeHeader();
@@ -602,28 +659,28 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   protected boolean prepareExecuteInternal(int fetchSize) throws SQLException {
-    // set iteration-count
-    if (sqlType == OceanBaseStatement.STMT_SELECT) {
-      iterationCount = isFetchSizeSet ? fetchSize : 10; // in Oracle-JDBC default fetch size is 10
-      // TODO: more execute-mode
-      if (resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE) {
-        executeMode |= Packet.OCI_STMT_SCROLLABLE_READONLY;
-      }
-    } else {
-      // TODO: iteration-count is larger than 1 for batch
-      iterationCount = 1;
-    }
-    protocol.setComStmtPrepareExecuteField(this.iterationCount, this.executeMode, this.checksum);
-
-    // set num-params
-    if (parameterCount > 0) {
-      sendTypesToServer = true;
-    }
-
     validParameters();
 
     lock.lock();
     try {
+      if (sqlType == OceanBaseStatement.STMT_SELECT) {
+        iterationCount = isFetchSizeSet ? fetchSize : 10; // in Oracle-JDBC default fetch size is 10
+        // TODO: more execute-mode
+        if (resultSetScrollType != ResultSet.TYPE_FORWARD_ONLY) {
+          executeMode |= Packet.OCI_STMT_SCROLLABLE_READONLY;
+        }
+      } else {
+        // TODO: iteration-count is larger than 1 for batch
+        iterationCount = 1;
+      }
+      calculateCheckSum(actualSql);
+      protocol.setComStmtPrepareExecuteField(this.iterationCount, this.executeMode, this.checksum);
+
+      // set num-params
+      if (parameterCount > 0) {
+        sendTypesToServer = true;
+      }
+
       executeQueryPrologue(serverPrepareResult);
       if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(false);
@@ -631,14 +688,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
       ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
       results = new Results(this, fetchSize, false, 1, true, resultSetScrollType,
-          resultSetConcurrency, autoGeneratedKeys, protocol.getAutoIncrementIncrement(), originalSql, parameterHolders);
+          resultSetConcurrency, autoGeneratedKeys, protocol.getAutoIncrementIncrement(), actualSql, parameterHolders);
       if (serverPrepareResult != null) {
         serverPrepareResult.resetParameterTypeHeader();
         results.setStatementId(serverPrepareResult.getStatementId());
       }
 
       serverPrepareResult = protocol.executePreparedQuery(parameterCount, parameterHolders, serverPrepareResult, results);
-      if (metadata == null) {
+      if (resultSetMetaData == null) {
         setMetaFromResult(); // first prepare
       }
       protocol.resetChecksum();
@@ -651,16 +708,28 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       }
 
     } catch (SQLException exception) {
-      throw executeExceptionEpilogue(exception);
+        if (addRowid) {
+            degradeResultSetType();
+            addRowid = false;
+            actualSql = originalSql;
+            return prepareExecuteInternal(fetchSize);
+        } else {
+            throw executeExceptionEpilogue(exception);
+        }
     } finally {
       executeEpilogue();
       lock.unlock();
     }
-
   }
 
   public ColumnDefinition[] cursorFetch(int cursorId, int fetchSize) throws SQLException {
-    ColumnDefinition[] ci = this.protocol.sendFechRowViaCursor(serverPrepareResult, cursorId, fetchSize, results);
+    ColumnDefinition[] ci = this.protocol.fetchRowViaCursor(cursorId, fetchSize, results);
+    results.commandEnd();
+    return ci;
+  }
+
+  public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
+    ColumnDefinition[] ci = this.protocol.fetchRowViaCursorForOracle(cursorId, numRows, offsetType, offset, results);
     results.commandEnd();
     return ci;
   }
@@ -746,7 +815,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    * @return String representation
    */
   public String toString() {
-    StringBuilder sb = new StringBuilder("sql : '" + originalSql + "'");
+    StringBuilder sb = new StringBuilder("sql : '" + actualSql + "'");
     if (parameterCount > 0) {
       sb.append(", parameters : [");
       for (int i = 0; i < parameterCount; i++) {

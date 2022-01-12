@@ -97,8 +97,7 @@ public class ComStmtPrepareExecute {
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
         ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement()
-            .getOriginalSql(), protocol.noBackslashEscapes(),
-            protocol.getOptions().characterEncoding);
+            .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
 

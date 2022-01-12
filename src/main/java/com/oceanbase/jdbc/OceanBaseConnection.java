@@ -316,7 +316,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         return string;
     }
 
-    protected Protocol getProtocol() {
+    public Protocol getProtocol() {
         return protocol;
     }
 

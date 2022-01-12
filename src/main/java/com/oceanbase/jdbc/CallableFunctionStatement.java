@@ -138,7 +138,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        parameterMetadata.readMetadataFromDbIfRequired(this.sqlQuery, this.arguments, true);
+        parameterMetadata.readMetadataFromDbIfRequired(this.actualSql, this.arguments, true);
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
             if (!this.protocol.isOracleMode() && name != null) {

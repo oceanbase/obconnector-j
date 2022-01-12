@@ -67,6 +67,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     private final Options            options;
     private final boolean            forceAlias;
     private final boolean            isOracleMode;
+    private final int                columnIndexOffset;
 
     /**
      * Constructor.
@@ -81,15 +82,17 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         this.options = options;
         this.forceAlias = forceAlias;
         this.isOracleMode = false;
+        this.columnIndexOffset = 0;
     }
 
     public OceanBaseResultSetMetaData(final ColumnDefinition[] fieldPackets, final Options options,
-                                      final boolean forceAlias, boolean isOracleMode) {
+                                      final boolean forceAlias, boolean isOracleMode,
+                                      final int columnIndexOffset) {
         this.fieldPackets = fieldPackets;
         this.options = options;
         this.forceAlias = forceAlias;
         this.isOracleMode = isOracleMode;
-
+        this.columnIndexOffset = columnIndexOffset;
     }
 
     /**
@@ -98,7 +101,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @return the number of columns
      */
     public int getColumnCount() {
-        return fieldPackets.length;
+        return fieldPackets.length - columnIndexOffset;
     }
 
     /**
@@ -468,11 +471,13 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnDefinition getColumnInformation(int column) throws SQLException {
-        if (column >= 1 && column <= fieldPackets.length) {
-            return fieldPackets[column - 1];
+        int actualColumnIndex = column + columnIndexOffset;
+        if (actualColumnIndex >= 1 && actualColumnIndex <= fieldPackets.length) {
+            return fieldPackets[actualColumnIndex - 1];
         }
         throw ExceptionFactory.INSTANCE.create(String.format(
-            "wrong column index %s. must be in [1, %s] range", column, fieldPackets.length));
+            "wrong column index %s. must be in [1, %s] range", column, fieldPackets.length
+                                                                       - columnIndexOffset));
     }
 
     /**

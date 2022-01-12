@@ -871,6 +871,13 @@ public enum DefaultOptions {
           "2.2.8",
                   "When enabled, query timeouts set via Statement.setQueryTimeout() use a shared java.util.Timer instance for scheduling. Even if the timeout doesn't expire before the query is processed, there will be memory used by the TimerTask for the given timeout which won't be reclaimed until the time the timeout would have expired if it hadn't been cancelled by the driver. High-load environments might want to consider disabling this functionality.",
                   true
+  ),
+  USE_CURSOR_OFFSET(
+          "useCursorOffset",
+          Boolean.FALSE,
+          "2.2.8",
+          "Use special COM_STMT_FETCH protocol for Oracle mode to fetch rows of specific position",
+          false
   );
 
   private final String optionName;
