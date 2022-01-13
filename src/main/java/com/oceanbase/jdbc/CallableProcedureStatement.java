@@ -629,7 +629,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
                 && parameterIndex <= parameterCount) {
                 CallParameter paramInfoToAdd = new CallParameter("functionreturn", parameterIndex,
-                    false, true, sqlType, null, 0, scale, 0, DatabaseMetaData.procedureColumnReturn);
+                    false, true, sqlType, null, 0, scale, 0, sqlType,
+                    DatabaseMetaData.procedureColumnUnknown);
                 params.add(paramInfoToAdd);
             } else {
                 throw e;

@@ -2161,4 +2161,24 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    // prepareExecute protocol ref_cursor error
+    @Test
+    public void testNewProcedureCursor() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&useOraclePrepareExecute=true");
+            String sql = "create or replace procedure pro1( b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

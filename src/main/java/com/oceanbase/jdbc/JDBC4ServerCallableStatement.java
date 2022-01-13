@@ -235,8 +235,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 && parameterIndex <= parameterCount) {
                 CallParameter paramInfoToAdd = new CallParameter(null, parameterIndex - 1, true,
                     false, holder.getColumnType().getSqlType(), holder.getColumnType()
-                        .getTypeName(), 0, 0, DatabaseMetaData.procedureNullable,
-                    DatabaseMetaData.procedureColumnIn);
+                        .getTypeName(), 0, 0, DatabaseMetaData.procedureNullable, holder
+                        .getColumnType().getSqlType(), DatabaseMetaData.procedureColumnIn);
                 params.add(paramInfoToAdd);
             } else {
                 throw e;

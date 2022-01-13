@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.DatabaseMetaData;
 import java.sql.Types;
 
 /** Info about in/out parameters. */
@@ -66,6 +67,7 @@ class CallParameter {
     private int     precision;
     private String  className;
     private String  name;
+    private int     inOutModifier = DatabaseMetaData.procedureColumnUnknown;
 
     // New add for OceanBase
     private int     index;
@@ -76,7 +78,8 @@ class CallParameter {
     }
 
     public CallParameter(String name, int index, boolean isInput, boolean isOutput, int sqlType,
-                         String typeName, int precision, int scale, int canBeNull, int outputSqlType) {
+                         String typeName, int precision, int scale, int canBeNull,
+                         int outputSqlType, int inOutModifier) {
         this.name = name;
         this.index = index;
         this.isInput = isInput;
@@ -87,6 +90,7 @@ class CallParameter {
         this.scale = scale;
         this.canBeNull = canBeNull;
         this.outputSqlType = outputSqlType;
+        this.inOutModifier = inOutModifier;
     }
 
     public boolean isInput() {
@@ -183,5 +187,13 @@ class CallParameter {
 
     public int getIndex() {
         return this.index;
+    }
+
+    public void setInOutModifier(int inOutModifier) {
+        this.inOutModifier = inOutModifier;
+    }
+
+    public int getInOutModifier() {
+        return this.inOutModifier;
     }
 }

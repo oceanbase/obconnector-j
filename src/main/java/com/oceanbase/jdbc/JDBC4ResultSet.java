@@ -269,7 +269,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         rsClass = ResultSetClass.CURSOR;
         data = new byte[Math.max(10, fetchSize)][];
-        if (protocol.supportStmtPrepareExecute()) {
+        //refcursor cannot read data in constructor
+        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
             // for new PS protocol, ResultSet reads data from socket while constructing
             this.lock = protocol.getLock();
             nextStreamingValue();

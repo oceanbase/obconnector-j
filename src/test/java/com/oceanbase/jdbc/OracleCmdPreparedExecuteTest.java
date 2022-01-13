@@ -108,7 +108,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
     @Test
     public void functionAnonymousBlockTest() throws SQLException {
         createFunction("testFunctionCall",
-                "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
+            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
 
         Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         CallableStatement cs = conn.prepareCall("begin ? := testFunctionCall(?,?,?);end;");
@@ -173,7 +173,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
     @Test
     public void functionCallToBlockTest() throws SQLException {
         createFunction("testFunctionCall",
-                "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
+            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
 
         Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         CallableStatement cs = conn.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
