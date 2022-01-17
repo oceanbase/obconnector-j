@@ -114,6 +114,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testSetReaderToClob       = "testSetReaderToClob" + getRandomString(5);
     static String testEmpty                 = "testEmpty" + getRandomString(5);
     static String pieceReuse                = "pieceReuse" + getRandomString(5);
+    static String nvarchar2Test             = "nvarchar2_test" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -208,6 +209,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testSetReaderToClob, "c1 clob");
         createTable(testEmpty, "c1 blob,c2 clob");
         createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(nvarchar2Test, "c1 nvarchar2(200)");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -2177,6 +2179,22 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(1, resultSet.getInt(1));
         } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNVARCHAR2() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + nvarchar2Test + " values('stringval')");
+            ResultSet rs = stmt.executeQuery("select * from " + nvarchar2Test);
+            Assert.assertTrue(rs.next());
+            Object obj = rs.getObject(1);
+            Assert.assertEquals("stringval", (String) obj);
+
+        } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }

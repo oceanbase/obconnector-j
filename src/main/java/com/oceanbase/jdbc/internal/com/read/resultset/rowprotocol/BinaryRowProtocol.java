@@ -1255,6 +1255,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
                 return returnBytes;
+            case NVARCHAR2:
+            case NCHAR:
+                return getInternalString(columnInfo, null, timeZone);
             default:
                 break;
         }
