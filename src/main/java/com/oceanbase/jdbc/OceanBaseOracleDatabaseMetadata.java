@@ -63,7 +63,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     public ResultSet executeQuery(String sql) throws SQLException {
         Statement stmt = connection.createStatement();
         SelectResultSet rs = (SelectResultSet) stmt.executeQuery(sql);
-        if (!rs.getStatement().isCurorResultSet()) {
+        if (!rs.getStatement().isCursorResultSet()) {
             rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         }
         rs.setForceTableAlias();
