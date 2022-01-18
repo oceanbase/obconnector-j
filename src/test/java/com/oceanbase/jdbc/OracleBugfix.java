@@ -65,10 +65,7 @@ import javax.sql.rowset.serial.SerialClob;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import com.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
 import com.oceanbase.jdbc.jdbc2.optional.MysqlXid;
@@ -2195,6 +2192,62 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.assertEquals("stringval", (String) obj);
 
         } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCursorPositionError1() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            String sql = "create or replace procedure pro1( ref_param  out sys_refcursor,param2 out int) is begin open ref_param  for select 1 ,2 from dual; param2 := 100; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?,?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.registerOutParameter(2, Types.INTEGER);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            int param2Value = cstmt.getInt(2);
+            Assert.assertEquals(100, param2Value);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // refcursor not supports OCI_FETCH_ABSOLUTE now
+    @Ignore
+    public void testCursorPositionError2() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table cursror_table ");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table cursror_table(c1 int)");
+            for (int i = 1; i < 100; i++) {
+                conn.createStatement().execute("insert into cursror_table values(" + i + ")");
+            }
+            String sql = "create or replace procedure pro1( ref_param  out sys_refcursor,param2 out int) is begin open ref_param  for select *  from cursror_table; param2 := 100; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?,?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.registerOutParameter(2, Types.INTEGER);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(2, resultSet.getInt(1));
+            int param2Value = cstmt.getInt(2);
+            Assert.assertEquals(100, param2Value);
+        } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
         }

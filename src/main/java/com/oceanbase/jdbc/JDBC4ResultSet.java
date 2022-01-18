@@ -2113,6 +2113,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             ComplexData data = (ComplexData) row.getInternalComplexCursor(
                 columnsInformation[internalColumnIndex], type);
             complexData[internalColumnIndex] = data;
+            complexEndPos[actualColumnIndex - 1] = row.pos;
         }
         Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
         RowObCursorData obCursorData = (RowObCursorData) objects[0];
@@ -2127,7 +2128,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         } catch (IOException e) {
             throw new SQLException("io exception:" + e.getMessage());
         }
-        complexEndPos[actualColumnIndex - 1] = row.pos;
         return obCursor;
     }
 
