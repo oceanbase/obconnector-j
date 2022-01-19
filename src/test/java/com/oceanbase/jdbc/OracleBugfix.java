@@ -2252,4 +2252,34 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testSameProcedureRefCursor() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String sql = "create or replace procedure pro22(b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            stmt.execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro22(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+
+            sql = "create or replace procedure pro22(b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            stmt.execute(sql);
+            cstmt = conn.prepareCall("{call pro22(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet rs = (ResultSet) cstmt.getObject(1);
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }
