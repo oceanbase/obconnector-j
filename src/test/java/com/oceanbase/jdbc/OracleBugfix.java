@@ -2282,4 +2282,26 @@ public class OracleBugfix extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testArray() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            stmt.execute("create or replace type array01 is varray(2) of number");
+            stmt.execute("create or replace procedure t_array123 (arr out array01) is begin "
+                + "arr:= array01(1, 2); end;");
+            CallableStatement cs = conn.prepareCall("{call t_array123(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "ARRAY01");
+            cs.execute();
+            Array array = cs.getArray(1);
+            Object[] object = (Object[]) array.getArray();
+            Assert.assertEquals(BigDecimal.valueOf(1), object[0]);
+            Assert.assertEquals(BigDecimal.valueOf(2), object[1]);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
