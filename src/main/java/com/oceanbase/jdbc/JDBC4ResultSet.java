@@ -2446,6 +2446,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
     }
 
+    private void checkUpdatable() throws SQLException {
+        if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
+            throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
+        }
+    }
+
     private void checkUpdatable(int position) throws SQLException {
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
@@ -2988,6 +2994,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateNull(String columnLabel) throws SQLException {
+        checkUpdatable();
         updateNull(findColumn(columnLabel));
     }
 
@@ -3002,6 +3009,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBoolean(String columnLabel, boolean value) throws SQLException {
+        checkUpdatable();
         updateBoolean(findColumn(columnLabel), value);
     }
 
@@ -3016,6 +3024,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateByte(String columnLabel, byte value) throws SQLException {
+        checkUpdatable();
         updateByte(findColumn(columnLabel), value);
     }
 
@@ -3033,6 +3042,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateShort(String columnLabel, short value) throws SQLException {
+        checkUpdatable();
         updateShort(findColumn(columnLabel), value);
     }
 
@@ -3052,6 +3062,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateInt(String columnLabel, int value) throws SQLException {
+        checkUpdatable();
         updateInt(findColumn(columnLabel), value);
     }
 
@@ -3061,6 +3072,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateFloat(String columnLabel, float value) throws SQLException {
+        checkUpdatable();
         updateFloat(findColumn(columnLabel), value);
     }
 
@@ -3070,6 +3082,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateDouble(String columnLabel, double value) throws SQLException {
+        checkUpdatable();
         updateDouble(findColumn(columnLabel), value);
     }
 
@@ -3083,6 +3096,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
+        checkUpdatable();
         updateBigDecimal(findColumn(columnLabel), value);
     }
 
@@ -3102,6 +3116,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateString(String columnLabel, String value) throws SQLException {
+        checkUpdatable();
         updateString(findColumn(columnLabel), value);
     }
 
@@ -3121,6 +3136,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBytes(String columnLabel, byte[] value) throws SQLException {
+        checkUpdatable();
         updateBytes(findColumn(columnLabel), value);
     }
 
@@ -3135,6 +3151,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateDate(String columnLabel, Date value) throws SQLException {
+        checkUpdatable();
         updateDate(findColumn(columnLabel), value);
     }
 
@@ -3157,6 +3174,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateTime(String columnLabel, Time value) throws SQLException {
+        checkUpdatable();
         updateTime(findColumn(columnLabel), value);
     }
 
@@ -3171,6 +3189,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
+        checkUpdatable();
         updateTimestamp(findColumn(columnLabel), value);
     }
 
@@ -3179,6 +3198,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
+        checkUpdatable();
         updateAsciiStream(findColumn(columnLabel), inputStream);
     }
 
@@ -3189,6 +3209,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateAsciiStream(String columnLabel, InputStream inputStream, int length)
                                                                                           throws SQLException {
+        checkUpdatable();
         updateAsciiStream(findColumn(columnLabel), inputStream, length);
     }
 
@@ -3210,6 +3231,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateAsciiStream(String columnLabel, InputStream inputStream, long length)
                                                                                            throws SQLException {
+        checkUpdatable();
         updateAsciiStream(findColumn(columnLabel), inputStream, length);
     }
 
@@ -3236,11 +3258,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateBinaryStream(String columnLabel, InputStream inputStream, int length)
                                                                                            throws SQLException {
+        checkUpdatable();
         updateBinaryStream(findColumn(columnLabel), inputStream, (long) length);
     }
 
     public void updateBinaryStream(String columnLabel, InputStream inputStream, long length)
                                                                                             throws SQLException {
+        checkUpdatable();
         updateBinaryStream(findColumn(columnLabel), inputStream, length);
     }
 
@@ -3249,6 +3273,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
+        checkUpdatable();
         updateBinaryStream(findColumn(columnLabel), inputStream);
     }
 
@@ -3263,6 +3288,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateCharacterStream(String columnLabel, Reader reader, int length)
                                                                                     throws SQLException {
+        checkUpdatable();
         updateCharacterStream(findColumn(columnLabel), reader, (long) length);
     }
 
@@ -3279,10 +3305,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateCharacterStream(String columnLabel, Reader reader, long length)
                                                                                      throws SQLException {
+        checkUpdatable();
         updateCharacterStream(findColumn(columnLabel), reader, length);
     }
 
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
+        checkUpdatable();
         updateCharacterStream(findColumn(columnLabel), reader, Long.MAX_VALUE);
     }
 
@@ -3483,22 +3511,24 @@ public class JDBC4ResultSet implements ResultSetImpl {
     // TODO: Oracle setRowBufferAt(int var1, Datum var2)
     public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
         checkUpdatable(columnIndex);
-        updateInternalObject(columnIndex, value, updatableParameterHolders[columnIndex - 1]
+        updateInternalObject(columnIndex, value, updatableColumns[columnIndex - 1]
             .getColumnType().getSqlType(), scaleOrLength);
     }
 
     public void updateObject(int columnIndex, Object value) throws SQLException {
         checkUpdatable(columnIndex);
-        updateInternalObject(columnIndex, value, updatableParameterHolders[columnIndex - 1]
+        updateInternalObject(columnIndex, value, updatableColumns[columnIndex - 1]
             .getColumnType().getSqlType(), Long.MAX_VALUE);
     }
 
     public void updateObject(String columnLabel, Object value, int scaleOrLength)
                                                                                  throws SQLException {
+        checkUpdatable();
         updateObject(findColumn(columnLabel), value, scaleOrLength);
     }
 
     public void updateObject(String columnLabel, Object value) throws SQLException {
+        checkUpdatable();
         updateObject(findColumn(columnLabel), value);
     }
 
@@ -3508,6 +3538,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateLong(String columnLabel, long value) throws SQLException {
+        checkUpdatable();
         updateLong(findColumn(columnLabel), value);
     }
 
@@ -3539,6 +3570,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBlob(String columnLabel, Blob blob) throws SQLException {
+        checkUpdatable();
         updateBlob(findColumn(columnLabel), blob);
     }
 
@@ -3547,6 +3579,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
+        checkUpdatable();
         updateBlob(findColumn(columnLabel), inputStream, Long.MAX_VALUE);
     }
 
@@ -3568,6 +3601,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public void updateBlob(String columnLabel, InputStream inputStream, long length)
                                                                                     throws SQLException {
+        checkUpdatable();
         updateBlob(findColumn(columnLabel), inputStream, length);
     }
 
@@ -3582,6 +3616,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateClob(String columnLabel, Clob clob) throws SQLException {
+        checkUpdatable();
         updateClob(findColumn(columnLabel), clob);
     }
 
@@ -3590,6 +3625,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
+        checkUpdatable();
         updateCharacterStream(findColumn(columnLabel), reader, length);
     }
 
@@ -3598,6 +3634,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
+        checkUpdatable();
         updateCharacterStream(findColumn(columnLabel), reader);
     }
 
