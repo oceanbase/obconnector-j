@@ -2291,7 +2291,7 @@ public class OracleBugfix extends BaseOracleTest {
             Statement stmt = conn.createStatement();
             stmt.execute("create or replace type array01 is varray(2) of number");
             stmt.execute("create or replace procedure t_array123 (arr out array01) is begin "
-                + "arr:= array01(1, 2); end;");
+                         + "arr:= array01(1, 2); end;");
             CallableStatement cs = conn.prepareCall("{call t_array123(?)}");
             cs.registerOutParameter(1, Types.ARRAY, "ARRAY01");
             cs.execute();
@@ -2304,4 +2304,5 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
 }

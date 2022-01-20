@@ -44,6 +44,8 @@
 
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.assertTrue;
+
 import java.sql.*;
 import java.time.LocalDateTime;
 
@@ -316,5 +318,32 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testClose() throws SQLException {
+        Statement closeStmt = null;
+        boolean exceptionAfterClosed = false;
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        try {
+            closeStmt = conn.createStatement();
+            closeStmt.close();
+
+            try {
+                closeStmt.executeQuery("SELECT 1");
+            } catch (SQLException sqlEx) {
+                exceptionAfterClosed = true;
+            }
+        } finally {
+            if (closeStmt != null) {
+                try {
+                    closeStmt.close();
+                } catch (SQLException sqlEx) {
+                    //
+                }
+            }
+        }
+        assertTrue("Operations not allowed on Statement after .close() is called!",
+            exceptionAfterClosed);
     }
 }

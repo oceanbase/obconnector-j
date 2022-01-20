@@ -650,10 +650,16 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public boolean execute(final String sql, final String[] columnNames) throws SQLException {
     return executeInternal(sql, fetchSize, Statement.RETURN_GENERATED_KEYS);
   }
-  public boolean isCursorResultSet() {
-     return  this.options.useServerPrepStmts == true && (protocol.isOracleMode() || (this.options.useCursorFetch == true
-        && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
-        && this.getFetchSize() > 0));
+  public boolean isCursorResultSet() throws SQLException {
+    if (closed) {
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("execute() is called on closed statement");
+    } else {
+      return this.options.useServerPrepStmts == true && (protocol.isOracleMode() || (this.options.useCursorFetch == true
+          && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
+          && this.getFetchSize() > 0));
+    }
   }
   /**
    * executes a select query.
