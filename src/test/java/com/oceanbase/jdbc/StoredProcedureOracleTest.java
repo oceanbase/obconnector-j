@@ -1576,4 +1576,23 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         assertEquals(Timestamp.valueOf("2006-01-01 01:01:16"), cstmt.getTimestamp(2));
     }
+
+    @Test
+    public void testCycleProcedure () throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            createProcedure("pro2", "( var out int)\nis BEGIN\nSELECT 1 into var from dual;\nend\n");
+            CallableStatement cs = null;
+            for (int i = 0; i < 2; i++) {
+                cs = conn.prepareCall("{call pro2(?)}");
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.execute();
+                Assert.assertEquals(1, cs.getInt(1));
+                cs.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

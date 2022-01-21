@@ -738,12 +738,10 @@ public class OceanBaseConnection implements ConnectionImpl {
                 database = protocol.getDatabase();
             }
             if (database != null && options.cacheCallableStmts) {
-
-                if (callableStatementCache.containsKey(new CallableStatementCacheKey(database,
-                    querySetToServer))) {
+                CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database, querySetToServer);
+                if (callableStatementCache.containsKey(cacheKey)) {
                     try {
-                        CallableStatement callableStatement = callableStatementCache
-                            .get(new CallableStatementCacheKey(database, querySetToServer));
+                        CallableStatement callableStatement = callableStatementCache.get(cacheKey);
                         if (callableStatement != null) {
                             // Clone to avoid side effect like having some open resultSet.
                             return ((CloneableCallableStatement) callableStatement).clone(this);
@@ -761,8 +759,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
-                callableStatementCache.put(
-                    new CallableStatementCacheKey(database, querySetToServer), callableStatement);
+                callableStatementCache.put(cacheKey, callableStatement);
                 return callableStatement;
             }
             return createNewCallableStatement(querySetToServer, procedureName, isFunction,

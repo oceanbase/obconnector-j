@@ -195,7 +195,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.closed = false;
     clone.warningsCleared = true;
     clone.maxRows = 0;
-    if (protocol.isOracleMode() && options.defaultFetchSize == 0) {
+    if (clone.protocol.isOracleMode() && options.defaultFetchSize == 0) {
       // Oracle JDBC set default fetchSize to 10
       clone.fetchSize = 10;
     } else {
