@@ -764,10 +764,9 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     // should fix the batch
     @org.junit.Test
     public void testSendPieceBatch() {
-        //Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
-            String url = System.getProperty("db3");
-            Connection conn = DriverManager.getConnection(url);
+            Connection conn = setConnection("&usePieceData=true");
             Statement stmt = conn.createStatement();
             PreparedStatement ps;
             try {

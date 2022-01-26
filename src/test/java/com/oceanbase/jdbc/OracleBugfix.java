@@ -890,17 +890,24 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @org.junit.Test
-    public void testSetTimeForDate2() {
+    public void testSetTimeForDate2() throws SQLException {
+        Connection conn = setConnection("&emulateUnsupportedPstmts=true");
+        PreparedStatement ps = conn.prepareStatement("select a from " + testDate2
+                                                     + " where nvl(b, ? + 1) > c");
+        Time testTime = new Time(12, 0, 0);
+        ps.setTime(1, testTime);
+        ps.executeQuery();
+
         try {
-            Connection conn = sharedConnection;
-            PreparedStatement ps = sharedConnection.prepareStatement("select a from " + testDate2
-                                                                     + " where nvl(b, ? + 1) > c");
-            Time testTime = new Time(12, 0, 0);
+            ps = sharedConnection.prepareStatement("select a from " + testDate2
+                                                   + " where nvl(b, ? + 1) > c");
             ps.setTime(1, testTime);
             ps.executeQuery();
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail();
+        } catch (SQLSyntaxErrorException e) {
+            if (!e.getMessage().contains("ORA-00932: inconsistent datatypes")) {
+                e.printStackTrace();
+                Assert.fail();
+            }
         }
     }
 

@@ -111,7 +111,7 @@ public class ProcTest extends BaseTest {
     }
 
     @Test
-    public void testCycleProcedure () throws Exception {
+    public void testCycleProcedure() throws Exception {
         try {
             Connection conn = sharedConnection;
             createProcedure("pro2", "(out var int)\nBEGIN\nSELECT 1 into var;\nend\n");

@@ -994,9 +994,10 @@ public class UpdateResultSetTest extends BaseTest {
         try {
             createTable("testUpdateObject", "id INT PRIMARY KEY, ot1 VARCHAR(100), ot2 BLOB");
             Connection conn = sharedConnection;
-            Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_UPDATABLE);
             ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdateObject");
-            byte[] bytes = {1, 2, 3};
+            byte[] bytes = { 1, 2, 3 };
 
             rs.moveToInsertRow();
             rs.updateObject(1, 1, Types.INTEGER);

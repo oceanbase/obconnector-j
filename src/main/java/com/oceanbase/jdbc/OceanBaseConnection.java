@@ -738,7 +738,8 @@ public class OceanBaseConnection implements ConnectionImpl {
                 database = protocol.getDatabase();
             }
             if (database != null && options.cacheCallableStmts) {
-                CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database, querySetToServer);
+                CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database,
+                    querySetToServer);
                 if (callableStatementCache.containsKey(cacheKey)) {
                     try {
                         CallableStatement callableStatement = callableStatementCache.get(cacheKey);

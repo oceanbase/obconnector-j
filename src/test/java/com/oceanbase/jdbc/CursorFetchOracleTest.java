@@ -166,6 +166,7 @@ public class CursorFetchOracleTest extends BaseOracleTest {
 
     @Test
     public void testScrollableCursor() throws Exception {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=false");
             PreparedStatement ps = connection.prepareStatement("select * from " + tableName,

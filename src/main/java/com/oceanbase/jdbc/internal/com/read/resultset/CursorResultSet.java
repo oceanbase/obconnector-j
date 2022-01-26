@@ -339,7 +339,7 @@ public class CursorResultSet extends SelectResultSet {
             throw new SQLException(
                 "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet: absolute");
         }
-        if (row == 0 && this.options.useCursorOffset) {
+        if (row == 0 && protocol.isOracleMode()) {
             // Compatible with Oracle
             throw new SQLException("Invalid parameter: absolute(0)");
         }

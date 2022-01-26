@@ -1578,7 +1578,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void testCycleProcedure () throws Exception {
+    public void testCycleProcedure() throws Exception {
         try {
             Connection conn = sharedConnection;
             createProcedure("pro2", "( var out int)\nis BEGIN\nSELECT 1 into var from dual;\nend\n");

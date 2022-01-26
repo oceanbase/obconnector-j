@@ -71,7 +71,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         createTable("result_set_test", "id int not null primary key , name char(20)");
     }
 
-    @Test
+    @Ignore
     public void isBeforeFirstFetchTest() throws SQLException {
         insertRows(1);
         Statement statement = sharedConnection.createStatement();
@@ -116,7 +116,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
   }
 
-    @Test
+    @Ignore
   public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
     insertRows(2);
     Statement statement = sharedConnection.createStatement();
@@ -150,7 +150,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         assertTrue(resultSet.isClosed());
     }
 
-    @Test
+    @Ignore
     public void isBeforeFirstTest() throws SQLException {
         insertRows(1);
         ResultSet resultSet = sharedConnection.createStatement().executeQuery(
@@ -430,7 +430,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         }
     }
 
-    @Test
+    @Ignore
     public void relativeForwardTest() throws SQLException {
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,

@@ -122,7 +122,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void paramNumber() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ?");
+        PreparedStatement preparedStatement = setConnection("&emulateUnsupportedPstmts=true")
+            .prepareStatement("SELECT ?, ?");
         try {
             preparedStatement.setString(1, "1");
             preparedStatement.execute();
@@ -143,6 +144,11 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             fail();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+        }
+        try {
+            sharedConnection.prepareStatement("SELECT ?, ?");
+        } catch (SQLSyntaxErrorException e) {
+            e.printStackTrace();
         }
     }
 
@@ -371,7 +377,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void executeLargeBatchError() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection
+        //        PreparedStatement preparedStatement = sharedConnection
+        PreparedStatement preparedStatement = setConnection("&emulateUnsupportedPstmts=true")
             .prepareStatement("INSERT INTO unknownTable values (?, ?)");
         preparedStatement.setString(1, "1");
         preparedStatement.setString(2, "1");
@@ -410,8 +417,14 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void metaDataForWrongQuery() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
+        PreparedStatement preparedStatement = setConnection("&emulateUnsupportedPstmts=true")
+            .prepareStatement("WRONG QUERY");
         assertNull(preparedStatement.getMetaData());
+        try {
+            preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
+        } catch (SQLSyntaxErrorException e) {
+            e.printStackTrace();
+        }
     }
 
     @Ignore
@@ -431,11 +444,23 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void prepareToString() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("SELECT ? as a, ? as b");
+        PreparedStatement preparedStatement = setConnection("&emulateUnsupportedPstmts=true")
+            .prepareStatement("SELECT ? as a, ? as b from dual");
         preparedStatement.setString(1, "a");
         preparedStatement.setNull(2, Types.VARCHAR);
-        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
+        assertEquals("sql : 'SELECT ? as a, ? as b from dual', parameters : ['a',<null>]",
             preparedStatement.toString());
+        preparedStatement.executeQuery();
+
+        try {
+            preparedStatement = sharedConnection.prepareStatement("SELECT ? as a, ? as b");
+            preparedStatement.setString(1, "a");
+            preparedStatement.setNull(2, Types.VARCHAR);
+            assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
+                preparedStatement.toString());
+        } catch (SQLSyntaxErrorException e) {
+            //eat
+        }
     }
+
 }
