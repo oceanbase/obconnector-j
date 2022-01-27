@@ -252,18 +252,21 @@ public class ClientPrepareResult implements PrepareResult {
                 paramSb.append(car);
             }
             if (isOracleMode && state == LexState.NabmeBinding && (endNameBinding || i == queryLength - 1)) {
-                partList.add((queryString.substring(lastParameterPosition, i - paramSb.length() )).getBytes(charset));
-                paramSb.setLength(0);
-                state = LexState.Normal;
-                if(endNameBinding) {
-                    lastParameterPosition = i;
-
+                String tmp = paramSb.toString();
+                if(tmp.indexOf('.') != -1) {
+                  paramSb.setLength(0);
+                  state = LexState.Normal;
                 } else {
+                  partList.add((queryString.substring(lastParameterPosition, i - paramSb.length() )).getBytes(charset));
+                  paramSb.setLength(0);
+                  state = LexState.Normal;
+                  if(endNameBinding) {
+                    lastParameterPosition = i;
+                  } else {
                     lastParameterPosition = i + 1;
+                  }
+                  endNameBinding = false;
                 }
-                endNameBinding = false;
-
-
             }
             lastChar = car;
         }

@@ -62,39 +62,40 @@ public class CheckSumForGB2321Test extends BaseOracleTest {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            PreparedStatement ps = conn.prepareStatement("drop table pub_menu");
             try {
+                PreparedStatement ps = conn.prepareStatement("drop table pub_menu");
                 ps.execute();
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
                 //            e.printStackTrace();
             }
-            ps = conn.prepareStatement("drop table pub_grade_task");
             try {
+                PreparedStatement ps = conn.prepareStatement("drop table pub_grade_task");
                 ps.execute();
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
                 //            e.printStackTrace();
             }
-            ps = conn.prepareStatement("drop table pub_user");
+
             try {
+                PreparedStatement ps = conn.prepareStatement("drop table pub_user");
                 ps.execute();
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
                 //            e.printStackTrace();
             }
-            ps = conn.prepareStatement("drop table pub_user_grade");
             try {
+                PreparedStatement ps = conn.prepareStatement("drop table pub_user_grade");
                 ps.execute();
                 ps.close();
             } catch (Exception e) {
                 // ignore, maybe table does not exist
                 //            e.printStackTrace();
             }
-            ps = conn
+            PreparedStatement ps = conn
                 .prepareStatement("CREATE TABLE pub_menu (menuid varchar(20), uppermenuid varchar(20), menulevel varchar(20),"
                                   + "systemcode varchar(20),menucname varchar(20), actionurl varchar(20),target varchar(20), "
                                   + "displayno varchar(20), image varchar(20), taskcode varchar(20),validind varchar(20), remark varchar(20))");

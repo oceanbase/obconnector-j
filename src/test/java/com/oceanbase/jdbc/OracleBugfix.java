@@ -2312,4 +2312,30 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testTrigger() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table AUTHORITIES");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute("create table AUTHORITIES(id int)");
+            String sql = "create or replace TRIGGER AUTHORITIES_ID_TRI BEFORE\n"
+                         + "INSERT ON \"AUTHORITIES\"\n"
+                         + "REFERENCING NEW AS \"new\" OLD AS \"old\"\n" + "FOR EACH ROW\n"
+                         + "ENABLE\n" + "WHEN (new.id is null)\n" + "BEGIN\n"
+                         + "select  AUTHORITIES_ID_SEQ.nextval into :new.id from dual;\n"
+                         + "END;\n";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.execute();
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

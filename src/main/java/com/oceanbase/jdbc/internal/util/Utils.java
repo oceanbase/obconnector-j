@@ -961,13 +961,29 @@ public class Utils {
           }
         } else {
           if (!includeCurChar) {
-            trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length()));
-            trimedSqlString.append("?");
+            String tmp = paramSb.toString();
+            if(tmp != null) {
+              int index = tmp.indexOf('.');
+              if(index != -1) {
+                  trimedSqlString.append(queryString.substring(lastParamPos, i));
+              } else {
+                trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length()));
+                trimedSqlString.append("?");
+              }
+            }
             lastParamPos = i;
           } else {
             paramSb.append(car);
-            trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length() + 1));
-            trimedSqlString.append("?");
+            String tmp = paramSb.toString();
+            if(tmp != null) {
+              int index = tmp.indexOf('.');
+              if(index != -1) {
+                  trimedSqlString.append(queryString.substring(lastParamPos, i + 1));
+              } else {
+                trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length() + 1));
+                trimedSqlString.append("?");
+              }
+            }
             lastParamPos = i + 1;
             includeCurChar = false;
           }
