@@ -69,14 +69,14 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                                                                                     Cloneable {
 
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
-    protected List<CallParameter>       params;
+    protected List<CallParameter> params;
     protected boolean                   isObFunction          = false;
 
-    protected int[]                     outputParameterMapper = null;
+    protected int[]                       outputParameterMapper = null;
     //protected CallableParameterMetaData parameterMetadata;
-    protected CallableParameterMetaData parameterMetadata;
-    protected boolean                   hasInOutParameters;
-    protected String                    arguments             = null;
+    protected CallableParameterMetaData   parameterMetadata;
+    protected boolean                     hasInOutParameters;
+    protected String                      arguments             = null;
 
     //protected CallableStatementParamInfo paramInfo;
 
@@ -581,24 +581,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         if (this.isObFunction && parameterIndex == 1) {
             return; //skip first
         }
-        try {
-            //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
-            CallParameter callParameter = getParameter(parameterIndex);
-            callParameter.setOutputSqlType(sqlType);
-            callParameter.setTypeName(typeName);
-            callParameter.setOutput(true);
-        } catch (SQLException e) {
-            if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
-                && parameterIndex <= parameterCount) {
-                CallParameter paramInfoToAdd = new CallParameter("functionreturn", parameterIndex,
-                    false, true, sqlType, null, 0, 0, 0, sqlType,
-                    DatabaseMetaData.procedureColumnUnknown);
-                params.add(paramInfoToAdd);
-            } else {
-                throw e;
-            }
-        }
-
+        //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
+        CallParameter callParameter = getParameter(parameterIndex);
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setTypeName(typeName);
+        callParameter.setOutput(true);
     }
 
     @Override
@@ -632,23 +619,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
-        try {
-            //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
-            CallParameter callParameter = getParameter(parameterIndex);
-            callParameter.setOutput(true);
-            callParameter.setOutputSqlType(sqlType);
-            callParameter.setScale(scale);
-        } catch (SQLException e) {
-            if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
-                && parameterIndex <= parameterCount) {
-                CallParameter paramInfoToAdd = new CallParameter("functionreturn", parameterIndex,
-                    false, true, sqlType, null, 0, scale, 0, sqlType,
-                    DatabaseMetaData.procedureColumnUnknown);
-                params.add(paramInfoToAdd);
-            } else {
-                throw e;
-            }
-        }
+        //checkIsOutputParam(parameterIndex); //TODO check registerOutParameter is permit
+        CallParameter callParameter = getParameter(parameterIndex);
+        callParameter.setOutput(true);
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setScale(scale);
     }
 
     @Override

@@ -50,12 +50,9 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -104,12 +101,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         } else {
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
                 procedureName, isObFunction);
-            if (protocol.supportStmtPrepareExecute()) {
-                this.parameterMetadata.params = new ArrayList<CallParameter>();
-                this.parameterMetadata.mapNameToParamter = new HashMap<>();
-                this.params = new ArrayList<>(parameterCount);
-                return;
-            }
         }
 
         setParamsAccordingToSetArguments();
@@ -128,15 +119,12 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         this.isObFunction = isObFunction;
         this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
             procedureName, isObFunction);
-        if (protocol.supportStmtPrepareExecute()) {
-            this.parameterMetadata.params = new ArrayList<CallParameter>();
-            this.parameterMetadata.mapNameToParamter = new HashMap<>();
-            this.params = new ArrayList<>(parameterCount);
-        } else {
+        if (!protocol.supportStmtPrepareExecute()) {
             this.parameterMetadata.generateMetadataFromPrepareResultSet(this.serverPrepareResult);
-            setParamsAccordingToSetArguments();
-            setParametersVariables();
         }
+
+        setParamsAccordingToSetArguments();
+        setParametersVariables();
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
@@ -228,21 +216,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder)
                                                                                     throws SQLException {
-        try {
-            params.get(parameterIndex - 1).setInput(true);
-        } catch (IndexOutOfBoundsException e) {
-            if (protocol.supportStmtPrepareExecute() && 1 <= parameterIndex
-                && parameterIndex <= parameterCount) {
-                CallParameter paramInfoToAdd = new CallParameter(null, parameterIndex - 1, true,
-                    false, holder.getColumnType().getSqlType(), holder.getColumnType()
-                        .getTypeName(), 0, 0, DatabaseMetaData.procedureNullable, holder
-                        .getColumnType().getSqlType(), DatabaseMetaData.procedureColumnIn);
-                params.add(paramInfoToAdd);
-            } else {
-                throw e;
-            }
-        }
-
+        params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
 
