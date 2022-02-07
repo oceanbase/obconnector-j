@@ -69,14 +69,14 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                                                                                     Cloneable {
 
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
-    protected List<CallParameter> params;
+    protected List<CallParameter>       params;
     protected boolean                   isObFunction          = false;
 
-    protected int[]                       outputParameterMapper = null;
+    protected int[]                     outputParameterMapper = null;
     //protected CallableParameterMetaData parameterMetadata;
-    protected CallableParameterMetaData   parameterMetadata;
-    protected boolean                     hasInOutParameters;
-    protected String                      arguments             = null;
+    protected CallableParameterMetaData parameterMetadata;
+    protected boolean                   hasInOutParameters;
+    protected String                    arguments             = null;
 
     //protected CallableStatementParamInfo paramInfo;
 

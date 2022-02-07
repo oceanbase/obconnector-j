@@ -2338,4 +2338,64 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testPrepExecuteLargeUpdate() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            createTable("testPrepExecuteLargeUpdate", "c1 int");
+
+            PreparedStatement ps = conn
+                .prepareStatement("INSERT INTO testPrepExecuteLargeUpdate VALUES (?),(?)");
+            ps.setInt(1, 1);
+            ps.setInt(2, 2);
+
+            long count = ps.executeLargeUpdate();
+            assertEquals(2, count);
+
+            ResultSet rs = stmt.executeQuery("select * from testPrepExecuteLargeUpdate");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j++, rs.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testCallStmtExecuteLargeUpdate() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            createTable("testCallStmtLargeUpdate", "c1 int");
+            createProcedure(
+                "testCallStmtLargeUpdateProc",
+                "(n1 int, n2 int, n3 int, n4 int) is BEGIN "
+                        + " INSERT INTO testCallStmtLargeUpdate VALUES (n1), (n2), (n3), (n4); end ");
+
+            CallableStatement cstmt = conn
+                .prepareCall("{CALL testCallStmtLargeUpdateProc(?, ?, ?, ?)}");
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.setInt(3, 3);
+            cstmt.setInt(4, 4);
+
+            long count = cstmt.executeLargeUpdate();
+            assertEquals(0, count);
+
+            ResultSet rs = stmt.executeQuery("select * from testCallStmtLargeUpdate");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j++, rs.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

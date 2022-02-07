@@ -594,7 +594,13 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     }
     return SelectResultSet.createEmptyResultSet();
   }
-
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    if (execute()) {
+      return 0;
+    }
+    return getLargeUpdateCount();
+  }
   /**
    * Executes the SQL statement in this <code>PreparedStatement</code> object, which must be an SQL
    * Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or
