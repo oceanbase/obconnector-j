@@ -346,4 +346,39 @@ public class Bugfix extends BaseTest {
         assertTrue("Operations not allowed on Statement after .close() is called!",
             exceptionAfterClosed);
     }
+
+    @Test
+    public void testGB18030() {
+        try {
+            byte[] value = new byte[] { (byte) 0x81, (byte) 0x39, (byte) 0xFB, (byte) 0x30 };
+            String strValue = new String(value, "GB18030");
+            Connection dbConn;
+            dbConn = setConnection("&characterEncoding=gb18030&character_set_client=gb18030&character_set_connection=gb18030&character_set_results=gb1803");
+            try {
+                dbConn.createStatement().execute("drop table testCharsetGB18030");
+            } catch (Exception e) {
+                //                e.printStackTrace();
+            }
+            dbConn
+                .createStatement()
+                .execute(
+                    "create table testCharsetGB18030 (c1 integer, c2 varchar(128)) character set = gb18030");
+
+            dbConn.setAutoCommit(false);
+            PreparedStatement preparedStatement = dbConn
+                .prepareStatement("INSERT INTO testCharsetGB18030 (c1, c2) VALUES (?, ?)");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.setString(2, strValue);
+            int retValue = preparedStatement.executeUpdate();
+            dbConn.commit();
+            Assert.assertEquals(1, retValue);
+            preparedStatement.close();
+            dbConn.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
 }
