@@ -126,7 +126,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         try {
             sharedConnection.prepareStatement("SELECT ?, ?");
         } catch (SQLException e) {
-            Assert.assertTrue(e.getMessage().contains("ORA-00900: You have an error in your SQL syntax"));
+            Assert.assertTrue(e.getMessage().contains(
+                "ORA-00900: You have an error in your SQL syntax"));
         }
         if (!sharedOptions().emulateUnsupportedPstmts) {
             Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
@@ -394,7 +395,8 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         //        PreparedStatement preparedStatement = sharedConnection
         if (!sharedOptions().emulateUnsupportedPstmts) {
             Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
-            PreparedStatement preparedStatement = newConn.prepareStatement("INSERT INTO unknownTable values (?, ?)");
+            PreparedStatement preparedStatement = newConn
+                .prepareStatement("INSERT INTO unknownTable values (?, ?)");
             preparedStatement.setString(1, "1");
             preparedStatement.setString(2, "1");
             preparedStatement.addBatch();
@@ -467,21 +469,23 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
     @Test
     public void prepareToString() throws SQLException {
         try {
-            PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? as a, ? as b");
+            PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("SELECT ? as a, ? as b");
             preparedStatement.setString(1, "a");
             preparedStatement.setNull(2, Types.VARCHAR);
             assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
-                    preparedStatement.toString());
+                preparedStatement.toString());
         } catch (SQLSyntaxErrorException e) {
             //eat
         }
         if (!sharedOptions().emulateUnsupportedPstmts) {
             Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
-            PreparedStatement preparedStatement = newConn.prepareStatement("SELECT ? as a, ? as b from dual");
+            PreparedStatement preparedStatement = newConn
+                .prepareStatement("SELECT ? as a, ? as b from dual");
             preparedStatement.setString(1, "a");
             preparedStatement.setNull(2, Types.VARCHAR);
             assertEquals("sql : 'SELECT ? as a, ? as b from dual', parameters : ['a',<null>]",
-                    preparedStatement.toString());
+                preparedStatement.toString());
             preparedStatement.executeQuery();
             newConn.close();
         }

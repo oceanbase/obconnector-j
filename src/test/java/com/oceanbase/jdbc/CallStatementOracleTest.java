@@ -194,8 +194,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         }
         if (!sharedOptions().emulateUnsupportedPstmts) {
             Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
-            Statement stmt = newConn.prepareStatement(
-                    "select multiResultSets(2)");
+            Statement stmt = newConn.prepareStatement("select multiResultSets(2)");
             stmt.executeBatch();
         }
     }

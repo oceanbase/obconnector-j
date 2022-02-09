@@ -92,11 +92,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class JDBC4ResultSet implements ResultSetImpl {
 
-    public static final int                 TINYINT1_IS_BIT     = 1;
-    public static final int                 YEAR_IS_DATE_TYPE   = 2;
-    private static final String             NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
+    public static final int                 TINYINT1_IS_BIT       = 1;
+    public static final int                 YEAR_IS_DATE_TYPE     = 2;
+    private static final String             NOT_UPDATABLE_ERROR   = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
     private static final ColumnDefinition[] INSERT_ID_COLUMNS;
-    private static final int                MAX_ARRAY_SIZE      = Integer.MAX_VALUE - 8;
+    private static final int                MAX_ARRAY_SIZE        = Integer.MAX_VALUE - 8;
+    public static String                    UpdatableResultSet_12 = "refreshRow() called on row that has been deleted or had primary key changed.";
 
     static {
         INSERT_ID_COLUMNS = new ColumnDefinition[1];
@@ -109,7 +110,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected Options                       options;
     protected ColumnDefinition[]            columnsInformation;
     protected int                           columnInformationLength;
-    protected int                           columnIndexOffset   = 0;
+    protected int                           columnIndexOffset     = 0;
     protected boolean                       noBackslashEscapes;
     protected Protocol                      protocol;
     protected PacketInputStream             reader;
@@ -127,14 +128,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * 0: client did get result from server, but the result set is empty without any row.
      * 1~n: the number of rows cached in "data[][]"
      */
-    protected int                           dataSize            = -1;
-    protected int                           rowPointer          = -1;
-    protected int                           lastRowPointer      = -1;
-    protected int                           discardedRows       = 0;
-    protected boolean                       isEof               = false;
-    protected boolean                       isLastRowSent       = false;
-    protected boolean                       isClosed            = false;
-    protected boolean                       isModified          = false;
+    protected int                           dataSize              = -1;
+    protected int                           rowPointer            = -1;
+    protected int                           lastRowPointer        = -1;
+    protected int                           discardedRows         = 0;
+    protected boolean                       isEof                 = false;
+    protected boolean                       isLastRowSent         = false;
+    protected boolean                       isClosed              = false;
+    protected boolean                       isModified            = false;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
     protected boolean                       forceAlias;
@@ -2853,10 +2854,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             byte[] rowData = rs.getCurrentRowData();
             rs.close();
             return rowData;
+        } else {
+            throw new SQLException(UpdatableResultSet_12);
         }
-
-        rs.close();
-        return new byte[0];
     }
 
     protected int refreshRowInternalOracle(int size) throws SQLException {

@@ -286,6 +286,7 @@ public class Bugfix extends BaseTest {
             Assert.assertTrue(rs.last());
             Assert.assertEquals("-1000000+changed", rs.getString(2));
             rs.refreshRow();// Origin  MySQL JDBC throws  java.sql.SQLException: refreshRow() called on row that has been deleted or had primary key changed
+            Assert.fail();
         } catch (Throwable e) {
             Assert.assertEquals(
                 "refreshRow() called on row that has been deleted or had primary key changed.",
