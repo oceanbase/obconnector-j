@@ -780,9 +780,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
         try {
             rs.updateBlob("a", (java.sql.Blob) null);
         } catch (SQLFeatureNotSupportedException sqle) {
-            if (sharedConnection.getProtocol().isOracleMode()) {
-                Assert.fail();
-            }
+            Assert.fail();
         } catch (SQLException sqlee) {
             // eat
         }
