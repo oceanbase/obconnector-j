@@ -44,9 +44,11 @@
 
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
+import java.sql.Clob;
 import java.time.LocalDateTime;
 
 import org.junit.Assert;
@@ -382,4 +384,38 @@ public class Bugfix extends BaseTest {
 
     }
 
+    @Test
+    public void testClobSetString() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        String s1 = "NewClobData";
+        ResultSet rs = stmt.executeQuery("select 'a'");
+        rs.next();
+        Clob c1 = rs.getClob(1);
+
+        try {
+            c1.setString(0, s1, 7, 4);
+            fail("Starting position can not be < 1");
+        } catch (SQLException e) {
+            assertEquals("Starting position can not be < 1", e.getMessage());
+        }
+
+        try {
+            c1.setString(1, s1, 8, 4);
+            fail("String index out of range: 12");
+        } catch (SQLException e) {
+            assertEquals("String index out of range: 12", e.getMessage());
+        }
+
+        // full replace
+        c1.setString(1, s1, 3, 4);
+        assertEquals("Clob", c1.getSubString(1L, (int) c1.length()));
+
+        // add
+        c1.setString(5, s1, 7, 4);
+        assertEquals("ClobData", c1.getSubString(1L, (int) c1.length()));
+        // current clob string ClobData
+        // replace middle chars
+        c1.setString(2, s1, 7, 4);
+        assertEquals("CDataata", c1.getSubString(1L, (int) c1.length()));
+    }
 }

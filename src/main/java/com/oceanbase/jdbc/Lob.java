@@ -173,6 +173,7 @@ public class Lob implements Serializable {
 
         if (length > arrayPos + bytes.length) {
             System.arraycopy(bytes, 0, data, offset + arrayPos, bytes.length);
+
         } else {
 
             byte[] newContent = new byte[arrayPos + bytes.length];
@@ -183,9 +184,9 @@ public class Lob implements Serializable {
             data = newContent;
             length = arrayPos + bytes.length;
             offset = 0;
-            charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
-                : this.encoding));
         }
+        charData = new String(data,
+            Charset.forName(this.encoding == null ? "UTF-8" : this.encoding));
         return bytes.length;
     }
 
