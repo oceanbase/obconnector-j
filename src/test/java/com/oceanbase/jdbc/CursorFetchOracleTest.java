@@ -758,6 +758,53 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testSensitiveResultSetFromTwoTables() throws SQLException {
+        Assume.assumeFalse(sharedOptions().useCursorOffset);
+        try {
+            createTable("joinTable", "col1 int, col2 varchar(30), col3 varchar(100), constraint pk_yxy2 primary key(col1)");
+            String query = "insert all";
+            for (int i = 1; i <= 10; i++) {
+                query += " into joinTable values(" + i + ", '" + i + "_join', 'aaa')";
+            }
+            query += "select * from dual";
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute(query);
+
+            Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+            PreparedStatement ps = connection.prepareStatement("-- select注释\n"
+                            + "select /*插入的注释*/ c2, col2 /*\n"
+                            + "换行的注释*/from " + tableName + "\n"
+                            + "left join joinTable on " + tableName + ".c1 = joinTable.col1\n"
+                            + "where 2 = ?",
+                    ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY); // OB JDBC catch ORA-00918: column 'ROWID' in field list ambiguously defined
+            ps.setInt(1, 2);
+
+            ResultSet rs = ps.executeQuery(); // Oracle JDBC catch ORA-00918: column ambiguously defined
+            Assert.assertEquals(10, ps.getFetchSize());
+            Assert.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+            Assert.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+
+            Assert.assertTrue(rs.absolute(3));
+            Assert.assertEquals("3+string", rs.getString(1));
+            Assert.assertEquals("3_join", rs.getString(2));
+            try {
+                rs.updateString(1, "-3+changed");
+                rs.updateRow();
+            } catch (SQLFeatureNotSupportedException ex) {
+                Assert.assertEquals("Updates are not supported when using ResultSet.CONCUR_READ_ONLY", ex.getMessage());
+            }
+
+            ps.close();
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            createTable(tableName, "c1 int, c2 varchar(30), constraint pk primary key(c1)");
+            initStrictTable();
+        }
+    }
+
+    @Test
     public void testSensitiveResultSetWithRowid() throws SQLException {
         Assume.assumeFalse(sharedOptions().useCursorOffset);
         try {

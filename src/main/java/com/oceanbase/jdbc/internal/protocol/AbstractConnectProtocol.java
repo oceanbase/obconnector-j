@@ -165,7 +165,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int                           minorVersion;
     private int                           patchVersion;
     private String                        obServerVersion;
-    private boolean                       supportStmtPrepareExecute;
+    protected boolean                     supportStmtPrepareExecute;
     private boolean                       supportFetchWithOffset;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;

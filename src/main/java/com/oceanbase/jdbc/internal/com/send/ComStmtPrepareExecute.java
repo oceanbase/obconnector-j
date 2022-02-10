@@ -60,10 +60,6 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
-/**
- * @author yexinyan.yxy
- * @version 1.0: ComStmtPrepareExecute, 2021-09-06 16:09 yexinyan.yxy Exp $
- */
 public class ComStmtPrepareExecute {
     /**
      * Send a prepare statement binary stream.
@@ -205,15 +201,8 @@ public class ComStmtPrepareExecute {
                 ColumnDefinition[] columns = new ColumnDefinition[numColumns];
                 if (hasResultSet == 1) {
                     protocol.readResultSet(columns, results);
-                }
-
-                buffer = reader.getPacket(true);
-                switch (buffer.getByteAt(0)) {
-                    case Packet.OK:
-                        protocol.readOkPacket(buffer, results);
-                        break;
-                    case Packet.ERROR:
-                        throw protocol.readErrorPacket(buffer, results);
+                } else {
+                    readTailPacket(protocol, reader, results, false);
                 }
 
                 return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(
@@ -225,6 +214,22 @@ public class ComStmtPrepareExecute {
             default:
                 throw new SQLException("Unexpected packet returned by server, first byte "
                                        + firstByte);
+        }
+    }
+
+    public static void readTailPacket(Protocol protocol, PacketInputStream reader, Results results,
+                                      boolean hasResultSet) throws IOException, SQLException {
+        Buffer buffer = reader.getPacket(true);
+        switch (buffer.getByteAt(0)) {
+            case Packet.OK:
+                if (!hasResultSet) {
+                    // if batch errors or "returning ... into" is supported later,
+                    // then hasResultSet flag and ok packet are meaningful both
+                    protocol.readOkPacket(buffer, results);
+                }
+                break;
+            case Packet.ERROR:
+                throw protocol.readErrorPacket(buffer, results);
         }
     }
 }

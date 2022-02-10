@@ -82,6 +82,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
+import com.oceanbase.jdbc.internal.com.send.ComStmtPrepareExecute;
 import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
@@ -155,6 +156,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected static final int          STATE_UPDATE             = 1;
     protected static final int          STATE_UPDATED            = 2;
     protected static final int          STATE_INSERT             = 3;
+
+    protected OceanBaseConnection       connection;
     private String                      database;
     private String                      table;
 
@@ -169,7 +172,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private int                         updatableColumnLength;
     private UpdatableColumnDefinition[] updatableColumns;
     private ParameterHolder[]           updatableParameterHolders;
-    protected OceanBaseConnection       connection;
     private PreparedStatement           refreshPreparedStatement = null;
     private ClientSidePreparedStatement insertPreparedStatement  = null;
     private ClientSidePreparedStatement deletePreparedStatement  = null;
@@ -210,15 +212,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
             this.data = new byte[10][];
             fetchAllResults();
         }
-
-        if (resultSetConcurType == ResultSet.CONCUR_UPDATABLE) {
-            checkIfUpdatable(results);
-            updatableParameterHolders = new ParameterHolder[updatableColumnLength];
+        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) { // todo: remove
+            // for new PS protocol, there is an OK packet to read before checkIfUpdatable
+            ComStmtPrepareExecute.readTailPacket(protocol, reader, results, true);
         }
+
+        handelUpdatable(results);
     }
 
-    void commonConstruct(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
-                         boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter) {
+    private void commonConstruct(ColumnDefinition[] columnDefinition, Results results,
+                                 Protocol protocol, boolean callableResult, boolean eofDeprecated,
+                                 boolean isPsOutParameter) {
         this.statement = results.getStatement();
         this.protocol = protocol;
         this.options = protocol.getOptions();
@@ -270,17 +274,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         rsClass = ResultSetClass.CURSOR;
         data = new byte[Math.max(10, fetchSize)][];
-        //refcursor cannot read data in constructor
+        // ref cursor cannot read data in constructor
         if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
             // for new PS protocol, ResultSet reads data from socket while constructing
             this.lock = protocol.getLock();
             nextStreamingValue();
+
+            // for new PS protocol, there is an OK packet to read before checkIfUpdatable
+            ComStmtPrepareExecute.readTailPacket(protocol, reader, results, true);
         }
 
-        if (resultSetConcurType == ResultSet.CONCUR_UPDATABLE) {
-            checkIfUpdatable(results);
-            updatableParameterHolders = new ParameterHolder[updatableColumnLength];
-        }
+        handelUpdatable(results);
     }
 
     public boolean assign(JDBC4ResultSet opt) {
@@ -2271,7 +2275,39 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     /****************************** updatable  characters *******************************/
 
-    private void checkIfUpdatable(Results results) throws SQLException {
+    private void handelUpdatable(Results results) throws SQLException {
+        if (resultSetConcurType == ResultSet.CONCUR_UPDATABLE) {
+            updatableColumnLength = columnInformationLength - columnIndexOffset;
+            updatableColumns = new UpdatableColumnDefinition[updatableColumnLength];
+
+            if (protocol.isOracleMode()) {
+                // a constructing rs of oracle mode is to be checked if updatable by server, so there is no need to check all columns
+                mustBeUpdatableForOracle();
+            } else {
+                checkIfUpdatableForMysql(results);
+            }
+
+            updatableParameterHolders = new ParameterHolder[updatableColumnLength];
+        }
+    }
+
+    private void mustBeUpdatableForOracle() {
+        database = columnsInformation[0].getDatabase();
+        table = columnsInformation[0].getOriginalTable();
+        connection = this.statement.getConnection();
+
+        for (int index = columnIndexOffset; index < columnInformationLength; index++) {
+            ColumnDefinition columnDefinition = columnsInformation[index];
+            updatableColumns[index - columnIndexOffset] = new UpdatableColumnDefinition(
+                columnDefinition, false, false, false, false, false);
+        }
+
+        canBeUpdate = true;
+        canBeInserted = true;
+        canBeRefresh = true;
+    }
+
+    private void checkIfUpdatableForMysql(Results results) throws SQLException {
         database = null;
         table = null;
         canBeUpdate = true;
@@ -2281,7 +2317,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         // check that resultSet concern one table and database exactly
         for (ColumnDefinition columnDefinition : columnsInformation) {
             if (columnDefinition.getDatabase() == null || columnDefinition.getDatabase().isEmpty()) {
-                cannotUpdateInsertRow("The result-set contains fields without without any database information");
+                cannotUpdateInsertRow("The result-set contains fields wit hout without any database information");
                 return;
             } else if (database == null) {
                 database = columnDefinition.getDatabase();
@@ -2291,7 +2327,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
 
             if (columnDefinition.getOriginalTable() == null
-                || columnDefinition.getOriginalTable().isEmpty()) {
+                    || columnDefinition.getOriginalTable().isEmpty()) {
                 cannotUpdateInsertRow("The result-set contains fields without without any table information");
                 return;
             } else if (table == null) {
@@ -2313,19 +2349,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
         // read table metadata
         if (canBeUpdate) {
             if (results.getStatement() != null && results.getStatement().getConnection() != null) {
-
                 connection = results.getStatement().getConnection();
                 Statement stmt = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                     ResultSet.CONCUR_READ_ONLY);
                 ResultSet rs;
-                if (protocol.isOracleMode()) {
-                    rs = stmt.executeQuery("SHOW COLUMNS FROM \"" + database + "\".\"" + table
-                                           + "\"");
-                } else {
-                    rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
-                }
-                updatableColumnLength = columnInformationLength - columnIndexOffset;
-                updatableColumns = new UpdatableColumnDefinition[updatableColumnLength];
+                rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
                 boolean primaryFound = false;
                 while (rs.next()) {
@@ -2396,7 +2424,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                         ensureAllColumnHaveMeta = false;
                     }
                 }
-                if (ensureAllColumnHaveMeta && !protocol.isOracleMode()) {
+                if (ensureAllColumnHaveMeta) {
                     columnsInformation = updatableColumns;
                 }
             }
@@ -2507,7 +2535,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return true;
     }
 
-    private StringBuilder generateWhereClause() {
+    private StringBuilder generateWhereClauseForMysql() {
         StringBuilder whereClause = new StringBuilder(" WHERE ");
 
         boolean firstPrimary = true;
@@ -2591,10 +2619,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 if (value != null) {
                     insertPreparedStatement.setParameter((fieldsIndex++) + 1, value);
                 } else {
-                    UpdatableColumnDefinition colInfo = updatableColumns[pos];
-                    if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
-                        hasGeneratedPrimaryFields = true;
-                        generatedSqlType = colInfo.getColumnType().getSqlType();
+                    if (!protocol.isOracleMode()) {
+                        UpdatableColumnDefinition colInfo = updatableColumns[pos];
+                        if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
+                            hasGeneratedPrimaryFields = true;
+                            generatedSqlType = colInfo.getColumnType().getSqlType();
+                        }
                     }
                     insertPreparedStatement.setParameter((fieldsIndex++) + 1,
                         new DefaultParameter());
@@ -2648,7 +2678,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 whereClause = new StringBuilder(" WHERE ROWID = ?");
             } else {
                 updateSql = new StringBuilder("UPDATE `" + database + "`.`" + table + "` SET ");
-                whereClause = generateWhereClause();
+                whereClause = generateWhereClauseForMysql();
             }
 
             boolean firstUpdate = true;
@@ -2743,7 +2773,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                                               + "\" WHERE ROWID = ?");
             } else {
                 deleteSql = new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` ");
-                StringBuilder whereClause = generateWhereClause();
+                StringBuilder whereClause = generateWhereClauseForMysql();
                 deleteSql.append(whereClause);
             }
 
@@ -2808,7 +2838,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             StringBuilder columnClause = generateColumnClause();
             selectSql.append(columnClause);
 
-            StringBuilder whereClause = generateWhereClause();
+            StringBuilder whereClause = generateWhereClauseForMysql();
             selectSql.append(" FROM `").append(database).append("`.`").append(table).append("`")
                 .append(whereClause);
 
