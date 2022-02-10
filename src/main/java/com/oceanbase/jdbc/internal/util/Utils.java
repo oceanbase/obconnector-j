@@ -1119,27 +1119,34 @@ public class Utils {
   }
 
   public static int getStatementType(String queryString) {
-    if (queryString.substring(0, 4).equalsIgnoreCase("with")) {
+    char[] query = queryString.toCharArray();
+    int index = 0;
+    while (index < query.length && (query[index] == ' ' || query[index] == '\n' || query[index] == '\t')) {
+      index++;
+    }
+
+    String str = queryString.substring(index);
+    if (str.substring(0, 4).equalsIgnoreCase("with")) {
       return OceanBaseStatement.STMT_SELECT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("select")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("select")) {
       return OceanBaseStatement.STMT_SELECT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("update")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("update")) {
       return OceanBaseStatement.STMT_UPDATE;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("delete")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("delete")) {
       return OceanBaseStatement.STMT_DELETE;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("insert")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("insert")) {
       return OceanBaseStatement.STMT_INSERT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("create")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("create")) {
       return OceanBaseStatement.STMT_CREATE;
-    } else if (queryString.substring(0, 4).equalsIgnoreCase("drop")) {
+    } else if (str.substring(0, 4).equalsIgnoreCase("drop")) {
       return OceanBaseStatement.STMT_DROP;
-    } else if (queryString.substring(0, 5).equalsIgnoreCase("alter")) {
+    } else if (str.substring(0, 5).equalsIgnoreCase("alter")) {
       return OceanBaseStatement.STMT_ALTER;
-    } else if (queryString.substring(0, 5).equalsIgnoreCase("begin")) {
+    } else if (str.substring(0, 5).equalsIgnoreCase("begin")) {
       return OceanBaseStatement.STMT_BEGIN;
-    } else if (queryString.substring(0, 7).equalsIgnoreCase("declare")) {
+    } else if (str.substring(0, 7).equalsIgnoreCase("declare")) {
       return OceanBaseStatement.STMT_DECLARE;
-    } else if (queryString.substring(0, 4).equalsIgnoreCase("call")) {
+    } else if (str.substring(0, 4).equalsIgnoreCase("call")) {
       return OceanBaseStatement.STMT_CALL;
     } else {
       return OceanBaseStatement.STMT_UNKNOWN;

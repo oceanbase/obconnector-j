@@ -151,7 +151,8 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     @Test
     public void testForwardCursor() throws SQLException {
         Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
-        PreparedStatement ps = connection.prepareStatement("select * from " + tableName,
+        PreparedStatement ps = connection.prepareStatement(" \t\n /*comment*/select * from "
+                                                           + tableName,
             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         ps.setFetchSize(40);
         ResultSet rs = ps.executeQuery();
