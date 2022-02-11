@@ -2327,7 +2327,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
 
             if (columnDefinition.getOriginalTable() == null
-                    || columnDefinition.getOriginalTable().isEmpty()) {
+                || columnDefinition.getOriginalTable().isEmpty()) {
                 cannotUpdateInsertRow("The result-set contains fields without without any table information");
                 return;
             } else if (table == null) {

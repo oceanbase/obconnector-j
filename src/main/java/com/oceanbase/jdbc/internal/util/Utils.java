@@ -969,6 +969,7 @@ public class Utils {
               } else {
                 trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length()));
                 trimedSqlString.append("?");
+                parameterCount++;
               }
             }
             lastParamPos = i;
@@ -982,6 +983,7 @@ public class Utils {
               } else {
                 trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length() + 1));
                 trimedSqlString.append("?");
+                parameterCount++;
               }
             }
             lastParamPos = i + 1;
@@ -990,7 +992,6 @@ public class Utils {
           paramSb.setLength(0);
           nameBindingEnd = false;
           state = LexState.Normal;
-          parameterCount++;
         }
       }
       lastChar = car;

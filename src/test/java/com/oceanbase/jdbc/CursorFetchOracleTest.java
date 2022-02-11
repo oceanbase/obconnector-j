@@ -761,7 +761,8 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     public void testSensitiveResultSetFromTwoTables() throws SQLException {
         Assume.assumeFalse(sharedOptions().useCursorOffset);
         try {
-            createTable("joinTable", "col1 int, col2 varchar(30), col3 varchar(100), constraint pk_yxy2 primary key(col1)");
+            createTable("joinTable",
+                "col1 int, col2 varchar(30), col3 varchar(100), constraint pk_yxy2 primary key(col1)");
             String query = "insert all";
             for (int i = 1; i <= 10; i++) {
                 query += " into joinTable values(" + i + ", '" + i + "_join', 'aaa')";
@@ -772,11 +773,13 @@ public class CursorFetchOracleTest extends BaseOracleTest {
 
             Connection connection = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
             PreparedStatement ps = connection.prepareStatement("-- select注释\n"
-                            + "select /*插入的注释*/ c2, col2 /*\n"
-                            + "换行的注释*/from " + tableName + "\n"
-                            + "left join joinTable on " + tableName + ".c1 = joinTable.col1\n"
-                            + "where 2 = ?",
-                    ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY); // OB JDBC catch ORA-00918: column 'ROWID' in field list ambiguously defined
+                                                               + "select /*插入的注释*/ c2, col2 /*\n"
+                                                               + "换行的注释*/from " + tableName + "\n"
+                                                               + "left join joinTable on "
+                                                               + tableName
+                                                               + ".c1 = joinTable.col1\n"
+                                                               + "where 2 = ?",
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY); // OB JDBC catch ORA-00918: column 'ROWID' in field list ambiguously defined
             ps.setInt(1, 2);
 
             ResultSet rs = ps.executeQuery(); // Oracle JDBC catch ORA-00918: column ambiguously defined
@@ -791,7 +794,9 @@ public class CursorFetchOracleTest extends BaseOracleTest {
                 rs.updateString(1, "-3+changed");
                 rs.updateRow();
             } catch (SQLFeatureNotSupportedException ex) {
-                Assert.assertEquals("Updates are not supported when using ResultSet.CONCUR_READ_ONLY", ex.getMessage());
+                Assert.assertEquals(
+                    "Updates are not supported when using ResultSet.CONCUR_READ_ONLY",
+                    ex.getMessage());
             }
 
             ps.close();
