@@ -2442,6 +2442,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         canBeUpdate = false;
         canBeInserted = false;
+        resultSetConcurType = ResultSet.CONCUR_READ_ONLY;
     }
 
     private void cannotInsertRow(String reason) {

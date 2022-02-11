@@ -1018,4 +1018,30 @@ public class UpdateResultSetTest extends BaseTest {
         }
     }
 
+    // mysql mode CONCUR_UPDATABLE -> CONCUR_READ_ONLY
+    @Test
+    public void testSENSITIVE_UPDATABLE_1() throws SQLException {
+        createTable("ResultSetType", "c1 INT, c2 VARCHAR(100)");
+        createTable("ResultSetTypePRIMARY", "c1 INT, c2 VARCHAR(100), constraint pk primary key(c1)");
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true");
+
+        PreparedStatement ps = conn.prepareStatement("SELECT * FROM ResultSetType", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = ps.executeQuery();
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+        assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+
+        ps = conn.prepareStatement("SELECT c1,c2 FROM ResultSetType", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = ps.executeQuery();
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+        assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+
+        ps = conn.prepareStatement("SELECT * FROM ResultSetTypePRIMARY", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = ps.executeQuery();
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+        assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+        ps = conn.prepareStatement("SELECT c1,c2 FROM ResultSetTypePRIMARY", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = ps.executeQuery();
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+        assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+    }
 }
