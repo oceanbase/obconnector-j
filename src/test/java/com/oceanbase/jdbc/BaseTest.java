@@ -670,6 +670,10 @@ public class BaseTest {
   protected Connection setConnection(String parameters) throws SQLException {
     return openConnection(connUri + parameters, null);
   }
+
+  protected Connection setConnectionOrigin(String parameters) throws SQLException {
+    return DriverManager.getConnection(connU + parameters,username,password);
+  }
   static  String getRandomString(int length){
     String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     Random random=new Random();

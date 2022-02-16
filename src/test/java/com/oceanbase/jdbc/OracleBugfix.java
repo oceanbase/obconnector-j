@@ -65,10 +65,7 @@ import javax.sql.rowset.serial.SerialClob;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import com.oceanbase.jdbc.jdbc2.optional.JDBC4MysqlXAConnection;
 import com.oceanbase.jdbc.jdbc2.optional.MysqlXid;
@@ -114,6 +111,7 @@ public class OracleBugfix extends BaseOracleTest {
     static String testSetReaderToClob       = "testSetReaderToClob" + getRandomString(5);
     static String testEmpty                 = "testEmpty" + getRandomString(5);
     static String pieceReuse                = "pieceReuse" + getRandomString(5);
+    static String nvarchar2Test             = "nvarchar2_test" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -208,6 +206,7 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testSetReaderToClob, "c1 clob");
         createTable(testEmpty, "c1 blob,c2 clob");
         createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
+        createTable(nvarchar2Test, "c1 nvarchar2(200)");
     }
 
     public static ZonedDateTime getZonedDateTime(String value) {
@@ -891,17 +890,24 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @org.junit.Test
-    public void testSetTimeForDate2() {
+    public void testSetTimeForDate2() throws SQLException {
+        Connection conn = setConnection("&emulateUnsupportedPstmts=true");
+        PreparedStatement ps = conn.prepareStatement("select a from " + testDate2
+                                                     + " where nvl(b, ? + 1) > c");
+        Time testTime = new Time(12, 0, 0);
+        ps.setTime(1, testTime);
+        ps.executeQuery();
+
         try {
-            Connection conn = sharedConnection;
-            PreparedStatement ps = sharedConnection.prepareStatement("select a from " + testDate2
-                                                                     + " where nvl(b, ? + 1) > c");
-            Time testTime = new Time(12, 0, 0);
+            ps = sharedConnection.prepareStatement("select a from " + testDate2
+                                                   + " where nvl(b, ? + 1) > c");
             ps.setTime(1, testTime);
             ps.executeQuery();
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail();
+        } catch (SQLSyntaxErrorException e) {
+            if (!e.getMessage().contains("ORA-00932: inconsistent datatypes")) {
+                e.printStackTrace();
+                Assert.fail();
+            }
         }
     }
 
@@ -1976,4 +1982,447 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail("Must have reconnect automatically !");
         }
     }
+
+    //When rewriteBatchedStatements=true, the length of updateCounts is always equal to the number of addBatch
+    @Test
+    public void testContinueBatchOnErrorFalse() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            int count = 2;
+            while (count > 0) {
+                Connection conn = setConnectionOrigin("?continueBatchOnError=false&rewriteBatchedStatements=false&useServerPrepStmts="
+                                                      + (count == 2 ? "false" : "true"));
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute("drop table rewriteErrors");
+                } catch (SQLException e) {
+                    //            e.printStackTrace();
+                }
+                stmt.execute("create table rewriteErrors (field1 int not null primary key)");
+                PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
+                int a = 5;
+                ps.setInt(1, a);
+                ps.addBatch();
+                int num = 10;
+                for (int i = 1; i <= num; i++) {
+                    ps.setInt(1, i);
+                    ps.addBatch();
+                }
+                try {
+                    int[] counts1 = ps.executeBatch();
+                } catch (BatchUpdateException e) {
+                    int[] counts = e.getUpdateCounts();
+                    Assert.assertEquals(a, counts.length);
+                }
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rewriteErrors");
+                rs.next();
+                Assert.assertEquals(a, rs.getInt(1));
+                conn.close();
+                count--;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testBug38422522() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection();
+            try {
+                conn.createStatement().execute("drop table rewriteBatchLoop");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table rewriteBatchLoop(c1 int,c2 int,c3 varchar2(20))");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into rewriteBatchLoop values(?,?,?)");
+
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    ps.setInt(1, 1);
+                    ps.setInt(2, 1);
+                    ps.setString(3, "fsfsfsfs");
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRefCursorResultSet() {
+        try {
+            Assume.assumeTrue(sharedUsePrepare());
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_timestamp_cursor");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table test_timestamp_cursor (test_timestamp DATE)");
+            stmt.execute("insert into test_timestamp_cursor values (to_date('2021-12-24 14:45:56','yyyy-mm-dd hh24:mi:ss'))");
+            stmt.execute("create or replace procedure p_sms_send( ref_cursor  out sys_refcursor) as\n"
+                         + "v_sql       varchar2(2000);\n"
+                         + "begin\n"
+                         + "  v_sql := 'SELECT * FROM test_timestamp_cursor WHERE rownum<=1';\n"
+                         + "  open ref_cursor for v_sql;\n" + "\n" + "end;");
+
+            CallableStatement cs = conn.prepareCall("call P_SMS_SEND(?)");
+            cs.registerOutParameter(1, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet) cs.getObject(1);
+            Assert.assertTrue(rs.next());
+            Timestamp t = rs.getTimestamp(1);
+
+            ResultSet rs1 = stmt.executeQuery("select * from test_timestamp_cursor");
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(rs1.getTimestamp(1).toString(), "2021-12-24 14:45:56.0");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testBug38422522ForPrepExecute() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true");
+            try {
+                conn.createStatement().execute("drop table rewriteBatchLoop");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute(
+                "create table rewriteBatchLoop(c1 int,c2 int,c3 varchar2(20))");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into rewriteBatchLoop values(?,?,?)");
+
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    ps.setInt(1, 1);
+                    ps.setInt(2, 1);
+                    ps.setString(3, "fsfsfsfs");
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testContinueBatchOnErrorFalseWithPrepExecute() {
+        try {
+            Connection conn = setConnectionOrigin("?continueBatchOnError=false&rewriteBatchedStatements=false&useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table rewriteErrors");
+            } catch (SQLException e) {
+                //            e.printStackTrace();
+            }
+            stmt.execute("create table rewriteErrors (field1 int not null primary key)");
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
+            int a = 5;
+            ps.setInt(1, a);
+            ps.addBatch();
+            int num = 10;
+            for (int i = 1; i <= num; i++) {
+                ps.setInt(1, i);
+                ps.addBatch();
+            }
+            try {
+                int[] counts1 = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int[] counts = e.getUpdateCounts();
+                Assert.assertEquals(a, counts.length);
+            }
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rewriteErrors");
+            rs.next();
+            Assert.assertEquals(a, rs.getInt(1));
+            conn.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetUsernameNpe() {
+        try {
+            String userName = sharedConnection.getMetaData().getUserName();
+            Assert.assertEquals("TESTER", userName);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    // prepareExecute protocol ref_cursor error
+    @Test
+    public void testNewProcedureCursor() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&useOraclePrepareExecute=true");
+            String sql = "create or replace procedure pro1( b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNVARCHAR2() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into " + nvarchar2Test + " values('stringval')");
+            ResultSet rs = stmt.executeQuery("select * from " + nvarchar2Test);
+            Assert.assertTrue(rs.next());
+            Object obj = rs.getObject(1);
+            Assert.assertEquals("stringval", (String) obj);
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCursorPositionError1() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            String sql = "create or replace procedure pro1( ref_param  out sys_refcursor,param2 out int) is begin open ref_param  for select 1 ,2 from dual; param2 := 100; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?,?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.registerOutParameter(2, Types.INTEGER);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            int param2Value = cstmt.getInt(2);
+            Assert.assertEquals(100, param2Value);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // refcursor not supports OCI_FETCH_ABSOLUTE now
+    @Ignore
+    public void testCursorPositionError2() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table cursror_table ");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table cursror_table(c1 int)");
+            for (int i = 1; i < 100; i++) {
+                conn.createStatement().execute("insert into cursror_table values(" + i + ")");
+            }
+            String sql = "create or replace procedure pro1( ref_param  out sys_refcursor,param2 out int) is begin open ref_param  for select *  from cursror_table; param2 := 100; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?,?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.registerOutParameter(2, Types.INTEGER);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+            resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(2, resultSet.getInt(1));
+            int param2Value = cstmt.getInt(2);
+            Assert.assertEquals(100, param2Value);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testSameProcedureRefCursor() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            String sql = "create or replace procedure pro22(b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            stmt.execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro22(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet resultSet = (ResultSet) cstmt.getObject(1);
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(1, resultSet.getInt(1));
+
+            sql = "create or replace procedure pro22(b out sys_refcursor) is begin open b for select 1 from dual; end;";
+            stmt.execute(sql);
+            cstmt = conn.prepareCall("{call pro22(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet rs = (ResultSet) cstmt.getObject(1);
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testArray() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            stmt.execute("create or replace type array01 is varray(2) of number");
+            stmt.execute("create or replace procedure t_array123 (arr out array01) is begin "
+                         + "arr:= array01(1, 2); end;");
+            CallableStatement cs = conn.prepareCall("{call t_array123(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "ARRAY01");
+            cs.execute();
+            Array array = cs.getArray(1);
+            Object[] object = (Object[]) array.getArray();
+            Assert.assertEquals(BigDecimal.valueOf(1), object[0]);
+            Assert.assertEquals(BigDecimal.valueOf(2), object[1]);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTrigger() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table AUTHORITIES");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute("create table AUTHORITIES(id int)");
+            String sql = "create or replace TRIGGER AUTHORITIES_ID_TRI BEFORE\n"
+                         + "INSERT ON \"AUTHORITIES\"\n"
+                         + "REFERENCING NEW AS \"new\" OLD AS \"old\"\n" + "FOR EACH ROW\n"
+                         + "ENABLE\n" + "WHEN (new.id is null)\n" + "BEGIN\n"
+                         + "select  AUTHORITIES_ID_SEQ.nextval into :new.id from dual;\n"
+                         + "END;\n";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.execute();
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTrigger2() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            try {
+                conn.createStatement().execute("drop table AUTHORITIES");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            conn.createStatement().execute("create table AUTHORITIES(id int)");
+            String sql = "create or replacOceanBaseClobTeste TRIGGER AUTHORITIES_ID_TRI BEFORE\n"
+                         + "INSERT ON \"AUTHORITIES\"\n"
+                         + "REFERENCING NEW AS \"new\" OLD AS \"old\"\n" + "FOR EACH ROW\n"
+                         + "ENABLE\n" + "WHEN (new.id is null)\n" + "BEGIN\n"
+                         + "select  AUTHORITIES_ID_SEQ.nextval into :new.id from dual;\n"
+                         + "END;\n";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.execute();
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testPrepExecuteLargeUpdate() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            createTable("testPrepExecuteLargeUpdate", "c1 int");
+
+            PreparedStatement ps = conn
+                .prepareStatement("INSERT INTO testPrepExecuteLargeUpdate VALUES (?),(?)");
+            ps.setInt(1, 1);
+            ps.setInt(2, 2);
+
+            long count = ps.executeLargeUpdate();
+            assertEquals(2, count);
+
+            ResultSet rs = stmt.executeQuery("select * from testPrepExecuteLargeUpdate");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j++, rs.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testCallStmtExecuteLargeUpdate() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            createTable("testCallStmtLargeUpdate", "c1 int");
+            createProcedure(
+                "testCallStmtLargeUpdateProc",
+                "(n1 int, n2 int, n3 int, n4 int) is BEGIN "
+                        + " INSERT INTO testCallStmtLargeUpdate VALUES (n1), (n2), (n3), (n4); end ");
+
+            CallableStatement cstmt = conn
+                .prepareCall("{CALL testCallStmtLargeUpdateProc(?, ?, ?, ?)}");
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.setInt(3, 3);
+            cstmt.setInt(4, 4);
+
+            long count = cstmt.executeLargeUpdate();
+            assertEquals(0, count);
+
+            ResultSet rs = stmt.executeQuery("select * from testCallStmtLargeUpdate");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j++, rs.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

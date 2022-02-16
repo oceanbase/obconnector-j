@@ -85,6 +85,10 @@ public class NullParameter implements ParameterHolder, Cloneable {
         // null data are not send in binary format.
     }
 
+    public static byte[] getNull() {
+        return NULL;
+    }
+
     public ColumnType getColumnType() {
         return type;
     }

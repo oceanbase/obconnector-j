@@ -66,10 +66,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.oceanbase.jdbc.LocalInfileInterceptor;
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.OceanBaseStatement;
-import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.*;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
@@ -77,10 +74,7 @@ import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
-import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableResultSet;
+import com.oceanbase.jdbc.internal.com.read.resultset.*;
 import com.oceanbase.jdbc.internal.com.send.*;
 import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -253,7 +247,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
 
-      cmdPrologue(); // ?
+      cmdPrologue();
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_PREPARE);
       writer.write(sql.getBytes(options.characterEncoding));
@@ -520,7 +514,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               while (continueWrite) {
                 if (first) {
                   // prepre here
-                  serverPrepareResult = prepare(results.getStatement().getOriginalSql(), true);
+                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
                   first = false;
                   serverPrepareResult.resetParameterTypeHeader();
                 }
@@ -1267,7 +1261,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return serverPrepareResult;
     }
 
-  public ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId, int fetchSize, Results results) throws SQLException {
+  public ColumnDefinition[] fetchRowViaCursor(int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
     try {
       writer.startPacket(0);
@@ -1275,6 +1269,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.writeInt(cursorId);
       writer.writeInt(fetchSize);
       writer.flush();
+
       if (this.isOracleMode()) {
         return getResultWithoutValue(results);
       } else {
@@ -1282,7 +1277,30 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     } catch (IOException e) {
       throw exceptionWithQuery(
-          " sendFechRowViaCursor failed.", handleIoException(e), explicitClosed);
+          " fetchRowViaCursor failed.", handleIoException(e), explicitClosed);
+    }
+  }
+
+  public ColumnDefinition[] fetchRowViaCursorForOracle(int cursorId, int numRows, byte offsetType, int offset, Results results) throws SQLException {
+    cmdPrologue();
+    try {
+      writer.startPacket(0);
+      writer.write(Packet.COM_STMT_FETCH);
+      writer.writeInt(cursorId);
+      writer.writeInt(numRows);
+      writer.writeShort(offsetType);
+      writer.writeInt(offset);
+      writer.writeInt(1);
+      writer.flush();
+
+      if (this.isOracleMode()) {
+        return getResultWithoutValue(results);
+      } else {
+        return null;
+      }
+    } catch (IOException e) {
+      throw exceptionWithQuery(
+          " fetchRowViaCursorForOracle failed.", handleIoException(e), explicitClosed);
     }
   }
 
@@ -1792,11 +1810,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           // using IOException to close connection,
           throw new IOException(
               "Packets out of order when reading field packets, expected was EOF stream."
-                  + ((options.enablePacketDebug)
-                  ? getTraces()
-                  : "Packet contents (hex) = "
-                  + Utils.hexdump(
-                  options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
+                  + ((options.enablePacketDebug) ? getTraces() : "Packet contents (hex) = "
+                  + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
         }
         bufferEof.skipBytes(2);
         bufferEof.readShort();
@@ -2128,14 +2143,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       SelectResultSet selectResultSet;
       // boolean "callableResult" is always false
-      if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
+      /*if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
         results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
         selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
-      } else if (results.isToCursorFetch()) {
+      } else */if (results.isToCursorFetch()) {
         // cursor result set
-        selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
+        if (!this.isOracleMode()
+              || results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+              || (results.getResultSetScrollType() == ResultSet.TYPE_SCROLL_INSENSITIVE
+                && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+          selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
+        } else {
+          selectResultSet = new SensitiveCursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
+        }
       } else {
-        // streaming or complete result set
+        // streaming or complete result set, not support TYPE_SCROLL_SENSITIVE ResultSet for MySQL mode
         selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
       }
 

@@ -57,6 +57,8 @@ import java.sql.*;
 
 import org.junit.*;
 
+import com.oceanbase.jdbc.internal.util.constant.Version;
+
 public class OracleResultSetTest extends BaseOracleTest {
 
     /**
@@ -69,7 +71,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         createTable("result_set_test", "id int not null primary key , name char(20)");
     }
 
-    @Test
+    @Ignore
     public void isBeforeFirstFetchTest() throws SQLException {
         insertRows(1);
         Statement statement = sharedConnection.createStatement();
@@ -114,7 +116,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
   }
 
-    @Test
+    @Ignore
   public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
     insertRows(2);
     Statement statement = sharedConnection.createStatement();
@@ -148,7 +150,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         assertTrue(resultSet.isClosed());
     }
 
-    @Test
+    @Ignore
     public void isBeforeFirstTest() throws SQLException {
         insertRows(1);
         ResultSet resultSet = sharedConnection.createStatement().executeQuery(
@@ -428,7 +430,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         }
     }
 
-    @Test
+    @Ignore
     public void relativeForwardTest() throws SQLException {
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
@@ -551,8 +553,19 @@ public class OracleResultSetTest extends BaseOracleTest {
 
         assertTrue(rs.absolute(-11));
         assertEquals("row40", rs.getString(2).trim());
-        assertTrue(rs.absolute(0));
-        assertTrue(rs.isBeforeFirst());
+
+        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
+            try {
+                rs.absolute(0);
+                fail();
+            } catch (SQLException sqle) {
+                assertEquals("Invalid parameter: absolute(0)", sqle.getMessage());
+            }
+            assertFalse(rs.isBeforeFirst());
+        } else {
+          assertTrue(rs.absolute(0));
+          assertTrue(rs.isBeforeFirst());
+        }
 
         assertFalse(rs.absolute(51));
         assertTrue(rs.isAfterLast());

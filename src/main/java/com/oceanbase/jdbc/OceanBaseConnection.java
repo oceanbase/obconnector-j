@@ -316,7 +316,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         return string;
     }
 
-    protected Protocol getProtocol() {
+    public Protocol getProtocol() {
         return protocol;
     }
 
@@ -649,6 +649,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 } catch (SQLException e) {
                     // on some specific case, server cannot prepared data (CONJ-238)
                     // will use clientPreparedStatement
+                    if (!options.emulateUnsupportedPstmts) {
+                        throw e;
+                    }
                 }
             }
             if (this.protocol.isOracleMode() && options.supportNameBinding) {
@@ -709,12 +712,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         // Support for Oracle anonymous block
 
         String querySetToServer = sql;
-        String uppserSQL = sql.replaceAll("--(.*?)\n", "").replaceAll("\\/\\*(.*?)\\*\\/", "")
-            .toUpperCase(Locale.ROOT).trim();
         Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
         if (this.protocol.isOracleMode() && !matcher.matches()) { // oracle mode prepare sql by prepareCall
-            return new OceanBaseProcedureStatement(false, sql, (OceanBaseConnection) this, "",
-                null, null, resultSetType, resultSetConcurrency, exceptionFactory, true);
+            if (options.supportNameBinding) {
+                querySetToServer = Utils.trimSQLString(sql, protocol.noBackslashEscapes(),
+                    protocol.isOracleMode(), true);
+            }
+            return new OceanBaseProcedureStatement(false, querySetToServer,
+                (OceanBaseConnection) this, "", null, null, resultSetType, resultSetConcurrency,
+                exceptionFactory, true);
         } else {
 
             if (!matcher.matches()) {
@@ -732,12 +738,11 @@ public class OceanBaseConnection implements ConnectionImpl {
                 database = protocol.getDatabase();
             }
             if (database != null && options.cacheCallableStmts) {
-
-                if (callableStatementCache.containsKey(new CallableStatementCacheKey(database,
-                    querySetToServer))) {
+                CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database,
+                    querySetToServer);
+                if (callableStatementCache.containsKey(cacheKey)) {
                     try {
-                        CallableStatement callableStatement = callableStatementCache
-                            .get(new CallableStatementCacheKey(database, querySetToServer));
+                        CallableStatement callableStatement = callableStatementCache.get(cacheKey);
                         if (callableStatement != null) {
                             // Clone to avoid side effect like having some open resultSet.
                             return ((CloneableCallableStatement) callableStatement).clone(this);
@@ -755,8 +760,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
-                callableStatementCache.put(
-                    new CallableStatementCacheKey(database, querySetToServer), callableStatement);
+                callableStatementCache.put(cacheKey, callableStatement);
                 return callableStatement;
             }
             return createNewCallableStatement(querySetToServer, procedureName, isFunction,

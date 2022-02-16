@@ -118,6 +118,7 @@ public class Options implements Cloneable {
     public boolean useAffectedRows;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
+    public boolean emulateUnsupportedPstmts = false;
     public boolean continueBatchOnError = true;
     public boolean jdbcCompliantTruncation = true;
     public boolean cacheCallableStmts = true;
@@ -190,7 +191,10 @@ public class Options implements Cloneable {
     public int  pieceLength = 1048576;
     public boolean useOraclePrepareExecute = false;
     public boolean autoDeserialize = false;
+    public boolean enableQueryTimeouts = true;
     public int     maxBatchTotalParamsNum = 30000;
+    public boolean useCursorOffset = false;
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -558,8 +562,17 @@ public class Options implements Cloneable {
         if(autoDeserialize != opt.autoDeserialize) {
           return false;
         }
+        if(enableQueryTimeouts != opt.enableQueryTimeouts) {
+        return false;
+      }
         if (maxBatchTotalParamsNum != opt.maxBatchTotalParamsNum) {
           return false;
+        }
+        if (emulateUnsupportedPstmts != opt.emulateUnsupportedPstmts) {
+            return false;
+        }
+        if (useCursorOffset != opt.useCursorOffset) {
+            return false;
         }
         return Objects.equals(minPoolSize, opt.minPoolSize);
 
@@ -680,7 +693,10 @@ public class Options implements Cloneable {
         result = 31 * result + pieceLength;
         result = 31 * result + (useOraclePrepareExecute ? 1 : 0);
         result = 31 * result + (autoDeserialize ? 1 : 0);
+        result = 31 * result + (enableQueryTimeouts ? 1 : 0);
         result = 31 * result + (maxBatchTotalParamsNum);
+        result = 31 * result + (emulateUnsupportedPstmts ? 1 : 0);
+        result = 31 * result + (useCursorOffset ? 1 : 0);
         return result;
     }
     @Override

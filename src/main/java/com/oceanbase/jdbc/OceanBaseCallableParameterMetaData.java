@@ -470,7 +470,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             short nullability = DatabaseMetaData.procedureNullable;
 
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
-                isOutParameter, jdbcType, typeName, precision, scale, nullability, inOutModifier);
+                isOutParameter, jdbcType, typeName, precision, scale, nullability, jdbcType,
+                inOutModifier);
 
             this.params.add(paramInfoToAdd);
             this.mapNameToParamter.put(paramName, paramInfoToAdd);

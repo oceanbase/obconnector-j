@@ -109,4 +109,22 @@ public class ProcTest extends BaseTest {
             Assert.assertEquals(i + 1, rs.getInt(1));
         }
     }
+
+    @Test
+    public void testCycleProcedure() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            createProcedure("pro2", "(out var int)\nBEGIN\nSELECT 1 into var;\nend\n");
+            CallableStatement cs = null;
+            for (int i = 0; i < 2; i++) {
+                cs = conn.prepareCall("{call pro2(?)}");
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.execute();
+                Assert.assertEquals(1, cs.getInt(1));
+                cs.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

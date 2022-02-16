@@ -55,6 +55,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -264,8 +265,9 @@ public class ClientPreparedStatementParsingOracleTest extends BaseOracleTest {
 
     @Test
   public void rewriteBatchedError() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare());
     try (Connection connection =
-        setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
+        setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException&emulateUnsupportedPstmts=true")) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO errorTable (a, b) VALUES (?, ?, ?)");
 

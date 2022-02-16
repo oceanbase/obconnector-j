@@ -59,6 +59,7 @@ import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class UpdatableResultSet extends JDBC4UpdatableResultSet {
+
     /**
      * Constructor.
      *

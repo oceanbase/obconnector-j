@@ -98,6 +98,7 @@ public class RefCursor extends SelectResultSet {
             this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
                 .getStatement().getMaxFieldSize(), options);
             this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
+            this.row.setProtocol(this.getProtocol());
         }
         try {
             getCursorFetchData();
@@ -107,6 +108,9 @@ public class RefCursor extends SelectResultSet {
     }
 
     private void getCursorFetchData() throws IOException, SQLException {
+        if (dataSize == -1) {
+            dataSize = 0;
+        }
         // read only fetchSize values
         int fetchSizeTmp = this.getFetchSize();
         while (fetchSizeTmp >= 0 && super.readNextValue()) {

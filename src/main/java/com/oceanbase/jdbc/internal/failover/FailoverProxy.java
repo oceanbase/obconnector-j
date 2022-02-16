@@ -220,8 +220,16 @@ public class FailoverProxy implements InvocationHandler {
                 return null;
             case METHOD_COM_MULTI_PREPARE_EXECUTES:
             case METHOD_EXECUTE_PREPARED_QUERY:
-                boolean mustBeOnMaster = (Boolean) args[0];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+                boolean mustBeOnMaster = false;
+                ServerPrepareResult serverPrepareResult = null;
+                if (args[0] instanceof Integer) {
+                    // useOraclePrepareExecute=true
+                    mustBeOnMaster = false;
+                    serverPrepareResult = (ServerPrepareResult) args[2];
+                } else {
+                    mustBeOnMaster = (Boolean) args[0];
+                    serverPrepareResult = (ServerPrepareResult) args[1];
+                }
                 if (serverPrepareResult != null) {
                     if (!mustBeOnMaster
                         && serverPrepareResult.getUnProxiedProtocol().isMasterConnection()

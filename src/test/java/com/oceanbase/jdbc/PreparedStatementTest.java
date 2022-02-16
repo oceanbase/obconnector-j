@@ -56,10 +56,7 @@ import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDateTime;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 
 public class PreparedStatementTest extends BaseTest {
 
@@ -624,5 +621,25 @@ public class PreparedStatementTest extends BaseTest {
         pstmt1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
         pstmt1.executeUpdate();
 
+    }
+
+    @Test
+    public void testEmulateUnsupportedPstmts() throws SQLException {
+        Assert.assertTrue(sharedOptions().useServerPrepStmts);
+
+        try {
+            PreparedStatement pstmt = sharedConnection
+                .prepareStatement("select *, rowid from PreparedStatementTest3");
+            fail("PS protocol shouldn't be degraded to TEXT protocol");
+        } catch (SQLException e) {
+            //
+        }
+
+        Connection conn = setConnection("&emulateUnsupportedPstmts=true");
+        PreparedStatement pstmt = conn
+            .prepareStatement("select rowid, * from PreparedStatementTest3");
+
+        pstmt.close();
+        conn.close();
     }
 }

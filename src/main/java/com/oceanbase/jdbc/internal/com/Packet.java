@@ -112,4 +112,17 @@ public class Packet {
     public static final byte OCI_FIRST_PIECE              = (byte) 0x01;
     public static final byte OCI_NEXT_PIECE               = (byte) 0x02;
     public static final byte OCI_LAST_PIECE               = (byte) 0x03;
+
+    /*------------------------(Scrollable Cursor) Fetch Options-------------------
+     * For non-scrollable cursor, the only valid (and default) orientation is OCI_FETCH_NEXT
+     */
+    public static final byte OCI_FETCH_CURRENT            = (byte) 0x01;
+    public static final byte OCI_FETCH_NEXT               = (byte) 0x02;
+    public static final byte OCI_FETCH_FIRST              = (byte) 0x04;
+    public static final byte OCI_FETCH_LAST               = (byte) 0x08;
+    public static final byte OCI_FETCH_PRIOR              = (byte) 0x10;
+    public static final byte OCI_FETCH_ABSOLUTE           = (byte) 0x20;
+    public static final byte OCI_FETCH_RELATIVE           = (byte) 0x40;
+    /*---------------------------------------------------------------------------*/
+
 }

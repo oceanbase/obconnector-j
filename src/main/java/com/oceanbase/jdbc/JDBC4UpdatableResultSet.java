@@ -93,6 +93,8 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
     private PreparedStatement           refreshPreparedStatement = null;
     private ClientSidePreparedStatement insertPreparedStatement  = null;
     private ClientSidePreparedStatement deletePreparedStatement  = null;
+    // mysql error messages
+    public static String                UpdatableResultSet_12    = "refreshRow() called on row that has been deleted or had primary key changed.";
 
     /**
      * Constructor.
@@ -1308,8 +1310,9 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
         // update row data only if not deleted externally
         if (rs.next()) {
             return rs.getCurrentRowData();
+        } else {
+            throw new SQLException(UpdatableResultSet_12);
         }
-        return new byte[0];
     }
 
     /** {inheritDoc}. */
@@ -1425,4 +1428,5 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
         }
         return super.previous();
     }
+
 }

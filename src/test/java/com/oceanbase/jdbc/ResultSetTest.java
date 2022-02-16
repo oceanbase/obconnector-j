@@ -57,6 +57,8 @@ import java.sql.*;
 
 import org.junit.*;
 
+import com.oceanbase.jdbc.internal.util.constant.Version;
+
 public class ResultSetTest extends BaseTest {
 
     /**
@@ -551,7 +553,11 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.absolute(-11));
         assertEquals("row40", rs.getString(2));
 
-        assertTrue(rs.absolute(0));
+        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
+            assertFalse(rs.absolute(0));
+        } else {
+            assertTrue(rs.absolute(0));
+        }
         assertTrue(rs.isBeforeFirst());
 
         assertFalse(rs.absolute(51));
@@ -733,8 +739,7 @@ public class ResultSetTest extends BaseTest {
             rs.previous();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+            assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
 
         rs = stmt.executeQuery("select * from testStreamForward");
@@ -748,8 +753,7 @@ public class ResultSetTest extends BaseTest {
             rs.first();
             fail("Must have thrown exception since previous is not possible when fetching");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+            assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
     }
 
@@ -876,28 +880,28 @@ public class ResultSetTest extends BaseTest {
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet"));
         }
         try {
             rs.previous();
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet"));
         }
         try {
             rs.absolute(1);
             fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet"));
         }
         try {
             rs.relative(-1);
-            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR or STREAMING ResultSet"));
+                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet"));
         }
     }
 

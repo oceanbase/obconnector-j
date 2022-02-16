@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.TimeZone;
 
@@ -546,7 +547,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         int charsLength = str.length();
 
         // not enough space remaining
-        if (charsLength * 3 + 2 >= buf.length - pos) {
+        if (charsLength * 3 + 2 >= buf.length - pos || this.charset != StandardCharsets.UTF_8) {
             byte[] arr = str.getBytes(this.charset);
             if (escape) {
                 write(QUOTE);

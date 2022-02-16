@@ -165,7 +165,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int                           minorVersion;
     private int                           patchVersion;
     private String                        obServerVersion;
-    private boolean                       supportStmtPrepareExecute;
+    protected boolean                     supportStmtPrepareExecute;
+    private boolean                       supportFetchWithOffset;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode;                                                                                      /* is server in oracle mode */
@@ -1543,11 +1544,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public void setObServerVersion(String version) {
         this.obServerVersion = version;
-        if (isOracleMode && options.useServerPrepStmts && options.useOraclePrepareExecute
-            && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
-            supportStmtPrepareExecute = true;
-        } else {
-            supportStmtPrepareExecute = false;
+        if (isOracleMode && options.useServerPrepStmts) {
+            if (options.useOraclePrepareExecute
+                && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+                supportStmtPrepareExecute = true;
+            }
+            if (options.useCursorOffset && obServerVersion.compareToIgnoreCase("2.2.5") >= 0) {
+                supportFetchWithOffset = true;
+            }
         }
     }
 
@@ -1557,6 +1561,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public boolean supportStmtPrepareExecute() {
         return supportStmtPrepareExecute;
+    }
+
+    public boolean supportFetchWithOffset() {
+        return supportFetchWithOffset;
     }
 
     public boolean getReadonly() {

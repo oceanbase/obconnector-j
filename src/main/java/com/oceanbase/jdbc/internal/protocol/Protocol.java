@@ -129,6 +129,8 @@ public interface Protocol {
 
     boolean supportStmtPrepareExecute();
 
+    boolean supportFetchWithOffset();
+
     boolean isConnected();
 
     boolean getReadonly() throws SQLException;
@@ -330,8 +332,11 @@ public interface Protocol {
 
     public void setComStmtPrepareExecuteField(int iterationCount, int executeMode, long checksum);
 
-    ColumnDefinition[] sendFechRowViaCursor(ServerPrepareResult serverPrepareResult, int cursorId,
-                                            int fetchSize, Results results) throws SQLException;
+    ColumnDefinition[] fetchRowViaCursor(int cursorId, int fetchSize, Results results)
+                                                                                      throws SQLException;
+
+    ColumnDefinition[] fetchRowViaCursorForOracle(int cursorId, int numRows, byte offsetType,
+                                                  int offset, Results results) throws SQLException;
 
     long getLastPacketCostTime() throws SQLException;
 

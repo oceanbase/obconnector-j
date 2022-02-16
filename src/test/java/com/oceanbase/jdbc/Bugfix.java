@@ -44,10 +44,15 @@
 
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
 import java.sql.*;
+import java.sql.Clob;
 import java.time.LocalDateTime;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -56,6 +61,8 @@ public class Bugfix extends BaseTest {
     static String testFunction           = "testfunction" + getRandomString(5);
     static String testSwap               = "testSwap" + getRandomString(5);
     static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
+    static String refreshRow             = "refreshRow" + getRandomString(5);
+    static String testSetObjectBlob      = "testSetObjectBlob" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -73,6 +80,8 @@ public class Bugfix extends BaseTest {
                     + "DECLARE tmp  INT DEFAULT 0;\n set tmp = c1 ;\n set c1 := c2 ;\nset c2 := tmp  ;\n"
                     + "end ");
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
+        createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
+        createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
     }
 
     @Test
@@ -202,5 +211,211 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    //When rewriteBatchedStatements=true, the length of updateCounts is always equal to the number of addBatch
+    @Test
+    public void testContinueBatchOnErrorFalse() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            int count = 2;
+            while (count > 0) {
+                Connection conn = setConnectionOrigin("?continueBatchOnError=false&rewriteBatchedStatements=false&useServerPrepStmts="
+                                                      + (count == 2 ? "false" : "true"));
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute("drop table rewriteErrors");
+                } catch (SQLException e) {
+                    //            e.printStackTrace();
+                }
+                stmt.execute("create table rewriteErrors (field1 int not null primary key)");
+                PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
+                int a = 5;
+                ps.setInt(1, a);
+                ps.addBatch();
+                int num = 10;
+                for (int i = 1; i <= num; i++) {
+                    ps.setInt(1, i);
+                    ps.addBatch();
+                }
+                try {
+                    int[] counts1 = ps.executeBatch();
+                } catch (BatchUpdateException e) {
+                    int[] counts = e.getUpdateCounts();
+                    Assert.assertEquals(a, counts.length);
+                }
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rewriteErrors");
+                rs.next();
+                Assert.assertEquals(a, rs.getInt(1));
+                conn.close();
+                count--;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRefreshRow() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=false");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into " + refreshRow + " values(100,'100+string')");
+            PreparedStatement ps = conn.prepareStatement("select  c1, c2 from " + refreshRow + "\n"
+                                                         + "where 2 = ?",
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            ps.setInt(1, 2);
+
+            ResultSet rs = ps.executeQuery();
+            Assert.assertEquals(0, ps.getFetchSize());
+            Assert.assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+            Assert.assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("100+string", rs.getString(2));
+
+            Connection another = setConnectionOrigin("?useServerPrepStmts=true");
+            stmt = another.createStatement();
+
+            stmt.execute("update " + refreshRow + "  set c2='-1000000+changed' where c1=100");
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("100+string", rs.getString(2));
+            rs.refreshRow();
+            Assert.assertEquals("-1000000+changed", rs.getString(2));
+
+            stmt.execute("delete from " + refreshRow + " where c1=100");
+            Assert.assertTrue(rs.last());
+            Assert.assertEquals("-1000000+changed", rs.getString(2));
+            rs.refreshRow();// Origin  MySQL JDBC throws  java.sql.SQLException: refreshRow() called on row that has been deleted or had primary key changed
+            Assert.fail();
+        } catch (Throwable e) {
+            Assert.assertEquals(
+                "refreshRow() called on row that has been deleted or had primary key changed.",
+                e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSetObjectBlobBug() {
+        try {
+            PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO "
+                                                                     + testSetObjectBlob
+                                                                     + " VALUES (?, ?, ?, ?)");
+            Statement stmt = sharedConnection.createStatement();
+            String str = "中文abc";
+            byte[] bytes = str.getBytes();
+            ps.setObject(1, bytes, Types.BINARY);
+            ps.setObject(2, bytes, Types.VARBINARY);
+            ps.setObject(3, bytes, Types.LONGVARBINARY);
+            ps.setObject(4, bytes, Types.BLOB);
+            ps.execute();
+            Assert.assertEquals(1, ps.getUpdateCount());
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + testSetObjectBlob);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+            Assert.assertEquals(str, new String(rs.getBytes(2)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testClose() throws SQLException {
+        Statement closeStmt = null;
+        boolean exceptionAfterClosed = false;
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        try {
+            closeStmt = conn.createStatement();
+            closeStmt.close();
+
+            try {
+                closeStmt.executeQuery("SELECT 1");
+            } catch (SQLException sqlEx) {
+                exceptionAfterClosed = true;
+            }
+        } finally {
+            if (closeStmt != null) {
+                try {
+                    closeStmt.close();
+                } catch (SQLException sqlEx) {
+                    //
+                }
+            }
+        }
+        assertTrue("Operations not allowed on Statement after .close() is called!",
+            exceptionAfterClosed);
+    }
+
+    @Test
+    public void testGB18030() {
+        try {
+            byte[] value = new byte[] { (byte) 0x81, (byte) 0x39, (byte) 0xFB, (byte) 0x30 };
+            String strValue = new String(value, "GB18030");
+            Connection dbConn;
+            dbConn = setConnection("&characterEncoding=gb18030&character_set_client=gb18030&character_set_connection=gb18030&character_set_results=gb1803");
+            try {
+                dbConn.createStatement().execute("drop table testCharsetGB18030");
+            } catch (Exception e) {
+                //                e.printStackTrace();
+            }
+            dbConn
+                .createStatement()
+                .execute(
+                    "create table testCharsetGB18030 (c1 integer, c2 varchar(128)) character set = gb18030");
+
+            dbConn.setAutoCommit(false);
+            PreparedStatement preparedStatement = dbConn
+                .prepareStatement("INSERT INTO testCharsetGB18030 (c1, c2) VALUES (?, ?)");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.setString(2, strValue);
+            int retValue = preparedStatement.executeUpdate();
+            dbConn.commit();
+            Assert.assertEquals(1, retValue);
+            preparedStatement.close();
+            dbConn.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
+    @Test
+    public void testClobSetString() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        String s1 = "NewClobData";
+        ResultSet rs = stmt.executeQuery("select 'a'");
+        rs.next();
+        Clob c1 = rs.getClob(1);
+
+        try {
+            c1.setString(0, s1, 7, 4);
+            fail("Starting position can not be < 1");
+        } catch (SQLException e) {
+            assertEquals("Starting position can not be < 1", e.getMessage());
+        }
+
+        try {
+            c1.setString(1, s1, 8, 4);
+            fail("String index out of range: 12");
+        } catch (SQLException e) {
+            assertEquals("String index out of range: 12", e.getMessage());
+        }
+
+        // full replace
+        c1.setString(1, s1, 3, 4);
+        assertEquals("Clob", c1.getSubString(1L, (int) c1.length()));
+
+        // add
+        c1.setString(5, s1, 7, 4);
+        assertEquals("ClobData", c1.getSubString(1L, (int) c1.length()));
+        // current clob string ClobData
+        // replace middle chars
+        c1.setString(2, s1, 7, 4);
+        assertEquals("CDataata", c1.getSubString(1L, (int) c1.length()));
     }
 }

@@ -54,6 +54,7 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -122,27 +123,42 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void paramNumber() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ?");
         try {
-            preparedStatement.setString(1, "1");
-            preparedStatement.execute();
-            fail();
+            sharedConnection.prepareStatement("SELECT ?, ?");
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+            Assert.assertTrue(e.getMessage().contains(
+                "ORA-00900: You have an error in your SQL syntax"));
         }
-        try {
-            preparedStatement.setString(1, "1");
-            preparedStatement.executeQuery();
-            fail();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
-        }
-        try {
-            preparedStatement.setString(1, "1");
-            preparedStatement.executeUpdate();
-            fail();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+        if (!sharedOptions().emulateUnsupportedPstmts) {
+            Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
+            PreparedStatement preparedStatement = newConn.prepareStatement("SELECT ?, ?");
+            try {
+                preparedStatement.setString(1, "1");
+                preparedStatement.execute();
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+            }
+            try {
+                preparedStatement.setString(1, "1");
+                preparedStatement.executeQuery();
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+            }
+            try {
+                preparedStatement.setString(1, "1");
+                preparedStatement.executeUpdate();
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
+            }
+            try {
+                sharedConnection.prepareStatement("SELECT ?, ?");
+            } catch (SQLSyntaxErrorException e) {
+                e.printStackTrace();
+            }
+            newConn.close();
         }
     }
 
@@ -371,18 +387,29 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void executeLargeBatchError() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("INSERT INTO unknownTable values (?, ?)");
-        preparedStatement.setString(1, "1");
-        preparedStatement.setString(2, "1");
-        preparedStatement.addBatch();
-
         try {
-            preparedStatement.executeLargeBatch();
-            fail();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            assertTrue(e.getMessage().contains("does not exist"));
+            sharedConnection.prepareStatement("INSERT INTO unknownTable values (?, ?)");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue(e.getMessage().contains("ORA-00942"));
+        }
+        //        PreparedStatement preparedStatement = sharedConnection
+        if (!sharedOptions().emulateUnsupportedPstmts) {
+            Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
+            PreparedStatement preparedStatement = newConn
+                .prepareStatement("INSERT INTO unknownTable values (?, ?)");
+            preparedStatement.setString(1, "1");
+            preparedStatement.setString(2, "1");
+            preparedStatement.addBatch();
+
+            try {
+                preparedStatement.executeLargeBatch();
+                fail();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains("does not exist"));
+            } finally {
+                newConn.close();
+            }
         }
     }
 
@@ -410,8 +437,18 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void metaDataForWrongQuery() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
-        assertNull(preparedStatement.getMetaData());
+        if (!sharedOptions().emulateUnsupportedPstmts) {
+            Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
+            PreparedStatement preparedStatement = newConn.prepareStatement("WRONG QUERY");
+            assertNull(preparedStatement.getMetaData());
+            try {
+                preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
+            } catch (SQLSyntaxErrorException e) {
+                e.printStackTrace();
+            } finally {
+                newConn.close();
+            }
+        }
     }
 
     @Ignore
@@ -431,11 +468,28 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void prepareToString() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("SELECT ? as a, ? as b");
-        preparedStatement.setString(1, "a");
-        preparedStatement.setNull(2, Types.VARCHAR);
-        assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
-            preparedStatement.toString());
+        try {
+            PreparedStatement preparedStatement = sharedConnection
+                .prepareStatement("SELECT ? as a, ? as b");
+            preparedStatement.setString(1, "a");
+            preparedStatement.setNull(2, Types.VARCHAR);
+            assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]",
+                preparedStatement.toString());
+        } catch (SQLSyntaxErrorException e) {
+            //eat
+        }
+        if (!sharedOptions().emulateUnsupportedPstmts) {
+            Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
+            PreparedStatement preparedStatement = newConn
+                .prepareStatement("SELECT ? as a, ? as b from dual");
+            preparedStatement.setString(1, "a");
+            preparedStatement.setNull(2, Types.VARCHAR);
+            assertEquals("sql : 'SELECT ? as a, ? as b from dual', parameters : ['a',<null>]",
+                preparedStatement.toString());
+            preparedStatement.executeQuery();
+            newConn.close();
+        }
+
     }
+
 }
