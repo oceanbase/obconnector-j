@@ -1576,4 +1576,103 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         assertEquals(Timestamp.valueOf("2006-01-01 01:01:16"), cstmt.getTimestamp(2));
     }
+
+    @Test
+    public void testCycleProcedure() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            createProcedure("pro2", "( var out int)\nis BEGIN\nSELECT 1 into var from dual;\nend\n");
+            CallableStatement cs = null;
+            for (int i = 0; i < 2; i++) {
+                cs = conn.prepareCall("{call pro2(?)}");
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.execute();
+                Assert.assertEquals(1, cs.getInt(1));
+                cs.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void fixIndexOutOfBoundsForProcedureIndex() {
+        try {
+            Connection conn = sharedConnection;
+            createProcedure("testProc1", "(var1 in int, var2 out varchar2) is begin\n"
+                                         + "var2:= 'aaa';\n" + "end;");
+            CallableStatement callableStatement = conn.prepareCall("{call testProc1(?,?)}");
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.setInt(1, 1);
+            callableStatement.execute();
+            Assert.assertEquals("aaa", callableStatement.getString(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void fixIndexOutOfBoundsForProcedureLabel() {
+        try {
+            Connection conn = sharedConnection;
+            createProcedure("testProc1", "(var1 in int, var2 out varchar2) is begin\n"
+                                         + "var2:= 'aaa';\n" + "end;");
+            CallableStatement callableStatement = conn.prepareCall("{call testProc1(?,?)}");
+            callableStatement.registerOutParameter("var2", Types.VARCHAR);
+            callableStatement.setInt("var1", 1);
+            callableStatement.execute();
+            Assert.assertEquals("aaa", callableStatement.getString(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void functionAnonymousBlock() throws SQLException {
+        createFunction("testFunctionCall",
+            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
+        //createFunction("testFunctionCall", "(a FLOAT, b NUMBER, c INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nRETURN d;\nEND;");
+        CallableStatement cs = sharedConnection
+            .prepareCall("begin ? := testFunctionCall (?,?,?) ; end;");
+        //CallableStatement cs = sharedConnection.prepareCall("? = call testFunctionCall(?,?,?)");
+
+        cs.setInt(4, 3);
+        cs.setInt(3, 2);
+        cs.setFloat(2, 1);
+        cs.registerOutParameter(1, Types.INTEGER);
+        assertFalse(cs.execute());
+        assertEquals(6f, cs.getInt(1), .001);
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 2);
+        cs.setInt(3, 3);
+        cs.setInt(4, 4);
+        cs.executeUpdate();//assertEquals(0, cs.executeUpdate());
+        assertEquals(9f, cs.getInt(1), .001);
+    }
+
+    @Test
+    public void functionCall() throws SQLException {
+        createFunction("testFunctionCall",
+            "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
+        //createFunction("testFunctionCall", "(a FLOAT, b NUMBER, c INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nRETURN d;\nEND;");
+        CallableStatement cs = sharedConnection.prepareCall("? = call testFunctionCall(?,?,?)");
+
+        cs.setInt(4, 3);
+        cs.setInt(3, 2);
+        cs.setFloat(2, 1);
+        cs.registerOutParameter(1, Types.INTEGER);
+        assertFalse(cs.execute());
+        assertEquals(6f, cs.getInt(1), .001);
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 2);
+        cs.setInt(3, 3);
+        cs.setInt(4, 4);
+        cs.executeUpdate();//assertEquals(0, cs.executeUpdate());
+        assertEquals(9f, cs.getInt(1), .001);
+    }
+
 }

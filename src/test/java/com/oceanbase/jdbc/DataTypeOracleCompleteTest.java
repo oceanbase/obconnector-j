@@ -77,10 +77,13 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
             && !TIMESTAMP_LTZ_STRING.equals(type) && !TIMESTAMP_TZ_STRING.equals(type)
             && !"datetime".equals(type) && !"datetimeString".equalsIgnoreCase(type)
             && !INTERVALYM.equals(type) && !INTERVALDS.equals(type)) {
-            testStreamMethod(testStr, resultSet);
+            if (!type.equals("date")) {
+                testStreamMethod(testStr, resultSet);
+            }
         }
-
-        testLargeObjectMethod(testStr, resultSet, type);
+        if (!type.equals("date")) {
+            testLargeObjectMethod(testStr, resultSet, type);
+        }
     }
 
     public void executeStatementPublic(String tableName, String body, String testStr, String type)
@@ -290,9 +293,6 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
 
         testRefTypeMethod(testStr, resultSet, "date");
 
-        testStreamMethod(testStr, resultSet);
-
-        testLargeObjectMethod(testStr, resultSet);
         executePreparedStatementPublic(tableName, testStr, "date");
     }
 
@@ -1153,10 +1153,14 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
                 break;
             case "dateString":
             case "date":
-                Assert.assertTrue("getBytes is not equals",
-                    testStr.equals(new String(resultSet.getBytes("strm")).substring(0, 10)));
-                Assert.assertTrue("getBytes is not equals",
-                    testStr.equals(new String(resultSet.getBytes(2)).substring(0, 10)));
+                Assert.assertTrue("getDate is not equls",
+                    testStr.equals(resultSet.getDate("strm").toString()));
+                Assert.assertTrue("getDate is not equls",
+                    testStr.equals(resultSet.getDate(2).toString()));
+                //                Assert.assertTrue("getBytes is not equals",
+                //                    testStr.equals(new String(resultSet.getBytes("strm")).substring(0, 10)));
+                //                Assert.assertTrue("getBytes is not equals",
+                //                    testStr.equals(new String(resultSet.getBytes(2)).substring(0, 10)));
                 break;
             case TIMESTAMP_LTZ:
             case TIMESTAMP_LTZ_STRING:

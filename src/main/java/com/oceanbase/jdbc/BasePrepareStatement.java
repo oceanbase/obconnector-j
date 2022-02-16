@@ -105,6 +105,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     private boolean                       useFractionalSeconds;
     private boolean                       noBackslashEscapes;
     protected Map<String, Integer>        indexMap;
+    protected int                         parameterCount           = -1;
 
     /**
      * Constructor. Base class that permit setting parameters for client and server PrepareStatement.
@@ -1334,11 +1335,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             }
         } else if (obj instanceof byte[]) {
             if (targetSqlType == Types.BINARY || targetSqlType == Types.VARBINARY
-                || targetSqlType == Types.LONGVARBINARY) {
+                || targetSqlType == Types.LONGVARBINARY || targetSqlType == Types.BLOB) {
                 setBytes(parameterIndex, (byte[]) obj);
             } else {
                 throw exceptionFactory
-                    .create("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
+                    .create("Can only convert a byte[] to BLOB,BINARY, VARBINARY or LONGVARBINARY");
             }
 
         } else if (obj instanceof Time) {
@@ -1864,6 +1865,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         setParameter(parameterIndex,
             new OBStructParameter((ObStruct) x, this.protocol.getOptions()));
     }
+
+    public int getParameterCount() {
+        return parameterCount;
+    }
+
+    public void setParameterCount(int count) {
+        this.parameterCount = count;
+    }
+
+    public abstract ParameterHolder[] getParameters();
+
+    public abstract void setParameters(ParameterHolder[] paramArray);
 
     public String asSql() throws SQLException {
         return null;

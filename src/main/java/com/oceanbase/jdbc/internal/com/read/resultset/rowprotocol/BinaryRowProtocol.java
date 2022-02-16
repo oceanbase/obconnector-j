@@ -56,6 +56,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -495,7 +498,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR2:
             case NVARCHAR2:
                 value = Long.parseLong(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())));
+                    .getColumnType())).trim());
                 break;
             default:
                 throw new SQLException("getInt not available for data field type "
@@ -583,7 +586,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARCHAR2:
                 case NVARCHAR2:
                     return Long.parseLong(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
                 default:
                     throw new SQLException("getLong not available for data field type "
                                            + columnInfo.getColumnType().getJavaTypeName());
@@ -597,7 +600,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
-                    return Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    return Long
+                        .parseLong(valueParams.substring(0, valueParams.indexOf(".")).trim());
                 } catch (NumberFormatException nfee) {
                     // eat exception
                 }
@@ -874,6 +878,10 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIME:
                 throw new SQLException("Cannot read Date using a Types.TIME field");
             case STRING:
+            case VARCHAR:
+            case VARCHAR2:
+            case NVARCHAR2:
+            case VARSTRING:
                 String rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 if ("0000-00-00".equals(rawValue)) {
@@ -881,9 +889,20 @@ public class BinaryRowProtocol extends RowProtocol {
                     return null;
                 }
 
-                return new Date(Integer.parseInt(rawValue.substring(0, 4)) - 1900,
-                    Integer.parseInt(rawValue.substring(5, 7)) - 1, Integer.parseInt(rawValue
-                        .substring(8, 10)));
+                try {
+                    DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    sdf.setTimeZone(timeZone);
+                    java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
+                    return new Date(utilDate.getTime());
+
+                } catch (ParseException e) {
+                    throw ExceptionFactory.INSTANCE.create(
+                        "Could not get object as Date : " + e.getMessage(), "S1009", e);
+                }
+                //                return new Date(Integer.parseInt(rawValue.substring(0, 4)) - 1900,
+                //                    Integer.parseInt(rawValue.substring(5, 7)) - 1, Integer.parseInt(rawValue
+                //                        .substring(8, 10)));
             default:
                 if (length == 0) {
                     lastValueNull |= BIT_LAST_FIELD_NULL;
@@ -1072,6 +1091,9 @@ public class BinaryRowProtocol extends RowProtocol {
 
             case STRING:
             case VARSTRING:
+            case NVARCHAR2:
+            case VARCHAR2:
+            case VARCHAR:
                 String rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 if (rawValue.startsWith("0000-00-00 00:00:00")) {
@@ -1127,7 +1149,7 @@ public class BinaryRowProtocol extends RowProtocol {
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }
-        tt.setNanos(microseconds * 1000);
+        tt.setNanos(microseconds * 1000000);
         return tt;
     }
 
@@ -1235,6 +1257,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 return getInternalTIMESTAMPTZ(columnInfo, null, timeZone);
             case TIMESTAMP_LTZ:
                 return getInternalTIMESTAMPLTZ(columnInfo, null, timeZone);
+            case INTERVALYM:
+                return getInternalINTERVALYM(columnInfo);
+            case INTERVALDS:
+                return getInternalINTERVALDS(columnInfo);
             case STRUCT: {
                 byte[] structData = new byte[length];
                 System.arraycopy(buf, pos, structData, 0, length);
@@ -1255,6 +1281,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
                 return returnBytes;
+            case NVARCHAR2:
+            case NCHAR:
+                return getInternalString(columnInfo, null, timeZone);
             default:
                 break;
         }
@@ -1346,7 +1375,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case NVARCHAR2:
                 case STRING:
                     value = Long.parseLong(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
@@ -1361,7 +1390,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
-                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf("."))
+                        .trim());
                     rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
                     return (byte) value;
                 } catch (NumberFormatException nfee) {
@@ -1428,7 +1458,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case OBDECIMAL:
                 case STRING:
                     value = Long.parseLong(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
                     break;
                 default:
                     throw new SQLException("getShort not available for data field type "
@@ -1443,7 +1473,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 getCurrentEncoding(columnInfo.getColumnType()));
             if (isIntegerRegex.matcher(valueParams).find()) {
                 try {
-                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf(".")));
+                    value = Long.parseLong(valueParams.substring(0, valueParams.indexOf("."))
+                        .trim());
                     rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
                     return (short) value;
                 } catch (NumberFormatException nfee) {

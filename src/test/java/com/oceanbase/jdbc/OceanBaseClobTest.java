@@ -162,27 +162,6 @@ public class OceanBaseClobTest extends BaseTest {
     }
 
     @Test
-    public void setString() throws SQLException {
-        final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-        com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
-        assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
-        clob.setString(2, "zuv");
-        assertEquals("azuve🙏", clob.getSubString(1, 7));
-        clob.setString(9, "zzz");
-        assertEquals("azuve🙏fgzzz", clob.getSubString(1, 12));
-
-        clob = new com.oceanbase.jdbc.Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
-        assureReaderEqual("cde🙏fg", clob.getCharacterStream(1, 7));
-        assertEquals("cde🙏fg", clob.getSubString(1, 7));
-
-        clob.setString(2, "zg");
-        assertEquals("czg🙏f", clob.getSubString(1, 6));
-        clob.setString(7, "zzz");
-        String ss = clob.getSubString(1, 12);
-        assertEquals("czg🙏fgzzz", clob.getSubString(1, 12));
-    }
-
-    @Test
     public void setAsciiStream() throws SQLException, IOException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
         com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);

@@ -766,8 +766,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     public void testSendPieceBatch() {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         try {
-            String url = System.getProperty("db3");
-            Connection conn = DriverManager.getConnection(url);
+            Connection conn = setConnection("&usePieceData=true");
             Statement stmt = conn.createStatement();
             PreparedStatement ps;
             try {
@@ -888,7 +887,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     @Test
     public void testStringBatch() {
         try {
-            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            Connection conn = setConnection("&rewriteBatchedStatements=true&maxBatchTotalParamsNum=5000");
             Statement stmt = conn.createStatement();
             PreparedStatement preparedStatement = conn
                 .prepareStatement("insert into stringtest values(?,?,?,?,?,?,?,?,?,null,null)");

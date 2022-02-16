@@ -64,6 +64,20 @@ public class Clob extends Lob implements ObClob {
 
     private static final long serialVersionUID = -3066501059817815286L;
     private static int        maxLength        = 1 * 1024 * 1024 * 1024;
+    String                    Clob_0           = "indexToWriteAt must be >= 1";
+    String                    Clob_1           = "indexToWriteAt must be >= 1";
+    String                    Clob_2           = "Starting position can not be < 1";
+    String                    Clob_3           = "String to set can not be NULL";
+    String                    Clob_4           = "Starting position can not be < 1";
+    String                    Clob_5           = "String to set can not be NULL";
+    String                    Clob_6           = "CLOB start position can not be < 1";
+    String                    Clob_7           = "CLOB start position + length can not be > length of CLOB";
+    String                    Clob_8           = "Illegal starting position for search, '";
+    String                    Clob_9           = "'";
+    String                    Clob_10          = "Starting position for search is past end of CLOB";
+    String                    Clob_11          = "Cannot truncate CLOB of length";
+    String                    Clob_12          = "\\\\ to length of";
+    String                    Clob_13          = ".";
 
     /**
      * Creates a Clob with content.
@@ -368,7 +382,17 @@ public class Clob extends Lob implements ObClob {
     }
 
     public int setString(long pos, String str, int offset, int len) throws SQLException {
-        return setString(pos, str.substring(offset, offset + len));
+        if (pos < 1) {
+            throw new SQLException(Clob_4);
+        }
+        if (str == null) {
+            throw new SQLException(Clob_5);
+        }
+        try {
+            return setString(pos, str.substring(offset, offset + len));
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new SQLException(e.getMessage());
+        }
     }
 
     public OutputStream setAsciiStream(long pos) throws SQLException {

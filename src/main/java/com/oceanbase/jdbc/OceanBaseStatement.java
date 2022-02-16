@@ -108,8 +108,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   protected final ReentrantLock lock;
-  protected final int resultSetScrollType;
-  protected final int resultSetConcurrency;
+  protected int resultSetScrollType;
+  protected int resultSetConcurrency;
   protected final Options options;
   protected final boolean canUseServerTimeout;
   /** the protocol used to talk to the server. */
@@ -143,8 +143,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected String    actualSql;
   protected String    simpleSql;
   protected int       sqlType;
-  protected boolean   includeRowid;
-  protected int       parameterCount = -1;                    // from originalSql, must be correct
+  protected boolean   addRowid;
+  protected int       selectEndPos = -1;
+  protected int       whereEndPos = -1;
 
     /**
    * Creates a new Statement.
@@ -194,7 +195,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.closed = false;
     clone.warningsCleared = true;
     clone.maxRows = 0;
-    clone.fetchSize = this.options.defaultFetchSize;
+    if (clone.protocol.isOracleMode() && options.defaultFetchSize == 0) {
+      // Oracle JDBC set default fetchSize to 10
+      clone.fetchSize = 10;
+    } else {
+      clone.fetchSize = this.options.defaultFetchSize;
+    }
     clone.exceptionFactory =
         ExceptionFactory.of(
             this.exceptionFactory.getThreadId(), this.exceptionFactory.getOptions());
@@ -243,7 +249,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           .create("execute() is called on closed statement");
     }
     protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
-    if (queryTimeout != 0 && (!canUseServerTimeout || isBatch)) {
+    if (queryTimeout != 0 && (!canUseServerTimeout || isBatch) && options.enableQueryTimeouts) {
       setTimerTask(isBatch);
     }
   }
@@ -346,6 +352,20 @@ public class OceanBaseStatement implements Statement, Cloneable {
       Arrays.fill(ret, Statement.EXECUTE_FAILED);
     } else {
       ret = results.getCmdInformation().getUpdateCounts();
+    }
+    if(!options.continueBatchOnError) {
+      int end = 0;
+      for (int i = 0; i < ret.length; i++) {
+        if (ret[i] == Statement.EXECUTE_FAILED) {
+          end = i;
+          break;
+        }
+      }
+      if (end != 0) {
+        int[] tmp = new int[end];
+        System.arraycopy(ret, 0, tmp, 0, end);
+        ret = tmp;
+      }
     }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
@@ -630,7 +650,17 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public boolean execute(final String sql, final String[] columnNames) throws SQLException {
     return executeInternal(sql, fetchSize, Statement.RETURN_GENERATED_KEYS);
   }
-
+  public boolean isCursorResultSet() throws SQLException {
+    if (closed) {
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("execute() is called on closed statement");
+    } else {
+      return this.options.useServerPrepStmts == true && (protocol.isOracleMode() || (this.options.useCursorFetch == true
+          && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
+          && this.getFetchSize() > 0));
+    }
+  }
   /**
    * executes a select query.
    *
@@ -639,10 +669,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (this.options.useServerPrepStmts == true && this.options.useCursorFetch == true
-            && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
-            && this.getFetchSize() > 0) {
-      PreparedStatement pstmt = this.connection.prepareStatement(sql);
+    if (isCursorResultSet()) {
+      PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       pstmt.setFetchSize(this.fetchSize);
       pstmt.executeQuery();
       this.results =((ServerSidePreparedStatement)pstmt).results;
@@ -1612,11 +1640,20 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return results;
   }
 
-  public String getOriginalSql() {
-    return originalSql;
+  public String getActualSql() {
+    return actualSql;
   }
 
   public int getSqlType() {
     return sqlType;
   }
+
+  public boolean isAddRowid() {
+    return addRowid;
+  }
+
+  public int getWhereEndPos() {
+    return whereEndPos;
+  }
+
 }

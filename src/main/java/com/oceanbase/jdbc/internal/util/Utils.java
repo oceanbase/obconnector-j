@@ -158,7 +158,6 @@ public class Utils {
         socksProxyPort)));
   }
 
-
   /**
    * Escape String.
    *
@@ -475,7 +474,6 @@ public class Utils {
     throw new SQLException("unknown escape sequence " + escaped);
   }
 
-
   /**
    * Escape sql String.
    *
@@ -594,7 +592,6 @@ public class Utils {
     }
     return sqlBuffer.toString();
   }
-
 
   public static String getSQLWithoutCommentMysql(String sql) throws SQLException {
     StringBuilder escapeSequenceBuf = new StringBuilder();
@@ -759,33 +756,33 @@ public class Utils {
   }
 
   public static String[] trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
-    int parameterCount = 0;
-    StringBuilder trimedSqlString = new StringBuilder();
-    boolean multipleQueriesPrepare = true;
-    LexState state = LexState.Normal;
-    char lastChar = '\0';
-    boolean endingSemicolon = false;
-
-    boolean singleQuotes = false;
-    int lastParameterPosition = 0;
-
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
-    boolean slashend = false;
-    boolean endNameBinding = false;
+    int parameterCount = 0;
+    StringBuilder trimedSqlString = new StringBuilder();
     StringBuilder paramSb = new StringBuilder();
+    boolean multipleQueriesPrepare = true;
+
+    LexState state = LexState.Normal;
+    char lastChar = '\0';
     boolean includeCurChar = false;
+    boolean singleQuotes = false;
+    int selectEndPos = -1;
+    int whereEndPos = -1;
+    int lastParamPos = 0;
     int commentStart = 0;
+    boolean slashEnd = false;
+    boolean semicolonEnd = false;
+    boolean nameBindingEnd = false;
 
     for (int i = 0; i < queryLength; i++) {
       if (i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
-        endNameBinding = true;
+        nameBindingEnd = true;
         includeCurChar = true;
       }
 
       char car = query[i];
-      if (state == LexState.Escape
-          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+      if (state == LexState.Escape && !(car == '\'' && singleQuotes || car == '"' && !singleQuotes)) {
         state = LexState.String;
         lastChar = car;
         continue;
@@ -802,27 +799,26 @@ public class Utils {
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
-            slashend = true;
+            slashEnd = true;
             if (skipComment) {
-              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1));
-            } else {
-              if (commentStart != 0) {
-                trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
-              }
+              trimedSqlString.append(queryString.substring(lastParamPos, i + 1));
+            } else if (commentStart != 0) {
+              trimedSqlString.append(queryString.substring(lastParamPos, commentStart));
             }
-            lastParameterPosition = i + 1;
-          } else if (state == LexState.Normal && slashend && lastChar == '/') {
-            slashend = false;
-            break;
+            lastParamPos = i + 1;
           } else if (state == LexState.Normal && lastChar == '/') {
+            if (slashEnd) {
+              slashEnd = false;
+              break;
+            }
             state = LexState.EOLComment;
-            lastParameterPosition = i + 1;
+            lastParamPos = i + 1;
             commentStart = i - 1;
           }
           break;
 
         case '#':
-          if ((!isOracleMode) && state == LexState.Normal) {
+          if (state == LexState.Normal && !isOracleMode) {
             state = LexState.EOLComment;
             commentStart = i;
           }
@@ -841,19 +837,14 @@ public class Utils {
             multipleQueriesPrepare = true;
             state = LexState.Normal;
             if (skipComment) {
-              trimedSqlString.append(queryString.substring(lastParameterPosition, i + 1));
-            } else {
-              if (commentStart != 0) {
-                trimedSqlString.append(queryString.substring(lastParameterPosition, commentStart));
-              }
+              trimedSqlString.append(queryString.substring(lastParamPos, i + 1));
+            } else if (commentStart != 0) {
+              trimedSqlString.append(queryString.substring(lastParamPos, commentStart));
             }
-            lastParameterPosition = i + 1;
-          }
-          if (isOracleMode) {
-            if (state == LexState.NameBinding) {
-              endNameBinding = true;
-              includeCurChar = false;
-            }
+            lastParamPos = i + 1;
+          } else if (state == LexState.NameBinding && isOracleMode) {
+            nameBindingEnd = true;
+            includeCurChar = false;
           }
           break;
 
@@ -883,29 +874,26 @@ public class Utils {
           if (noBackslashEscapes) {
             break;
           }
-          if ((!isOracleMode) && state == LexState.String) {
+          if (state == LexState.String && !isOracleMode) {
             state = LexState.Escape;
           }
           break;
 
         case ';':
-          if (isOracleMode) {
-            if (state == LexState.NameBinding) {
-              endNameBinding = true;
-              includeCurChar = false;
-            }
-          }
           if (state == LexState.Normal) {
-            endingSemicolon = true;
+            semicolonEnd = true;
             multipleQueriesPrepare = false;
+          } else if (state == LexState.NameBinding && isOracleMode) {
+            nameBindingEnd = true;
+            includeCurChar = false;
           }
           break;
 
         case '?':
           if (state == LexState.Normal) {
-            trimedSqlString.append(queryString.substring(lastParameterPosition, i));
+            trimedSqlString.append(queryString.substring(lastParamPos, i));
             trimedSqlString.append("?");
-            lastParameterPosition = i + 1;
+            lastParamPos = i + 1;
             parameterCount++;
           }
           break;
@@ -919,12 +907,10 @@ public class Utils {
           break;
 
         case ':':
-          if (isOracleMode) {
-            if (state == LexState.Normal) {
-              state = LexState.NameBinding;
-            }
-            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
-              endingSemicolon = false;
+          if (state == LexState.Normal && isOracleMode) {
+            state = LexState.NameBinding;
+            if (semicolonEnd && ((int) car >= 40)) { // do as normal
+              semicolonEnd = false;
               multipleQueriesPrepare = true;
             }
           }
@@ -935,9 +921,8 @@ public class Utils {
             if (state == LexState.NameBinding) {
               state = LexState.Normal; // := is not name binding
               paramSb.setLength(0);
-            }
-            if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) { // do as normal
-              endingSemicolon = false;
+            } else if (state == LexState.Normal && semicolonEnd && ((int) car >= 40)) { // do as normal
+              semicolonEnd = false;
               multipleQueriesPrepare = true;
             }
           }
@@ -947,54 +932,79 @@ public class Utils {
         case ',':
         case ')':
         case '}':
-          if (isOracleMode) {
-            if (state == LexState.NameBinding) {
-              endNameBinding = true;
-              includeCurChar = false;
-            }
+          if (state == LexState.NameBinding && isOracleMode) {
+            nameBindingEnd = true;
+            includeCurChar = false;
           }
           break;
 
         default:
           // multiple queries
-          if (state == LexState.Normal && endingSemicolon && ((int) car >= 40)) {
-            endingSemicolon = false;
-            multipleQueriesPrepare = true;
+          if (state == LexState.Normal) { 
+            if (semicolonEnd && ((int) car >= 40)) {
+              semicolonEnd = false;
+              multipleQueriesPrepare = true;
+            }
+            if (selectEndPos == -1 && (car == 't' || car == 'T') && i >= 5 && queryString.substring(i - 5, i + 1).equalsIgnoreCase("select")) {
+              selectEndPos = i;
+            } else if (whereEndPos == -1 && (car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
+                whereEndPos = i;
+            }
           }
           break;
       }
-      if (isOracleMode && state == LexState.NameBinding && ((int) car >= 40) && !endNameBinding) {
-        paramSb.append(car);
-      }
-      if (isOracleMode && state == LexState.NameBinding && endNameBinding) {
-        if (!includeCurChar) {
-          trimedSqlString.append(queryString.substring(lastParameterPosition, i - paramSb.length()));
-          trimedSqlString.append("?");
-          lastParameterPosition = i;
+
+      if (state == LexState.NameBinding && isOracleMode) {
+        if (!nameBindingEnd) {
+          if ((int) car >= 40) {
+            paramSb.append(car);
+          }
         } else {
-          paramSb.append(car);
-          trimedSqlString.append(queryString.substring(lastParameterPosition, i - paramSb.length() + 1));
-          trimedSqlString.append("?");
-          lastParameterPosition = i + 1;
-          includeCurChar = false;
+          if (!includeCurChar) {
+            String tmp = paramSb.toString();
+            if(tmp != null) {
+              int index = tmp.indexOf('.');
+              if(index != -1) {
+                  trimedSqlString.append(queryString.substring(lastParamPos, i));
+              } else {
+                trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length()));
+                trimedSqlString.append("?");
+                parameterCount++;
+              }
+            }
+            lastParamPos = i;
+          } else {
+            paramSb.append(car);
+            String tmp = paramSb.toString();
+            if(tmp != null) {
+              int index = tmp.indexOf('.');
+              if(index != -1) {
+                  trimedSqlString.append(queryString.substring(lastParamPos, i + 1));
+              } else {
+                trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length() + 1));
+                trimedSqlString.append("?");
+                parameterCount++;
+              }
+            }
+            lastParamPos = i + 1;
+            includeCurChar = false;
+          }
+          paramSb.setLength(0);
+          nameBindingEnd = false;
+          state = LexState.Normal;
         }
-        paramSb.setLength(0);
-        endNameBinding = false;
-        state = LexState.Normal;
-        parameterCount++;
       }
       lastChar = car;
     }
-    if (lastParameterPosition == 0) {
+
+    if (lastParamPos == 0) {
       trimedSqlString.append(queryString);
     } else {
-      trimedSqlString.append(queryString.substring(lastParameterPosition, queryLength));
+      trimedSqlString.append(queryString.substring(lastParamPos, queryLength));
     }
 
-    return new String[]{trimedSqlString.toString(), String.valueOf(parameterCount)};
+    return new String[]{trimedSqlString.toString(), String.valueOf(parameterCount), String.valueOf(selectEndPos), String.valueOf(whereEndPos)};
   }
-
-
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
                                      String leftMarks, String rightMarks) {
@@ -1041,6 +1051,7 @@ public class Utils {
     }
     return -1;
   }
+  
   public static int nextDelimiterPos( String stringToSearched,int startingPosition, String stringToSearch,
                                       String leftMarks, String rightMarks) {
     if (stringToSearched == null || stringToSearch == null) {
@@ -1066,6 +1077,7 @@ public class Utils {
     }
     return -1;
   }
+  
   public static  List<ParsedCallParameters> argumentsSplit(String arguments, String delimiter, String markers,
                                                            String markerCloses) {
     if (arguments == null) {
@@ -1108,27 +1120,34 @@ public class Utils {
   }
 
   public static int getStatementType(String queryString) {
-    if (queryString.substring(0, 4).equalsIgnoreCase("with")) {
+    char[] query = queryString.toCharArray();
+    int index = 0;
+    while (index < query.length && (query[index] == ' ' || query[index] == '\n' || query[index] == '\t')) {
+      index++;
+    }
+
+    String str = queryString.substring(index);
+    if (str.substring(0, 4).equalsIgnoreCase("with")) {
       return OceanBaseStatement.STMT_SELECT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("select")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("select")) {
       return OceanBaseStatement.STMT_SELECT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("update")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("update")) {
       return OceanBaseStatement.STMT_UPDATE;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("delete")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("delete")) {
       return OceanBaseStatement.STMT_DELETE;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("insert")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("insert")) {
       return OceanBaseStatement.STMT_INSERT;
-    } else if (queryString.substring(0, 6).equalsIgnoreCase("create")) {
+    } else if (str.substring(0, 6).equalsIgnoreCase("create")) {
       return OceanBaseStatement.STMT_CREATE;
-    } else if (queryString.substring(0, 4).equalsIgnoreCase("drop")) {
+    } else if (str.substring(0, 4).equalsIgnoreCase("drop")) {
       return OceanBaseStatement.STMT_DROP;
-    } else if (queryString.substring(0, 5).equalsIgnoreCase("alter")) {
+    } else if (str.substring(0, 5).equalsIgnoreCase("alter")) {
       return OceanBaseStatement.STMT_ALTER;
-    } else if (queryString.substring(0, 5).equalsIgnoreCase("begin")) {
+    } else if (str.substring(0, 5).equalsIgnoreCase("begin")) {
       return OceanBaseStatement.STMT_BEGIN;
-    } else if (queryString.substring(0, 7).equalsIgnoreCase("declare")) {
+    } else if (str.substring(0, 7).equalsIgnoreCase("declare")) {
       return OceanBaseStatement.STMT_DECLARE;
-    } else if (queryString.substring(0, 4).equalsIgnoreCase("call")) {
+    } else if (str.substring(0, 4).equalsIgnoreCase("call")) {
       return OceanBaseStatement.STMT_CALL;
     } else {
       return OceanBaseStatement.STMT_UNKNOWN;
@@ -1608,6 +1627,7 @@ public class Utils {
     Quote,
     Escape /* found backslash */
   }
+  
   private static final char[] DIGITS_LOWER = { '0', '1', '2', '3', '4', '5',
       '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
@@ -1627,9 +1647,11 @@ public class Utils {
   public static String encodeHexStr(byte[] data) {
     return encodeHexStr(data, false); // ob support upper case
   }
+  
   public static String encodeHexStr(byte[] data, boolean toLowerCase) {
     return encodeHexStr(data, toLowerCase ? DIGITS_LOWER : DIGITS_UPPER);
   }
+  
   protected static String encodeHexStr(byte[] data, char[] toDigits) {
     return new String(encodeHex(data, toDigits));
   }
@@ -1637,6 +1659,7 @@ public class Utils {
   public static String toHexString(byte[]data) {
     return encodeHexStr(data);
   }
+  
   public static  boolean convertStringToBoolean(String str)  {
     if ((str != null) && (str.length() > 0)) {
       int c = Character.toLowerCase(str.charAt(0));

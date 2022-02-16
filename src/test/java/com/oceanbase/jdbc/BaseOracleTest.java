@@ -725,6 +725,10 @@ public class BaseOracleTest {
     return openConnection(connUri + parameters, null);
   }
 
+  protected Connection setConnectionOrigin(String parameters) throws SQLException {
+    return DriverManager.getConnection(connU + parameters,username,password);
+  }
+
   protected Connection setConnection(String additionalParameters, String database)
       throws SQLException {
     StringBuilder sb = new StringBuilder();
