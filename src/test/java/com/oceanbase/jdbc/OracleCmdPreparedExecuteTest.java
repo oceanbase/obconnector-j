@@ -66,8 +66,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
 
         // not select
-        PreparedStatement ps1 = conn
-            .prepareStatement("insert into test_set_params values(?,?,?)");
+        PreparedStatement ps1 = conn.prepareStatement("insert into test_set_params values(?,?,?)");
 
         ps1.setInt(1, 1);
         ps1.setString(2, "abcdefg");
@@ -87,8 +86,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         assertEquals(1, ps1.executeUpdate());
 
         // select
-        PreparedStatement ps2 = conn
-            .prepareStatement("select * from test_set_params where 1=?");
+        PreparedStatement ps2 = conn.prepareStatement("select * from test_set_params where 1=?");
         ps2.setInt(1, 1);
 
         ResultSet rs = ps2.executeQuery();

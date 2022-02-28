@@ -2053,6 +2053,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
+        if (row.lastValueWasNull()) {
+            return null;
+        }
         int internalColumnIndex = actualColumnIndex - 1;
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
@@ -2079,6 +2082,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public Struct getStruct(int columnIndex) throws SQLException {
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
+        if (row.lastValueWasNull()) {
+            return null;
+        }
         int internalColumnIndex = actualColumnIndex - 1;
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
@@ -2103,6 +2109,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         // after reading the eof packet,the protocol been seted to null,but we need it
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
+        if (row.lastValueWasNull()) {
+            return null;
+        }
         int internalColumnIndex = actualColumnIndex - 1;
         String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
         ComplexDataType type = new ComplexDataType(typeName, typeName, ColumnType.CURSOR.getType());
@@ -2114,7 +2123,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
         RowObCursorData obCursorData = (RowObCursorData) objects[0];
-        if (!obCursorData.isOpen()) {
+        if (obCursorData != null && !obCursorData.isOpen()) {
             throw new SQLException("cursor is not open");
         }
         Results results = this.statement.getResults();
