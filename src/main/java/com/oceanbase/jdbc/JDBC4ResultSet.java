@@ -82,7 +82,6 @@ import com.oceanbase.jdbc.internal.com.read.resultset.UpdatableColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
-import com.oceanbase.jdbc.internal.com.send.ComStmtPrepareExecute;
 import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
@@ -212,10 +211,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
             this.data = new byte[10][];
             fetchAllResults();
         }
-        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) { // todo: remove
-            // for new PS protocol, there is an OK packet to read before checkIfUpdatable
-            ComStmtPrepareExecute.readTailPacket(protocol, reader, results, true);
-        }
 
         handelUpdatable(results);
     }
@@ -279,9 +274,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // for new PS protocol, ResultSet reads data from socket while constructing
             this.lock = protocol.getLock();
             nextStreamingValue();
-
-            // for new PS protocol, there is an OK packet to read before checkIfUpdatable
-            ComStmtPrepareExecute.readTailPacket(protocol, reader, results, true);
         }
 
         handelUpdatable(results);
