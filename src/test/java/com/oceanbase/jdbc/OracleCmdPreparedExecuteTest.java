@@ -58,24 +58,20 @@ import java.time.LocalDateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * @author yexinyan.yxy
- * @version 1.0: OracleCmdPreparedExecuteTest, 2021-09-09 11:10 yexinyan.yxy Exp $
- */
 public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
 
     @Test
-    public void normalSqlTest() throws SQLException {
+    public void normalSqlPrepStmtTest() throws SQLException {
         createTable("test_set_params", "c1 int, c2 varchar(20), c3 Timestamp");
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
 
         // not select
-        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
         PreparedStatement ps1 = conn.prepareStatement("insert into test_set_params values(?,?,?)");
 
         ps1.setInt(1, 1);
         ps1.setString(2, "abcdefg");
         ps1.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
-        assertEquals(1, ps1.executeUpdate());
+        assertEquals(false, ps1.execute());
 
         // reuse a statement
         ps1.setInt(1, 2);
@@ -92,6 +88,7 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         // select
         PreparedStatement ps2 = conn.prepareStatement("select * from test_set_params where 1=?");
         ps2.setInt(1, 1);
+
         ResultSet rs = ps2.executeQuery();
         Assert.assertTrue(rs.next());
         Assert.assertEquals(1, rs.getInt(1));
@@ -102,6 +99,53 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         Assert.assertTrue(rs.next());
         Assert.assertEquals(3, rs.getInt(1));
         Assert.assertEquals("opqrst", rs.getString(2));
+
+        assertEquals(true, ps2.execute());
+        rs = ps2.getResultSet();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("abcdefg", rs.getString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals("hijklmn", rs.getString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(3, rs.getInt(1));
+        Assert.assertEquals("opqrst", rs.getString(2));
+
+    }
+
+    @Test
+    public void normalSqlStmtTest() throws SQLException {
+        createTable("test_set_params2", "c1 int, c2 varchar(20)");
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+
+        // not select
+        Statement stmt1 = conn.createStatement();
+
+        assertEquals(false, stmt1.execute("insert into test_set_params2 values(1,'abcdefg')"));
+
+        // reuse a statement
+        assertEquals(1, stmt1.executeUpdate("insert into test_set_params2 values(2,'hijklmn')"));
+
+        // select
+        Statement stmt2 = conn.createStatement();
+
+        ResultSet rs = stmt2.executeQuery("select * from test_set_params2");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("abcdefg", rs.getString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals("hijklmn", rs.getString(2));
+
+        assertEquals(true, stmt2.execute("select * from test_set_params2"));
+        rs = stmt2.getResultSet();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("abcdefg", rs.getString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals("hijklmn", rs.getString(2));
 
     }
 

@@ -154,6 +154,16 @@ public class CursorResultSet extends SelectResultSet {
     }
 
     private void getCursorFetchData() throws IOException, SQLException {
+        if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
+            lastRowPointer = -1;
+
+            // this resultSet must be CURSOR , and if it has no need to get previous value
+            if (dataSize > 0) {
+                discardedRows += dataSize;
+                dataSize = 0;
+            }
+            super.resetState();
+        }
         // client side CURSOR ResultSet caches all rows step by step
         if (isServerSide) {
             dataSize = 0;
@@ -469,9 +479,6 @@ public class CursorResultSet extends SelectResultSet {
                 return false;
             }
 
-            if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
-                super.resetState();
-            }
             cursorFetch();
             rowPointer++;
             return dataSize > rowPointer;

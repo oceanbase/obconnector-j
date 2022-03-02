@@ -2425,4 +2425,89 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testCursorSPD() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table testcur1");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create  table testcur1(c1 int,c2 int)");
+            PreparedStatement ps1 = conn.prepareStatement("insert into testcur1 values(?,?)");
+            for (int i = 0; i < 30; i++) {
+                ps1.setInt(1, i);
+                ps1.setInt(2, i);
+                ps1.addBatch();
+            }
+            ps1.executeBatch();
+            PreparedStatement ps = conn.prepareStatement("select * from testcur1");
+            ResultSet rs = ps.executeQuery();
+            int cur = 0;
+            int row = rs.getRow();
+            Assert.assertEquals(cur, row);
+            boolean ret = rs.next();
+            int i = 0;
+            while (ret) {
+                cur++;
+                row = rs.getRow();
+                Assert.assertEquals(cur, row);
+                Assert.assertEquals(rs.getInt(1), i++);
+                ret = rs.next();
+            }
+            Assert.assertEquals(30, i);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCursorSPD2() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table testcur1");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+
+            stmt.execute("create  table testcur1(c1 int,c2 int)");
+            PreparedStatement ps1 = conn.prepareStatement("insert into testcur1 values(?,?)");
+            for (int i = 0; i < 30; i++) {
+                ps1.setInt(1, i);
+                ps1.setInt(2, i);
+                ps1.addBatch();
+            }
+            ps1.executeBatch();
+            String sql = "create or replace procedure pro1( b out sys_refcursor) is begin open b for select * from testcur1; end;";
+            conn.createStatement().execute(sql);
+            CallableStatement cstmt = conn.prepareCall("{call pro1(?)}");
+            cstmt.registerOutParameter(1, Types.REF_CURSOR);
+            cstmt.executeQuery();
+            ResultSet rs = (ResultSet) cstmt.getObject(1);
+            int cur = 0;
+            int row = rs.getRow();
+            Assert.assertEquals(cur, row);
+            boolean ret = rs.next();
+            int i = 0;
+            while (ret) {
+                cur++;
+                row = rs.getRow();
+                Assert.assertEquals(cur, row);
+                Assert.assertEquals(rs.getInt(1), i++);
+                ret = rs.next();
+            }
+            Assert.assertEquals(30, i);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

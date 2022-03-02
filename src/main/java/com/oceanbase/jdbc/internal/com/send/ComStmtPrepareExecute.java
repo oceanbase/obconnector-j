@@ -201,8 +201,15 @@ public class ComStmtPrepareExecute {
                 ColumnDefinition[] columns = new ColumnDefinition[numColumns];
                 if (hasResultSet == 1) {
                     protocol.readResultSet(columns, results);
-                } else {
-                    readTailPacket(protocol, reader, results, false);
+                }
+
+                buffer = reader.getPacket(true);
+                switch (buffer.getByteAt(0)) {
+                    case Packet.OK:
+                        protocol.readOkPacket(buffer, results);
+                        break;
+                    case Packet.ERROR:
+                        throw protocol.readErrorPacket(buffer, results);
                 }
 
                 return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(

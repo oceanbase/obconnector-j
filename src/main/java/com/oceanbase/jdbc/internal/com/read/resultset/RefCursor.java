@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
@@ -69,7 +70,6 @@ public class RefCursor extends SelectResultSet {
         if (super.next()) {
             return true;
         } else {
-            super.resetState();
             cursorFetch();
             return super.next();
         }
@@ -81,6 +81,10 @@ public class RefCursor extends SelectResultSet {
         }
         int numToFetch = this.getFetchSize();
         ColumnDefinition[] ci = new ColumnDefinition[0];
+        if (this.rowObCursorData == null) {
+            isLastRow = true;
+            return;
+        }
         try {
             ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(
                 this.rowObCursorData.getCursorId(), numToFetch);
@@ -108,6 +112,15 @@ public class RefCursor extends SelectResultSet {
     }
 
     private void getCursorFetchData() throws IOException, SQLException {
+        if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
+            lastRowPointer = -1;
+            // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
+            if (resultSetScrollType == TYPE_FORWARD_ONLY && dataSize > 0) {
+                discardedRows += dataSize;
+                dataSize = 0;
+            }
+            super.resetState();
+        }
         if (dataSize == -1) {
             dataSize = 0;
         }
@@ -130,6 +143,8 @@ public class RefCursor extends SelectResultSet {
 
     @Override
     public void close() throws SQLException {
-        rowObCursorData.setOpen(false);
+        if (rowObCursorData != null) {
+            rowObCursorData.setOpen(false);
+        }
     }
 }
