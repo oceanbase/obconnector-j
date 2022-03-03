@@ -679,7 +679,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       pstmt.setFetchSize(this.fetchSize);
       pstmt.executeQuery();
-      this.results =((ServerSidePreparedStatement)pstmt).results;
+      this.results =((OceanBaseStatement)pstmt).results;
       return results.getResultSet();
     } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
       return results.getResultSet();

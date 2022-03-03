@@ -99,7 +99,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
                                                                       .compile(
-                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE)",
+                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE|SHOW)",
                                                                           Pattern.CASE_INSENSITIVE);
 
     public final ReentrantLock       lock;

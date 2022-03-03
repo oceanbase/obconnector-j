@@ -418,4 +418,24 @@ public class Bugfix extends BaseTest {
         c1.setString(2, s1, 7, 4);
         assertEquals("CDataata", c1.getSubString(1L, (int) c1.length()));
     }
+
+    @Test
+    public void testAone39674404() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=10");
+
+            try {
+                conn.createStatement().execute("drop procedure testPro");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            conn.createStatement().execute("create  procedure testPro() begin select 1;end");
+
+            CallableStatement cs = conn.prepareCall("call testPro()");
+            cs.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
