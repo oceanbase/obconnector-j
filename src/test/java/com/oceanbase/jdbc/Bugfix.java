@@ -438,4 +438,23 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testAone39135621() {
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop procedure pro_ps");
+            } catch (SQLException e) {
+                //            e.printStackTrace();
+            }
+            conn.createStatement().execute("create  procedure pro_ps(a int) begin select 2; end");
+            PreparedStatement ps = conn.prepareStatement("{call pro_ps(?)}");
+            ps.setInt(1, 1);
+            ps.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

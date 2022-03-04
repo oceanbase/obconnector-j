@@ -79,28 +79,33 @@ import com.oceanbase.jdbc.util.Options;
 @SuppressWarnings("Annotator")
 public class OceanBaseConnection implements ConnectionImpl {
 
-    private static final Logger      logger                       = LoggerFactory
-                                                                      .getLogger(OceanBaseConnection.class);
+    private static final Logger      logger                              = LoggerFactory
+                                                                             .getLogger(OceanBaseConnection.class);
 
     /**
      * Pattern to check the correctness of callable statement query string Legal queries, as
      * documented in JDK have the form: {[?=]call[(arg1,..,,argn)]}
      */
-    private static final Pattern     CALLABLE_STATEMENT_PATTERN   = Pattern
-                                                                      .compile(
-                                                                          "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                                                                                  + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
-                                                                                  + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
-                                                                                  + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
-                                                                          Pattern.CASE_INSENSITIVE
-                                                                                  | Pattern.DOTALL);
+    private static final Pattern     CALLABLE_STATEMENT_PATTERN          = Pattern
+                                                                             .compile(
+                                                                                 "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
+                                                                                         + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+                                                                                         + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
+                                                                                         + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
+                                                                                 Pattern.CASE_INSENSITIVE
+                                                                                         | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */
-    private static final Pattern     PREPARABLE_STATEMENT_PATTERN = Pattern
-                                                                      .compile(
-                                                                          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE|SHOW)",
-                                                                          Pattern.CASE_INSENSITIVE);
+    private static final Pattern     PREPARABLE_STATEMENT_PATTERN_ORACLE = Pattern
+                                                                             .compile(
+                                                                                 "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL|DECLARE|SHOW)",
+                                                                                 Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern     PREPARABLE_STATEMENT_PATTERN_MYSQL  = Pattern
+                                                                             .compile(
+                                                                                 "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|DECLARE|SHOW)",
+                                                                                 Pattern.CASE_INSENSITIVE);
 
     public final ReentrantLock       lock;
     /**
@@ -115,11 +120,11 @@ public class OceanBaseConnection implements ConnectionImpl {
     public OceanBasePooledConnection pooledConnection;
     protected boolean                nullCatalogMeansCurrent;
     private CallableStatementCache   callableStatementCache;
-    private volatile int             lowercaseTableNames          = -1;
+    private volatile int             lowercaseTableNames                 = -1;
     private boolean                  canUseServerTimeout;
     private boolean                  sessionStateAware;
-    private int                      stateFlag                    = 0;
-    private int                      defaultTransactionIsolation  = 0;
+    private int                      stateFlag                           = 0;
+    private int                      defaultTransactionIsolation         = 0;
     private ExceptionFactory         exceptionFactory;
 
     private boolean                  warningsCleared;
@@ -130,103 +135,104 @@ public class OceanBaseConnection implements ConnectionImpl {
     private UrlParser                urlParser;
     private GlobalStateInfo          globalStateInfo;
 
-    private TimeZone                 sessionTimeZone              = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
-    private static final int         DEPTH_INDEX                  = 1;
-    private static final int         PARENT_TYPE_INDEX            = 3;
-    private static final int         CHILD_TYPE_INDEX             = 4;
-    private static final int         ATTR_NO_INDEX                = 5;
-    private static final int         CHILD_OWNER_INDEX            = 6;
-    private static final int         ATTR_TYPE_INDEX              = 7;
+    private TimeZone                 sessionTimeZone                     = TimeZone.getDefault();                  // FIXME what is this? for TIMESTAMPLTZ?
+    private static final int         DEPTH_INDEX                         = 1;
+    private static final int         PARENT_TYPE_INDEX                   = 3;
+    private static final int         CHILD_TYPE_INDEX                    = 4;
+    private static final int         ATTR_NO_INDEX                       = 5;
+    private static final int         CHILD_OWNER_INDEX                   = 6;
+    private static final int         ATTR_TYPE_INDEX                     = 7;
     private String                   origHostToConnectTo;
     // we don't want to be able to publicly clone this... // todo
     /**
      * Is this connection associated with a global tx?
      */
-    private boolean                  isInGlobalTx                 = false;
-    private boolean                  enableNetworkStatistics      = false;
+    private boolean                  isInGlobalTx                        = false;
+    private boolean                  enableNetworkStatistics             = false;
     private int                      origPortToConnectTo;
     private String                   origDatabaseToConnectTo;
-    private java.sql.Connection      complexConnection            = null;
-    private boolean                  autoCommit                   = true;
+    private java.sql.Connection      complexConnection                   = null;
+    private boolean                  autoCommit                          = true;
     private Map<String, Class<?>>    typeMap;
-    private static final String      complexTypeSql               = "SELECT\n"
-                                                                    + "  0 DEPTH,\n"
-                                                                    + "  NULL PARENT_OWNER,\n"
-                                                                    + "  NULL PARENT_TYPE,\n"
-                                                                    + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
-                                                                    + "  0 ATTR_NO,\n"
-                                                                    + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
-                                                                    + "  A.TYPECODE ATTR_TYPE_CODE,\n"
-                                                                    + "  NULL LENGTH,\n"
-                                                                    + "  NULL NUMBER_PRECISION,\n"
-                                                                    + "  NULL SCALE,\n"
-                                                                    + "  NULL CHARACTER_SET_NAME\n"
-                                                                    + "FROM\n"
-                                                                    + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
-                                                                    + "UNION\n"
-                                                                    + "(\n"
-                                                                    + "WITH \n"
-                                                                    + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
-                                                                    + "AS (\n"
-                                                                    + "    SELECT\n"
-                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
-                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
-                                                                    + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
-                                                                    + "      0 ATTR_NO,\n"
-                                                                    + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-                                                                    + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-                                                                    + "      B.LENGTH LENGTH,\n"
-                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-                                                                    + "      B.SCALE SCALE,\n"
-                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-                                                                    + "    FROM\n"
-                                                                    + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
-                                                                    + "    UNION\n"
-                                                                    + "    SELECT\n"
-                                                                    + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
-                                                                    + "      B.TYPE_NAME PARENT_TYPE,\n"
-                                                                    + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
-                                                                    + "      B.ATTR_NO ATTR_NO,\n"
-                                                                    + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
-                                                                    + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
-                                                                    + "      B.LENGTH LENGTH,\n"
-                                                                    + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
-                                                                    + "      B.SCALE SCALE,\n"
-                                                                    + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
-                                                                    + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
-                                                                    + ") ,\n"
-                                                                    + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
-                                                                    + "AS (\n"
-                                                                    + "  SELECT\n"
-                                                                    + "    1 DEPTH,\n"
-                                                                    + "    PARENT_OWNER,\n"
-                                                                    + "    PARENT_TYPE,\n"
-                                                                    + "    CHILD_TYPE,\n"
-                                                                    + "    ATTR_NO,\n"
-                                                                    + "    CHILD_TYPE_OWNER,\n"
-                                                                    + "    ATTR_TYPE_CODE,\n"
-                                                                    + "    LENGTH,\n"
-                                                                    + "    NUMBER_PRECISION,\n"
-                                                                    + "    SCALE, CHARACTER_SET_NAME\n"
-                                                                    + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
-                                                                    + "  UNION ALL\n"
-                                                                    + "  SELECT\n"
-                                                                    + "    DEPTH + 1 DEPTH,\n"
-                                                                    + "    CTE_RESULT.PARENT_OWNER,\n"
-                                                                    + "    CTE_RESULT.PARENT_TYPE,\n"
-                                                                    + "    CTE_RESULT.CHILD_TYPE,\n"
-                                                                    + "    CTE_RESULT.ATTR_NO,\n"
-                                                                    + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
-                                                                    + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
-                                                                    + "    CTE_RESULT.LENGTH,\n"
-                                                                    + "    CTE_RESULT.NUMBER_PRECISION,\n"
-                                                                    + "    CTE_RESULT.SCALE,\n"
-                                                                    + "    CTE_RESULT.CHARACTER_SET_NAME\n"
-                                                                    + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
-                                                                    + ")\n" + "SELECT * FROM CTE\n"
-                                                                    + ");";
+    private static final String      complexTypeSql                      = "SELECT\n"
+                                                                           + "  0 DEPTH,\n"
+                                                                           + "  NULL PARENT_OWNER,\n"
+                                                                           + "  NULL PARENT_TYPE,\n"
+                                                                           + "  to_char(TYPE_NAME) CHILD_TYPE,\n"
+                                                                           + "  0 ATTR_NO,\n"
+                                                                           + "  SYS_CONTEXT('USERENV', 'CURRENT_USER') CHILD_TYPE_OWNER,\n"
+                                                                           + "  A.TYPECODE ATTR_TYPE_CODE,\n"
+                                                                           + "  NULL LENGTH,\n"
+                                                                           + "  NULL NUMBER_PRECISION,\n"
+                                                                           + "  NULL SCALE,\n"
+                                                                           + "  NULL CHARACTER_SET_NAME\n"
+                                                                           + "FROM\n"
+                                                                           + "  USER_TYPES A WHERE TYPE_NAME = ?\n"
+                                                                           + "UNION\n"
+                                                                           + "(\n"
+                                                                           + "WITH \n"
+                                                                           + "CTE_RESULT(PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME) \n"
+                                                                           + "AS (\n"
+                                                                           + "    SELECT\n"
+                                                                           + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                           + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                           + "      B.ELEM_TYPE_NAME CHILD_TYPE,\n"
+                                                                           + "      0 ATTR_NO,\n"
+                                                                           + "      B.ELEM_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                           + "      NVL(A.TYPECODE, B.ELEM_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                           + "      B.LENGTH LENGTH,\n"
+                                                                           + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                           + "      B.SCALE SCALE,\n"
+                                                                           + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                           + "    FROM\n"
+                                                                           + "      USER_COLL_TYPES B LEFT JOIN USER_TYPES A ON A.TYPE_NAME = B.ELEM_TYPE_NAME\n"
+                                                                           + "    UNION\n"
+                                                                           + "    SELECT\n"
+                                                                           + "      SYS_CONTEXT('USERENV','CURRENT_USER') PARENT_OWNER,\n"
+                                                                           + "      B.TYPE_NAME PARENT_TYPE,\n"
+                                                                           + "      B.ATTR_TYPE_NAME CHILD_TYPE,\n"
+                                                                           + "      B.ATTR_NO ATTR_NO,\n"
+                                                                           + "      B.ATTR_TYPE_OWNER CHILD_TYPE_OWNER,\n"
+                                                                           + "      NVL(A.TYPECODE, B.ATTR_TYPE_NAME) AS ATTR_TYPE_CODE,\n"
+                                                                           + "      B.LENGTH LENGTH,\n"
+                                                                           + "      B.NUMBER_PRECISION NUMBER_PRECISION,\n"
+                                                                           + "      B.SCALE SCALE,\n"
+                                                                           + "      B.CHARACTER_SET_NAME CHARACTER_SET_NAME\n"
+                                                                           + "    FROM USER_TYPE_ATTRS B LEFT JOIN USER_TYPES A ON B.ATTR_TYPE_NAME = A.TYPE_NAME ORDER BY ATTR_NO\n"
+                                                                           + ") ,\n"
+                                                                           + "CTE(DEPTH, PARENT_OWNER, PARENT_TYPE, CHILD_TYPE, ATTR_NO, CHILD_TYPE_OWNER, ATTR_TYPE_CODE, LENGTH, NUMBER_PRECISION, SCALE, CHARACTER_SET_NAME)\n"
+                                                                           + "AS (\n"
+                                                                           + "  SELECT\n"
+                                                                           + "    1 DEPTH,\n"
+                                                                           + "    PARENT_OWNER,\n"
+                                                                           + "    PARENT_TYPE,\n"
+                                                                           + "    CHILD_TYPE,\n"
+                                                                           + "    ATTR_NO,\n"
+                                                                           + "    CHILD_TYPE_OWNER,\n"
+                                                                           + "    ATTR_TYPE_CODE,\n"
+                                                                           + "    LENGTH,\n"
+                                                                           + "    NUMBER_PRECISION,\n"
+                                                                           + "    SCALE, CHARACTER_SET_NAME\n"
+                                                                           + "  FROM CTE_RESULT WHERE PARENT_TYPE = ?\n"
+                                                                           + "  UNION ALL\n"
+                                                                           + "  SELECT\n"
+                                                                           + "    DEPTH + 1 DEPTH,\n"
+                                                                           + "    CTE_RESULT.PARENT_OWNER,\n"
+                                                                           + "    CTE_RESULT.PARENT_TYPE,\n"
+                                                                           + "    CTE_RESULT.CHILD_TYPE,\n"
+                                                                           + "    CTE_RESULT.ATTR_NO,\n"
+                                                                           + "    CTE_RESULT.CHILD_TYPE_OWNER,\n"
+                                                                           + "    CTE_RESULT.ATTR_TYPE_CODE,\n"
+                                                                           + "    CTE_RESULT.LENGTH,\n"
+                                                                           + "    CTE_RESULT.NUMBER_PRECISION,\n"
+                                                                           + "    CTE_RESULT.SCALE,\n"
+                                                                           + "    CTE_RESULT.CHARACTER_SET_NAME\n"
+                                                                           + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
+                                                                           + ")\n"
+                                                                           + "SELECT * FROM CTE\n"
+                                                                           + ");";
     private Map<String, Integer>     indexMap;
-    private int                      isolationLevel               = 2;
+    private int                      isolationLevel                      = 2;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -631,8 +637,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 sqlQuery = getCachedSql(sqlQuery);
             }
             // Oracle mode don't determine sql string, so that anonymous blocks can be executed through PS . Maybe ORACLE_PREPARABLE_STATEMENT_PATTERN  should be added (todo).
-            if ((options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery)
-                .find()) || (options.useServerPrepStmts && this.protocol.isOracleMode())) {
+            if ((options.useServerPrepStmts
+                 && PREPARABLE_STATEMENT_PATTERN_MYSQL.matcher(sqlQuery).find() && !this.protocol
+                .isOracleMode()) || (options.useServerPrepStmts && this.protocol.isOracleMode())) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
