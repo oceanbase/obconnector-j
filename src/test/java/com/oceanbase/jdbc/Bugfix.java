@@ -457,4 +457,26 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testAone38614218() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT 1");
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertTrue(rsmd.isReadOnly(1));
+            stmt.execute("drop table if exists testRSMDIsReadOnly");
+            stmt.execute("create table testRSMDIsReadOnly (field1 INT)");
+            stmt.executeUpdate("INSERT INTO testRSMDIsReadOnly VALUES (1)");
+            rs = stmt.executeQuery("SELECT 1, field1 + 1, field1 FROM testRSMDIsReadOnly");
+            rsmd = rs.getMetaData();
+            assertTrue(rsmd.isReadOnly(1));
+            assertTrue(rsmd.isReadOnly(2));
+            assertFalse(rsmd.isReadOnly(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

@@ -426,8 +426,8 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      */
     public boolean isReadOnly(final int column) throws SQLException {
         ColumnDefinition ci = getColumnInformation(column);
-        return (ci.getOriginalTable() == null || ci.getOriginalTable().isEmpty())
-               && (ci.getOriginalName() == null || ci.getOriginalName().isEmpty());
+        return !(ci.getOriginalTable() != null && ci.getOriginalTable().length() > 0
+                 && ci.getOriginalName() != null && ci.getOriginalName().length() > 0);
     }
 
     /**
