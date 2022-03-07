@@ -319,11 +319,18 @@ public class Clob extends Lob implements ObClob {
         return getBinaryStream();
     }
 
-    public long position(String searchStr, long start) {
-        return toString().indexOf(searchStr, (int) start - 1) + 1;
+    public long position(String searchStr, long start) throws SQLException {
+        if (start < 1) {
+            throw new SQLException("Illegal starting position for search, '" + start + "'");
+        }
+        if ((start - 1) > this.toString().length()) {
+            throw new SQLException("Cannot truncate CLOB of length ");
+        }
+        long pos = toString().indexOf(searchStr, (int) start - 1);
+        return (pos == -1) ? (-1) : (pos + 1);
     }
 
-    public long position(java.sql.Clob searchStr, long start) {
+    public long position(java.sql.Clob searchStr, long start) throws SQLException {
         return position(searchStr.toString(), start);
     }
 

@@ -59,6 +59,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class OceanBaseClobTest extends BaseTest {
@@ -154,11 +155,16 @@ public class OceanBaseClobTest extends BaseTest {
 
     @Test
     public void position() {
-        com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
-        assertEquals(4, clob.position("de", 2));
+        try {
+            Clob clob = new Clob(bytes);
+            assertEquals(4, clob.position("de", 2));
 
-        clob = new com.oceanbase.jdbc.Clob(bytes, 2, 10);
-        assertEquals(4, clob.position("🙏", 2));
+            clob = new Clob(bytes, 2, 10);
+            assertEquals(4, clob.position("🙏", 2));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 
     @Test

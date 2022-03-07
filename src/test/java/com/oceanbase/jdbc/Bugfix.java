@@ -538,4 +538,35 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    // test for clob position
+    @Test
+    public void testAone39073141() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select 'abcd', 'a', 'b', 'c', 'd', 'e' from dual");
+            rs.next();
+            Clob clob = rs.getClob(1);
+            try {
+                clob.position(rs.getClob(2), 0);
+                fail("Illegal starting position for search, '0'");
+            } catch (SQLException e) {
+                //e.printStackTrace();
+            }
+            try {
+                clob.position(rs.getClob(2), 10);
+                fail("Starting position for search is past end of CLOB");
+            } catch (SQLException e) {
+                //
+            }
+            assertEquals(1, clob.position(rs.getClob(2), 1));
+            assertEquals(2, clob.position(rs.getClob(3), 1));
+            assertEquals(3, clob.position(rs.getClob(4), 1));
+            assertEquals(4, clob.position(rs.getClob(5), 1));
+            assertEquals(-1, clob.position(rs.getClob(6), 1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
