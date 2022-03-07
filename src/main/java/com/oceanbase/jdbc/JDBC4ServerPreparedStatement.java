@@ -302,9 +302,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public void addBatch(final String sql) throws SQLException {
-    throw exceptionFactory
-        .raiseStatementError(connection, this)
-        .create("Cannot do addBatch(String) on preparedStatement");
+    super.addBatch(sql);
   }
 
   public void clearBatch() {
@@ -354,6 +352,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public int[] executeBatch() throws SQLException {
     checkClose();
+    if ((batchQueries.size()) >  0) {
+      return super.executeBatch();
+    }
     int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
       return new int[0];
@@ -372,6 +373,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkClose();
+    if ((batchQueries.size()) >  0) {
+      return super.executeLargeBatch();
+    }
     int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
       return new long[0];

@@ -129,7 +129,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   // are warnings cleared?
   private boolean warningsCleared;
   private boolean mustCloseOnCompletion = false;
-  private List<String> batchQueries;
+  protected List<String> batchQueries;
   private Future<?> timerTaskFuture;
   private boolean isTimedout;
   private int maxFieldSize;

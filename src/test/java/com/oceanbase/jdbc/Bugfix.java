@@ -569,4 +569,35 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testAone36022236() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testPreStmtBatchSql");
+            stmt.execute("create table testPreStmtBatchSql (id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT)");
+            PreparedStatement ps = conn
+                .prepareStatement("INSERT INTO testPreStmtBatchSql (n) VALUES (?)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (1)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (2)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (3)");
+            ps.executeBatch();
+            ResultSet rs = stmt.executeQuery("select count(*) from testPreStmtBatchSql");
+            assertTrue(rs.next());
+            assertEquals(3, rs.getInt(1));
+            ps = conn.prepareStatement("INSERT INTO testPreStmtBatchSql (n) VALUES (?)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (1)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (2)");
+            ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (3)");
+            ps.executeLargeBatch();
+            rs = stmt.executeQuery("select count(*) from testPreStmtBatchSql");
+            assertTrue(rs.next());
+            assertEquals(6, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }
