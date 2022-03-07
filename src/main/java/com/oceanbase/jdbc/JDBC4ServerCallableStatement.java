@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -333,7 +334,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     @Override
     public boolean execute() throws SQLException {
-        connection.lock.lock();
+        ReentrantLock curLock = connection.lock;
+        curLock.lock();
         try {
             if (!protocol.isOracleMode()) {
                 setInOutParamsOnServer();
@@ -345,7 +347,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             retrieveOutputResult();
             return results != null && results.getResultSet() != null;
         } finally {
-            connection.lock.unlock();
+            curLock.unlock();
         }
     }
 

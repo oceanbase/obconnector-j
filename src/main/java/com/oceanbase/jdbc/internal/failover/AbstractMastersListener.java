@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
@@ -417,8 +418,8 @@ public abstract class AbstractMastersListener implements Listener {
   public void syncConnection(Protocol from, Protocol to) throws SQLException {
 
     if (from != null) {
-
-      proxy.lock.lock();
+      ReentrantLock curLock = proxy.lock;
+      curLock.lock();
       try {
         to.resetStateAfterFailover(
             from.getMaxRows(),
@@ -426,7 +427,7 @@ public abstract class AbstractMastersListener implements Listener {
             from.getDatabase(),
             from.getAutocommit());
       } finally {
-        proxy.lock.unlock();
+        curLock.unlock();
       }
     }
   }

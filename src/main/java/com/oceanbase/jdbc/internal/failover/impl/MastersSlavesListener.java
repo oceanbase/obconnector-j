@@ -58,6 +58,7 @@ import java.sql.SQLNonTransientConnectionException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
@@ -358,7 +359,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /** Called after a call on Connection.close(). Will explicitly closed all connections. */
     public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 removeListenerFromSchedulers();
 
@@ -368,7 +370,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 closeConnection(masterProtocol);
                 closeConnection(secondaryProtocol);
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
             }
         }
     }
@@ -376,7 +378,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     @Override
     public void preAbort() {
         if (explicitClosed.compareAndSet(false, true)) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 removeListenerFromSchedulers();
 
@@ -386,7 +389,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 abortConnection(masterProtocol);
                 abortConnection(secondaryProtocol);
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
+
             }
         }
     }
@@ -446,26 +450,28 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public void checkWaitingConnection() throws SQLException {
         if (isSecondaryHostFail()) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
                 if (waitingProtocol != null && pingSecondaryProtocol(waitingProtocol)) {
                     lockAndSwitchSecondary(waitingProtocol);
                 }
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
             }
         }
 
         if (isMasterHostFail()) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
                 if (waitingProtocol != null && pingMasterProtocol(waitingProtocol)) {
                     lockAndSwitchMaster(waitingProtocol);
                 }
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
             }
         }
     }
@@ -617,12 +623,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 newSecondaryProtocol.close();
                 return;
             }
-
-            if (proxy.lock.tryLock()) {
+            ReentrantLock curLock = proxy.lock;
+            if (curLock.tryLock()) {
                 try {
                     lockAndSwitchSecondary(newSecondaryProtocol);
                 } finally {
-                    proxy.lock.unlock();
+                    curLock.unlock();
                 }
             } else {
                 if (!waitNewSecondaryProtocol.compareAndSet(null, newSecondaryProtocol)) {
@@ -677,7 +683,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws SQLException {
         checkWaitingConnection();
         if (currentReadOnlyAsked != mustBeReadOnly) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 // another thread updated state
                 if (currentReadOnlyAsked == mustBeReadOnly) {
@@ -767,7 +774,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     }
                 }
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
             }
         }
     }
@@ -797,14 +804,15 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             try {
                 if (this.secondaryProtocol != null && this.secondaryProtocol.ping()) {
                     // switching to secondary connection
-                    proxy.lock.lock();
+                    ReentrantLock curLock = proxy.lock;
+                    curLock.lock();
                     try {
                         if (masterProtocol != null) {
                             syncConnection(masterProtocol, this.secondaryProtocol);
                         }
                         currentProtocol = this.secondaryProtocol;
                     } finally {
-                        proxy.lock.unlock();
+                        curLock.unlock();
                     }
                     FailoverLoop.addListener(this);
                     try {
@@ -863,11 +871,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     private void blackListAndCloseConnection(Protocol protocol) {
         addToBlacklist(protocol.getHostAddress());
         if (protocol.isConnected()) {
-            proxy.lock.lock();
+            ReentrantLock curLock = proxy.lock;
+            curLock.lock();
             try {
                 protocol.close();
             } finally {
-                proxy.lock.unlock();
+                curLock.unlock();
+
             }
         }
     }
@@ -927,13 +937,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd)
                                                                                          throws SQLException {
-        proxy.lock.lock();
+        ReentrantLock curLock = proxy.lock;
+        curLock.lock();
         try {
             if (pingSecondaryProtocol(this.secondaryProtocol)) {
                 return relaunchOperation(method, args);
             }
         } finally {
-            proxy.lock.unlock();
+            curLock.unlock();
         }
 
         if (!isMasterHostFail()) {
@@ -942,11 +953,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 if (masterProtocol != null && masterProtocol.isValid(1000)) {
                     // switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
-                    proxy.lock.lock();
+                    ReentrantLock curLock2 = proxy.lock;
+                    curLock2.lock();
                     try {
                         currentProtocol = masterProtocol;
                     } finally {
-                        proxy.lock.unlock();
+                        curLock2.unlock();
                     }
                     FailoverLoop.addListener(this);
                     logger
@@ -967,11 +979,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             handleFailLoop();
             if (isSecondaryHostFail()) {
                 syncConnection(this.secondaryProtocol, this.masterProtocol);
-                proxy.lock.lock();
+                ReentrantLock curLock3 = proxy.lock;
+                curLock3.lock();
                 try {
                     currentProtocol = this.masterProtocol;
                 } finally {
-                    proxy.lock.unlock();
+                    curLock3.unlock();
                 }
             }
 
@@ -1039,13 +1052,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (isSecondaryHostFail()) {
             Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
             if (waitingProtocol != null) {
-                proxy.lock.lock();
+                ReentrantLock curLock = proxy.lock;
+                curLock.lock();
                 try {
                     if (pingSecondaryProtocol(waitingProtocol)) {
                         lockAndSwitchSecondary(waitingProtocol);
                     }
                 } finally {
-                    proxy.lock.unlock();
+                    curLock.unlock();
                 }
             }
         }

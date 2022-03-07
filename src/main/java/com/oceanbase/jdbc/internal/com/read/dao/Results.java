@@ -55,6 +55,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -344,8 +345,8 @@ public class Results {
      */
     public boolean getMoreResults(final int current, Protocol protocol) throws SQLException {
         if (fetchSize != 0 && resultSet != null) {
-
-            protocol.getLock().lock();
+            ReentrantLock curLock = protocol.getLock();
+            curLock.lock();
             try {
                 // load current resultSet
                 if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) {
@@ -362,7 +363,7 @@ public class Results {
             } catch (SQLException e) {
                 throw ExceptionFactory.INSTANCE.create(e);
             } finally {
-                protocol.getLock().unlock();
+                curLock.unlock();
             }
         }
         if (cmdInformation != null && cmdInformation.moreResults() && !batch) {

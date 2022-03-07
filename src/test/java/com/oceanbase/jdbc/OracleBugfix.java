@@ -2510,4 +2510,22 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testAone39812040() {
+        try {
+            Connection conn = setConnection("&socketTimeout=60000");
+            Statement stmt = conn.createStatement();
+            stmt.execute("create or replace procedure SP_FAE_DEAL_FLOW(\n"
+                         + "VI_CDATADATE in varchar2) is \n" + "begin \n"
+                         + "    dbms_lock.sleep(120);\n"
+                         + "    dbms_output.put_line(VI_CDATADATE);\n" + "end SP_FAE_DEAL_FLOW;");
+            CallableStatement callableStatement = conn
+                .prepareCall("call SP_FAE_DEAL_FLOW('2022-02-25');");
+            callableStatement.execute();
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Connection timed out"));
+        }
+    }
+
 }

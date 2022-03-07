@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -121,7 +122,8 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
      */
     @Override
     public int executeUpdate() throws SQLException {
-        connection.lock.lock();
+        ReentrantLock curLock = connection.lock;
+        curLock.lock();
         try {
             super.execute();
             retrieveOutputResult();
@@ -130,7 +132,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             }
             return getUpdateCount();
         } finally {
-            connection.lock.unlock();
+            curLock.unlock();
         }
     }
 
@@ -148,7 +150,8 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        connection.lock.lock();
+        ReentrantLock curLock = connection.lock;
+        curLock.lock();
         try {
             super.execute();
             retrieveOutputResult();
@@ -157,19 +160,20 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             }
             return SelectResultSet.createEmptyResultSet();
         } finally {
-            connection.lock.unlock();
+            curLock.lock();
         }
     }
 
     @Override
     public boolean execute() throws SQLException {
-        connection.lock.lock();
+        ReentrantLock curLock = connection.lock;
+        curLock.lock();
         try {
             super.execute();
             retrieveOutputResult();
             return results != null && results.getResultSet() == null;
         } finally {
-            connection.lock.unlock();
+            curLock.unlock();
         }
     }
 }

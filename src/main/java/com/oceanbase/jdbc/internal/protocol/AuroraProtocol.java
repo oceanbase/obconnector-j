@@ -398,7 +398,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      */
     @Override
     public boolean checkIfMaster() throws SQLException {
-        proxy.lock.lock();
+        ReentrantLock curLock = proxy.lock;
+        curLock.lock();
         try {
             Results results = new Results();
             executeQuery(this.isMasterConnection(), results, "select @@innodb_read_only");
@@ -421,7 +422,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                                    + this.getHostAddress() + " : " + sqle.getMessage(),
                 SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
-            proxy.lock.unlock();
+            curLock.unlock();
         }
     }
 }
