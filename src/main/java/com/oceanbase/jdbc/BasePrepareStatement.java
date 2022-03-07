@@ -676,7 +676,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setParameter(parameterIndex, new OBTIMESTAMPParameter(Timestamp.valueOf(localDateTime),
                 TimeZone.getDefault(), useFractionalSeconds));
         } else {
-            // not supported
+            setParameter(parameterIndex, new TimestampParameter(Timestamp.valueOf(localDateTime),
+                TimeZone.getDefault(), useFractionalSeconds));
         }
     }
 

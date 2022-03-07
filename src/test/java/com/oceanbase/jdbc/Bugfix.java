@@ -50,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import java.sql.*;
 import java.sql.Clob;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 
 import org.junit.Assert;
@@ -509,6 +510,32 @@ public class Bugfix extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testAone38913464() {
+        try {
+            LocalDateTime localDateTime = LocalDateTime.now();
+            Connection conn = sharedConnection;
+            LocalTime localTime = LocalTime.now();
+            createTable("testUpdateObject2",
+                "id INT PRIMARY KEY, ot1 VARCHAR(100), ot2 BLOB, odt1 VARCHAR(100), odt2 BLOB");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into testUpdateObject2 values (?,?,?,?,?)");
+            ps.setInt(1, 1);
+            ps.setObject(2, localTime);
+            ps.setObject(3, localTime);
+            ps.setObject(4, localDateTime);
+            ps.setObject(5, localDateTime);
+            ps.execute();
+            ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT count(*) FROM testUpdateObject2");
+            rs.next();
+            assertEquals(1, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }
