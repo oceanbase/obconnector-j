@@ -50,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import java.sql.*;
 import java.sql.Clob;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -477,6 +478,37 @@ public class Bugfix extends BaseTest {
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAone37811114() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testCallStmtLargeBatch");
+            stmt.execute("create table testCallStmtLargeBatch (n INT)");
+            stmt.execute("drop procedure if exists testCallStmtLargeBatchProc");
+            stmt.execute("create procedure testCallStmtLargeBatchProc (a int) BEGIN \n"
+                         + " INSERT INTO testCallStmtLargeBatch VALUES (a); end ");
+            CallableStatement cstmt = conn.prepareCall("{CALL testCallStmtLargeBatchProc(?)}");
+            int num = 5;
+            for (int i = 1; i <= 5; i++) {
+                cstmt.setInt(1, i);
+                cstmt.addBatch();
+            }
+            int[] count = cstmt.executeBatch();
+            assertEquals(num, count.length);
+            System.out.println(Arrays.toString(count)); // Mysql = [1,1,1]
+            ResultSet rs = stmt.executeQuery("select * from testCallStmtLargeBatch");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j, rs.getInt(1));
+                j++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         }
     }
 }

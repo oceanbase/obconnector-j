@@ -400,4 +400,47 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
         return rows;
     }
+
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[]. For when row count may
+     * exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        if (!hasInOutParameters) {
+            if (!protocol.isOracleMode() && !isObFunction) {
+                int querySize = parametersList.size();
+                if (querySize == 0) {
+                    return new long[0];
+                }
+                return executeLargeBatchInternal(querySize);
+            } else {
+                return super.executeLargeBatch();
+            }
+        } else {
+            throw new SQLException("executeBatch not permit for procedure with output parameter");
+        }
+    }
+
+    /**
+     * execute batch one by one for mysql mode procedure
+     * @param querySize
+     * @return int array of the row count for SQL Data Manipulation Language (DML) statements
+     * @throws SQLException
+     */
+    private long[] executeLargeBatchInternal(int querySize) throws SQLException {
+        long[] rows = new long[querySize];
+        for (int i = 0; i < querySize; i++) {
+            ParameterHolder[] parameterHolder = parametersList.get(i);
+            currentParameterHolder.clear();
+            for (int j = 0; j < parameterHolder.length; j++) {
+                currentParameterHolder.put(j, parameterHolder[j]);
+            }
+            rows[i] = setInOutParamsOnServer();
+        }
+        return rows;
+    }
 }
