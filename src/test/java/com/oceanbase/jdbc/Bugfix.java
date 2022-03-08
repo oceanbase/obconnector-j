@@ -600,4 +600,44 @@ public class Bugfix extends BaseTest {
         }
     }
 
+    @Test
+    public void testAone37757559() {
+        try {
+            Timestamp ts = new Timestamp(System.currentTimeMillis());
+            Date dt = new Date(ts.getTime());
+            Time tm = new Time(ts.getTime());
+            Connection conn = sharedConnection;
+            createTable("testNativeConversions",
+                "time_field TIME, date_field DATE, datetime_field DATETIME, timestamp_field TIMESTAMP");
+            PreparedStatement ps = conn
+                .prepareStatement("INSERT INTO testNativeConversions VALUES (?,?,?,?)");
+            ps.setTime(1, tm);
+            ps.setDate(2, dt);
+            ps.setTimestamp(3, ts);
+            ps.setTimestamp(4, ts);
+            ps.execute();
+            ps.close();
+            ps = conn
+                .prepareStatement("SELECT time_field, date_field, datetime_field, timestamp_field FROM testNativeConversions");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println(rs.getTime(1));
+            System.out.println(rs.getTime(2));
+            System.out.println(rs.getTime(3));
+            System.out.println(rs.getTime(4));
+            System.out.println();
+            System.out.println(rs.getDate(1));
+            System.out.println(rs.getDate(2));
+            System.out.println(rs.getDate(3));
+            System.out.println(rs.getDate(4));
+            System.out.println();
+            System.out.println(rs.getTimestamp(1));
+            System.out.println(rs.getTimestamp(2));
+            System.out.println(rs.getTimestamp(3));
+            System.out.println(rs.getTimestamp(4));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

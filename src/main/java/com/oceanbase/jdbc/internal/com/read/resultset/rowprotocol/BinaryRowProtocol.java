@@ -875,6 +875,42 @@ public class BinaryRowProtocol extends RowProtocol {
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
             case TIME:
+                if (length != 0) {
+                    int year = 0;
+                    int month = 0;
+                    int day = 0;
+                    int hour = 0;
+                    int minute = 0;
+                    int seconds = 0;
+                    if (length != 0) {
+                        // bits[0] // skip tm->neg
+                        // binaryData.readLong(); // skip daysPart
+                        hour = buf[pos + 5];
+                        minute = buf[pos + 6];
+                        seconds = buf[pos + 7];
+                    }
+
+                    year = 1970;
+                    month = 1;
+                    day = 1;
+                    Calendar dateCal = cal != null ? cal : Calendar.getInstance();
+                    synchronized (dateCal) {
+                        java.util.Date origCalDate = dateCal.getTime();
+                        try {
+                            dateCal.clear();
+                            dateCal.set(Calendar.MILLISECOND, 0);
+
+                            // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
+                            dateCal.set(year, month - 1, day, 0, 0, 0);
+
+                            long dateAsMillis = dateCal.getTimeInMillis();
+
+                            return new Date(dateAsMillis);
+                        } finally {
+                            dateCal.setTime(origCalDate);
+                        }
+                    }
+                }
                 throw new SQLException("Cannot read Date using a Types.TIME field");
             case STRING:
             case VARCHAR:
@@ -964,6 +1000,30 @@ public class BinaryRowProtocol extends RowProtocol {
                 Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
+                if (length != 0) {
+                    int year = 0;
+                    int month = 0;
+                    int day = 0;
+                    int hour = 0;
+                    int minute = 0;
+                    int seconds = 0;
+                    year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
+                    month = buf[pos + 2];
+                    day = buf[pos + 3];
+                    Calendar calendar = cal != null ? cal : Calendar.getInstance();
+                    synchronized (calendar) {
+                        java.util.Date origCalDate = calendar.getTime();
+                        try {
+                            calendar.clear();
+                            // Set 'date' to epoch of Jan 1, 1970
+                            calendar.set(1970, 0, 1, hour, minute, seconds);
+                            long timeAsMillis = calendar.getTimeInMillis();
+                            return new Time(timeAsMillis);
+                        } finally {
+                            calendar.setTime(origCalDate);
+                        }
+                    }
+                }
                 throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
                 Calendar calendar = cal != null ? cal : Calendar.getInstance();
