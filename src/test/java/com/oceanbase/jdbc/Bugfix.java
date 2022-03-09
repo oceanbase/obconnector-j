@@ -640,4 +640,36 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testAone37810981() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testCallStmtUpdate");
+            stmt.execute("create table testCallStmtUpdate (n INT)");
+            stmt.execute("drop procedure if exists testCallStmtUpdateProc");
+            stmt.execute("create procedure testCallStmtUpdateProc (n1 int, n2 int, n3 int, n4 int, n5 int) BEGIN \n"
+                         + " INSERT INTO testCallStmtUpdate VALUES (n1), (n2), (n3), (n4); "
+                         + " INSERT INTO testCallStmtUpdate VALUES (5); END");
+            CallableStatement cstmt = conn
+                .prepareCall("{CALL testCallStmtUpdateProc(?, ?, ?, ?, ?)}");
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.setInt(3, 3);
+            cstmt.setInt(4, 4);
+            cstmt.setInt(5, 5);
+            cstmt.execute();
+            assertEquals(0, cstmt.getUpdateCount()); // objdbc 1.x=0 2.x=-1
+            ResultSet rs = stmt.executeQuery("select * from testCallStmtUpdate");
+            int j = 1;
+            while (rs.next()) {
+                assertEquals(j, rs.getInt(1));
+                j++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }

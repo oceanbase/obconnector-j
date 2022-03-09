@@ -276,7 +276,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 }
 
                 String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
-                this.connection.createStatement().execute(query);
+                this.execute(query);
             }
         }
 
@@ -303,7 +303,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 }
             }
         }
-        int r = this.connection.createStatement().executeUpdate(sqlString);
+        int r = this.executeUpdate(sqlString);
 
         StringBuilder selectSB = new StringBuilder();
         selectSB.append("SELECT ");
@@ -323,8 +323,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
         if (getResult) {
-            ResultSet resultSet = this.connection.createStatement().executeQuery(
-                selectSB.toString());
+            ResultSet resultSet = this.executeQuery( selectSB.toString());
             resultSet.next();
             outputResultSet = (SelectResultSet) resultSet;
         }
