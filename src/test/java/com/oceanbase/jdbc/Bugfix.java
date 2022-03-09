@@ -682,7 +682,7 @@ public class Bugfix extends BaseTest {
             stmt.execute("DROP TABLE IF EXISTS foreign_xxx");
             stmt.execute("create table foreign_xxx (id1 int(8) not null auto_increment primary key)");
             stmt.execute("create table foreign_yyy (foreign_1_id int(8) not null, primary key (foreign_1_id),"
-                + " CONSTRAINT foreign_fk_abcdefg foreign key (foreign_1_id) references foreign_xxx(id1))");
+                         + " CONSTRAINT foreign_fk_abcdefg foreign key (foreign_1_id) references foreign_xxx(id1))");
             DatabaseMetaData dbmd = conn.getMetaData();
             ResultSet rs = dbmd.getImportedKeys("unittests", "unittests", "foreign_yyy");
             assertTrue(rs.next());

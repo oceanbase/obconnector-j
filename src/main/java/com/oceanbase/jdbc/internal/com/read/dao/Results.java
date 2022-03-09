@@ -251,7 +251,11 @@ public class Results {
             }
             cmdInformation.setRewrite(rewritten);
         } else {
-            resultSet = null;
+            if (callableResultSet != null) {
+                resultSet = callableResultSet;
+            } else {
+                resultSet = null;
+            }
         }
         return cmdInformation != null;
     }

@@ -2528,4 +2528,31 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testAone39114534() {
+        try {
+            Connection conn = sharedConnection;
+            createFunction("testFunctionCall",
+                "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
+            CallableStatement cs = conn.prepareCall("? = CALL testFunctionCall(?,?,?)");
+
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.setFloat(2, 1);
+            cs.setInt(3, 2);
+            cs.setInt(4, 3);
+            assertEquals(0, cs.executeUpdate()); // &useOraclePrepareExecute=false
+            assertEquals(6f, cs.getInt(1), .001);
+
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.setFloat(2, 2);
+            cs.setInt(3, 3);
+            cs.setInt(4, 4);
+            assertEquals(0, cs.executeUpdate()); // &useOraclePrepareExecute=false
+            assertEquals(9f, cs.getInt(1), .001);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }
