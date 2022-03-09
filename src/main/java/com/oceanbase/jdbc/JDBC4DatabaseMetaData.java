@@ -445,7 +445,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                             if (fkParamOpenIndex == -1) {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String constraintName = keys.substring(1, fkParamOpenIndex - 1);
+                            String constraintName = keys.substring(1, fkParamOpenIndex);
                             keys = keys.substring(fkParamOpenIndex + 1);
                             int fkParamCloseIndex = keys.indexOf(")");
                             if (fkParamCloseIndex == -1) {

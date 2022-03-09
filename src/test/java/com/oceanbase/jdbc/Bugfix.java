@@ -672,4 +672,28 @@ public class Bugfix extends BaseTest {
             fail();
         }
     }
+
+    @Test
+    public void testAone38674100() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS foreign_yyy");
+            stmt.execute("DROP TABLE IF EXISTS foreign_xxx");
+            stmt.execute("create table foreign_xxx (id1 int(8) not null auto_increment primary key)");
+            stmt.execute("create table foreign_yyy (foreign_1_id int(8) not null, primary key (foreign_1_id),"
+                + " CONSTRAINT foreign_fk_abcdefg foreign key (foreign_1_id) references foreign_xxx(id1))");
+            DatabaseMetaData dbmd = conn.getMetaData();
+            ResultSet rs = dbmd.getImportedKeys("unittests", "unittests", "foreign_yyy");
+            assertTrue(rs.next());
+            assertEquals("foreign_fk_abcdefg", rs.getString("FK_NAME"));
+            assertEquals("id1", rs.getString("PKCOLUMN_NAME"));
+            assertEquals("foreign_1_id", rs.getString("FKCOLUMN_NAME"));
+            assertFalse(rs.next());
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
