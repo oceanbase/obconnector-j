@@ -54,9 +54,11 @@ import java.io.IOException;
 import java.io.Reader;
 
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.util.Options;
 
-public class ReaderParameter implements Cloneable, ParameterHolder {
+public class ReaderParameter implements Cloneable, LongDataParameterHolder {
 
     private final Reader  reader;
     private final long    length;
@@ -132,6 +134,70 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
     }
 
     public boolean isLongData() {
+        return true;
+    }
+
+    /**
+     *  Never used
+     * @param pos
+     * @param first
+     * @param options
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public boolean writePieceData(PacketOutputStream pos, boolean first, Options options)
+                                                                                         throws IOException {
+        return false;
+    }
+
+    /**
+     * Read the data in Reader and send Long Data Packet in batches according to the size of blobSendChunkSize
+     *
+     * @param writer PacketOutputStream with socket
+     * @param options Connection options
+     * @param statementId  Current statement id
+     * @param paramIndex Current parameter index
+     * @return  No effect, temporarily reserved
+     * @throws IOException
+     */
+    @Override
+    public boolean writeLongData(PacketOutputStream writer, Options options, int statementId,
+                                 short paramIndex) throws IOException {
+        char[] buffer = new char[BLOB_STREAM_READ_BUF_SIZE];
+        int len;
+        int totoalReadLen = 0;
+        int currentPacketLen = 0;
+        int lastReadLen = 0;
+        boolean isEmpty = true;
+        int sizeToSend = options.blobSendChunkSize;
+        writer.startPacket(0);
+        writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+        writer.writeInt(statementId);
+        writer.writeShort(paramIndex);
+        while ((len = reader.read(buffer)) != -1) {
+            isEmpty = false;
+            byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
+            System.arraycopy(buffer, 0, data, 0, len);
+            writer.write(data, 0, data.length);
+            totoalReadLen += len;
+            currentPacketLen += len;
+            if (currentPacketLen >= sizeToSend) {
+                currentPacketLen = 0;
+                lastReadLen = totoalReadLen;
+                writer.flush();
+                writer.startPacket(0);
+                writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+                writer.writeInt(statementId);
+                writer.writeShort(paramIndex);
+            }
+        }
+        if (lastReadLen != totoalReadLen) {
+            writer.flush();
+        }
+        if (isEmpty) {
+            writer.flush();
+        }
         return true;
     }
 }

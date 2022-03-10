@@ -194,8 +194,10 @@ public class Options implements Cloneable {
     public boolean enableQueryTimeouts = true;
     public int     maxBatchTotalParamsNum = 30000;
     public boolean useCursorOffset = false;
+    public int     blobSendChunkSize = 1048576;
 
-    @Override
+
+  @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
         String newLine = System.getProperty("line.separator");
@@ -574,6 +576,9 @@ public class Options implements Cloneable {
         if (useCursorOffset != opt.useCursorOffset) {
             return false;
         }
+      if (blobSendChunkSize != opt.blobSendChunkSize) {
+        return false;
+      }
         return Objects.equals(minPoolSize, opt.minPoolSize);
 
     }
@@ -697,6 +702,7 @@ public class Options implements Cloneable {
         result = 31 * result + (maxBatchTotalParamsNum);
         result = 31 * result + (emulateUnsupportedPstmts ? 1 : 0);
         result = 31 * result + (useCursorOffset ? 1 : 0);
+        result = 31 * result + (blobSendChunkSize);
         return result;
     }
     @Override

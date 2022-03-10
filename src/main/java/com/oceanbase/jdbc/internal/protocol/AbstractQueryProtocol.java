@@ -442,12 +442,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }else { // mysql
         for (int i = 0; i < parameterCount; i++) {
           if (parameters[i].isLongData()) {
-            writer.startPacket(0);
-            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-            writer.writeInt(serverPrepareResult.getStatementId());
-            writer.writeShort((short) i);
-            parameters[i].writeBinary(writer);
-            writer.flush();
+            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,serverPrepareResult.getStatementId(),(short) i);
           }
         }
       }
@@ -539,12 +534,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // mysql mode
         for (int i = 0; i < parameters.length; i++) {
           if (parameters[i].isLongData()) {
-            writer.startPacket(0);
-            writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-            writer.writeInt(results.getStatementId());
-            writer.writeShort((short) i);
-            parameters[i].writeBinary(writer);
-            writer.flush();
+            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,serverPrepareResult.getStatementId(),(short) i);
           }
         }
       }
@@ -1219,12 +1209,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 } else {  // mysql mode
                   for (int i = 0; i < paramCount; i++) {
                     if (parameters[i].isLongData()) {
-                      writer.startPacket(0);
-                      writer.write(Packet.COM_STMT_SEND_LONG_DATA);
-                      writer.writeInt(statementId);
-                      writer.writeShort((short) i);
-                      parameters[i].writeBinary(writer);
-                      writer.flush();
+                      ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,statementId,(short) i);
                   }
                 }
               }

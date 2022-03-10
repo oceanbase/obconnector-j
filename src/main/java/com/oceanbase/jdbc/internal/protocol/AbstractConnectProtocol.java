@@ -52,6 +52,8 @@ package com.oceanbase.jdbc.internal.protocol;
 
 import static java.sql.Connection.*;
 
+import static com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder.BLOB_STREAM_READ_BUF_SIZE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -935,6 +937,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             if(!options.connectProxy) {
                 setObServerVersion(getObVersion());
+            }
+
+            //Note that this blobSendChunkSize  cannot exceed the value of "maxAllowedPacket" and, if that is the case, then this value will be corrected automatically
+            if(options.useServerPrepStmts && !isOracleMode) {
+                int preferredBlobSendChunkSize = options.blobSendChunkSize;
+
+                // LONG_DATA and Mysql Protocol io  packet header size
+                int packetHeaderSize = BLOB_STREAM_READ_BUF_SIZE + 11;
+                int allowedBlobSendChunkSize = Math.min(preferredBlobSendChunkSize,
+                    writer.getMaxAllowedPacket()) - packetHeaderSize;
+
+                if (allowedBlobSendChunkSize <= 0) {
+                    throw new SQLException( "Connection setting too low for 'maxAllowedPacket'. "
+                        + "When 'useServerPrepStmts=true', 'maxAllowedPacket' must be higher than "
+                        + packetHeaderSize
+                        + ". Check also 'max_allowed_packet' in MySQL configuration files.");
+                }
+                options.blobSendChunkSize = allowedBlobSendChunkSize;
             }
 
         } catch (SocketTimeoutException timeoutException) {

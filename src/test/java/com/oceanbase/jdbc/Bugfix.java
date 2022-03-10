@@ -47,16 +47,14 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
 import java.sql.*;
 import java.sql.Clob;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class Bugfix extends BaseTest {
     static String testProceSetdefaultVal = "testProceSetdefaultVal" + getRandomString(5);
@@ -692,6 +690,50 @@ public class Bugfix extends BaseTest {
             assertFalse(rs.next());
             rs.close();
         } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    //send long data is only supported in high-level observers, temporarily ignore test case
+    @Ignore
+    public void testSendLongData() {
+        try {
+            Connection conn1;
+            Connection conn2;
+            Statement stmt1;
+            Statement stmt2;
+            conn1 = setConnection();
+            stmt1 = conn1.createStatement();
+            System.out.println("change max_allowed_packet");
+            stmt1.executeUpdate("set global max_allowed_packet=20000000;");
+            conn2 = setConnection();
+            stmt2 = conn2.createStatement();
+
+            stmt2.executeUpdate("drop table if exists test;");
+            System.out.println("create test tables ");
+            stmt2.executeUpdate("create table test(b LONGBLOB);");
+
+            System.out.println("check default max_allowed_packet");
+            ResultSet rs = stmt2.executeQuery("show variables like'max_allowed_packet';");
+            ByteArrayInputStream fis = new ByteArrayInputStream(new byte[50000000]);
+            String insert_sql = "Insert into test values(?);";
+            PreparedStatement insert_stmt = conn2.prepareStatement(insert_sql);
+            insert_stmt.setBlob(1, fis);
+            insert_stmt.executeUpdate();
+            ResultSet rs1 = stmt2.executeQuery("select length(b) from test;");
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(50000000, rs1.getInt(1));
+            stmt2.executeUpdate("drop table test;");
+            System.out.println("reset max_allowed_packet");
+            stmt1.executeUpdate("set global max_allowed_packet=DEFAULT;");
+            insert_stmt.close();
+            stmt1.close();
+            stmt2.close();
+            conn1.close();
+            conn2.close();
+            fis.close();
+        } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
         }

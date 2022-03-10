@@ -185,4 +185,19 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         writer.flush();
         return ret;
     }
+
+    /**
+     * Never used
+     * @param pos
+     * @param options
+     * @param statementId
+     * @param paramIndex
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public boolean writeLongData(PacketOutputStream pos, Options options, int statementId,
+                                 short paramIndex) throws IOException {
+        return false;
+    }
 }

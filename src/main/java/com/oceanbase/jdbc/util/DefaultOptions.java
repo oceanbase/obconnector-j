@@ -877,6 +877,12 @@ public enum DefaultOptions {
           Boolean.FALSE,
           "2.2.8",
           "Use special COM_STMT_FETCH protocol for Oracle mode to fetch rows of specific position",
+          false),
+  BLOB_SEND_CHUNK_SIZE(
+          "blobSendChunkSize",
+          1024*1204,
+          "2.2.9",
+          "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
           false
   );
 
@@ -1197,6 +1203,7 @@ public enum DefaultOptions {
       options.useOraclePrepareExecute = true;
       options.useCursorFetch = true;
     }
+
     // pipe cannot use read and write socket simultaneously
     if (options.pipe != null) {
       options.useBatchMultiSend = false;
