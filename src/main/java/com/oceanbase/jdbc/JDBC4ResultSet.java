@@ -3564,6 +3564,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
         updateObject(findColumn(columnLabel), value);
     }
 
+    public void updateObject(int columnIndex, Object x, SQLType targetSqlType) throws SQLException {
+        checkUpdatable(columnIndex);
+        updateInternalObject(columnIndex, x, targetSqlType.getVendorTypeNumber(), Long.MAX_VALUE);
+    }
+
     public void updateLong(int columnIndex, long value) throws SQLException {
         checkUpdatable(columnIndex);
         updatableParameterHolders[columnIndex - 1] = new LongParameter(value);
@@ -3818,4 +3823,5 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean isEof() {
         return isEof;
     }
+
 }

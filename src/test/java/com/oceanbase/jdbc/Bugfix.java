@@ -50,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.sql.*;
 import java.sql.Clob;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -668,6 +669,34 @@ public class Bugfix extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testAone38908835() {
+        try {
+            LocalDateTime localDateTime = LocalDateTime.now();
+            LocalTime localTime = LocalTime.now();
+            LocalDate localDate = LocalDate.now();
+            createTable("testUpdateObject1",
+                "id INT PRIMARY KEY, d DATE, t TIME, dt DATETIME, ts TIMESTAMP");
+            Connection testConn = sharedConnection;
+            Statement stmt = testConn.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_UPDATABLE);
+            ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdateObject1");
+            rs.moveToInsertRow();
+            rs.updateInt(1, 1);
+            rs.updateObject(2, localDate, JDBCType.DATE);
+            rs.updateObject(3, localTime, JDBCType.TIME);
+            rs.updateObject(4, localDateTime, JDBCType.TIMESTAMP);
+            rs.updateObject(5, localDateTime, JDBCType.TIMESTAMP);
+            rs.insertRow();
+            rs = stmt.executeQuery("SELECT count(*) FROM testUpdateObject1");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
