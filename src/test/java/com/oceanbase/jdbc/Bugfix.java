@@ -802,6 +802,62 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testAone38636371() {
+        try {
+            Connection conn = sharedConnection;
+            conn.createStatement().execute("drop procedure if exists testGetProcedureColumnsP");
+            conn.createStatement().execute(
+                "create procedure testGetProcedureColumnsP(c1 INT, Out c2 varchar(255), INOUT c3 decimal(9,2))"
+                    + " COMMENT 'testGetProcedureColumns comment1' \n BEGIN\nSELECT 1;end");
+            ResultSet rs = conn.getMetaData().getProcedureColumns(null, null,
+                "testGetProcedureColumnsP", "%");
+
+            assertTrue(rs.next());
+            assertNull(rs.getString("PROCEDURE_SCHEM"));
+            assertEquals("testGetProcedureColumnsP", rs.getString("PROCEDURE_NAME"));
+            assertEquals("c1", rs.getString("COLUMN_NAME"));
+            assertEquals(DatabaseMetaData.procedureColumnIn, rs.getShort("COLUMN_TYPE"));
+            assertEquals(Types.INTEGER, rs.getInt("DATA_TYPE"));
+            assertEquals("INT", rs.getString("TYPE_NAME"));
+            assertEquals(10, rs.getInt("PRECISION"));
+            assertEquals(10, rs.getInt("LENGTH"));
+            assertEquals(0, rs.getInt("SCALE"));
+            assertEquals(10, rs.getInt("RADIX"));
+            assertEquals(1, rs.getShort("NULLABLE"));
+            assertNull(rs.getString("REMARKS"));
+            assertNull(rs.getString("COLUMN_DEF"));
+            assertNull(rs.getString("SQL_DATA_TYPE"));
+            assertNull(rs.getString("SQL_DATETIME_SUB"));
+            assertNull(rs.getString("CHAR_OCTET_LENGTH"));
+            assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+            assertEquals("YES", rs.getString("IS_NULLABLE"));
+            assertEquals("testGetProcedureColumnsP", rs.getString("SPECIFIC_NAME"));
+
+            assertTrue(rs.next());
+            assertEquals("c2", rs.getString("COLUMN_NAME"));
+            assertEquals(DatabaseMetaData.procedureColumnOut, rs.getShort("COLUMN_TYPE"));
+            assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
+            assertEquals("VARCHAR", rs.getString("TYPE_NAME"));
+            assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+            assertEquals(255, rs.getInt("PRECISION"));
+            assertEquals(255, rs.getInt("LENGTH"));
+
+            assertTrue(rs.next());
+            assertEquals("c3", rs.getString("COLUMN_NAME"));
+            assertEquals(DatabaseMetaData.procedureColumnInOut, rs.getShort("COLUMN_TYPE"));
+            assertEquals(Types.DECIMAL, rs.getInt("DATA_TYPE"));
+            assertEquals("DECIMAL", rs.getString("TYPE_NAME"));
+            assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+            assertEquals(9, rs.getInt("PRECISION"));
+            assertEquals(9, rs.getInt("LENGTH"));
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+    
+    @Test
     public void testAone37601384() {
         try {
             Connection conn = sharedConnection;

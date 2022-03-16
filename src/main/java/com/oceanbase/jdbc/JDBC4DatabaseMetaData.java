@@ -3202,7 +3202,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             data[14] = null;
             data[15] = null;
             data[16] = null;
-            data[17] = String.valueOf(0);
+            data[17] = Integer.toString(origin);
             data[18] = typeInfo.isNullable;
             data[19] = procName;
         }
