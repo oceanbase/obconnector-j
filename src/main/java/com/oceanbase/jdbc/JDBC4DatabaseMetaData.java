@@ -529,6 +529,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                 data[12] = null;
                                 data[13] = Integer.toString(importedKeyNotDeferrable);
                                 list.add(data);
+                                data = new String[14]; // reset the date
                             }
                         }
                     }
@@ -1197,7 +1198,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             ResultSet allTableRS = getAllTablesResultSet(tableNameList,catalog);
             ArrayList<String[]> list = new ArrayList<>();
             while(allTableRS.next()) {
-                String[] data = new String[14];
                 String tableType = allTableRS.getString("Type");
                 if (tableType!= null && (tableType.toUpperCase(Locale.ROOT).equals("INNODB") || tableType.toUpperCase(Locale.ROOT).equals("SUPPORTS_FK"))) {
                     String tableComment  = allTableRS.getString("Comment").trim();
@@ -1284,7 +1284,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                         deleteRuleAction = importedKeyNoAction;
                                     }
                                 }
-
+                                String[] data = new String[14];
                                 data[0] = refCatalog;
                                 data[1] = null;
                                 data[2] = isExportKeys ? refTableName : table;
@@ -1317,10 +1317,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     String removeQuoted(String str) {
-        if (str.startsWith("`") && str.endsWith("`")) {
-            return str.substring(1, str.length() - 1);
+        String tmp = str.trim();
+        if (tmp.startsWith("`") && tmp.endsWith("`")) {
+            return tmp.substring(1, tmp.length() - 1);
         } else {
-            return str;
+            return tmp;
         }
     }
 
@@ -3731,7 +3732,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             ResultSet allTableRS = getAllTablesResultSet(tableNameList, parentCatalog);
             ArrayList<String[]> list = new ArrayList<>();
             while(allTableRS.next()) {
-                String[] data = new String[14];
                 String tableType = allTableRS.getString("Type");
                 if (tableType!= null && (tableType.toUpperCase(Locale.ROOT).equals("INNODB") || tableType.toUpperCase(Locale.ROOT).equals("SUPPORTS_FK"))) {
                     String tableComment  = allTableRS.getString("Comment").trim();
@@ -3748,13 +3748,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                             if (fkParamOpenIndex == -1) {
                                 throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String constraintName = keys.substring(1,fkParamOpenIndex - 1);
-                            keys = keys.substring(fkParamOpenIndex + 1);
+                            String constraintName = keys.substring(1,fkParamOpenIndex);
+                            keys = keys.substring(fkParamOpenIndex);
                             int fkParamCloseIndex = keys.indexOf(")");
                             if (fkParamCloseIndex == -1) {
                                 throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String fkParamNames =  keys.substring(1,fkParamCloseIndex-1);
+                            String fkParamNames =  keys.substring(1,fkParamCloseIndex);
                             int refIndex = keys.indexOf("REFER");
                             if (refIndex == -1) {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");
@@ -3820,6 +3820,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                         deleteRuleAction = importedKeyNoAction;
                                     }
                                 }
+                                String[] data = new String[14];
                                 data[0] = parentCatalog;
                                 data[1] = parentSchema;
                                 data[2] = refTableName;

@@ -800,4 +800,37 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testAone37601384() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS foreign_4");
+            stmt.execute("DROP TABLE IF EXISTS foreign_3");
+            stmt.execute("DROP TABLE IF EXISTS foreign_2");
+            stmt.execute("DROP TABLE IF EXISTS foreign_1");
+            stmt.execute("create table foreign_1 (id1 int(8) not null auto_increment primary key)");
+            stmt.execute("create table foreign_2 (id2 int(8) not null auto_increment primary key)");
+            stmt.execute("create table foreign_3 (foreign_13_id int(8) not null,foreign_23_id int(8) not null, primary key (foreign_13_id, foreign_23_id),"
+                         + " foreign key (foreign_13_id) references foreign_1(id1),foreign key (foreign_23_id) references foreign_2(id2))");
+            stmt.execute("create table foreign_4 (foreign_14_id int(8) not null,foreign_24_id int(8) not null,"
+                         + "foreign key (foreign_14_id, foreign_24_id) references foreign_3(foreign_13_id, foreign_23_id))");
+            DatabaseMetaData dbmd = conn.getMetaData();
+            ResultSet rs = dbmd.getCrossReference(null, null, "foreign_3", null, null, "foreign_4");
+            assertTrue(rs.next());
+            assertEquals("foreign_13_id", rs.getString("PKCOLUMN_NAME")); // `foreign_23_id`
+            assertEquals("foreign_14_id", rs.getString("FKCOLUMN_NAME")); // `foreign_24_id
+            assertEquals("foreign_3", rs.getString("PKTABLE_NAME"));
+            assertEquals("foreign_4", rs.getString("FKTABLE_NAME"));
+            assertEquals(0, rs.getInt("KEY_SEQ")); // 1
+            assertTrue(rs.next());
+            assertEquals("foreign_23_id", rs.getString("PKCOLUMN_NAME")); // `foreign_23_id`
+            assertEquals("foreign_24_id", rs.getString("FKCOLUMN_NAME")); // `foreign_24_id
+            assertFalse(rs.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }
