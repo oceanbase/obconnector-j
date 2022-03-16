@@ -832,7 +832,7 @@ public class TextRowProtocol extends RowProtocol {
                     calendar.set(Calendar.MILLISECOND, timestampsPart[6] / 1000000);
                     timestamp = new Timestamp(calendar.getTime().getTime());
                 }
-                timestamp.setNanos(timestampsPart[6] * 1000);
+                timestamp.setNanos(timestampsPart[6]);
                 return timestamp;
 
             case TIME:

@@ -600,6 +600,39 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testAone37760229() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS testNanosParsing");
+            stmt.execute("CREATE TABLE testNanosParsing (dateIndex int, field1 VARCHAR(32))");
+            stmt.execute("INSERT INTO testNanosParsing VALUES (1, '1969-12-31 18:00:00.0'), (2, '1969-12-31 18:00:00.000000090'), "
+                + "(3, '1969-12-31 18:00:00.000000900'), (4, '1969-12-31 18:00:00.000009000'), (5, '1969-12-31 18:00:00.000090000'), "
+                + "(6, '1969-12-31 18:00:00.000900000'), (7, '1969-12-31 18:00:00.')");
+            PreparedStatement ps = conn
+                .prepareStatement("SELECT field1 FROM testNanosParsing ORDER BY dateIndex ASC");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            Timestamp ts = rs.getTimestamp(1);
+            assertEquals(0, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+            assertEquals(90, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+            assertEquals(900, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+            assertEquals(9000, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+            assertEquals(90000, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+            assertEquals(900000, rs.getTimestamp(1).getNanos());
+            assertTrue(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+    
+    @Test
     public void testAone37757559() {
         try {
             Timestamp ts = new Timestamp(System.currentTimeMillis());
