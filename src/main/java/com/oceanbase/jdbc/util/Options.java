@@ -103,6 +103,7 @@ public class Options implements Cloneable {
     public String enabledSslCipherSuites;
     public String sessionVariables;
     public boolean tinyInt1isBit = true;
+    public boolean transformedBitIsBoolean = false;
     public boolean yearIsDateType = true;
     public boolean createDatabaseIfNotExist;
     public String serverTimezone;
@@ -274,6 +275,9 @@ public class Options implements Cloneable {
         if (tinyInt1isBit != opt.tinyInt1isBit) {
             return false;
         }
+      if (transformedBitIsBoolean != opt.transformedBitIsBoolean) {
+        return false;
+      }
         if (yearIsDateType != opt.yearIsDateType) {
             return false;
         }
@@ -626,6 +630,7 @@ public class Options implements Cloneable {
         result = 31 * result + (enabledSslCipherSuites != null ? enabledSslCipherSuites.hashCode() : 0);
         result = 31 * result + (sessionVariables != null ? sessionVariables.hashCode() : 0);
         result = 31 * result + (tinyInt1isBit ? 1 : 0);
+        result = 31 * result + (transformedBitIsBoolean ? 1 : 0);
         result = 31 * result + (yearIsDateType ? 1 : 0);
         result = 31 * result + (createDatabaseIfNotExist ? 1 : 0);
         result = 31 * result + (serverTimezone != null ? serverTimezone.hashCode() : 0);

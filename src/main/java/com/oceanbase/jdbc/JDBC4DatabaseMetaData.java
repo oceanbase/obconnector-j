@@ -114,8 +114,16 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                       + "COLUMN_TYPE))";
 
         if (options.tinyInt1isBit) {
-            upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', "
+            String type = null;
+            if (options.transformedBitIsBoolean) {
+                type = "BOOLEAN";
+            } else {
+                type = "BIT";
+            }
+
+            upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', '" + type + "', "
                                    + upperCaseWithoutSize + ")";
+
         }
 
         if (!options.yearIsDateType) {
@@ -613,10 +621,14 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                + " WHEN 'timestamp' THEN "
                + Types.TIMESTAMP
                + " WHEN 'tinyint' THEN "
-               + (options.tinyInt1isBit ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%',"
-                                          + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
-               + " WHEN 'year' THEN " + (options.yearIsDateType ? Types.DATE : Types.SMALLINT)
-               + " ELSE " + Types.OTHER + " END ";
+               + (options.tinyInt1isBit ? "IF("
+                                          + fullTypeColumnName
+                                          + " like 'tinyint(1)%',"
+                                          + (options.transformedBitIsBoolean ? Types.BOOLEAN
+                                              : Types.BIT) + "," + Types.TINYINT + ") "
+                   : Types.TINYINT) + " WHEN 'year' THEN "
+               + (options.yearIsDateType ? Types.DATE : Types.SMALLINT) + " ELSE " + Types.OTHER
+               + " END ";
     }
 
     private String escapeQuote(String value) {

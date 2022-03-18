@@ -364,6 +364,9 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 return Types.VARBINARY;
             case TINYINT:
                 if (ci.getLength() == 1 && options.tinyInt1isBit) {
+                    if (options.transformedBitIsBoolean) {
+                        return Types.BOOLEAN;
+                    }
                     return Types.BIT;
                 }
                 return Types.TINYINT;

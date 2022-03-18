@@ -884,6 +884,13 @@ public enum DefaultOptions {
           "2.2.9",
           "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
           false),
+
+          TRANSFORMED_BIT_BOOLEAN(
+                  "transformedBitIsBoolean",
+                  Boolean.FALSE,
+                  "2.2.9",
+                  "If the driver converts TINYINT(1) to a different type, should it use BOOLEAN instead of BIT for future compatibility with MySQL-5.0, as MySQL-5.0 has a BIT type?",
+                  false),
   CONNECTION_COLLATION (
                   "connectionCollation",
           (String) null,

@@ -53,6 +53,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Properties;
 
 import org.junit.*;
 
@@ -886,6 +887,51 @@ public class Bugfix extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testAone37636242() {
+        try {
+            String tableName = "testTinyint1IsBit";
+            Properties props = new Properties();
+            props.setProperty("tinyint1IsBit", "true");
+            props.setProperty("transformedBitIsBoolean", "false");
+            Connection conn = setConnection(props);
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists " + tableName);
+            stmt.execute("create table " + tableName + " (field1 TINYINT(1))");
+            stmt.execute("INSERT INTO " + tableName + " VALUES (1)");
+            ResultSet rs = conn.createStatement().executeQuery("SELECT field1 FROM " + tableName);
+            rs.next();
+            assertEquals("java.lang.Boolean", rs.getObject(1).getClass().getName());
+            assertEquals(Types.BIT, rs.getMetaData().getColumnType(1));
+            rs = conn.prepareStatement("SELECT field1 FROM " + tableName).executeQuery();
+            rs.next();
+            assertEquals(Types.BIT, rs.getMetaData().getColumnType(1));
+            rs = conn.getMetaData().getColumns(conn.getCatalog(), null, tableName, "field1");
+            assertTrue(rs.next());
+            assertEquals(Types.BIT, rs.getInt("DATA_TYPE"));
+            assertEquals("BIT", rs.getString("TYPE_NAME"));
+            props.clear();
+            props.setProperty("tinyint1IsBit", "true");
+            props.setProperty("transformedBitIsBoolean", "true");
+            Connection conn1 = setConnection(props);
+            rs = conn1.createStatement().executeQuery("SELECT field1 FROM " + tableName);
+            rs.next();
+            assertEquals("TINYINT", rs.getMetaData().getColumnTypeName(1));
+            assertEquals("java.lang.Boolean", rs.getMetaData().getColumnClassName(1));
+            assertEquals(Types.BOOLEAN, rs.getMetaData().getColumnType(1)); // BIT
+            rs = conn1.prepareStatement("SELECT field1 FROM " + tableName).executeQuery();
+            rs.next();
+            assertEquals(Types.BOOLEAN, rs.getMetaData().getColumnType(1));
+            rs = conn1.getMetaData().getColumns(conn.getCatalog(), null, tableName, "field1");
+            assertTrue(rs.next());
+            assertEquals(Types.BOOLEAN, rs.getInt("DATA_TYPE"));
+            assertEquals("BOOLEAN", rs.getString("TYPE_NAME")); //BIT
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            Assert.fail();
         }
     }
 
