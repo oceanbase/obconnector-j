@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
@@ -414,6 +415,10 @@ public class Clob extends Lob implements ObClob {
         // The length of a character string is the number of UTF-16 units (not the number of characters)
         if (this.charData != null) {
             return this.charData.length();
+        }
+        Charset charset = Charset.forName(encoding);
+        if (!charset.equals(StandardCharsets.UTF_8)) {
+            return toString().length();
         }
         long len = 0;
         int pos = offset;

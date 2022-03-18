@@ -1975,17 +1975,19 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
+        String encoding = this.options.characterEncoding;
+        if (encoding == null) {
+            encoding = "UTF8";
+        }
+        byte[] data = new byte[row.length];
+        System.arraycopy(row.buf, row.pos, data, 0, row.length);
         if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
             .getType()) {
-            String encoding = this.options.characterEncoding;
-            if (encoding == null) {
-                encoding = "UTF8";
-            }
-            byte[] data = new byte[row.length];
-            System.arraycopy(row.buf, row.pos, data, 0, row.length);
             return new com.oceanbase.jdbc.Blob(true, data, encoding, this.statement.getConnection());
+
+        } else {
+            return new com.oceanbase.jdbc.Blob(row.buf, row.pos, row.length);
         }
-        return new com.oceanbase.jdbc.Blob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2004,14 +2006,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
+        String encoding = this.options.characterEncoding;
+        byte[] data = new byte[row.length];
+        System.arraycopy(row.buf, row.pos, data, 0, row.length);
         if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
             .getType()) {
-            String encoding = this.options.characterEncoding;
-            byte[] data = new byte[row.length];
-            System.arraycopy(row.buf, row.pos, data, 0, row.length);
             return new com.oceanbase.jdbc.Clob(true, data, encoding, this.statement.getConnection());
+        } else {
+            return new com.oceanbase.jdbc.Clob(false, data, encoding,
+                this.statement.getConnection());
+
         }
-        return new com.oceanbase.jdbc.Clob(row.buf, row.pos, row.length);
     }
 
     /**

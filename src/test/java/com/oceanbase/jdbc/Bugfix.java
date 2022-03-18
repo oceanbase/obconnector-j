@@ -47,6 +47,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.Writer;
 import java.sql.*;
 import java.sql.Clob;
 import java.time.LocalDate;
@@ -887,6 +888,78 @@ public class Bugfix extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    // test for aone 40082115
+    @Test
+    public void fixClobLengthError() {
+        Assume.assumeFalse(sharedUsePrepare()); // send long data not supported for low version
+        try {
+            Connection connt = setConnection("&characterEncoding=gbk");
+            Statement stmt = connt.createStatement();
+
+            stmt.executeUpdate("drop table if exists test;");
+            stmt.executeUpdate("create table test(id INT, b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB, b5 VARBINARY(20), c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LONGTEXT, c5 VARCHAR(20)) CHARACTER SET gbk;");
+
+            String s = "1231abcd奥星贝斯";
+            Blob b = null;
+            try {
+                b = new Blob(s.getBytes("gbk"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Clob c = connt.createClob();
+            Writer writer = c.setCharacterStream(1);
+            writer.write(s);
+            writer.flush();
+            System.out.println(c.getSubString((long) 1, Math.toIntExact(c.length())));
+
+            //查询
+            ResultSet rs1 = stmt.executeQuery("show variables like 'character_set_client';");
+            while (rs1.next()) {
+                Assert.assertEquals("gbk", rs1.getString(2));
+            }
+            ResultSet rs2 = stmt.executeQuery("show variables like 'character_set_connection';");
+            while (rs2.next()) {
+                Assert.assertEquals("gbk", rs2.getString(2));
+            }
+
+            PreparedStatement insert_stmt = connt
+                .prepareStatement("Insert into test values(?,?,?,?,?,?,?,?,?,?,?);");
+            insert_stmt.setInt(1, 1);
+            insert_stmt.setBlob(2, b);
+            insert_stmt.setBlob(3, b);
+            insert_stmt.setBlob(4, b);
+            insert_stmt.setBlob(5, b);
+            insert_stmt.setBlob(6, b);
+            insert_stmt.setClob(7, c);
+            insert_stmt.setClob(8, c);
+            insert_stmt.setClob(9, c);
+            insert_stmt.setClob(10, c);
+            insert_stmt.setClob(11, c);
+            insert_stmt.executeUpdate();
+
+            ResultSet rs = stmt.executeQuery("select * from test;");
+            while (rs.next()) {
+                System.out.println(rs.getInt(1));
+                for (int i = 2; i <= 6; i++) {
+                    Assert.assertEquals(s,
+                        new String(rs.getBlob(i).getBytes(1, (int) rs.getBlob(i).length()), "gbk"));
+                }
+                ;
+                for (int i = 7; i <= 11; i++) {
+                    Assert.assertEquals(
+                        s,
+                        rs.getClob(i).getSubString((long) 1,
+                            Math.toIntExact(rs.getClob(i).length())));
+                }
+            }
+            stmt.close();
+            insert_stmt.close();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
