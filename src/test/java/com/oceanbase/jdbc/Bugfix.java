@@ -45,7 +45,6 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.sql.*;
@@ -607,8 +606,8 @@ public class Bugfix extends BaseTest {
             stmt.execute("DROP TABLE IF EXISTS testNanosParsing");
             stmt.execute("CREATE TABLE testNanosParsing (dateIndex int, field1 VARCHAR(32))");
             stmt.execute("INSERT INTO testNanosParsing VALUES (1, '1969-12-31 18:00:00.0'), (2, '1969-12-31 18:00:00.000000090'), "
-                + "(3, '1969-12-31 18:00:00.000000900'), (4, '1969-12-31 18:00:00.000009000'), (5, '1969-12-31 18:00:00.000090000'), "
-                + "(6, '1969-12-31 18:00:00.000900000'), (7, '1969-12-31 18:00:00.')");
+                         + "(3, '1969-12-31 18:00:00.000000900'), (4, '1969-12-31 18:00:00.000009000'), (5, '1969-12-31 18:00:00.000090000'), "
+                         + "(6, '1969-12-31 18:00:00.000900000'), (7, '1969-12-31 18:00:00.')");
             PreparedStatement ps = conn
                 .prepareStatement("SELECT field1 FROM testNanosParsing ORDER BY dateIndex ASC");
             ResultSet rs = ps.executeQuery();
@@ -631,7 +630,7 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
-    
+
     @Test
     public void testAone37757559() {
         try {
@@ -808,7 +807,7 @@ public class Bugfix extends BaseTest {
             conn.createStatement().execute("drop procedure if exists testGetProcedureColumnsP");
             conn.createStatement().execute(
                 "create procedure testGetProcedureColumnsP(c1 INT, Out c2 varchar(255), INOUT c3 decimal(9,2))"
-                    + " COMMENT 'testGetProcedureColumns comment1' \n BEGIN\nSELECT 1;end");
+                        + " COMMENT 'testGetProcedureColumns comment1' \n BEGIN\nSELECT 1;end");
             ResultSet rs = conn.getMetaData().getProcedureColumns(null, null,
                 "testGetProcedureColumnsP", "%");
 
@@ -856,7 +855,7 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
-    
+
     @Test
     public void testAone37601384() {
         try {
@@ -885,6 +884,20 @@ public class Bugfix extends BaseTest {
             assertEquals("foreign_24_id", rs.getString("FKCOLUMN_NAME")); // `foreign_24_id
             assertFalse(rs.next());
         } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testAone36022715() {
+        try {
+            Connection conn = setConnection("&characterEncoding=utf8&connectionCollation=gbk_bin");
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SHOW VARIABLES LIKE 'collation_connection'");
+            assertTrue(rs.next());
+            assertEquals("gbk_bin", rs.getString(2));
+        } catch (SQLException e) {
             e.printStackTrace();
             fail();
         }

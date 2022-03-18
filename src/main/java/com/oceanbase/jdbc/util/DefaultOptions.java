@@ -883,7 +883,13 @@ public enum DefaultOptions {
           1024*1204,
           "2.2.9",
           "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
-          false
+          false),
+  CONNECTION_COLLATION (
+                  "connectionCollation",
+          (String) null,
+                  "2.2.9",
+                  "Instructs the server to set session system variable 'collation_connection' to the specified collation name and set 'character_set_client' and 'character_set_connection' to the corresponding character set. ",
+                  false
   );
 
   private final String optionName;

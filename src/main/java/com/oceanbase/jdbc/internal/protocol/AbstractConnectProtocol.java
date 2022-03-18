@@ -991,6 +991,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //        }
         sendCharsetVariables();
         getResult(new Results());
+        if (!isOracleMode || this.getOptions().connectionCollation != null) {
+            setCollationVariables();
+            getResult(new Results());
+        }
     }
 
     private void sendSessionInfos() throws IOException {
@@ -1049,6 +1053,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
             str = this.getOptions().characterEncoding;
         }
         writer.write("set names " + str);
+        writer.flush();
+    }
+
+    private void setCollationVariables() throws IOException {
+        writer.startPacket(0);
+        writer.write(Packet.COM_QUERY);
+        String str = this.getOptions().connectionCollation;
+        writer.write("set collation_connection = " + str);
         writer.flush();
     }
 
@@ -1172,6 +1184,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             sendCharsetVariables();
             getResult(new Results());
+            if (!isOracleMode || this.getOptions().connectionCollation != null) {
+                setCollationVariables();
+                getResult(new Results());
+            }
             if (!options.connectProxy) {
                 sendRequestSessionVariables();
                 readRequestSessionVariables(serverData);

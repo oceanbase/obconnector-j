@@ -195,6 +195,7 @@ public class Options implements Cloneable {
     public int     maxBatchTotalParamsNum = 30000;
     public boolean useCursorOffset = false;
     public int     blobSendChunkSize = 1048576;
+    public String  connectionCollation = "utf8";
 
 
   @Override
@@ -579,6 +580,9 @@ public class Options implements Cloneable {
       if (blobSendChunkSize != opt.blobSendChunkSize) {
         return false;
       }
+      if (connectionCollation != opt.connectionCollation) {
+        return false;
+      }
         return Objects.equals(minPoolSize, opt.minPoolSize);
 
     }
@@ -703,6 +707,7 @@ public class Options implements Cloneable {
         result = 31 * result + (emulateUnsupportedPstmts ? 1 : 0);
         result = 31 * result + (useCursorOffset ? 1 : 0);
         result = 31 * result + (blobSendChunkSize);
+      result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
         return result;
     }
     @Override
