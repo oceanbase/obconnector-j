@@ -233,6 +233,8 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                            + ");";
     private Map<String, Integer>     indexMap;
     private int                      isolationLevel                      = 2;
+    private static ReentrantLock     threadLock                          = new ReentrantLock();
+    private static Thread            lbThread                            = null;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -261,26 +263,30 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
                                                                                              throws SQLException {
-        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
-        ;
-        this.urlParser = urlParser;
-        this.globalStateInfo = globalInfo;
-        this.protocol = protocol;
-        options = protocol.getOptions();
-        canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
-        sessionStateAware = protocol.sessionStateAware();
-        nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
-        if (options.cacheCallableStmts) {
-            callableStatementCache = CallableStatementCache
-                .newInstance(options.callableStmtCacheSize);
+        try {
+            threadLock.lock();
+            Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+            this.urlParser = urlParser;
+            this.globalStateInfo = globalInfo;
+            this.protocol = protocol;
+            options = protocol.getOptions();
+            canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
+            sessionStateAware = protocol.sessionStateAware();
+            nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
+            if (options.cacheCallableStmts) {
+                callableStatementCache = CallableStatementCache
+                    .newInstance(options.callableStmtCacheSize);
+            }
+            this.lock = protocol.getLock();
+            this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
+            //        if (getCacheComplexData()) {
+            //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
+            //        }
+            //todo add connection propertis in the future
+            this.complexDataCache = new LRUCache(50);
+        } finally {
+            threadLock.unlock();
         }
-        this.lock = protocol.getLock();
-        this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
-        //        if (getCacheComplexData()) {
-        //            this.complexDataCache = new LRUCache(getComplexDataCacheSize());
-        //        }
-        //todo add connection propertis in the future
-        this.complexDataCache = new LRUCache(50);
     }
 
     /**
@@ -296,7 +302,6 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (urlParser.getOptions().pool) {
             return Pools.retrievePool(urlParser).getConnection();
         }
-
         Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         OceanBaseConnection conn = new OceanBaseConnection(protocol);
         return conn;

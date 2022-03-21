@@ -80,7 +80,6 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if it is not possible to connect
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
-
         UrlParser urlParser = UrlParser.parse(url, props);
         if (urlParser == null || urlParser.getHostAddresses() == null) {
             return null;

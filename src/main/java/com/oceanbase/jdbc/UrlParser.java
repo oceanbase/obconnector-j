@@ -113,6 +113,7 @@ public class UrlParser implements Cloneable {
     private String               initialUrl;
     private boolean              multiMaster;
     private CredentialPlugin     credentialPlugin;
+    private String               tnsServiceName;
     public static final String   DBNAME_PROPERTY_KEY = "DBNAME";
 
     public static String getPropertyDbName(Properties props) {
@@ -272,12 +273,18 @@ public class UrlParser implements Cloneable {
 
         LoggerFactory.init(urlParser.options.log || urlParser.options.profileSql
                            || urlParser.options.slowQueryThresholdNanos != null);
-        urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
-        if (properties.get("port") != null) {
-            urlParser.addresses.forEach(
+        if(hostAddressesString.indexOf('@') == 0 && urlParser.haMode == HaMode.LOADBALANCE) {
+            urlParser.addresses = new ArrayList<>();
+            urlParser.tnsServiceName = hostAddressesString.substring(1);
+        } else {
+            urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
+            if (properties.get("port") != null) {
+                urlParser.addresses.forEach(
                     address -> address.port = Integer.parseInt((String) properties.get("port"))
-            );
+                );
+            }
         }
+
     }
 
     private static HaMode parseHaMode(String url, int separator) {
@@ -475,6 +482,10 @@ public class UrlParser implements Cloneable {
 
     public HaMode getHaMode() {
         return haMode;
+    }
+
+    public String getTnsServiceName() {
+        return tnsServiceName;
     }
 
     @Override

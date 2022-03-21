@@ -161,6 +161,10 @@ public abstract class AbstractMastersListener implements Listener {
     return blacklist.keySet();
   }
 
+  public static ConcurrentMap<HostAddress, Long> getBlacklist() {
+    return blacklist;
+  }
+
   /**
    * Call when a failover is detected on master connection. Will :
    *
@@ -240,7 +244,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
   }
 
-  protected void resetMasterFailoverData() {
+  public void resetMasterFailoverData() {
     if (masterHostFail.compareAndSet(true, false)) {
       masterHostFailNanos = 0;
     }

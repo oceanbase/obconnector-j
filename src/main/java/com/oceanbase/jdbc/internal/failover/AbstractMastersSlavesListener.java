@@ -140,7 +140,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   }
 
   @Override
-  protected void resetMasterFailoverData() {
+  public void resetMasterFailoverData() {
     super.resetMasterFailoverData();
 
     // if all connection are up, reset failovers timers

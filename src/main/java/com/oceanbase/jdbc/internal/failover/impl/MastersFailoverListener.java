@@ -52,7 +52,6 @@ package com.oceanbase.jdbc.internal.failover.impl;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -60,12 +59,17 @@ import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.AbstractMastersListener;
 import com.oceanbase.jdbc.internal.failover.HandleErrorResult;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.BalanceStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RandomStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RotationStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.ServerAffinityStrategy;
 import com.oceanbase.jdbc.internal.failover.thread.FailoverLoop;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
@@ -73,8 +77,10 @@ import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
-    private final HaMode        mode;
+    private static final Logger  logger = LoggerFactory.getLogger(MastersFailoverListener.class);
+    private final HaMode         mode;
+    private static List<Integer> weights;
+    private static List<Integer> originWeights;
 
     /**
      * Initialisation.
@@ -195,41 +201,45 @@ public class MastersFailoverListener extends AbstractMastersListener {
       if (!searchFilter.isInitialConnection() && (isExplicitClosed() || !isMasterHostFail())) {
         return;
       }
-
       currentConnectionAttempts.incrementAndGet();
       resetOldsBlackListHosts();
-
-      List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+      List<HostAddress> loopAddress ;
+      loopAddress = new LinkedList<>(urlParser.getHostAddresses());
       if (HaMode.LOADBALANCE.equals(mode)) {
-        // put the list in the following order
-        // - random order not connected host
-        // - random order blacklist host
-        // - random order connected host
-        loopAddress.removeAll(getBlacklistKeys());
-        Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-        blacklistShuffle.retainAll(urlParser.getHostAddresses());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
-      } else {
+        Utils.LoadBlanceInfo loadBlanceInfo = Utils.getGloabalLoadBalanceInfo(urlParser);
+        BalanceStrategy balanceStrategy = null;
+        switch (loadBlanceInfo.strategy) {
+          case "random":
+            balanceStrategy = new RandomStrategy();
+            break;
+          case "roation":
+            balanceStrategy = new RotationStrategy();
+            break;
+          case "serverAffinity":
+            balanceStrategy = new ServerAffinityStrategy();
+            break;
+          default:
+            balanceStrategy = new RandomStrategy();
+            break;
+        }
+        balanceStrategy.pickConnection(loadBlanceInfo,urlParser,this,globalInfo,searchFilter,getBlacklist());
+      }
+      else {
         // order in sequence
         loopAddress.removeAll(getBlacklistKeys());
         loopAddress.addAll(getBlacklistKeys());
         loopAddress.retainAll(urlParser.getHostAddresses());
+        // put connected at end
+        if (currentProtocol != null && !isMasterHostFail()) {
+          loopAddress.remove(currentProtocol.getHostAddress());
+          // loopAddress.add(currentProtocol.getHostAddress());
+        }
+        MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
       }
-
-      // put connected at end
-      if (currentProtocol != null && !isMasterHostFail()) {
-        loopAddress.remove(currentProtocol.getHostAddress());
-        // loopAddress.add(currentProtocol.getHostAddress());
-      }
-
-      MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
       // close loop if all connection are retrieved
       if (!isMasterHostFail()) {
         FailoverLoop.removeListener(this);
       }
-
       // if no error, reset failover variables
       resetMasterFailoverData();
     } finally {

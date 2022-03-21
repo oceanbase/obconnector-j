@@ -416,6 +416,7 @@ public class Clob extends Lob implements ObClob {
         if (this.charData != null) {
             return this.charData.length();
         }
+
         Charset charset = Charset.forName(encoding);
         if (!charset.equals(StandardCharsets.UTF_8)) {
             return toString().length();

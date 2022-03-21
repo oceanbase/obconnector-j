@@ -195,6 +195,10 @@ public class Options implements Cloneable {
     public boolean enableQueryTimeouts = true;
     public int     maxBatchTotalParamsNum = 30000;
     public boolean useCursorOffset = false;
+    public String  tnsnamesPath;
+    public int     tnsnamesDetectionPeriod = 10;
+    public String  loadBalanceStrategy;
+    public String  serverAffinityOrder;
     public int     blobSendChunkSize = 1048576;
     public String  connectionCollation = "utf8";
 
@@ -581,9 +585,22 @@ public class Options implements Cloneable {
         if (useCursorOffset != opt.useCursorOffset) {
             return false;
         }
-      if (blobSendChunkSize != opt.blobSendChunkSize) {
-        return false;
-      }
+        if(tnsnamesPath != opt.tnsnamesPath) {
+          return  false;
+        }
+        if(tnsnamesDetectionPeriod != opt.tnsnamesDetectionPeriod) {
+          return  false;
+        }
+        if(loadBalanceStrategy != opt.loadBalanceStrategy) {
+          return false;
+        }
+        if(serverAffinityOrder != opt.serverAffinityOrder) {
+          return false;
+        }
+        if (blobSendChunkSize != opt.blobSendChunkSize) {
+          return false;
+        }
+
       if (connectionCollation != opt.connectionCollation) {
         return false;
       }
@@ -711,6 +728,10 @@ public class Options implements Cloneable {
         result = 31 * result + (maxBatchTotalParamsNum);
         result = 31 * result + (emulateUnsupportedPstmts ? 1 : 0);
         result = 31 * result + (useCursorOffset ? 1 : 0);
+        result = 31 * result + (tnsnamesPath != null ? tnsnamesPath.hashCode() : 0);
+        result = 31 * result + tnsnamesDetectionPeriod;
+        result = 31 * result + (loadBalanceStrategy != null ? loadBalanceStrategy.hashCode() : 0);
+        result = 31 * result + (serverAffinityOrder != null ? serverAffinityOrder.hashCode() : 0);
         result = 31 * result + (blobSendChunkSize);
       result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
         return result;

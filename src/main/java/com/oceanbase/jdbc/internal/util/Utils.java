@@ -50,9 +50,7 @@
  */
 package com.oceanbase.jdbc.internal.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
@@ -62,12 +60,15 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
+import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseStatement;
+import com.oceanbase.jdbc.TnsDaemon;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
@@ -82,6 +83,7 @@ import com.oceanbase.jdbc.internal.protocol.AuroraProtocol;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
 import com.oceanbase.jdbc.internal.protocol.MastersSlavesProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.util.ConfigurableSocketFactory;
 import com.oceanbase.jdbc.util.Options;
@@ -100,9 +102,11 @@ public class Utils {
       Pattern.compile(
           "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
               + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
-
+  private static int loadBalanceFirst = 0;
   private static final SocketHandlerFunction socketHandler;
-
+  public static TnsDaemon tnsDaemon;
+  public static  Map<String, Utils.LoadBlanceInfo> blanceInfoMap;
+  
   static {
     SocketHandlerFunction init;
     try {
@@ -113,6 +117,10 @@ public class Utils {
       init = defaultSocketHandler;
     }
     socketHandler = init;
+    tnsDaemon = new TnsDaemon();
+    tnsDaemon.start();
+
+    blanceInfoMap = new ConcurrentHashMap<>();
   }
 
   /**
@@ -1167,6 +1175,10 @@ public class Utils {
   public static Protocol retrieveProxy(final UrlParser urlParser, final GlobalStateInfo globalInfo)
       throws SQLException {
     final ReentrantLock lock = new ReentrantLock();
+    boolean tnsFlag = true;
+    if(tnsFlag) {
+
+    }
     final LruTraceCache traceCache =
         urlParser.getOptions().enablePacketDebug ? new LruTraceCache() : null;
     Protocol protocol;
@@ -1666,5 +1678,262 @@ public class Utils {
       return ((c == 't') || (c == 'y') || (c == '1') || str.equals("-1"));
     }
     return false;
+  }
+  enum STATE {
+    NONE,
+    INBRACKETS,
+    LEAFBRACKETS,
+    RIGHTBRACKETS,
+    STRING
+  }
+  enum  PARTSTATE{
+    HOST,
+    PORT,
+    WEIGHT,
+    PROTOCOL,
+    DESCRIPTION,
+    ADDRESSLIST,
+    ADDRESS,
+    LOADBALANCE,
+    LOADBALANCESTRATEGY,
+    SERVICENAME,
+    CONNECTDATA,
+    NONE
+  }
+  public static class LoadBlanceInfo{
+    public final HaMode haMode;
+    public final String strategy;
+    public final List<HostAddress> hostAddresses;
+    public final ConcurrentHashMap<HostAddress,Integer> weights;
+    public LoadBlanceInfo(HaMode haVal,String strategyVal,List<HostAddress> listVal,ConcurrentHashMap<HostAddress,Integer> weightsLists) {haMode = haVal; hostAddresses  = new ArrayList<>(listVal);this.strategy = strategyVal; weights = new ConcurrentHashMap<>(weightsLists) ; }
+
+    public LoadBlanceInfo clone(){
+      return  new LoadBlanceInfo(this.haMode,this.strategy,this.hostAddresses,this.weights);
+    }
+    @Override
+    public String toString() {
+      return "LoadBlanceInfo{" +
+          "haMode=" + haMode +
+          ", strategy='" + strategy + '\'' +
+          ", hostAddresses=" + hostAddresses +
+          ", weights=" + weights +
+          '}';
+    }
+  }
+  public static   HashMap<String,LoadBlanceInfo>   getPropertiesFromTNSNames(String path) throws IOException {
+    HashMap<String,LoadBlanceInfo> fileInfos = new HashMap<>();
+    HaMode haMode = HaMode.NONE;
+    String strategy = null;
+    List<HostAddress> hostAddresses = new ArrayList<>();
+    ConcurrentHashMap<HostAddress,Integer> weights = new ConcurrentHashMap<>();
+    String filePath = path;
+    File file = new File(filePath);
+    if(file == null) {
+      return null;
+    }
+
+    StringBuilder word = new StringBuilder();
+    char buffer[] = new char[1024];
+    int  readNum = 0;
+    STATE state = STATE.NONE;
+    int bracketsCount = 0;
+    char cur;
+    char pre;
+    PARTSTATE partState = PARTSTATE.NONE;
+    Reader reader = new InputStreamReader(new FileInputStream(file));
+    Properties properties = new Properties();
+    String str ;
+    String curPort = null;
+    String curHost = null;
+    String curWeight = null;
+    String curTNSServiceName = null;
+    while((readNum = reader.read(buffer)) != -1){
+        for(int i = 0; i< readNum ;i++) {
+          cur = buffer[i];
+          switch (cur) {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+              // skip
+              continue;
+            case '(':
+              state = STATE.LEAFBRACKETS;
+              bracketsCount ++;
+              break;
+            case ')':
+              bracketsCount --;
+              if(bracketsCount == 0) {
+                // reset the states
+                LoadBlanceInfo current = new  LoadBlanceInfo(haMode,strategy,hostAddresses,weights);
+                fileInfos.put(curTNSServiceName,current);
+                curPort = null;
+                curHost = null;
+                curWeight = null;
+                curTNSServiceName = null;
+                hostAddresses.clear();
+                weights.clear();
+                state = STATE.NONE;
+                partState = PARTSTATE.NONE;
+                // skip
+                continue;
+              }
+              if(state == STATE.INBRACKETS) {
+                str = word.toString();
+                switch (partState) {
+                  case DESCRIPTION:
+                    break;
+                  case LOADBALANCE:
+                    if(str.equalsIgnoreCase("ON")) {
+                      haMode = HaMode.LOADBALANCE;
+                    } else {
+                      haMode = HaMode.NONE;
+                    }
+                    break;
+                  case LOADBALANCESTRATEGY:
+                    strategy = str;
+                    break;
+                  case SERVICENAME:
+                    break;
+                  case ADDRESSLIST:
+                    break;
+                  case CONNECTDATA:
+                    break;
+                  case ADDRESS:
+                    break;
+                  case PROTOCOL:
+                    break;
+                  case HOST:
+                    curHost = str;
+                    break;
+                  case PORT:
+                    curPort = str;
+                    break;
+                  case WEIGHT:
+                    curWeight = str;
+                    break;
+                  default:
+                    break;
+                }
+                if(bracketsCount == 0) {
+                  state = STATE.NONE;
+                  // skip
+                  continue;
+                } else {
+                  state = STATE.RIGHTBRACKETS;
+                }
+                // reset the string builder
+                word = new StringBuilder();
+              }
+              break;
+            case '=':
+              str = word.toString();
+              switch (str) {
+                case "DESCRIPTION":
+                  partState = PARTSTATE.DESCRIPTION;
+                  break;
+                case "LOAD_BALANCE":
+                  partState = PARTSTATE.LOADBALANCE;
+                  break;
+                case "LOAD_BALANCE_STRATEGY":
+                  partState = PARTSTATE.LOADBALANCESTRATEGY;
+                  break;
+                case "ADDRESS_LIST":
+                  partState = PARTSTATE.ADDRESSLIST;
+                  break;
+                case "ADDRESS":
+                  partState = PARTSTATE.ADDRESS;
+                  break;
+                case "PROTOCOL":
+                  partState = PARTSTATE.PROTOCOL;
+                  break;
+                case "HOST":
+                  partState = PARTSTATE.HOST;
+                  break;
+                case "PORT":
+                  partState = PARTSTATE.PORT;
+                  break;
+                case "WEIGHT":
+                  partState = PARTSTATE.WEIGHT;
+                  break;
+                case "CONNECT_DATA":
+                  partState = PARTSTATE.CONNECTDATA;
+                  break;
+                case "SERVICE_NAME":
+                  partState = PARTSTATE.SERVICENAME;
+                  break;
+                default:
+//                  System.out.println("net_service_name " + str);
+                  curTNSServiceName = str;
+                  partState = PARTSTATE.NONE;
+                  break;
+              }
+              // reset the string builder
+              word = new StringBuilder();
+              break;
+            default:
+              if(state == STATE.LEAFBRACKETS) {
+                state = STATE.INBRACKETS;
+              }
+              word.append(cur);
+              break;
+          }
+          if(curPort != null && curHost != null && curWeight != null) {  //  fix for no weigth
+            HostAddress hostAddress = new HostAddress(curHost,Integer.parseInt(curPort),"master");
+            hostAddresses.add(hostAddress);
+            weights.put(hostAddress,Integer.parseInt(curWeight));
+            // reset host and port
+            curPort = null;
+            curHost = null;
+            curWeight = null;
+          }
+          pre = cur;
+        }
+    }
+    return fileInfos;
+  }
+
+  /**
+   * Obtain the current LoadBalance configuration information in different ways, add other
+   * mechanisms here
+   * @param urlParser oceanbase url parser ,get options from here
+   * @return the loadbalance config information
+   */
+  public static  LoadBlanceInfo  getGloabalLoadBalanceInfo(UrlParser urlParser) throws SQLException {
+    Utils.LoadBlanceInfo tnsPropertis = null;
+    if (urlParser.getTnsServiceName() != null) {  // oracle tns config mode
+      if(Utils.tnsDaemon.getState() == Thread.State.TERMINATED) {
+        throw new SQLException("Config file daemon thread  is TERMINATED");
+      }
+      tnsPropertis = Utils.tnsDaemon.getTnsProperties(urlParser.getTnsServiceName());
+      if(tnsPropertis == null) {
+        throw new SQLException("Unknown host specified ");
+      }
+    } else { // get config from url
+      String strategy = urlParser.getOptions().loadBalanceStrategy;
+      List<HostAddress> loopAddress ;
+      loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+      String serverAffinityOrder = urlParser.getOptions().serverAffinityOrder;
+      if(serverAffinityOrder == null ||serverAffinityOrder.equals("")) {
+        tnsPropertis = new LoadBlanceInfo(urlParser.getHaMode(), strategy, loopAddress, null);
+      } else {
+        serverAffinityOrder = serverAffinityOrder.trim();
+        String[] urls = serverAffinityOrder.split(",");
+        List<HostAddress> addressList = new ArrayList<>();
+        ConcurrentHashMap<HostAddress, Integer> weights = new ConcurrentHashMap<>();
+        for (String str : urls) {
+          String[] vals = str.split(":");
+          HostAddress hostAddress = new HostAddress(vals[0], Integer.parseInt(vals[1]));
+          addressList.add(hostAddress);
+          if (vals.length == 3) {
+            weights.put(hostAddress, Integer.parseInt(vals[2]));
+          } else {
+            weights.put(hostAddress, 1);
+          }
+        }
+        tnsPropertis = new LoadBlanceInfo(urlParser.getHaMode(), strategy, loopAddress, weights);
+      }
+    } // we can add othrer mode here
+    return  tnsPropertis;
   }
 }

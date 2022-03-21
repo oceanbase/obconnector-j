@@ -62,10 +62,7 @@ import java.util.TimeZone;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.oceanbase.jdbc.HostAddress;
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.OceanBaseStatement;
-import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.*;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;

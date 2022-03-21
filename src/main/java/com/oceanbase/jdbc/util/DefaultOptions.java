@@ -848,7 +848,7 @@ public enum DefaultOptions {
           "autoDeserialize",
           Boolean.FALSE,
           "2.2.7",
-                  "",
+                  "NA",
                   false
   ),
   MAX_BATCH_TOTOAL_PARAMS_NUM(
@@ -883,6 +883,34 @@ public enum DefaultOptions {
           1024*1204,
           "2.2.9",
           "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
+          false
+  ),
+  TNSNAMES_PATH(
+          "tnsnamesPath",
+          (String) null,
+          "NA",
+          "NA",
+          false
+  ),
+  TNSNAMES_DETECTION_PERIOD(
+          "tnsnamesDetectionPeriod",
+          10,
+          0,
+          "NA",
+          "NA",
+          false),
+  LOAD_BALANCE_STRATEGY(
+          "loadBalanceStrategy",
+          (String) "random",
+          "NA",
+          "NA",
+          false
+  ),
+  SERVER_AFFINITY_ORDER (
+          "serverAffinityOrder",
+          (String) null,
+          "NA",
+          "NA",
           false),
 
           TRANSFORMED_BIT_BOOLEAN(

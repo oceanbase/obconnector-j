@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.protocol;
 import java.io.Closeable;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
@@ -131,6 +132,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         HostAddress host = loopAddresses.pollFirst();
         if (host == null) {
           loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+          // todo
           host = loopAddresses.pollFirst();
         }
         protocol.setHostAddress(host);
@@ -174,13 +176,91 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
     throw new SQLException("No active connection found for master");
   }
 
+    public static void randomWeights(Listener listener, final GlobalStateInfo globalInfo,
+                                     final List<HostAddress> addresses,
+                                     ConcurrentHashMap<HostAddress, Integer> weights,
+                                     SearchFilter searchFilter) throws SQLException {
+
+        MasterProtocol protocol;
+        int maxConnectionTry = listener.getRetriesAllDown();
+        boolean firstLoop = true;
+        SQLException lastQueryException = null;
+        while (!addresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
+            protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
+
+            if (listener.isExplicitClosed()) {
+                return;
+            }
+            maxConnectionTry--;
+
+            try {
+                int weightSum = 0;
+
+                for (Integer weight : weights.values()) {
+                    weightSum += weight;
+                }
+                if (weightSum <= 0) {
+                    // todo throw exception
+                }
+                Random random = new Random();
+                int n = random.nextInt(weightSum);
+                int m = 0;
+                HostAddress host = null;
+                for (int i = 0; i < addresses.size(); i++) {
+                    HostAddress curHost = addresses.get(i);
+                    if (m <= n && n < m + weights.get(curHost)) {
+                        host = addresses.get(i);
+                        break;
+                    }
+                    m += weights.get(curHost);
+                }
+                protocol.setHostAddress(host);
+                protocol.connect();
+                if (listener.isExplicitClosed()) {
+                    protocol.close();
+                    return;
+                }
+                listener.removeFromBlacklist(protocol.getHostAddress());
+                listener.foundActiveMaster(protocol);
+                return;
+
+            } catch (SQLException e) {
+                listener.addToBlacklist(protocol.getHostAddress());
+                lastQueryException = e;
+            }
+
+            // if server has try to connect to all host, and master still fail
+            // add all servers back to continue looping until maxConnectionTry is reached
+            //      if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
+            //        resetHostList(listener, loopAddresses);
+            //        if (firstLoop) {
+            //          firstLoop = false;
+            //        } else {
+            //          try {
+            //            // wait 250ms before looping through all connection another time
+            //            Thread.sleep(250);
+            //          } catch (InterruptedException interrupted) {
+            //            // interrupted, continue
+            //          }
+            //        }
+            //      }
+        }
+        if (lastQueryException != null) {
+            throw new SQLException("No active connection found for master : "
+                                   + lastQueryException.getMessage(),
+                lastQueryException.getSQLState(), lastQueryException.getErrorCode(),
+                lastQueryException);
+        }
+        throw new SQLException("No active connection found for master");
+    }
+
     /**
-     * Reinitialize loopAddresses with all hosts : all servers in randomize order without connected
-     * host.
-     *
-     * @param listener current listener
-     * @param loopAddresses the list to reinitialize
-     */
+       * Reinitialize loopAddresses with all hosts : all servers in randomize order without connected
+       * host.
+       *
+       * @param listener current listener
+       * @param loopAddresses the list to reinitialize
+       */
     private static void resetHostList(Listener listener, Deque<HostAddress> loopAddresses) {
     // if all servers have been connected without result
     // add back all servers

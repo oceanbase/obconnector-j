@@ -189,6 +189,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @param lock the lock for thread synchronisation
      * @param traceCache trace cache
      */
+
     public AbstractConnectProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo,
                                    final ReentrantLock lock, LruTraceCache traceCache) {
         urlParser.auroraPipelineQuirks();
