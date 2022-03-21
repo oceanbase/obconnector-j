@@ -644,24 +644,62 @@ public class Bugfix extends BaseTest {
             stmt.execute("create table testPreStmtBatchSql (id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT)");
             PreparedStatement ps = conn
                 .prepareStatement("INSERT INTO testPreStmtBatchSql (n) VALUES (?)");
+            ps.setInt(1, -1);
+            ps.addBatch();
+            ps.setInt(1, 0);
+            ps.addBatch();
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (1)");
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (2)");
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (3)");
             ps.executeBatch();
             ResultSet rs = stmt.executeQuery("select count(*) from testPreStmtBatchSql");
             assertTrue(rs.next());
-            assertEquals(3, rs.getInt(1));
+            assertEquals(5, rs.getInt(1));
             ps = conn.prepareStatement("INSERT INTO testPreStmtBatchSql (n) VALUES (?)");
+            ps.setInt(1, -1);
+            ps.addBatch();
+            ps.setInt(1, 0);
+            ps.addBatch();
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (1)");
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (2)");
             ps.addBatch("INSERT INTO testPreStmtBatchSql (n) VALUES (3)");
             ps.executeLargeBatch();
             rs = stmt.executeQuery("select count(*) from testPreStmtBatchSql");
             assertTrue(rs.next());
-            assertEquals(6, rs.getInt(1));
+            assertEquals(10, rs.getInt(1));
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testAone36022265() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testCallaStmtBatch");
+            stmt.execute("create table testCallaStmtBatch (id BIGINT AUTO_INCREMENT PRIMARY KEY, c1 INT)");
+            stmt.execute("drop procedure if exists testCallaStmtBatchPro");
+            stmt.execute("create procedure testCallaStmtBatchPro(IN n INT) BEGIN INSERT INTO testCallaStmtBatch (c1) VALUES (n); END");
+            CallableStatement cs = conn.prepareCall("{CALL testCallaStmtBatchPro(?)}");
+            cs.setInt(1, 1);
+            cs.addBatch();
+            cs.setInt(1, 2);
+            cs.addBatch();
+            cs.addBatch("CALL testCallaStmtBatchPro(3)");
+            cs.addBatch("CALL testCallaStmtBatchPro(4)");
+            cs.addBatch("CALL testCallaStmtBatchPro(5)");
+            long[] counts = cs.executeLargeBatch();
+            assertEquals(5, counts.length);
+
+            ResultSet rs = cs.getGeneratedKeys();
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertEquals(1, rsmd.getColumnCount());
+            assertEquals(Types.BIGINT, rsmd.getColumnType(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -796,6 +834,55 @@ public class Bugfix extends BaseTest {
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAone37805924() {
+        try {
+            Connection conn = null;
+            Statement stmt = null;
+
+            for (int i = 0; i < 4; i++) {
+                conn = setConnectionOrigin("?useServerPrepStmts=false&rewriteBatchedStatements=false");
+                if (i == 1) {
+                    conn = setConnectionOrigin("?useServerPrepStmts=true&rewriteBatchedStatements=false");
+                }
+                if (i == 2) {
+                    conn = setConnectionOrigin("?useServerPrepStmts=false&rewriteBatchedStatements=true");
+                }
+                if (i == 3) {
+                    conn = setConnectionOrigin("?useServerPrepStmts=true&rewriteBatchedStatements=true");
+                }
+                stmt = conn.createStatement();
+                stmt.execute("DROP table if exists testExecuteLargeBatch");
+                stmt.execute("create table testExecuteLargeBatch(n INT)");
+                PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO testExecuteLargeBatch VALUES (?)");
+                int num = 5;
+                for (int j = 1; j <= num; j++) {
+                    ps.setInt(1, j);
+                    ps.addBatch();
+                }
+                long[] counts = ps.executeLargeBatch();
+                assertEquals(num, counts.length);
+                System.out.println(Arrays.toString(counts));
+                if (i == 1 || i == 0) {
+                    Assert.assertEquals("[1, 1, 1, 1, 1]", Arrays.toString(counts));
+                } else {
+                    Assert.assertEquals("[-2, -2, -2, -2, -2]", Arrays.toString(counts));
+                }
+                ResultSet rs = stmt.executeQuery("select * from testExecuteLargeBatch");
+                int j = 1;
+                while (rs.next()) {
+                    assertEquals(j, rs.getInt(1));
+                    j++;
+                }
+                stmt.execute("DROP table if exists testExecuteLargeBatch");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         }
     }
 

@@ -297,29 +297,39 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   /** {inheritdoc}. */
   public int[] executeBatch() throws SQLException {
     checkClose();
-    if ((batchQueries.size()) >  0) {
-      return super.executeBatch();
-    }
+    int [] retBatchQuery = new int[0];
+    int [] retBatch = new int[0];
     int size = parametersList.size();
-    if (size == 0) {
-      return new int[0];
-    }
-
-    lock.lock();
-    try {
+    if (size != 0) {
+      lock.lock();
       try {
-        executeInternalBatch(size);
-        results.commandEnd();
-        return results.getCmdInformation().getUpdateCounts();
+        try {
+          executeInternalBatch(size);
+          results.commandEnd();
+          retBatch = results.getCmdInformation().getUpdateCounts();
 
-      } catch (SQLException sqle) {
-        throw executeBatchExceptionEpilogue(sqle, size);
+        } catch (SQLException sqle) {
+          throw executeBatchExceptionEpilogue(sqle, size);
+        } finally {
+          executeBatchEpilogue();
+        }
       } finally {
-        executeBatchEpilogue();
+        lock.unlock();
       }
-    } finally {
-      lock.unlock();
     }
+    if ((batchQueries.size()) >  0) {
+      retBatchQuery = super.executeBatch();
+    }
+    // merge the return values
+    int [] ret = new int [retBatch.length + retBatchQuery.length];
+    int cur = 0;
+    for(int i = 0;i<retBatch.length;i++) {
+      ret[cur++] = retBatch[i];
+    }
+    for(int i = 0;i<retBatchQuery.length;i++) {
+      ret[cur++] = retBatchQuery[i];
+    }
+    return  ret;
   }
 
   /**
@@ -345,28 +355,40 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    */
   public long[] executeLargeBatch() throws SQLException {
     checkClose();
-    if ((batchQueries.size()) >  0) {
-      return super.executeLargeBatch();
-    }
+    long [] retBatchQuery = new long[0];
+    long [] retBatch = new long[0];
     int size = parametersList.size();
     if (size == 0) {
-      return new long[0];
-    }
+      retBatch = new long[0];
+    } else {
 
-    lock.lock();
-    try {
+      lock.lock();
       try {
-        executeInternalBatch(size);
-        results.commandEnd();
-        return results.getCmdInformation().getLargeUpdateCounts();
-      } catch (SQLException sqle) {
-        throw executeBatchExceptionEpilogue(sqle, size);
+        try {
+          executeInternalBatch(size);
+          results.commandEnd();
+          retBatch =  results.getCmdInformation().getLargeUpdateCounts();
+        } catch (SQLException sqle) {
+          throw executeBatchExceptionEpilogue(sqle, size);
+        } finally {
+          executeBatchEpilogue();
+        }
       } finally {
-        executeBatchEpilogue();
+        lock.unlock();
       }
-    } finally {
-      lock.unlock();
     }
+    if (batchQueries != null  && batchQueries.size() >  0) {
+      retBatchQuery =  super.executeLargeBatch();
+    }
+    long [] ret = new long [retBatch.length + retBatchQuery.length];
+    int cur = 0;
+    for(int i = 0;i<retBatch.length;i++) {
+      ret[cur++] = retBatch[i];
+    }
+    for(int i = 0;i<retBatchQuery.length;i++) {
+      ret[cur++] = retBatchQuery[i];
+    }
+    return  ret;
   }
 
   /**

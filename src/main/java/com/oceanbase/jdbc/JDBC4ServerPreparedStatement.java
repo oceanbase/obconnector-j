@@ -352,15 +352,28 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public int[] executeBatch() throws SQLException {
     checkClose();
-    if ((batchQueries.size()) >  0) {
-      return super.executeBatch();
-    }
+    int [] retBatchQuery = new int[0];
+    int [] retBatch = new int[0];
     int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
-      return new int[0];
+      retBatch =  new int[0];
+    } else {
+      executeBatchInternal(queryParameterSize);
+      retBatch = results.getCmdInformation().getUpdateCounts();
     }
-    executeBatchInternal(queryParameterSize);
-    return results.getCmdInformation().getUpdateCounts();
+    if ((batchQueries.size()) >  0) {
+      retBatchQuery = super.executeBatch();
+    }
+    // merge the return values
+    int [] ret = new int [retBatch.length + retBatchQuery.length];
+    int cur = 0;
+    for(int i = 0;i<retBatch.length;i++) {
+      ret[cur++] = retBatch[i];
+    }
+    for(int i = 0;i<retBatchQuery.length;i++) {
+      ret[cur++] = retBatchQuery[i];
+    }
+    return  ret;
   }
 
   /**
@@ -373,15 +386,39 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkClose();
-    if ((batchQueries.size()) >  0) {
-      return super.executeLargeBatch();
-    }
+    long [] retBatchQuery = new long[0];
+    long [] retBatch = new long[0];
+
     int queryParameterSize = parametersList.size();
     if (queryParameterSize == 0) {
-      return new long[0];
+      retBatch = new long[0];
+    } else {
+      executeBatchInternal(queryParameterSize);
+      retBatch = results.getCmdInformation().getLargeUpdateCounts();
     }
-    executeBatchInternal(queryParameterSize);
-    return results.getCmdInformation().getLargeUpdateCounts();
+    if (batchQueries != null && (batchQueries.size()) >  0) {
+      retBatchQuery =  super.executeLargeBatch();
+    }
+    long [] ret = new long [retBatch.length + retBatchQuery.length];
+    int cur = 0;
+    for(int i = 0;i<retBatch.length;i++) {
+      ret[cur++] = retBatch[i];
+    }
+    for(int i = 0;i<retBatchQuery.length;i++) {
+      ret[cur++] = retBatchQuery[i];
+    }
+    return  ret;
+  }
+
+
+  public long[] executeLargeBatchQuerys() throws SQLException {
+    checkClose();
+    long [] retBatchQuery = new long[0];
+
+    if ((batchQueries.size()) >  0) {
+      retBatchQuery =  super.executeLargeBatch();
+    }
+    return  retBatchQuery;
   }
 
   boolean hasLongData(ParameterHolder[] parameterHolders) {
@@ -504,6 +541,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         // send query one by one, reading results for each query before sending another one
         SQLException exception = null;
         if (options.rewriteBatchedStatements && isInsert ) {
+          results.setRewritten(true);
           ParameterHolder[] parameterHolder = currentQueryParameters;
           try {
             if (queryTimeout > 0) {
