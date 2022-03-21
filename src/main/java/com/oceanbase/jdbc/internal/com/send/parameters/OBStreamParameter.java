@@ -100,7 +100,9 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        is.reset();
+        if (is != null) {
+            is.reset();
+        }
         if (is != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
@@ -128,7 +130,9 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        is.reset();
+        if (is != null) {
+            is.reset();
+        }
         if (hasLobLocator && bytes != null) {
             pos.writeFieldLength(bytes.length);
             pos.write(bytes);
@@ -161,7 +165,9 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
-        is.reset();
+        if (is != null) {
+            is.reset();
+        }
         int pieceLen = options.pieceLength;
         byte piece;
         byte[] buffer = new byte[pieceLen];
