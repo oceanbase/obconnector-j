@@ -48,6 +48,7 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Clob;
 import java.time.LocalDate;
@@ -84,6 +85,70 @@ public class Bugfix extends BaseTest {
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
         createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
         createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
+    }
+
+    // fix for aone 39996582
+    @Test
+    public void testResetStreamAndRead() {
+        Assume.assumeFalse(sharedUsePrepare()); // some version send long data is not supported
+        Connection conn;
+        Statement stmt;
+
+        try {
+            conn = sharedConnection;
+            stmt = conn.createStatement();
+            stmt.executeUpdate("drop table if exists test;");
+            stmt.executeUpdate("create table test(id int, b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB, b5 VARBINARY(200), c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LONGTEXT, c5 VARCHAR(20));");
+
+            String s = "1231abcd奥星贝斯";
+            java.sql.Clob c = new com.oceanbase.jdbc.Clob();
+
+            c.setString(1, "1231abcd奥星贝斯");
+            byte[] blobContent = s.getBytes("utf-8");
+            java.sql.Blob b = new com.oceanbase.jdbc.Blob(blobContent);
+
+            PreparedStatement insert_stmt = conn
+                .prepareStatement("Insert into test values(1,?,?,?,?,?,?,?,?,?,?);");
+            insert_stmt.setBlob(1, b);
+            insert_stmt.setBlob(2, b);
+            insert_stmt.setBlob(3, b);
+            insert_stmt.setBlob(4, b);
+            insert_stmt.setBlob(5, b);
+            insert_stmt.setClob(6, c);
+            insert_stmt.setClob(7, c);
+            insert_stmt.setClob(8, c);
+            insert_stmt.setClob(9, c);
+            insert_stmt.setClob(10, c);
+
+            for (int k = 1; k <= 2; k++) {
+                insert_stmt.execute();
+            }
+
+            ResultSet rs = conn.createStatement().executeQuery("select * from test;");
+            int count = 0;
+            while (rs.next()) {
+                System.out.println("count = " + count);
+                for (int i = 2; i <= 6; i++) {
+                    Assert.assertEquals(s,
+                        new String(rs.getBlob(i).getBytes(1, (int) rs.getBlob(i).length()),
+                            StandardCharsets.UTF_8));
+                }
+                for (int i = 7; i <= 11; i++) {
+                    Assert.assertEquals(
+                        s,
+                        rs.getClob(i).getSubString((long) 1,
+                            Math.toIntExact(rs.getClob(i).length())));
+                }
+                count++;
+            }
+
+            stmt.executeUpdate("drop table test;");
+            stmt.close();
+            insert_stmt.close();
+        } catch (Exception se) {
+            se.printStackTrace();
+            Assert.fail();
+        }
     }
 
     @Test
