@@ -98,21 +98,26 @@ import com.oceanbase.jdbc.util.Options;
  */
 public class UrlParser implements Cloneable {
 
-    private static final String  DISABLE_MYSQL_URL = "disableMariaDbDriver";
-    private static final Pattern URL_PARAMETER     = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*",
-                                                       Pattern.DOTALL);
-    private static final Pattern AWS_PATTERN       = Pattern
-                                                       .compile(
-                                                           "(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
-                                                           Pattern.CASE_INSENSITIVE);
+    private static final String  DISABLE_MYSQL_URL   = "disableMariaDbDriver";
+    private static final Pattern URL_PARAMETER       = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*",
+                                                         Pattern.DOTALL);
+    private static final Pattern AWS_PATTERN         = Pattern
+                                                         .compile(
+                                                             "(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+                                                             Pattern.CASE_INSENSITIVE);
 
     private String               database;
-    private Options              options           = null;
+    private Options              options             = null;
     private List<HostAddress>    addresses;
     private HaMode               haMode;
     private String               initialUrl;
     private boolean              multiMaster;
     private CredentialPlugin     credentialPlugin;
+    public static final String   DBNAME_PROPERTY_KEY = "DBNAME";
+
+    public static String getPropertyDbName(Properties props) {
+        return props.getProperty(DBNAME_PROPERTY_KEY);
+    }
 
     private UrlParser() {
     }
@@ -260,6 +265,8 @@ public class UrlParser implements Cloneable {
             urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties,
                 urlParser.options);
         }
+        //
+        urlParser.database = getPropertyDbName(properties) == null ?  urlParser.database : getPropertyDbName(properties);
         urlParser.credentialPlugin = CredentialPluginLoader.get(urlParser.options.credentialType);
         DefaultOptions.postOptionProcess(urlParser.options, urlParser.credentialPlugin);
 

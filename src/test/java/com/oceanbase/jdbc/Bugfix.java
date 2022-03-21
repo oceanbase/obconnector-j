@@ -956,6 +956,36 @@ public class Bugfix extends BaseTest {
         }
     }
 
+    @Test
+    public void testAone40086972() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            String dbName = "testcreate";
+            String dbName2 = "testcreate2";
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP DATABASE IF EXISTS " + dbName);
+            stmt.execute("DROP DATABASE IF EXISTS " + dbName2);
+            stmt.close();
+            Properties props = new Properties();
+            props.setProperty("createDatabaseIfNotExist", "true");
+            props.setProperty("DBNAME", dbName2);
+
+            Connection conn1 = DriverManager.getConnection("jdbc:oceanbase://" + hostname + ":"
+                                                           + port + "/" + dbName + "?user="
+                                                           + username + "&password=" + password,
+                props);
+            System.out.println("conn1 = " + conn1);
+            Statement stmt1 = conn1.createStatement();
+            ResultSet rs = stmt1.executeQuery("show databases like '" + dbName + "%'");
+            assertTrue(rs.next());
+            assertEquals(dbName2, rs.getString(1));
+            stmt1.execute("DROP DATABASE IF EXISTS " + dbName);
+            stmt1.execute("DROP DATABASE IF EXISTS " + dbName2);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     // test for aone 40082115
     @Test
     public void fixClobLengthError() {
