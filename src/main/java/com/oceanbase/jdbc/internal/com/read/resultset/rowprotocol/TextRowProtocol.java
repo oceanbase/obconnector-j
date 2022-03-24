@@ -773,6 +773,7 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+                int nanoCount = 0;
                 int nanoBegin = -1;
                 int[] timestampsPart = new int[] { 0, 0, 0, 0, 0, 0, 0 };
                 int partIdx = 0;
@@ -793,7 +794,9 @@ public class TextRowProtocol extends RowProtocol {
                                                    getCurrentEncoding(columnInfo.getColumnType()))
                                                + "'");
                     }
-
+                    if (nanoBegin != -1) {
+                        nanoCount++;
+                    }
                     timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
                 }
                 if (timestampsPart[0] == 0 && timestampsPart[1] == 0 && timestampsPart[2] == 0
@@ -802,12 +805,9 @@ public class TextRowProtocol extends RowProtocol {
                     lastValueNull |= BIT_LAST_ZERO_DATE;
                     return null;
                 }
-
-                // fix non leading tray for nanoseconds
-                if (nanoBegin > 0) {
-                    for (int begin = 0; begin < 6 - (pos + length - nanoBegin - 1); begin++) {
-                        timestampsPart[6] = timestampsPart[6] * 10;
-                    }
+                // timestampsPart[6] the number of nanos
+                for (int i = nanoCount; i <= 8; i++) {
+                    timestampsPart[6] = timestampsPart[6] * 10;
                 }
 
                 Timestamp timestamp;
@@ -829,7 +829,6 @@ public class TextRowProtocol extends RowProtocol {
                     calendar.set(Calendar.HOUR_OF_DAY, timestampsPart[3]);
                     calendar.set(Calendar.MINUTE, timestampsPart[4]);
                     calendar.set(Calendar.SECOND, timestampsPart[5]);
-                    calendar.set(Calendar.MILLISECOND, timestampsPart[6] / 1000000);
                     timestamp = new Timestamp(calendar.getTime().getTime());
                 }
                 timestamp.setNanos(timestampsPart[6]);

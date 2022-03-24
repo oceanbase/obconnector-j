@@ -1203,4 +1203,23 @@ public class Bugfix extends BaseTest {
             fail();
         }
     }
+
+    @Test
+    public void testGetObjectTimestamp40336255() {
+
+        Timestamp timestamp = Timestamp.valueOf("2020-12-12 12:12:12.1");
+        ResultSet rs = null;
+        try {
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+            ps.setTimestamp(1, timestamp);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(timestamp, rs.getTimestamp(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
 }

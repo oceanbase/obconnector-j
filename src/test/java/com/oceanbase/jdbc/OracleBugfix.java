@@ -2555,4 +2555,43 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testGetObjectTimestampBug39354335() {
+        try {
+            PreparedStatement ps = sharedConnection.prepareStatement("select ? from dual");
+            Timestamp timestamp = Timestamp.valueOf("2020-12-12 12:12:12.333");
+            ps.setTimestamp(1, timestamp);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(timestamp, rs.getTimestamp(1));
+            assertEquals(String.valueOf(timestamp), rs.getObject(1, String.class));
+            assertEquals(timestamp, rs.getObject(1, Timestamp.class));
+
+            try {
+                rs = sharedConnection.createStatement().executeQuery(
+                    "select '2020-12-12 12:12:12.333' from dual");
+                assertTrue(rs.next());
+                assertEquals(String.valueOf(timestamp), rs.getObject(1, String.class));
+                assertEquals(timestamp, rs.getTimestamp(1));
+                assertEquals(timestamp, rs.getObject(1, Timestamp.class));
+            } catch (AssertionError e) {
+                e.printStackTrace();
+            }
+
+            try {
+                rs = sharedConnection
+                    .prepareStatement("select '2020-12-12 12:12:12.333' from dual").executeQuery();
+                assertTrue(rs.next());
+                assertEquals(String.valueOf(timestamp), rs.getObject(1, String.class));
+                assertEquals(timestamp, rs.getTimestamp(1));
+                assertEquals(timestamp, rs.getObject(1, Timestamp.class));
+            } catch (AssertionError e) {
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

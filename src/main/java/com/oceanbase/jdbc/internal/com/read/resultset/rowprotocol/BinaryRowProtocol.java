@@ -1174,7 +1174,6 @@ public class BinaryRowProtocol extends RowProtocol {
                                 seconds = Integer.parseInt(rawValue.substring(17, 19));
                             }
                             nanos = extractNanos(rawValue);
-                            microseconds = extractNanos(rawValue) / 1000000;
                         }
                     }
                 }
@@ -1192,7 +1191,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     if (length > 7) {
                         microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
                                         + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
-                        nanos = microseconds * 1000000;
+                        nanos = microseconds * 1000;
                     }
                 }
         }
@@ -1210,9 +1209,6 @@ public class BinaryRowProtocol extends RowProtocol {
         synchronized (calendar) {
             calendar.clear();
             calendar.set(year, month - 1, day, hour, minutes, seconds);
-            if (nanos != 0) {
-                calendar.set(Calendar.MILLISECOND, microseconds);
-            }
             tt = new Timestamp(calendar.getTimeInMillis());
         }
         tt.setNanos(nanos);
