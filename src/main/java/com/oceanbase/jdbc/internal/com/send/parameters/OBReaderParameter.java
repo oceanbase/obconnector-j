@@ -95,9 +95,6 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
-        if (reader != null) {
-            reader.reset();
-        }
         if (!hasLobLocator && reader != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
@@ -125,9 +122,6 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        if (reader != null) {
-            reader.reset();
-        }
         if (hasLobLocator && bytes != null) {
             pos.writeFieldLength(bytes.length);
             pos.write(bytes, 0, bytes.length);
@@ -158,9 +152,6 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
-        if (reader != null) {
-            reader.reset();
-        }
         int pieceLen = options.pieceLength;
         byte piece;
         char[] buffer = new char[pieceLen];

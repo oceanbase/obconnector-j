@@ -46,8 +46,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Clob;
@@ -1205,6 +1204,164 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testAone40296580() throws IOException {
+        Assume.assumeFalse(sharedUsePrepare()); // some version send long data is not supported
+        Connection conn = null;
+        Statement stmt = null;
+        String s1 = "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。然侍卫之臣不懈于内，忠志之士忘身于外者，盖追先帝之殊遇，欲报之于陛下也。诚宜开张圣听，以光先帝遗德，恢弘志士之气，不宜妄自菲薄，引喻失义，以塞忠谏之路也。\n宫中府中，俱为一体，陟罚臧否，不宜异同。若有作奸犯科及为忠善者，宜付有司论其刑赏，以昭陛下平明之理，不宜偏私，使内外异法也。";
+        String s2 = "52,44,112,97,115,115,119,111,114,100,58,52,52,52,52,125";
+        File txt = File.createTempFile("temp1", ".txt");
+        File txt_s = File.createTempFile("temp2", ".txt");
+        txt.deleteOnExit();
+        txt_s.deleteOnExit();
+
+        FileWriter writer1 = new FileWriter(txt);
+        writer1.write(s1);
+        writer1.flush();
+        writer1.close();
+
+        FileWriter writer2 = new FileWriter(txt_s);
+        writer2.write(s2);
+        writer2.flush();
+        writer2.close();
+        try {
+            conn = sharedConnection;
+            stmt = conn.createStatement();
+            stmt.executeUpdate("drop table if exists test");
+            stmt.executeUpdate("create table test(id INT, c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LONGTEXT, c5 VARCHAR(100));");
+            FileReader fis1 = new FileReader(txt_s);
+            FileReader fis2 = new FileReader(txt);
+            FileReader fis3 = new FileReader(txt);
+            FileReader fis4 = new FileReader(txt);
+            FileReader fis5 = new FileReader(txt_s);
+
+            String insert_sql = "Insert into test values(?,?,?,?,?,?);";
+            PreparedStatement insert_stmt = conn.prepareStatement(insert_sql);
+            insert_stmt.setInt(1, 1);
+            insert_stmt.setCharacterStream(2, fis1);
+            insert_stmt.setCharacterStream(3, fis2);
+            insert_stmt.setCharacterStream(4, fis3);
+            insert_stmt.setCharacterStream(5, fis4);
+            insert_stmt.setCharacterStream(6, fis5);
+            insert_stmt.executeUpdate();
+
+            String insert_null_sql = "Insert into test values(?,?,?,?,?,?);";
+            PreparedStatement insert_null_stmt = conn.prepareStatement(insert_null_sql);
+            insert_null_stmt.setInt(1, 2);
+            insert_null_stmt.setCharacterStream(2, (Reader) null);
+            insert_null_stmt.setCharacterStream(3, (Reader) null);
+            insert_null_stmt.setCharacterStream(4, (Reader) null);
+            insert_null_stmt.setCharacterStream(5, (Reader) null);
+            insert_null_stmt.setCharacterStream(6, (Reader) null);
+            insert_null_stmt.executeUpdate();
+
+            ResultSet rs = stmt.executeQuery("select * from test where id=1");
+            while (rs.next()) {
+                for (int i = 2; i <= 6; i++) {
+                    System.out.println(rs.getClob(i).getSubString((long) 1,
+                        Math.toIntExact(rs.getClob(i).length())));
+                }
+                ;
+            }
+            stmt.executeUpdate("drop table test;");
+
+            insert_stmt.close();
+            insert_null_stmt.close();
+            stmt.close();
+            fis1.close();
+            fis2.close();
+            fis3.close();
+            fis4.close();
+            fis5.close();
+        } catch (SQLException se) {
+            se.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException se2) {
+            }
+        }
+    }
+
+    @Test
+    public void testAone40298448() {
+        Connection conn;
+        Statement stmt;
+        try {
+            conn = sharedConnection;
+            stmt = conn.createStatement();
+            stmt.executeUpdate("drop table if exists test;");
+            stmt.executeUpdate("create table test(b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB, b5 VARBINARY(200), c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LONGTEXT, c5 VARCHAR(20));");
+
+            String s = "1231abcd奥星贝斯";
+            Blob b = new com.oceanbase.jdbc.Blob(s.getBytes(StandardCharsets.UTF_8));
+            java.sql.Clob c = conn.createClob();
+            Writer writer = c.setCharacterStream(1);
+            writer.write(s);
+            writer.flush();
+
+            PreparedStatement insert_stmt = conn
+                .prepareStatement("Insert into test values(?,?,?,?,?,?,?,?,?,?);");
+            insert_stmt.setBlob(1, b);
+            insert_stmt.setBlob(2, b);
+            insert_stmt.setBlob(3, b);
+            insert_stmt.setBlob(4, b);
+            insert_stmt.setBlob(5, b);
+            insert_stmt.setClob(6, c);
+            insert_stmt.setClob(7, c);
+            insert_stmt.setClob(8, c);
+            insert_stmt.setClob(9, c);
+            insert_stmt.setClob(10, c);
+            insert_stmt.addBatch();
+            insert_stmt.executeBatch();
+
+            ResultSet rs = conn.createStatement().executeQuery("select * from test limit 1;");
+            while (rs.next()) {
+                for (int i = 1; i <= 5; i++) {
+                    Assert.assertEquals(s,
+                        new String(rs.getBlob(i).getBytes(1, (int) rs.getBlob(i).length()),
+                            StandardCharsets.UTF_8));
+                }
+                for (int i = 6; i <= 10; i++) {
+                    Assert.assertEquals(
+                        s,
+                        rs.getClob(i).getSubString((long) 1,
+                            Math.toIntExact(rs.getClob(i).length())));
+                }
+                ;
+            }
+
+            String delete_sql = "delete from test where b1=? and b2=? and b3=? and b4=? and b5=? and c1=? and c2=? and c3=? and c4=? and c5=?;";
+            PreparedStatement delete_stmt = conn.prepareStatement(delete_sql);
+            delete_stmt.setBlob(1, b);
+            delete_stmt.setBlob(2, b);
+            delete_stmt.setBlob(3, b);
+            delete_stmt.setBlob(4, b);
+            delete_stmt.setBlob(5, b);
+            delete_stmt.setClob(6, c);
+            delete_stmt.setClob(7, c);
+            delete_stmt.setClob(8, c);
+            delete_stmt.setClob(9, c);
+            delete_stmt.setClob(10, c);
+            delete_stmt.executeUpdate();
+
+            ResultSet rs1 = stmt.executeQuery("select * from test;");
+            while (rs1.next()) {
+                Assert.assertNull(rs1);
+            }
+            stmt.executeUpdate("drop table test;");
+            stmt.close();
+            insert_stmt.close();
+            delete_stmt.close();
+        } catch (Exception se) {
+            se.printStackTrace();
+        }
+    }
+
+    @Test
     public void testGetObjectTimestamp40336255() {
 
         Timestamp timestamp = Timestamp.valueOf("2020-12-12 12:12:12.1");
@@ -1221,5 +1378,4 @@ public class Bugfix extends BaseTest {
         }
 
     }
-
 }

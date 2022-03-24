@@ -297,17 +297,18 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                         setLobLocator(parameterIndex, blob);
                     } else {
                         setParameter(parameterIndex,
-                            new OBStreamParameter(true, blob.getBinaryStream(), blob.length(),
+                            new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
                                 noBackslashEscapes));
                     }
                 } else {
                     setParameter(parameterIndex,
-                        new OBStreamParameter(false, blob.getBinaryStream(), blob.length(),
+                        new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
                             noBackslashEscapes));
                 }
             } else {
                 setParameter(parameterIndex,
-                    new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
+                    new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
+                        noBackslashEscapes));
             }
             hasLongData = true;
         } else {
@@ -424,15 +425,15 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 if ((((Clob) clob).getLocator() != null)
                     && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
                     byte[] data = ((Clob) clob).getLocator().binaryData;
-                    setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
-                        noBackslashEscapes));
+                    setParameter(parameterIndex, new ByteArrayParameter(data, noBackslashEscapes));
                 } else {
-                    setParameter(parameterIndex, new OBReaderParameter(clob.getCharacterStream(),
-                        clob.length(), noBackslashEscapes));
+                    setParameter(parameterIndex,
+                        new ByteArrayParameter(((Clob) clob).getBytes(1, ((Clob) clob).length),
+                            noBackslashEscapes));
                 }
             } else {
                 setParameter(parameterIndex,
-                    new ReaderParameter(clob.getCharacterStream(), clob.length(),
+                    new ByteArrayParameter(((Clob) clob).getBytes(1, ((Clob) clob).length),
                         noBackslashEscapes));
             }
             hasLongData = true;

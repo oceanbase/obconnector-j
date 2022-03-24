@@ -88,7 +88,6 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
-        reader.reset();
         pos.write(QUOTE);
         if (length == Long.MAX_VALUE) {
             pos.write(reader, true, noBackslashEscapes);
@@ -114,7 +113,6 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        reader.reset();
         if (length == Long.MAX_VALUE) {
             pos.write(reader, false, noBackslashEscapes);
         } else {
@@ -166,7 +164,6 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writeLongData(PacketOutputStream writer, Options options, int statementId,
                                  short paramIndex) throws IOException {
-        reader.reset();
         char[] buffer = new char[BLOB_STREAM_READ_BUF_SIZE];
         int len;
         int totoalReadLen = 0;

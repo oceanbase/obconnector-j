@@ -361,7 +361,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       executeBatchInternal(queryParameterSize);
       retBatch = results.getCmdInformation().getUpdateCounts();
     }
-    if ((batchQueries.size()) >  0) {
+    if (batchQueries != null && (batchQueries.size()) >  0) {
       retBatchQuery = super.executeBatch();
     }
     // merge the return values

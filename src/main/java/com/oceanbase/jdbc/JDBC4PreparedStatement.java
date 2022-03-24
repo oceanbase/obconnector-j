@@ -317,7 +317,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         lock.unlock();
       }
     }
-    if ((batchQueries.size()) >  0) {
+    if (batchQueries != null && (batchQueries.size()) >  0) {
       retBatchQuery = super.executeBatch();
     }
     // merge the return values
