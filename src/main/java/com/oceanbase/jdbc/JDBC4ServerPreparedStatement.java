@@ -50,9 +50,12 @@
  */
 package com.oceanbase.jdbc;
 
+import static com.oceanbase.jdbc.OceanBaseConnection.CALLABLE_STATEMENT_PATTERN;
+
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.*;
+import java.util.regex.Matcher;
 
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
@@ -302,7 +305,22 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public void addBatch(final String sql) throws SQLException {
-    super.addBatch(sql);
+    String querySetToServer = sql;
+    Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
+    if (this.protocol.isOracleMode()) {
+      if(matcher.matches()) {
+        querySetToServer = matcher.group(2);
+      }
+      if (options.supportNameBinding) {
+        querySetToServer = Utils.trimSQLString(sql, protocol.noBackslashEscapes(),
+            protocol.isOracleMode(), true);
+      }
+    } else {
+      if(matcher.matches()) {
+        querySetToServer = matcher.group(2);
+      }
+    }
+    super.addBatch(querySetToServer);
   }
 
   public void clearBatch() {
@@ -415,7 +433,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     checkClose();
     long [] retBatchQuery = new long[0];
 
-    if ((batchQueries.size()) >  0) {
+    if (batchQueries != null && (batchQueries.size()) >  0) {
       retBatchQuery =  super.executeLargeBatch();
     }
     return  retBatchQuery;

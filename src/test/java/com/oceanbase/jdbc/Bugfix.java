@@ -1204,6 +1204,42 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testCallStmtBatchSqlBug36022265_Mysql() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testCallaStmtBatch");
+            stmt.execute("create table testCallaStmtBatch (id BIGINT AUTO_INCREMENT PRIMARY KEY, c1 INT)");
+            stmt.execute("drop procedure if exists testCallaStmtBatchPro");
+            stmt.execute("create procedure testCallaStmtBatchPro(IN n INT) BEGIN INSERT INTO testCallaStmtBatch (c1) VALUES (n); END");
+
+            CallableStatement cs = conn.prepareCall("{CALL testCallaStmtBatchPro(?)}");
+            cs.setInt(1, 1);
+            cs.addBatch();
+            cs.setInt(1, 2);
+            cs.addBatch();
+            cs.addBatch("{CALL testCallaStmtBatchPro(3)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(4)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(5)}");
+
+            long[] counts = cs.executeLargeBatch();
+            System.out.println(Arrays.toString(counts));
+            assertEquals(5, counts.length);
+
+            ResultSet rs = cs.getGeneratedKeys();
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertEquals(1, rsmd.getColumnCount());
+            assertEquals(Types.BIGINT, rsmd.getColumnType(1));
+            rs = conn.createStatement().executeQuery("select count(*) from testCallaStmtBatch");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
     public void testAone40296580() throws IOException {
         Assume.assumeFalse(sharedUsePrepare()); // some version send long data is not supported
         Connection conn = null;
@@ -1376,6 +1412,5 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
-
     }
 }

@@ -2556,6 +2556,46 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testCallStmtBatchSqlBug36022265_Oracle() throws Exception {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table testCallaStmtBatch");
+            } catch (SQLException throwables) {
+                //                throwables.printStackTrace();
+            }
+            stmt.execute("create table testCallaStmtBatch (id int , c1 INT)");
+            stmt.execute("drop procedure if exists testCallaStmtBatchPro");
+            stmt.execute("create procedure testCallaStmtBatchPro(n IN  INT) IS BEGIN INSERT INTO testCallaStmtBatch (id,c1) VALUES (n,n); END");
+
+            CallableStatement cs = conn.prepareCall("{CALL testCallaStmtBatchPro(?)}");
+            cs.setInt(1, 1);
+            cs.addBatch();
+            cs.setInt(1, 2);
+            cs.addBatch();
+            cs.addBatch("{CALL testCallaStmtBatchPro(3)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(4)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(5)}");
+
+            long[] counts = cs.executeLargeBatch();
+            System.out.println(Arrays.toString(counts));
+            assertEquals(5, counts.length);
+
+            ResultSet rs = cs.getGeneratedKeys();
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertEquals(1, rsmd.getColumnCount());
+            assertEquals(Types.BIGINT, rsmd.getColumnType(1));
+            rs = conn.createStatement().executeQuery("select count(*) from testCallaStmtBatch");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
     public void testGetObjectTimestampBug39354335() {
         try {
             PreparedStatement ps = sharedConnection.prepareStatement("select ? from dual");

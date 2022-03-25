@@ -86,7 +86,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      * Pattern to check the correctness of callable statement query string Legal queries, as
      * documented in JDK have the form: {[?=]call[(arg1,..,,argn)]}
      */
-    private static final Pattern     CALLABLE_STATEMENT_PATTERN          = Pattern
+    public static final Pattern      CALLABLE_STATEMENT_PATTERN          = Pattern
                                                                              .compile(
                                                                                  "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
                                                                                          + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"

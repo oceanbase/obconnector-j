@@ -422,7 +422,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                     retBatch = executeLargeBatchInternal(querySize);
                 }
 
-                if ((batchQueries.size()) > 0) {
+                if (batchQueries != null && (batchQueries.size()) > 0) {
                     retBatchQuery = super.executeLargeBatchQuerys();
                 }
                 long[] ret = new long[retBatch.length + retBatchQuery.length];
