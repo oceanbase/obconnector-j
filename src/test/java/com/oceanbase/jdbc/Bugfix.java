@@ -50,9 +50,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Clob;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -1410,6 +1408,49 @@ public class Bugfix extends BaseTest {
             assertEquals(timestamp, rs.getTimestamp(1));
         } catch (SQLException e) {
             e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testBug84189() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            createTable("testBug84189",
+                "d DATE NULL, t TIME NULL, dt DATETIME NULL, ts TIMESTAMP NULL, ot VARCHAR(100), odt VARCHAR(100)");
+            stmt.execute("INSERT INTO testBug84189 VALUES ('2017-01-01', '10:20:30', '2017-01-01 10:20:30', '2017-01-01 10:20:30', '10:20:30+04:00', '2017-01-01T10:20:30+04:00')");
+            stmt.execute("INSERT INTO testBug84189 VALUES (NULL, NULL, NULL, NULL, NULL, NULL)");
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM testBug84189");
+            assertTrue(rs.next());
+            assertEquals(LocalDate.of(2017, 1, 1), rs.getObject(1, LocalDate.class));
+            assertEquals(LocalTime.of(10, 20, 30), rs.getObject(2, LocalTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(3, LocalDateTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(4, LocalDateTime.class));
+            assertEquals(OffsetTime.of(10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(5, OffsetTime.class));
+            assertEquals(OffsetDateTime.of(2017, 01, 01, 10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(6, OffsetDateTime.class));
+
+            assertEquals(LocalDate.class, rs.getObject(1, LocalDate.class).getClass());
+            assertEquals(LocalTime.class, rs.getObject(2, LocalTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(3, LocalDateTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(4, LocalDateTime.class).getClass());
+            assertEquals(OffsetTime.class, rs.getObject(5, OffsetTime.class).getClass());
+            assertEquals(OffsetDateTime.class, rs.getObject(6, OffsetDateTime.class).getClass());
+
+            assertTrue(rs.next());
+            assertNull(rs.getObject(1, LocalDate.class));
+            assertNull(rs.getObject(2, LocalTime.class));
+            assertNull(rs.getObject(3, LocalDateTime.class));
+            assertNull(rs.getObject(4, LocalDateTime.class));
+            assertNull(rs.getObject(5, OffsetTime.class));
+            assertNull(rs.getObject(6, OffsetDateTime.class));
+            assertFalse(rs.next());
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
             Assert.fail();
         }
     }

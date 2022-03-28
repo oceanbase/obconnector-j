@@ -60,6 +60,7 @@ import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -1790,9 +1791,20 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return type.cast(row.getInternalZonedDateTime(col, ZonedDateTime.class, timeZone));
 
         } else if (type.equals(OffsetDateTime.class)) {
-            ZonedDateTime tmpZonedDateTime = row.getInternalZonedDateTime(col,
-                OffsetDateTime.class, timeZone);
-            return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime.toOffsetDateTime());
+            if (!this.protocol.isOracleMode()) {
+                try {
+                    return type.cast(OffsetDateTime.parse(this.getString(columnIndex)));
+                } catch (DateTimeParseException dateTimeParseException) {
+                    SQLException sqlException = new SQLException();
+                    sqlException.initCause(dateTimeParseException);
+                    throw sqlException;
+                }
+            } else {
+                ZonedDateTime tmpZonedDateTime = row.getInternalZonedDateTime(col,
+                    OffsetDateTime.class, timeZone);
+                return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime
+                    .toOffsetDateTime());
+            }
 
         } else if (type.equals(OffsetDateTime.class)) {
             LocalDate localDate = row.getInternalLocalDate(col, timeZone);
