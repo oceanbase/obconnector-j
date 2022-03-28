@@ -1705,7 +1705,7 @@ public class Utils {
     public final String strategy;
     public final List<HostAddress> hostAddresses;
     public final ConcurrentHashMap<HostAddress,Integer> weights;
-    public LoadBlanceInfo(HaMode haVal,String strategyVal,List<HostAddress> listVal,ConcurrentHashMap<HostAddress,Integer> weightsLists) {haMode = haVal; hostAddresses  = new ArrayList<>(listVal);this.strategy = strategyVal; weights = new ConcurrentHashMap<>(weightsLists) ; }
+    public LoadBlanceInfo(HaMode haVal,String strategyVal,List<HostAddress> listVal,ConcurrentHashMap<HostAddress,Integer> weightsLists) {haMode = haVal; hostAddresses  = new ArrayList<>(listVal);this.strategy = strategyVal == null ? "random" : strategyVal; weights =weightsLists == null ? null : new ConcurrentHashMap<>(weightsLists) ; }
 
     public LoadBlanceInfo clone(){
       return  new LoadBlanceInfo(this.haMode,this.strategy,this.hostAddresses,this.weights);
