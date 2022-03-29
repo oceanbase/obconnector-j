@@ -733,7 +733,7 @@ public class Options implements Cloneable {
         result = 31 * result + (loadBalanceStrategy != null ? loadBalanceStrategy.hashCode() : 0);
         result = 31 * result + (serverAffinityOrder != null ? serverAffinityOrder.hashCode() : 0);
         result = 31 * result + (blobSendChunkSize);
-      result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
+        result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
         return result;
     }
     @Override

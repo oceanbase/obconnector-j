@@ -881,6 +881,7 @@ public enum DefaultOptions {
   BLOB_SEND_CHUNK_SIZE(
           "blobSendChunkSize",
           1024*1204,
+          0,
           "2.2.9",
           "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
           false

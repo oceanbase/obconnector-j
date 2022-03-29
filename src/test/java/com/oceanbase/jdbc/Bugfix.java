@@ -1454,4 +1454,15 @@ public class Bugfix extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testDataSource()  {
+        try {
+            OceanBaseDataSource ds = new OceanBaseDataSource("localhost", 1130, "db");
+            Connection connection = ds.getConnection("username", "password");
+        } catch (Exception throwables) {
+            throwables.printStackTrace();
+            Assert.assertFalse(throwables instanceof ClassCastException);
+        }
+    }
 }
