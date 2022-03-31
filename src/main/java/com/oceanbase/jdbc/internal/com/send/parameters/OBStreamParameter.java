@@ -45,7 +45,9 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
+import com.oceanbase.jdbc.Lob;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -54,11 +56,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
 
-    private final InputStream is;
-    private final long        length;
-    private final boolean     noBackslashEscapes;
-    private final boolean     hasLobLocator;
-    private final byte[]      bytes;
+    private InputStream   is;
+    private final Lob     lob;
+    private final long    length;
+    private final boolean noBackslashEscapes;
+    private final boolean hasLobLocator;
+    private final byte[]  bytes;
 
     /**
      * Constructor.
@@ -74,6 +77,7 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
         this.hasLobLocator = hasLobLocator;
         this.bytes = null;
+        this.lob = null;
     }
 
     public OBStreamParameter(boolean hasLobLocator, byte[] bytes, long length,
@@ -83,6 +87,16 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
         this.hasLobLocator = hasLobLocator;
         this.bytes = bytes;
+        this.lob = null;
+    }
+
+    public OBStreamParameter(boolean hasLobLocator, Lob lob, long length, boolean noBackslashEscapes) {
+        this.is = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
+        this.hasLobLocator = hasLobLocator;
+        this.bytes = null;
+        this.lob = lob;
     }
 
     public OBStreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
@@ -93,6 +107,18 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
         this(false, is, Long.MAX_VALUE, noBackSlashEscapes);
     }
 
+    private void setInputStream() throws IOException {
+        if (is == null && lob != null) {
+            try {
+                is = lob.getBinaryStream();
+            } catch (SQLException throwables) {
+                IOException ioException = new IOException();
+                ioException.initCause(throwables);
+                throw ioException;
+            }
+        }
+    }
+
     /**
      * Write stream in text format.
      *
@@ -100,6 +126,7 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
+        setInputStream();
         if (is != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
@@ -127,6 +154,7 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
+        setInputStream();
         if (hasLobLocator && bytes != null) {
             pos.writeFieldLength(bytes.length);
             pos.write(bytes);
@@ -159,6 +187,7 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
+        setInputStream();
         int pieceLen = options.pieceLength;
         byte piece;
         byte[] buffer = new byte[pieceLen];

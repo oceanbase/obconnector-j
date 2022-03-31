@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 import java.io.IOException;
 import java.io.Reader;
 
+import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -60,7 +61,8 @@ import com.oceanbase.jdbc.util.Options;
 
 public class ReaderParameter implements Cloneable, LongDataParameterHolder {
 
-    private final Reader  reader;
+    private Reader        reader;
+    private Clob          clob;
     private final long    length;
     private final boolean noBackslashEscapes;
 
@@ -75,10 +77,24 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.clob = null;
+    }
+
+    public ReaderParameter(Clob clob, long length, boolean noBackslashEscapes) {
+        this.clob = clob;
+        this.reader = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
 
     public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
+    }
+
+    private void setReader() {
+        if (reader == null && clob != null) {
+            reader = clob.getCharacterStream();
+        }
     }
 
     /**
@@ -88,6 +104,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
+        setReader();
         pos.write(QUOTE);
         if (length == Long.MAX_VALUE) {
             pos.write(reader, true, noBackslashEscapes);
@@ -113,6 +130,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
+        setReader();
         if (length == Long.MAX_VALUE) {
             pos.write(reader, false, noBackslashEscapes);
         } else {
@@ -164,6 +182,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writeLongData(PacketOutputStream writer, Options options, int statementId,
                                  short paramIndex) throws IOException {
+        setReader();
         char[] buffer = new char[BLOB_STREAM_READ_BUF_SIZE];
         int len;
         int totoalReadLen = 0;

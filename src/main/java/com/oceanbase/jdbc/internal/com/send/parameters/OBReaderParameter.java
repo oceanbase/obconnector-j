@@ -46,6 +46,7 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 import java.io.IOException;
 import java.io.Reader;
 
+import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -53,7 +54,8 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
 
-    private final Reader  reader;
+    private Reader        reader;
+    private final Clob    clob;
     private final long    length;
     private final boolean noBackslashEscapes;
     private final boolean hasLobLocator;
@@ -72,6 +74,16 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
         this.bytes = null;
         this.hasLobLocator = false;
+        this.clob = null;
+    }
+
+    public OBReaderParameter(Clob clob, long length, boolean noBackslashEscapes) {
+        this.clob = clob;
+        this.reader = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
+        this.bytes = null;
+        this.hasLobLocator = false;
     }
 
     public OBReaderParameter(Reader reader, boolean noBackslashEscapes) {
@@ -86,6 +98,13 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
         this.bytes = bytes;
         this.hasLobLocator = hasLobLocator;
+        this.clob = null;
+    }
+
+    private void setReader() {
+        if (reader == null && clob != null) {
+            reader = clob.getCharacterStream();
+        }
     }
 
     /**
@@ -95,6 +114,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(PacketOutputStream pos) throws IOException {
+        setReader();
         if (!hasLobLocator && reader != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
@@ -122,6 +142,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
+        setReader();
         if (hasLobLocator && bytes != null) {
             pos.writeFieldLength(bytes.length);
             pos.write(bytes, 0, bytes.length);
@@ -152,6 +173,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
+        setReader();
         int pieceLen = options.pieceLength;
         byte piece;
         char[] buffer = new char[pieceLen];

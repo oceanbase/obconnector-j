@@ -52,7 +52,9 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
+import com.oceanbase.jdbc.Lob;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -60,9 +62,10 @@ import com.oceanbase.jdbc.util.Options;
 
 public class StreamParameter implements Cloneable, LongDataParameterHolder {
 
-    private final InputStream is;
-    private final long        length;
-    private final boolean     noBackslashEscapes;
+    private InputStream   is;
+    private final Lob     lob;
+    private final long    length;
+    private final boolean noBackslashEscapes;
 
     /**
      * Constructor.
@@ -75,10 +78,30 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        this.lob = null;
+    }
+
+    public StreamParameter(Lob lob, long length, boolean noBackslashEscapes) {
+        this.lob = lob;
+        this.is = null;
+        this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
 
     public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
         this(is, Long.MAX_VALUE, noBackSlashEscapes);
+    }
+
+    private void setInputStream() throws IOException {
+        if (is == null && lob != null) {
+            try {
+                is = lob.getBinaryStream();
+            } catch (SQLException throwables) {
+                IOException ioException = new IOException();
+                ioException.initCause(throwables);
+                throw ioException;
+            }
+        }
     }
 
     /**
@@ -88,6 +111,7 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
+        setInputStream();
         pos.write(BINARY_INTRODUCER);
         if (length == Long.MAX_VALUE) {
             pos.write(is, true, noBackslashEscapes);
@@ -113,6 +137,7 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
+        setInputStream();
         if (length == Long.MAX_VALUE) {
             pos.write(is, false, noBackslashEscapes);
         } else {
@@ -164,6 +189,7 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writeLongData(PacketOutputStream writer, Options options, int statementId,
                                  short paramIndex) throws IOException {
+        setInputStream();
         byte[] buffer = new byte[BLOB_STREAM_READ_BUF_SIZE];
         int len;
         int totoalReadLen = 0;

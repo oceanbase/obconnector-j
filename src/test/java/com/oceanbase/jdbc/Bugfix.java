@@ -1456,6 +1456,39 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testLobMysql() {
+        try {
+            createTable("testLobMysql", "c1 varchar(100), c2 blob");
+            String sql = "insert into testLobMysql values (?, ?)";
+            PreparedStatement ps = sharedConnection.prepareStatement(sql);
+            String str = "abcABC中文";
+            Clob clob = new com.oceanbase.jdbc.Clob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str, 0, 8);
+            writer.flush();
+            byte[] bytes = str.getBytes();
+            Blob blob = new Blob(bytes);
+            ps.setClob(1, clob);
+            ps.setBlob(2, blob);
+            assertEquals(1, ps.executeUpdate());
+            ps.setClob(1, clob);
+            ps.setBlob(2, blob);
+            assertEquals(1, ps.executeUpdate());
+
+            ResultSet rs = sharedConnection.prepareStatement("select * from testLobMysql")
+                .executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+    @Test
     public void testDataSource()  {
         try {
             OceanBaseDataSource ds = new OceanBaseDataSource("localhost", 1130, "db");

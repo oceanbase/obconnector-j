@@ -48,6 +48,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -2349,7 +2350,7 @@ public class OracleBugfix extends BaseOracleTest {
                 //                e.printStackTrace();
             }
             conn.createStatement().execute("create table AUTHORITIES(id int)");
-            String sql = "create or replacOceanBaseClobTeste TRIGGER AUTHORITIES_ID_TRI BEFORE\n"
+            String sql = "create or replace TRIGGER AUTHORITIES_ID_TRI  BEFORE\n"
                          + "INSERT ON \"AUTHORITIES\"\n"
                          + "REFERENCING NEW AS \"new\" OLD AS \"old\"\n" + "FOR EACH ROW\n"
                          + "ENABLE\n" + "WHEN (new.id is null)\n" + "BEGIN\n"
@@ -2629,6 +2630,85 @@ public class OracleBugfix extends BaseOracleTest {
                 e.printStackTrace();
             }
         } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    // test for aone 40467149
+    @Test
+    public void testLobOracle() {
+        try {
+            Connection conn = sharedConnection;
+            createTable("testLob", "c1 clob, c2 blob");
+            String sql = "insert into testLob values (?, ?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            String str = "abcABC中文";
+            java.sql.Clob clob = new com.oceanbase.jdbc.Clob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str, 0, 8);
+            writer.flush();
+            byte[] bytes = str.getBytes();
+            Blob blob = new Blob(bytes);
+
+            ps.setClob(1, clob);
+            ps.setBlob(2, blob);
+            assertEquals(1, ps.executeUpdate());
+            ps.setClob(1, clob);
+            ps.setBlob(2, blob);
+            assertEquals(1, ps.executeUpdate());
+
+            ResultSet rs = conn.prepareStatement("select * from testLob").executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testLobOracle2() {
+        try {
+            createTable("testLobOracle_2", "c1 clob, c2 blob");
+            String sql = "insert into testLobOracle_2 values (?, ?)";
+            PreparedStatement ps = sharedConnection.prepareStatement(sql);
+            String str = "abcABC中文";
+            java.sql.Clob clob = new com.oceanbase.jdbc.Clob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str, 0, 8);
+            writer.flush();
+            byte[] bytes = str.getBytes();
+            Blob blob = new Blob(bytes);
+
+            ps.setClob(1, clob);
+            ps.setBlob(2, blob);
+            assertEquals(1, ps.executeUpdate());
+
+            ResultSet rs = sharedConnection.prepareStatement("select * from testLobOracle_2")
+                .executeQuery();
+            assertTrue(rs.next());
+            java.sql.Clob clob1 = rs.getClob(1);
+            java.sql.Blob blob1 = rs.getBlob(2);
+            sharedConnection.createStatement().execute("delete from testLobOracle_2");
+            ps = sharedConnection.prepareStatement(sql);
+            ps.setClob(1, clob1);
+            ps.setBlob(2, blob1);
+            assertEquals(1, ps.executeUpdate());
+            ps.setClob(1, clob1);
+            ps.setBlob(2, blob1);
+            assertEquals(1, ps.executeUpdate());
+
+            rs = sharedConnection.prepareStatement("select * from testLobOracle_2").executeQuery();
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+            assertTrue(rs.next());
+            assertEquals(str, rs.getString(1));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+            System.out.println("test finished ");
+        } catch (Exception e) {
             e.printStackTrace();
             fail();
         }

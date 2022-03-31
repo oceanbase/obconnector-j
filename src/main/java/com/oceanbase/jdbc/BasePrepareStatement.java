@@ -297,18 +297,24 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                         setLobLocator(parameterIndex, blob);
                     } else {
                         setParameter(parameterIndex,
-                            new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
+                            new OBStreamParameter(true, blob.getBinaryStream(), blob.length(),
                                 noBackslashEscapes));
                     }
+                } else {
+                    setParameter(parameterIndex,
+                        new OBStreamParameter(false, blob.getBinaryStream(), blob.length(),
+                            noBackslashEscapes));
+                }
+            } else {
+                if (options.useServerPrepStmts) {
+                    setParameter(parameterIndex, new StreamParameter((Lob) blob, blob.length(),
+                        noBackslashEscapes));
                 } else {
                     setParameter(parameterIndex,
                         new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
                             noBackslashEscapes));
                 }
-            } else {
-                setParameter(parameterIndex,
-                    new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
-                        noBackslashEscapes));
+
             }
             hasLongData = true;
         } else {
@@ -425,16 +431,21 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 if ((((Clob) clob).getLocator() != null)
                     && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
                     byte[] data = ((Clob) clob).getLocator().binaryData;
-                    setParameter(parameterIndex, new ByteArrayParameter(data, noBackslashEscapes));
+                    setParameter(parameterIndex, new OBReaderParameter((Clob) clob, clob.length(),
+                        noBackslashEscapes));
                 } else {
-                    setParameter(parameterIndex,
-                        new ByteArrayParameter(((Clob) clob).getBytes(1, ((Clob) clob).length),
-                            noBackslashEscapes));
+                    setParameter(parameterIndex, new OBReaderParameter((Clob) clob, clob.length(),
+                        noBackslashEscapes));
                 }
             } else {
-                setParameter(parameterIndex,
-                    new ByteArrayParameter(((Clob) clob).getBytes(1, ((Clob) clob).length),
+                if (options.useServerPrepStmts) {
+                    setParameter(parameterIndex, new ReaderParameter((Clob) clob, clob.length(),
                         noBackslashEscapes));
+                } else {
+                    setParameter(parameterIndex,
+                        new StringParameter(clob.getSubString(1, (int) clob.length()),
+                            noBackslashEscapes, protocol.getEncoding()));
+                }
             }
             hasLongData = true;
         } else {

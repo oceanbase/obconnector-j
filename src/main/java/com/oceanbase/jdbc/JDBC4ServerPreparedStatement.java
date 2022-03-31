@@ -312,7 +312,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         querySetToServer = matcher.group(2);
       }
       if (options.supportNameBinding) {
-        querySetToServer = Utils.trimSQLString(sql, protocol.noBackslashEscapes(),
+        querySetToServer = Utils.trimSQLString(querySetToServer, protocol.noBackslashEscapes(),
             protocol.isOracleMode(), true);
       }
     } else {
