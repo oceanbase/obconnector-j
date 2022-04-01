@@ -394,6 +394,16 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     return  ret;
   }
 
+  public int[] executeBatchQuerys() throws SQLException {
+    checkClose();
+    int [] retBatchQuery = new int[0];
+
+    if (batchQueries != null && (batchQueries.size()) >  0) {
+      retBatchQuery =  super.executeBatch();
+    }
+    return  retBatchQuery;
+  }
+
   /**
    * Execute batch, like executeBatch(), with returning results with long[]. For when row count may
    * exceed Integer.MAX_VALUE.

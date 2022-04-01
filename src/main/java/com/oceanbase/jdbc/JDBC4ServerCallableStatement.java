@@ -370,11 +370,27 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     public int[] executeBatch() throws SQLException {
         if (!hasInOutParameters) {
             if (!protocol.isOracleMode() && !isObFunction) {
+                int[] retBatchQuery = new int[0];
+                int[] retBatch = new int[0];
                 int querySize = parametersList.size();
                 if (querySize == 0) {
-                    return new int[0];
+                    retBatch = new int[0];
+                } else {
+                    retBatch = executeBatchInternal(querySize);
                 }
-                return executeBatchInternal(querySize);
+
+                if (batchQueries != null && (batchQueries.size()) > 0) {
+                    retBatchQuery = super.executeBatchQuerys();
+                }
+                int[] ret = new int[retBatch.length + retBatchQuery.length];
+                int cur = 0;
+                for (int i = 0; i < retBatch.length; i++) {
+                    ret[cur++] = retBatch[i];
+                }
+                for (int i = 0; i < retBatchQuery.length; i++) {
+                    ret[cur++] = retBatchQuery[i];
+                }
+                return ret;
             } else {
                 return super.executeBatch();
             }

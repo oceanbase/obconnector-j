@@ -1577,4 +1577,36 @@ public class Bugfix extends BaseTest {
             Assert.assertTrue(throwables.getMessage().contains("line : 1, col : 5"));
         }
     }
+
+    @Test
+    public void testCallStmtBatchSqlBugAone40302848() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists testCallaStmtBatch");
+            stmt.execute("create table testCallaStmtBatch (id BIGINT AUTO_INCREMENT PRIMARY KEY, c1 INT)");
+            stmt.execute("drop procedure if exists testCallaStmtBatchPro");
+            stmt.execute("create procedure testCallaStmtBatchPro(IN n INT) BEGIN INSERT INTO testCallaStmtBatch (c1) VALUES (n); END");
+
+            CallableStatement cs = conn.prepareCall("{CALL testCallaStmtBatchPro(?)}");
+            cs.setInt(1, 1);
+            cs.addBatch();
+            cs.setInt(1, 2);
+            cs.addBatch();
+            cs.addBatch("{CALL testCallaStmtBatchPro(3)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(4)}");
+            cs.addBatch("{CALL testCallaStmtBatchPro(5)}");
+
+            long[] counts = cs.executeLargeBatch();
+            assertEquals(5, counts.length);
+
+            ResultSet rs = cs.getGeneratedKeys();
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertEquals(1, rsmd.getColumnCount());
+            assertEquals(Types.BIGINT, rsmd.getColumnType(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }
