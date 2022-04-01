@@ -1488,14 +1488,93 @@ public class Bugfix extends BaseTest {
             fail();
         }
     }
+
     @Test
-    public void testDataSource()  {
+    public void testDataSource() {
         try {
             OceanBaseDataSource ds = new OceanBaseDataSource("localhost", 1130, "db");
             Connection connection = ds.getConnection("username", "password");
         } catch (Exception throwables) {
             throwables.printStackTrace();
             Assert.assertFalse(throwables instanceof ClassCastException);
+        }
+    }
+
+    @Test
+    public void testAone40082722() {
+        Connection conn;
+        Statement stmt;
+
+        try {
+            conn = sharedConnection;
+            stmt = conn.createStatement();
+
+            stmt.executeUpdate("drop table if exists test;");
+            stmt.executeUpdate("create table test(id int, b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB, b5 VARBINARY(200), c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LONGTEXT, c5 VARCHAR(20));");
+
+            String str = "abcABC中文";
+            Clob c = new com.oceanbase.jdbc.Clob();
+            Writer writer = c.setCharacterStream(1);
+            writer.write(str, 0, 8);
+            writer.flush();
+            byte[] bytes = str.getBytes();
+            Blob b = new com.oceanbase.jdbc.Blob(bytes);
+            PreparedStatement insert_stmt = conn
+                .prepareStatement("Insert into test values(1,?,?,?,?,?,?,?,?,?,?);");
+            insert_stmt.setBlob(1, b);
+            insert_stmt.setBlob(2, b);
+            insert_stmt.setBlob(3, b);
+            insert_stmt.setBlob(4, b);
+            insert_stmt.setBlob(5, b);
+            insert_stmt.setClob(6, c);
+            insert_stmt.setClob(7, c);
+            insert_stmt.setClob(8, c);
+            insert_stmt.setClob(9, c);
+            insert_stmt.setClob(10, c);
+            for (int k = 1; k <= 8; k++) {
+                insert_stmt.execute();
+            }
+
+            ResultSet rs = conn.createStatement().executeQuery("select * from test;");
+            while (rs.next()) {
+                for (int i = 2; i <= 6; i++) {
+                    Assert.assertEquals(str,
+                        new String(rs.getBlob(i).getBytes(1, (int) rs.getBlob(i).length()),
+                            StandardCharsets.UTF_8));
+                }
+                for (int i = 7; i <= 11; i++) {
+                    Assert.assertEquals(
+                        str,
+                        rs.getClob(i).getSubString((long) 1,
+                            Math.toIntExact(rs.getClob(i).length())));
+                }
+                ;
+            }
+
+            stmt.close();
+            insert_stmt.close();
+        } catch (Exception se) {
+            se.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testProcErrorAone40384433() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table  t");
+            } catch (SQLException throwables) {
+            }
+            stmt.execute("create table t(col int primary key)");
+            stmt.execute("create or replace procedure proc is " + "begin"
+                         + "  insert into t values(1);" + "  insert into t values(1);" + "end;");
+            PreparedStatement ps = conn.prepareStatement("call proc()");
+            ps.execute();
+        } catch (SQLException throwables) {
+            Assert.assertTrue(throwables.getMessage().contains("line : 1, col : 5"));
         }
     }
 }

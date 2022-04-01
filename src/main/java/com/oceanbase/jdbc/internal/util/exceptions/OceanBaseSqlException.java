@@ -75,9 +75,8 @@ public class OceanBaseSqlException extends SQLException {
     }
 
     public static OceanBaseSqlException of(SQLException cause, String sql) {
-        return new OceanBaseSqlException(cause.getMessage().contains("\n") ? cause.getMessage()
-            .substring(0, cause.getMessage().indexOf("\n")) : cause.getMessage(), sql,
-            cause.getSQLState(), cause.getErrorCode(), cause);
+        return new OceanBaseSqlException(cause.getMessage(), sql, cause.getSQLState(),
+            cause.getErrorCode(), cause);
     }
 
     public OceanBaseSqlException withThreadName(String threadName) {

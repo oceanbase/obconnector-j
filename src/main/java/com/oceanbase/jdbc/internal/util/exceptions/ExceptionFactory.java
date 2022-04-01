@@ -197,10 +197,8 @@ public final class ExceptionFactory {
 
     public SQLException create(SQLException cause) {
 
-        return createException(
-            cause.getMessage().contains("\n") ? cause.getMessage().substring(0,
-                cause.getMessage().indexOf("\n")) : cause.getMessage(), cause.getSQLState(),
-            cause.getErrorCode(), threadId, options, connection, statement, cause);
+        return createException(cause.getMessage(), cause.getSQLState(), cause.getErrorCode(),
+            threadId, options, connection, statement, cause);
     }
 
     public SQLException notSupported(String message) {

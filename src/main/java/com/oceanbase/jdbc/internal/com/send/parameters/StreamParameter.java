@@ -93,7 +93,7 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
     }
 
     private void setInputStream() throws IOException {
-        if (is == null && lob != null) {
+        if (lob != null) {
             try {
                 is = lob.getBinaryStream();
             } catch (SQLException throwables) {

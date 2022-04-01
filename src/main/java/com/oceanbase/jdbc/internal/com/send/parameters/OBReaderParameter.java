@@ -102,7 +102,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     }
 
     private void setReader() {
-        if (reader == null && clob != null) {
+        if (clob != null) {
             reader = clob.getCharacterStream();
         }
     }
