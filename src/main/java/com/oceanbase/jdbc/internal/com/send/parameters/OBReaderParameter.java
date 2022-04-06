@@ -173,7 +173,9 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
-        setReader();
+        if (first) {
+            setReader();
+        }
         int pieceLen = options.pieceLength;
         byte piece;
         char[] buffer = new char[pieceLen];

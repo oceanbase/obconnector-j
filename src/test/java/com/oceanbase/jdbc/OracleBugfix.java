@@ -45,10 +45,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.Writer;
+import java.io.*;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -2709,6 +2706,38 @@ public class OracleBugfix extends BaseOracleTest {
             assertEquals(new String(bytes), new String(rs.getBytes(2)));
             System.out.println("test finished ");
         } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testClob() {
+        try {
+            createTable("t_clob1", "c1 clob");
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            PreparedStatement ps = conn.prepareStatement("insert into t_clob1 values(?)");
+            String str = "123abc";
+            //            Clob clob = (Clob) conn.createClob();
+            com.oceanbase.jdbc.Clob clob = new Clob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str);
+            writer.flush();
+            ps.setClob(1, clob);
+            ps.execute();
+
+            ps = conn.prepareStatement("select * from t_clob1");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            Reader reader = rs.getCharacterStream(1);
+            StringBuilder sb = new StringBuilder();
+            int ch;
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            assertEquals(str, sb.toString());
+
+        } catch (Throwable e) {
             e.printStackTrace();
             fail();
         }

@@ -187,7 +187,9 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
                                                                                             throws IOException {
-        setInputStream();
+        if (first) {
+            setInputStream();
+        }
         int pieceLen = options.pieceLength;
         byte piece;
         byte[] buffer = new byte[pieceLen];

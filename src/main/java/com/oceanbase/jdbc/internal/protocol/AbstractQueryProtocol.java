@@ -510,7 +510,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 if (first) {
                   // prepre here
                   serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
-                  first = false;
                   serverPrepareResult.resetParameterTypeHeader();
                 }
                 writer.startPacket(0);
