@@ -502,10 +502,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if(isOracleMode()) {
         // use send piece data
         if (options.useServerPrepStmts && options.usePieceData) {
-          boolean first = true;
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
               boolean continueWrite = true;
+              boolean first = true;
               while (continueWrite) {
                 if (first) {
                   // prepre here

@@ -2743,4 +2743,36 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testClob2() {
+        try {
+            createTable("t_clob1", "c1 clob, c2 clob");
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            PreparedStatement ps = conn.prepareStatement("insert into t_clob1 values(?, ?)");
+            String str = "中文abc";
+            com.oceanbase.jdbc.Clob clob = new Clob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str);
+            writer.flush();
+            ps.setClob(1, clob);
+            ps.setClob(2, clob);
+            ps.execute();
+
+            ps = conn.prepareStatement("select * from t_clob1");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            Reader reader = rs.getCharacterStream(1);
+            StringBuilder sb = new StringBuilder();
+            int ch;
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            assertEquals(str, sb.toString());
+            assertEquals(str, rs.getString(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }
