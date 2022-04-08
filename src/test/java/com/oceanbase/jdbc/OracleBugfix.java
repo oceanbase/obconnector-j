@@ -2775,4 +2775,31 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testBlob() {
+        try {
+            createTable("t_blob1", "c1 blob, c2 blob");
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            PreparedStatement ps = conn.prepareStatement("insert into t_blob1 values(?, ?)");
+            String str = "中文abc";
+            byte[] bytes = str.getBytes();
+            com.oceanbase.jdbc.Blob blob = new Blob(bytes);
+
+            ps.setBlob(1, blob);
+            InputStream stream = new ByteArrayInputStream(bytes);
+            ps.setBinaryStream(2, stream);
+            ps.execute();
+
+            ps = conn.prepareStatement("select * from t_blob1");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+
+            assertEquals(new String(bytes), new String(rs.getBytes(1)));
+            assertEquals(new String(bytes), new String(rs.getBytes(2)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }
