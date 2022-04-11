@@ -992,7 +992,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //        }
         sendCharsetVariables();
         getResult(new Results());
-        if (!isOracleMode || this.getOptions().connectionCollation != null) {
+        if (!isOracleMode && this.getOptions().connectionCollation != null) {
             setCollationVariables();
             getResult(new Results());
         }
@@ -1185,7 +1185,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             sendCharsetVariables();
             getResult(new Results());
-            if (!isOracleMode || this.getOptions().connectionCollation != null) {
+            if (!isOracleMode && this.getOptions().connectionCollation != null) {
                 setCollationVariables();
                 getResult(new Results());
             }

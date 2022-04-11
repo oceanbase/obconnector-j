@@ -200,7 +200,7 @@ public class Options implements Cloneable {
     public String  loadBalanceStrategy;
     public String  serverAffinityOrder;
     public int     blobSendChunkSize = 1048576;
-    public String  connectionCollation = "utf8";
+    public String  connectionCollation = null;
 
 
   @Override
