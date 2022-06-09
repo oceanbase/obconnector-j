@@ -3416,11 +3416,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
              * TODO : figure out what to do with older versions (get info via mysql.proc)
              * For now, just a dummy result set is returned.
              */
-            sql = "SELECT '' FUNCTION_CAT, NULL FUNCTION_SCHEM, '' FUNCTION_NAME,"
-                  + " '' COLUMN_NAME, 0  COLUMN_TYPE, 0 DATA_TYPE,"
-                  + " '' TYPE_NAME,0 `PRECISION`,0 LENGTH, 0 SCALE,0 RADIX,"
-                  + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, "
-                  + " '' IS_NULLABLE, '' SPECIFIC_NAME " + " FROM DUAL WHERE 1=0 ";
+
         }
         String[] columnNames = { "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "COLUMN_NAME",
                 "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX",

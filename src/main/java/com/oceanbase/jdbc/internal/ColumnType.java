@@ -291,12 +291,17 @@ public enum ColumnType {
         switch (type) {
             case SMALLINT:
             case MEDIUMINT:
-            case INTEGER:
             case BIGINT:
                 if (!signed) {
                     return type.getTypeName() + " UNSIGNED";
                 } else {
                     return type.getTypeName();
+                }
+            case INTEGER:
+                if (!signed) {
+                    return isOracelMode ? type.getTypeName() : "INT" + " UNSIGNED";
+                } else {
+                    return isOracelMode ? type.getTypeName() : "INT";
                 }
             case BLOB:
                 /*

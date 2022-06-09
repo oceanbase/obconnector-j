@@ -66,7 +66,7 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
     private static final String INTERVALDS           = "intervalDS";
     private static final String RAW                  = "raw";
 
-    public static final String  ZERO_TIME            = " 00:00:00.0";
+    public static final String  ZERO_TIME            = " 00:00:00";
 
     public void conmmonCall(String testStr, ResultSet resultSet, String type) throws Exception {
         testRefTypeMethod(testStr, resultSet, type);
@@ -323,11 +323,11 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
         ResultSet resultSet = statement.executeQuery("select * from " + tableName);
         resultSet.next();
         String testStr = "2021-04-09 11:38:20";
-
-        Assert.assertTrue("getString is not equals",
-            Timestamp.valueOf(testStr).toString().equals(resultSet.getString(2).trim()));
-        Assert.assertTrue("getString is not equals",
-            Timestamp.valueOf(testStr).toString().equals(resultSet.getString("strm").trim()));
+        String tmp = Timestamp.valueOf(testStr).toString();
+        tmp = tmp.substring(0, tmp.length() - 2);// remove the .0
+        Assert.assertTrue("getString is not equals", tmp.equals(resultSet.getString(2).trim()));
+        Assert
+            .assertTrue("getString is not equals", tmp.equals(resultSet.getString("strm").trim()));
 
         Assert.assertTrue("timestamp getObject is not equals",
             Timestamp.valueOf(testStr).equals((Timestamp) resultSet.getObject(2)));
@@ -339,9 +339,6 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
             Timestamp.valueOf(testStr2).equals(resultSet.getTimestamp(2)));
         Assert.assertTrue("getTimestamp is not equals",
             Timestamp.valueOf(testStr2).equals(resultSet.getTimestamp("strm")));
-
-        //        Assert.assertTrue("getBytes is not equals",Timestamp.valueOf(testStr).equals(Timestamp.valueOf(new String(resultSet.getBytes("strm")).trim())));
-        //        Assert.assertTrue("getBytes is not equals",Timestamp.valueOf(testStr).equals(Timestamp.valueOf(new String(resultSet.getBytes(2)).trim())));
 
     }
 

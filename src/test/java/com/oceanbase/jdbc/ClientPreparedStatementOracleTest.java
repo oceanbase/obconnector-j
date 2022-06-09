@@ -164,6 +164,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void correctWithShap() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
         String sql = "drop table test_execute_client_ps#";
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
@@ -194,6 +195,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void testVarcharWithApostrophe() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
         String sql = "drop table test_varchar_with_symbols";
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
@@ -289,48 +291,6 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             //fail();
             e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void batchParamNumber() throws SQLException {
-        PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("SELECT ?, ? from dual");
-        // batch with no parameter
-        assertEquals(0, preparedStatement.executeBatch().length);
-        assertEquals(0, preparedStatement.executeLargeBatch().length);
-
-        try {
-            preparedStatement.setString(1, "1");
-            preparedStatement.addBatch();
-            fail();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains(
-                "You need to set exactly 2 parameters on the prepared statement")
-                       || e.getMessage().contains("Parameter at position 2 is not set"));
-        }
-
-        try {
-            preparedStatement.addBatch("SOME SQL");
-            fail();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("Cannot do addBatch(String) on preparedStatement"));
-        }
-
-        preparedStatement.setString(1, "1");
-        preparedStatement.setString(2, "2");
-        preparedStatement.addBatch();
-        preparedStatement.setString(2, "2");
-        preparedStatement.addBatch();
-        try {
-            preparedStatement.clearParameters();
-            preparedStatement.setString(2, "2");
-            preparedStatement.addBatch();
-            fail();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains(
-                "You need to set exactly 2 parameters on the prepared statement")
-                       || e.getMessage().contains("Parameter at position 1 is not set"));
         }
     }
 

@@ -925,8 +925,19 @@ public enum DefaultOptions {
           (String) null,
                   "2.2.9",
                   "Instructs the server to set session system variable 'collation_connection' to the specified collation name and set 'character_set_client' and 'character_set_connection' to the corresponding character set. ",
-                  false
-  );
+                  false),
+  USE_ARRAY_BINDING(
+          "useArrayBinding",
+          Boolean.FALSE,
+          "2.3.0",
+          "Oracle mode Use array binding to reduce network round-trips and increase performance.",
+          false),
+    SEND_CONNECTION_ATTRIBUTES(
+          "sendConnectionAttributes",
+          Boolean.TRUE,
+          "2.3.0",
+                  "Used to determine whether to send connection extended attributes.",
+                  false);
 
   private final String optionName;
   private final String description;

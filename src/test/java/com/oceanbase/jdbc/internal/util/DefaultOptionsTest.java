@@ -146,6 +146,10 @@ public class DefaultOptionsTest {
         for (HaMode haMode : HaMode.values()) {
             Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
             for (Field field : Options.class.getFields()) {
+                // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
+                if (field.getName().equals("allowLocalInfile")) {
+                    continue;
+                }
                 if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
                     && !"nonMappedOptions".equals(field.getName())) {
                     switch (field.getType().getName()) {

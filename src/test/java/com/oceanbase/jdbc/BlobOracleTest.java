@@ -1077,7 +1077,7 @@ public class BlobOracleTest extends BaseOracleTest {
     @Test
     public void testEmpty() {
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection("&usePieceData=true");
             Statement stmt = conn.createStatement();
             try {
                 stmt.execute("drop table emptylob ");

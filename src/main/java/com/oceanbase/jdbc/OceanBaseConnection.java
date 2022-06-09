@@ -1116,7 +1116,8 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
+        //mysql mode no longer concern the hasWarnings flag
+        if (warningsCleared || isClosed() || (!protocol.hasWarnings() && protocol.isOracleMode())) {
             return null;
         }
         // If it is oracle mode and protocol.hasWarnings() , need to return a SQLWarning to inform the user

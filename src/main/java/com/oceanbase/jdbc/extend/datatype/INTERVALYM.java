@@ -156,8 +156,8 @@ public class INTERVALYM extends Datum {
     }
 
     @Override
-    public boolean isConvertibleTo(Class var1) {
-        return var1.getName().compareTo("java.lang.String") == 0;
+    public boolean isConvertibleTo(Class targetClass) {
+        return targetClass.getName().compareTo("java.lang.String") == 0;
     }
 
     @Override
@@ -166,8 +166,8 @@ public class INTERVALYM extends Datum {
     }
 
     @Override
-    public Object makeJdbcArray(int var1) {
-        INTERVALYM[] object = new INTERVALYM[var1];
+    public Object makeJdbcArray(int intVal) {
+        INTERVALYM[] object = new INTERVALYM[intVal];
         return object;
     }
 

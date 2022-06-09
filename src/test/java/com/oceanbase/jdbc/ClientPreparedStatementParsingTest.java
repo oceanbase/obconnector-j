@@ -55,6 +55,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -248,6 +249,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
     @Test
   public void rewriteBatchedError() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare());
     try (Connection connection =
         setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
       PreparedStatement preparedStatement =

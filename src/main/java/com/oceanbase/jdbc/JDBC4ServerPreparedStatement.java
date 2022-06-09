@@ -804,6 +804,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     return ci;
   }
 
+  public void closeCursor(int cursorId) throws SQLException {
+    this.protocol.forceReleasePrepareStatement(cursorId);
+    results.commandEnd();
+  }
+
   public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
     ColumnDefinition[] ci = this.protocol.fetchRowViaCursorForOracle(cursorId, numRows, offsetType, offset, results);
     results.commandEnd();

@@ -201,6 +201,9 @@ public class Options implements Cloneable {
     public String  serverAffinityOrder;
     public int     blobSendChunkSize = 1048576;
     public String  connectionCollation = null;
+    public boolean useArrayBinding   = false;
+    public boolean sendConnectionAttributes   = true;
+
 
 
   @Override
@@ -604,6 +607,15 @@ public class Options implements Cloneable {
       if (connectionCollation != opt.connectionCollation) {
         return false;
       }
+        if (connectionCollation != opt.connectionCollation) {
+          return false;
+        }
+        if (useArrayBinding != opt.useArrayBinding) {
+          return false;
+        }
+        if (sendConnectionAttributes != opt.sendConnectionAttributes) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
 
     }
@@ -734,6 +746,8 @@ public class Options implements Cloneable {
         result = 31 * result + (serverAffinityOrder != null ? serverAffinityOrder.hashCode() : 0);
         result = 31 * result + (blobSendChunkSize);
         result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
+        result = 31 * result + (useArrayBinding ? 1 : 0);
+        result = 31 * result + (sendConnectionAttributes ? 1 : 0);
         return result;
     }
     @Override

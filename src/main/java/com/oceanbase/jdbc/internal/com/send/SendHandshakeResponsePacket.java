@@ -194,7 +194,8 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0) {
+        if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0
+            && options.sendConnectionAttributes) {
             writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
         }
 

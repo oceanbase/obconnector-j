@@ -55,7 +55,7 @@ public class RAW extends Datum {
     }
 
     @Override
-    public boolean isConvertibleTo(Class var1) {
+    public boolean isConvertibleTo(Class targetClass) {
         return false;
     }
 
@@ -65,7 +65,7 @@ public class RAW extends Datum {
     }
 
     @Override
-    public Object makeJdbcArray(int var1) {
+    public Object makeJdbcArray(int intVal) {
         return null;
     }
 }

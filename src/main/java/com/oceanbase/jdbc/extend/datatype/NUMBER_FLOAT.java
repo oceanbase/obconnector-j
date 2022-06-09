@@ -104,9 +104,10 @@ public class NUMBER_FLOAT extends Datum {
     }
 
     @Override
-    public boolean isConvertibleTo(Class var1) {
-        String var2 = var1.getName();
-        return var2.compareTo("java.lang.Float") == 0 || var2.compareTo("java.lang.Double") == 0;
+    public boolean isConvertibleTo(Class targetClass) {
+        String targetClassName = targetClass.getName();
+        return targetClassName.compareTo("java.lang.Float") == 0
+               || targetClassName.compareTo("java.lang.Double") == 0;
     }
 
     @Override
@@ -115,8 +116,8 @@ public class NUMBER_FLOAT extends Datum {
     }
 
     @Override
-    public Object makeJdbcArray(int var1) {
-        BigDecimal[] var2 = new BigDecimal[var1];
-        return var2;
+    public Object makeJdbcArray(int intVal) {
+        BigDecimal[] bigDecimals = new BigDecimal[intVal];
+        return bigDecimals;
     }
 }

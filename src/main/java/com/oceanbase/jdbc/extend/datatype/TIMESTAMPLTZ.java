@@ -69,8 +69,8 @@ public class TIMESTAMPLTZ extends Datum {
         super(initTimestampltz());
     }
 
-    public TIMESTAMPLTZ(byte[] var1) {
-        super(var1);
+    public TIMESTAMPLTZ(byte[] bytes) {
+        super(bytes);
     }
 
     public TIMESTAMPLTZ(Connection connection, Time time) throws SQLException {

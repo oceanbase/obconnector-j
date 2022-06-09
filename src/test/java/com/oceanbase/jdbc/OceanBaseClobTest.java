@@ -60,6 +60,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class OceanBaseClobTest extends BaseTest {
@@ -295,7 +296,7 @@ public class OceanBaseClobTest extends BaseTest {
         assertEquals(0, blob.length);
     }
 
-    @Test
+    @Ignore
   @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
   public void clobLength() throws Exception {
     Statement stmt = sharedConnection.createStatement();

@@ -376,20 +376,25 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.SMALLINT;
             case BLOB:
-                if (ci.getLength() < 0 || ci.getLength() > 16777215) {
+                if (!this.isOracleMode) {
                     return Types.LONGVARBINARY;
+                } else {
+                    if (ci.getLength() < 0 || ci.getLength() > 16777215) {
+                        return Types.LONGVARBINARY;
+                    }
+                    return Types.VARBINARY;
                 }
-                return Types.VARBINARY;
             case VARCHAR:
+                if (!isOracleMode
+                    && (ci.getSqltype() == 252 || ci.getSqltype() == 250 || ci.getSqltype() == 249)) { // text , tinytext and  mediumText
+                    return Types.LONGVARCHAR;
+                }
                 if (ci.getSqltype() == 251) {
                     return Types.LONGVARCHAR;
                 }
                 if (ci.isBinary()) {
                     return Types.VARBINARY;
                 }
-                //                if (ci.getLength() > 0) {
-                //                    return Types.LONGVARCHAR;
-                //                }
                 return Types.VARCHAR;
             case VARSTRING:
                 if (ci.isBinary()) {
@@ -401,6 +406,12 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                     return Types.BINARY;
                 }
                 return Types.CHAR;
+            case MEDIUMBLOB:
+                if (isOracleMode) {
+                    return ci.getColumnType().getSqlType();
+                } else {
+                    return Types.LONGVARBINARY;
+                }
             default:
                 return ci.getColumnType().getSqlType();
         }

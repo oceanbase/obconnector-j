@@ -168,24 +168,24 @@ public class TIMESTAMP extends Datum implements Serializable {
         return toTimestamp(this.getBytes());
     }
 
-    public Timestamp timestampValue(Calendar var1) throws SQLException {
-        return toTimestamp(this.getBytes(), var1);
+    public Timestamp timestampValue(Calendar calendar) throws SQLException {
+        return toTimestamp(this.getBytes(), calendar);
     }
 
     public static String toString(byte[] bytes) {
-        int[] var1 = new int[bytes.length];
+        int[] buf = new int[bytes.length];
 
         int i;
         for (i = 0; i < bytes.length; ++i) {
-            var1[i] = bytes[i] & 255;
+            buf[i] = bytes[i] & 255;
         }
 
-        i = var1[0] * 100 + var1[1];
-        int month = var1[2];
-        int day = var1[3];
-        int hour = var1[4];
-        int minute = var1[5];
-        int second = var1[6];
+        i = buf[0] * 100 + buf[1];
+        int month = buf[2];
+        int day = buf[3];
+        int hour = buf[4];
+        int minute = buf[5];
+        int second = buf[6];
         int nanos = getNanos(bytes, 7);
 
         return toString(i, month, day, hour, minute, second, nanos, bytes[11], null); // FIXME duplicate from TIMESTAMPTZ
@@ -236,15 +236,15 @@ public class TIMESTAMP extends Datum implements Serializable {
             return null;
         } else {
             byte[] result = new byte[SIZE_TIMESTAMP];
-            Calendar var2 = Calendar.getInstance();
-            var2.setTime(time);
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(time);
             result[0] = 19;
             result[1] = 70;
             result[2] = 1;
             result[3] = 1;
-            result[4] = (byte) (var2.get(Calendar.HOUR_OF_DAY));
-            result[5] = (byte) (var2.get(Calendar.MINUTE));
-            result[6] = (byte) (var2.get(Calendar.SECOND));
+            result[4] = (byte) (calendar.get(Calendar.HOUR_OF_DAY));
+            result[5] = (byte) (calendar.get(Calendar.MINUTE));
+            result[6] = (byte) (calendar.get(Calendar.SECOND));
             setNanos(result, 7, 0);
             result[11] = 0;
             return result;
@@ -306,14 +306,14 @@ public class TIMESTAMP extends Datum implements Serializable {
 
             calendar.clear();
             calendar.setTime(timestamp);
-            int var4 = calendar.get(Calendar.YEAR);
+            int year = calendar.get(Calendar.YEAR);
             if (calendar.get(Calendar.ERA) == 0) {
-                var4 = -(var4 - 1);
+                year = -(year - 1);
             }
 
-            if (var4 >= -4712 && var4 <= 9999) {
-                result[0] = (byte) (var4 / 100);
-                result[1] = (byte) (var4 % 100);
+            if (year >= -4712 && year <= 9999) {
+                result[0] = (byte) (year / 100);
+                result[1] = (byte) (year % 100);
                 result[2] = (byte) (calendar.get(Calendar.MONTH) + 1);
                 result[3] = (byte) calendar.get(Calendar.DAY_OF_MONTH);
                 result[4] = (byte) (calendar.get(Calendar.HOUR_OF_DAY));

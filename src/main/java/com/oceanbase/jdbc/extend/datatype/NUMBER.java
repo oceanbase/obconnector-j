@@ -62,15 +62,23 @@ public class NUMBER extends Datum {
     }
 
     @Override
-    public boolean isConvertibleTo(Class var1) {
-        String var2 = var1.getName();
-        return var2.compareTo("java.lang.Integer") == 0 || var2.compareTo("java.lang.Long") == 0
-               || var2.compareTo("java.lang.Float") == 0 || var2.compareTo("java.lang.Double") == 0
-               || var2.compareTo("java.math.BigInteger") == 0
-               || var2.compareTo("java.math.BigDecimal") == 0
-               || var2.compareTo("java.lang.String") == 0
-               || var2.compareTo("java.lang.Boolean") == 0 || var2.compareTo("java.lang.Byte") == 0
-               || var2.compareTo("java.lang.Short") == 0;
+    public boolean isConvertibleTo(Class targetClass) {
+        String callName = targetClass.getName();
+        switch (callName) {
+            case "java.lang.Integer":
+            case "java.lang.Long":
+            case "java.lang.Float":
+            case "java.lang.Double":
+            case "java.math.BigInteger":
+            case "java.math.BigDecimal":
+            case "java.lang.String":
+            case "java.lang.Boolean":
+            case "java.lang.Byte":
+            case "java.lang.Short":
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -79,9 +87,9 @@ public class NUMBER extends Datum {
     }
 
     @Override
-    public Object makeJdbcArray(int var1) {
-        BigDecimal[] var2 = new BigDecimal[var1];
-        return var2;
+    public Object makeJdbcArray(int intVal) {
+        BigDecimal[] array = new BigDecimal[intVal];
+        return array;
     }
 
     public double doubleValue() {

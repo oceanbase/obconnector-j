@@ -72,10 +72,10 @@ public class INTERVALDS extends Datum {
 
     /**
      *
-     * @param var:+002324 05:12:10.21200
+     * @param stringVal:+002324 05:12:10.21200
      */
-    public INTERVALDS(String var) {
-        super(toBytes(var));
+    public INTERVALDS(String stringVal) {
+        super(toBytes(stringVal));
     }
 
     public static byte[] toBytes(String var) {
@@ -233,8 +233,8 @@ public class INTERVALDS extends Datum {
     }
 
     @Override
-    public boolean isConvertibleTo(Class var1) {
-        return var1.getName().compareTo("java.lang.String") == 0;
+    public boolean isConvertibleTo(Class targetClass) {
+        return targetClass.getName().compareTo("java.lang.String") == 0;
     }
 
     @Override
@@ -243,8 +243,8 @@ public class INTERVALDS extends Datum {
     }
 
     @Override
-    public Object makeJdbcArray(int var1) {
-        INTERVALDS[] object = new INTERVALDS[var1];
+    public Object makeJdbcArray(int intVal) {
+        INTERVALDS[] object = new INTERVALDS[intVal];
         return object;
     }
 

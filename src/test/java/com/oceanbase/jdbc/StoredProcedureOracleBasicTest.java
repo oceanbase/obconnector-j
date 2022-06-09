@@ -51,6 +51,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class StoredProcedureOracleBasicTest extends BaseOracleTest {
+    // todo fix getResultSet error
     @Test
     public void testAdd() throws Exception {
         String procedureName = "calc_add_" + System.currentTimeMillis();
@@ -65,11 +66,11 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             callableStatement.registerOutParameter(3, Types.INTEGER);
             callableStatement.execute();
             //System.out.println(callableStatement.getInt(2));
-            ResultSet rs = callableStatement.getResultSet();
-            System.out.println("rs is:" + callableStatement.getDouble(3));
-            if (rs != null && rs.next()) {
-                System.out.println("THE RESULT IS:" + rs.getInt(3));
-            }
+//            ResultSet rs = callableStatement.getResultSet();
+//            System.out.println("rs is:" + callableStatement.getDouble(3));
+//            if (rs != null && rs.next()) {
+//                System.out.println("THE RESULT IS:" + rs.getInt(3));
+//            }
             assertEquals(3 == callableStatement.getDouble(3), true);
 
         } finally {
@@ -94,10 +95,10 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             callableStatement.execute();
             //System.out.println(callableStatement.getInt(2));
             ResultSet rs = callableStatement.getResultSet();
-            System.out.println("rs is:" + callableStatement.getDouble(3));
-            if (rs != null && rs.next()) {
-                System.out.println("THE RESULT IS:" + rs.getInt(3));
-            }
+//            System.out.println("rs is:" + callableStatement.getDouble(3));
+//            if (rs != null && rs.next()) {
+//                System.out.println("THE RESULT IS:" + rs.getInt(3));
+//            }
             assertEquals(3 == callableStatement.getDouble(3), true);
 
         } finally {

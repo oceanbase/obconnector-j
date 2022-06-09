@@ -635,7 +635,8 @@ public class DatabaseMetadataTest extends BaseTest {
                     assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col)
                                + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",
                         columnType == Types.BIGINT || columnType == Types.INTEGER
-                                || columnType == Types.SMALLINT || columnType == Types.TINYINT);
+                                || columnType == Types.SMALLINT || columnType == Types.TINYINT
+                                || columnType == Types.DECIMAL);
 
                     break;
                 case "boolean":

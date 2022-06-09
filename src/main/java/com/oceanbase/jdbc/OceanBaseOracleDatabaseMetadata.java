@@ -54,6 +54,127 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     private final UrlParser           urlParser;
     private final OceanBaseConnection connection;
+    private final String              OB_ORA_GET_PROCEDURE_CATALOG_NULL      = "SELECT   NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,DECODE(object_type, 'PROCEDURE', 1,'FUNCTION', 2,0) AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
+    private final String              OB_ORA_GET_GET_PROCEDURE_CATALOG_EMPTY = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,DECODE(object_type, 'PROCEDURE', 1,'FUNCTION', 2,0) AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? ";
+    private final String              OB_ORA_GET_GET_PROCEDURE_WITH_CATALOG  = "SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
+    private final String              OB_ORA_GET_SCHEMAS                     = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
+    private final String              OB_ORA_GET_SCHEMAS_WITH_SCHEMAPATTERN  = "SELECT username AS table_schem, null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
+    private final String              OB_ORA_GET_CATALOG                     = "select 'nothing' as table_cat from dual where 1 = 2";
+    private final String              OB_ORA_GET_USER_NAME                   = "SELECT USER FROM DUAL";
+    private final String              OB_ORA_GET_TABLE_TYPES                 = "select 'TABLE' as table_type from dual union select 'VIEW' as table_type from dual union select 'SYNONYM' as table_type from dual";
+    private final String              OB_ORA_GET_TABLE_PRIVILEGE             = "SELECT NULL AS table_cat, table_schema AS table_schem, table_name, grantor,grantee, privilege,grantable AS is_grantable FROM all_tab_privs WHERE table_schema LIKE ? ESCAPE '/'  AND table_name LIKE ? ESCAPE '/' ORDER BY table_schem, table_name, privilege";
+    private final String              OB_ORA_GET_COLUMN_PRIVILEGES           = "SELECT NULL AS table_cat,OWNER AS table_schem,table_name,column_name,grantor,grantee,privilege,grantable AS is_grantable FROM all_col_privs WHERE OWNER LIKE ? ESCAPE '/' AND table_name LIKE ? ESCAPE '/' AND column_name LIKE ? ESCAPE '/' ORDER BY column_name, privilege";
+    private final String              OB_ORA_GET_PRIMARY_KEYS                = "SELECT NULL AS table_cat,c.owner AS table_schem,c.table_name, c.column_name, c.position AS key_seq, c.constraint_name AS pk_name FROM all_cons_columns c, all_constraints k WHERE k.constraint_type = 'P'  AND k.table_name = ?  AND k.owner like ? escape '/'  AND k.constraint_name = c.constraint_name  AND k.table_name = c.table_name   AND k.owner = c.owner ORDER BY column_name ";
+    private final String              OB_ORA_GET_TABLES                      = "SELECT NULL AS table_cat,o.owner AS table_schem,o.object_name AS table_name,o.object_type AS table_type,c.comments AS remarks FROM all_objects o, all_tab_comments c WHERE o.owner LIKE ? ESCAPE '/' AND o.object_name LIKE ? ESCAPE '/' AND o.owner = c.owner (+)  AND o.object_name = c.table_name (+)  AND o.owner != '__recyclebin' ";
+    private final String              OB_ORA_GET_COLUMNS                     = "SELECT  NULL AS table_cat,\n"
+                                                                               + "       t.owner AS table_schem,\n"
+                                                                               + "       t.table_name AS table_name,\n"
+                                                                               + "       t.column_name AS column_name,\n"
+                                                                               + "       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n"
+                                                                               + "               'LONG', -1, 'DATE', 93, 'RAW', -3, 'LONG RAW', -4,  \n"
+                                                                               + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n"
+                                                                               + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n"
+                                                                               + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n"
+                                                                               + "               'INTERVAL YEAR(2) TO MONTH', -103, \n"
+                                                                               + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n"
+                                                                               + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n"
+                                                                               + "               'XMLTYPE', 2009, \n"
+                                                                               + "               1111)\n"
+                                                                               + "              AS data_type,\n"
+                                                                               + "       t.data_type AS type_name,\n"
+                                                                               + "       DECODE (t.data_precision, null,          DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length),         t.data_precision)\n"
+                                                                               + "              AS column_size,\n"
+                                                                               + "       0 AS buffer_length,\n"
+                                                                               + "       DECODE (t.data_type,                'NUMBER', DECODE (t.data_precision,                                  null, -127,                                  t.data_scale),                t.data_scale) AS decimal_digits,\n"
+                                                                               + "       10 AS num_prec_radix,\n"
+                                                                               + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n"
+                                                                               + "       NULL AS remarks,\n"
+                                                                               + "       t.data_default AS column_def,\n"
+                                                                               + "       0 AS sql_data_type,\n"
+                                                                               + "       0 AS sql_datetime_sub,\n"
+                                                                               + "       t.data_length AS char_octet_length,\n"
+                                                                               + "       t.column_id AS ordinal_position,\n"
+                                                                               + "       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable\n"
+                                                                               + "FROM all_tab_columns t\n"
+                                                                               + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
+                                                                               + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
+                                                                               + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
+                                                                               + "  AND t.owner != '__recyclebin' ORDER BY table_schem, table_name, ordinal_position";
+    private final String              OB_ORA_GET_FUNCTION_CATALOG_NULL       = "SELECT NULL         AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  UNION ALL SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND data_level = 0   AND package_name IS NOT NULL  AND owner LIKE ?   AND object_name LIKE ?  ORDER BY function_schem, function_name";
+    private final String              OB_ORA_GET_FUNCTION_WITH_CATALOG       = "SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  ";
+    private final String              OB_ORA_GET_FUNCTION_CATALOG_EMPTY      = "SELECT NULL         AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  ";
+    private final String              OB_ORA_GET_INDEX                       = "select null as table_cat, owner as table_schem,table_name, 0 as NON_UNIQUE,null as index_qualifier,null as index_name, 0 as type,0 as ordinal_position, null as column_name,null as asc_or_desc, num_rows as cardinality,blocks as pages,null as filter_condition from all_tables where table_name = '%s' union  select null as table_cat,i.owner as table_schem,i.table_name,decode (i.uniqueness, 'UNIQUE', 0, 1),null as index_qualifier,i.index_name,1 as type,c.column_position as ordinal_position,c.column_name,null as asc_or_desc,i.distinct_keys as cardinality,i.leaf_blocks as pages, null as filter_condition from (select /*+no_merge*/ * from all_indexes i where i.table_name = '%s') i, all_ind_columns c where i.table_name = '%s'  %s   and i.index_name = c.index_name  and i.table_owner = c.table_owner  and i.table_name = c.table_name  and i.owner = c.index_owner  order by non_unique, type, index_name, ordinal_position ";
+    private final String              OB_ORA_GET_BEST_ROW_ID                 = "SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
+                                                                               + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
+                                                                               + "       0 AS decimal_digits, 2 AS pseudo_column\n"
+                                                                               + "FROM DUAL\n"
+                                                                               + "WHERE ? = 1\n"
+                                                                               + "UNION\n"
+                                                                               + "SELECT 2 AS scope,\n"
+                                                                               + " t.column_name,\n"
+                                                                               + "  DECODE(substr(t.data_type, 1, 9), \n"
+                                                                               + "    'TIMESTAMP', \n"
+                                                                               + "      DECODE(substr(t.data_type, 10, 1), \n"
+                                                                               + "        '(', \n"
+                                                                               + "          DECODE(substr(t.data_type, 19, 5), \n"
+                                                                               + "            'LOCAL', -102, 'TIME ', -101, 93), \n"
+                                                                               + "        DECODE(substr(t.data_type, 16, 5), \n"
+                                                                               + "          'LOCAL', -102, 'TIME ', -101, 93)), \n"
+                                                                               + "    'INTERVAL ', \n"
+                                                                               + "      DECODE(substr(t.data_type, 10, 3), \n"
+                                                                               + "       'DAY', -104, 'YEA', -103), \n"
+                                                                               + "    DECODE(t.data_type, \n"
+                                                                               + "      'BINARY_DOUBLE', 101, \n"
+                                                                               + "      'BINARY_FLOAT', 100, \n"
+                                                                               + "      'BFILE', -13, \n"
+                                                                               + "      'BLOB', 2004, \n"
+                                                                               + "      'CHAR', 1, \n"
+                                                                               + "      'CLOB', 2005, \n"
+                                                                               + "      'COLLECTION', 2003, \n"
+                                                                               + "      'DATE', 93, \n"
+                                                                               + "      'FLOAT', 6, \n"
+                                                                               + "      'LONG', -1, \n"
+                                                                               + "      'LONG RAW', -4, \n"
+                                                                               + "      'NCHAR', -15, \n"
+                                                                               + "      'NCLOB', 2011, \n"
+                                                                               + "      'NUMBER', 2, \n"
+                                                                               + "      'NVARCHAR', -9, \n"
+                                                                               + "      'NVARCHAR2', -9, \n"
+                                                                               + "      'OBJECT', 2002, \n"
+                                                                               + "      'OPAQUE/XMLTYPE', 2009, \n"
+                                                                               + "      'RAW', -3, \n"
+                                                                               + "      'REF', 2006, \n"
+                                                                               + "      'ROWID', -8, \n"
+                                                                               + "      'SQLXML', 2009, \n"
+                                                                               + "      'UROWID', -8, \n"
+                                                                               + "      'VARCHAR2', 12, \n"
+                                                                               + "      'VARRAY', 2003, \n"
+                                                                               + "      'XMLTYPE', 2009, \n"
+                                                                               + "      DECODE((SELECT a.typecode \n"
+                                                                               + "        FROM ALL_TYPES a \n"
+                                                                               + "        WHERE a.type_name = t.data_type\n"
+                                                                               + "       AND ((a.owner IS NULL AND \n"
+                                                                               + "t.data_type_owner IS NULL)\n"
+                                                                               + "         OR (a.owner = t.data_type_owner))\n"
+                                                                               + "        ), \n"
+                                                                               + "        'OBJECT', 2002, \n"
+                                                                               + "        'COLLECTION', 2003, 1111))) \n"
+                                                                               + " AS data_type,\n"
+                                                                               + " t.data_type AS type_name,\n"
+                                                                               + " DECODE (t.data_precision, null,  DECODE (t.data_type, 'CHAR', t.char_length, 'VARCHAR', t.char_length, 'VARCHAR2', t.char_length, 'NVARCHAR2', t.char_length, 'NCHAR', t.char_length, t.data_length), t.data_precision)\n"
+                                                                               + "  AS column_size,\n"
+                                                                               + "  0 AS buffer_length,\n"
+                                                                               + "  t.data_scale AS decimal_digits,\n"
+                                                                               + "       1 AS pseudo_column\n"
+                                                                               + "FROM all_tab_columns t, all_ind_columns i\n"
+                                                                               + "WHERE ? = 1\n"
+                                                                               + "  AND t.table_name = ?\n"
+                                                                               + "  AND t.owner like ? escape '/'\n"
+                                                                               + "  AND t.nullable != ?\n"
+                                                                               + "  AND t.owner = i.table_owner\n"
+                                                                               + "  AND t.table_name = i.table_name\n"
+                                                                               + "  AND t.column_name = i.column_name\n";
+    private final String              OB_ORA_KEYS_QUERY                      = "SELECT NULL AS pktable_cat, p.owner as pktable_schem,p.table_name as pktable_name, pc.column_name as pkcolumn_name,NULL as fktable_cat,f.owner as fktable_schem,f.table_name as fktable_name,fc.column_name as fkcolumn_name, fc.position as key_seq,NULL as update_rule,decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,f.constraint_name as fk_name, p.constraint_name as pk_name, decode(f.deferrable,'DEFERRABLE',5,'NOT DEFERRABLE',7 ,'DEFERRED', 6) deferrability  FROM all_cons_columns pc, all_constraints p,all_cons_columns fc, all_constraints f WHERE 1 = 1  %s %s %s %s  AND f.constraint_type = 'R'   AND p.owner = f.r_owner  AND p.constraint_name = f.r_constraint_name  AND p.constraint_type = 'P'  AND pc.owner = p.owner  AND pc.constraint_name = p.constraint_name  AND pc.table_name = p.table_name  AND fc.owner = f.owner  AND fc.constraint_name = f.constraint_name  AND fc.table_name = f.table_name  AND fc.position = pc.position ";
 
     public OceanBaseOracleDatabaseMetadata(UrlParser urlParser, Connection connection) {
         this.urlParser = urlParser;
@@ -73,63 +194,49 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
                                                                                                      throws SQLException {
-        String var1 = "SELECT\n  -- Standalone procedures and functions\n  NULL AS procedure_cat,\n  owner AS procedure_schem,\n  object_name AS procedure_name,\n  NULL,\n  NULL,\n  NULL,\n  'Standalone procedure or function' AS remarks,\n  DECODE(object_type, 'PROCEDURE', 1,\n                      'FUNCTION', 2,\n                      0) AS procedure_type\n,  NULL AS specific_name\nFROM all_objects\nWHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION')\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var2 = "SELECT\n  -- Packaged procedures with no arguments\n  package_name AS procedure_cat,\n  owner AS procedure_schem,\n  object_name AS procedure_name,\n  NULL,\n  NULL,\n  NULL,\n  'Packaged procedure' AS remarks,\n  1 AS procedure_type\n,  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NULL\n  AND data_type IS NULL\n  AND ";
-        String var3 = "SELECT\n  -- Packaged procedures with arguments\n  package_name AS procedure_cat,\n  owner AS procedure_schem,\n  object_name AS procedure_name,\n  NULL,\n  NULL,\n  NULL,\n  'Packaged procedure' AS remarks,\n  1 AS procedure_type\n,  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NOT NULL\n  AND position = 1\n  AND position = sequence\n  AND ";
-        String var4 = "SELECT\n  -- Packaged functions\n  package_name AS procedure_cat,\n  owner AS procedure_schem,\n  object_name AS procedure_name,\n  NULL,\n  NULL,\n  NULL,\n  'Packaged function' AS remarks,\n  2 AS procedure_type\n,  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NULL\n  AND in_out = 'OUT'\n  AND   data_level = 0\n  AND ";
-        String var5 = "package_name LIKE ? \n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var6 = "package_name IS NOT NULL\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var7 = "ORDER BY procedure_schem, procedure_name\n";
-        PreparedStatement stmt = null;
-        String var8 = null;
-        String var9 = null;
+        PreparedStatement stmt;
+        String schemaStr;
         if (schemaPattern == null) {
-            var9 = "%";
+            schemaStr = "%";
         } else if (schemaPattern.equals("")) {
-            var9 = this.getUserName().toUpperCase();
+            schemaStr = this.getUserName().toUpperCase();
         } else {
-            var9 = schemaPattern.toUpperCase();
+            schemaStr = schemaPattern.toUpperCase();
         }
-
-        String var14 = null;
+        String procedureStr;
         if (procedureNamePattern == null) {
-            var14 = "%";
+            procedureStr = "%";
         } else if (procedureNamePattern.equals("")) {
             throw new SQLException();
         } else {
-            var14 = procedureNamePattern.toUpperCase();
+            procedureStr = procedureNamePattern.toUpperCase();
         }
-
         if (catalog == null) {
-            var8 = var1 + "UNION ALL " + var2 + var6 + "UNION ALL " + var3 + var6 + "UNION ALL "
-                   + var4 + var6 + var7;
-            stmt = this.connection.prepareStatement(var8);
-            stmt.setString(1, var9);
-            stmt.setString(2, var14);
-            stmt.setString(3, var9);
-            stmt.setString(4, var14);
-            stmt.setString(5, var9);
-            stmt.setString(6, var14);
-            stmt.setString(7, var9);
-            stmt.setString(8, var14);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_PROCEDURE_CATALOG_NULL);
+            stmt.setString(1, schemaStr);
+            stmt.setString(2, procedureStr);
+            stmt.setString(3, schemaStr);
+            stmt.setString(4, procedureStr);
+            stmt.setString(5, schemaStr);
+            stmt.setString(6, procedureStr);
+            stmt.setString(7, schemaStr);
+            stmt.setString(8, procedureStr);
         } else if (catalog.equals("")) {
-            stmt = this.connection.prepareStatement(var1);
-            stmt.setString(1, var9);
-            stmt.setString(2, var14);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_GET_PROCEDURE_CATALOG_EMPTY);
+            stmt.setString(1, schemaStr);
+            stmt.setString(2, procedureStr);
         } else {
-            var8 = var2 + var5 + "UNION ALL " + var3 + var5 + "UNION ALL " + var4 + var5 + var7;
-            stmt = this.connection.prepareStatement(var8);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_GET_PROCEDURE_WITH_CATALOG);
             stmt.setString(1, catalog);
-            stmt.setString(2, var9);
-            stmt.setString(3, var14);
+            stmt.setString(2, schemaStr);
+            stmt.setString(3, procedureStr);
             stmt.setString(4, catalog);
-            stmt.setString(5, var9);
-            stmt.setString(6, var14);
+            stmt.setString(5, schemaStr);
+            stmt.setString(6, procedureStr);
             stmt.setString(7, catalog);
-            stmt.setString(8, var9);
-            stmt.setString(9, var14);
+            stmt.setString(8, schemaStr);
+            stmt.setString(9, procedureStr);
         }
-
         stmt.closeOnCompletion();
         ResultSet rs = stmt.executeQuery();
         return rs;
@@ -138,34 +245,22 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
                                String[] types) throws SQLException {
-        String var1 = "SELECT NULL AS table_cat,\n       o.owner AS table_schem,\n       o.object_name AS table_name,\n       o.object_type AS table_type,\n";
-        String var2 = "  c.comments AS remarks\n";
-        String var3 = "  FROM all_objects o, all_tab_comments c\n";
-        String var4 = "  WHERE o.owner LIKE ? ESCAPE '/'\n    AND o.object_name LIKE ? ESCAPE '/'\n      AND o.owner = c.owner (+)\n    AND o.object_name = c.table_name (+)\n  AND o.owner != '__recyclebin'\n";
-        String var5 = "";
-        String var6 = "";
+        String typeList;
         if (types != null) {
-            var5 = "    AND o.object_type IN ('xxx'";
-            var6 = "    AND o.object_type IN ('xxx'";
+            typeList = "  AND o.object_type IN ('xxx'";
             for (int i = 0; i < types.length; ++i) {
                 if (types[i].equals("SYNONYM")) {
-                    var5 = var5 + ", '" + types[i] + "'";
+                    typeList = typeList + ", '" + types[i] + "'";
                 } else {
-                    var5 = var5 + ", '" + types[i] + "'";
-                    var6 = var6 + ", '" + types[i] + "'";
+                    typeList = typeList + ", '" + types[i] + "'";
                 }
             }
-            var5 = var5 + ")\n";
+            typeList = typeList + ")\n";
         } else {
-            var5 = "    AND o.object_type IN ('TABLE', 'SYNONYM', 'VIEW')\n";
+            typeList = "  AND o.object_type IN ('TABLE', 'SYNONYM', 'VIEW') ";
         }
-        String var7 = "  ORDER BY table_type, table_schem, table_name\n";
-        String sql = "";
-        sql = sql + var1;
-        sql = sql + var2 + var3;
-        sql = sql + var4;
-        sql = sql + var5;
-        sql = sql + var7;
+        String orderBy = "  ORDER BY table_type, table_schem, table_name ";
+        String sql = OB_ORA_GET_TABLES + typeList + orderBy;
         PreparedStatement stmt = this.connection.prepareStatement(sql);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
         stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
@@ -177,76 +272,22 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getSchemas() throws SQLException {
         Statement stmt = this.connection.createStatement();
-        String sql = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
         stmt.closeOnCompletion();
-        ResultSet rs = stmt.executeQuery(sql);
+        ResultSet rs = stmt.executeQuery(OB_ORA_GET_SCHEMAS);
         return rs;
     }
 
     @Override
     public ResultSet getCatalogs() throws SQLException {
-        return executeQuery("select 'nothing' as table_cat from dual where 1 = 2");
+        return executeQuery(OB_ORA_GET_CATALOG);
     }
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
-        /**
-                String var1 = "SELECT ";
-                String var2 = " NULL AS table_cat,\n";
-                String var3 = "         DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length)";
-                String var5 = "       t.owner AS table_schem,\n       t.table_name AS table_name,\n";
-                String var6 = "       t.column_name AS column_name,\n       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n               'LONG', -1, 'DATE', 93 , 'RAW', -3, 'LONG RAW', -4,  \n" + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n" + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n" + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n" + "               'INTERVAL YEAR(2) TO MONTH', -103, \n" + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n" + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n" + "               'XMLTYPE', 2009, \n" + "               1111)\n" + "              AS data_type,\n" + "       t.data_type AS type_name,\n" + "       DECODE (t.data_precision, " + "               null, DECODE(t.data_type, " + "                       'NUMBER', DECODE(t.data_scale, " + " null, 0 ,38), " + var3 + "                           )," + "         t.data_precision)\n" + "              AS column_size,\n" + "       0 AS buffer_length,\n" + "       DECODE (t.data_type, " + "               'NUMBER', DECODE(t.data_precision, " + "                                null, DECODE(t.data_scale, " + "                                             null, -127                                             , t.data_scale), " + "                                 t.data_scale), " + "               t.data_scale) AS decimal_digits,\n" + "       10 AS num_prec_radix,\n" + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n";
-                String var7 = "       NULL AS remarks,\n";
-                String var8 = "       t.data_default AS column_def,\n       0 AS sql_data_type,\n       0 AS sql_datetime_sub,\n       t.data_length AS char_octet_length,\n       t.column_id AS ordinal_position,\n       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable,\n";
-                String var9 = "         null as SCOPE_CATALOG,\n       null as SCOPE_SCHEMA,\n       null as SCOPE_TABLE,\n       null as SOURCE_DATA_TYPE,\n       'NO' as IS_AUTOINCREMENT\n";
-                String var10 = "FROM all_tab_columns t";
-                String var11 = "WHERE t.owner LIKE ?  AND t.table_name LIKE ?  AND t.column_name LIKE ?";
-                String var12 = "ORDER BY table_schem, table_name, ordinal_position\n";
-
-                String var13 = var1 + var2;
-                var13 = var13 + var5;
-                var13 = var13 + var6;
-                var13 = var13 + var7;
-                var13 = var13 + var8 + var9 + var10;
-                var13 = var13 + "\n" + var11;
-                var13 = var13 + "\n" + var12;
-        */
         Statement stmt = this.connection.getMetadataSafeStatement();
         String querySql = String
-            .format(
-                "SELECT  NULL AS table_cat,\n"
-                        + "       t.owner AS table_schem,\n"
-                        + "       t.table_name AS table_name,\n"
-                        + "       t.column_name AS column_name,\n"
-                        + "       DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n"
-                        + "               'LONG', -1, 'DATE', 93, 'RAW', -3, 'LONG RAW', -4,  \n"
-                        + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n"
-                        + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n"
-                        + "               'TIMESTAMP(6) WITH LOCAL TIME ZONE', -102, \n"
-                        + "               'INTERVAL YEAR(2) TO MONTH', -103, \n"
-                        + "               'INTERVAL DAY(2) TO SECOND(6)', -104, \n"
-                        + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n"
-                        + "               'XMLTYPE', 2009, \n"
-                        + "               1111)\n"
-                        + "              AS data_type,\n"
-                        + "       t.data_type AS type_name,\n"
-                        + "       DECODE (t.data_precision, null,          DECODE (t.data_type, 'CHAR', t.char_length,                   'VARCHAR', t.char_length,                   'VARCHAR2', t.char_length,                   'NVARCHAR2', t.char_length,                   'NCHAR', t.char_length,                   'NUMBER', 0,           t.data_length),         t.data_precision)\n"
-                        + "              AS column_size,\n"
-                        + "       0 AS buffer_length,\n"
-                        + "       DECODE (t.data_type,                'NUMBER', DECODE (t.data_precision,                                  null, -127,                                  t.data_scale),                t.data_scale) AS decimal_digits,\n"
-                        + "       10 AS num_prec_radix,\n"
-                        + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n"
-                        + "       NULL AS remarks,\n" + "       t.data_default AS column_def,\n"
-                        + "       0 AS sql_data_type,\n" + "       0 AS sql_datetime_sub,\n"
-                        + "       t.data_length AS char_octet_length,\n"
-                        + "       t.column_id AS ordinal_position,\n"
-                        + "       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable\n"
-                        + "FROM all_tab_columns t\n" + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
-                        + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
-                        + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
-                        + "  AND t.owner != '__recyclebin' \n" // Avoid return __recyclebin tables
-                        + "\n" + "ORDER BY table_schem, table_name, ordinal_position\n",
+            .format(OB_ORA_GET_COLUMNS,
                 schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
                     : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern);
         stmt.closeOnCompletion();
@@ -368,8 +409,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         if (schemaPattern == null) {
             return this.getSchemas();
         } else {
-            String sql = "SELECT username AS table_schem, null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
-            PreparedStatement stmt = this.connection.prepareStatement(sql);
+            PreparedStatement stmt = this.connection
+                .prepareStatement(OB_ORA_GET_SCHEMAS_WITH_SCHEMAPATTERN);
             stmt.setString(1, schemaPattern);
             stmt.closeOnCompletion();
             ResultSet rs = stmt.executeQuery();
@@ -380,46 +421,38 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
                                                                                                    throws SQLException {
-        String var1 = "SELECT\n  NULL AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Standalone function' AS remarks,\n  0 AS function_type,\n  NULL AS specific_name\nFROM all_objects\nWHERE object_type = 'FUNCTION'\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var2 = "SELECT\n  -- Packaged functions\n  package_name AS function_cat,\n  owner AS function_schem,\n  object_name AS function_name,\n  'Packaged function' AS remarks,\n  decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type,\n  NULL AS specific_name\nFROM all_arguments\nWHERE argument_name IS NULL\n  AND in_out = 'OUT'\n  AND data_level = 0\n";
-        String var3 = "  AND package_name LIKE ? \n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var4 = "  AND package_name IS NOT NULL\n  AND owner LIKE ? \n  AND object_name LIKE ? \n";
-        String var5 = "ORDER BY function_schem, function_name\n";
-        PreparedStatement stmt = null;
-        String var6 = null;
-        String var7 = schemaPattern;
+        PreparedStatement stmt;
+        String schemaName;
         if (schemaPattern == null) {
-            var7 = "%";
+            schemaName = "%";
         } else if (schemaPattern.equals("")) {
-            var7 = this.getUserName().toUpperCase();
+            schemaName = this.getUserName().toUpperCase();
         } else {
-            var7 = schemaPattern.toUpperCase();
+            schemaName = schemaPattern.toUpperCase();
         }
-        String var8 = functionNamePattern;
+        String functionName = functionNamePattern;
         if (functionNamePattern == null) {
-            var8 = "%";
+            functionName = "%";
         } else if (functionNamePattern.equals("")) {
             throw new SQLException();
         } else {
-            var8 = functionNamePattern.toUpperCase();
+            functionName = functionNamePattern.toUpperCase();
         }
         if (catalog == null) {
-            var6 = var1 + "UNION ALL " + var2 + var4 + var5;
-            stmt = this.connection.prepareStatement(var6);
-            stmt.setString(1, var7);
-            stmt.setString(2, var8);
-            stmt.setString(3, var7);
-            stmt.setString(4, var8);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_FUNCTION_CATALOG_NULL);
+            stmt.setString(1, schemaName);
+            stmt.setString(2, functionName);
+            stmt.setString(3, schemaName);
+            stmt.setString(4, functionName);
         } else if (catalog.equals("")) {
-            stmt = this.connection.prepareStatement(var1);
-            stmt.setString(1, var7);
-            stmt.setString(2, var8);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_FUNCTION_CATALOG_EMPTY);
+            stmt.setString(1, schemaName);
+            stmt.setString(2, functionName);
         } else {
-            var6 = var2 + var3 + var5;
-            stmt = this.connection.prepareStatement(var6);
-            stmt.setString(1, var7);
-            stmt.setString(2, var7);
-            stmt.setString(3, var8);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_FUNCTION_WITH_CATALOG);
+            stmt.setString(1, schemaName);
+            stmt.setString(2, schemaName);
+            stmt.setString(3, functionName);
         }
         stmt.closeOnCompletion();
         ResultSet rs = stmt.executeQuery();
@@ -427,20 +460,19 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public String getUserName() throws SQLException {
-        ResultSet rs = executeQuery("SELECT USER FROM DUAL");
+        ResultSet rs = executeQuery(OB_ORA_GET_USER_NAME);
         rs.next();
         String userName = rs.getString(1);
         return userName;
     }
 
     public ResultSet getTableTypes() throws SQLException {
-        return executeQuery("select 'TABLE' as table_type from dual\nunion select 'VIEW' as table_type from dual\nunion select 'SYNONYM' as table_type from dual\n");
+        return executeQuery(OB_ORA_GET_TABLE_TYPES);
     }
 
     public ResultSet getTablePrivileges(String catalog, String schemaPattern,
                                         String tableNamePattern) throws SQLException {
-        PreparedStatement stmt = this.connection
-            .prepareStatement("SELECT NULL AS table_cat,\n       table_schema AS table_schem,\n       table_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_tab_privs\nWHERE table_schema LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\nORDER BY table_schem, table_name, privilege\n");
+        PreparedStatement stmt = this.connection.prepareStatement(OB_ORA_GET_TABLE_PRIVILEGE);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
         stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern.toUpperCase());
         stmt.closeOnCompletion();
@@ -450,47 +482,15 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
                                   boolean approximate) throws SQLException {
-
-        Statement stmt = this.connection.createStatement();
-        String sql = "";
-
-        sql = "select null as table_cat,\n" + "       owner as table_schem,\n"
-              + "       table_name,\n" + "       0 as NON_UNIQUE,\n"
-              + "       null as index_qualifier,\n" + "       null as index_name, 0 as type,\n"
-              + "       0 as ordinal_position, null as column_name,\n"
-              + "       null as asc_or_desc,\n" + "       num_rows as cardinality,\n"
-              + "       blocks as pages,\n" + "       null as filter_condition\n"
-              + "from all_tables\n" + "where table_name = '" + table + "'\n";
-
-        String sql2 = "select null as table_cat,\n" + "       i.owner as table_schem,\n"
-                      + "       i.table_name,\n"
-                      + "       decode (i.uniqueness, 'UNIQUE', 0, 1),\n"
-                      + "       null as index_qualifier,\n" + "       i.index_name,\n"
-                      + "       1 as type,\n" + "       c.column_position as ordinal_position,\n"
-                      + "       c.column_name,\n" + "       null as asc_or_desc,\n"
-                      + "       i.distinct_keys as cardinality,\n"
-                      + "       i.leaf_blocks as pages,\n" + "       null as filter_condition\n"
-                      + "from (select /*+no_merge*/ * from all_indexes i where i.table_name = '"
-                      + table + "') i, all_ind_columns c\n" + "where i.table_name = '" + table
-                      + "'\n";
-        String sql3 = "";
-        if (unique) {
-            sql3 = "  and i.uniqueness = 'UNIQUE'\n";
-        }
-
-        String sql4 = "  and i.index_name = c.index_name\n  and i.table_owner = c.table_owner\n  and i.table_name = c.table_name\n  and i.owner = c.index_owner\n";
-        String sql5 = "order by non_unique, type, index_name, ordinal_position\n";
-        String sql6 = sql + "union\n" + sql2 + sql3 + sql4 + sql5;
-        stmt.closeOnCompletion();
-        ResultSet rs = stmt.executeQuery(sql6);
-        return rs;
+        String prepare = String.format(OB_ORA_GET_INDEX, table, table, table,
+            unique ? "  and i.uniqueness = 'UNIQUE'" : "");
+        return executeQuery(prepare);
     }
 
     public ResultSet getPrimaryKeys(String catalog, String schema, String table)
                                                                                 throws SQLException {
 
-        PreparedStatement stmt = this.connection
-            .prepareStatement("SELECT NULL AS table_cat,\n       c.owner AS table_schem,\n       c.table_name,\n       c.column_name,\n       c.position AS key_seq,\n       c.constraint_name AS pk_name\nFROM all_cons_columns c, all_constraints k\nWHERE k.constraint_type = 'P'\n  AND k.table_name = ?\n  AND k.owner like ? escape '/'\n  AND k.constraint_name = c.constraint_name \n  AND k.table_name = c.table_name \n  AND k.owner = c.owner \nORDER BY column_name\n");
+        PreparedStatement stmt = this.connection.prepareStatement(OB_ORA_GET_PRIMARY_KEYS);
         stmt.setString(1, table);
         stmt.setString(2, schema == null ? "%" : schema);
         stmt.closeOnCompletion();
@@ -501,73 +501,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope,
                                           final boolean nullable) throws SQLException {
 
-        PreparedStatement stmt = this.connection
-            .prepareStatement("SELECT 1 AS scope, 'ROWID' AS column_name, -8 AS data_type,\n"
-                              + " 'ROWID' AS type_name, 0 AS column_size, 0 AS buffer_length,\n"
-                              + "       0 AS decimal_digits, 2 AS pseudo_column\n"
-                              + "FROM DUAL\n"
-                              + "WHERE ? = 1\n"
-                              + "UNION\n"
-                              + "SELECT 2 AS scope,\n"
-                              + " t.column_name,\n"
-                              + "  DECODE(substr(t.data_type, 1, 9), \n"
-                              + "    'TIMESTAMP', \n"
-                              + "      DECODE(substr(t.data_type, 10, 1), \n"
-                              + "        '(', \n"
-                              + "          DECODE(substr(t.data_type, 19, 5), \n"
-                              + "            'LOCAL', -102, 'TIME ', -101, 93), \n"
-                              + "        DECODE(substr(t.data_type, 16, 5), \n"
-                              + "          'LOCAL', -102, 'TIME ', -101, 93)), \n"
-                              + "    'INTERVAL ', \n"
-                              + "      DECODE(substr(t.data_type, 10, 3), \n"
-                              + "       'DAY', -104, 'YEA', -103), \n"
-                              + "    DECODE(t.data_type, \n"
-                              + "      'BINARY_DOUBLE', 101, \n"
-                              + "      'BINARY_FLOAT', 100, \n"
-                              + "      'BFILE', -13, \n"
-                              + "      'BLOB', 2004, \n"
-                              + "      'CHAR', 1, \n"
-                              + "      'CLOB', 2005, \n"
-                              + "      'COLLECTION', 2003, \n"
-                              + "      'DATE', 93, \n"
-                              + "      'FLOAT', 6, \n"
-                              + "      'LONG', -1, \n"
-                              + "      'LONG RAW', -4, \n"
-                              + "      'NCHAR', -15, \n"
-                              + "      'NCLOB', 2011, \n"
-                              + "      'NUMBER', 2, \n"
-                              + "      'NVARCHAR', -9, \n"
-                              + "      'NVARCHAR2', -9, \n"
-                              + "      'OBJECT', 2002, \n"
-                              + "      'OPAQUE/XMLTYPE', 2009, \n"
-                              + "      'RAW', -3, \n"
-                              + "      'REF', 2006, \n"
-                              + "      'ROWID', -8, \n"
-                              + "      'SQLXML', 2009, \n"
-                              + "      'UROWID', -8, \n"
-                              + "      'VARCHAR2', 12, \n"
-                              + "      'VARRAY', 2003, \n"
-                              + "      'XMLTYPE', 2009, \n"
-                              + "      DECODE((SELECT a.typecode \n"
-                              + "        FROM ALL_TYPES a \n"
-                              + "        WHERE a.type_name = t.data_type\n"
-                              + "       AND ((a.owner IS NULL AND \n"
-                              + "t.data_type_owner IS NULL)\n"
-                              + "         OR (a.owner = t.data_type_owner))\n"
-                              + "        ), \n"
-                              + "        'OBJECT', 2002, \n"
-                              + "        'COLLECTION', 2003, 1111))) \n"
-                              + " AS data_type,\n"
-                              + " t.data_type AS type_name,\n"
-                              + " DECODE (t.data_precision, null,  DECODE (t.data_type, 'CHAR', t.char_length, 'VARCHAR', t.char_length, 'VARCHAR2', t.char_length, 'NVARCHAR2', t.char_length, 'NCHAR', t.char_length, t.data_length), t.data_precision)\n"
-                              + "  AS column_size,\n" + "  0 AS buffer_length,\n"
-                              + "  t.data_scale AS decimal_digits,\n"
-                              + "       1 AS pseudo_column\n"
-                              + "FROM all_tab_columns t, all_ind_columns i\n" + "WHERE ? = 1\n"
-                              + "  AND t.table_name = ?\n" + "  AND t.owner like ? escape '/'\n"
-                              + "  AND t.nullable != ?\n" + "  AND t.owner = i.table_owner\n"
-                              + "  AND t.table_name = i.table_name\n"
-                              + "  AND t.column_name = i.column_name\n");
+        PreparedStatement stmt = this.connection.prepareStatement(OB_ORA_GET_BEST_ROW_ID);
         switch (scope) {
             case 1:
                 stmt.setInt(1, 1);
@@ -593,8 +527,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public ResultSet getColumnPrivileges(String catalog, String schema, String table,
                                          String columnNamePattern) throws SQLException {
-        PreparedStatement stmt = this.connection
-            .prepareStatement("SELECT NULL AS table_cat,\n       OWNER AS table_schem,\n       table_name,\n       column_name,\n       grantor,\n       grantee,\n       privilege,\n       grantable AS is_grantable\nFROM all_col_privs\nWHERE OWNER LIKE ? ESCAPE '/'\n  AND table_name LIKE ? ESCAPE '/'\n  AND column_name LIKE ? ESCAPE '/'\nORDER BY column_name, privilege\n");
+        PreparedStatement stmt = this.connection.prepareStatement(OB_ORA_GET_COLUMN_PRIVILEGES);
         stmt.setString(1, schema == null ? "%" : schema);
         stmt.setString(2, table == null ? "%" : table.toUpperCase());
         stmt.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
@@ -682,14 +615,12 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         int foreignTableIndex = foreignTable != null ? index++ : 0;
         int parentSchemaIndex = parentSchema != null && parentSchema.length() > 0 ? index++ : 0;
         int foreignSchemaIndex = foreignSchema != null && foreignSchema.length() > 0 ? index++ : 0;
-        PreparedStatement stmt = this.connection
-            .prepareStatement("SELECT NULL AS pktable_cat,\n       p.owner as pktable_schem,\n       p.table_name as pktable_name,\n       pc.column_name as pkcolumn_name,\n       NULL as fktable_cat,\n       f.owner as fktable_schem,\n       f.table_name as fktable_name,\n       fc.column_name as fkcolumn_name,\n       fc.position as key_seq,\n       NULL as update_rule,\n       decode (f.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,\n       f.constraint_name as fk_name,\n       p.constraint_name as pk_name,\n       decode(f.deferrable,       'DEFERRABLE',5      ,'NOT DEFERRABLE',7      , 'DEFERRED', 6      ) deferrability \n      FROM all_cons_columns pc, all_constraints p,\n      all_cons_columns fc, all_constraints f\nWHERE 1 = 1\n"
-                              + (parentTableIndex != 0 ? "  AND p.table_name = ?\n" : "")
-                              + (foreignTableIndex != 0 ? "  AND f.table_name = ?\n" : "")
-                              + (parentSchemaIndex != 0 ? "  AND p.owner = ?\n" : "")
-                              + (foreignSchemaIndex != 0 ? "  AND f.owner = ?\n" : "")
-                              + "  AND f.constraint_type = 'R'\n  AND p.owner = f.r_owner\n  AND p.constraint_name = f.r_constraint_name\n  AND p.constraint_type = 'P'\n  AND pc.owner = p.owner\n  AND pc.constraint_name = p.constraint_name\n  AND pc.table_name = p.table_name\n  AND fc.owner = f.owner\n  AND fc.constraint_name = f.constraint_name\n  AND fc.table_name = f.table_name\n  AND fc.position = pc.position\n"
-                              + orderBy);
+        String sql = String.format(OB_ORA_KEYS_QUERY,
+            parentTableIndex != 0 ? "  AND p.table_name = ? " : "",
+            foreignTableIndex != 0 ? "  AND f.table_name = ? " : "",
+            parentSchemaIndex != 0 ? "  AND p.owner = ? " : "",
+            foreignSchemaIndex != 0 ? "  AND f.owner = ? " : "");
+        PreparedStatement stmt = this.connection.prepareStatement(sql + orderBy);
         if (parentTableIndex != 0) {
             stmt.setString(parentTableIndex, parentTable);
         }

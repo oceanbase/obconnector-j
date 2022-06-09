@@ -197,7 +197,7 @@ public class INTERVALOracleTest extends BaseOracleTest {
      * INTERVALDS(String str)
      */
 
-    @Test
+    @Ignore
     public void constructorOracleIntervalds() throws SQLException {
         try {
             Connection oracleConnection = getOracleConnection();

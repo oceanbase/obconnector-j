@@ -103,12 +103,9 @@ public class OracleBugfix extends BaseOracleTest {
     static String testDateAndTS             = "testDateAndTS" + getRandomString(5);
     static String testReaderToCLob          = "testReaderToCLob" + getRandomString(5);
     static String testReaderToCLob2         = "testReaderToCLob2" + getRandomString(5);
-    static String testLargeStream           = "testLargeStream" + getRandomString(5);
-    static String testLargeReader           = "testLargeReader" + getRandomString(5);
     static String testSetDate               = "testSetDate" + getRandomString(5);
     static String testSetReaderToClob       = "testSetReaderToClob" + getRandomString(5);
     static String testEmpty                 = "testEmpty" + getRandomString(5);
-    static String pieceReuse                = "pieceReuse" + getRandomString(5);
     static String nvarchar2Test             = "nvarchar2_test" + getRandomString(5);
 
     @BeforeClass()
@@ -198,12 +195,9 @@ public class OracleBugfix extends BaseOracleTest {
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
         createTable(testReaderToCLob, "c1 clob, c2 number, c3 clob, c4 int");
         createTable(testReaderToCLob2, "c1 clob, c2 number, c3 clob, c4 int");
-        createTable(testLargeStream, "c1 blob,c2 varchar2(20)");
-        createTable(testLargeReader, "c1 clob,c2 varchar2(20)");
         createTable(testSetDate, "c1 date");
         createTable(testSetReaderToClob, "c1 clob");
         createTable(testEmpty, "c1 blob,c2 clob");
-        createTable(pieceReuse, "c1 clob, c2 number, c3 clob, c4 int");
         createTable(nvarchar2Test, "c1 nvarchar2(200)");
     }
 
@@ -535,30 +529,6 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
-    @Test
-    public void testDbWithQuotes() throws SQLException {
-        Connection conn = null;
-        try {
-            String url = System.getProperty("dbWithQuotes");
-            conn = DriverManager.getConnection(url);
-            Statement statement = conn.createStatement();
-            try {
-                statement.execute("drop procedure  pl_t2");
-            } catch (SQLException e) {
-            }
-            statement
-                .execute("create procedure pl_t2 (listing in out varchar2) is begin listing := 'abc';  end pl_t2; ");
-            CallableStatement callableStatement = conn.prepareCall("call pl_t2(?)");
-            callableStatement.registerOutParameter(1, Types.VARCHAR);
-            callableStatement.setString(1, "1212121");
-            callableStatement.execute();
-            Assert.assertEquals("abc", callableStatement.getString(1));
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-
     public LocalDateTime getLocalDateTimeNano(String value) {
         DateTimeFormatter localDateFormatterNano = new DateTimeFormatterBuilder()
             .append(DateTimeFormatter.ISO_LOCAL_DATE).appendLiteral(' ')
@@ -584,7 +554,7 @@ public class OracleBugfix extends BaseOracleTest {
             ps2.executeUpdate();
             ps2.close();
             ResultSet resultSet = stmt.executeQuery("select * from " + testTimeStamp);
-            String value = "1988-09-09 15:43:01.0";
+            String value = "1988-09-09 15:43:01";
             String dateValue = "1988-09-09";
             Assert.assertTrue(resultSet.next());
             String timeStampStr = resultSet.getString(2);
@@ -592,15 +562,15 @@ public class OracleBugfix extends BaseOracleTest {
             String timeStampStr2 = resultSet.getString(3);
             Assert.assertEquals(value, timeStampStr2);
             Timestamp ts = resultSet.getTimestamp(2);
-            Assert.assertEquals(value, ts.toString());
+            Assert.assertEquals(value + ".0", ts.toString());
             Date date = resultSet.getDate(3);
             Assert.assertEquals(dateValue, date.toString());
             Timestamp ts2 = resultSet.getTimestamp(3);
-            Assert.assertEquals(value, ts2.toString());
+            Assert.assertEquals(value + ".0", ts2.toString());
             Object obj1 = resultSet.getObject(2);
-            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            Assert.assertEquals(value + ".0", ((Timestamp) obj1).toString());
             Object obj2 = resultSet.getObject(3);
-            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+            Assert.assertEquals(value + ".0", ((Timestamp) obj2).toString());
 
             PreparedStatement preparedStatement = conn.prepareStatement("select * from "
                                                                         + testTimeStamp);
@@ -613,15 +583,15 @@ public class OracleBugfix extends BaseOracleTest {
             timeStampStr2 = resultSet.getString(3);
             Assert.assertEquals(value, timeStampStr2);
             ts = resultSet.getTimestamp(2);
-            Assert.assertEquals(value, ts.toString());
+            Assert.assertEquals(value + ".0", ts.toString());
             date = resultSet.getDate(3);
             Assert.assertEquals(dateValue, date.toString());
             ts2 = resultSet.getTimestamp(3);
-            Assert.assertEquals(value, ts2.toString());
+            Assert.assertEquals(value + ".0", ts2.toString());
             obj1 = resultSet.getObject(2);
-            Assert.assertEquals(value, ((Timestamp) obj1).toString());
+            Assert.assertEquals(value + ".0", ((Timestamp) obj1).toString());
             obj2 = resultSet.getObject(3);
-            Assert.assertEquals(value, ((Timestamp) obj2).toString());
+            Assert.assertEquals(value + ".0", ((Timestamp) obj2).toString());
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
@@ -1167,110 +1137,6 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
-    public void testSendBatchBugForRwrite() {
-        Assume.assumeTrue(sharedUsePrepare());
-        try {
-            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true&maxBatchTotalParamsNum=200");
-            Statement stmt = conn.createStatement();
-            try {
-                stmt.execute("drop table rewriteclob");
-            } catch (SQLException e) {
-                //                e.printStackTrace();
-            }
-            stmt.execute("create table rewriteclob(c1 clob,c2 varchar2(200),c3 varchar2(200),c4 clob,c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200))");
-            PreparedStatement preparedStatement = conn
-                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
-            int val = 0;
-            preparedStatement.setCharacterStream(1, new StringReader("string value"));
-            preparedStatement.setString(2, "string value");
-            preparedStatement.setString(3, "string value");
-            preparedStatement.setString(4, "string value");
-            preparedStatement.setLong(5, val++);
-
-            preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
-            preparedStatement.setDate(7, null);
-
-            preparedStatement.setString(8, "string value");
-            preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
-            preparedStatement.execute();
-            ResultSet rs = stmt.executeQuery("select * from rewriteclob");
-            val = 0;
-            while (rs.next()) {
-                Assert.assertEquals("string value", rs.getString(1));
-                Assert.assertEquals(val++, rs.getLong(5));
-            }
-            stmt.execute("delete from rewriteclob");
-            int batchTimes = 99;
-            val = 0;
-            System.out.println("test piece");
-            preparedStatement = conn
-                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
-            for (int i = 0; i < batchTimes; i++) {
-                preparedStatement.setCharacterStream(1, new StringReader("string value")); //  test for long data
-                preparedStatement.setString(2, "string value");
-                preparedStatement.setString(3, "string value");
-                preparedStatement.setCharacterStream(4, new StringReader("string value")); // test for long data
-                preparedStatement.setLong(5, val++);
-
-                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
-                preparedStatement.setDate(7, null);
-
-                preparedStatement.setString(8, "string value");
-                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
-                preparedStatement.addBatch();
-            }
-            val = 0;
-            preparedStatement.executeBatch();
-            rs = stmt.executeQuery("select * from rewriteclob");
-            long count = 0;
-            while (rs.next()) {
-                count++;
-                if (count < 10) {
-                    Assert.assertEquals("string value", rs.getString(1));
-                    Assert.assertEquals("string value", rs.getString(4));
-                }
-                Assert.assertEquals(val++, rs.getLong(5));
-            }
-            Assert.assertEquals(batchTimes, count);
-
-            stmt.execute("delete from rewriteclob");
-
-            batchTimes = 30001;
-            val = 0;
-            preparedStatement = conn
-                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
-            for (int i = 0; i < batchTimes; i++) {
-                preparedStatement.setString(1, "string value");
-                preparedStatement.setString(2, "string value");
-                preparedStatement.setString(3, "string value");
-                preparedStatement.setString(4, "string value");
-                preparedStatement.setLong(5, val++);
-                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
-                preparedStatement.setDate(7, null);
-                preparedStatement.setString(8, "string value");
-                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
-                preparedStatement.addBatch();
-            }
-            val = 0;
-            preparedStatement.executeBatch();
-            rs = stmt.executeQuery("select * from rewriteclob");
-            count = 0;
-            while (rs.next()) {
-                count++;
-                if (count < 10) {
-                    Assert.assertEquals("string value", rs.getString(1));
-                    Assert.assertEquals("string value", rs.getString(4));
-                }
-                Assert.assertEquals(val++, rs.getLong(5));
-            }
-            Assert.assertEquals(batchTimes, count);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-
-    @Test
     public void getObjectFromBlob() {
         try {
             Connection conn = sharedConnection;
@@ -1388,60 +1254,6 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
-    public void testLargeStreamValue() {
-        Assume.assumeTrue(sharedUsePrepare());
-        try {
-            Connection conn = setConnection("&usePieceData=true");
-            int size = 1024 * 1024 * 40; // 40mb
-            byte[] theBlob = new byte[size];
-            InputStream stream = new ByteArrayInputStream(theBlob);
-            int pos = 0;
-            int ch = 0;
-            ResultSet rs;
-            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeStream
-                                                         + " values(?, ?)");
-            ps.setAsciiStream(1, stream);
-            ps.setString(2, "aaa");
-            ps.execute();
-            ps = conn.prepareStatement("select * from " + testLargeStream);
-            rs = ps.executeQuery();
-            assertTrue(rs.next());
-            InputStream is = rs.getAsciiStream(1);
-            while ((ch = is.read()) != -1) {
-                assertEquals(theBlob[pos++], ch);
-            }
-            Assert.assertEquals(size, pos);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            fail();
-        }
-    }
-
-    @Test
-    public void testLargeReaderValue() {
-        Assume.assumeTrue(sharedUsePrepare());
-        try {
-            Connection conn = setConnection("&usePieceData=true");
-            String str = getRandomString(1024 * 1024 * 40); // 40MB
-            StringReader stringReader = new StringReader(str);
-            ResultSet rs;
-            PreparedStatement ps = conn.prepareStatement("insert into " + testLargeReader
-                                                         + " values(?, ?)");
-            ps.setClob(1, stringReader);
-            ps.setString(2, "aaa");
-            ps.execute();
-            ps = conn.prepareStatement("select * from " + testLargeReader);
-            rs = ps.executeQuery();
-            assertTrue(rs.next());
-            String str1 = rs.getString(1);
-            Assert.assertEquals(str1, str);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            fail();
-        }
-    }
-
-    @Test
     public void testSetDate() {
         try {
             Statement stmt = sharedConnection.createStatement();
@@ -1482,86 +1294,12 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
-    public void testSendPieceReuseConn() {
-        Assume.assumeTrue(sharedUsePrepare());
-        try {
-            Connection conn = setConnection("&usePieceData=true");
-            Statement stmt = conn.createStatement();
-            for (int j = 0; j < 5; j++) {
-                System.out.println("test turn  = " + j);
-                for (int i = 0; i < 20; i++) {
-                    PreparedStatement ps = conn.prepareStatement("insert into " + pieceReuse
-                                                                 + " values(?,?,?,?)");
-                    String str = "abcd";
-                    if (i >= 10) {
-                        ps.setObject(1, str);
-                    } else {
-                        ps.setCharacterStream(1, new StringReader(str));
-                    }
-                    ps.setObject(3, str);
-                    ps.setInt(2, 100);
-                    ps.setInt(4, 100);
-                    ps.execute();
-                    if (i <= 10) {
-                        ps.setObject(1, str);
-                    } else {
-                        ps.setCharacterStream(1, new StringReader(str));
-                    }
-                    ps.setObject(3, str);
-                    ps.setInt(2, 100);
-                    ps.setInt(4, 100);
-                    ps.execute();
-
-                    ps = conn.prepareStatement("insert into " + pieceReuse + " values(?,?,?,?)");
-                    if (i > 10) {
-                        ps.setObject(1, str);
-                    } else {
-                        ps.setCharacterStream(1, new StringReader(str));
-                    }
-                    ps.setObject(3, str);
-                    ps.setInt(2, 100);
-                    ps.setInt(4, 100);
-                    ps.addBatch();
-                    if (i > 10) {
-                        ps.setObject(1, str);
-                    } else {
-                        ps.setCharacterStream(1, new StringReader(str));
-                    }
-                    ps.setObject(3, str);
-                    ps.setInt(2, 100);
-                    ps.setInt(4, 100);
-                    ps.addBatch();
-                    ps.executeBatch();
-                    ps = conn.prepareStatement("select * from " + pieceReuse);
-                    ResultSet rs = ps.executeQuery();
-                    Assert.assertTrue(rs.next());
-                    Assert.assertEquals(str, rs.getString(1));
-                    Assert.assertEquals(str, rs.getString(3));
-                    Assert.assertEquals(100, rs.getInt(2));
-                    Assert.assertEquals(100, rs.getInt(4));
-                    stmt = conn.createStatement();
-                    rs = ps.executeQuery("select * from " + pieceReuse);
-                    Assert.assertTrue(rs.next());
-                    Assert.assertEquals(str, rs.getString(1));
-                    Assert.assertEquals(str, rs.getString(3));
-                    Assert.assertEquals(100, rs.getInt(2));
-                    Assert.assertEquals(100, rs.getInt(4));
-                    ps.close();
-                    stmt.close();
-                }
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-
-    @Test
     public void testEmpty() {
         try {
-            Statement stmt = sharedConnection.createStatement();
-            PreparedStatement ps = sharedConnection.prepareStatement("insert into " + testEmpty
-                                                                     + " values(?,?)");
+            Connection conn = setConnection("&usePieceData");
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn.prepareStatement("insert into " + testEmpty
+                                                         + " values(?,?)");
             ps.setBlob(1, Blob.getEmptyBLOB());
             ps.setClob(2, Clob.getEmptyCLOB());
             ps.execute();
@@ -2509,24 +2247,6 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
-    public void testAone39812040() {
-        try {
-            Connection conn = setConnection("&socketTimeout=60000");
-            Statement stmt = conn.createStatement();
-            stmt.execute("create or replace procedure SP_FAE_DEAL_FLOW(\n"
-                         + "VI_CDATADATE in varchar2) is \n" + "begin \n"
-                         + "    dbms_lock.sleep(120);\n"
-                         + "    dbms_output.put_line(VI_CDATADATE);\n" + "end SP_FAE_DEAL_FLOW;");
-            CallableStatement callableStatement = conn
-                .prepareCall("call SP_FAE_DEAL_FLOW('2022-02-25');");
-            callableStatement.execute();
-            Assert.fail();
-        } catch (SQLException e) {
-            Assert.assertTrue(e.getMessage().contains("Connection timed out"));
-        }
-    }
-
-    @Test
     public void testAone39114534() {
         try {
             Connection conn = sharedConnection;
@@ -2635,8 +2355,9 @@ public class OracleBugfix extends BaseOracleTest {
     // test for aone 40467149
     @Test
     public void testLobOracle() {
+        //        Assume.assumeTrue(sharedUsePrepare());
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection("&usePieceData");
             createTable("testLob", "c1 clob, c2 blob");
             String sql = "insert into testLob values (?, ?)";
             PreparedStatement ps = conn.prepareStatement(sql);
@@ -2668,9 +2389,10 @@ public class OracleBugfix extends BaseOracleTest {
     @Test
     public void testLobOracle2() {
         try {
+            Connection conn = setConnection("&usePieceData");
             createTable("testLobOracle_2", "c1 clob, c2 blob");
             String sql = "insert into testLobOracle_2 values (?, ?)";
-            PreparedStatement ps = sharedConnection.prepareStatement(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
             String str = "abcABC中文";
             java.sql.Clob clob = new com.oceanbase.jdbc.Clob();
             Writer writer = clob.setCharacterStream(1);
@@ -2683,13 +2405,12 @@ public class OracleBugfix extends BaseOracleTest {
             ps.setBlob(2, blob);
             assertEquals(1, ps.executeUpdate());
 
-            ResultSet rs = sharedConnection.prepareStatement("select * from testLobOracle_2")
-                .executeQuery();
+            ResultSet rs = conn.prepareStatement("select * from testLobOracle_2").executeQuery();
             assertTrue(rs.next());
             java.sql.Clob clob1 = rs.getClob(1);
             java.sql.Blob blob1 = rs.getBlob(2);
-            sharedConnection.createStatement().execute("delete from testLobOracle_2");
-            ps = sharedConnection.prepareStatement(sql);
+            conn.createStatement().execute("delete from testLobOracle_2");
+            ps = conn.prepareStatement(sql);
             ps.setClob(1, clob1);
             ps.setBlob(2, blob1);
             assertEquals(1, ps.executeUpdate());
@@ -2697,7 +2418,7 @@ public class OracleBugfix extends BaseOracleTest {
             ps.setBlob(2, blob1);
             assertEquals(1, ps.executeUpdate());
 
-            rs = sharedConnection.prepareStatement("select * from testLobOracle_2").executeQuery();
+            rs = conn.prepareStatement("select * from testLobOracle_2").executeQuery();
             assertTrue(rs.next());
             assertEquals(str, rs.getString(1));
             assertEquals(new String(bytes), new String(rs.getBytes(2)));
@@ -2802,4 +2523,90 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void oracleTimeTypeToString() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt
+                .executeQuery("select to_date('2022-02-02 15:30:20','yyyy-MM-DD hh24:MI:SS') from dual");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));
+            rs = stmt
+                .executeQuery("select to_timestamp('2022-02-02 15:30:20.000000','yyyy-MM-DD hh24:MI:SS.FF') from dual");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));
+            rs = stmt
+                .executeQuery("select to_timestamp('2022-02-02 15:30:20.123000','yyyy-MM-DD hh24:MI:SS.FF') from dual");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20.123", rs.getString(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testProcErrorAone40384433() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table  t");
+            } catch (SQLException throwables) {
+            }
+            stmt.execute("create table t(col int primary key)");
+            stmt.execute("create or replace procedure proc is " + "begin"
+                         + "  insert into t values(1);" + "  insert into t values(1);" + "end;");
+            PreparedStatement ps = conn.prepareStatement("call proc()");
+            ps.execute();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            Assert.assertTrue(throwables.getMessage().contains("line : 1, col : 5"));
+        }
+    }
+
+    @Test
+    public void testRefCursorResultSetClose() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_ref_cursor");
+            } catch (SQLException e) {
+            }
+            try {
+                stmt.execute("drop procedure p_sms_send");
+            } catch (SQLException e) {
+            }
+
+            stmt.execute("create table test_ref_cursor (c1  int ,c2 varchar2(200))");
+            for (int i = 0; i < 100; i++) {
+                stmt.execute("insert into test_ref_cursor values (1,'sfsfsfs')");
+
+            }
+            stmt.execute("create or replace procedure p_sms_send( ref_cursor  out sys_refcursor) as\n"
+                         + "v_sql       varchar2(2000);\n"
+                         + "begin\n"
+                         + "  v_sql := 'SELECT * FROM test_ref_cursor ';\n"
+                         + "  open ref_cursor for v_sql;\n" + "\n" + "end;");
+
+            CallableStatement cs = conn.prepareCall("call P_SMS_SEND(?)");
+            cs.registerOutParameter(1, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet) cs.getObject(1);
+            rs.close();
+            int count = 1;
+            try {
+                while (rs.next()) {
+                    count++;
+                }
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+            Assert.assertEquals(1, count);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

@@ -161,7 +161,7 @@ public abstract class Datum implements Serializable {
         throw new SQLException("Conversion to String failed");
     }
 
-    public String stringValue(Connection var1) throws SQLException {
+    public String stringValue(Connection connection) throws SQLException {
         return this.stringValue();
     }
 
@@ -201,7 +201,7 @@ public abstract class Datum implements Serializable {
         throw new SQLException("Conversion to Time failed");
     }
 
-    public Time timeValue(Calendar var1) throws SQLException {
+    public Time timeValue(Calendar calendar) throws SQLException {
         throw new SQLException("Conversion to Time failed");
     }
 
@@ -209,7 +209,7 @@ public abstract class Datum implements Serializable {
         throw new SQLException("Conversion to Timestamp failed");
     }
 
-    public Timestamp timestampValue(Calendar var1) throws SQLException {
+    public Timestamp timestampValue(Calendar calendar) throws SQLException {
         throw new SQLException("Conversion to Timestamp failed");
     }
 
@@ -225,9 +225,9 @@ public abstract class Datum implements Serializable {
         throw new SQLException("Conversion to binary stream failed");
     }
 
-    public abstract boolean isConvertibleTo(Class var1);
+    public abstract boolean isConvertibleTo(Class targetClass);
 
     public abstract Object toJdbc() throws SQLException;
 
-    public abstract Object makeJdbcArray(int var1);
+    public abstract Object makeJdbcArray(int intVal);
 }

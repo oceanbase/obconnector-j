@@ -53,38 +53,38 @@ public class BINARY_FLOAT extends Datum {
     public BINARY_FLOAT() {
     }
 
-    public BINARY_FLOAT(byte[] var1) {
-        super(var1);
+    public BINARY_FLOAT(byte[] bytes) {
+        super(bytes);
     }
 
-    public BINARY_FLOAT(float var1) {
-        super(floatToCanonicalFormatBytes(var1));
+    public BINARY_FLOAT(float floatVal) {
+        super(floatToCanonicalFormatBytes(floatVal));
     }
 
-    public BINARY_FLOAT(Float var1) {
-        super(floatToCanonicalFormatBytes(var1));
+    public BINARY_FLOAT(Float floatVal) {
+        super(floatToCanonicalFormatBytes(floatVal));
     }
 
-    public BINARY_FLOAT(String var1) throws SQLException {
-        this(stringToFloat(var1));
+    public BINARY_FLOAT(String stringVal) throws SQLException {
+        this(stringToFloat(stringVal));
     }
 
-    public BINARY_FLOAT(Boolean var1) {
-        this((float) (var1 ? 1 : 0));
+    public BINARY_FLOAT(Boolean booleanVal) {
+        this((float) (booleanVal ? 1 : 0));
     }
 
     public Object toJdbc() throws SQLException {
         return new Float(canonicalFormatBytesToFloat(this.getBytes()));
     }
 
-    public boolean isConvertibleTo(Class var1) {
-        String var2 = var1.getName();
-        return var2.compareTo("java.lang.String") == 0 || var2.compareTo("java.lang.Float") == 0;
+    public boolean isConvertibleTo(Class targetClass) {
+        String className = targetClass.getName();
+        return className.compareTo("java.lang.String") == 0
+               || className.compareTo("java.lang.Float") == 0;
     }
 
     public String stringValue() {
-        String var1 = Float.toString(canonicalFormatBytesToFloat(this.getBytes()));
-        return var1;
+        return Float.toString(canonicalFormatBytesToFloat(this.getBytes()));
     }
 
     public float floatValue() throws SQLException {
@@ -99,73 +99,66 @@ public class BINARY_FLOAT extends Datum {
         return new BigDecimal((double) this.floatValue());
     }
 
-    private static float stringToFloat(String var0) throws SQLException {
+    private static float stringToFloat(String stringVal) throws SQLException {
         try {
-            return Float.valueOf(var0);
+            return Float.valueOf(stringVal);
         } catch (NumberFormatException e) {
             throw e;
         }
     }
 
-    public Object makeJdbcArray(int var1) {
-        return new Float[var1];
+    public Object makeJdbcArray(int intVal) {
+        return new Float[intVal];
     }
 
-    static byte[] floatToCanonicalFormatBytes(float var0) {
-        float var1 = var0;
-        if (var0 == 0.0F) {
-            var1 = 0.0F;
-        } else if (var0 != var0) {
-            var1 = (float) (0.0F / 0.0);
+    static byte[] floatToCanonicalFormatBytes(float floatVal) {
+        float floatValTmp = floatVal;
+        if (floatVal == 0.0F) {
+            floatValTmp = 0.0F;
+        } else if (floatVal != floatVal) {
+            floatValTmp = (float) (0.0F / 0.0);
         }
 
-        int var2 = Float.floatToIntBits(var1);
-        byte[] var3 = new byte[4];
-        int var4 = var2;
-        var2 >>= 8;
-        int var5 = var2;
-        var2 >>= 8;
-        int var6 = var2;
-        var2 >>= 8;
-        int var7;
-        if ((var2 & 128) == 0) {
-            var7 = var2 | 128;
+        int floatToIntBits = Float.floatToIntBits(floatValTmp);
+        byte[] bytes = new byte[4];
+        int floatPos1 = floatToIntBits;
+        floatToIntBits >>= 8;
+        int floatPos2 = floatToIntBits;
+        floatToIntBits >>= 8;
+        int floatPos3 = floatToIntBits;
+        floatToIntBits >>= 8;
+        int floatPos4;
+        if ((floatToIntBits & 128) == 0) {
+            floatPos4 = floatToIntBits | 128;
         } else {
-            var7 = ~var2;
-            var6 = ~var6;
-            var5 = ~var5;
-            var4 = ~var4;
+            floatPos4 = ~floatToIntBits;
+            floatPos3 = ~floatPos3;
+            floatPos2 = ~floatPos2;
+            floatPos1 = ~floatPos1;
         }
 
-        var3[3] = (byte) var4;
-        var3[2] = (byte) var5;
-        var3[1] = (byte) var6;
-        var3[0] = (byte) var7;
-        return var3;
+        bytes[3] = (byte) floatPos1;
+        bytes[2] = (byte) floatPos2;
+        bytes[1] = (byte) floatPos3;
+        bytes[0] = (byte) floatPos4;
+        return bytes;
     }
 
-    static float canonicalFormatBytesToFloat(byte[] var0) {
-        byte var1 = var0[0];
-        byte var2 = var0[1];
-        byte var3 = var0[2];
-        byte var4 = var0[3];
-        int var6;
-        int var7;
-        int var8;
-        int var9;
-        if ((var1 & 128) != 0) {
-            var6 = var1 & 127;
-            var7 = var2 & 255;
-            var8 = var3 & 255;
-            var9 = var4 & 255;
+    static float canonicalFormatBytesToFloat(byte[] bytes) {
+        int aInt1, aInt2, aInt3, aInt4;
+        if ((bytes[0] & 128) != 0) {
+            aInt1 = bytes[0] & 127;
+            aInt2 = bytes[1] & 255;
+            aInt3 = bytes[2] & 255;
+            aInt4 = bytes[3] & 255;
         } else {
-            var6 = ~var1 & 255;
-            var7 = ~var2 & 255;
-            var8 = ~var3 & 255;
-            var9 = ~var4 & 255;
+            aInt1 = ~bytes[0] & 255;
+            aInt2 = ~bytes[1] & 255;
+            aInt3 = ~bytes[2] & 255;
+            aInt4 = ~bytes[3] & 255;
         }
 
-        int var5 = var6 << 24 | var7 << 16 | var8 << 8 | var9;
-        return Float.intBitsToFloat(var5);
+        int intVal = aInt1 << 24 | aInt2 << 16 | aInt3 << 8 | aInt4;
+        return Float.intBitsToFloat(intVal);
     }
 }

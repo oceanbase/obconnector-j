@@ -3557,7 +3557,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
     }
 
-    // TODO: Oracle setRowBufferAt(int var1, Datum var2)
     public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
         checkUpdatable(columnIndex);
         updateInternalObject(columnIndex, value, updatableColumns[columnIndex - 1].getColumnType()

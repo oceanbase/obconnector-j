@@ -392,7 +392,16 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     return null;
                 }
-                return timestamp.toString();
+                if (getProtocol().isOracleMode()) {
+                    LocalDateTime localDateTime = timestamp.toLocalDateTime();
+                    String str = TIMESTAMPTZ.toString(localDateTime.getYear(), localDateTime
+                        .getMonthValue(), localDateTime.getDayOfMonth(), localDateTime.getHour(),
+                        localDateTime.getMinute(), localDateTime.getSecond(), localDateTime
+                            .getNano() == 0 ? -1 : localDateTime.getNano(), 0, null);
+                    return str;
+                } else {
+                    return timestamp.toString();
+                }
             case INTERVALDS:
                 INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
                 return intervalds.toString();

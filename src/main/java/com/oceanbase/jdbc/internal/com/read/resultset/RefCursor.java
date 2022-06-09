@@ -144,6 +144,8 @@ public class RefCursor extends SelectResultSet {
     @Override
     public void close() throws SQLException {
         if (rowObCursorData != null) {
+            ((ServerSidePreparedStatement) this.getStatement()).closeCursor(this.rowObCursorData
+                .getCursorId());
             rowObCursorData.setOpen(false);
         }
     }

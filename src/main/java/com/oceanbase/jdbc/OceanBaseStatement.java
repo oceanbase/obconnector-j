@@ -1641,7 +1641,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if statement close
    */
   protected void checkClose() throws SQLException {
-    if (closed) {
+    if (closed || this.connection.isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("Cannot do an operation on a closed statement");
