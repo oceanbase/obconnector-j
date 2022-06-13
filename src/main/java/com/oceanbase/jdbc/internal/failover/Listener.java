@@ -54,11 +54,13 @@ import java.lang.reflect.Method;
 import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
@@ -165,4 +167,12 @@ public interface Listener {
                                                                                                   throws SQLException;
 
     void reset() throws SQLException;
+
+    void setCurrentLoadBalanceInfo(LoadBalanceInfo loadBalanceInfo);
+
+    LoadBalanceInfo getCurrentLoadBalanceInfo();
+
+    Set<HostAddress> getPickedlistKeys();
+
+    ConcurrentMap<HostAddress, Long> getPickedlist();
 }

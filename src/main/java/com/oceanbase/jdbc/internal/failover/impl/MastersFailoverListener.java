@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc.internal.failover.impl;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.LinkedList;
@@ -59,17 +60,13 @@ import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.AbstractMastersListener;
 import com.oceanbase.jdbc.internal.failover.HandleErrorResult;
-import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.BalanceStrategy;
-import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RandomStrategy;
-import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RotationStrategy;
-import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.ServerAffinityStrategy;
 import com.oceanbase.jdbc.internal.failover.thread.FailoverLoop;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.ConfigParser;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
-import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
@@ -203,26 +200,22 @@ public class MastersFailoverListener extends AbstractMastersListener {
       }
       currentConnectionAttempts.incrementAndGet();
       resetOldsBlackListHosts();
-      List<HostAddress> loopAddress ;
-      loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+      List<HostAddress> loopAddress  = null;
+      if(urlParser.getHostAddresses() != null) {
+          loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+      }
       if (HaMode.LOADBALANCE.equals(mode)) {
-        Utils.LoadBlanceInfo loadBlanceInfo = Utils.getGloabalLoadBalanceInfo(urlParser);
-        BalanceStrategy balanceStrategy = null;
-        switch (loadBlanceInfo.strategy) {
-          case "random":
-            balanceStrategy = new RandomStrategy();
-            break;
-          case "roation":
-            balanceStrategy = new RotationStrategy();
-            break;
-          case "serverAffinity":
-            balanceStrategy = new ServerAffinityStrategy();
-            break;
-          default:
-            balanceStrategy = new RandomStrategy();
-            break;
-        }
-        balanceStrategy.pickConnection(loadBlanceInfo,urlParser,this,globalInfo,searchFilter,getBlacklist());
+          LoadBalanceInfo loadBlanceInfo = null;
+          try {
+              loadBlanceInfo = ConfigParser.getGloabalLoadBalanceInfo(urlParser);
+          } catch (IOException e) {
+              throw new RuntimeException(e);
+          }
+          LoadBlanceDriverBuilder loadBlanceDriverBuilder = new LoadBlanceDriverBuilder(loadBlanceInfo);
+          Director director = new Director(loadBlanceDriverBuilder);
+          LoadBalanceDriver loadBalanceDriver =  director.construct();
+          this.setCurrentLoadBalanceInfo(loadBlanceInfo);
+          loadBalanceDriver.loop(urlParser,this,globalInfo,searchFilter,getBlacklist(),getPickedlist());
       }
       else {
         // order in sequence
@@ -363,4 +356,5 @@ public class MastersFailoverListener extends AbstractMastersListener {
             currentProtocol.reset();
         }
     }
+
 }

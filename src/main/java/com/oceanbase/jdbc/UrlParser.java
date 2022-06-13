@@ -115,6 +115,7 @@ public class UrlParser implements Cloneable {
     private CredentialPlugin     credentialPlugin;
     private String               tnsServiceName;
     public static final String   DBNAME_PROPERTY_KEY = "DBNAME";
+    private String               extendDescription;
 
     public static String getPropertyDbName(Properties props) {
         return props.getProperty(DBNAME_PROPERTY_KEY);
@@ -274,8 +275,13 @@ public class UrlParser implements Cloneable {
         LoggerFactory.init(urlParser.options.log || urlParser.options.profileSql
                            || urlParser.options.slowQueryThresholdNanos != null);
         if(hostAddressesString.indexOf('@') == 0 && urlParser.haMode == HaMode.LOADBALANCE) {
-            urlParser.addresses = new ArrayList<>();
-            urlParser.tnsServiceName = hostAddressesString.substring(1);
+            String extendDescription = hostAddressesString.substring(1);
+            if(extendDescription.indexOf('(') == 0) {
+                urlParser.extendDescription = extendDescription;
+            } else {
+                urlParser.addresses = new ArrayList<>();
+                urlParser.tnsServiceName = hostAddressesString.substring(1);
+            }
         } else {
             urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
             if (properties.get("port") != null) {
@@ -330,9 +336,11 @@ public class UrlParser implements Cloneable {
                 hostAddress.type = null;
             }
         } else {
-            for (HostAddress hostAddress : urlParser.addresses) {
-                if (hostAddress.type == null) {
-                    hostAddress.type = ParameterConstant.TYPE_MASTER;
+            if (urlParser.addresses != null && urlParser.extendDescription != null) {
+                for (HostAddress hostAddress : urlParser.addresses) {
+                    if (hostAddress.type == null) {
+                        hostAddress.type = ParameterConstant.TYPE_MASTER;
+                    }
                 }
             }
         }
@@ -518,13 +526,15 @@ public class UrlParser implements Cloneable {
         if (haMode == HaMode.SEQUENTIAL || haMode == HaMode.REPLICATION
             || haMode == HaMode.LOADBALANCE) {
             boolean firstMaster = false;
-            for (HostAddress host : addresses) {
-                if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
-                    if (firstMaster) {
-                        multiMaster = true;
-                        return;
-                    } else {
-                        firstMaster = true;
+            if (addresses != null && extendDescription != null) {
+                for (HostAddress host : addresses) {
+                    if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
+                        if (firstMaster) {
+                            multiMaster = true;
+                            return;
+                        } else {
+                            firstMaster = true;
+                        }
                     }
                 }
             }
@@ -543,5 +553,9 @@ public class UrlParser implements Cloneable {
         tmpUrlParser.addresses = new ArrayList<>();
         tmpUrlParser.addresses.addAll(addresses);
         return tmpUrlParser;
+    }
+
+    public String getExtendDescription() {
+        return extendDescription;
     }
 }

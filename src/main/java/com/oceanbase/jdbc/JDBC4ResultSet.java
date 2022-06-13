@@ -147,7 +147,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private ResultSetClass                  rsClass;
 
     public enum ResultSetClass {
-        COMPLETE, STREAMING, CURSOR
+        COMPLETE,
+        STREAMING,
+        CURSOR
     };
 
     /****************************** updatable  characters *******************************/

@@ -1049,6 +1049,7 @@ public class ClientPrepareResult implements PrepareResult {
         SlashStarComment, /* inside slash-star comment */
         Escape, /* found backslash */
         EOLComment, /* # comment, or // comment, or -- comment */
-        Backtick /* found backtick */, NabmeBinding /* in name binding such as :name */
+        Backtick /* found backtick */,
+        NabmeBinding /* in name binding such as :name */
     }
 }

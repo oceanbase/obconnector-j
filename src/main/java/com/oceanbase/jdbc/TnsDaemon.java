@@ -1,20 +1,25 @@
 package com.oceanbase.jdbc;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
+import com.oceanbase.jdbc.internal.failover.utils.ConfigParser;
 
 public class TnsDaemon extends Thread {
-    private Map<String, Utils.LoadBlanceInfo> propertyMap = new ConcurrentHashMap<>();
-    private static final String configFileName = "tnsnames.ob";
+    private Map<String, LoadBalanceInfo> propertyMap = new ConcurrentHashMap<>();
+    private static  String configFileName = "tnsnames.ob";
 
     private void fullFillMap(String tnsPath) throws IOException {
-        HashMap<String, Utils.LoadBlanceInfo> tmp = Utils.getPropertiesFromTNSNames(tnsPath + "/" + configFileName);
+
+        String filePath = tnsPath + "/" + configFileName;
+        File file = new File(filePath);
+        Reader reader = new InputStreamReader(new FileInputStream(file));
+        HashMap<String, LoadBalanceInfo> tmp = ConfigParser.getLoadBalanceInfosFromReader(reader);
+        propertyMap.clear();
         for (String key : tmp.keySet()) {
             propertyMap.put(key, tmp.get(key));
         }
@@ -23,17 +28,11 @@ public class TnsDaemon extends Thread {
     @Override
     public void run() {
         try {
-            String tnsPath = System.getProperty("oceanbase.tns_admin");
-            String tnsEnv = System.getenv("OCEANBASE_TNS_ADMIN");
-            if (tnsEnv == null && tnsPath == null) {
-                return;
-            }
-            if (tnsPath == null) {
-                tnsPath = tnsEnv;
-            }
-            fullFillMap(tnsPath);
+            ConfigParser.TnsFileInfo tnsFileInfo = ConfigParser.getTnsFilePath();
+            configFileName = tnsFileInfo.name;
+            fullFillMap(tnsFileInfo.path);
             WatchService watchService = FileSystems.getDefault().newWatchService();
-            File file1 = new File(tnsPath);
+            File file1 = new File(tnsFileInfo.path);
             file1.toPath().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
             while (true) {
                 WatchKey key = watchService.take();
@@ -41,7 +40,7 @@ public class TnsDaemon extends Thread {
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
                     Path filename = ev.context();
                     if (filename.toString().equals(configFileName)) {
-                        fullFillMap(tnsPath);
+                        fullFillMap(tnsFileInfo.path);
                     }
                 }
                 boolean vaild = key.reset();
@@ -54,7 +53,7 @@ public class TnsDaemon extends Thread {
         }
     }
 
-    public Utils.LoadBlanceInfo getTnsProperties(String key) {
+    public LoadBalanceInfo getTnsProperties(String key) {
         return propertyMap.get(key);
     }
 

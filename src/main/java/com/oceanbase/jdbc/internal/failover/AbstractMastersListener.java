@@ -69,6 +69,7 @@ import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.thread.ConnectionValidator;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.logging.Logger;
@@ -83,6 +84,9 @@ public abstract class AbstractMastersListener implements Listener {
 
   /** List the recent failedConnection. */
   private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+
+  private static final ConcurrentMap<HostAddress, Long> pickedlist = new ConcurrentHashMap<>();
+
 
   private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
   private static final Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
@@ -102,6 +106,18 @@ public abstract class AbstractMastersListener implements Listener {
   protected long lastQueryNanos = 0;
   private volatile long masterHostFailNanos = 0;
 
+  private LoadBalanceInfo currentLBinfo;
+
+
+  @Override
+  public void setCurrentLoadBalanceInfo(LoadBalanceInfo loadBalanceInfo) {
+    currentLBinfo = loadBalanceInfo;
+  }
+
+  @Override
+  public LoadBalanceInfo getCurrentLoadBalanceInfo() {
+    return currentLBinfo;
+  }
   protected AbstractMastersListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
     this.urlParser = urlParser;
     this.globalInfo = globalInfo;
@@ -163,6 +179,14 @@ public abstract class AbstractMastersListener implements Listener {
 
   public static ConcurrentMap<HostAddress, Long> getBlacklist() {
     return blacklist;
+  }
+
+  public Set<HostAddress> getPickedlistKeys() {
+    return pickedlist.keySet();
+  }
+
+  public  ConcurrentMap<HostAddress, Long> getPickedlist() {
+    return pickedlist;
   }
 
   /**
