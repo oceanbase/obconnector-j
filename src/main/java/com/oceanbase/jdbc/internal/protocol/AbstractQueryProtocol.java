@@ -1691,10 +1691,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTransactionIsolation(final int level) throws SQLException {
     cmdPrologue();
     lock.lock();
-    if (transactionIsolationLevel == level) {
-      return;
-    }
     try {
+      if (transactionIsolationLevel == level) {
+        return;
+      }
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (level) {
         case Connection.TRANSACTION_READ_UNCOMMITTED:

@@ -160,7 +160,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             }
             return SelectResultSet.createEmptyResultSet();
         } finally {
-            curLock.lock();
+            curLock.unlock();
         }
     }
 
