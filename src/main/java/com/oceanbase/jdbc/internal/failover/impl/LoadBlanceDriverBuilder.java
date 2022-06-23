@@ -4,8 +4,14 @@ import java.sql.SQLException;
 import java.util.HashMap;
 
 import com.oceanbase.jdbc.internal.failover.BlackList.*;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.AppendStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.NormalAppend;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.RetryDuration;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.RemoveStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.TimeoutRecover;
 import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.*;
 import com.oceanbase.jdbc.internal.failover.impl.checkers.*;
+import com.oceanbase.jdbc.internal.failover.utils.Consts;
 
 public class LoadBlanceDriverBuilder implements Builder {
     private LoadBalanceDriver loadBalanceDriver = null;
@@ -41,13 +47,13 @@ public class LoadBlanceDriverBuilder implements Builder {
     public void buildGroupStrategy() throws SQLException {
         HashMap<String, String> map = loadBalanceInfo.getGroupBalanceStrategyConfigs();
         GroupBalanceStrategy groupBalanceStrategy = null;
-        String name = map.get("NAME");
+        String name = map.get(Consts.NAME);
         checker = new GroupStrategyConfigChecker();
         if (!checker.isValid(map)) {
             throw new SQLException("groupBalanceStrategy config incorrect：" + map);
         }
-        switch (name) {
-            case "ROTATION":
+        switch (name.toUpperCase()) {
+            case Consts.ROTATION:
             default:
                 groupBalanceStrategy = new GroupRotationStrategy();
                 break;
@@ -58,40 +64,40 @@ public class LoadBlanceDriverBuilder implements Builder {
     @Override
     public void buildBlackListStrategy() throws SQLException {
         BlackListConfig blackListConfig = loadBalanceInfo.getBlackListConfig();
-        String name = blackListConfig.getRemoveStrategyConfigs().get("NAME");
+        String name = blackListConfig.getRemoveStrategyConfigs().get(Consts.NAME);
         RemoveStrategy removeStrategy = null;
         checker = new BlackListStrategyRemoveChecker();
         if (!checker.isValid(blackListConfig.getRemoveStrategyConfigs())) {
             throw new SQLException("groupBalanceStrategy config incorrect："
                                    + blackListConfig.getRemoveStrategyConfigs());
         }
-        switch (name) {
-            case "TIMETOUT":
+        switch (name.toUpperCase()) {
+            case Consts.TIMEOUT:
             default:
                 removeStrategy = new TimeoutRecover();
                 int timeout = Integer.parseInt(blackListConfig.getRemoveStrategyConfigs().get(
-                    "TIMEOUT"));
+                    Consts.TIMEOUT));
                 ((TimeoutRecover) removeStrategy).setTimeout(timeout);
                 break;
 
         }
         blackListConfig.setRemoveStrategy(removeStrategy);
-        name = blackListConfig.getAppendStrategyConfigs().get("NAME");
+        name = blackListConfig.getAppendStrategyConfigs().get(Consts.NAME);
         checker = new BlackListStrategyAppendChecker();
         if (!checker.isValid(blackListConfig.getAppendStrategyConfigs())) {
             throw new SQLException("groupBalanceStrategy config incorrect："
                                    + blackListConfig.getAppendStrategyConfigs());
         }
         AppendStrategy appendStrategy = null;
-        switch (name) {
-            case "RETRYDURATION":
-                appendStrategy = new RetryDuration();
-                String retryTimes = blackListConfig.getAppendStrategyConfigs().get("RETRYTIMES");
-                String duration = blackListConfig.getAppendStrategyConfigs().get("DURATION");
-                ((RetryDuration) appendStrategy).setRetryTimes(Integer.parseInt(retryTimes));
-                ((RetryDuration) appendStrategy).setDuration(Integer.parseInt(duration));
+        switch (name.toUpperCase()) {
+            case Consts.RETRYDURATION:
+                String retryTimes = blackListConfig.getAppendStrategyConfigs().get(
+                    Consts.RETRYTIMES);
+                String duration = blackListConfig.getAppendStrategyConfigs().get(Consts.DURATION);
+                appendStrategy = new RetryDuration(Long.parseLong(duration),
+                    Integer.parseInt(retryTimes));
                 break;
-            case "NORMAL":
+            case Consts.NORMAL:
             default:
                 appendStrategy = new NormalAppend();
                 break;
@@ -103,19 +109,19 @@ public class LoadBlanceDriverBuilder implements Builder {
     public void buildBalanceStrategy() throws SQLException {
         HashMap<String, String> map = loadBalanceInfo.getBalanceStrategyConfigs();
         BalanceStrategy balanceStrategy = null;
-        String name = map.get("NAME");
+        String name = map.get(Consts.NAME);
         checker = new BalanceStrategyChecker();
         if (!checker.isValid(map)) {
             throw new SQLException("Global balanceStrategy config incorrect：" + map);
         }
-        switch (name) {
-            case "SERVERAFFINITY":
+        switch (name.toUpperCase()) {
+            case Consts.SERVERAFFINITY:
                 balanceStrategy = new ServerAffinityStrategy();
                 break;
-            case "ROTATION":
+            case Consts.ROTATION:
                 balanceStrategy = new RotationStrategy();
                 break;
-            case "RANDOM":
+            case Consts.RANDOM:
             default:
                 balanceStrategy = new RandomStrategy();
                 break;
@@ -127,20 +133,20 @@ public class LoadBlanceDriverBuilder implements Builder {
     public void buildHostListBalanceStrategies() throws SQLException {
         checker = new BalanceStrategyChecker();
         for (LoadBalanceAddressList loadBalanceAddressList : loadBalanceInfo.groups) {
-            String name = loadBalanceAddressList.getBalanceStrategyConfigs().get("NAME");
+            String name = loadBalanceAddressList.getBalanceStrategyConfigs().get(Consts.NAME);
             HashMap<String, String> map = loadBalanceAddressList.getBalanceStrategyConfigs();
             if (!checker.isValid(map)) {
                 throw new SQLException("Host list  balanceStrategy config incorrect：" + map);
             }
             BalanceStrategy hostListBalanceStrategy = null;
-            switch (name) {
-                case "SERVERAFFINITY":
+            switch (name.toUpperCase()) {
+                case Consts.SERVERAFFINITY:
                     hostListBalanceStrategy = new ServerAffinityStrategy();
                     break;
-                case "ROTATION":
+                case Consts.ROTATION:
                     hostListBalanceStrategy = new RotationStrategy();
                     break;
-                case "RANDOM":
+                case Consts.RANDOM:
                 default:
                     hostListBalanceStrategy = new RandomStrategy();
                     break;

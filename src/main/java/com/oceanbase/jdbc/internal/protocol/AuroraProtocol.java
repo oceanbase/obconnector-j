@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc.internal.protocol;
 
+import java.io.IOException;
 import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -64,6 +65,7 @@ import com.oceanbase.jdbc.internal.failover.impl.AuroraListener;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.util.SqlStates;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
@@ -104,7 +106,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
             }
 
-        } catch (SQLException e) {
+        } catch (SQLException | IOException e) {
             listener.addToBlacklist(protocol.getHostAddress());
         }
     }
@@ -234,6 +236,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
           protocol.close();
         }
 
+      } catch (IOException e) {
+          lastQueryException = ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s", protocol.getHostAddress(), e.getMessage()), "08000", e);
+          listener.addToBlacklist(protocol.getHostAddress());
       } catch (SQLException e) {
         lastQueryException = e;
         listener.addToBlacklist(protocol.getHostAddress());

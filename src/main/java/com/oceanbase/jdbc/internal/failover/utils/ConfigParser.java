@@ -2,13 +2,13 @@ package com.oceanbase.jdbc.internal.failover.utils;
 
 import java.io.*;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.BlackList.BlackListConfig;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.RetryDuration;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceAddressList;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceHostAddress;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
@@ -41,7 +41,7 @@ enum CONFIGTYPE {
     DESCRIPTION("DESCRIPTION"),
     ADDRESSLIST("ADDRESS_LIST"),
     ADDRESS("ADDRESS"),
-    LOADBALANCE("LOADBALANCE"),
+    LOADBALANCE("LOAD_BALANCE"),
     LOADBALANCEALIAS("OBLB"),
     LOADBALANCESTRATEGY("LOAD_BALANCE_STRATEGY"),
     LOADBALANCESTRATEGYALIAS("OBLB_STRATEGY"),
@@ -66,9 +66,10 @@ enum CONFIGTYPE {
 }
 
 public class ConfigParser {
+    // LoadBalanceInfo represents the configuration information of the current net_service_name
+    static ConcurrentHashMap<String, LoadBalanceInfo> loadBalanceInfos = new ConcurrentHashMap<>();
 
-    public static HashMap<String,LoadBalanceInfo> getLoadBalanceInfosFromReader(Reader reader) throws IOException {
-        HashMap<String,LoadBalanceInfo>  balanceInfos = new HashMap<>();
+    public static ConcurrentHashMap<String,LoadBalanceInfo> getLoadBalanceInfosFromReader(Reader reader) throws IOException {
         LoadBalanceInfo loadBalanceInfo = null;
         BlackListConfig blackListConfig = null;
         LoadBalanceAddressList loadBalanceAddressList = null;
@@ -100,7 +101,7 @@ public class ConfigParser {
                     case ')':
                         bracketsCount --;
                         if(bracketsCount == 0) {
-                            balanceInfos.put(currentNetServiceName,loadBalanceInfo);
+                            loadBalanceInfos.put(currentNetServiceName,loadBalanceInfo);
                             state =  STATE.NONE;
                             curConfigType = CONFIGTYPE.NONE;
                             word = new StringBuilder();
@@ -115,18 +116,18 @@ public class ConfigParser {
                                     loadBalanceInfo.setRetryAllDowns(Integer.parseInt(value));
                                     break;
                                 case GROUPSTRATEGY:
-                                    loadBalanceInfo.getGroupBalanceStrategyConfigs().put("NAME",value);
+                                    loadBalanceInfo.getGroupBalanceStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     break;
                                 case LOADBALANCESTRATEGY:
                                 case LOADBALANCESTRATEGYALIAS:
                                     if(curZone == ZONE.INDESCRIPTION) {
-                                        loadBalanceInfo.getBalanceStrategyConfigs().put("NAME",value);
+                                        loadBalanceInfo.getBalanceStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     } else {
-                                        loadBalanceInfo.getGroups().get(loadBalanceInfo.getGroups().size() -1 ).getBalanceStrategyConfigs().put("NAME",value);
+                                        loadBalanceInfo.getGroups().get(loadBalanceInfo.getGroups().size() -1 ).getBalanceStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     }
                                 case LOADBALANCEALIAS:
                                 case LOADBALANCE:
-                                    if(value.equalsIgnoreCase("ON")) {
+                                    if(value.equalsIgnoreCase(Consts.ON)) {
                                         loadBalanceInfo.setHaMode(HaMode.LOADBALANCE);
                                     } else {
                                         loadBalanceInfo.setHaMode(HaMode.NONE);
@@ -134,19 +135,20 @@ public class ConfigParser {
                                     break;
                                 case NAME:
                                     if(curZone == ZONE.INREMOVESTRATGY) {
-                                        blackListConfig.getRemoveStrategyConfigs().put("NAME","TIMEOUT");
+                                        blackListConfig.getRemoveStrategyConfigs().put(Consts.NAME,Consts.TIMEOUT);
                                     } else {
-                                        blackListConfig.getAppendStrategyConfigs().put("NAME",value.toUpperCase());
+                                        blackListConfig.getAppendStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     }
                                     break;
                                 case TIMEOUT:
-                                    blackListConfig.getRemoveStrategyConfigs().put("TIMEOUT",value);
+                                    blackListConfig.getRemoveStrategyConfigs().put(Consts.TIMEOUT,value.toUpperCase());
                                     break;
                                 case RETRYTIMES:
-                                    blackListConfig.getAppendStrategyConfigs().put("RETRYTIMES",value);
+                                    blackListConfig.getAppendStrategyConfigs().put(Consts.RETRYTIMES,value.toUpperCase());
                                     break;
                                 case DURATION:
-                                    blackListConfig.getAppendStrategyConfigs().put("DURATION",value);
+                                    blackListConfig.getAppendStrategyConfigs().put(Consts.DURATION,value.toUpperCase());
+                                    RetryDuration.updateMaxDuration(Long.parseLong(value));
                                     break;
                                 case PORT:
                                     loadBalanceHostAddress.setPort(Integer.parseInt(value));
@@ -239,7 +241,7 @@ public class ConfigParser {
                 }
             }
         }
-        return balanceInfos;
+        return loadBalanceInfos;
     }
 
     public static class TnsFileInfo {
@@ -289,27 +291,30 @@ public class ConfigParser {
                 String filePath = tnsFileInfo.path + "/" + tnsFileInfo.name;
                 File file = new File(filePath);
                 Reader reader = new InputStreamReader(new FileInputStream(file));
-                HashMap<String, LoadBalanceInfo> tmp = ConfigParser.getLoadBalanceInfosFromReader(reader);
-                return tmp.get(urlParser.getTnsServiceName());
+                ConfigParser.getLoadBalanceInfosFromReader(reader);
+                return loadBalanceInfos.get(urlParser.getTnsServiceName());
             } else {
                 if (Utils.tnsDaemon.getState() == Thread.State.TERMINATED) {
                     throw new SQLException("Config file daemon thread  is TERMINATED");
                 }
-                LoadBalanceInfo tnsPropertis = Utils.tnsDaemon.getTnsProperties(urlParser.getTnsServiceName());
+                LoadBalanceInfo tnsPropertis = loadBalanceInfos.get(urlParser.getTnsServiceName());
                 if (tnsPropertis == null) {
                     throw new SQLException("Unknown host specified ");
                 }
                 return tnsPropertis;
+
             }
         } else {
             if(urlParser.getExtendDescription() != null) {
-                HashMap<String,LoadBalanceInfo>  map = new HashMap<>();
-                map = ConfigParser.getLoadBalanceInfosFromReader(new StringReader(urlParser.getExtendDescription()));
-                return map.get("");
+                loadBalanceInfos = ConfigParser.getLoadBalanceInfosFromReader(new StringReader(urlParser.getExtendDescription()));
+                //extend description with net service name (NET_SERVICE_NAME=(DESCRIPTION=()))
+                //extend description without net service name (DESCRIPTION=())
+                String netServiceName = getNetServiceName(urlParser.getExtendDescription());
+                return loadBalanceInfos.get(netServiceName);
             } else {
                 LoadBalanceInfo ret = new LoadBalanceInfo();
-                String strategy = urlParser.getOptions().loadBalanceStrategy;
-                ret.getBalanceStrategyConfigs().put("NAME",strategy);
+                String strategy = urlParser.getOptions().loadBalanceStrategy.toUpperCase();
+                ret.getBalanceStrategyConfigs().put(Consts.NAME,strategy);
                 String serverAffinityOrder = urlParser.getOptions().serverAffinityOrder;
                 if (serverAffinityOrder == null || serverAffinityOrder.equals("")) {
                     List<HostAddress> addressList = urlParser.getHostAddresses();
@@ -339,8 +344,20 @@ public class ConfigParser {
                     }
                     ret.getGroups().add(loadBalanceAddressList);
                 }
-                return  ret;
+                return ret;
             }
         } // we can add othrer mode here
+    }
+
+    public static  String getNetServiceName(String  extendDescription) throws SQLException {
+        String tmp = extendDescription.trim();
+        int startIndex = tmp.indexOf("(");
+        int endIndex = tmp.indexOf("=");
+        String value = tmp.substring(startIndex+1,endIndex);
+        if(value.trim().equalsIgnoreCase("DESCRIPTION")) {
+            throw new SQLException("Url config format error !");
+        } else {
+            return value.trim();
+        }
     }
 }

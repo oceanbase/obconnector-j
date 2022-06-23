@@ -2,6 +2,9 @@ package com.oceanbase.jdbc.internal.failover.BlackList;
 
 import java.util.HashMap;
 
+import com.oceanbase.jdbc.internal.failover.BlackList.append.AppendStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.RemoveStrategy;
+
 public class BlackListConfig {
     RemoveStrategy removeStrategy;
     AppendStrategy appendStrategy;

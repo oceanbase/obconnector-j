@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc.internal.protocol;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -60,6 +61,7 @@ import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.failover.impl.MastersSlavesListener;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MastersSlavesProtocol extends MasterProtocol {
@@ -134,6 +136,9 @@ public class MastersSlavesProtocol extends MasterProtocol {
           protocol.close();
         }
 
+      } catch (IOException e) {
+          lastQueryException = ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s", protocol.getHostAddress(), e.getMessage()), "08000", e);
+          listener.addToBlacklist(protocol.getHostAddress());
       } catch (SQLException e) {
         lastQueryException = e;
         listener.addToBlacklist(protocol.getHostAddress());

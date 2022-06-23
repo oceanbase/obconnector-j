@@ -50,6 +50,7 @@
  */
 package com.oceanbase.jdbc.internal.failover.impl;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -354,6 +355,8 @@ public class AuroraListener extends MastersSlavesListener {
                     } else {
                         possibleMasterProtocol.setMustBeMasterConnection(false);
                     }
+                } catch (IOException e) {
+                    addToBlacklist(possibleMasterProtocol.getHostAddress());
                 } catch (SQLException qe) {
                     if (proxy.hasToHandleFailover(qe)) {
                         addToBlacklist(possibleMasterProtocol.getHostAddress());

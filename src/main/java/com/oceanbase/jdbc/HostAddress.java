@@ -96,6 +96,22 @@ public class HostAddress {
         this.type = type;
     }
 
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public static int getPort(String portString) throws IllegalArgumentException {
+        try {
+            return Integer.parseInt(portString);
+        } catch (NumberFormatException nfe) {
+            throw new IllegalArgumentException("Incorrect port value : " + portString);
+        }
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
     /**
      * parse - parse server addresses from the URL fragment.
      *
@@ -171,14 +187,6 @@ public class HostAddress {
             result.port = 3306;
         }
         return result;
-    }
-
-    private static int getPort(String portString) {
-        try {
-            return Integer.parseInt(portString);
-        } catch (NumberFormatException nfe) {
-            throw new IllegalArgumentException("Incorrect port value : " + portString);
-        }
     }
 
     private static HostAddress parseParameterHostAddress(String str) {

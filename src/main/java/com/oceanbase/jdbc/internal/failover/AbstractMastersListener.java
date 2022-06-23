@@ -55,9 +55,7 @@ import java.lang.reflect.Method;
 import java.net.SocketException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +70,8 @@ import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.thread.ConnectionValidator;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.Consts;
+import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
@@ -83,11 +83,9 @@ import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 public abstract class AbstractMastersListener implements Listener {
 
   /** List the recent failedConnection. */
-  private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
 
-  private static final ConcurrentMap<HostAddress, Long> pickedlist = new ConcurrentHashMap<>();
-
-
+  private static final ConcurrentMap<HostAddress, HostStateInfo> blacklist = new ConcurrentHashMap<>();
+  private static final Set<HostAddress> pickedList = Collections.synchronizedSet(new HashSet<>());
   private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
   private static final Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
 
@@ -173,20 +171,31 @@ public abstract class AbstractMastersListener implements Listener {
     this.proxy = proxy;
   }
 
+    public Set<HostAddress> getPickedlist() {
+        return pickedList;
+    }
+
+    /**
+     * @param hostAddress the HostAddress has failed to connect but not triggered the blacklist AppendStrategy
+     */
+    public void addToPickedList(HostAddress hostAddress) {
+        if (hostAddress != null && !isExplicitClosed()) {
+            pickedList.add(hostAddress);
+        }
+    }
+
+    public void removeFromPickedList(HostAddress hostAddress) {
+        if (hostAddress != null) {
+            pickedList.remove(hostAddress);
+        }
+    }
+
   public Set<HostAddress> getBlacklistKeys() {
     return blacklist.keySet();
   }
 
-  public static ConcurrentMap<HostAddress, Long> getBlacklist() {
+  public  ConcurrentMap<HostAddress, HostStateInfo> getBlacklist() {
     return blacklist;
-  }
-
-  public Set<HostAddress> getPickedlistKeys() {
-    return pickedlist.keySet();
-  }
-
-  public  ConcurrentMap<HostAddress, Long> getPickedlist() {
-    return pickedlist;
   }
 
   /**
@@ -240,7 +249,9 @@ public abstract class AbstractMastersListener implements Listener {
    */
   public void addToBlacklist(HostAddress hostAddress) {
     if (hostAddress != null && !isExplicitClosed()) {
-      blacklist.putIfAbsent(hostAddress, System.nanoTime());
+      // todo: adding to the blacklist could be reflected in log module of slf4j framework
+      blacklist.putIfAbsent(hostAddress, new HostStateInfo());
+      pickedList.remove(hostAddress);
     }
   }
 
@@ -255,18 +266,27 @@ public abstract class AbstractMastersListener implements Listener {
     }
   }
 
+   public  void resetHostStateInfo(HostAddress hostAddress) {
+       long timeout = Long.parseLong(getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategyConfigs().get(Consts.TIMEOUT));
+       HostStateInfo hostStateInfo = new HostStateInfo(HostStateInfo.STATE.BLACK,System.nanoTime() + timeout);
+       if (hostAddress != null) {
+           blacklist.put(hostAddress,hostStateInfo);
+       }
+   }
+
   /** Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds. */
   public void resetOldsBlackListHosts() {
-    long currentTimeNanos = System.nanoTime();
-    Set<Map.Entry<HostAddress, Long>> entries = blacklist.entrySet();
-    for (Map.Entry<HostAddress, Long> blEntry : entries) {
-      long entryNanos = blEntry.getValue();
-      long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(currentTimeNanos - entryNanos);
-      if (durationSeconds >= urlParser.getOptions().loadBalanceBlacklistTimeout) {
-        blacklist.remove(blEntry.getKey(), entryNanos);
-      }
+    Set<Map.Entry<HostAddress, HostStateInfo>> entries = blacklist.entrySet();
+    for (Map.Entry<HostAddress, HostStateInfo> blEntry : entries) {
+        HostStateInfo hostStateInfo = blEntry.getValue();
+        if (getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategy().needToChangeStateInfo(hostStateInfo)) {
+          hostStateInfo.setState(HostStateInfo.STATE.GREY);
+//        blacklist.remove(blEntry.getKey(), hostStateInfo);  // not remove
+       }
     }
   }
+
+
 
   public void resetMasterFailoverData() {
     if (masterHostFail.compareAndSet(true, false)) {

@@ -237,52 +237,44 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private static Socket createSocket(final String host, final int port, final Options options)
-                                                                                                throws SQLException {
+                                                                                                throws IOException {
         Socket socket;
-        try {
-            socket = Utils.createSocket(options, host);
-            socket.setTcpNoDelay(options.tcpNoDelay);
+        socket = Utils.createSocket(options, host);
+        socket.setTcpNoDelay(options.tcpNoDelay);
 
-            if (options.socketTimeout != null) {
-                socket.setSoTimeout(options.socketTimeout);
-            }
-            if (options.tcpKeepAlive) {
-                socket.setKeepAlive(true);
-            }
-            if (options.tcpRcvBuf != null) {
-                socket.setReceiveBufferSize(options.tcpRcvBuf);
-            }
-            if (options.tcpSndBuf != null) {
-                socket.setSendBufferSize(options.tcpSndBuf);
-            }
-            if (options.tcpAbortiveClose) {
-                socket.setSoLinger(true, 0);
-            }
-
-            // Bind the socket to a particular interface if the connection property
-            // localSocketAddress has been defined.
-            if (options.localSocketAddress != null) {
-                InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress,
-                    0);
-                socket.bind(localAddress);
-            }
-
-            if (!socket.isConnected()) {
-                InetSocketAddress sockAddr;
-                if (options.socksProxyHost != null && options.socksProxyPort > 0) {
-                    sockAddr = InetSocketAddress.createUnresolved(host, port);
-                } else {
-                    sockAddr = options.pipe == null ? new InetSocketAddress(host, port) : null;
-                }
-                socket.connect(sockAddr, options.connectTimeout);
-            }
-            return socket;
-
-        } catch (IOException ioe) {
-            throw ExceptionFactory.INSTANCE.create(
-                String.format("Socket fail to connect to host:%s, port:%s. %s", host, port,
-                    ioe.getMessage()), "08000", ioe);
+        if (options.socketTimeout != null) {
+            socket.setSoTimeout(options.socketTimeout);
         }
+        if (options.tcpKeepAlive) {
+            socket.setKeepAlive(true);
+        }
+        if (options.tcpRcvBuf != null) {
+            socket.setReceiveBufferSize(options.tcpRcvBuf);
+        }
+        if (options.tcpSndBuf != null) {
+            socket.setSendBufferSize(options.tcpSndBuf);
+        }
+        if (options.tcpAbortiveClose) {
+            socket.setSoLinger(true, 0);
+        }
+
+        // Bind the socket to a particular interface if the connection property
+        // localSocketAddress has been defined.
+        if (options.localSocketAddress != null) {
+            InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
+            socket.bind(localAddress);
+        }
+
+        if (!socket.isConnected()) {
+            InetSocketAddress sockAddr;
+            if (options.socksProxyHost != null && options.socksProxyPort > 0) {
+                sockAddr = InetSocketAddress.createUnresolved(host, port);
+            } else {
+                sockAddr = options.pipe == null ? new InetSocketAddress(host, port) : null;
+            }
+            socket.connect(sockAddr, options.connectTimeout);
+        }
+        return socket;
     }
 
     private static long initializeClientCapabilities(final Options options,
@@ -464,7 +456,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             copiedProtocol.connect();
             // no lock, because there is already a query running that possessed the lock.
             copiedProtocol.executeQuery("KILL " + serverThreadId);
-        } catch (SQLException sqle) {
+        } catch (SQLException | IOException sqle) {
             // eat
         }
     }
@@ -520,7 +512,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      *
      * @throws SQLException exception
      */
-    public void connect() throws SQLException {
+    public void connect() throws SQLException, IOException {
 
         try {
             createConnection(currentHost, username);
@@ -532,7 +524,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void createConnection(HostAddress hostAddress, String username) throws SQLException {
+    private void createConnection(HostAddress hostAddress, String username) throws SQLException,
+                                                                           IOException {
 
         String host = hostAddress != null ? hostAddress.host : null;
         int port = hostAddress != null ? hostAddress.port : 3306;
@@ -1519,7 +1512,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 try {
                     createConnection(null, username);
                     return;
-                } catch (SQLException exception) {
+                } catch (SQLException | IOException exception) {
                     throw ExceptionFactory.INSTANCE.create(
                             String.format(
                                     "Could not connect to named pipe '%s' : %s%s",
@@ -1561,6 +1554,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                             "08000",
                             e);
                 }
+            } catch (IOException e) {
+                throw ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s%s", currentHost, e.getMessage(), getTraces()), "08000", e);
             }
         }
     }

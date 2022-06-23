@@ -51,20 +51,26 @@
 package com.oceanbase.jdbc.internal.protocol;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.internal.failover.BlackList.BlackListConfig;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.failover.Listener;
-import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.Consts;
+import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.logging.Logger;
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(MasterProtocol.class);
 
     /**
      * Get a protocol instance.
@@ -95,78 +101,89 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         return newProtocol;
     }
 
+    public static void loop(Listener listener, final GlobalStateInfo globalInfo,
+                            final List<HostAddress> addresses) throws SQLException {
+        loop(listener, globalInfo, addresses, false);
+
+    }
+
     /**
      * loop until found the failed connection.
      *
      * @param listener current failover
      * @param globalInfo server global variables information
      * @param addresses list of HostAddress to loop
-     * @param searchFilter search parameter
      * @throws SQLException if not found
      */
     public static void loop(
       Listener listener,
       final GlobalStateInfo globalInfo,
-      final List<HostAddress> addresses,
-      SearchFilter searchFilter)
+      final List<HostAddress> addresses,boolean fallThrough)
       throws SQLException {
-
-    MasterProtocol protocol;
     ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
     if (loopAddresses.isEmpty()) {
       resetHostList(listener, loopAddresses);
     }
 
-    int maxConnectionTry = listener.getRetriesAllDown();
-    boolean firstLoop = true;
+    int maxConnectionTry = listener.getCurrentLoadBalanceInfo().getRetryAllDowns();
     SQLException lastQueryException = null;
-    while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
-      protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
-
+    MasterProtocol protocol;
+    while (!loopAddresses.isEmpty() &&  maxConnectionTry > 0) {
       if (listener.isExplicitClosed()) {
         return;
       }
+      protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
       maxConnectionTry--;
 
       try {
         HostAddress host = loopAddresses.pollFirst();
+        if(!fallThrough && listener.getBlacklistKeys().contains(host) && listener.getBlacklist().get(host).getState() == HostStateInfo.STATE.BLACK) {
+            // if in blacklist and state = black ,continue
+            continue;
+        }
         if (host == null) {
           loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
-          // todo
           host = loopAddresses.pollFirst();
         }
+        logger.debug("Connect to " + host);
         protocol.setHostAddress(host);
         protocol.connect();
         if (listener.isExplicitClosed()) {
           protocol.close();
           return;
         }
+
         listener.removeFromBlacklist(protocol.getHostAddress());
+        listener.removeFromPickedList(protocol.getHostAddress());
         listener.foundActiveMaster(protocol);
         return;
+      } catch (IOException ioException) {
+          long failedTime = System.nanoTime();
+          HostAddress host = protocol.getHostAddress();
+          if(listener.getBlacklistKeys().contains(host) && listener.getBlacklist().get(host).getState() == HostStateInfo.STATE.GREY) { // in blackList but the host is grey ,reset its timeout
+              listener.resetHostStateInfo(host);
+              continue;
+          }
 
-      } catch (SQLException e) {
-        listener.addToBlacklist(protocol.getHostAddress());
-        lastQueryException = e;
-      }
-
-      // if server has try to connect to all host, and master still fail
-      // add all servers back to continue looping until maxConnectionTry is reached
-      if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
-//        resetHostList(listener, loopAddresses);
-          loopAddresses = new ArrayDeque<>(addresses); // reset it we dont need resetHostList
-        if (firstLoop) {
-          firstLoop = false;
-        } else {
-//          try {
-//            // wait 250ms before looping through all connection another time
-//            Thread.sleep(250);
-//          } catch (InterruptedException interrupted) {
-//            // interrupted, continue
-//          }
-        }
+          BlackListConfig blackListConfig = listener.getCurrentLoadBalanceInfo().getBlackListConfig();
+          Properties info = new Properties();
+          info.setProperty(Consts.FAILED_TIME, String.valueOf(failedTime));
+          if (blackListConfig.getAppendStrategy().needToAppend(host, info)) {
+              listener.addToBlacklist(host);
+              lastQueryException = ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s", protocol.getHostAddress(), ioException.getMessage()), "08000", ioException);
+          } else {
+              listener.addToPickedList(host);
+              if(!fallThrough) {
+                  loopAddresses.add(host);
+              }
+          }
+      } catch (SQLException businessException) {
+          throw businessException;
+      } finally {
+          listener.getCurrentLoadBalanceInfo().setRetryAllDowns(maxConnectionTry);
       }
     }
+
     if (lastQueryException != null) {
       throw new SQLException(
           "No active connection found for master : " + lastQueryException.getMessage(),
@@ -176,84 +193,6 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
     }
     throw new SQLException("No active connection found for master");
   }
-
-    public static void randomWeights(Listener listener, final GlobalStateInfo globalInfo,
-                                     final List<HostAddress> addresses,
-                                     ConcurrentHashMap<HostAddress, Integer> weights,
-                                     SearchFilter searchFilter) throws SQLException {
-
-        MasterProtocol protocol;
-        int maxConnectionTry = listener.getRetriesAllDown();
-        boolean firstLoop = true;
-        SQLException lastQueryException = null;
-        while (!addresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
-            protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
-
-            if (listener.isExplicitClosed()) {
-                return;
-            }
-            maxConnectionTry--;
-
-            try {
-                int weightSum = 0;
-
-                for (Integer weight : weights.values()) {
-                    weightSum += weight;
-                }
-                if (weightSum <= 0) {
-                    // todo throw exception
-                }
-                Random random = new Random();
-                int n = random.nextInt(weightSum);
-                int m = 0;
-                HostAddress host = null;
-                for (int i = 0; i < addresses.size(); i++) {
-                    HostAddress curHost = addresses.get(i);
-                    if (m <= n && n < m + weights.get(curHost)) {
-                        host = addresses.get(i);
-                        break;
-                    }
-                    m += weights.get(curHost);
-                }
-                protocol.setHostAddress(host);
-                protocol.connect();
-                if (listener.isExplicitClosed()) {
-                    protocol.close();
-                    return;
-                }
-                listener.removeFromBlacklist(protocol.getHostAddress());
-                listener.foundActiveMaster(protocol);
-                return;
-
-            } catch (SQLException e) {
-                listener.addToBlacklist(protocol.getHostAddress());
-                lastQueryException = e;
-            }
-
-            // if server has try to connect to all host, and master still fail
-            // add all servers back to continue looping until maxConnectionTry is reached
-            //      if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
-            //        resetHostList(listener, loopAddresses);
-            //        if (firstLoop) {
-            //          firstLoop = false;
-            //        } else {
-            //          try {
-            //            // wait 250ms before looping through all connection another time
-            //            Thread.sleep(250);
-            //          } catch (InterruptedException interrupted) {
-            //            // interrupted, continue
-            //          }
-            //        }
-            //      }
-        }
-        if (lastQueryException != null) {
-            throw new SQLException("No active connection found for master : "
-                                   + lastQueryException.getMessage(),
-                lastQueryException.getSQLState(), lastQueryException.getErrorCode(),
-                lastQueryException);
-        }
-        throw new SQLException("No active connection found for master");
-    }
 
     /**
        * Reinitialize loopAddresses with all hosts : all servers in randomize order without connected

@@ -1570,6 +1570,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
       copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
+    } catch (IOException e) {
+        throw ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s%s", getHostAddress(), e.getMessage(), getTraces()), "08000", e);
     }
     interrupted = true;
   }
@@ -2334,7 +2336,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               initialException);
         }
 
-      } catch (SQLException queryException) {
+      } catch (SQLException | IOException queryException) {
         connected = false;
         return new SQLNonTransientConnectionException(
             initialException.getMessage() + "\nError during reconnection" + traces,

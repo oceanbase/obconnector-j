@@ -2,27 +2,18 @@ package com.oceanbase.jdbc;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.utils.ConfigParser;
 
 public class TnsDaemon extends Thread {
-    private Map<String, LoadBalanceInfo> propertyMap = new ConcurrentHashMap<>();
-    private static  String configFileName = "tnsnames.ob";
+    private static String configFileName = "tnsnames.ob";
 
     private void fullFillMap(String tnsPath) throws IOException {
 
         String filePath = tnsPath + "/" + configFileName;
         File file = new File(filePath);
         Reader reader = new InputStreamReader(new FileInputStream(file));
-        HashMap<String, LoadBalanceInfo> tmp = ConfigParser.getLoadBalanceInfosFromReader(reader);
-        propertyMap.clear();
-        for (String key : tmp.keySet()) {
-            propertyMap.put(key, tmp.get(key));
-        }
+        ConfigParser.getLoadBalanceInfosFromReader(reader);
     }
 
     @Override
@@ -51,10 +42,6 @@ public class TnsDaemon extends Thread {
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
-    }
-
-    public LoadBalanceInfo getTnsProperties(String key) {
-        return propertyMap.get(key);
     }
 
 }

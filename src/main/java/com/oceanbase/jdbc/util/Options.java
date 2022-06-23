@@ -197,7 +197,7 @@ public class Options implements Cloneable {
     public boolean useCursorOffset = false;
     public String  tnsnamesPath;
     public int     tnsnamesDetectionPeriod = 10;
-    public String  loadBalanceStrategy;
+    public String  loadBalanceStrategy = "random";
     public String  serverAffinityOrder;
     public int     blobSendChunkSize = 1048576;
     public String  connectionCollation = null;

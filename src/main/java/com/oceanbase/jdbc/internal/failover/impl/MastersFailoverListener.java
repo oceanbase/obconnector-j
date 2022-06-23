@@ -74,10 +74,8 @@ import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 
-    private static final Logger  logger = LoggerFactory.getLogger(MastersFailoverListener.class);
-    private final HaMode         mode;
-    private static List<Integer> weights;
-    private static List<Integer> originWeights;
+    private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
+    private final HaMode        mode;
 
     /**
      * Initialisation.
@@ -199,21 +197,36 @@ public class MastersFailoverListener extends AbstractMastersListener {
         return;
       }
       currentConnectionAttempts.incrementAndGet();
-      resetOldsBlackListHosts();
       List<HostAddress> loopAddress  = null;
       if(urlParser.getHostAddresses() != null) {
           loopAddress = new LinkedList<>(urlParser.getHostAddresses());
       }
       if (HaMode.LOADBALANCE.equals(mode)) {
+          logger.trace("LoadBalance on!");
+
           LoadBalanceInfo loadBlanceInfo = null;
           try {
               loadBlanceInfo = ConfigParser.getGloabalLoadBalanceInfo(urlParser);
           } catch (IOException e) {
               throw new RuntimeException(e);
           }
+          if(loadBlanceInfo == null) {
+              StringBuilder stringBuilder = new StringBuilder("LoadBalance config error ");
+              if(urlParser.getExtendDescription() != null) {
+                  stringBuilder.append("extend description error :");
+                  stringBuilder.append(urlParser.getExtendDescription());
+                  stringBuilder.append("\n");
+              } else {
+                  stringBuilder.append("extend description net service name error :");
+                  stringBuilder.append(urlParser.getTnsServiceName());
+                  stringBuilder.append("\n");
+              }
+              throw  new SQLException(stringBuilder.toString());
+          }
+          logger.trace("load balance info =" + loadBlanceInfo.toString());
           LoadBlanceDriverBuilder loadBlanceDriverBuilder = new LoadBlanceDriverBuilder(loadBlanceInfo);
           Director director = new Director(loadBlanceDriverBuilder);
-          LoadBalanceDriver loadBalanceDriver =  director.construct();
+          LoadBalanceDriver loadBalanceDriver = director.construct();
           this.setCurrentLoadBalanceInfo(loadBlanceInfo);
           loadBalanceDriver.loop(urlParser,this,globalInfo,searchFilter,getBlacklist(),getPickedlist());
       }
@@ -227,7 +240,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
           loopAddress.remove(currentProtocol.getHostAddress());
           // loopAddress.add(currentProtocol.getHostAddress());
         }
-        MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
+        MasterProtocol.loop(this, globalInfo, loopAddress);
       }
       // close loop if all connection are retrieved
       if (!isMasterHostFail()) {

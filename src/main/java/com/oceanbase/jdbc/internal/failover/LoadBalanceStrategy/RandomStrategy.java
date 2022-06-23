@@ -1,9 +1,9 @@
 package com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import com.oceanbase.jdbc.HostAddress;
@@ -11,11 +11,15 @@ import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.Listener;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceAddressList;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
+import com.oceanbase.jdbc.internal.logging.Logger;
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MasterProtocol;
-import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class RandomStrategy implements BalanceStrategy {
+    private static final Logger logger = LoggerFactory.getLogger(RandomStrategy.class);
+
     public RandomStrategy() {
     }
 
@@ -25,26 +29,38 @@ public class RandomStrategy implements BalanceStrategy {
     }
 
     @Override
-    public void pickConnection(LoadBalanceAddressList loadBalanceAddressList, UrlParser urlParser, Listener listener, GlobalStateInfo globalInfo, SearchFilter searchFilter, ConcurrentMap<HostAddress, Long> blacklist,ConcurrentMap<HostAddress, Long> pickedList) throws SQLException {
+    public void pickConnection(LoadBalanceAddressList loadBalanceAddressList, UrlParser urlParser,
+                               Listener listener, GlobalStateInfo globalInfo,
+                               SearchFilter searchFilter,
+                               ConcurrentMap<HostAddress, HostStateInfo> blacklist,
+                               Set<HostAddress> pickedList) throws SQLException {
 
         List<HostAddress> loopAddress = loadBalanceAddressList.convertToHostAddressList();
-        if(loopAddress.containsAll(blacklist.keySet()) && blacklist.keySet().size() ==  loopAddress.size()) {
-            // do nothing use the loopAddress
+        if (BalanceStrategy.allBlack(loopAddress, blacklist)) {
+            throw new SQLException("No active connection found for master");
         } else {
-            loopAddress.removeAll(blacklist.keySet());
-            List<HostAddress> localPickedList = new ArrayList<>();
-            localPickedList.addAll(pickedList.keySet());
-            localPickedList.removeAll(blacklist.keySet());
-            localPickedList.addAll(loopAddress);
-            loopAddress = localPickedList;
+            // remove hosts which have been added to blacklist(but not grey list)  in previous groups from current group
+            for (HostAddress hostAddress : blacklist.keySet()) {
+                if (loopAddress.contains(hostAddress)
+                    && blacklist.get(hostAddress).getState() == HostStateInfo.STATE.BLACK) {
+                    loopAddress.remove(hostAddress);
+                }
+            }
         }
         Collections.shuffle(loopAddress);
-        Protocol p = listener.getCurrentProtocol();
-        if (p != null && !listener.isMasterHostFail()) {
-            loopAddress.remove(p.getHostAddress());
-        }
-        MasterProtocol.loop(listener, globalInfo, loopAddress, searchFilter);
+        logger.debug("Current black list : " + blacklist);
+        logger.debug("Picked list : " + pickedList);
+        logger.debug("LoopAddress : " + loopAddress);
 
-        return;
+        MasterProtocol.loop(listener, globalInfo, loopAddress);
+    }
+
+    public void pickConnectionFallThrough(LoadBalanceAddressList loadBalanceAddressList,
+                                          Listener listener, GlobalStateInfo globalInfo)
+                                                                                        throws SQLException {
+        List<HostAddress> loopAddress = loadBalanceAddressList.convertToHostAddressList();
+        Collections.shuffle(loopAddress);
+        logger.debug("LoopAddress : " + loopAddress);
+        MasterProtocol.loop(listener, globalInfo, loopAddress, true);
     }
 }

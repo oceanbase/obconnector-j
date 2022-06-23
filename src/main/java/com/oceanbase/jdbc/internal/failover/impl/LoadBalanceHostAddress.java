@@ -27,12 +27,4 @@ public class LoadBalanceHostAddress extends HostAddress {
         return weight;
     }
 
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
 }

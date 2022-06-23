@@ -69,11 +69,11 @@ import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.TnsDaemon;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
-import com.oceanbase.jdbc.internal.failover.BlackList.*;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.failover.impl.AuroraListener;
 import com.oceanbase.jdbc.internal.failover.impl.MastersFailoverListener;
 import com.oceanbase.jdbc.internal.failover.impl.MastersSlavesListener;
+import com.oceanbase.jdbc.internal.failover.utils.ConfigParser;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.socket.SocketHandlerFunction;
 import com.oceanbase.jdbc.internal.io.socket.SocketUtility;
@@ -114,12 +114,27 @@ public class Utils {
     }
     socketHandler = init;
     String tnsDaemonFlag = System.getProperty("oceanbase.tns_admin_deamon");
-    String tnsDaemonFlagEnv = System.getenv("OCEANBASE_TNS_ADMIN_DAEMON");
-    if(tnsDaemonFlag == null || (tnsDaemonFlag !=null && tnsDaemonFlagEnv != null && tnsDaemonFlagEnv.equalsIgnoreCase("FALSE"))) {
+    String tnsDaemonFlagEnv = System.getenv("OCEANBASE_TNS_ADMIN_DEAMON");
+    if(tnsDaemonFlag == null) {
+        tnsDaemonFlag = tnsDaemonFlagEnv;
+    }
+    if(tnsDaemonFlag == null || (tnsDaemonFlag !=null  && tnsDaemonFlag.equalsIgnoreCase("FALSE"))) {
       tnsDaemon = null;
     } else {
-      tnsDaemon = new TnsDaemon();
-      tnsDaemon.start();
+        // Initialize the config file first of all
+        try {
+            ConfigParser.TnsFileInfo tnsFileInfo = ConfigParser.getTnsFilePath();
+            String filePath = tnsFileInfo.path + "/" + tnsFileInfo.name;
+            File file = new File(filePath);
+            Reader reader = new InputStreamReader(new FileInputStream(file));
+            ConfigParser.getLoadBalanceInfosFromReader(reader);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        tnsDaemon = new TnsDaemon();
+        tnsDaemon.start();
     }
   }
 

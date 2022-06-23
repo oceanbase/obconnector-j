@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.oceanbase.jdbc.internal.failover.BlackList.*;
 import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.*;
+import com.oceanbase.jdbc.internal.failover.utils.Consts;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public class LoadBalanceInfo {
@@ -23,8 +24,6 @@ public class LoadBalanceInfo {
 
     List<LoadBalanceAddressList> groups;
 
-
-
     public HashMap<String, String> getGroupBalanceStrategyConfigs() {
         return groupBalanceStrategyConfigs;
     }
@@ -41,14 +40,14 @@ public class LoadBalanceInfo {
         this.balanceStrategyConfigs = balanceStrategyConfigs;
     }
 
-
     public LoadBalanceInfo() {
         this.groups  = new ArrayList<>();
         groupBalanceStrategy = new GroupRotationStrategy();
         blackListConfig = new BlackListConfig();
         balanceStrategy = new RandomStrategy();
-        groupBalanceStrategyConfigs.put("NAME","ROTATION");
-        balanceStrategyConfigs.put("NAME","RANDOM");
+        groupBalanceStrategyConfigs.put(Consts.NAME,Consts.ROTATION);
+        balanceStrategyConfigs.put(Consts.NAME,Consts.RANDOM);
+        retryAllDowns = 120;
     }
 
     public LoadBalanceInfo(GroupBalanceStrategy groupBalanceStrategy,

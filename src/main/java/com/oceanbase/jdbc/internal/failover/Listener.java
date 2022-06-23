@@ -62,6 +62,7 @@ import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
@@ -98,6 +99,10 @@ public interface Listener {
     void foundActiveMaster(Protocol protocol) throws SQLException;
 
     Set<HostAddress> getBlacklistKeys();
+
+    void addToPickedList(HostAddress hostAddress);
+
+    void removeFromPickedList(HostAddress hostAddress);
 
     void addToBlacklist(HostAddress hostAddress);
 
@@ -172,7 +177,10 @@ public interface Listener {
 
     LoadBalanceInfo getCurrentLoadBalanceInfo();
 
-    Set<HostAddress> getPickedlistKeys();
+    void resetOldsBlackListHosts();
 
-    ConcurrentMap<HostAddress, Long> getPickedlist();
+    public ConcurrentMap<HostAddress, HostStateInfo> getBlacklist();
+
+    void resetHostStateInfo(HostAddress hostAddress);
+
 }

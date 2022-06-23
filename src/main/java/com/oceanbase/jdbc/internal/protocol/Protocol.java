@@ -84,7 +84,7 @@ public interface Protocol {
 
     boolean noBackslashEscapes();
 
-    void connect() throws SQLException;
+    void connect() throws SQLException, IOException;
 
     UrlParser getUrlParser();
 
