@@ -2609,4 +2609,60 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testUpdateCounts() {
+        try {
+            Connection conn = setConnection("&continueBatchOnError=false");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table blobtest1");
+            } catch (SQLException e) {
+                //                throw new RuntimeException(e);
+            }
+            int paramCount = 100;
+            int batchTimes = 1000;
+
+            try {
+                StringBuilder sb = new StringBuilder("create table blobtest1(c1 int");
+                for (int i = 2; i <= paramCount; i++) {
+                    sb.append(",c" + i + " int");
+                }
+                sb.append(")");
+                System.out.println("sb.toString() = " + sb.toString());
+                stmt.execute(sb.toString());
+            } catch (Exception e) {
+                // e.printStackTrace();
+            }
+            StringBuilder sb = new StringBuilder("insert into blobtest1 values(?");
+            for (int i = 2; i <= paramCount; i++) {
+                sb.append(",?");
+            }
+            sb.append(")");
+            System.out.println("sb.toString() = " + sb.toString());
+            PreparedStatement ps = conn.prepareStatement(sb.toString());
+            for (int i = 0; i < batchTimes; i++) {
+                for (int j = 1; j <= paramCount; j++) {
+                    if (i == 0 && j == 5) {
+                        ps.setString(j, "s");
+                    } else {
+                        ps.setInt(j, j + 1);
+                    }
+                }
+
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(0, counts.length);
+            }
+            ResultSet rs = stmt.executeQuery("select count(*) from blobtest1");
+            rs.next();
+            Assert.assertEquals(0, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
