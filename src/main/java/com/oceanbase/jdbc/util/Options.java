@@ -203,6 +203,7 @@ public class Options implements Cloneable {
     public String  connectionCollation = null;
     public boolean useArrayBinding   = false;
     public boolean sendConnectionAttributes   = true;
+    public boolean rewriteInsertByMultiQueries = false;
 
 
 
@@ -616,6 +617,9 @@ public class Options implements Cloneable {
         if (sendConnectionAttributes != opt.sendConnectionAttributes) {
             return false;
         }
+        if (rewriteInsertByMultiQueries != opt.rewriteInsertByMultiQueries) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
 
     }
@@ -748,6 +752,7 @@ public class Options implements Cloneable {
         result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
         result = 31 * result + (useArrayBinding ? 1 : 0);
         result = 31 * result + (sendConnectionAttributes ? 1 : 0);
+        result = 31 * result + (rewriteInsertByMultiQueries ? 1 : 0);
         return result;
     }
     @Override

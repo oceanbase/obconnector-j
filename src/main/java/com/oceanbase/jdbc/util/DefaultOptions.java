@@ -937,6 +937,12 @@ public enum DefaultOptions {
           Boolean.TRUE,
           "2.3.0",
                   "Used to determine whether to send connection extended attributes.",
+                  false),
+    REWRITE_INSERT_BY_MULTI_QUERIES (
+          "rewriteInsertByMultiQueries",
+          Boolean.FALSE,
+          "2.2.10.2",
+                  "Force to rewrite the sql as multiple INSERT queries which are separated by semi-colons",
                   false);
 
   private final String optionName;
