@@ -799,20 +799,35 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   public ColumnDefinition[] cursorFetch(int cursorId, int fetchSize) throws SQLException {
-    ColumnDefinition[] ci = this.protocol.fetchRowViaCursor(cursorId, fetchSize, results);
-    results.commandEnd();
-    return ci;
+      lock.lock();
+      try {
+          ColumnDefinition[] ci = this.protocol.fetchRowViaCursor(cursorId, fetchSize, results);
+          results.commandEnd();
+          return ci;
+      } finally {
+          lock.unlock();
+      }
   }
 
   public void closeCursor(int cursorId) throws SQLException {
-    this.protocol.forceReleasePrepareStatement(cursorId);
-    results.commandEnd();
+      lock.lock();
+      try {
+          this.protocol.forceReleasePrepareStatement(cursorId);
+          results.commandEnd();
+      } finally {
+          lock.unlock();
+      }
   }
 
   public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
-    ColumnDefinition[] ci = this.protocol.fetchRowViaCursorForOracle(cursorId, numRows, offsetType, offset, results);
-    results.commandEnd();
-    return ci;
+      lock.lock();
+      try {
+          ColumnDefinition[] ci = this.protocol.fetchRowViaCursorForOracle(cursorId, numRows, offsetType, offset, results);
+          results.commandEnd();
+          return ci;
+      } finally {
+          lock.unlock();
+      }
   }
 
   /**
