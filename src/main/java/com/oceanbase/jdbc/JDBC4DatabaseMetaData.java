@@ -1761,6 +1761,18 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return connection.getProtocol().getServerVersion();
     }
 
+    public int getDatabaseMajorVersion() {
+        return connection.getProtocol().getMajorServerVersion();
+    }
+
+    public int getDatabaseMinorVersion() {
+        return connection.getProtocol().getMinorServerVersion();
+    }
+
+    public String getOceanBaseServerVersion() {
+        return connection.getProtocol().getObServerVersion();
+    }
+
     public String getDriverName() {
         return DRIVER_NAME;
     }
@@ -1775,6 +1787,16 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     public int getDriverMinorVersion() {
         return Version.minorVersion;
+    }
+
+    @Override
+    public int getJDBCMajorVersion() {
+        return 4;
+    }
+
+    @Override
+    public int getJDBCMinorVersion() {
+        return 2;
     }
 
     public boolean usesLocalFiles() {
@@ -4414,24 +4436,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     public int getResultSetHoldability() {
         return ResultSet.HOLD_CURSORS_OVER_COMMIT;
-    }
-
-    public int getDatabaseMajorVersion() {
-        return connection.getProtocol().getMajorServerVersion();
-    }
-
-    public int getDatabaseMinorVersion() {
-        return connection.getProtocol().getMinorServerVersion();
-    }
-
-    @Override
-    public int getJDBCMajorVersion() {
-        return 4;
-    }
-
-    @Override
-    public int getJDBCMinorVersion() {
-        return 2;
     }
 
     @Override

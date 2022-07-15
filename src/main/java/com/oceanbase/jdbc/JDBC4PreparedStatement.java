@@ -171,7 +171,9 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    */
   public ResultSet executeQuery() throws SQLException {
     if (execute()) {
-      return results.getResultSet();
+      if (results != null && results.getResultSet() != null) {
+        return results.getResultSet();
+      }
     }
     return SelectResultSet.createEmptyResultSet();
   }

@@ -315,6 +315,64 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals(res, 1);
     }
 
+    @Test
+    public void callWithOutAndResultSet() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("drop procedure IF EXISTS testProcedure2");
+        stmt.executeUpdate("create procedure testProcedure2(out c1 int, in c2 int, inout c3 int)\nbegin\n"
+                           + "select 10,11,12;select 20;select 30 into c1;set c3 = c2;end\n");
+
+        CallableStatement storedProc2 = conn.prepareCall("{call testProcedure2(?,?,?)}");
+        storedProc2.registerOutParameter(1, Types.BIGINT);
+        storedProc2.setInt(2, 40);
+        storedProc2.registerOutParameter(3, Types.BIGINT);
+        storedProc2.setInt(3, 50);
+
+        ResultSet rs = storedProc2.executeQuery();
+        assertEquals(30, storedProc2.getInt(1));
+        assertEquals(40, storedProc2.getInt(3));
+
+        ParameterMetaData paramMeta = storedProc2.getParameterMetaData();
+        Assert.assertEquals(paramMeta.getParameterCount(), 3);
+        Assert.assertEquals(paramMeta.isNullable(1), ParameterMetaData.parameterNoNulls);
+        Assert.assertEquals(paramMeta.getParameterType(2), Types.INTEGER);
+        Assert.assertEquals(paramMeta.getParameterMode(3), 2);// parameterModeInOut
+
+        if (((JDBC4DatabaseMetaData) (conn.getMetaData())).getOceanBaseServerVersion()
+            .compareToIgnoreCase("3.2.1") >= 0) {
+            ResultSet rs1 = storedProc2.getResultSet();
+            Assert.assertEquals(rs1, rs);
+
+            ResultSetMetaData rsMeta1 = rs1.getMetaData();
+            Assert.assertEquals(rsMeta1.getColumnCount(), 3);
+            Assert.assertEquals(rsMeta1.isNullable(1), ResultSetMetaData.columnNoNulls);
+            Assert.assertEquals(rsMeta1.getColumnType(2), Types.BIGINT);
+            Assert.assertEquals(rsMeta1.getColumnName(3), "12");
+
+            Assert.assertTrue(rs1.next());
+            Assert.assertEquals(10, rs1.getInt(1));
+            Assert.assertEquals(11, rs1.getInt(2));
+            Assert.assertEquals(12, rs1.getInt(3));
+            Assert.assertFalse(rs1.next());
+
+            Assert.assertTrue(storedProc2.getMoreResults());
+            ResultSet rs2 = storedProc2.getResultSet();
+            Assert.assertNotEquals(rs2, rs);
+
+            ResultSetMetaData rsMeta2 = rs2.getMetaData();
+            Assert.assertEquals(rsMeta2.getColumnName(1), "20");
+
+            Assert.assertTrue(rs2.next());
+            Assert.assertEquals(20, rs2.getInt(1));
+            Assert.assertFalse(rs2.next());
+        } else {
+            Assert.assertNull(storedProc2.getResultSet());
+            Assert.assertFalse(storedProc2.getMoreResults());
+            Assert.assertNull(storedProc2.getResultSet());
+        }
+    }
+
     // ob dont return resultset
     @Ignore
     public void callUseParameterName() throws Exception {

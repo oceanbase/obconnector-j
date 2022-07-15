@@ -155,7 +155,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
         try {
             super.execute();
             retrieveOutputResult();
-            if (results != null && results.getResultSet() == null) {
+            if (results != null && results.getResultSet() != null) {
                 return results.getResultSet();
             }
             return SelectResultSet.createEmptyResultSet();

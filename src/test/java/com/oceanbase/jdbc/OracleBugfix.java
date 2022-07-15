@@ -2259,6 +2259,7 @@ public class OracleBugfix extends BaseOracleTest {
             cs.setInt(3, 2);
             cs.setInt(4, 3);
             assertEquals(0, cs.executeUpdate()); // &useOraclePrepareExecute=false
+            assertNull(cs.getResultSet());
             assertEquals(6f, cs.getInt(1), .001);
 
             cs.registerOutParameter(1, Types.INTEGER);

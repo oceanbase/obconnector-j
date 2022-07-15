@@ -50,7 +50,6 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -251,7 +250,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         setInputOutputParameterMap();
         validAllParameters();
         for (int i = 0; i < size; i++) {
-            String paramName = parameterMetadata.params.get(i).getName();
+            String paramName = params.get(i).getName();
             String inOutParameterName;
             if (paramName == null) {
                 throw new SQLException("param[" + i + "] name is null.");
@@ -259,11 +258,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 inOutParameterName = mangleParameterName(paramName);
             }
             intoutParams.add(inOutParameterName);
-        }
-        for (int i = 0; i < size; i++) {
+
             CallParameter inParamInfo = params.get(i);
             if (inParamInfo.isInput() && inParamInfo.isOutput()) {
-                String inOutParameterName = intoutParams.get(i);
                 StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
                 ParameterHolder holder = currentParameterHolder.get(i);
                 queryBuf.append("SET ");
@@ -304,30 +301,10 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
         int r = this.executeUpdate(sqlString);
-
-        StringBuilder selectSB = new StringBuilder();
-        selectSB.append("SELECT ");
-        afterFirst = false;
-        boolean getResult = false;
-        for (int i = 0; i < size; i++) {
-            CallParameter inParamInfo = params.get(i);
-            if (inParamInfo.isOutput()) {
-                if (afterFirst) {
-                    selectSB.append(",");
-                }
-                String inOutParameterName = intoutParams.get(i);
-                inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
-                selectSB.append(inOutParameterName);
-                afterFirst = true;
-                getResult = true;
-            }
+        outputResultSet = results.getCallableResultSet();
+        if (outputResultSet != null) {
+            outputResultSet.next();
         }
-        if (getResult) {
-            ResultSet resultSet = this.executeQuery( selectSB.toString());
-            resultSet.next();
-            outputResultSet = (SelectResultSet) resultSet;
-        }
-
         return r;
     }
 

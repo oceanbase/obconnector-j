@@ -680,11 +680,13 @@ public class OceanBaseStatement implements Statement, Cloneable {
     if (isCursorResultSet()) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       pstmt.setFetchSize(this.fetchSize);
-      pstmt.executeQuery();
+      ResultSet rs = pstmt.executeQuery();
       this.results =((OceanBaseStatement)pstmt).results;
-      return results.getResultSet();
+      return rs;
     } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
-      return results.getResultSet();
+      if (results != null && results.getResultSet() != null) {
+        return results.getResultSet();
+      }
     }
     return SelectResultSet.createEmptyResultSet();
   }

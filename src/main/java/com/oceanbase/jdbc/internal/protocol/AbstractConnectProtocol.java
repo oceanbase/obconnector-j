@@ -1247,7 +1247,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
             resultSet.next();
-            String ret = resultSet.getString(1);
+            String ret = resultSet.getString(2);// @@version
             resultSet.close();
             return ret;
         } catch (SQLException e) {

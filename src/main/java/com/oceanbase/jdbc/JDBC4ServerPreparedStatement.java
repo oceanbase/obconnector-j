@@ -654,13 +654,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public ResultSet executeQuery() throws SQLException {
     if (execute()) {
-      if (results == null) {
-        return SelectResultSet.createEmptyResultSet();
+      if (results != null && results.getResultSet() != null) {
+        return results.getResultSet();
       }
-      if (results.getCallableResultSet() != null) {
-        return results.getCallableResultSet();
-      }
-      return results.getResultSet();
     }
     return SelectResultSet.createEmptyResultSet();
   }
