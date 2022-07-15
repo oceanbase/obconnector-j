@@ -54,7 +54,7 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class CursorResultSet extends SelectResultSet {
+public class CursorResultSet extends Cursor {
 
     private int     statementId;
     /***
@@ -62,7 +62,7 @@ public class CursorResultSet extends SelectResultSet {
      * and URL option "useCursorOffset" which controls OB_Oracle_Fetch protocol are activated,
      * a scrollable cursor is used on server side.
      */
-    private boolean isServerSide     = false;
+    protected boolean isServerSide     = false;
     /***
      * Mark the absolute position in entire result for the first row in cache.
      * The absolute position of the first row in entire result is 1.
@@ -98,11 +98,11 @@ public class CursorResultSet extends SelectResultSet {
                 // serverside scrollable cursor rely on new PS protocol, in which EXECUTE_MODE is set as OCI_STMT_SCROLLABLE_READONLY
                 isServerSide = true;
             }
-        }
-        if (isServerSide && dataSize > 0) {
-            clientStartIndex = 1;
-            clientEndIndex = dataSize;
-            setLastRowIndex();
+            if (isServerSide && dataSize > 0) {
+                clientStartIndex = 1;
+                clientEndIndex = dataSize;
+                setLastRowIndex();
+            }
         }
     }
 
@@ -112,7 +112,7 @@ public class CursorResultSet extends SelectResultSet {
         }
     }
 
-    private void cursorFetch() throws SQLException {
+    protected void cursorFetch() throws SQLException {
         if (isLastRowSent) {
             return;
         }
@@ -151,7 +151,7 @@ public class CursorResultSet extends SelectResultSet {
         }
     }
 
-    private void getCursorFetchData() throws IOException, SQLException {
+    protected void getCursorFetchData() throws IOException, SQLException {
         if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
             lastRowPointer = -1;
 

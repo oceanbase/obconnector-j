@@ -54,53 +54,43 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
-public class RefCursor extends SelectResultSet {
+public class RefCursor extends CursorResultSet {
     private RowObCursorData rowObCursorData;
-    private boolean         isLastRow = false;
 
     public RefCursor(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
                      boolean callableResult, boolean eofDeprecated, boolean isPsOutParamter,
                      RowObCursorData rowObCursorData) throws IOException, SQLException {
         super(columnsInformation, results, protocol, callableResult, eofDeprecated, isPsOutParamter);
+        resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        resultSetConcurType = ResultSet.CONCUR_READ_ONLY;
         this.rowObCursorData = rowObCursorData;
     }
 
     @Override
-    public boolean next() throws SQLException {
-        if (super.next()) {
-            return true;
-        } else {
-            cursorFetch();
-            return super.next();
-        }
-    }
-
-    private void cursorFetch() throws SQLException {
-        if (isLastRow) {
+    protected void cursorFetch() throws SQLException {
+        if (isLastRowSent) {
             return;
         }
-        int numToFetch = this.getFetchSize();
-        ColumnDefinition[] ci = new ColumnDefinition[0];
         if (this.rowObCursorData == null) {
-            isLastRow = true;
+            isLastRowSent = true;
             return;
         }
         try {
-            ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(
-                this.rowObCursorData.getCursorId(), numToFetch);
+            ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(
+                this.rowObCursorData.getCursorId(), this.getFetchSize());
+            if (ci != null) {
+                this.columnsInformation = ci;
+                this.columnInformationLength = ci.length;
+                this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
+                        .getStatement().getMaxFieldSize(), options);
+                this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
+                this.row.setProtocol(this.getProtocol());
+            }
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
-                isLastRow = true;
+                isLastRowSent = true;
             }
             throw e;
-        }
-        if (ci != null) {
-            this.columnsInformation = ci;
-            this.columnInformationLength = ci.length;
-            this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
-                .getStatement().getMaxFieldSize(), options);
-            this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
-            this.row.setProtocol(this.getProtocol());
         }
         try {
             getCursorFetchData();
@@ -109,41 +99,9 @@ public class RefCursor extends SelectResultSet {
         }
     }
 
-    private void getCursorFetchData() throws IOException, SQLException {
-        if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
-            lastRowPointer = -1;
-            // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
-            if (resultSetScrollType == TYPE_FORWARD_ONLY && dataSize > 0) {
-                discardedRows += dataSize;
-                dataSize = 0;
-            }
-            super.resetState();
-        }
-        if (dataSize == -1) {
-            dataSize = 0;
-        }
-        // read only fetchSize values
-        int fetchSizeTmp = this.getFetchSize();
-        while (fetchSizeTmp >= 0 && super.readNextValue()) {
-            fetchSizeTmp--;
-        }
-    }
-
-    @Override
-    public boolean last() throws SQLException {
-        throw new SQLException("Operation not supported for streaming result set");
-    }
-
-    @Override
-    public void beforeFirst() throws SQLException {
-        throw new SQLException("Operation not supported for streaming result set");
-    }
-
     @Override
     public void close() throws SQLException {
         if (rowObCursorData != null) {
-            ((ServerSidePreparedStatement) this.getStatement()).closeCursor(this.rowObCursorData
-                .getCursorId());
             rowObCursorData.setOpen(false);
         }
     }
