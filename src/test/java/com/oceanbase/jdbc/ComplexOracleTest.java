@@ -545,17 +545,20 @@ public class ComplexOracleTest extends BaseOracleTest {
                 }
                 try {
                     Statement statement = conn.createStatement();
-                    String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(p_cursor OUT sys_refcursor) "
+                    String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(a out int, p_cursor OUT sys_refcursor, b in out varchar2) "
                                          + "is BEGIN "
                                          + " open p_cursor for select * from "
-                                         + refcursor1 + ";" + "end;";
+                                         + refcursor1 + ";" + " a := 66; b := '99';" + "end;";
                     statement.execute(createPlSql);
-                    CallableStatement csmt = conn.prepareCall("call test_cursor(?)",
+                    CallableStatement csmt = conn.prepareCall("call test_cursor(?, ?, ?)",
                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                     csmt.setFetchSize(10);
-                    csmt.registerOutParameter(1, Types.REF);
+                    csmt.registerOutParameter(1, Types.INTEGER);
+                    csmt.registerOutParameter(2, Types.REF);
+                    csmt.registerOutParameter(3, Types.VARCHAR);
+                    csmt.setString(3, "111");
                     csmt.execute();
-                    ResultSet resultSet = (ResultSet) csmt.getObject(1);
+                    ResultSet resultSet = (ResultSet) csmt.getObject(2);
                     resultSet.setFetchSize(2);
                     System.out.println("=========refcursor output==========");
                     while (resultSet.next()) {
@@ -566,7 +569,7 @@ public class ComplexOracleTest extends BaseOracleTest {
                         }
                     }
                     resultSet.close();
-                    resultSet = (ResultSet) csmt.getObject(1);
+                    resultSet = (ResultSet) csmt.getObject(2);
                     System.out.println("=========refcursor output==========");
                     try {
                         while (resultSet.next()) {

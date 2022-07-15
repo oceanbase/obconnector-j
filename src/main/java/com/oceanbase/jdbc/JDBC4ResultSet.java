@@ -2140,18 +2140,22 @@ public class JDBC4ResultSet implements ResultSetImpl {
             complexData[internalColumnIndex] = data;
             complexEndPos[actualColumnIndex - 1] = row.pos;
         }
+
         Object[] objects = ((ComplexData) (complexData[internalColumnIndex])).getAttrData();
         RowObCursorData obCursorData = (RowObCursorData) objects[0];
         if (obCursorData != null && !obCursorData.isOpen()) {
             throw new SQLException("cursor is not open");
         }
         Results results = this.statement.getResults();
-        RefCursor obCursor = null;
-        try {
-            obCursor = new RefCursor(columnsInformation, results, protocol, false, false, false,
-                obCursorData);
-        } catch (IOException e) {
-            throw new SQLException("io exception:" + e.getMessage());
+        RefCursor obCursor = obCursorData.getObCursor();
+        if (obCursor == null) {
+            try {
+                obCursor = new RefCursor(columnsInformation, results, protocol, false, false,
+                    false, obCursorData);
+                obCursorData.setObCursor(obCursor);
+            } catch (IOException e) {
+                throw new SQLException("io exception:" + e.getMessage());
+            }
         }
         return obCursor;
     }

@@ -126,7 +126,7 @@ public class CursorResultSet extends Cursor {
             throw e;
         }
         try {
-            getCursorFetchData();
+            getCursorFetchData(fetchSize);
         } catch (IOException e) {
             handleIoException(e);
         }
@@ -145,13 +145,13 @@ public class CursorResultSet extends Cursor {
             }
         }
         try {
-            getCursorFetchData();
+            getCursorFetchData(fetchSize);
         } catch (IOException e) {
             handleIoException(e);
         }
     }
 
-    protected void getCursorFetchData() throws IOException, SQLException {
+    protected void getCursorFetchData(int tmpFetchSize) throws IOException, SQLException {
         if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
             lastRowPointer = -1;
 
@@ -171,9 +171,8 @@ public class CursorResultSet extends Cursor {
         }
 
         // read only fetchSize rows and an EOF packet
-        int fetchSizeTmp = this.getFetchSize();
-        while (fetchSizeTmp >= 0 && super.readNextValue()) {
-            fetchSizeTmp--;
+        while (tmpFetchSize >= 0 && super.readNextValue()) {
+            tmpFetchSize--;
         }
 
         if (isServerSide) {

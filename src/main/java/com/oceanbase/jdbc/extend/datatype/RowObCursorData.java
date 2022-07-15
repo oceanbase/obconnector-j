@@ -43,7 +43,14 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
+import com.oceanbase.jdbc.internal.com.read.resultset.RefCursor;
+
 public class RowObCursorData {
+
+    private int     cursorId;
+    private boolean isOpen;
+    RefCursor       obCursor;
+
     /**
      * Constructor.
      *
@@ -73,8 +80,6 @@ public class RowObCursorData {
         this.cursorId = cursorId;
     }
 
-    private int cursorId;
-
     /**
      * Is open boolean.
      *
@@ -93,5 +98,12 @@ public class RowObCursorData {
         isOpen = open;
     }
 
-    private boolean isOpen;
+    public RefCursor getObCursor() {
+        return obCursor;
+    }
+
+    public void setObCursor(RefCursor obCursor) {
+        this.obCursor = obCursor;
+    }
+
 }
