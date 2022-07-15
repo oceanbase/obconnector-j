@@ -91,10 +91,8 @@ public class RefCursor extends SelectResultSet {
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRow = true;
-                return;
-            } else {
-                throw e;
             }
+            throw e;
         }
         if (ci != null) {
             this.columnsInformation = ci;

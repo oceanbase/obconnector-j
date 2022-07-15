@@ -122,10 +122,8 @@ public class CursorResultSet extends SelectResultSet {
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRowSent = true;
-                return;
-            } else {
-                throw e;
             }
+            throw e;
         }
         try {
             getCursorFetchData();
