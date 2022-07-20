@@ -168,4 +168,8 @@ public class CmdInformationSingle implements CmdInformation {
     public void setRewrite(boolean rewritten) {
         // no need
     }
+
+    public boolean getRewrite() {
+        return false;
+    }
 }

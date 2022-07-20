@@ -252,4 +252,8 @@ public class CmdInformationMultiple implements CmdInformation {
     public void setRewrite(boolean rewritten) {
         this.rewritten = rewritten;
     }
+
+    public boolean getRewrite() {
+        return this.rewritten;
+    }
 }

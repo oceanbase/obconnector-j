@@ -87,4 +87,6 @@ public interface CmdInformation {
     boolean isCurrentUpdateCount();
 
     void setRewrite(boolean rewritten);
+
+    boolean getRewrite();
 }
