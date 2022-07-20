@@ -366,7 +366,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
         System.arraycopy(ret, 0, tmp, 0, end);
         ret = tmp;
       } else {
-          ret = new int[0];
+          if(protocol.isOracleMode()) {
+              ret = new int[0];
+          }
       }
     }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);

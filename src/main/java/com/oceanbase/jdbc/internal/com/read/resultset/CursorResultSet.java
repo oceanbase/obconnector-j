@@ -56,7 +56,7 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class CursorResultSet extends Cursor {
 
-    private int     statementId;
+    private int       statementId;
     /***
      * When COM_STMT_PREPARE_EXECUTE protocol is supported
      * and URL option "useCursorOffset" which controls OB_Oracle_Fetch protocol are activated,
@@ -67,24 +67,24 @@ public class CursorResultSet extends Cursor {
      * Mark the absolute position in entire result for the first row in cache.
      * The absolute position of the first row in entire result is 1.
      */
-    private int     clientStartIndex = 0;
+    private int       clientStartIndex = 0;
     /***
      * Mark the absolute position in entire Result for the last row in cache.
      */
-    private int     clientEndIndex   = 0;
+    private int       clientEndIndex   = 0;
     /***
      * Mark the absolute position in entire result for the current row in cache.
      */
-    private int     currentIndex     = 0;
+    private int       currentIndex     = 0;
     /***
      * Mark the absolute position in entire result for the target row,
      * which is going to be fetched next time.
      */
-    private int     fetchIndex       = 0;
+    private int       fetchIndex       = 0;
     /***
      * Mark the absolute position of the last row in entire result.
      */
-    private int     lastRowIndex     = 0;
+    private int       lastRowIndex     = 0;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
                            Protocol protocol, boolean callableResult, boolean eofDeprecated,

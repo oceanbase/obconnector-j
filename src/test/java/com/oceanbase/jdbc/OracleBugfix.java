@@ -2525,12 +2525,13 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
-    public void testRefCursorAnonymousServerBug39388375() throws ClassNotFoundException, SQLException {
+    public void testRefCursorAnonymousServerBug39388375() throws ClassNotFoundException,
+                                                         SQLException {
         final String url = "jdbc:oceanbase://11.124.5.197:1164/test?OBORACLE_PARAM=&useServerPrepStmts=true&characterEncoding=UTF-8&rewriteBatchedStatements=true&autoReconnect=true&allowMultiQueries=true&serverTimezone=Asia/Shanghai&socketTimeout=60000000&connectTimeout=60000&emulateUnsupportedPstmts=false&useUnicode=true&allowSendParamTypes=true&useServerPsStmtChecksum=false&cachePrepStmts=true&perpStmtCacheSqlLimit=2000&prepStmtcacheSize=10240&useSqlStringCache=true&useOraclePrepareExecute=true";
         final String username = "test@xyoracle";
         final String password = "test";
         Class.forName("com.alipay.oceanbase.jdbc.Driver");
-        Connection conn =  DriverManager.getConnection(url, username, password);
+        Connection conn = DriverManager.getConnection(url, username, password);
         //Connection conn = sharedConnection;
         String sql = "create or replace procedure proVarCursor(b out sys_refcursor, a out varchar2) is begin open b for select 1 from dual; a:= 'bbb'; end;";
         conn.createStatement().execute(sql);
@@ -2550,10 +2551,10 @@ public class OracleBugfix extends BaseOracleTest {
         assertFalse(rs.next());
         int i = rs.getInt(1);
 
-//        if(rs.next()){
-//            System.out.println("test");
-//        }
-//        assertEquals(1, rs.getInt(1));
+        //        if(rs.next()){
+        //            System.out.println("test");
+        //        }
+        //        assertEquals(1, rs.getInt(1));
     }
 
     @Test

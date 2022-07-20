@@ -81,13 +81,13 @@ public class RefCursor extends CursorResultSet {
             return;
         }
         try {
-            ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(
-                    this.rowObCursorData.getCursorId(), tmpFetchSize);
+            ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement())
+                .cursorFetch(this.rowObCursorData.getCursorId(), tmpFetchSize);
             if (ci != null) {
                 this.columnsInformation = ci;
                 this.columnInformationLength = ci.length;
                 this.row = new BinaryRowProtocol(columnsInformation, columnInformationLength, this
-                        .getStatement().getMaxFieldSize(), options);
+                    .getStatement().getMaxFieldSize(), options);
                 this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
                 this.row.setProtocol(this.getProtocol());
             }

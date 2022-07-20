@@ -1698,4 +1698,39 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testUpdateCounts1() {
+        try {
+            Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=true");
+            Statement stmt = conn.createStatement();
+
+            stmt.execute("drop table if exists test1");
+            stmt.execute("create table test1(c1 int)");
+            int paramCount = 10;
+
+            PreparedStatement ps = conn.prepareStatement("insert into test1 values(?)");
+
+            for (int j = 1; j <= paramCount; j++) {
+                if (j == 5) {
+                    ps.setString(1, "s");
+                } else {
+                    ps.setInt(1, j);
+                }
+                ps.addBatch();
+            }
+            try {
+                ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                System.out.println(Arrays.toString(counts));
+                Assert.assertEquals(10, counts.length);
+            }
+            ResultSet rs = stmt.executeQuery("select count(*) from test1");
+            rs.next();
+            Assert.assertEquals(0, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
