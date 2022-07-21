@@ -591,6 +591,40 @@ public class ComplexOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testRefCursorResultSetClose() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_ref_cursor");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table test_ref_cursor (c1 int ,c2 varchar2(200))");
+            for (int i = 0; i < 10; i++) {
+                stmt.execute("insert into test_ref_cursor values (" + (i+1) + ",'sfsfsfs')");
+            }
+            stmt.execute("create or replace procedure pro_cursor(ref_cursor out sys_refcursor) as\n"
+                    + " begin\n"
+                    + " open ref_cursor for SELECT * FROM test_ref_cursor;\n"
+                    + " end;");
+            CallableStatement cs = conn.prepareCall("call pro_cursor(?)");
+            cs.registerOutParameter(1, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet) cs.getObject(1);
+            rs.close();
+            try {
+                rs.next();
+                Assert.fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void cursorGetValeByName() {
         Connection conn = null;
         CallableStatement cstmt = null;
