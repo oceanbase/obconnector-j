@@ -601,12 +601,12 @@ public class ComplexOracleTest extends BaseOracleTest {
             }
             stmt.execute("create table test_ref_cursor (c1 int ,c2 varchar2(200))");
             for (int i = 0; i < 10; i++) {
-                stmt.execute("insert into test_ref_cursor values (" + (i+1) + ",'sfsfsfs')");
+                stmt.execute("insert into test_ref_cursor values (" + (i + 1) + ",'sfsfsfs')");
             }
             stmt.execute("create or replace procedure pro_cursor(ref_cursor out sys_refcursor) as\n"
-                    + " begin\n"
-                    + " open ref_cursor for SELECT * FROM test_ref_cursor;\n"
-                    + " end;");
+                         + " begin\n"
+                         + " open ref_cursor for SELECT * FROM test_ref_cursor;\n"
+                         + " end;");
             CallableStatement cs = conn.prepareCall("call pro_cursor(?)");
             cs.registerOutParameter(1, Types.REF_CURSOR);
             cs.execute();

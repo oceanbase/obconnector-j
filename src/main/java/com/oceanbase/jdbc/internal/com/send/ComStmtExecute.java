@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -158,6 +159,78 @@ public class ComStmtExecute {
             }
         }
 
+        pos.flush();
+    }
+
+    public static void writeCmdArrayBinding(final int statementId,
+                                            final List<ParameterHolder[]> queryParameters,
+                                            final int queryParamtersSize, final int parameterCount,
+                                            ColumnType[] parameterTypeHeader,
+                                            final PacketOutputStream pos, final byte cursorFlag,
+                                            Protocol protocol) throws IOException, SQLException {
+        pos.write(Packet.COM_STMT_EXECUTE);
+        pos.writeInt(statementId);
+        pos.write(cursorFlag | Packet.OCI_ARRAY_BINDING);
+        if (protocol.versionGreaterOrEqual(4, 1, 2)) {
+            if (protocol.isOracleMode() && protocol.getOptions().useServerPsStmtChecksum) {
+                pos.writeInt((int) protocol.getChecksum());
+            } else {
+                pos.writeInt(1);
+            }
+        } else {
+            pos.writeInt(1); //Iteration pos
+        }
+        // create null bitmap
+        if (parameterCount > 0) {
+            int nullCount = (parameterCount + 7) / 8;
+            byte[] nullBitsBuffer = new byte[nullCount];
+            pos.write(nullBitsBuffer, 0, nullCount);
+            boolean mustSendHeaderType = true;
+            if (mustSendHeaderType) {
+                pos.write((byte) 0x01);
+                for (int i = 0; i < parameterCount; i++) {
+                    pos.writeShort(ColumnType.COMPLEX.getType());
+                    pos.writeFieldLength(0);
+                    pos.writeFieldLength(0);
+                    pos.writeFieldLength(0);
+                    int elementType = queryParameters.get(0)[i].getColumnType().getType();
+                    pos.writeBytes((byte) elementType, 1);
+                }
+            } else {
+                pos.write((byte) 0x00);
+            }
+        }
+        for (int i = 0; i < parameterCount; i++) {
+            pos.writeFieldLength(queryParamtersSize);
+            int nullCount = (queryParamtersSize + 7) / 8;
+            int nullBitsPosition = pos.getPosition();
+            for (int j = 0; j < nullCount; j++) {
+                pos.writeBytes((byte) 0, 1);
+            }
+            byte[] nullBitsBuffer = new byte[nullCount];
+            for (int j = 0; j < queryParamtersSize; ++j) {
+                ParameterHolder holder = queryParameters.get(j)[i];
+                if (null != holder) {
+                    holder.writeBinary(pos);
+                } else {
+                    nullBitsBuffer[j / 8] |= (1 << (j % 8));
+                }
+            }
+            int endPosition = pos.getPosition();
+            pos.setPosition(nullBitsPosition);
+            pos.write(nullBitsBuffer); // null bits
+            pos.setPosition(endPosition);
+        }
+    }
+
+    public static void sendArrayBinding(final PacketOutputStream pos, final int statementId,
+                                        final List<ParameterHolder[]> queryParameters,
+                                        final int queryParamtersSize, final int parameterCount,
+                                        ColumnType[] parameterTypeHeader, byte cursorFlag,
+                                        Protocol protocol) throws IOException, SQLException {
+        pos.startPacket(0);
+        writeCmdArrayBinding(statementId, queryParameters, queryParamtersSize, parameterCount,
+            parameterTypeHeader, pos, cursorFlag, protocol);
         pos.flush();
     }
 }

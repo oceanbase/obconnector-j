@@ -18,7 +18,7 @@ The driver (jar) can be downloaded from maven:
 <dependency>
     <groupId>com.oceanbase</groupId>
     <artifactId>oceanbase-client</artifactId>
-    <version>2.2.10.2</version>
+    <version>2.2.11</version>
 </dependency>
 ```
 ## Building from source

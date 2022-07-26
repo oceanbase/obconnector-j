@@ -48,6 +48,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -418,6 +419,206 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             ResultSet rs = ps.executeQuery();
             Assert.assertTrue(rs.next());
             Assert.assertEquals(num1 + num2, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testArrayBindingVarchar41574930() {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+        try {
+            Connection conn = setConnectionOrigin("?useArrayBinding=true");
+            createTable("testInt", "c1 int, c2 varchar2(20)");
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("insert into testInt values(?,?);");
+            ps.setObject(1, "error");
+            ps.setObject(2, "1");
+            ps.addBatch();
+
+            for (int i = 0; i < 3; i++) {
+                ps.setInt(1, 10000);
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                ps.executeBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            conn.commit();
+            conn.setAutoCommit(true);
+
+            ps = conn.prepareStatement("select count(*) from testInt");
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    /*
+      Fix arrayBinding for batch exception.
+     */
+    @Test
+    public void testArrayBindingUpdateCounts() {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+        try {
+            Connection conn = setConnectionOrigin("?useArrayBinding=true&continueBatchOnError=false");
+            createTable("arrayBindingTest1", "c1 int, c2 varchar2(20)");
+
+            int insertRow = 5;
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn
+                .prepareStatement("insert into arrayBindingTest1 values(?,?);");
+            // arrayBinding all type are string
+            for (int i = 0; i < 20; i++) {
+                if (i == insertRow) {
+                    ps.setString(1, "errorValue");
+                } else {
+                    ps.setString(1, Integer.toString(i));
+                }
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(insertRow, counts.length);
+                System.out.println(Arrays.toString(counts));
+                System.out.println("counts.length = " + counts.length);
+            }
+
+            ps = conn.prepareStatement("select count(*) from arrayBindingTest1");
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(insertRow, rs.getInt(1));
+            conn.createStatement().execute("delete from arrayBindingTest1");
+            insertRow = 0;
+            ps = conn.prepareStatement("insert into arrayBindingTest1 values(?,?);");
+            // arrayBinding all type are string
+            for (int i = 0; i < 20; i++) {
+                if (i == insertRow) {
+                    ps.setString(1, "errorValue");
+                } else {
+                    ps.setString(1, Integer.toString(i));
+                }
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(insertRow, counts.length);
+                System.out.println(Arrays.toString(counts));
+                System.out.println("counts.length = " + counts.length);
+            }
+
+            ps = conn.prepareStatement("select count(*) from arrayBindingTest1");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(insertRow, rs.getInt(1));
+            conn.createStatement().execute("delete  from arrayBindingTest1");
+
+            insertRow = 10;
+            int differentTypeIndex = 5;
+            ps = conn.prepareStatement("insert into arrayBindingTest1 values(?,?);");
+            // |arrayBiding 1 int | arrayBinding 2 string  |
+            //                    ^               ^
+            // |                diffIndex      errorIndex
+            for (int i = 0; i < 20; i++) {
+                if (i == insertRow) {
+                    ps.setString(1, "errorValue");
+                } else {
+                    if (i <= differentTypeIndex) {
+                        ps.setString(1, Integer.toString(i));
+                    } else {
+                        ps.setInt(1, i);
+                    }
+                }
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(insertRow, counts.length);
+                System.out.println(Arrays.toString(counts));
+                System.out.println("counts.length = " + counts.length);
+            }
+
+            ps = conn.prepareStatement("select count(*) from arrayBindingTest1");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(insertRow, rs.getInt(1));
+            conn.createStatement().execute("delete  from arrayBindingTest1");
+
+            insertRow = 3;
+            differentTypeIndex = 5;
+            ps = conn.prepareStatement("insert into arrayBindingTest1 values(?,?);");
+            // |arrayBiding 1 int | arrayBinding 2 string  |
+            //        ^           ^
+            // |  errorIndex    diffIndex
+            for (int i = 0; i < 20; i++) {
+                if (i == insertRow) {
+                    ps.setString(1, "errorValue");
+                } else {
+                    if (i <= differentTypeIndex) {
+                        ps.setString(1, Integer.toString(i));
+                    } else {
+                        ps.setInt(1, i);
+                    }
+                }
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(insertRow, counts.length);
+                System.out.println(Arrays.toString(counts));
+                System.out.println("counts.length = " + counts.length);
+            }
+
+            ps = conn.prepareStatement("select count(*) from arrayBindingTest1");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(insertRow, rs.getInt(1));
+            conn.createStatement().execute("delete  from arrayBindingTest1");
+
+            insertRow = 10;
+            ps = conn.prepareStatement("insert into arrayBindingTest1 values(?,?);");
+            for (int i = 0; i < 20; i++) {
+                if (i == insertRow) {
+                    ps.setString(1, "errorValue");
+                } else {
+                    ps.setInt(1, i);
+                }
+                ps.setString(2, i + "3000");
+                ps.addBatch();
+            }
+            try {
+                int ret[] = ps.executeBatch();
+            } catch (BatchUpdateException e) {
+                int counts[] = e.getUpdateCounts();
+                Assert.assertEquals(insertRow, counts.length);
+                System.out.println(Arrays.toString(counts));
+                System.out.println("counts.length = " + counts.length);
+            }
+
+            ps = conn.prepareStatement("select count(*) from arrayBindingTest1");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(insertRow, rs.getInt(1));
+            conn.commit();
+            conn.setAutoCommit(true);
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();

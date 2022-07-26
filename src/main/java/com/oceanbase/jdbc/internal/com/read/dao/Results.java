@@ -504,4 +504,7 @@ public class Results {
         this.batchSucceed = succeed;
     }
 
+    public Deque<SelectResultSet> getExecutionResults() {
+        return executionResults;
+    }
 }

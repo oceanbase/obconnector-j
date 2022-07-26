@@ -124,5 +124,8 @@ public class Packet {
     public static final byte OCI_FETCH_ABSOLUTE           = (byte) 0x20;
     public static final byte OCI_FETCH_RELATIVE           = (byte) 0x40;
     /*---------------------------------------------------------------------------*/
+    /*----------------------- Oci ArrayBinding Flag -----------------------------*/
+    public static final byte OCI_ARRAY_BINDING            = (byte) 0x08;
+    public static final byte OCI_SAVE_EXCEPTION           = (byte) 0x10;
 
 }

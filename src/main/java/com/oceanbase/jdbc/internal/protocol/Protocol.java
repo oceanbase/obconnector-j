@@ -351,4 +351,17 @@ public interface Protocol {
 
     String getEncoding();
 
+    void executePreparedQueryArrayBinding(boolean mustExecuteOnMaster,
+                                          ServerPrepareResult serverPrepareResult, Results results,
+                                          List<ParameterHolder[]> queryParameters,
+                                          int queryParameterSize) throws SQLException;
+
+    ServerPrepareResult executePreparedQueryArrayBinding(int parameterCount,
+                                                         boolean mustExecuteOnMaster,
+                                                         ServerPrepareResult serverPrepareResult,
+                                                         Results results,
+                                                         List<ParameterHolder[]> queryParameters,
+                                                         int queryParameterSize)
+                                                                                throws SQLException;
+
 }

@@ -343,17 +343,54 @@ public class OceanBaseStatement implements Statement, Cloneable {
     }
     return sqle;
   }
+  int []  buildArrayBindingUpdateCounts() {
+      int[] ret;
+      int sql_no = 0;
+      int totoalRowsNum = 0;
+      try {
+          ResultSet rs = null;
+          int cur = 0;
+          for(SelectResultSet curResultSet : results.getExecutionResults()) {
+              int index = cur * 2 +1 ;
+              int curRowsNum = results.getCmdInformation().getUpdateCounts()[index];
+              if(curRowsNum > 0) {
+                  totoalRowsNum += curRowsNum;
+              } else{
+                   rs =  curResultSet;
+                   if(rs != null) {
+                      while(rs.next()) {
+                          sql_no = rs.getInt(1); //sql_no
+                      }
+                   }
+                   totoalRowsNum += sql_no;
+              }
+              cur ++;
+          }
+      } catch (SQLException e) {
+          throw new RuntimeException(e);
+      }
+      ret = new int[totoalRowsNum];
+      Arrays.fill(ret, Statement.RETURN_GENERATED_KEYS);
+      return  ret;
+  }
 
-  protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqle, int size) {
-    SQLException sqle = handleFailoverAndTimeout(initialSqle);
-    int[] ret;
-    if (results == null || !results.commandEnd()) {
-      ret = new int[size];
-      Arrays.fill(ret, Statement.EXECUTE_FAILED);
-    } else {
-      ret = results.getCmdInformation().getUpdateCounts();
-    }
-    if(!options.continueBatchOnError) {
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqlException, int size,boolean arrayBindingException) {
+        SQLException sqle = handleFailoverAndTimeout(initialSqlException);
+        int[] ret;
+        if(arrayBindingException && results != null) {
+            ret = buildArrayBindingUpdateCounts();
+            sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
+            logger.error("error executing query", sqle);
+            return new BatchUpdateException(
+                    sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+        }
+        if (results == null || !results.commandEnd()) {
+            ret = new int[size];
+            Arrays.fill(ret, Statement.EXECUTE_FAILED);
+        } else {
+            ret = results.getCmdInformation().getUpdateCounts();
+        }
+       if(!options.continueBatchOnError) {
 
       int end = 0;
       if(results.getCmdInformation().getRewrite()) {
@@ -377,8 +414,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
 
-    return new BatchUpdateException(
-        sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+        return new BatchUpdateException(
+                sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+    }
+  protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqlException, int size) {
+      return executeBatchExceptionEpilogue(initialSqlException, size,false);
   }
 
   /**

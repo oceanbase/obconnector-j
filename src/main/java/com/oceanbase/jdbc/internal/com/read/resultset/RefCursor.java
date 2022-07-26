@@ -107,7 +107,8 @@ public class RefCursor extends CursorResultSet {
     @Override
     public void close() throws SQLException {
         if (rowObCursorData != null) {
-            ((ServerSidePreparedStatement) this.getStatement()).closeCursor(this.rowObCursorData.getCursorId());
+            ((ServerSidePreparedStatement) this.getStatement()).closeCursor(this.rowObCursorData
+                .getCursorId());
             rowObCursorData.setOpen(false);
         }
         super.close();

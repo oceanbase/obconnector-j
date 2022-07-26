@@ -66,7 +66,10 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.oceanbase.jdbc.*;
+import com.oceanbase.jdbc.LocalInfileInterceptor;
+import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.OceanBaseStatement;
+import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
@@ -74,7 +77,10 @@ import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
-import com.oceanbase.jdbc.internal.com.read.resultset.*;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
+import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.com.read.resultset.SensitiveCursorResultSet;
 import com.oceanbase.jdbc.internal.com.send.*;
 import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -116,8 +122,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Get a protocol instance.
    *
-   * @param urlParser connection URL information's
-   * @param lock the lock for thread synchronisation
+   * @param urlParser  connection URL information's
+   * @param lock       the lock for thread synchronisation
    * @param traceCache trace cache
    */
   AbstractQueryProtocol(
@@ -229,7 +235,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * execute temporary on master, but we keep this flag, so when a slave is connected back to
    * relaunch this query on slave)
    *
-   * @param sql the query
+   * @param sql             the query
    * @param executeOnMaster state of current connection when creating this prepareStatement
    * @return a ServerPrepareResult object that contain prepare result information.
    * @throws SQLException if any error occur on connection.
@@ -259,6 +265,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       lock.unlock();
     }
   }
+
   /**
    * Execute internal query.
    *
@@ -275,8 +282,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Execute query directly to outputStream.
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
-   * @param results result
-   * @param sql the query to executeInternal
+   * @param results             result
+   * @param sql                 the query to executeInternal
    * @throws SQLException exception
    */
   @Override
@@ -323,9 +330,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Execute a unique clientPrepareQuery.
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
-   * @param results results
+   * @param results             results
    * @param clientPrepareResult clientPrepareResult
-   * @param parameters parameters
+   * @param parameters          parameters
    * @throws SQLException exception
    */
   public void executeQuery(
@@ -359,10 +366,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Execute a unique clientPrepareQuery.
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
-   * @param results results
+   * @param results             results
    * @param clientPrepareResult clientPrepareResult
-   * @param parameters parameters
-   * @param queryTimeout if timeout is set and must use max_statement_time
+   * @param parameters          parameters
+   * @param queryTimeout        if timeout is set and must use max_statement_time
    * @throws SQLException exception
    */
   public void executeQuery(
@@ -398,8 +405,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    *
    * @param mustExecuteOnMaster must execute on master
    * @param serverPrepareResult prepare result
-   * @param results execution result
-   * @param parameters parameters
+   * @param results             execution result
+   * @param parameters          parameters
    * @throws SQLException exception
    */
   @Override
@@ -413,9 +420,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       int parameterCount = serverPrepareResult.getParameters().length;
 
-      if(isOracleMode()) {
+      if (isOracleMode()) {
         // send binary data in a separate stream
-        if ( options.useServerPrepStmts && options.usePieceData) {
+        if (options.useServerPrepStmts && options.usePieceData) {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
               boolean continueWrite = true;
@@ -431,18 +438,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               }
             }
           }
-        }
-        else {
+        } else {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
               throw new SQLException("Not supported send long data on ob oracle");
             }
           }
         }
-      }else { // mysql
+      } else { // mysql
         for (int i = 0; i < parameterCount; i++) {
           if (parameters[i].isLongData()) {
-            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,serverPrepareResult.getStatementId(),(short) i);
+            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options, serverPrepareResult.getStatementId(), (short) i);
           }
         }
       }
@@ -459,14 +465,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      // complete resultSet: MySQL
-      // streaming resultSet: MySQL
-      // cursor resultSet: MySQL, Oracle
       if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
-            && (isOracleMode()
-              || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
-                && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
-                && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+          && (isOracleMode()
+          || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
+          && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
         results.setStatementId(serverPrepareResult.getStatementId());
@@ -474,7 +477,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
       ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters, parameterCount,
-              serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
+          serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
 
       getResult(results);
       results.setToCursorFetch(false);
@@ -485,21 +488,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-    /**
-     * Execute a query that is to be prepared on server in Oracle mode
-     *
-     * @throws SQLException exception
-     */
+  /**
+   * Execute a query that is to be prepared on server in Oracle mode
+   *
+   * @throws SQLException exception
+   */
   @Override
   public ServerPrepareResult executePreparedQuery(
       int parameterCount,
       ParameterHolder[] parameters,
       ServerPrepareResult serverPrepareResult,
-      Results results) throws SQLException{
+      Results results) throws SQLException {
 
     cmdPrologue();
     try {
-      if(isOracleMode()) {
+      if (isOracleMode()) {
         // use send piece data
         if (options.useServerPrepStmts && options.usePieceData) {
           boolean firstPrepared = true;
@@ -527,15 +530,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } else {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
-                throw new SQLException("Not supported send long data on ob oracle");
-              }
+              throw new SQLException("Not supported send long data on ob oracle");
             }
           }
+        }
       } else {
         // mysql mode
         for (int i = 0; i < parameters.length; i++) {
           if (parameters[i].isLongData()) {
-            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,serverPrepareResult.getStatementId(),(short) i);
+            ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options, serverPrepareResult.getStatementId(), (short) i);
           }
         }
       }
@@ -562,7 +565,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
       ComStmtPrepareExecute.send(writer, results, parameterCount, parameters,
-              serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this,serverPrepareResult);
+          serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, serverPrepareResult);
 
       serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
       results.setToCursorFetch(false);
@@ -578,10 +581,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Execute clientPrepareQuery batch.
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
-   * @param results results
-   * @param prepareResult ClientPrepareResult
-   * @param parametersList List of parameters
-   * @param hasLongData has parameter with long data (stream)
+   * @param results             results
+   * @param prepareResult       ClientPrepareResult
+   * @param parametersList      List of parameters
+   * @param hasLongData         has parameter with long data (stream)
    * @throws SQLException exception
    */
   public boolean executeBatchClient(
@@ -651,10 +654,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Execute clientPrepareQuery batch.
    *
-   * @param results results
-   * @param sql sql command
+   * @param results             results
+   * @param sql                 sql command
    * @param serverPrepareResult prepare result if exist
-   * @param parametersList List of parameters
+   * @param parametersList      List of parameters
    * @return if executed
    * @throws SQLException exception
    */
@@ -840,9 +843,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Execute clientPrepareQuery batch.
    *
-   * @param results results
+   * @param results             results
    * @param clientPrepareResult ClientPrepareResult
-   * @param parametersList List of parameters
+   * @param parametersList      List of parameters
    * @throws SQLException exception
    */
   private void executeBatchMulti(
@@ -909,8 +912,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Execute batch from Statement.executeBatch().
    *
    * @param mustExecuteOnMaster was intended to be launched on master connection
-   * @param results results
-   * @param queries queries
+   * @param results             results
+   * @param queries             queries
    * @throws SQLException if any exception occur
    */
   public void executeBatchStmt(
@@ -1096,7 +1099,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Specific execution for batch rewrite that has specific query for memory.
    *
-   * @param results result
+   * @param results       result
    * @param prepareResult prepareResult
    * @param parameterList parameters
    * @param rewriteValues is rewritable flag
@@ -1144,112 +1147,111 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-    /**
-     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
-     *
-     * @param serverPrepareResult prepare result. can be null if not prepared.
-     * @param results             execution results
-     * @param sql                 sql query if needed to be prepared
-     * @param parametersList      parameter list
-     * @param hasLongData         has long data (stream)
-     * @return executed
-     * @throws SQLException if parameter error or connection error occur.
-     */
-    public ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult, Results results,
-                                                  String sql, final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
+  /**
+   * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
+   *
+   * @param serverPrepareResult prepare result. can be null if not prepared.
+   * @param results             execution results
+   * @param sql                 sql query if needed to be prepared
+   * @param parametersList      parameter list
+   * @param hasLongData         has long data (stream)
+   * @return executed
+   * @throws SQLException if parameter error or connection error occur.
+   */
+  public ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult, Results results,
+                                                String sql, final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
 
-        cmdPrologue();
+    cmdPrologue();
 
-        // TODO: server does not support "COM_STMT_BULK_EXECUTE" feature yet
-        if (options.useBulkStmts && !hasLongData
-                && results.getAutoGeneratedKeys() == Statement.NO_GENERATED_KEYS
-                && versionGreaterOrEqual(10, 2, 7)
-                && executeBulkBatch(results, sql, serverPrepareResult, parametersList)) {
-            results.setBatchSucceed(true);
-            return serverPrepareResult;
-        }
-
-        if (!options.useBatchMultiSend) {
-            results.setBatchSucceed(false);
-            return serverPrepareResult;
-        }
-
-        initializeBatchReader();
-        ServerPrepareResult tempServerPrepareResult = null;
-        serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
-            @Override
-            public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
-                                List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
-
-                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-
-                // validate parameter set
-                if (parameters.length < paramCount) {
-                    throw new SQLException(
-                            "Parameter at position " + (paramCount - 1) + " is not set", "07004");
-                }
-
-                if (isOracleMode()) {
-                   // send binary data in a separate stream
-                   if (options.useServerPrepStmts && options.usePieceData) {
-                      for (int i = 0; i < paramCount; i++) {
-                        if (parameters[i].isLongData()) {
-                          writer.startPacket(0);
-                          writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
-                          writer.writeInt(statementId);
-                          writer.writeShort((short) i);
-                          writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
-                          parameters[i].writeBinary(writer);
-                          writer.flush();
-                        }
-                      }
-                   }
-                   else {
-                       for (int i = 0; i < paramCount; i++) {
-                         if (parameters[i].isLongData()) {
-                           throw new SQLException("Not supported send long data on ob oracle");
-                         }
-                       }
-                   }
-                } else {  // mysql mode
-                  for (int i = 0; i < paramCount; i++) {
-                    if (parameters[i].isLongData()) {
-                      ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options,statementId,(short) i);
-                  }
-                }
-              }
-
-              if (supportStmtPrepareExecute()) {
-                    results.setParameters(parameters);
-                    ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol(),tempServerPrepareResult);
-                } else {
-                    ComStmtExecute.send(writer, statementId, parameters, paramCount, parameterTypeHeader,
-                            Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
-                }
-            }
-
-            @Override
-            public SQLException handleResultException(SQLException qex, Results results, List<ParameterHolder[]> parametersList,
-                                                      List<String> queries, int currentCounter, int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
-
-                return OceanBaseSqlException.of(qex, prepareResult.getSql());
-            }
-
-            @Override
-            public int getParamCount() {
-
-                return getPrepareResult() == null ? parametersList.get(0).length
-                        : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
-            }
-
-            @Override
-            public int getTotalExecutionNumber() {
-                return parametersList.size();
-            }
-        }.executeBatch();
-        results.setBatchSucceed(true);
-        return serverPrepareResult;
+    // TODO: server does not support "COM_STMT_BULK_EXECUTE" feature yet
+    if (options.useBulkStmts && !hasLongData
+        && results.getAutoGeneratedKeys() == Statement.NO_GENERATED_KEYS
+        && versionGreaterOrEqual(10, 2, 7)
+        && executeBulkBatch(results, sql, serverPrepareResult, parametersList)) {
+      results.setBatchSucceed(true);
+      return serverPrepareResult;
     }
+
+    if (!options.useBatchMultiSend) {
+      results.setBatchSucceed(false);
+      return serverPrepareResult;
+    }
+
+    initializeBatchReader();
+    ServerPrepareResult tempServerPrepareResult = null;
+    serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
+      @Override
+      public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
+                          List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
+
+        ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
+
+        // validate parameter set
+        if (parameters.length < paramCount) {
+          throw new SQLException(
+              "Parameter at position " + (paramCount - 1) + " is not set", "07004");
+        }
+
+        if (isOracleMode()) {
+          // send binary data in a separate stream
+          if (options.useServerPrepStmts && options.usePieceData) {
+            for (int i = 0; i < paramCount; i++) {
+              if (parameters[i].isLongData()) {
+                writer.startPacket(0);
+                writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                writer.writeInt(statementId);
+                writer.writeShort((short) i);
+                writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
+                parameters[i].writeBinary(writer);
+                writer.flush();
+              }
+            }
+          } else {
+            for (int i = 0; i < paramCount; i++) {
+              if (parameters[i].isLongData()) {
+                throw new SQLException("Not supported send long data on ob oracle");
+              }
+            }
+          }
+        } else {  // mysql mode
+          for (int i = 0; i < paramCount; i++) {
+            if (parameters[i].isLongData()) {
+              ((LongDataParameterHolder) parameters[i]).writeLongData(writer, options, statementId, (short) i);
+            }
+          }
+        }
+
+        if (supportStmtPrepareExecute()) {
+          results.setParameters(parameters);
+          ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol(), tempServerPrepareResult);
+        } else {
+          ComStmtExecute.send(writer, statementId, parameters, paramCount, parameterTypeHeader,
+              Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
+        }
+      }
+
+      @Override
+      public SQLException handleResultException(SQLException qex, Results results, List<ParameterHolder[]> parametersList,
+                                                List<String> queries, int currentCounter, int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
+
+        return OceanBaseSqlException.of(qex, prepareResult.getSql());
+      }
+
+      @Override
+      public int getParamCount() {
+
+        return getPrepareResult() == null ? parametersList.get(0).length
+            : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
+      }
+
+      @Override
+      public int getTotalExecutionNumber() {
+        return parametersList.size();
+      }
+    }.executeBatch();
+    results.setBatchSucceed(true);
+    return serverPrepareResult;
+  }
 
   public ColumnDefinition[] fetchRowViaCursor(int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
@@ -1294,6 +1296,168 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
+  /**
+   * Protocol processing mechanism when prepareExecute is not used
+   *
+   * @param mustExecuteOnMaster
+   * @param serverPrepareResult
+   * @param results
+   * @param queryParameters
+   * @param queryParameterSize
+   * @throws SQLException
+   */
+  @Override
+  public void executePreparedQueryArrayBinding(
+      boolean mustExecuteOnMaster,
+      ServerPrepareResult serverPrepareResult,
+      Results results,
+      List<ParameterHolder[]> queryParameters,
+      int queryParameterSize)
+      throws SQLException {
+    int paramCount = serverPrepareResult.getParameters().length;
+    cmdPrologue();
+
+    try {
+      // send binary data in a separate stream without send piece
+      for (int j = 0; j < queryParameterSize; j++) {
+        ParameterHolder[] parameters = queryParameters.get(j);
+        for (int i = 0; i < paramCount; i++) {
+          if (parameters[i].isLongData()) {
+            throw new SQLException("Not supported send long data on ob oracle");
+          }
+        }
+      }
+      writer.setTimeZone(this.getServerTimeZone());
+      // send execute query
+      boolean withRefCursor = false;
+      ColumnDefinition[] ci = serverPrepareResult.getColumns();
+      for (ColumnDefinition columnDefinition : ci) {
+        if (columnDefinition.getColumnType() == ColumnType.CURSOR) {
+          withRefCursor = true;
+          break;
+        }
+      }
+
+      byte cursorFlag = 0;
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
+          && (isOracleMode()
+          || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
+          && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+        cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
+        results.setToCursorFetch(true);
+        results.setStatementId(serverPrepareResult.getStatementId());
+      } else {
+        cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
+      }
+
+      ComStmtExecute.sendArrayBinding(
+          writer,
+          serverPrepareResult.getStatementId(),
+          queryParameters,
+          queryParameterSize,
+          paramCount,
+          serverPrepareResult.getParameterTypeHeader(),
+          cursorFlag,
+          this);
+
+      getResult(results);
+      results.setToCursorFetch(false);
+
+    } catch (SQLException qex) {
+      throw exceptionWithQuery(null, serverPrepareResult, qex, false);
+    } catch (IOException e) {
+      throw exceptionWithQuery(null, serverPrepareResult, handleIoException(e), false);
+    }
+  }
+
+  /**
+   * Protocol processing mechanism when prepareExecute is used.
+   *
+   * @param parameterCount      is count of  parameters.
+   * @param mustExecuteOnMaster
+   * @param serverPrepareResult
+   * @param results
+   * @param queryParameters     is sublist of parameters list.
+   * @param queryParamtersSize
+   * @return
+   * @throws SQLException
+   */
+  @Override
+  public ServerPrepareResult executePreparedQueryArrayBinding(int parameterCount, boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult, Results results, List<ParameterHolder[]> queryParameters, int queryParamtersSize) throws SQLException {
+    cmdPrologue();
+    try {
+      if (options.usePieceData) {
+        boolean firstPrepared = true;
+        for (int i = 0; i < parameterCount; i++) {
+          ParameterHolder holder = queryParameters.get(0)[i];
+          if (holder.isLongData()) {
+            for (int j = 0; j < queryParamtersSize; ++j) {
+              holder = queryParameters.get(j)[i];
+              boolean continueWrite = true;
+              boolean first = true;
+              while (continueWrite) {
+                if (firstPrepared) {
+                  // prepre here
+                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+                  serverPrepareResult.resetParameterTypeHeader();
+                  firstPrepared = false;
+                }
+                writer.startPacket(0);
+                writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                writer.writeInt(serverPrepareResult.getStatementId());
+                writer.writeShort((short) (i));
+                continueWrite = ((LongDataParameterHolder) holder).writePieceData(writer, first, options);
+                first = false;
+                getResult(new Results());
+              }
+            }
+          }
+        }
+      } else {
+        for (int j = 0; j < queryParamtersSize; j++) {
+          ParameterHolder[] parameters = queryParameters.get(j);
+          for (int i = 0; i < parameterCount; i++) {
+            if (parameters[i].isLongData()) {
+              throw new SQLException("Not supported send long data on ob oracle");
+            }
+          }
+        }
+      }
+      writer.setTimeZone(this.getServerTimeZone());
+      // send execute query
+      boolean withRefCursor = false;
+      if (serverPrepareResult != null) {
+        ColumnDefinition[] ci = serverPrepareResult.getColumns();
+        for (ColumnDefinition columnDefinition : ci) {
+          if (columnDefinition.getColumnType() == ColumnType.CURSOR) {
+            withRefCursor = true;
+            break;
+          }
+        }
+      }
+
+      byte cursorFlag = 0;
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode()) {
+        cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
+        results.setToCursorFetch(true);
+      } else {
+        cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
+      }
+      int stmtId = serverPrepareResult != null ? serverPrepareResult.getStatementId() : results.getStatementId();
+      ComStmtPrepareExecute.sendArrayBinding(writer, stmtId, queryParameters, queryParamtersSize,
+          parameterCount, serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, results, serverPrepareResult);
+
+      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
+      results.setToCursorFetch(false);
+      return serverPrepareResult;
+    } catch (SQLException qex) {
+      throw exceptionWithQuery(results.getParameters(), serverPrepareResult, qex, false);
+    } catch (IOException e) {
+      throw exceptionWithQuery(results.getParameters(), serverPrepareResult, handleIoException(e), false);
+    }
+  }
+
   @Override
   public long getLastPacketCostTime() throws SQLException {
     if (!enableNetworkStatistics) {
@@ -1304,15 +1468,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
+  public boolean getNetworkStatisticsFlag() {
+    return enableNetworkStatistics;
+  }
+
+  @Override
   public void setNetworkStatisticsFlag(boolean flag) {
     enableNetworkStatistics = flag;
     writer.enableNetworkStatistics(flag);
     reader.enableNetworkStatistics(flag);
-  }
-
-  @Override
-  public boolean getNetworkStatisticsFlag() {
-    return enableNetworkStatistics;
   }
 
   @Override
@@ -1350,7 +1514,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
 
-  /** Rollback transaction. */
+  /**
+   * Rollback transaction.
+   */
   public void rollback() throws SQLException {
 
     cmdPrologue();
@@ -1387,7 +1553,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (lock.tryLock()) {
 
       try {
-
         checkClose();
 
         try {
@@ -1821,7 +1986,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param results result object
    * @throws SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response
-   *     packets</a>
+   * packets</a>
    */
   private void readPacket(Results results) throws SQLException {
     Buffer buffer;
@@ -1934,7 +2099,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Read OK_Packet.
    *
-   * @param buffer current buffer
+   * @param buffer  current buffer
    * @param results result object
    * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
    */
@@ -1956,7 +2121,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Read ERR_Packet.
    *
-   * @param buffer current buffer
+   * @param buffer  current buffer
    * @param results result object
    * @return SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
@@ -1986,7 +2151,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Read Local_infile Packet.
    *
-   * @param buffer current buffer
+   * @param buffer  current buffer
    * @param results result object
    * @throws SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
@@ -2135,15 +2300,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       SelectResultSet selectResultSet;
       // boolean "callableResult" is always false
-      /*if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
-        results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
-        selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
-      } else */if (results.isToCursorFetch()) {
+        /*if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
+          results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
+          selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
+        } else */
+      if (results.isToCursorFetch()) {
         // cursor result set
         if (!this.isOracleMode()
-              || results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
-              || (results.getResultSetScrollType() == ResultSet.TYPE_SCROLL_INSENSITIVE
-                && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+            || results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+            || (results.getResultSetScrollType() == ResultSet.TYPE_SCROLL_INSENSITIVE
+            && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
           selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
         } else {
           selectResultSet = new SensitiveCursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
@@ -2171,10 +2337,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Preparation before command.
    *
-   * @param maxRows query max rows
-   * @param hasProxy has proxy
+   * @param maxRows    query max rows
+   * @param hasProxy   has proxy
    * @param connection current connection
-   * @param statement current statement
+   * @param statement  current statement
    * @throws SQLException if any error occur.
    */
   public void prolog(
@@ -2246,10 +2412,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   /**
    * Set current state after a failover.
    *
-   * @param maxRows current Max rows
+   * @param maxRows                   current Max rows
    * @param transactionIsolationLevel current transactionIsolationLevel
-   * @param database current database
-   * @param autocommit current autocommit state
+   * @param database                  current database
+   * @param autocommit                current autocommit state
    * @throws SQLException if any error occur.
    */
   // TODO set all client affected variables when implementing CONJ-319
@@ -2378,13 +2544,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
-  public void setChecksum(long checksum) {
-    this.checksum = checksum;
+  public long getChecksum() {
+    return checksum;
   }
 
   @Override
-  public long getChecksum() {
-    return checksum;
+  public void setChecksum(long checksum) {
+    this.checksum = checksum;
   }
 
   @Override
@@ -2393,18 +2559,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
-  public void setIterationCount(int iterationCount) {
-    this.iterationCount = iterationCount;
-  }
-
-  @Override
   public int getIterationCount() {
     return iterationCount;
   }
 
   @Override
-  public void setExecuteMode(int executeMode) {
-    this.executeMode = executeMode;
+  public void setIterationCount(int iterationCount) {
+    this.iterationCount = iterationCount;
   }
 
   @Override
@@ -2413,10 +2574,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   @Override
+  public void setExecuteMode(int executeMode) {
+    this.executeMode = executeMode;
+  }
+
+  @Override
   public void setComStmtPrepareExecuteField(int iterationCount, int executeMode, long checksum) {
-      this.iterationCount = iterationCount;
-      this.executeMode = executeMode;
-      this.checksum = checksum;
+    this.iterationCount = iterationCount;
+    this.executeMode = executeMode;
+    this.checksum = checksum;
   }
 
 }

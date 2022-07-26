@@ -913,8 +913,7 @@ public enum DefaultOptions {
           "NA",
           "NA",
           false),
-
-          TRANSFORMED_BIT_BOOLEAN(
+  TRANSFORMED_BIT_BOOLEAN(
                   "transformedBitIsBoolean",
                   Boolean.FALSE,
                   "2.2.9",
@@ -944,6 +943,7 @@ public enum DefaultOptions {
           "2.2.10.2",
                   "Force to rewrite the sql as multiple INSERT queries which are separated by semi-colons",
                   false);
+  ;
 
   private final String optionName;
   private final String description;

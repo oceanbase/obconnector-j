@@ -604,10 +604,6 @@ public class Options implements Cloneable {
         if (blobSendChunkSize != opt.blobSendChunkSize) {
           return false;
         }
-
-      if (connectionCollation != opt.connectionCollation) {
-        return false;
-      }
         if (connectionCollation != opt.connectionCollation) {
           return false;
         }
