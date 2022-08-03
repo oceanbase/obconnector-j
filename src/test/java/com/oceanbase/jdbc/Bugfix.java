@@ -1733,4 +1733,17 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testProcedureBlob() throws SQLException {
+        createProcedure("Pro_blob", "(c1 BLOB) BEGIN SELECT c1 ;\nEND");
+        CallableStatement cstmt = sharedConnection.prepareCall("{call Pro_blob(?)}");
+        byte[] bytes = { 1, 2, 3 };
+        cstmt.setBytes(1, bytes);
+        cstmt.execute();
+        ResultSet rs = cstmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(Arrays.toString(bytes), Arrays.toString(rs.getBytes(1)));
+    }
+
 }

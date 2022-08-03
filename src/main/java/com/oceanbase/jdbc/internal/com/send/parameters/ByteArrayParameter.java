@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -99,11 +98,7 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
 
     @Override
     public String toString() {
-        if (bytes.length > 1024) {
-            return "<bytearray:" + new String(Arrays.copyOfRange(bytes, 0, 1024)) + "...>";
-        } else {
-            return "<bytearray:" + new String(bytes) + ">";
-        }
+        return "_binary '" + new String(bytes) + "'";
     }
 
     public boolean isNullData() {

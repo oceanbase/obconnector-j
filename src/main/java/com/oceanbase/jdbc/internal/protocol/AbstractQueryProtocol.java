@@ -1668,7 +1668,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if ((serverCapabilities & OceanBaseServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
       // client session track return empty value, not null value. Java require sending null if empty
       if (database != null && database.isEmpty()) {
-        return null;
+        return "";
       }
       return database;
     }
