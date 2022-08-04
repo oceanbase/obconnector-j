@@ -344,9 +344,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return sqle;
   }
   int []  buildArrayBindingUpdateCounts() {
-      int[] ret;
+      int[] ret = new int[0];
       int sql_no = 0;
       int totoalRowsNum = 0;
+      if(results == null && results.getExecutionResults() == null) {
+          return ret;
+      }
       try {
           ResultSet rs = null;
           int cur = 0;
@@ -377,7 +380,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqlException, int size,boolean arrayBindingException) {
         SQLException sqle = handleFailoverAndTimeout(initialSqlException);
         int[] ret;
-        if(arrayBindingException && results != null) {
+        if(arrayBindingException && results != null  && results.getExecutionResults() != null) {
             ret = buildArrayBindingUpdateCounts();
             sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
             logger.error("error executing query", sqle);
