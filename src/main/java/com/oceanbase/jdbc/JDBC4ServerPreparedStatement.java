@@ -280,7 +280,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   @Override
-  public void clearParameters() {
+  public void clearParameters() throws SQLException {
+    checkClose();
     currentParameterHolder.clear();
   }
 

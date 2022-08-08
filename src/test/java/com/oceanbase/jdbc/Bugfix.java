@@ -1735,6 +1735,18 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testClosePS() throws SQLException {
+        PreparedStatement ps = sharedConnection.prepareStatement("select 1");
+        ps.close();
+        try {
+            ps.clearParameters();
+            Assert.fail();
+        } catch (SQLException e) {
+            //
+        }
+    }
+
+    @Test
     public void testProcedureBlob() throws SQLException {
         createProcedure("Pro_blob", "(c1 BLOB) BEGIN SELECT c1 ;\nEND");
         CallableStatement cstmt = sharedConnection.prepareCall("{call Pro_blob(?)}");

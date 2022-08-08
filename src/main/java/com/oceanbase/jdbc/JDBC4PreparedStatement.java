@@ -575,7 +575,8 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    * immediately release the resources used by the current parameter values; this can be done by
    * calling the method <code>clearParameters</code>.
    */
-  public void clearParameters() {
+  public void clearParameters() throws SQLException {
+    checkClose();
     parameters = new ParameterHolder[parameterCount];
   }
 
