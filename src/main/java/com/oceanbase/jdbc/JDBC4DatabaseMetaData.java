@@ -79,11 +79,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                                                         Pattern.CASE_INSENSITIVE);
     private static final Pattern      PARAMETER_PATTERN         = Pattern
                                                                     .compile(
-                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d\\S]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                         Pattern.CASE_INSENSITIVE);
     private static final Pattern      ORALCLE_PARAMETER_PATTERN = Pattern
                                                                     .compile(
-                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\"[\\w\\d]+\")\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                        "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\"[\\w\\d\\S]+\")\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                         Pattern.CASE_INSENSITIVE);
     String[]                          exportKeysColumnNames     = { "PKTABLE_CAT", "PKTABLE_SCHEM",
             "PKTABLE_NAME", "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME",
@@ -3296,7 +3296,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
                 String procedureDDl = paramRetrievalRs.getString("Create Procedure");
                 int startIndex = procedureDDl.indexOf("(");
-                int endIdex = procedureDDl.indexOf("BEGIN");
+                int endIdex = procedureDDl.toUpperCase().indexOf("BEGIN");
                 String paramList = null;
                 if (endIdex != -1 && endIdex > startIndex) {
                     paramList  = procedureDDl.substring(startIndex - 1,

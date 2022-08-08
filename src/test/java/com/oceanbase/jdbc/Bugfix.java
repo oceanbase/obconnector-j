@@ -1736,6 +1736,51 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testProcedureWithQuotes() throws Exception {
+        createTable("test1", "col varchar(40)");
+
+        createProcedure("testPro1",
+            "(IN c1 varchar(255)) BEGIN insert into test1(col) values(c1); END");
+
+        CallableStatement cstmt = sharedConnection.prepareCall("{call testPro1(?)}");
+        cstmt.setString(1, "'john'");
+        cstmt.execute();
+
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select col from test1");
+        assertTrue(rs.next());
+        assertEquals("'john'", rs.getString(1));
+    }
+
+    @Test
+    public void testParameterWithBackQuotes() throws Exception {
+        createProcedure("testPro", "(c1 int, `c2-c3` int, c4 int) begin select 1; end");
+        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null, "testPro",
+            "%");
+        assertTrue(rs.next());
+        assertEquals("c1", rs.getString("COLUMN_NAME"));
+        assertTrue(rs.next());
+        assertEquals("c2-c3", rs.getString("COLUMN_NAME"));
+        assertTrue(rs.next());
+        assertEquals("c4", rs.getString("COLUMN_NAME"));
+
+    }
+
+    @Test
+    public void testProcedureWithBackQuotes() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop procedure if exists `test-pro`");
+            stmt.execute("create procedure `test-Pro`(a int) begin select a; end");
+            CallableStatement cs = sharedConnection.prepareCall("call `test-pro`(?)");
+            cs.setInt(1, 1);
+            cs.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testBigDecimalToBoolean() {
         try {
             PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT ?");

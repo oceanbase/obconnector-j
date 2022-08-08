@@ -55,6 +55,10 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -1655,6 +1659,88 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         setParameter(parameterIndex, new ShortParameter(value));
     }
 
+    private boolean needEscape(String str, int length) {
+        boolean needed = false;
+        for (int i = 0; i < length; i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case 0:
+                case '\n':
+                case '\r':
+                case '\\':
+                case '\'':
+                case '"':
+                case '\032':
+                    needed = true;
+                    break;
+            }
+            if (needed) {
+                break;
+            }
+        }
+        return needed;
+    }
+
+    private String escapedString(String str, int length) {
+        StringBuilder stringBuilder = new StringBuilder((int) (str.length() * 1.1));
+        stringBuilder.append('\'');
+        for (int i = 0; i < length; i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case 0:
+                    stringBuilder.append('\\');
+                    stringBuilder.append('0');
+                    break;
+                case '\n':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('n');
+                    break;
+                case '\r':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('r');
+                    break;
+                case '\\':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('\\');
+                    break;
+                case '\'':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('\'');
+                    break;
+                case '"':
+                    // not support useAnsiQuotes now
+                    stringBuilder.append('"');
+                    break;
+
+                case '\032':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('Z');
+                    break;
+                case '\u00a5':
+                case '\u20a9':
+                    CharsetEncoder charsetEncoder = Charset.forName(options.characterEncoding)
+                        .newEncoder();
+                    if (charsetEncoder != null) {
+                        CharBuffer charBuffer = CharBuffer.allocate(1);
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+                        charBuffer.put(c);
+                        charBuffer.position(0);
+                        charsetEncoder.encode(charBuffer, byteBuffer, true);
+                        if (byteBuffer.get(0) == '\\') {
+                            stringBuilder.append('\\');
+                        }
+                    }
+                    stringBuilder.append(c);
+                    break;
+                default:
+                    stringBuilder.append(c);
+            }
+        }
+
+        stringBuilder.append('\'');
+        return stringBuilder.toString();
+    }
+
     /**
      * Set string parameter.
      *
@@ -1674,7 +1760,12 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setParameter(parameterIndex, new OBStringParameter(str, noBackslashEscapes,
                 this.connection.getProtocol().getOptions().characterEncoding));
         } else {
-            setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes,
+            int parameterLength = str.length();
+            String parameterString = str;
+            if (needEscape(str, parameterLength)) {
+                parameterString = escapedString(parameterString, parameterLength);
+            }
+            setParameter(parameterIndex, new StringParameter(parameterString, noBackslashEscapes,
                 this.connection.getProtocol().getOptions().characterEncoding));
         }
     }

@@ -169,7 +169,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (name.startsWith("\"") && name.endsWith("\"")) {
             this.name = name.replace("`", "").replace("\"", "");
         } else {
-            this.name = name.replace("`", "").toUpperCase(Locale.ROOT);
+            if (this.con.getProtocol().isOracleMode()) {
+                this.name = name.replace("`", "").toUpperCase(Locale.ROOT);
+            } else {
+                this.name = name;
+            }
         }
         this.isFunction = isFunction;
     }
