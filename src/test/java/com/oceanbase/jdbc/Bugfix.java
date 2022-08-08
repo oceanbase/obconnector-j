@@ -51,11 +51,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Clob;
+import java.sql.Date;
 import java.time.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import org.junit.*;
 
@@ -1832,6 +1830,51 @@ public class Bugfix extends BaseTest {
         ResultSet rs = cstmt.getResultSet();
         assertTrue(rs.next());
         assertEquals(Arrays.toString(bytes), Arrays.toString(rs.getBytes(1)));
+    }
+
+    @Test
+    public void testSetDateWithLocale() throws Exception {
+        Locale.setDefault(new Locale("th", "TH"));
+        System.out.println(Locale.getDefault());
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        PreparedStatement prepStmt = null;
+        try {
+            try {
+                stmt.execute("drop table testLocale");
+            } catch (SQLException e) {
+                //                throw new RuntimeException(e);
+            }
+            stmt.execute("create table testLocale(field1 DATE, field2 TIMESTAMP)");
+            stmt.execute("INSERT INTO testLocale VALUES (NOW(), NOW())");
+
+            ResultSet rs = stmt.executeQuery("SELECT field1, field2 FROM testLocale");
+            rs.next();
+
+            Date origDate = rs.getDate(1);
+            Timestamp origTimestamp = rs.getTimestamp(1);
+            rs.close();
+
+            stmt.executeUpdate("TRUNCATE TABLE testLocale");
+
+            prepStmt = conn.prepareStatement("INSERT INTO testLocale VALUES (?,?)");
+            prepStmt.setDate(1, origDate);
+            prepStmt.setTimestamp(2, origTimestamp);
+            prepStmt.executeUpdate();
+
+            rs = stmt.executeQuery("SELECT field1, field2 FROM testLocale");
+            rs.next();
+
+            Date testDate = rs.getDate(1);
+            Timestamp testTimestamp = rs.getTimestamp(1);
+            rs.close();
+
+            assertEquals(origDate, testDate);
+            assertEquals(origTimestamp, testTimestamp);
+
+        } finally {
+            Locale.setDefault(new Locale("zh", "CN"));
+        }
     }
 
 }

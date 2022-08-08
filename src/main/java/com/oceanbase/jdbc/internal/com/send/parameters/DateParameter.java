@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -91,7 +92,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     }
 
     private byte[] dateByteFormat() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
             sdf.setTimeZone(Calendar.getInstance().getTimeZone());
         } else {
@@ -112,7 +113,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        Calendar calendar = Calendar.getInstance(timeZone);
+        Calendar calendar = Calendar.getInstance(timeZone, Locale.US);
         calendar.setTimeInMillis(date.getTime());
 
         pos.write((byte) 7); // length
