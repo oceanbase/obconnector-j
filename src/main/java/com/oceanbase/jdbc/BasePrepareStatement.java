@@ -1341,6 +1341,10 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 case Types.VARCHAR:
                     setString(parameterIndex, bd.toString());
                     break;
+                case Types.BOOLEAN:
+                    int intValue = ((Number) bd).intValue();
+                    setBoolean(parameterIndex, intValue != 0);
+                    break;
                 default:
                     throw exceptionFactory.create(String.format("Could not convert [%s] to %s", bd,
                         targetSqlType));

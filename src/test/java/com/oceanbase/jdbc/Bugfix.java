@@ -47,6 +47,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Clob;
@@ -1731,6 +1732,21 @@ public class Bugfix extends BaseTest {
             Assert.assertEquals(0, rs.getInt(1));
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testBigDecimalToBoolean() {
+        try {
+            PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT ?");
+            pstmt.setObject(1, "Y", Types.BOOLEAN);
+            pstmt.setObject(1, "true", Types.BOOLEAN);
+            pstmt.setObject(1, "3", Types.BOOLEAN);
+            pstmt.setObject(1, new BigDecimal("3"), Types.BOOLEAN);
+            pstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
