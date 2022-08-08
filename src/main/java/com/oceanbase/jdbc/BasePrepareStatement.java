@@ -1238,8 +1238,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 switch (targetSqlType) {
                     case Types.BIT:
                     case Types.BOOLEAN:
-                        setBoolean(parameterIndex,
-                            !("false".equalsIgnoreCase(str) || "0".equals(str)));
+                        setBoolean(parameterIndex, "true".equalsIgnoreCase(str) || !"0".equals(str));
                         break;
                     case Types.TINYINT:
                         setByte(parameterIndex, Byte.parseByte(str));

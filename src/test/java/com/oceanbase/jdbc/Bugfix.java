@@ -1735,6 +1735,21 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testSetObjectTypesBOOLEAN() throws Exception {
+        String[] falses = new String[] { "False", "0", "n", "-0", "0.00", "-0.0" };
+        PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+        int[] ret = new int[] { 1, 0, 1, 1, 1, 1 };
+        int index = 0;
+        for (String val : falses) {
+            ps.clearParameters();
+            ps.setObject(1, val, Types.BOOLEAN);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            Assert.assertEquals(ret[index++], rs.getInt(1));
+        }
+    }
+
+    @Test
     public void testClosePS() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("select 1");
         ps.close();
