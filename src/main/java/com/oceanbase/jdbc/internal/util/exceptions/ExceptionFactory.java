@@ -100,6 +100,8 @@ public final class ExceptionFactory {
                 returnEx = new SQLFeatureNotSupportedException(msg, sqlState, errorCode, cause);
                 break;
             case "22":
+                returnEx = new OceanBaseDataTruncation(0, true, false, 0, 0, cause, msg, errorCode);
+                break;
             case "26":
             case "2F":
             case "20":

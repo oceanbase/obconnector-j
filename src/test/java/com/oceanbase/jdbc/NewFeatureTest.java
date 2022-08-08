@@ -43,6 +43,8 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.fail;
+
 import java.sql.*;
 
 import org.junit.*;
@@ -257,6 +259,25 @@ public class NewFeatureTest extends BaseTest {
             System.out.println("query finished");
         } catch (Throwable e) {
             Assert.assertTrue(e.getMessage().contains("Query timed out"));
+        }
+    }
+
+    @Test
+    public void testBug18041() throws Exception {
+        Connection truncConn = sharedConnection;
+        PreparedStatement stm = null;
+        truncConn.createStatement().executeUpdate("drop table if exists testBug18041");
+        truncConn.createStatement().executeUpdate(
+            "create table testBug18041(`a` tinyint(4) NOT NULL, `b` char(4) default NULL)");
+        try {
+            stm = truncConn.prepareStatement("insert into testBug18041 values (?,?)");
+            stm.setInt(1, 1000);
+            stm.setString(2, "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
+            stm.executeUpdate();
+            fail("Truncation exception should have been thrown");
+        } catch (Exception truncEx) {
+            Assert.assertTrue(truncEx instanceof DataTruncation);
+            System.out.println(truncEx.getMessage());
         }
     }
 }
