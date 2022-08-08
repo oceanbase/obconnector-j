@@ -900,7 +900,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         tmp = "1";
                     }
                     Map<String, Integer> mapTransIsolationNameToValue = new HashMap<String, Integer>(8);
-                    mapTransIsolationNameToValue.put("READ-UNCOMMITED", TRANSACTION_READ_UNCOMMITTED);
                     mapTransIsolationNameToValue.put("READ-UNCOMMITTED", TRANSACTION_READ_UNCOMMITTED);
                     mapTransIsolationNameToValue.put("READ-COMMITTED", TRANSACTION_READ_COMMITTED);
                     mapTransIsolationNameToValue.put("REPEATABLE-READ", TRANSACTION_REPEATABLE_READ);
