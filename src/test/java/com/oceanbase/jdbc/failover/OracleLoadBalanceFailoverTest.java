@@ -342,40 +342,4 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
         stmt.execute("drop table test_intervalds");
         conn.close();
     }
-
-    @Test
-    public void testNewLoadBalance() throws SQLException {
-        String config = "(DESCRIPTION=\n"
-                        + "  (OBLB_RETRY_ALL_DOWNS=120)\n"
-                        + "  (OBLB_BLACKLIST=(\n"
-                        + "     (REMOVE_STRATEGY=((NAME=timeout)(TIMEOUT=10)))\n"
-                        + "     (APPEND_STRATEGY=(NAME=retryDuration)(RETRYTIMES=2)(DURATION=1000000000)))\n"
-                        + "  )"
-                        + "  (ADDRESS_LIST=                                                    \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.10)(PORT=10310))    \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.30)(PORT=10330))    \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.20)(PORT=10320)))    \n"
-                        + "  (ADDRESS_LIST=                                                    \n"
-                        + "     (OBLB_STRATEGY=RANDOM)                          \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.30)(PORT=10330))    \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.1)(PORT=1034))    \n"
-                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=11.159.217.2)(PORT=1035)))    \n"
-                        + "  )  ";
-        Connection conn = null;
-        int count = 5;
-        for (int i = 0; i < count; i++) {
-            try {
-                System.out.println("i = " + i);
-                conn = DriverManager
-                    .getConnection("jdbc:oceanbase:loadbalance://@" + config
-                                   + "/test?user=test@xyoracle&password=test&connectTimeout=10000");
-                System.out.println("((OceanBaseConnection)conn).getHostname() = "
-                                   + ((OceanBaseConnection) conn).getHostname());
-                System.out.println("((OceanBaseConnection)conn).getHostname() = "
-                                   + ((OceanBaseConnection) conn).getPort());
-            } finally {
-                //                conn.close();
-            }
-        }
-    }
 }
