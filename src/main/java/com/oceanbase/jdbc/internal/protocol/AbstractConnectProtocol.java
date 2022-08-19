@@ -1866,4 +1866,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public String getEncoding() {
         return this.options.characterEncoding;
     }
+
+    public PacketOutputStream getWriter() {
+        return writer;
+    }
 }

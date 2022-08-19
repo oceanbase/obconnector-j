@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -975,7 +976,16 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @param max the new column size limit in bytes; zero means there is no limit
    * @see #getMaxFieldSize
    */
-  public void setMaxFieldSize(final int max) {
+  public void setMaxFieldSize(final int max) throws SQLException {
+    int maxAllowedPacketSize = protocol.getWriter().getMaxAllowedPacket();
+    if(max < 0) {
+        throw new SQLException("Illegal value for setMaxFieldSize().");
+    }
+    if(max > maxAllowedPacketSize) {
+        MessageFormat messageFormat = new MessageFormat("Can not set max field size > max allowed packet of {0} bytes.");
+        String message = messageFormat.format(new Object[] { Long.valueOf(maxAllowedPacketSize) });
+        throw  new SQLException(message);
+    }
     maxFieldSize = max;
   }
 

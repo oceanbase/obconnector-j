@@ -69,6 +69,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
@@ -363,5 +364,7 @@ public interface Protocol {
                                                          List<ParameterHolder[]> queryParameters,
                                                          int queryParameterSize)
                                                                                 throws SQLException;
+
+    PacketOutputStream getWriter();
 
 }
