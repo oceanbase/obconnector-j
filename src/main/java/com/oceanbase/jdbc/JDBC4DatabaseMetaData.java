@@ -4255,7 +4255,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsNamedParameters() {
-        return true;
+        return connection.getProtocol().isOracleMode();
     }
 
     //todo  there return true in 1.X_OracleModel , return false in oracle-jdbc

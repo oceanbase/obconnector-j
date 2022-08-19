@@ -450,4 +450,527 @@ public class CallStatementOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testBeginInsertRepeatParameterName() throws Exception {
+        Connection connection = sharedPSConnection;
+        DatabaseMetaData dbmd = connection.getMetaData();
+        Assert.assertTrue(dbmd.supportsNamedParameters());
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(:col1, :col2, :col3);\n" + "end;");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();
+        cs.setString("col1", "aa2");
+        cs.setInt("col2", 222);
+        cs.setString("col3", "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        boolean first = true;
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            if (first) {
+                first = false;
+                try {
+                    rs.getString("col3");// oracle: "列名无效"
+                    fail();
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().contains("No such column: 'col3'"));
+                }
+            }
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa1, 111, bb1
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testBeginInsertDifferentParameterName() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(:col1, :col2, :col3);\n" + "end;");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();
+        try {
+            cs.setString("c1", "aa2");// oracle: "无效的列索引"
+            fail();
+            cs.setString("c2", "222");
+            cs.setString("c3", "bb2");
+            cs.execute();
+        } catch (Exception e) {
+            assertEquals(e.getMessage(), "invalid parameter index 4");
+        }
+        try {
+            cs.setString("col1", "aa3");
+            cs.setInt("col2", 333);
+            cs.setString("col3", "bb3");
+            cs.execute();// oracle: "参数名的数目与已注册参数的数目不匹配"
+            fail();
+        } catch (Exception e) {
+            assertEquals(e.getMessage(),
+                "The number of parameter names '4' does not match the number of registered parameters in sql '3'.");
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 1);
+        // oracle:
+        // val is aa1, 111, bb1
+    }
+
+    @Test
+    public void testBeginInsertRepeatParameterNameOutOfOrder() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(:col1, :col2, :col3);\n" + "end;");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();
+        cs.setInt("col2", 222);
+        cs.setString("col1", "aa2");
+        cs.setString("col3", "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa1, 111, bb1
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testBeginInsertSameParameterName() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(:col1, :col2, :col1);\n" + "end;");
+        try {
+            cs.setString("col1", "aa1");
+            cs.setInt("col2", 111);
+            cs.execute();// oracle: "参数名的数目与已注册参数的数目不匹配"
+            fail();
+        } catch (Exception e) {
+            assertEquals(e.getMessage(),
+                "The number of parameter names '2' does not match the number of registered parameters in sql '3'.");
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // oracle:
+        // none
+    }
+
+    @Test
+    public void testBeginInsertAllQuestionMark() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(?, ?, ?);\n" + "end;");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();// oracle: "ORA-06550: 第 2 行, 第 45 列: PL/SQL: ORA-00917: 缺失逗号 ORA-06550: 第 2 行, 第 3 列: PL/SQL: SQL Statement ignored"
+
+        cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                    + " values(?, ?, ?);\n" + "end;");
+        cs.setString(1, "aa2");
+        cs.setInt(2, 222);
+        cs.setString(3, "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testBeginInsertSomeQuestionMark() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                                      + " values(?, :col2, ?);\n" + "end;");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();// oracle: "ORA-06550: 第 2 行, 第 45 列: PL/SQL: ORA-00917: 缺失逗号 ORA-06550: 第 2 行, 第 3 列: PL/SQL: SQL Statement ignored"
+
+        cs.setString(1, "aa2");
+        cs.setInt(2, 222);
+        cs.setString(3, "bb2");
+        cs.execute();// oracle: "不允许的操作: Ordinal binding and Named binding cannot be combined!"
+
+        cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                    + " values(?, :col2, ?);\n" + "end;");
+        cs.setString(1, "aa3");
+        cs.setInt(2, 333);
+        cs.setString(3, "bb3");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 3);
+        // oracle:
+        // val is aa3, 333, bb3
+    }
+
+    @Test
+    public void testInsertAllQuestionMark() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("insert into " + tableName
+                                                      + " values(?, ?, ?)");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();// oracle: "ORA-00917: 缺失逗号"
+
+        cs = connection.prepareCall("insert into " + tableName + " values(?, ?, ?)");
+        cs.setString(1, "aa2");
+        cs.setInt(2, 222);
+        cs.setString(3, "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testInsertRepeatParameterName() throws Exception {
+        Connection connection = sharedPSConnection;
+        DatabaseMetaData dbmd = connection.getMetaData();
+        Assert.assertTrue(dbmd.supportsNamedParameters());
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("insert into " + tableName
+                                                      + " values(:col1, :col2, :col3);");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();
+        cs.setString("col1", "aa2");
+        cs.setInt("col2", 222);
+        cs.setString("col3", "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        boolean first = true;
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            if (first) {
+                first = false;
+                try {
+                    rs.getString("col3");// oracle: "列名无效"
+                    fail();
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().contains("No such column: 'col3'"));
+                }
+            }
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa1, 111, bb1
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testInsertSomeQuestionMark() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs = connection.prepareCall("insert into " + tableName
+                                                      + " values(?, :col2, ?)");
+        cs.setString("col1", "aa1");
+        cs.setInt("col2", 111);
+        cs.setString("col3", "bb1");
+        cs.execute();// oracle: "ORA-00917: 缺失逗号"
+
+        cs = connection.prepareCall("insert into " + tableName + " values(?, :col2, ?)");
+        cs.setString(1, "aa2");
+        cs.setInt(2, 222);
+        cs.setString(3, "bb2");
+        cs.execute();
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testUpdateCorrectOrder() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        Statement stmt = connection.createStatement();
+        stmt.execute("insert into " + tableName + " values('aa1', 111, 'bb1')");
+        stmt.execute("insert into " + tableName + " values('aa2', 222, 'bb2')");
+
+        CallableStatement cs = connection.prepareCall("update " + tableName
+                                                      + " set c1 = :col1  where c2 = :col2");
+        cs.setString("col1", "cc1");
+        cs.setInt("col2", 111);
+        cs.execute();
+        cs.setInt("col2", 222);
+        cs.setString("col1", "cc2");
+        cs.execute();
+
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "cc" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is cc1, 111, bb1
+        // val is cc2, 222, bb2
+    }
+
+    @Test
+    public void testUpdateWrongOrder() throws Exception {
+        Connection connection = sharedPSConnection;
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        Statement stmt = connection.createStatement();
+        stmt.execute("insert into " + tableName + " values('aa1', 111, 'bb1')");
+        stmt.execute("insert into " + tableName + " values('aa2', 222, 'bb2')");
+
+        CallableStatement cs = connection.prepareCall("update " + tableName
+                                                      + " set c1 = :col1  where c2 = :col2");
+        try {
+            cs.setInt("col2", 222);
+            cs.setString("col1", "cc2");
+            cs.execute();//oracle: ORA-01722: 无效数字
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("ORA-01722: invalid number"));
+        }
+        try {
+            cs.setString("col1", "cc1");
+            cs.setInt("col2", 111);
+            cs.execute();//oracle: ORA-01722: 无效数字
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("ORA-01722: invalid number"));
+        }
+
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 2);
+        // oracle:
+        // val is aa1, 111, bb1
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void functionCall() throws SQLException {
+        Connection conn = sharedPSConnection;
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+        CallableStatement cs = conn.prepareCall("? = call testFunctionCall(?,?,?)");
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 1);
+        cs.setInt(3, 2);
+        cs.setInt(4, 3);
+        cs.registerOutParameter(4, Types.INTEGER);
+        //无效SQL，:1 = call testFunctionCall(:2,:3,:4)
+        assertFalse(cs.execute());
+        assertEquals(6f, cs.getInt(1), .001);
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 2);
+        cs.setInt(3, 3);
+        cs.setInt(4, 4);
+        assertEquals(1, cs.executeUpdate());
+        assertEquals(9f, cs.getInt(1), .001);
+
+        // reuse a statement, and set by name
+        cs.registerOutParameter("d", Types.INTEGER);
+        cs.setFloat("a", 4);
+        cs.setInt("b", 2);
+        cs.setInt("c", 1);
+        assertEquals(0, cs.executeUpdate());
+        assertEquals(7f, cs.getInt(1), .001);
+    }
+
+    @Test
+    public void functionCallByName() throws SQLException {
+        Connection conn = sharedPSConnection;
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nRETURN d;\nEND;");
+        CallableStatement cs = conn.prepareCall("? = call testFunctionCall(?,?,?)");
+
+        cs.registerOutParameter("d", Types.INTEGER);
+        cs.setFloat("a", 4);
+        cs.setInt("b", 2);
+        cs.setInt("c", 1);
+        cs.registerOutParameter("c", Types.INTEGER);
+        //无效SQL，D=>:0 = call testFunctionCall(A=>:1,B=>:2,C=>:3)
+        assertEquals(0, cs.executeUpdate());
+        assertEquals(7f, cs.getInt(1), .001);
+    }
+
+    @Test
+    public void functionAnonymousBlock() throws SQLException {
+        Connection conn = sharedPSConnection;
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+        CallableStatement cs = conn.prepareCall("begin ? := testFunctionCall (?,?,?); end;");
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 1);
+        cs.setInt(3, 2);
+        cs.setInt(4, 3);
+        cs.registerOutParameter(4, Types.INTEGER);
+        cs.execute();
+        assertEquals(6f, cs.getInt(1), .001);
+        assertEquals(10f, cs.getInt(4), .001);
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setFloat(2, 2);
+        cs.setInt(3, 3);
+        cs.setInt(4, 4);
+        cs.execute();
+        assertEquals(9f, cs.getInt(1), .001);
+    }
+
+    @Test
+    public void functionAnonymousBlockByName() throws SQLException {
+        Connection conn = sharedPSConnection;
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+        CallableStatement cs = conn.prepareCall("begin ? := testFunctionCall (?,?,?); end;");
+
+        cs.registerOutParameter("d", Types.INTEGER);
+        cs.setFloat("a", 4);
+        cs.setInt("b", 2);
+        cs.setInt("c", 1);
+        cs.registerOutParameter("c", Types.INTEGER);
+        cs.execute();
+        assertEquals(7f, cs.getInt(1), .001);
+        assertEquals(10f, cs.getInt(4), .001);
+
+        cs.registerOutParameter("d", Types.INTEGER);
+        cs.setFloat("a", 1);
+        cs.setInt("b", 2);
+        cs.setInt("c", 3);
+        cs.registerOutParameter("c", Types.INTEGER);
+        cs.execute();
+        assertEquals(6f, cs.getInt(1), .001);
+        assertEquals(10f, cs.getInt(4), .001);
+    }
+
 }

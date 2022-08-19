@@ -292,18 +292,329 @@ public class CallStatementTest extends BaseTest {
 
     //Oceanbase stored procedures do not support returning result sets
     @Ignore
-  public void testCallWithFetchSize() throws SQLException {
-    createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
-    try (Statement statement = sharedConnection.createStatement()) {
-      statement.setFetchSize(1);
-      try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {
-        int rowCount = 0;
-        while (resultSet.next()) {
-          rowCount++;
+    public void testCallWithFetchSize() throws SQLException {
+        createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.setFetchSize(1);
+            try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {
+                int rowCount = 0;
+                while (resultSet.next()) {
+                    rowCount++;
+                }
+                assertEquals(1, rowCount);
+            }
+            statement.execute("SELECT 1");
         }
-        assertEquals(1, rowCount);
-      }
-      statement.execute("SELECT 1");
     }
-  }
+
+    @Test
+    public void testBeginInsertAllQuestionMark() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(?, ?, ?);\n" + "end;");
+            fail();
+            cs.setString("col1", "aa1");// mysql: "No parameter named 'col1'"
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(?, ?, ?);\n" + "end;");
+            fail();
+            cs.setString(1, "aa2");
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");
+            cs.execute(); // mysql: "#42000"
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // none
+    }
+
+    @Test
+    public void testBeginInsertRepeatParameterName() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+        DatabaseMetaData dbmd = connection.getMetaData();
+        Assert.assertFalse(dbmd.supportsNamedParameters());
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(:col1, :col2, :col3);\n" + "end;");
+            fail();
+            cs.setString("col1", "aa1");// mysql: NullPointerException
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(:col1, :col2, :col3);\n" + "end;");
+            fail();
+            cs.setString(1, "aa2");// mysql: "Parameter index out of range (1 > number of parameters, which is 0)."
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // none
+    }
+
+    @Test
+    public void testBeginInsertSomeQuestionMark() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(?, :col2, ?);\n" + "end;");
+            fail();
+            cs.setString("col1", "aa1");// mysql: "No parameter named 'col1'"
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection.prepareCall("begin\n" + "  insert into " + tableName
+                                        + " values(?, :col2, ?);\n" + "end;");
+            fail();
+            cs.setString(1, "aa2");
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");// mysql: "Parameter index out of range (3 > number of parameters, which is 2)."
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // none
+    }
+
+    @Test
+    public void testInsertAllQuestionMark() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection.prepareCall("insert into " + tableName + " values(?, ?, ?)");
+            fail();
+            cs.setString("col1", "aa1"); // mysql: "No parameter named 'col1'"
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection.prepareCall("insert into " + tableName + " values(?, ?, ?)");
+            fail();
+            cs.setString(1, "aa2");
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // val is aa2, 222, bb2
+    }
+
+    @Test
+    public void testInsertRepeatParameterName() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection
+                .prepareCall("insert into " + tableName + " values(:col1, :col2, :col3)");
+            fail();
+            cs.setString("col1", "aa1");// mysql: NullPointerException
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection
+                .prepareCall("insert into " + tableName + " values(:col1, :col2, :col3)");
+            fail();
+            cs.setString(1, "aa2");// mysql: "Parameter index out of range (1 > number of parameters, which is 0)."
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // none
+    }
+
+    @Test
+    public void testInsertSomeQuestionMark() throws Exception {
+        Connection connection = setConnection("&useServerPrepStmts=true");
+
+        String tableName = "T_DS_TASK_INSTANCE";
+        createTable(tableName, "c1 varchar(30), c2 int, c3 varchar(30)");
+
+        CallableStatement cs;
+        try {
+            cs = connection.prepareCall("insert into " + tableName + " values(?, :col2, ?)");
+            fail();
+            cs.setString("col1", "aa1");// "No parameter named 'col1'"
+            cs.setInt("col2", 111);
+            cs.setString("col3", "bb1");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        try {
+            cs = connection.prepareCall("insert into " + tableName + " values(?, :col2, ?)");
+            fail();
+            cs.setString(1, "aa2");
+            cs.setInt(2, 222);
+            cs.setString(3, "bb2");
+            cs.execute();
+        } catch (Exception e) {
+            assertTrue(e
+                .getMessage()
+                .contains(
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}"));
+        }
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            assertEquals(rs.getString(1), "aa" + i);
+            assertEquals(rs.getInt("c2"), 111 * i);
+            assertEquals(rs.getString("c3"), "bb" + i);
+        }
+        assertEquals(i, 0);
+        // mysql:
+        // none
+    }
+
 }

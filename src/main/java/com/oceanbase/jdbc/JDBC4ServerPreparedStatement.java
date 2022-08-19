@@ -78,7 +78,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   protected ServerPrepareResult             serverPrepareResult = null;
   private   OceanBaseResultSetMetaData      resultSetMetaData;
   private   OceanBaseParameterMetaData      parameterMetaData;
-  private   boolean isObFunction = false;
+  protected boolean isObFunction;
   private   boolean sendTypesToServer = false;
   private   boolean mustExecuteOnMaster;
   private   int     iterationCount;

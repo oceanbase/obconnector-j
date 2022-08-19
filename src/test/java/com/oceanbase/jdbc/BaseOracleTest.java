@@ -207,7 +207,7 @@ public class BaseOracleTest {
     if (testSingleHost) {
       urlParser = UrlParser.parse(url);
       UrlParser urlParserPS =
-          UrlParser.parse(url);
+              UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true");
       UrlParser urlParserPSLob =
               UrlParser.parse(url + "&maxPoolSize=2&minPoolSize=1&useServerPrepStmts=true&supportLobLocator=true");
       UrlParser urlParserPSWithoutChecksum =

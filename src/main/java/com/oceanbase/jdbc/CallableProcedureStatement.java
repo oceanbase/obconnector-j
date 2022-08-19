@@ -70,13 +70,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     protected List<CallParameter>       params;
-    protected boolean                   isObFunction          = false;
-
     protected int[]                     outputParameterMapper = null;
-    //protected CallableParameterMetaData parameterMetadata;
     protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
     protected String                    arguments             = null;
+    private boolean                     firstMapName          = true;
 
     //protected CallableStatementParamInfo paramInfo;
 
@@ -99,7 +97,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                                                                                                   throws SQLException {
         super(isObFuction, connection, sql, resultSetScrollType, resultSetConcurrency,
             Statement.NO_GENERATED_KEYS, exceptionFactory);
-        this.isObFunction = isObFuction;
     }
 
     /**
@@ -119,17 +116,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         return clone;
     }
 
-    /** Set in/out parameters value. */
-    public void setParametersVariables() {
-        hasInOutParameters = false;
-        for (CallParameter param : params) {
-            if (param != null && param.isOutput() && param.isInput()) {
-                hasInOutParameters = true;
-                break;
-            }
-        }
-    }
-
     protected abstract SelectResultSet getOutputResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
@@ -145,8 +131,30 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
+        if (protocol.isOracleMode()) {
+            if (firstMapName) {
+                params.clear();
+                firstMapName = false;
+            }
+
+            for (int i = 1; i <= params.size(); i++) {
+                String name = params.get(i - 1).getName();
+                if (name != null && name.equalsIgnoreCase(parameterName)) {
+                    return i;
+                }
+            }
+
+            CallParameter param = new CallParameter();
+            param.setName(parameterName);
+            param.setIndex(params.size() + 1);
+
+            params.add(param);
+            return params.size();
+        }
+
         parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments,
             this.isObFunction);
+
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
             if (!this.protocol.isOracleMode()) {
@@ -156,6 +164,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                 return i;
             }
         }
+
         throw new SQLException("there is no parameter with the name " + parameterName);
     }
 
@@ -167,6 +176,22 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @throws SQLException exception
      */
     private int nameToOutputIndex(String parameterName) throws SQLException {
+        if (protocol.isOracleMode()) {
+            for (int i = 0; i < params.size(); i++) {
+                String name = params.get(i).getName();
+                if (name != null && name.equalsIgnoreCase(parameterName)) {
+                    if (outputParameterMapper[i] == -1) {
+                        // this is not an outputParameter
+                        throw new SQLException(
+                                "Parameter '"
+                                        + parameterName
+                                        + "' is not declared as output parameter with method registerOutParameter");
+                    }
+                    return outputParameterMapper[i];
+                }
+            }
+        }
+
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i + 1);
@@ -211,8 +236,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (parameterIndex < 1) {
                 throw new SQLException("Index " + parameterIndex + " must at minimum be 1");
             }
-            throw new SQLException("Index value '" + parameterIndex
-                                   + "' is incorrect. Maximum value is " + params.size());
+            throw new SQLException("Index " + parameterIndex + " must at maximum be "
+                                   + params.size());
         }
     }
 

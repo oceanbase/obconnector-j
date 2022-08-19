@@ -69,8 +69,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     private SelectResultSet outputResultSet = null;
 
-    private boolean         isObFunction    = false;
-
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
@@ -104,7 +102,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
 
         setParamsAccordingToSetArguments();
-        setParametersVariables();
     }
 
     public JDBC4ServerCallableStatement(boolean isObFunction, String query,
@@ -116,7 +113,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         super(isObFunction, connection, query, resultSetType, resultSetConcurrency,
             exceptionFactory);
         this.arguments = arguments;
-        this.isObFunction = isObFunction;
         this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
             procedureName, isObFunction);
         if (!protocol.supportStmtPrepareExecute()) {
@@ -124,22 +120,22 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
 
         setParamsAccordingToSetArguments();
-        setParametersVariables();
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
-        if(parameterCount == -1) {
-            if(arguments == null || arguments.equals("")) {
+        if (parameterCount == -1) {
+            if (arguments == null || arguments.equals("")) {
                 parameterCount = 0;
             } else {
                 List<ParsedCallParameters> paramList = Utils.argumentsSplit(arguments, ",", "'\"",
                         "'\"");
                 parameterCount = paramList.size();
             }
-            if(isObFunction) {
+            if (isObFunction) {
                 parameterCount ++;
             }
         }
+
         params = new ArrayList<>(parameterCount);
         for (int index = 0; index < parameterCount; index++) {
             params.add(new CallParameter());
@@ -216,6 +212,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder)
                                                                                     throws SQLException {
+        if (protocol.isOracleMode() && parameterIndex > parameterCount) {
+            throw new SQLException("invalid parameter index " + parameterIndex);
+        }
         params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
@@ -277,13 +276,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
 
-        boolean afterFirst = false;
         int index = originalSql.indexOf('?');
-        StringBuilder querySB = new StringBuilder();
         String sqlString = originalSql;
-        if (index == -1) {
-            querySB.append(originalSql);
-        } else {
+        if (index != -1) {
             for (int i = 0; i < size; i++) {
                 CallParameter inParamInfo = params.get(i);
                 if (inParamInfo.isOutput()) {
@@ -333,7 +328,12 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
      * @throws SQLException if set parameters is not right
      */
     private void validAllParameters() throws SQLException {
-
+        if (protocol.isOracleMode() && params.size() != parameterCount) {
+            throw new SQLException(
+                "The number of parameter names '" + params.size()
+                        + "' does not match the number of registered parameters in sql '"
+                        + parameterCount + "'.");
+        }
         setInputOutputParameterMap();
         // Set value for OUT parameters
         for (int index = 0; index < params.size(); index++) {
