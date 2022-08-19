@@ -235,6 +235,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     private int                      isolationLevel                      = 2;
     private static ReentrantLock     threadLock                          = new ReentrantLock();
     private static Thread            lbThread                            = null;
+    private boolean                  remarksReporting                    = false;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -2333,4 +2334,15 @@ public class OceanBaseConnection implements ConnectionImpl {
         protocol.changeUser(userName, newPassword);
 
     }
+
+    @Override
+    public void setRemarksReporting(boolean value) {
+        remarksReporting = value;
+    }
+
+    @Override
+    public boolean getRemarksReporting() {
+        return remarksReporting;
+    }
+
 }

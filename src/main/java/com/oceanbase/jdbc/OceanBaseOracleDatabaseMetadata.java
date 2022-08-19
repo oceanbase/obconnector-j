@@ -88,17 +88,18 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                                                                                + "       DECODE (t.data_type,                'NUMBER', DECODE (t.data_precision,                                  null, -127,                                  t.data_scale),                t.data_scale) AS decimal_digits,\n"
                                                                                + "       10 AS num_prec_radix,\n"
                                                                                + "       DECODE (t.nullable, 'N', 0, 1) AS nullable,\n"
-                                                                               + "       NULL AS remarks,\n"
+                                                                               + "       %s AS remarks,\n"
                                                                                + "       t.data_default AS column_def,\n"
                                                                                + "       0 AS sql_data_type,\n"
                                                                                + "       0 AS sql_datetime_sub,\n"
                                                                                + "       t.data_length AS char_octet_length,\n"
                                                                                + "       t.column_id AS ordinal_position,\n"
                                                                                + "       DECODE (t.nullable, 'N', 'NO', 'YES') AS is_nullable\n"
-                                                                               + "FROM all_tab_columns t\n"
+                                                                               + "FROM all_tab_columns t %s\n"
                                                                                + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
                                                                                + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
                                                                                + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
+                                                                               + "  %s"
                                                                                + "  AND t.owner != '__recyclebin' ORDER BY table_schem, table_name, ordinal_position";
     private final String              OB_ORA_GET_FUNCTION_CATALOG_NULL       = "SELECT NULL         AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  UNION ALL SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND data_level = 0   AND package_name IS NOT NULL  AND owner LIKE ?   AND object_name LIKE ?  ORDER BY function_schem, function_name";
     private final String              OB_ORA_GET_FUNCTION_WITH_CATALOG       = "SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,decode (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1) AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  ";
@@ -287,9 +288,11 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
                                 String columnNamePattern) throws SQLException {
         Statement stmt = this.connection.getMetadataSafeStatement();
         String querySql = String
-            .format(OB_ORA_GET_COLUMNS,
+            .format(OB_ORA_GET_COLUMNS,connection.getRemarksReporting() ?  "c.comments ":"NULL ",connection.getRemarksReporting() ? ",all_col_comments c " : "",
                 schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
-                    : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern);
+                    : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern,connection.getRemarksReporting() ?  "  AND t.owner = c.owner (+)\n" +
+                            "  AND t.table_name = c.table_name (+)\n" +
+                            "  AND t.column_name = c.column_name (+)":"");
         stmt.closeOnCompletion();
         ResultSet results = stmt.executeQuery(querySql);
 //        int count = results.getFetchSize();
@@ -541,7 +544,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public boolean storesLowerCaseIdentifiers() throws SQLException {
         //there return true in 1.X,but oracle-jdbc return false
-        return true;
+        return false;
     }
 
     public boolean storesMixedCaseIdentifiers() throws SQLException {

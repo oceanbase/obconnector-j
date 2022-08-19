@@ -2794,4 +2794,28 @@ public class OracleBugfix extends BaseOracleTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testRemarksAndCaseIdentifiers() {
+        try {
+            Connection conn = sharedConnection;
+            DatabaseMetaData metaData = conn.getMetaData();
+            Assert.assertEquals(true, metaData.storesUpperCaseIdentifiers());
+            Assert.assertEquals(false, metaData.storesLowerCaseIdentifiers());
+            Assert.assertEquals(false, metaData.storesMixedCaseIdentifiers());
+            try {
+                conn.createStatement().execute("drop table testcolumns");
+            } catch (SQLException e) {
+            }
+            conn.createStatement().execute("create table testcolumns (c1 int)");
+            conn.createStatement().execute("COMMENT on  column TESTCOLUMNS.C1 is 'column comment'");
+            ((OceanBaseConnection) conn).setRemarksReporting(true);
+            ResultSet rs = metaData.getColumns(null, null, "testcolumns".toUpperCase(), "%");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("column comment", rs.getString("REMARKS"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

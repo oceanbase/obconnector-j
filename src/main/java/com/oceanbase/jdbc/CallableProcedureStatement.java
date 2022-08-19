@@ -183,9 +183,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                     if (outputParameterMapper[i] == -1) {
                         // this is not an outputParameter
                         throw new SQLException(
-                                "Parameter '"
-                                        + parameterName
-                                        + "' is not declared as output parameter with method registerOutParameter");
+                            "Parameter '"
+                                    + parameterName
+                                    + "' is not declared as output parameter with method registerOutParameter");
                     }
                     return outputParameterMapper[i];
                 }
