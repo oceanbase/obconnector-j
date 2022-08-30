@@ -51,7 +51,10 @@
 package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.TimeZone;
@@ -581,11 +584,55 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 }
             } else {
                 for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80; charsOffset++) {
-                    if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0
-                        || currChar == DBL_QUOTE) {
-                        buf[pos++] = BACKSLASH;
+                    switch (currChar) {
+                        case 0:
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = '0';
+                            break;
+                        case '\n':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = 'n';
+                            break;
+                        case '\r':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = 'r';
+                            break;
+                        case '\\':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = BACKSLASH;
+                            break;
+                        case '\'':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = '\'';
+                            break;
+                        case '"':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = '"';
+                            break;
+                        case '\032':
+                            buf[pos++] = BACKSLASH;
+                            buf[pos++] = 'Z';
+                            break;
+                        case '\u00a5':
+                        case '\u20a9':
+                            CharsetEncoder charsetEncoder = this.charset.newEncoder();
+                            if (charsetEncoder != null) {
+                                CharBuffer charBuffer = CharBuffer.allocate(1);
+                                ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+                                charBuffer.put(currChar);
+                                charBuffer.position(0);
+                                charsetEncoder.encode(charBuffer, byteBuffer, true);
+                                if (byteBuffer.get(0) == '\\') {
+                                    buf[pos++] = BACKSLASH;
+                                }
+                            }
+                            buf[pos++] = (byte) currChar;
+                            break;
+                        default:
+                            buf[pos++] = (byte) currChar;
+                            break;
                     }
-                    buf[pos++] = (byte) currChar;
+
                 }
             }
         } else {

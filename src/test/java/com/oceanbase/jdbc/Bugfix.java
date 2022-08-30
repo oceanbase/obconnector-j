@@ -1688,12 +1688,12 @@ public class Bugfix extends BaseTest {
     @Test
     public void testConnClosedStmt() {
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection();
             Statement stmt = conn.createStatement();
             conn.close();
             stmt.getResultSet();
             fail("Should've caught an exception here");
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -1701,7 +1701,7 @@ public class Bugfix extends BaseTest {
     @Test
     public void testUpdateCounts1() {
         try {
-            Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=true");
+            Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=false");
             Statement stmt = conn.createStatement();
 
             stmt.execute("drop table if exists test1");

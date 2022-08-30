@@ -51,7 +51,10 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -62,6 +65,87 @@ public class StringParameter implements Cloneable, ParameterHolder {
     private final boolean noBackslashEscapes;
     private final String  characterEncoding;
     private final Charset charset;
+
+    private boolean needEscape(String str, int length) {
+        boolean needed = false;
+        for (int i = 0; i < length; i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case 0:
+                case '\n':
+                case '\r':
+                case '\\':
+                case '\'':
+                case '"':
+                case '\032':
+                    needed = true;
+                    break;
+            }
+            if (needed) {
+                break;
+            }
+        }
+        return needed;
+    }
+
+    private String escapedString(String str, int length) {
+        StringBuilder stringBuilder = new StringBuilder((int) (str.length() * 1.1));
+        stringBuilder.append('\'');
+        for (int i = 0; i < length; i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case 0:
+                    stringBuilder.append('\\');
+                    stringBuilder.append('0');
+                    break;
+                case '\n':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('n');
+                    break;
+                case '\r':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('r');
+                    break;
+                case '\\':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('\\');
+                    break;
+                case '\'':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('\'');
+                    break;
+                case '"':
+                    // not support useAnsiQuotes now
+                    stringBuilder.append('"');
+                    break;
+
+                case '\032':
+                    stringBuilder.append('\\');
+                    stringBuilder.append('Z');
+                    break;
+                case '\u00a5':
+                case '\u20a9':
+                    CharsetEncoder charsetEncoder = Charset.forName(characterEncoding).newEncoder();
+                    if (charsetEncoder != null) {
+                        CharBuffer charBuffer = CharBuffer.allocate(1);
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+                        charBuffer.put(c);
+                        charBuffer.position(0);
+                        charsetEncoder.encode(charBuffer, byteBuffer, true);
+                        if (byteBuffer.get(0) == '\\') {
+                            stringBuilder.append('\\');
+                        }
+                    }
+                    stringBuilder.append(c);
+                    break;
+                default:
+                    stringBuilder.append(c);
+            }
+        }
+
+        stringBuilder.append('\'');
+        return stringBuilder.toString();
+    }
 
     public StringParameter(String str, boolean noBackslashEscapes, String characterEncoding) {
         this.stringValue = str;
@@ -101,10 +185,14 @@ public class StringParameter implements Cloneable, ParameterHolder {
 
     @Override
     public String toString() {
-        if (stringValue.length() < 1024) {
-            return "'" + stringValue + "'";
+        String tmp = stringValue;
+        if (needEscape(stringValue, stringValue.length())) {
+            tmp = escapedString(stringValue, stringValue.length());
+        }
+        if (tmp.length() < 1024) {
+            return "'" + tmp + "'";
         } else {
-            return "'" + stringValue.substring(0, 1024) + "...'";
+            return "'" + tmp.substring(0, 1024) + "...'";
         }
     }
 

@@ -50,10 +50,7 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Arrays;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
@@ -210,7 +207,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         }
     }
 
-    @Test
+    @Ignore
     public void testStringBatch() {
         try {
             Connection conn = setConnection("&rewriteBatchedStatements=true&maxBatchTotalParamsNum=5000");
