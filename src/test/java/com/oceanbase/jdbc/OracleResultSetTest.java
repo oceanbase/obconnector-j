@@ -57,8 +57,6 @@ import java.sql.*;
 
 import org.junit.*;
 
-import com.oceanbase.jdbc.internal.util.constant.Version;
-
 public class OracleResultSetTest extends BaseOracleTest {
 
     /**
