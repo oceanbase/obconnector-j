@@ -543,7 +543,7 @@ public class OracleResultSetTest extends BaseOracleTest {
     try (Statement statement =
         sharedConnection.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-      statement.setFetchSize(10);
+        statement.setFetchSize(10);
       try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
         assertFalse(rs.absolute(52));
         assertFalse(rs.absolute(-52));
@@ -554,7 +554,7 @@ public class OracleResultSetTest extends BaseOracleTest {
         assertTrue(rs.absolute(-11));
         assertEquals("row40", rs.getString(2).trim());
 
-        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
+//        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
             try {
                 rs.absolute(0);
                 fail();
@@ -562,10 +562,10 @@ public class OracleResultSetTest extends BaseOracleTest {
                 assertEquals("Invalid parameter: absolute(0)", sqle.getMessage());
             }
             assertFalse(rs.isBeforeFirst());
-        } else {
-          assertTrue(rs.absolute(0));
-          assertTrue(rs.isBeforeFirst());
-        }
+//        } else {
+//          assertTrue(rs.absolute(0));
+//          assertTrue(rs.isBeforeFirst());
+//        }
 
         assertFalse(rs.absolute(51));
         assertTrue(rs.isAfterLast());

@@ -542,7 +542,7 @@ public class ResultSetTest extends BaseTest {
     try (Statement statement =
         sharedConnection.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-      statement.setFetchSize(10);
+        statement.setFetchSize(10);
       try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
         assertFalse(rs.absolute(52));
         assertFalse(rs.absolute(-52));
@@ -553,11 +553,11 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.absolute(-11));
         assertEquals("row40", rs.getString(2));
 
-        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
+//        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
             assertFalse(rs.absolute(0));
-        } else {
-            assertTrue(rs.absolute(0));
-        }
+//        } else {
+//            assertTrue(rs.absolute(0));
+//        }
         assertTrue(rs.isBeforeFirst());
 
         assertFalse(rs.absolute(51));

@@ -874,7 +874,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         // val is aa2, 222, bb2
     }
 
-    @Test
+    @Ignore
     public void functionCall() throws SQLException {
         Connection conn = sharedPSConnection;
         createFunction("testFunctionCall",
@@ -906,7 +906,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         assertEquals(7f, cs.getInt(1), .001);
     }
 
-    @Test
+    @Ignore
     public void functionCallByName() throws SQLException {
         Connection conn = sharedPSConnection;
         createFunction("testFunctionCall",
