@@ -1877,4 +1877,13 @@ public class Bugfix extends BaseTest {
         }
     }
 
+    @Test
+    public void testSetObjectTypesBIT() throws Exception {
+        PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+        ps.setObject(1, "false", Types.BIT);
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+        assertFalse(rs.getBoolean(1));
+    }
+
 }

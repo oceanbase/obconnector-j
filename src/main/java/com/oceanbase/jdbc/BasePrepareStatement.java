@@ -1237,6 +1237,15 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             try {
                 switch (targetSqlType) {
                     case Types.BIT:
+                        int intVal;
+                        if ("1".equals(str) || "0".equals(str)) {
+                            intVal = Integer.valueOf(str);
+                        } else {
+                            intVal = "true".equalsIgnoreCase(str) ? Integer.valueOf(1) : Integer
+                                .valueOf(0);
+                        }
+                        setInt(parameterIndex, intVal);
+                        break;
                     case Types.BOOLEAN:
                         setBoolean(parameterIndex, "true".equalsIgnoreCase(str) || !"0".equals(str));
                         break;
