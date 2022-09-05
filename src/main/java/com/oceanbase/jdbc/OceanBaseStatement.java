@@ -397,7 +397,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
        if(!options.continueBatchOnError) {
 
       int end = 0;
-      if(results.getCmdInformation().getRewrite() && protocol.isOracleMode()) {
+      if(results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries) ) {
         end = ret.length - 1;
       } else {
           for (int i = 0; i < ret.length; i++) {
