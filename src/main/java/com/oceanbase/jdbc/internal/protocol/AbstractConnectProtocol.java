@@ -1217,15 +1217,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             writer.startPacket(0);
             writer.write(Packet.COM_QUERY);
-            writer.write("select count(*) from V$TIMEZONE_NAMES;");
+            writer
+                .write("select * from SYS.ALL_VIRTUAL_TENANT_TIME_ZONE_NAME_REAL_AGENT where rownum < 2;");
             writer.flush();
             Results results = new Results();
             getResult(results);
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
-            resultSet.next();
-            int count = resultSet.getInt(1);
-            return count == 0 ? false : true;
+            return resultSet.next() ? true : false;
         } catch (SQLException e) {
             return false;
         }
