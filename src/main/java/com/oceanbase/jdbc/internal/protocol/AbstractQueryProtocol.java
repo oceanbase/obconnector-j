@@ -2299,17 +2299,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       SelectResultSet selectResultSet;
-      // boolean "callableResult" is always false
-        /*if (results.getResultSetConcurrency() == ResultSet.CONCUR_UPDATABLE) {
-          results.removeFetchSize();  // remove fetch size to permit updating results without creating new connection
-          selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated, isPsOutParamter);
-        } else */
-      if (results.isToCursorFetch()) {
+      if (results.isToCursorFetch() || (results.isToPrepareExecute() && !results.isInternalResult() && !callableResult)) {
         // cursor result set
         if (!this.isOracleMode()
             || results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
-            || (results.getResultSetScrollType() == ResultSet.TYPE_SCROLL_INSENSITIVE
-            && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+            || (results.getResultSetScrollType() == ResultSet.TYPE_SCROLL_INSENSITIVE && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
           selectResultSet = new CursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);
         } else {
           selectResultSet = new SensitiveCursorResultSet(ci, results, this, callableResult, eofDeprecated, isPsOutParamter);

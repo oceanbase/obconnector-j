@@ -1145,7 +1145,7 @@ public class Utils {
   public static int getStatementType(String queryString) {
     char[] query = queryString.toCharArray();
     int index = 0;
-    while (index < query.length && (query[index] == ' ' || query[index] == '\n' || query[index] == '\t')) {
+    while (index < query.length && (query[index] == ' ' || query[index] == '\r'  || query[index] == '\n' || query[index] == '\t')) {
       index++;
     }
 

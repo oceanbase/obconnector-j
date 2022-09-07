@@ -106,6 +106,7 @@ import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
+import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.tls.TlsSocketPlugin;
@@ -127,8 +128,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                                           + "@@tx_isolation AS tx_isolation,"
                                                                           + "@@session.tx_read_only AS tx_read_only "
                                                                           + "from dual");
-    private static final String           OB_VERSION_ORACLE_MODE       = ("select @@version_comment, @@version from dual where rownum <= 1");
-    private static final String           OB_VERSION_MYSQL_MODE        = ("select @@version_comment, @@version limit 1");
+    private static final String           OB_VERSION_ORACLE_MODE       = ("select @@version_comment, @@version, ob_version() from dual where rownum <= 1");
+    private static final String           OB_VERSION_MYSQL_MODE        = ("select @@version_comment, @@version, ob_version() limit 1");
     private static final String           IS_MASTER_QUERY              = "select @@innodb_read_only";
     protected static final String         CHECK_GALERA_STATE_QUERY     = "show status like 'wsrep_local_state'";
     private static final String           ALTER_SESSION_TIMEZONE_QUERY = "ALTER SESSION SET TIME_ZONE='";
@@ -171,8 +172,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private boolean                       supportFetchWithOffset;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
-    private boolean                       isOracleMode;                                                                                      /* is server in oracle mode */
-    private boolean                       importedTimeZoneTables;                                                                            /* is server time zone impoted */
+    private boolean                       isOracleMode; // is server in oracle mode
+    private boolean                       importedTimeZoneTables; // is server time zone impoted
     public boolean                        autoCommit;
     public int                            transactionIsolationLevel    = 0;
     protected byte[]                      seed;
@@ -1245,7 +1246,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
             resultSet.next();
-            String ret = resultSet.getString(2);// @@version
+            String ret = resultSet.getString(3);// ob_version()
             resultSet.close();
             return ret;
         } catch (SQLException e) {
@@ -1575,11 +1576,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public void setObServerVersion(String version) {
         this.obServerVersion = version;
         if (isOracleMode && options.useServerPrepStmts) {
-            if (options.useOraclePrepareExecute
-                && obServerVersion.compareToIgnoreCase("2.2.76") >= 0) {
+            if (options.useOraclePrepareExecute && Version.compare(obServerVersion, "2.2.76") >= 0) {
                 supportStmtPrepareExecute = true;
             }
-            if (options.useCursorOffset && obServerVersion.compareToIgnoreCase("2.2.5") >= 0) {
+            if (options.useCursorOffset && Version.compare(obServerVersion, "2.2.5") >= 0) {
                 supportFetchWithOffset = true;
             }
         }

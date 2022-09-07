@@ -72,12 +72,14 @@ public class Results {
 
     private int                    resultSetScrollType;
     private int                    resultSetConcurrency;
-    private boolean                toCursorFetch;
     private int                    fetchSize;
     private SelectResultSet        resultSet;
     private SelectResultSet        callableResultSet;
     private Deque<SelectResultSet> executionResults;
 
+    private boolean                toCursorFetch;       // cursor exists
+    private boolean                toPrepareExecute;    // use ComStmtPrepareExecute
+    private boolean                internalResult;      // returning into, array binding error, pl out parameter
     private boolean                batch;
     private int                    expectedSize;
 
@@ -227,6 +229,22 @@ public class Results {
 
     public void setToCursorFetch(boolean val) {
         this.toCursorFetch = val;
+    }
+
+    public boolean isToPrepareExecute() {
+        return this.toPrepareExecute;
+    }
+
+    public void setToPrepareExecute(boolean val) {
+        this.toPrepareExecute = val;
+    }
+
+    public boolean isInternalResult() {
+        return internalResult;
+    }
+
+    public void setInternalResult(boolean internalResult) {
+        this.internalResult = internalResult;
     }
 
     public CmdInformation getCmdInformation() {

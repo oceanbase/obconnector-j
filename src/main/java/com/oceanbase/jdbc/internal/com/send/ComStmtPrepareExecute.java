@@ -62,6 +62,12 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class ComStmtPrepareExecute {
+
+    /***** Extend Flag *****/
+    private static int RETURNING_RESULT_SET = 0x0001;
+    private static int ARRAY_BINDING_FIELD  = 0x0002;
+    private static int PL_OUT_PARAMETER     = 0x0004;
+
     /**
      * Send a prepare statement binary stream.
      *
@@ -188,6 +194,7 @@ public class ComStmtPrepareExecute {
                 final short warningCount = buffer.readShort();
                 final int extendFlag = buffer.readInt();
                 final byte hasResultSet = buffer.readByte();
+
                 ColumnDefinition[] params = new ColumnDefinition[numParams];
                 if (numParams > 0) {
                     for (int i = 0; i < numParams; i++) {
@@ -201,7 +208,17 @@ public class ComStmtPrepareExecute {
 
                 ColumnDefinition[] columns = new ColumnDefinition[numColumns];
                 if (hasResultSet == 1) {
+                    if ((extendFlag & RETURNING_RESULT_SET) != 0
+                        || (extendFlag & ARRAY_BINDING_FIELD) != 0
+                        || (extendFlag & PL_OUT_PARAMETER) != 0) {
+                        results.setInternalResult(true);
+                    }
+                    results.setToPrepareExecute(true);
+
                     protocol.readResultSet(columns, results);
+
+                    results.setToPrepareExecute(false);
+                    results.setInternalResult(false);
                 }
 
                 buffer = reader.getPacket(false);
@@ -241,15 +258,16 @@ public class ComStmtPrepareExecute {
         }
     }
 
-    public static void writeCmdArrayBinding(final int statementId,
-                                            final List<ParameterHolder[]> queryParameters,
-                                            final int queryParamtersSize, final int parameterCount,
-                                            ColumnType[] parameterTypeHeader,
-                                            final PacketOutputStream pos, final byte cursorFlag,
-                                            Protocol protocol, Results results,
-                                            ServerPrepareResult serverPrepareResult)
-                                                                                    throws IOException,
-                                                                                    SQLException {
+    private static void writeCmdArrayBinding(final int statementId,
+                                             final List<ParameterHolder[]> queryParameters,
+                                             final int queryParamtersSize,
+                                             final int parameterCount,
+                                             ColumnType[] parameterTypeHeader,
+                                             final PacketOutputStream pos, final byte cursorFlag,
+                                             Protocol protocol, Results results,
+                                             ServerPrepareResult serverPrepareResult)
+                                                                                     throws IOException,
+                                                                                     SQLException {
         pos.write(Packet.COM_STMT_PREPARE_EXECUTE);
         if (serverPrepareResult == null) {
             pos.writeInt(results.getStatementId());

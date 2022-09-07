@@ -267,4 +267,38 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         assertEquals(6, cs.getInt("a3"));
 
     }
+
+    @Test
+    public void fix44546414() throws SQLException {
+        Connection con = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+
+        try {
+            con.createStatement().execute("drop table t0");
+        } catch (Exception e) {
+
+        }
+        con.createStatement().execute("create table t0(c0 int)");
+        con.createStatement().execute("insert into t0 values(100)");
+        con.createStatement().execute("insert into t0 values(200)");
+
+        String sql = "(select * from t0)union all(select * from t0)";
+        //  String sql="select * from t0;";
+        PreparedStatement ps = con.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count % 2 == 1) {
+                assertEquals(100, rs.getInt(1));
+            } else {
+                assertEquals(200, rs.getInt(1));
+            }
+        }
+        assertEquals(4, count);
+
+        ps.close();
+        con.close();
+    }
+
 }
