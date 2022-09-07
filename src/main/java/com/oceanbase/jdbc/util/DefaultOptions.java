@@ -942,6 +942,12 @@ public enum DefaultOptions {
           Boolean.FALSE,
           "2.2.10.2",
                   "Force to rewrite the sql as multiple INSERT queries which are separated by semi-colons",
+                  false),
+    USE_LOCAL_XID (
+          "useLocalXID",
+          Boolean.TRUE,
+          "2.2.10.4",
+                  "Construct XID entity locally",
                   false);
   ;
 

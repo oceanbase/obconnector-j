@@ -55,7 +55,6 @@ public class INTERVALYM extends Datum {
     private static int MAXMONTH            = 12;
 
     private static int INTERVALYM_BYTE_NUM = 7;
-    static final long  serialVersionUID    = 8393284561907159296L;
 
     public INTERVALYM() {
         super(toBytes("0-0"));

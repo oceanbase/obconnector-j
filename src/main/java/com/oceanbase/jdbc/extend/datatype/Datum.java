@@ -55,8 +55,7 @@ import com.oceanbase.jdbc.OceanBaseConnection;
 
 public abstract class Datum implements Serializable {
 
-    protected byte[]  data;                                   // FIXME should use buf/pos/length, but not data
-    static final long serialVersionUID = 4645732484621936751L;
+    protected byte[] data; // FIXME should use buf/pos/length, but not data
 
     public Datum() {
     }

@@ -53,11 +53,9 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 public class TIMESTAMP extends Datum implements Serializable {
-    static final int[] daysInMonth      = new int[] { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30,
-            31                         };
-    static final long  serialVersionUID = -7964732752952728545L;
+    static final int[] daysInMonth    = new int[] { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-    public static int  SIZE_TIMESTAMP   = 12;
+    public static int  SIZE_TIMESTAMP = 12;
 
     public TIMESTAMP() {
         super(initTimestamp());

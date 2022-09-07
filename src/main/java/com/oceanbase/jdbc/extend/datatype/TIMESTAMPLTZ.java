@@ -63,7 +63,6 @@ public class TIMESTAMPLTZ extends Datum {
     private static int      MAXYEAR                  = 9999;
     private static boolean  cached                   = false;
     private static Calendar dbtz;
-    static final long       serialVersionUID         = 2045880772054757133L;
 
     public TIMESTAMPLTZ() {
         super(initTimestampltz());

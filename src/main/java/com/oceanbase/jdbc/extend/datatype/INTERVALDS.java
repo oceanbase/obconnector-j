@@ -60,8 +60,6 @@ public class INTERVALDS extends Datum {
     private static int       INTERVALDSOFFSET    = 60;
     private static int       INTERVALDAYOFFSET   = -2147483648;
 
-    static final long        serialVersionUID    = 7164731704878764759L;
-
     public INTERVALDS() {
         super(toBytes("0 0:0:0.0"));
     }

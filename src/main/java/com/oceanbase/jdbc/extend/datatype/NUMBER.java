@@ -49,7 +49,6 @@ import java.sql.SQLException;
 
 public class NUMBER extends Datum {
     private BigDecimal bigDecimal;
-    static final long  serialVersionUID = -1656085588913430059L;
 
     public NUMBER() {
     }

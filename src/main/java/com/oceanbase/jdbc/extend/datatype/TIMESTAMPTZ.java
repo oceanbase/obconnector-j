@@ -50,7 +50,6 @@ import java.util.TimeZone;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class TIMESTAMPTZ extends Datum {
-    static final long serialVersionUID = 6708361144588335769L;
     public static int HOUR_MILLISECOND;
     public static int MINUTE_MILLISECOND;
 

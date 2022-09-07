@@ -53,6 +53,8 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
+import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.oceanbase.jdbc.internal.util.Utils;
 
 public class OceanBaseXaResource implements XAResource {
@@ -471,8 +473,27 @@ public class OceanBaseXaResource implements XAResource {
             xidObj[i++] = xid.getFormatId();
             xidObj[i++] = xid.getGlobalTransactionId();
             xidObj[i++] = xid.getBranchQualifier();
+            ComplexDataType complexType = null;
 
-            return (ObStruct) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
+            if (this.connection.getProtocol().getOptions().useLocalXID) {
+                String childTypeName = "DBMS_XA_XID";
+                String ownerName = "SYS";
+                int type = 3;
+                complexType = new ComplexDataType(childTypeName, ownerName, type);
+                complexType.setValid(true);
+                complexType.setAttrCount(3);
+                complexType.setAttrType(0, new ComplexDataType("NUMBER", "", 0));
+                complexType.incInitAttrCount();
+                complexType.setAttrType(1, new ComplexDataType("RAW", "", 6));
+                complexType.incInitAttrCount();
+                complexType.setAttrType(2, new ComplexDataType("RAW", "", 6));
+                complexType.incInitAttrCount();
+                ObStruct struct = new StructImpl(complexType);
+                struct.setAttrData(xidObj);
+                return struct;
+            } else {
+                return (ObStruct) mySQLConnection.createStruct("DBMS_XA_XID", xidObj);
+            }
         } catch (SQLException sqlEx) {
             throw mapXaException2(sqlEx);
         }
