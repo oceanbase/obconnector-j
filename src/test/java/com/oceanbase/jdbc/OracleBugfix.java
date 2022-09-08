@@ -2810,4 +2810,33 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void fix44512883() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            try {
+                conn.createStatement().execute("drop table t0");
+            } catch (Exception e) {
+            }
+            conn.createStatement().execute("create table t0 (c0 varchar2(10))");
+            conn.createStatement().execute("insert into t0 values('+-*-')");
+            for (int i = 0; i < 60; i++) {
+                System.out.println("\nindex:" + i);
+                Statement s = conn.createStatement();
+                try {
+                    s.executeQuery("SELECT sum(T0.C0) from t0");
+                } catch (SQLException e) {
+                    System.out.println(e.getMessage());
+                } finally {
+                    System.out.println("s.close()");
+                    s.close();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

@@ -147,6 +147,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected boolean   addRowid;
   protected int       selectEndPos = -1;
   protected int       whereEndPos = -1;
+  PreparedStatement   cursorFetchPstmt = null;
 
     /**
    * Creates a new Statement.
@@ -726,8 +727,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if something went wrong
    */
   public ResultSet executeQuery(String sql) throws SQLException {
+    // reset cursorFetchPstmt everytime
+    cursorFetchPstmt = null;
     if (isCursorResultSet()) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
+      cursorFetchPstmt = pstmt;
       pstmt.setFetchSize(this.fetchSize);
       ResultSet rs = pstmt.executeQuery();
       this.results =((OceanBaseStatement)pstmt).results;
@@ -915,6 +919,10 @@ public class OceanBaseStatement implements Statement, Cloneable {
         }
 
         results.close();
+      }
+      if(results == null && cursorFetchPstmt != null) {
+          cursorFetchPstmt.close();
+          cursorFetchPstmt = null;
       }
 
       if (connection == null
