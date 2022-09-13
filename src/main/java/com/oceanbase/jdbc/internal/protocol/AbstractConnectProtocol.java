@@ -172,8 +172,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private boolean                       supportFetchWithOffset;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
-    private boolean                       isOracleMode; // is server in oracle mode
-    private boolean                       importedTimeZoneTables; // is server time zone impoted
+    private boolean                       isOracleMode;                                                                                                    // is server in oracle mode
+    private boolean                       importedTimeZoneTables;                                                                                          // is server time zone impoted
     public boolean                        autoCommit;
     public int                            transactionIsolationLevel    = 0;
     protected byte[]                      seed;
