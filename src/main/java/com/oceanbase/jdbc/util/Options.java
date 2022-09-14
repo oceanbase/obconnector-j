@@ -175,7 +175,6 @@ public class Options implements Cloneable {
     // OceanBase extended options
     public boolean supportLobLocator = true;
     public boolean useObChecksum = true;
-    public boolean useOceanBaseProtocolV20 = true;
     public boolean useFormatExceptionMessage = false;
     public boolean allowSendParamTypes = false;
     public int complexDataCacheSize = 50;
@@ -205,6 +204,7 @@ public class Options implements Cloneable {
     public boolean sendConnectionAttributes   = true;
     public boolean rewriteInsertByMultiQueries = false;
     public boolean useLocalXID = true;
+    public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
 
     @Override
@@ -526,9 +526,6 @@ public class Options implements Cloneable {
         if (useObChecksum != opt.useObChecksum) {
             return false;
         }
-        if (useOceanBaseProtocolV20 != opt.useOceanBaseProtocolV20) {
-            return false;
-        }
         if (useFormatExceptionMessage != opt.useFormatExceptionMessage) {
             return false;
         }
@@ -617,6 +614,9 @@ public class Options implements Cloneable {
             return false;
         }
         if (useLocalXID != opt.useLocalXID) {
+            return false;
+        }
+        if (useOceanBaseProtocolV20 != opt.useOceanBaseProtocolV20) {
             return false;
         }
         if (enableFullLinkTrace != opt.enableFullLinkTrace) {
@@ -725,7 +725,6 @@ public class Options implements Cloneable {
         // Add Oceanbase extended options
         result = 31 * result + (supportLobLocator ? 1 : 0);
         result = 31 * result + (useObChecksum ? 1 : 0);
-        result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (useFormatExceptionMessage ? 1 : 0);
         result = 31 * result + (allowSendParamTypes ? 1 : 0);
         result = 31 * result + complexDataCacheSize;
@@ -756,6 +755,7 @@ public class Options implements Cloneable {
         result = 31 * result + (sendConnectionAttributes ? 1 : 0);
         result = 31 * result + (rewriteInsertByMultiQueries ? 1 : 0);
         result = 31 * result + (useLocalXID ? 1 : 0);
+        result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
         return result;
     }

@@ -730,13 +730,6 @@ public enum DefaultOptions {
           "A connection option for protocol v20",
           false
   ),
-  USE_OCEANBASE_PROTOCOLV20(
-          "useOceanBaseProtocolV20",
-          Boolean.TRUE,
-          "2.0.1",
-          "Use v20 protocol to transmit data",
-          false
-  ),
   ALLOW_ALWAYS_SEND_PARAM_TYPES(
           "allowSendParamTypes",
           Boolean.FALSE,
@@ -842,15 +835,13 @@ public enum DefaultOptions {
           Boolean.FALSE,
           "2.2.6",
           "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
-          false
-  ),
+          false),
   AUTO_DESERIALIZE(
           "autoDeserialize",
           Boolean.FALSE,
           "2.2.7",
                   "NA",
-                  false
-  ),
+                  false),
   MAX_BATCH_TOTOAL_PARAMS_NUM(
           "maxBatchTotalParamsNum",
                   30000,
@@ -863,15 +854,13 @@ public enum DefaultOptions {
           Boolean.FALSE,
           "2.2.8",
           "If ps is abnormal, it will be degraded to the text protocol, otherwise it throws exception",
-          true
-  ),
+          true),
   ENABLE_QUERY_TIMEOUT(
           "enableQueryTimeouts",
           Boolean.TRUE,
           "2.2.8",
                   "When enabled, query timeouts set via Statement.setQueryTimeout() use a shared java.util.Timer instance for scheduling. Even if the timeout doesn't expire before the query is processed, there will be memory used by the TimerTask for the given timeout which won't be reclaimed until the time the timeout would have expired if it hadn't been cancelled by the driver. High-load environments might want to consider disabling this functionality.",
-                  true
-  ),
+                  true),
   USE_CURSOR_OFFSET(
           "useCursorOffset",
           Boolean.FALSE,
@@ -884,15 +873,13 @@ public enum DefaultOptions {
           0,
           "2.2.9",
           "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
-          false
-  ),
+          false),
   TNSNAMES_PATH(
           "tnsnamesPath",
           (String) null,
           "NA",
           "NA",
-          false
-  ),
+          false),
   TNSNAMES_DETECTION_PERIOD(
           "tnsnamesDetectionPeriod",
           10,
@@ -905,8 +892,7 @@ public enum DefaultOptions {
           (String) "random",
           "NA",
           "NA",
-          false
-  ),
+          false),
   SERVER_AFFINITY_ORDER (
           "serverAffinityOrder",
           (String) null,
@@ -949,11 +935,17 @@ public enum DefaultOptions {
           "2.2.10.4",
                   "Construct XID entity locally",
                   false),
+    USE_OCEANBASE_PROTOCOLV20(
+            "useOceanBaseProtocolV20",
+            Boolean.TRUE,
+            "2.4.0",
+            "Use v20 protocol to transmit data",
+            false),
     ENABLE_FULL_LINK_TRACE(
             "enableFullLinkTrace",
             Boolean.FALSE,
-            "2.3.0",
-            "Used with OceanBase v2.0 protocol",
+            "2.4.0",
+            "Based on OceanBase v2.0 protocol",
             false
     );
 
@@ -993,6 +985,7 @@ public enum DefaultOptions {
     minValue = null;
     maxValue = null;
   }
+
   DefaultOptions(
           final String optionName,
           final int defaultValue,
@@ -1247,11 +1240,6 @@ public enum DefaultOptions {
       if (options.socketTimeout == null) {
         options.socketTimeout = ((Integer[]) SOCKET_TIMEOUT.defaultValue)[haMode.ordinal()];
       }
-      // cursor functionality is available only for server-side prepared statements
-      if (options.useCursorFetch) {
-        options.useServerPrepStmts = true;
-      }
-
     } catch (NoSuchFieldException | IllegalAccessException n) {
       n.printStackTrace();
     } catch (SecurityException s) {
@@ -1269,10 +1257,18 @@ public enum DefaultOptions {
    * @param credentialPlugin credential plugin
    */
   public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
+    if (options.enableFullLinkTrace) {
+      options.useOceanBaseProtocolV20 = true;
+    }
 
-    if(options.usePieceData) {
+    if (options.usePieceData) {
       options.useOraclePrepareExecute = true;
       options.useCursorFetch = true;
+    }
+
+    // cursor functionality is available only for server-side prepared statements
+    if (options.useCursorFetch) {
+      options.useServerPrepStmts = true;
     }
 
     // pipe cannot use read and write socket simultaneously
@@ -1283,10 +1279,7 @@ public enum DefaultOptions {
 
     // if min pool size default to maximum pool size if not set
     if (options.pool) {
-      options.minPoolSize =
-          options.minPoolSize == null
-              ? options.maxPoolSize
-              : Math.min(options.minPoolSize, options.maxPoolSize);
+      options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
     }
 
     // if fetchSize is set to less than 0, default it to 0

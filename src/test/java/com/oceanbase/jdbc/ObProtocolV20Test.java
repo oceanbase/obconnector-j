@@ -10,7 +10,7 @@ import org.junit.Test;
 public class ObProtocolV20Test extends BaseTest {
     @Test
     public void fix42037949() throws SQLException {
-        Connection conn = openNewConnection("jdbc:oceanbase://100.88.161.71:4828?user=test@tt1&password=test&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true");
+        Connection conn = setConnection("&enableFullLinkTrace=true");
         Statement stmt = conn.createStatement();
 
         stmt.execute("DROP DATABASE IF EXISTS database0");

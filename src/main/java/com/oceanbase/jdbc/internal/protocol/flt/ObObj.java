@@ -75,16 +75,29 @@ public class ObObj {
         ObUFloatType, // unsigned single-precision floating point
         ObUDoubleType, // unsigned double-precision floating point
         ObNumberType, // aka decimal/numeric
-        ObUNumberType, ObDateTimeType, ObTimestampType, ObDateType, ObTimeType,
+        ObUNumberType,
+        ObDateTimeType,
+        ObTimestampType,
+        ObDateType,
+        ObTimeType,
 
-        ObYearType, ObVarcharType, // charset: utf8mb4 or binary
+        ObYearType,
+        ObVarcharType, // charset: utf8mb4 or binary
         ObCharType, // charset: utf8mb4 or binary
         ObHexStringType, // hexadecimal literal, e.g. X'42', 0x42, b'1001', 0b1001
         ObExtendType, // Min, Max, NOP etc.
         ObUnknownType, // For question mark(?) in prepared statement, no need to serialize. @note future new types to be defined here !!!
-        ObTinyTextType, ObTextType, ObMediumTextType, ObLongTextType,
+        ObTinyTextType,
+        ObTextType,
+        ObMediumTextType,
+        ObLongTextType,
 
-        ObBitType, ObEnumType, ObSetType, ObEnumInnerType, ObSetInnerType, ObTimestampTZType, // timestamp with time zone for oracle
+        ObBitType,
+        ObEnumType,
+        ObSetType,
+        ObEnumInnerType,
+        ObSetInnerType,
+        ObTimestampTZType, // timestamp with time zone for oracle
         ObTimestampLTZType, // timestamp with local time zone for oracle
         ObTimestampNanoType, // timestamp nanosecond for oracle
         ObRawType, // raw type for oracle
@@ -112,7 +125,14 @@ public class ObObj {
     }
 
     private enum ObCollationLevel {
-        CS_LEVEL_EXPLICIT, CS_LEVEL_NONE, CS_LEVEL_IMPLICIT, CS_LEVEL_SYSCONST, CS_LEVEL_COERCIBLE, CS_LEVEL_NUMERIC, CS_LEVEL_IGNORABLE, CS_LEVEL_INVALID;
+        CS_LEVEL_EXPLICIT,
+        CS_LEVEL_NONE,
+        CS_LEVEL_IMPLICIT,
+        CS_LEVEL_SYSCONST,
+        CS_LEVEL_COERCIBLE,
+        CS_LEVEL_NUMERIC,
+        CS_LEVEL_IGNORABLE,
+        CS_LEVEL_INVALID;
         // here we didn't define CS_LEVEL_INVALID as 0,
         // since 0 is a valid value for CS_LEVEL_EXPLICIT in mysql 5.6.
         // fortunately we didn't need to use it to define array like charset_arr,

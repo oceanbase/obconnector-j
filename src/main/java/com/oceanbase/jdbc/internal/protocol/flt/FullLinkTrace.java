@@ -142,7 +142,10 @@ public class FullLinkTrace {
     }
 
     private enum RecordPolicy {
-        RP_ALL, RP_ONLY_SLOW_QUERY, RP_SAMPLE_AND_SLOW_QUERY, MAX_RECORD_POLICY;
+        RP_ALL,
+        RP_ONLY_SLOW_QUERY,
+        RP_SAMPLE_AND_SLOW_QUERY,
+        MAX_RECORD_POLICY;
 
         private static RecordPolicy valueOf(byte v) throws UnsupportedEncodingException {
             switch (v) {
