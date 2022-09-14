@@ -53,7 +53,6 @@ package com.oceanbase.jdbc.internal.io.output;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 
@@ -73,19 +72,14 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private static final float  MIN_COMPRESSION_RATIO          = 0.9f;
     private final byte[]        header                         = new byte[7];
     private final byte[]        subHeader                      = new byte[4];
-    private int                 maxPacketLength                = MAX_PACKET_LENGTH;
     private int                 compressSeqNo;
     private byte[]              remainingData                  = new byte[0];
     private boolean             lastPacketExactMaxPacketLength = false;
-    private long                timestampBeforeFlush           = 0;
 
     public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
                                       String encoding) {
         super(out, maxQuerySizeToLog, threadId, encoding);
-    }
-
-    public int getMaxPacketLength() {
-        return maxPacketLength;
+        maxPacketLength = MAX_PACKET_LENGTH;
     }
 
     @Override
@@ -97,7 +91,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     @Override
     public void startPacket(int compressSeqNo) {
         this.compressSeqNo = compressSeqNo;
-        this.seqNo = 0;
+        mysqlSeqNo = 0;
         pos = 0;
         cmdLength = 0;
         remainingData = EMPTY_ARRAY;
@@ -106,27 +100,6 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
     public int initialPacketPos() {
         return 0;
-    }
-
-    @Override
-    public void enableNetworkStatistics(boolean flag) {
-        timestampBeforeFlush = 0;
-        enableNetworkStatistics = flag;
-    }
-
-    @Override
-    public long getTimestampBeforeFlush() {
-        return timestampBeforeFlush;
-    }
-
-    @Override
-    public void clearNetworkStatistics() {
-        timestampBeforeFlush = 0;
-    }
-
-    @Override
-    public Charset getCharset() {
-        return charset;
     }
 
     /**
@@ -184,7 +157,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             subHeader[0] = (byte) pos;
             subHeader[1] = (byte) (pos >>> 8);
             subHeader[2] = (byte) (pos >>> 16);
-            subHeader[3] = (byte) this.seqNo++;
+            subHeader[3] = (byte) mysqlSeqNo++;
             deflater.write(subHeader, 0, 4);
             deflater.write(buf, 0, uncompressSize - (remainingData.length + 4));
             deflater.finish();
@@ -299,7 +272,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
       subHeader[0] = (byte) pos;
       subHeader[1] = (byte) (pos >>> 8);
       subHeader[2] = (byte) (pos >>> 16);
-      subHeader[3] = (byte) this.seqNo++;
+      subHeader[3] = (byte) mysqlSeqNo++;
       out.write(subHeader, 0, 4);
       out.write(buf, 0, uncompressSize - (remainingData.length + 4));
       cmdLength += remainingData.length;
@@ -484,7 +457,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         buf[7] = (byte) 0x00;
         buf[8] = (byte) 0x00;
         buf[9] = (byte) 0x00;
-        buf[10] = (byte) this.seqNo++;
+        buf[10] = (byte) mysqlSeqNo++;
         out.write(buf, 0, 11);
 
         if (traceCache != null) {

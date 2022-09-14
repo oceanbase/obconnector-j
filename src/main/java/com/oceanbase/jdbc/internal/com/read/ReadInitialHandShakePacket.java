@@ -56,8 +56,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
+import com.oceanbase.jdbc.internal.protocol.OceanBaseCapabilityFlag;
 import com.oceanbase.jdbc.internal.util.Utils;
 
 public class ReadInitialHandShakePacket {
@@ -103,7 +103,7 @@ public class ReadInitialHandShakePacket {
                                             + (buffer.readShort() << 16);
         int saltLength = 0;
 
-        if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities4FirstBytes & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH) != 0) {
             saltLength = Math.max(12, buffer.readByte() - 9);
         } else {
             buffer.skipByte();
@@ -114,7 +114,7 @@ public class ReadInitialHandShakePacket {
         // Filled only if MariaDB server 10.2+
         long mariaDbAdditionalCapacities = buffer.readInt();
 
-        if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.SECURE_CONNECTION) != 0) {
+        if ((serverCapabilities4FirstBytes & OceanBaseCapabilityFlag.CLIENT_SECURE_CONNECTION) != 0) {
             final byte[] seed2;
             if (saltLength > 0) {
                 seed2 = buffer.readRawBytes(saltLength);
@@ -143,7 +143,7 @@ public class ReadInitialHandShakePacket {
         }
 
         // since MariaDB 10.2
-        if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.CLIENT_MYSQL) == 0) {
+        if ((serverCapabilities4FirstBytes & OceanBaseCapabilityFlag.CLIENT_MYSQL) == 0) {
             serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL)
                                  + (mariaDbAdditionalCapacities << 32);
             serverMariaDb = true;
@@ -151,7 +151,7 @@ public class ReadInitialHandShakePacket {
             serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
         }
 
-        if ((serverCapabilities4FirstBytes & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities4FirstBytes & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH) != 0) {
             authenticationPluginType = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         }
     }

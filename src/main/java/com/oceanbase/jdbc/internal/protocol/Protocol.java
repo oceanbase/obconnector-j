@@ -129,6 +129,34 @@ public interface Protocol {
 
     boolean supportFetchWithOffset();
 
+    boolean useOceanBaseProtocolV20();
+
+    void setFullLinkTraceModule(String module, String action);
+
+    String getFullLinkTraceModule();
+
+    void setFullLinkTraceAction(String action);
+
+    String getFullLinkTraceAction();
+
+    void setFullLinkTraceClientInfo(String clientInfo);
+
+    String getFullLinkTraceClientInfo();
+
+    void setFullLinkTraceIdentifier(String clientIdentifier);
+
+    String getFullLinkTraceIdentifier();
+
+    byte getFullLinkTraceLevel();
+
+    double getFullLinkTraceSamplePercentage();
+
+    byte getFullLinkTraceRecordPolicy();
+
+    double getFullLinkTracePrintSamplePercentage();
+
+    long getFullLinkTraceSlowQueryThreshold();
+
     boolean isConnected();
 
     boolean getReadonly() throws SQLException;

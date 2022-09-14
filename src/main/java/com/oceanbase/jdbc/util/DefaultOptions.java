@@ -948,8 +948,14 @@ public enum DefaultOptions {
           Boolean.TRUE,
           "2.2.10.4",
                   "Construct XID entity locally",
-                  false);
-  ;
+                  false),
+    ENABLE_FULL_LINK_TRACE(
+            "enableFullLinkTrace",
+            Boolean.FALSE,
+            "2.3.0",
+            "Used with OceanBase v2.0 protocol",
+            false
+    );
 
   private final String optionName;
   private final String description;

@@ -58,12 +58,12 @@ import java.util.function.Supplier;
 
 import com.oceanbase.jdbc.OceanBaseDatabaseMetaData;
 import com.oceanbase.jdbc.credential.Credential;
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
 import com.oceanbase.jdbc.internal.com.send.authentication.NativePasswordPlugin;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.protocol.OceanBaseCapabilityFlag;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.pid.PidFactory;
@@ -72,32 +72,29 @@ import com.oceanbase.jdbc.util.Options;
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
-    private static final Supplier<String> pidRequest                        = PidFactory
-                                                                                .getInstance();
-    private static final String           _CLIENT_NAME                      = "__client_name";
-    private static final String           _CLIENT_VERSION                   = "__client_version";
-    private static final String           _SERVER_HOST                      = "__server_host";
-    private static final String           _CLIENT_IP                        = "__client_ip";
-    private static final String           _OS                               = "__os";
-    private static final String           _PID                              = "__pid";
-    private static final String           _THREAD                           = "__thread";
-    private static final String           _JAVA_VENDOR                      = "__java_vendor";
-    private static final String           _JAVA_VERSION                     = "__java_version";
+    private static final Supplier<String> pidRequest               = PidFactory.getInstance();
+    private static final String           _MYSQL_CLIENT_TYPE       = "__mysql_client_type";
+    private static final String           CLIENT_TYPE              = "__ob_jdbc_client";
+    private static final String           _CLIENT_NAME             = "__client_name";
+    private static final String           _CLIENT_VERSION          = "__client_version";
+    private static final String           _SERVER_HOST             = "__server_host";
+    private static final String           _CLIENT_IP               = "__client_ip";
+    private static final String           _OS                      = "__os";
+    private static final String           _PID                     = "__pid";
+    private static final String           _THREAD                  = "__thread";
+    private static final String           _JAVA_VENDOR             = "__java_vendor";
+    private static final String           _JAVA_VERSION            = "__java_version";
 
-    private static final String           OB_PROXY_PARTITION_HIT            = "ob_proxy_partition_hit";
-    private static final String           OB_STATEMENT_TRACE_ID             = "ob_statement_trace_id";
-    private static final String           OB_CAPABILITY_FLAG                = "ob_capability_flag";                                            // tell which features ob supports
-    private static final String           OB_CLIENT_FEEDBACK                = "ob_client_feedback";
-    private static final long             OB_CAP_VIRTUAL_COMPRESS           = (1 << 3);
-    private static final long             OB_CAP_USE_OCEANBASE_2_0_PROTOCOL = (1 << 8);
-    private static final long             OB_CAP_VIRTUAL_COMPRESS_SWITCH    = (1 << 6);
-    // whether OCJ read extra ok package from server like obproxy, then we can bring more information to client
-    private static final long             OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET = (1 << 7);
-    private static final long             OB_CAP_ABUNDANT_FEEDBACK          = (1 << 10);
-    private static final long             OB_CAPABILITY_FLAG_VALUE          = (OB_CAP_VIRTUAL_COMPRESS
-                                                                               | OB_CAP_VIRTUAL_COMPRESS_SWITCH
-                                                                               | OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
-                                                                               | OB_CAP_USE_OCEANBASE_2_0_PROTOCOL | OB_CAP_ABUNDANT_FEEDBACK);
+    private static final String           OB_PROXY_PARTITION_HIT   = "ob_proxy_partition_hit";
+    private static final String           OB_STATEMENT_TRACE_ID    = "ob_statement_trace_id";
+    private static final String           OB_CAPABILITY_FLAG       = "ob_capability_flag";                              // tell which features ob supports
+    private static final String           OB_CLIENT_FEEDBACK       = "ob_client_feedback";
+
+    private static final long             OB_CAPABILITY_FLAG_VALUE = OceanBaseCapabilityFlag.OB_CAP_CHECKSUM
+                                                                     | OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH
+                                                                     | OceanBaseCapabilityFlag.OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
+                                                                     | OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2
+                                                                     | OceanBaseCapabilityFlag.OB_CAP_ABUNDANT_FEEDBACK;
 
     /**
      * Send handshake response packet.
@@ -173,10 +170,10 @@ public class SendHandshakeResponsePacket {
 
         pos.write((byte) 0); // 1
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
             pos.writeFieldLength(authData.length);
             pos.write(authData);
-        } else if ((serverCapabilities & OceanBaseServerCapabilities.SECURE_CONNECTION) != 0) {
+        } else if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SECURE_CONNECTION) != 0) {
             pos.write((byte) authData.length);
             pos.write(authData);
         } else {
@@ -184,17 +181,17 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
 
-        if ((clientCapabilities & OceanBaseServerCapabilities.CONNECT_WITH_DB) != 0) {
+        if ((clientCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_WITH_DB) != 0) {
             pos.write(database);
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH) != 0) {
             pos.write(authenticationPluginType);
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0
             && options.sendConnectionAttributes) {
             writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
         }
@@ -257,10 +254,10 @@ public class SendHandshakeResponsePacket {
 
         pos.write((byte) 0); // 1
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
             pos.writeFieldLength(authData.length);
             pos.write(authData);
-        } else if ((serverCapabilities & OceanBaseServerCapabilities.SECURE_CONNECTION) != 0) {
+        } else if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SECURE_CONNECTION) != 0) {
             pos.write((byte) authData.length);
             pos.write(authData);
         } else {
@@ -268,7 +265,7 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
         if (isOracleMode) { // oracle mode send database always
-            if ((clientCapabilities & OceanBaseServerCapabilities.CONNECT_WITH_DB) != 0) {
+            if ((clientCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_WITH_DB) != 0) {
                 pos.write(database.toUpperCase(Locale.ROOT));
             } else {
                 int index = user.indexOf('@');
@@ -276,18 +273,18 @@ public class SendHandshakeResponsePacket {
                 pos.write(databaseTmp);
             }
         } else {
-            if ((clientCapabilities & OceanBaseServerCapabilities.CONNECT_WITH_DB) != 0) {
+            if ((clientCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_WITH_DB) != 0) {
                 pos.write(database);
             }
         }
         pos.write((byte) 0);
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH) != 0) {
             pos.write(authenticationPluginType);
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.CONNECT_ATTRS) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0) {
             writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
         }
 
@@ -299,6 +296,9 @@ public class SendHandshakeResponsePacket {
                                                String host, Options options, String clientIp)
                                                                                              throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
+        buffer.writeStringSmallLength(_MYSQL_CLIENT_TYPE.getBytes(pos.getCharset()));
+        buffer.writeStringLength(CLIENT_TYPE, pos.getCharset());
+
         buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
         buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
 
@@ -342,18 +342,23 @@ public class SendHandshakeResponsePacket {
                 }
             }
         }
-        long capFlag = OB_CAPABILITY_FLAG_VALUE;
 
+        long capFlag = OB_CAPABILITY_FLAG_VALUE;
         if (!options.useObChecksum) {
-            capFlag &= (~OB_CAP_VIRTUAL_COMPRESS);
-            capFlag &= (~OB_CAP_VIRTUAL_COMPRESS_SWITCH);
+            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM);
+            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH);
         }
         if (!options.useOceanBaseProtocolV20) {
-            capFlag &= (~OB_CAP_USE_OCEANBASE_2_0_PROTOCOL);
+            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2);
+        }
+        if (options.enableFullLinkTrace) {
+            capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE;
+            capFlag |= OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO;
         }
         // add ob_connector_capability_flag for oceanbase server
         buffer.writeStringSmallLength("__proxy_capability_flag".getBytes(pos.getCharset()));
         buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
+
         // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);
         pos.write(buffer.buf, 0, buffer.position);

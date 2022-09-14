@@ -55,6 +55,7 @@ public class TraceObject {
     public static final int NOT_COMPRESSED                            = 0;
     public static final int COMPRESSED_PROTOCOL_COMPRESSED_PACKET     = 1;
     public static final int COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET = 2;
+    public static final int OB_PROTOCOL_2_0                           = 3;
 
     private final boolean   send;
     private final int       indicatorFlag;

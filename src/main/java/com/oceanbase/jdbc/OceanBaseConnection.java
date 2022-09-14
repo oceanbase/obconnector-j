@@ -2345,4 +2345,56 @@ public class OceanBaseConnection implements ConnectionImpl {
         return remarksReporting;
     }
 
+    public void setFullLinkTraceModule(String module, String action) {
+        protocol.setFullLinkTraceModule(module, action);
+    }
+
+    public String getFullLinkTraceModule() {
+        return protocol.getFullLinkTraceModule();
+    }
+
+    public void setFullLinkTraceAction(String action) {
+        protocol.setFullLinkTraceAction(action);
+    }
+
+    public String getFullLinkTraceAction() {
+        return protocol.getFullLinkTraceAction();
+    }
+
+    public void setFullLinkTraceClientInfo(String clientInfo) {
+        protocol.setFullLinkTraceClientInfo(clientInfo);
+    }
+
+    public String getFullLinkTraceClientInfo() {
+        return protocol.getFullLinkTraceClientInfo();
+    }
+
+    public void setFullLinkTraceIdentifier(String clientIdentifier) {
+        protocol.setFullLinkTraceIdentifier(clientIdentifier);
+    }
+
+    public String getFullLinkTraceIdentifier() {
+        return protocol.getFullLinkTraceIdentifier();
+    }
+
+    public byte getFullLinkTraceLevel() {
+        return protocol.getFullLinkTraceLevel();
+    }
+
+    public double getFullLinkTraceSamplePercentage() {
+        return protocol.getFullLinkTraceSamplePercentage();
+    }
+
+    public byte getFullLinkTraceRecordPolicy() {
+        return protocol.getFullLinkTraceRecordPolicy();
+    }
+
+    public double getFullLinkTracePrintSamplePercentage() {
+        return protocol.getFullLinkTracePrintSamplePercentage();
+    }
+
+    public long getFullLinkTraceSlowQueryThreshold() {
+        return protocol.getFullLinkTraceSlowQueryThreshold();
+    }
+
 }

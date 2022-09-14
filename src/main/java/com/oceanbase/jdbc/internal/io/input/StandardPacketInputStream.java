@@ -58,32 +58,19 @@ import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
-import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
-public class StandardPacketInputStream implements PacketInputStream {
+public class StandardPacketInputStream extends AbstractPacketInputStream {
 
-    private static final int    REUSABLE_BUFFER_LENGTH  = 1024;
-    private static final int    MAX_PACKET_SIZE         = 0xffffff;
-    private static final Logger logger                  = LoggerFactory
-                                                            .getLogger(StandardPacketInputStream.class);
-    private final byte[]        header                  = new byte[4];
-    private final byte[]        reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
+    private static final Logger logger      = LoggerFactory
+                                                .getLogger(StandardPacketInputStream.class);
 
-    private final InputStream   inputStream;
-    private final int           maxQuerySizeToLog;
-    private int                 packetSeq;
-    private int                 lastPacketLength;
-    private String              serverThreadLog         = "";
-    private long                threadId;
-    private LruTraceCache       traceCache              = null;
-    private boolean             enableNetworkStatistics = false;
-    private boolean             firstRead               = false;
-    private long                timestampAfterRead      = 0;
+    protected byte[]            mysqlHeader = new byte[4];
+    protected int               lastPacketLength;
 
     /**
      * Constructor of standard socket MySQL packet stream reader.
@@ -97,6 +84,96 @@ public class StandardPacketInputStream implements PacketInputStream {
             : new BufferedInputStream(in, 16384);
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
         this.threadId = threadId;
+    }
+
+    @Override
+    public Buffer getPacket(boolean reUsable) throws IOException {
+        return new Buffer(getPacketArray(reUsable), lastPacketLength);
+    }
+
+    /**
+     * Get next packet. If packet is more than 16M, read as many packet needed to finish packet.
+     * (first that has not length = 16Mb)
+     *
+     * @param reUsable if can use existing reusable buffer to avoid creating array
+     * @return array packet.
+     * @throws IOException if socket exception occur.
+     */
+    public byte[] getPacketArray(boolean reUsable) throws IOException {
+        // Read 4 byte mysqlHeader
+        readMysqlStream(mysqlHeader, 0, 4);
+        if (enableNetworkStatistics) {
+            timestampAfterRead = System.currentTimeMillis();
+        }
+
+        lastPacketLength = (mysqlHeader[0] & 0xff) + ((mysqlHeader[1] & 0xff) << 8)
+                           + ((mysqlHeader[2] & 0xff) << 16);
+        mysqlSeqNo = mysqlHeader[3] & 0xff;
+
+        // prepare array
+        byte[] mysqlBody;
+        if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
+            mysqlBody = reusableArray;
+        } else {
+            mysqlBody = new byte[lastPacketLength];
+        }
+
+        // Read content
+        readMysqlStream(mysqlBody, 0, lastPacketLength);
+        doTrace(0, lastPacketLength, mysqlBody);
+
+        // In case content length is big, content will be separate in many 16Mb packets
+        if (lastPacketLength == MAX_PACKET_SIZE) {
+            int packetLength;
+            do {
+                readMysqlStream(mysqlHeader, 0, 4);
+                packetLength = (mysqlHeader[0] & 0xff) + ((mysqlHeader[1] & 0xff) << 8)
+                               + ((mysqlHeader[2] & 0xff) << 16);
+                mysqlSeqNo = mysqlHeader[3] & 0xff;
+
+                int currentBufferLength = mysqlBody.length;
+                byte[] newRawBytes = new byte[currentBufferLength + packetLength];
+                System.arraycopy(mysqlBody, 0, newRawBytes, 0, currentBufferLength);
+                mysqlBody = newRawBytes;
+
+                readMysqlStream(mysqlBody, currentBufferLength, packetLength);
+                lastPacketLength += packetLength;
+
+                doTrace(currentBufferLength, packetLength, mysqlBody);
+            } while (packetLength == MAX_PACKET_SIZE);
+        }
+
+        return mysqlBody;
+    }
+
+    protected void readMysqlStream(byte[] rawBytes, int off, int remaining) throws IOException {
+        do {
+            int count = inputStream.read(rawBytes, off, remaining);
+            if (count < 0) {
+                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+            }
+
+            remaining -= count;
+            off += count;
+        } while (remaining > 0);
+    }
+
+    protected void doTrace(int offset, int length, byte[] rawBytes) {
+        if (traceCache != null) {
+            traceCache.put(new TraceObject(false, TraceObject.NOT_COMPRESSED, threadId, Arrays
+                .copyOfRange(mysqlHeader, 0, 4), Arrays.copyOfRange(rawBytes, offset,
+                Math.min(length, 1000))));
+        }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("read: {}{}", serverThreadLog,
+                Utils.hexdump(maxQuerySizeToLog - 4, offset, length, mysqlHeader, rawBytes));
+        }
+    }
+
+    @Override
+    public int getCompressLastPacketSeq() {
+        return 0;
     }
 
     /**
@@ -212,11 +289,6 @@ public class StandardPacketInputStream implements PacketInputStream {
         return buf;
     }
 
-    @Override
-    public Buffer getPacket(boolean reUsable) throws IOException {
-        return new Buffer(getPacketArray(reUsable), lastPacketLength);
-    }
-
     /**
      * Get current input stream for creating compress input stream, to avoid losing already read bytes
      * in case of pipelining.
@@ -225,184 +297,5 @@ public class StandardPacketInputStream implements PacketInputStream {
      */
     public InputStream getInputStream() {
         return inputStream;
-    }
-
-    /**
-     * Get next packet. If packet is more than 16M, read as many packet needed to finish packet.
-     * (first that has not length = 16Mb)
-     *
-     * @param reUsable if can use existing reusable buffer to avoid creating array
-     * @return array packet.
-     * @throws IOException if socket exception occur.
-     */
-    public byte[] getPacketArray(boolean reUsable) throws IOException {
-
-        // ***************************************************
-        // Read 4 byte header
-        // ***************************************************
-        int remaining = 4;
-        int off = 0;
-        boolean first = true;
-        do {
-            int count = inputStream.read(header, off, remaining);
-            if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + off
-                                       + " bytes from 4 (socket was closed by server)");
-            }
-            if (first) {
-                first = false;
-                if (enableNetworkStatistics) {
-                    timestampAfterRead = System.currentTimeMillis();
-                }
-            }
-            remaining -= count;
-            off += count;
-        } while (remaining > 0);
-
-        lastPacketLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8)
-                           + ((header[2] & 0xff) << 16);
-        packetSeq = header[3];
-
-        // prepare array
-        byte[] rawBytes;
-        if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
-            rawBytes = reusableArray;
-        } else {
-            rawBytes = new byte[lastPacketLength];
-        }
-
-        // ***************************************************
-        // Read content
-        // ***************************************************
-        remaining = lastPacketLength;
-        off = 0;
-        do {
-            int count = inputStream.read(rawBytes, off, remaining);
-            if (count < 0) {
-                throw new EOFException("unexpected end of stream, read "
-                                       + (lastPacketLength - remaining) + " bytes from "
-                                       + lastPacketLength + " (socket was closed by server)");
-            }
-            remaining -= count;
-            off += count;
-        } while (remaining > 0);
-
-        if (traceCache != null) {
-            traceCache.put(new TraceObject(false, TraceObject.NOT_COMPRESSED, threadId, Arrays
-                .copyOfRange(header, 0, 4), Arrays
-                .copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
-        }
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("read: {}{}", serverThreadLog,
-                Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
-        }
-
-        // ***************************************************
-        // In case content length is big, content will be separate in many 16Mb packets
-        // ***************************************************
-        if (lastPacketLength == MAX_PACKET_SIZE) {
-            int packetLength;
-            do {
-                remaining = 4;
-                off = 0;
-                do {
-                    int count = inputStream.read(header, off, remaining);
-                    if (count < 0) {
-                        throw new EOFException("unexpected end of stream, read " + off
-                                               + " bytes from 4");
-                    }
-                    remaining -= count;
-                    off += count;
-                } while (remaining > 0);
-
-                packetLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8)
-                               + ((header[2] & 0xff) << 16);
-                packetSeq = header[3];
-
-                int currentBufferLength = rawBytes.length;
-                byte[] newRawBytes = new byte[currentBufferLength + packetLength];
-                System.arraycopy(rawBytes, 0, newRawBytes, 0, currentBufferLength);
-                rawBytes = newRawBytes;
-
-                // ***************************************************
-                // Read content
-                // ***************************************************
-                remaining = packetLength;
-                off = currentBufferLength;
-                do {
-                    int count = inputStream.read(rawBytes, off, remaining);
-                    if (count < 0) {
-                        throw new EOFException("unexpected end of stream, read "
-                                               + (packetLength - remaining) + " bytes from "
-                                               + packetLength);
-                    }
-                    remaining -= count;
-                    off += count;
-                } while (remaining > 0);
-
-                if (traceCache != null) {
-                    traceCache.put(new TraceObject(false, TraceObject.NOT_COMPRESSED, threadId,
-                        Arrays.copyOfRange(header, 0, 4), Arrays.copyOfRange(rawBytes, 0,
-                            off > 1000 ? 1000 : off)));
-                }
-
-                if (logger.isTraceEnabled()) {
-                    logger
-                        .trace("read: {}{}", serverThreadLog, Utils.hexdump(maxQuerySizeToLog - 4,
-                            currentBufferLength, packetLength, header, rawBytes));
-                }
-
-                lastPacketLength += packetLength;
-            } while (packetLength == MAX_PACKET_SIZE);
-        }
-
-        return rawBytes;
-    }
-
-    @Override
-    public int getLastPacketSeq() {
-        return packetSeq;
-    }
-
-    @Override
-    public int getCompressLastPacketSeq() {
-        return 0;
-    }
-
-    @Override
-    public void close() throws IOException {
-        inputStream.close();
-    }
-
-    /**
-     * Set server thread id.
-     *
-     * @param serverThreadId current server thread id.
-     * @param isMaster is server master
-     */
-    public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = "conn=" + serverThreadId
-                               + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
-    }
-
-    public void setTraceCache(LruTraceCache traceCache) {
-        this.traceCache = traceCache;
-    }
-
-    @Override
-    public void enableNetworkStatistics(boolean flag) {
-        timestampAfterRead = 0; // clear
-        enableNetworkStatistics = flag;
-    }
-
-    @Override
-    public long getTimestampAfterRead() {
-        return timestampAfterRead;
-    }
-
-    @Override
-    public void clearNetworkStatistics() {
-        timestampAfterRead = 0;
     }
 }

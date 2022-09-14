@@ -66,28 +66,31 @@ import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements
                                                                            PacketOutputStream {
 
+    protected long            threadId;
+    protected int             mysqlSeqNo                 = 0;
+    protected LruTraceCache   traceCache                 = null;
+    protected String          serverThreadLog            = "";
+    protected final int       maxQuerySizeToLog;
+    protected boolean         enableNetworkStatistics    = false;
+    protected long            timestampBeforeFlush       = 0;
+
     private static final byte QUOTE                      = (byte) '\'';
     private static final byte DBL_QUOTE                  = (byte) '"';
     private static final byte ZERO_BYTE                  = (byte) '\0';
     private static final byte BACKSLASH                  = (byte) '\\';
-
     private static final int  SMALL_BUFFER_SIZE          = 8192;
     private static final int  MEDIUM_BUFFER_SIZE         = 128 * 1024;
     private static final int  LARGE_BUFFER_SIZE          = 1024 * 1024;
-    protected final int       maxQuerySizeToLog;
+
     protected byte[]          buf;
     protected int             pos;
-    protected int             maxAllowedPacket           = Integer.MAX_VALUE;
     protected long            cmdLength;
+    protected int             maxPacketLength;
+    protected int             maxAllowedPacket           = Integer.MAX_VALUE;
     protected boolean         permitTrace;
-    protected int             seqNo                      = 0;
-    protected String          serverThreadLog            = "";
-    protected LruTraceCache   traceCache                 = null;
     private int               mark                       = -1;
     private boolean           bufferContainDataAfterMark = false;
-    protected long            threadId;
     private TimeZone          tm                         = null;
-    protected boolean         enableNetworkStatistics    = false;
     protected Charset         charset                    = null;
 
     /**
@@ -115,9 +118,28 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         return tm;
     }
 
-    public abstract int getMaxPacketLength();
+    public int getMaxPacketLength() {
+        return maxPacketLength;
+    }
 
     public abstract void startPacket(int seqNo);
+
+    public void enableNetworkStatistics(boolean flag) {
+        enableNetworkStatistics = flag;
+        timestampBeforeFlush = 0;
+    }
+
+    public long getTimestampBeforeFlush() {
+        return timestampBeforeFlush;
+    }
+
+    public void clearNetworkStatistics() {
+        timestampBeforeFlush = 0;
+    }
+
+    public Charset getCharset() {
+        return charset;
+    }
 
     protected abstract void flushBuffer(boolean commandEnd) throws IOException;
 

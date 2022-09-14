@@ -205,10 +205,9 @@ public class Options implements Cloneable {
     public boolean sendConnectionAttributes   = true;
     public boolean rewriteInsertByMultiQueries = false;
     public boolean useLocalXID = true;
+    public boolean enableFullLinkTrace = false;
 
-
-
-  @Override
+    @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
         String newLine = System.getProperty("line.separator");
@@ -620,8 +619,11 @@ public class Options implements Cloneable {
         if (useLocalXID != opt.useLocalXID) {
             return false;
         }
-        return Objects.equals(minPoolSize, opt.minPoolSize);
+        if (enableFullLinkTrace != opt.enableFullLinkTrace) {
+            return false;
+        }
 
+        return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -754,6 +756,7 @@ public class Options implements Cloneable {
         result = 31 * result + (sendConnectionAttributes ? 1 : 0);
         result = 31 * result + (rewriteInsertByMultiQueries ? 1 : 0);
         result = 31 * result + (useLocalXID ? 1 : 0);
+        result = 31 * result + (enableFullLinkTrace ? 1 : 0);
         return result;
     }
     @Override

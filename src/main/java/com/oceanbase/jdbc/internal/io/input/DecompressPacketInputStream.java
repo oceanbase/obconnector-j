@@ -58,33 +58,22 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
-import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.Utils;
 
-public class DecompressPacketInputStream implements PacketInputStream {
+public class DecompressPacketInputStream extends AbstractPacketInputStream {
 
-    private static final int    REUSABLE_BUFFER_LENGTH  = 1024;
-    private static final int    MAX_PACKET_SIZE         = 0xffffff;
-    private static final Logger logger                  = LoggerFactory
-                                                            .getLogger(DecompressPacketInputStream.class);
-    private final byte[]        header                  = new byte[7];
-    private final byte[]        reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
-    private final InputStream   inputStream;
-    private final int           maxQuerySizeToLog;
+    private static final Logger logger    = LoggerFactory
+                                              .getLogger(DecompressPacketInputStream.class);
+
+    private final byte[]        header    = new byte[7];
     // compress packet can contain multiple standard packet
-    private byte[]              cacheData               = new byte[0];
+    private byte[]              cacheData = new byte[0];
     private int                 cachePos;
     private int                 cacheEnd;
-    private int                 packetSeq;
     private int                 compressPacketSeq;
-    private String              serverThreadLog         = "";
-    private LruTraceCache       traceCache              = null;
-    private long                threadId;
-    private boolean             enableNetworkStatistics = false;
-    private long                timestampAfterRead      = 0;
 
     public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog, long threadId) {
         inputStream = in;
@@ -163,6 +152,21 @@ public class DecompressPacketInputStream implements PacketInputStream {
         } while (true);
     }
 
+    @Override
+    protected void readMysqlStream(byte[] rawBytes, int off, int remaining) throws IOException {
+
+    }
+
+    @Override
+    protected void doTrace(int offset, int length, byte[] rawBytes) {
+
+    }
+
+    @Override
+    public int getCompressLastPacketSeq() {
+        return compressPacketSeq;
+    }
+
     private void readCompressBlocking(byte[] arr, int compressedLength, int decompressedLength)
                                                                                                throws IOException {
         if (decompressedLength != 0) {
@@ -239,14 +243,14 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
                 // if packet was less than 16M
                 if (packetOffset == 0) {
-                    packetSeq = cacheData[cachePos + 3];
+                    mysqlSeqNo = cacheData[cachePos + 3];
 
                     if (cacheEnd - (cachePos + 4) >= lastPacketLength) {
                         byte[] packet = new byte[lastPacketLength];
                         System.arraycopy(cacheData, cachePos + 4, packet, 0, lastPacketLength);
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet: seq={} len={} {}{}", packetSeq,
+                            logger.trace("read packet: seq={} len={} {}{}", mysqlSeqNo,
                                 lastPacketLength, serverThreadLog, Utils.hexdump(maxQuerySizeToLog,
                                     cachePos + 4, lastPacketLength, cacheData));
                         }
@@ -261,12 +265,12 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         lastPacketLength = (cacheData[cachePos] & 0xff)
                                            + ((cacheData[cachePos + 1] & 0xff) << 8)
                                            + ((cacheData[cachePos + 2] & 0xff) << 16);
-                        packetSeq = cacheData[cachePos + 3];
+                        mysqlSeqNo = cacheData[cachePos + 3];
                         System.arraycopy(cacheData, cachePos + 4, packet, offset, lastPacketLength);
                         offset += lastPacketLength;
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet: seq={} len={} {}{}", packetSeq,
+                            logger.trace("read packet: seq={} len={} {}{}", mysqlSeqNo,
                                 lastPacketLength, serverThreadLog, Utils.hexdump(maxQuerySizeToLog,
                                     cachePos + 4, lastPacketLength, cacheData));
                         }
@@ -283,49 +287,4 @@ public class DecompressPacketInputStream implements PacketInputStream {
         return null;
     }
 
-    @Override
-    public int getLastPacketSeq() {
-        return packetSeq;
-    }
-
-    @Override
-    public int getCompressLastPacketSeq() {
-        return compressPacketSeq;
-    }
-
-    @Override
-    public void close() throws IOException {
-        inputStream.close();
-    }
-
-    /**
-     * Set server thread id.
-     *
-     * @param serverThreadId current server thread id.
-     * @param isMaster is server master
-     */
-    public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = "conn=" + serverThreadId
-                               + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
-    }
-
-    public void setTraceCache(LruTraceCache traceCache) {
-        this.traceCache = traceCache;
-    }
-
-    @Override
-    public void enableNetworkStatistics(boolean flag) {
-        timestampAfterRead = 0; // clear
-        enableNetworkStatistics = flag;
-    }
-
-    @Override
-    public long getTimestampAfterRead() {
-        return timestampAfterRead;
-    }
-
-    @Override
-    public void clearNetworkStatistics() {
-        timestampAfterRead = 0;
-    }
 }

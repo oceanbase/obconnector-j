@@ -52,7 +52,6 @@ package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.io.TraceObject;
@@ -63,24 +62,19 @@ import com.oceanbase.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
-    private static final Logger logger               = LoggerFactory
-                                                         .getLogger(StandardPacketOutputStream.class);
+    private static final Logger logger            = LoggerFactory
+                                                      .getLogger(StandardPacketOutputStream.class);
 
-    private static final int    MAX_PACKET_LENGTH    = 0x00ffffff + 4;
-    private int                 maxPacketLength      = MAX_PACKET_LENGTH;
-    private long                timestampBeforeFlush = 0;
+    private static final int    MAX_PACKET_LENGTH = 0x00ffffff + 4;
 
     public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
         super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
-    }
-
-    public int getMaxPacketLength() {
-        return maxPacketLength;
+        maxPacketLength = MAX_PACKET_LENGTH;
     }
 
     @Override
     public void startPacket(int seqNo) {
-        this.seqNo = seqNo;
+        mysqlSeqNo = seqNo;
         pos = 4;
         cmdLength = 0;
     }
@@ -93,27 +87,6 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     public int initialPacketPos() {
         return 4;
-    }
-
-    @Override
-    public void enableNetworkStatistics(boolean flag) {
-        enableNetworkStatistics = flag;
-        timestampBeforeFlush = 0;
-    }
-
-    @Override
-    public long getTimestampBeforeFlush() {
-        return timestampBeforeFlush;
-    }
-
-    @Override
-    public void clearNetworkStatistics() {
-        timestampBeforeFlush = 0;
-    }
-
-    @Override
-    public Charset getCharset() {
-        return charset;
     }
 
     /**
@@ -130,26 +103,12 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[0] = (byte) (pos - 4);
             buf[1] = (byte) ((pos - 4) >>> 8);
             buf[2] = (byte) ((pos - 4) >>> 16);
-            buf[3] = (byte) this.seqNo++;
+            buf[3] = (byte) mysqlSeqNo++;
             checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
             cmdLength += pos - 4;
 
-            if (traceCache != null && permitTrace) {
-                // trace last packets
-                traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId, Arrays
-                    .copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
-            }
-
-            if (logger.isTraceEnabled()) {
-                if (permitTrace) {
-                    logger.trace("send: {}{}", serverThreadLog,
-                        Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
-                } else {
-                    logger.trace("send: content length={} {} com=<hidden>", pos - 4,
-                        serverThreadLog);
-                }
-            }
+            doTrace(pos);
 
             // if last com fill the max size, must send an empty com to indicate command end.
             if (commandEnd && pos == MAX_PACKET_LENGTH) {
@@ -172,18 +131,23 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         buf[0] = (byte) 0x00;
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;
-        buf[3] = (byte) this.seqNo++;
+        buf[3] = (byte) mysqlSeqNo++;
         out.write(buf, 0, 4);
 
-        if (traceCache != null) {
+        doTrace(4);
+    }
+
+    private void doTrace(int length) {
+        if (traceCache != null && permitTrace) {
             // trace last packets
             traceCache.put(new TraceObject(true, TraceObject.NOT_COMPRESSED, threadId, Arrays
-                .copyOfRange(buf, 0, 4)));
+                .copyOfRange(buf, 0, Math.min(length, 1000))));
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("send com : content length=0 {}{}", serverThreadLog,
-                Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
+            logger.trace("send: {}{}", serverThreadLog,
+                Utils.hexdump(maxQuerySizeToLog, 0, length, buf));
         }
     }
+
 }

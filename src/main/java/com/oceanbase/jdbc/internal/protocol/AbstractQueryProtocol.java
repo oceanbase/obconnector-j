@@ -72,7 +72,6 @@ import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -88,6 +87,7 @@ import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
 import com.oceanbase.jdbc.internal.util.BulkStatus;
 import com.oceanbase.jdbc.internal.util.LogQueryTool;
 import com.oceanbase.jdbc.internal.util.SqlStates;
@@ -149,23 +149,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void reset() throws SQLException {
     cmdPrologue();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("reset connection");
 
+    try {
       writer.startPacket(0);
       writer.write(Packet.COM_RESET_CONNECTION);
       writer.flush();
+
       getResult(new Results());
 
       // clear prepare statement cache
       if (options.cachePrepStmts && options.useServerPrepStmts) {
         serverPrepareStatementCache.clear();
       }
-
     } catch (SQLException sqlException) {
       throw exceptionWithQuery("COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
     } catch (IOException e) {
       throw exceptionWithQuery(
           "COM_RESET_CONNECTION failed.", handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -242,8 +245,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   @Override
   public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
-
     lock.lock();
+    UUID spanId = ob20BeginTraceAndSpan("prepare");
+
     try {
       // search in cache first
       if (options.cachePrepStmts && options.useServerPrepStmts) {
@@ -258,10 +262,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       writer.write(Packet.COM_STMT_PREPARE);
       writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
-      return ComStmtPrepare.read(reader, eofDeprecated, this, sql);
+
+      ServerPrepareResult prepareResult = ComStmtPrepare.read(reader, eofDeprecated, this, sql);
+      return prepareResult;
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     } finally {
+      ob20EndSpanAndTrace(spanId);
       lock.unlock();
     }
   }
@@ -288,16 +295,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   @Override
   public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException {
-
     cmdPrologue();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("execute query");
 
+    try {
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
       writer.write(sql.getBytes(options.characterEncoding));
       writer.flush();
-      getResult(results);
 
+      getResult(results);
     } catch (SQLException sqlException) {
       if ("70100".equals(sqlException.getSQLState()) && 1927 == sqlException.getErrorCode()) {
         throw handleIoException(sqlException);
@@ -305,24 +312,29 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
   @Override
   public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException {
     cmdPrologue();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("execute query");
 
+    try {
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
       writer.write(sql.getBytes(charset));
       writer.flush();
-      getResult(results);
 
+      getResult(results);
     } catch (SQLException sqlException) {
       throw exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -341,24 +353,27 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ClientPrepareResult clientPrepareResult,
       ParameterHolder[] parameters) throws SQLException {
     cmdPrologue();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("execute query");
 
+    try {
       if (clientPrepareResult.getParamCount() == 0
           && !clientPrepareResult.isQueryMultiValuesRewritable()) {
         if (clientPrepareResult.getQueryParts().size() == 1) {
-          ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+            ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
         } else {
-          ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts());
+            ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts());
         }
       } else {
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
+          ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
       }
-      getResult(results);
 
+      getResult(results);
     } catch (SQLException queryException) {
       throw exceptionWithQuery(parameters, clientPrepareResult, queryException, false);
     } catch (IOException e) {
       throw exceptionWithQuery(parameters, clientPrepareResult, handleIoException(e), false);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -379,24 +394,27 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ParameterHolder[] parameters,
       int queryTimeout) throws SQLException {
     cmdPrologue();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("execute query");
 
+    try {
       if (clientPrepareResult.getParamCount() == 0
           && !clientPrepareResult.isQueryMultiValuesRewritable()) {
         if (clientPrepareResult.getQueryParts().size() == 1) {
-          ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0), queryTimeout);
+            ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0), queryTimeout);
         } else {
-          ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts(), queryTimeout);
+            ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts(), queryTimeout);
         }
       } else {
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
+          ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
       }
-      getResult(results);
 
+      getResult(results);
     } catch (SQLException queryException) {
       throw exceptionWithQuery(parameters, clientPrepareResult, queryException, false);
     } catch (IOException e) {
       throw exceptionWithQuery(parameters, clientPrepareResult, handleIoException(e), false);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -415,8 +433,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ServerPrepareResult serverPrepareResult,
       Results results,
       ParameterHolder[] parameters) throws SQLException {
-
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("execute prepared query");
+
     try {
       int parameterCount = serverPrepareResult.getParameters().length;
 
@@ -476,15 +495,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } else {
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
-      ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters, parameterCount,
-          serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
 
+      ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters, parameterCount,
+              serverPrepareResult.getParameterTypeHeader(), cursorFlag, this);
       getResult(results);
       results.setToCursorFetch(false);
     } catch (SQLException qex) {
       throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
     } catch (IOException e) {
       throw exceptionWithQuery(parameters, serverPrepareResult, handleIoException(e), false);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -498,9 +519,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       int parameterCount,
       ParameterHolder[] parameters,
       ServerPrepareResult serverPrepareResult,
-      Results results) throws SQLException {
-
+      Results results) throws SQLException{
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("prepare and execute query");
+
     try {
       if (isOracleMode()) {
         // use send piece data
@@ -512,7 +534,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               boolean first = true;
               while (continueWrite) {
                 if (firstPrepared) {
-                  // prepre here
+                  // prepare here
                   serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
                   serverPrepareResult.resetParameterTypeHeader();
                   firstPrepared = false;
@@ -542,7 +564,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           }
         }
       }
-
       writer.setTimeZone(this.getServerTimeZone());
 
       // send execute query
@@ -564,6 +585,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } else {
         cursorFlag = Packet.CURSOR_TYPE_NO_CURSOR;
       }
+
       ComStmtPrepareExecute.send(writer, results, parameterCount, parameters,
           serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, serverPrepareResult);
 
@@ -574,6 +596,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw exceptionWithQuery(results.getParameters(), serverPrepareResult, qex, false);
     } catch (IOException e) {
       throw exceptionWithQuery(results.getParameters(), serverPrepareResult, handleIoException(e), false);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -699,6 +723,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     cmdPrologue();
+    UUID spanId = null;
     ParameterHolder[] parameters = null;
     ServerPrepareResult tmpServerPrepareResult = serverPrepareResult;
     try {
@@ -708,6 +733,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (serverPrepareResult == null) {
         tmpServerPrepareResult = prepare(sql, true);
       }
+      spanId = ob20BeginTraceAndSpan("execute bulk batch");
 
       // send BULK
       // **************************************************************************************
@@ -821,8 +847,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         throw exception;
       }
       results.setRewritten(true);
-      return true;
 
+      return true;
     } catch (IOException e) {
       throw exceptionWithQuery(
           parameters, tmpServerPrepareResult, handleIoException(e), explicitClosed);
@@ -831,6 +857,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         releasePrepareStatement(tmpServerPrepareResult);
       }
       writer.resetMark();
+
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -852,8 +880,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       final ClientPrepareResult clientPrepareResult,
       final List<ParameterHolder[]> parametersList) throws SQLException {
-
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("execute batch multi");
+
     initializeBatchReader();
     new AbstractMultiSend(
         this, writer, results, clientPrepareResult, parametersList, readScheduler) {
@@ -906,6 +935,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return parametersList.size();
       }
     }.executeBatch();
+
+    ob20EndSpanAndTrace(spanId);
   }
 
   /**
@@ -956,6 +987,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatch(Results results, final List<String> queries) throws SQLException {
+    UUID spanId = ob20BeginTraceAndSpan("execute batch");
 
     if (!options.useBatchMultiSend) {
 
@@ -963,16 +995,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       SQLException exception = null;
 
       for (int i = 0; i < queries.size() && !isInterrupted(); i++) {
-
         try {
-
           sql = queries.get(i);
           writer.startPacket(0);
           writer.write(Packet.COM_QUERY);
           writer.write(sql);
           writer.flush();
           getResult(results);
-
         } catch (SQLException sqlException) {
           if (exception == null) {
             exception = exceptionWithQuery(sql, sqlException, explicitClosed);
@@ -994,8 +1023,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (exception != null) {
         throw exception;
       }
+
+      ob20EndSpanAndTrace(spanId);
       return;
     }
+
     initializeBatchReader();
     new AbstractMultiSend(this, writer, results, queries, readScheduler) {
 
@@ -1042,6 +1074,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return queries.size();
       }
     }.executeBatch();
+
+    ob20EndSpanAndTrace(spanId);
   }
 
   /**
@@ -1054,6 +1088,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatchAggregateSemiColon(Results results, final List<String> queries) throws SQLException {
+    UUID spanId = ob20BeginTraceAndSpan("execute batch aggregate semicolon");
 
     String firstSql = null;
     int currentIndex = 0;
@@ -1061,9 +1096,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     SQLException exception = null;
 
     do {
-
       try {
-
         firstSql = queries.get(currentIndex++);
 
         if (totalQueries == 1) {
@@ -1076,7 +1109,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               ComQuery.sendBatchAggregateSemiColon(writer, firstSql, queries, currentIndex);
         }
         getResult(results);
-
       } catch (SQLException sqlException) {
         if (exception == null) {
           exception = exceptionWithQuery(firstSql, sqlException, explicitClosed);
@@ -1094,6 +1126,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (exception != null) {
       throw exception;
     }
+    ob20EndSpanAndTrace(spanId);
   }
 
   /**
@@ -1110,16 +1143,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ClientPrepareResult prepareResult,
       List<ParameterHolder[]> parameterList,
       boolean rewriteValues) throws SQLException {
-
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("execute batch rewrite");
 
     int currentIndex = 0;
     int totalParameterList = parameterList.size();
 
     try {
-
       do {
-
         currentIndex =
             ComQuery.sendRewriteCmd(
                 writer,
@@ -1134,9 +1165,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           throw new SQLException(
               "Interrupted during batch", SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), -1);
         }
-
       } while (currentIndex < totalParameterList);
-
     } catch (SQLException sqlEx) {
       throw OceanBaseSqlException.of(sqlEx, prepareResult.getSql());
     } catch (IOException e) {
@@ -1144,24 +1173,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           parameterList.get(currentIndex), prepareResult, handleIoException(e), explicitClosed);
     } finally {
       results.setRewritten(rewriteValues);
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
-  /**
-   * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
-   *
-   * @param serverPrepareResult prepare result. can be null if not prepared.
-   * @param results             execution results
-   * @param sql                 sql query if needed to be prepared
-   * @param parametersList      parameter list
-   * @param hasLongData         has long data (stream)
-   * @return executed
-   * @throws SQLException if parameter error or connection error occur.
-   */
-  public ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult, Results results,
-                                                String sql, final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
-
-    cmdPrologue();
+    /**
+     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
+     *
+     * @param serverPrepareResult prepare result. can be null if not prepared.
+     * @param results             execution results
+     * @param sql                 sql query if needed to be prepared
+     * @param parametersList      parameter list
+     * @param hasLongData         has long data (stream)
+     * @return executed
+     * @throws SQLException if parameter error or connection error occur.
+     */
+    public ServerPrepareResult executeBatchServer(ServerPrepareResult serverPrepareResult, Results results,
+                                                  String sql, final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
+        cmdPrologue();
 
     // TODO: server does not support "COM_STMT_BULK_EXECUTE" feature yet
     if (options.useBulkStmts && !hasLongData
@@ -1177,12 +1206,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return serverPrepareResult;
     }
 
-    initializeBatchReader();
-    ServerPrepareResult tempServerPrepareResult = null;
-    serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
-      @Override
-      public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
-                          List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
+        UUID spanId = ob20BeginTraceAndSpan("execute batch on server");
+
+        initializeBatchReader();
+        ServerPrepareResult tempServerPrepareResult = null;
+        serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
+            @Override
+            public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
+                                List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
 
@@ -1244,17 +1275,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
       }
 
-      @Override
-      public int getTotalExecutionNumber() {
-        return parametersList.size();
-      }
-    }.executeBatch();
-    results.setBatchSucceed(true);
-    return serverPrepareResult;
-  }
+            @Override
+            public int getTotalExecutionNumber() {
+                return parametersList.size();
+            }
+        }.executeBatch();
+        results.setBatchSucceed(true);
+
+        ob20EndSpanAndTrace(spanId);
+        return serverPrepareResult;
+    }
 
   public ColumnDefinition[] fetchRowViaCursor(int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("fetch row");
+
     try {
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_FETCH);
@@ -1270,11 +1305,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw exceptionWithQuery(
           " fetchRowViaCursor failed.", handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
   public ColumnDefinition[] fetchRowViaCursorForOracle(int cursorId, int numRows, byte offsetType, int offset, Results results) throws SQLException {
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("fetch row for oracle");
+
     try {
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_FETCH);
@@ -1293,6 +1332,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw exceptionWithQuery(
           " fetchRowViaCursorForOracle failed.", handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -1498,6 +1539,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void changeUser(String user, String pwd) throws SQLException {
     cmdPrologue();
+    UUID spanId = ob20BeginTraceAndSpan("change user");
+
     try {
       Credential credential = new Credential(user, pwd);
       String clientIp = this.socket.getLocalAddress().getHostAddress();
@@ -1511,6 +1554,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
     setUsername(user);
     postConnectionQueries();
+
+    ob20EndSpanAndTrace(spanId);
   }
 
 
@@ -1518,21 +1563,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Rollback transaction.
    */
   public void rollback() throws SQLException {
-
     cmdPrologue();
-
     lock.lock();
-    try {
 
-      if (inTransaction()) {
-        executeQuery("ROLLBACK");
+    if (inTransaction()) {
+      UUID spanId = ob20BeginTraceAndSpan("rollback");
+
+      try {
+          executeQuery("ROLLBACK");
+      } catch (Exception e) {
+          /* eat exception */
+      } finally {
+          ob20EndSpanAndTrace(spanId);
       }
-
-    } catch (Exception e) {
-      /* eat exception */
-    } finally {
-      lock.unlock();
     }
+
+    lock.unlock();
   }
 
   @Override
@@ -1549,28 +1595,28 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if connection exception.
    */
   public boolean forceReleasePrepareStatement(int statementId) throws SQLException {
-
     if (lock.tryLock()) {
-
       try {
         checkClose();
+        UUID spanId = ob20BeginTraceAndSpan("close prepared statement");
 
         try {
           writer.startPacket(0);
           writer.write(Packet.COM_STMT_CLOSE);
           writer.writeInt(statementId);
           writer.flush();
+
           return true;
         } catch (IOException e) {
           connected = false;
           throw new SQLNonTransientConnectionException(
               "Could not deallocate query: " + e.getMessage(), "08000", e);
+        } finally {
+          ob20EndSpanAndTrace(spanId);
         }
-
       } finally {
         lock.unlock();
       }
-
     } else {
       // lock is used by another thread (bulk reading)
       statementIdToRelease = statementId;
@@ -1593,22 +1639,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public boolean ping() throws SQLException {
-
     cmdPrologue();
     lock.lock();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("ping");
 
+    try {
       writer.startPacket(0);
       writer.write(Packet.COM_PING);
       writer.flush();
 
       Buffer buffer = reader.getPacket(true);
       return buffer.getByteAt(0) == Packet.OK;
-
     } catch (IOException e) {
       connected = false;
       throw new SQLNonTransientConnectionException("Could not ping: " + e.getMessage(), "08000", e);
     } finally {
+      ob20EndSpanAndTrace(spanId);
       lock.unlock();
     }
   }
@@ -1665,7 +1711,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public String getCatalog() throws SQLException {
 
-    if ((serverCapabilities & OceanBaseServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
       // client session track return empty value, not null value. Java require sending null if empty
       if (database != null && database.isEmpty()) {
         return "";
@@ -1692,12 +1738,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void setCatalog(final String database) throws SQLException {
-
     cmdPrologue();
-
     lock.lock();
-    try {
+    UUID spanId = ob20BeginTraceAndSpan("set database");
 
+    try {
       SendChangeDbPacket.send(writer, database);
       final Buffer buffer = reader.getPacket(true);
 
@@ -1708,12 +1753,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             ep.getSqlState(),
             ep.getErrorCode());
       }
-
       this.database = database;
-
     } catch (IOException e) {
       throw exceptionWithQuery("COM_INIT_DB", handleIoException(e), false);
     } finally {
+      ob20EndSpanAndTrace(spanId);
       lock.unlock();
     }
   }
@@ -1977,7 +2021,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw handleIoException(e);
     }
-
   }
 
   /**
@@ -2157,9 +2200,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
    */
   private void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
+    UUID spanId = ob20BeginTraceAndSpan("read local infile packet");
+
     int seq = 2;
     buffer.getLengthEncodedNumeric(); // field pos
     String fileName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+
     try {
       // Server request the local file (LOCAL DATA LOCAL INFILE)
       // We do accept general URLs, too. If the localInfileStream is
@@ -2167,7 +2213,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       InputStream is;
       writer.startPacket(seq);
       if (localInfileInputStream == null) {
-
         if (!getUrlParser().getOptions().allowLocalInfile) {
           writer.writeEmptyPacket();
           reader.getPacket(true);
@@ -2178,8 +2223,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         // validate all defined interceptors
-        ServiceLoader<LocalInfileInterceptor> loader =
-            ServiceLoader.load(LocalInfileInterceptor.class);
+        ServiceLoader<LocalInfileInterceptor> loader = ServiceLoader.load(LocalInfileInterceptor.class);
         for (LocalInfileInterceptor interceptor : loader) {
           if (!interceptor.validate(fileName)) {
             writer.writeEmptyPacket();
@@ -2200,7 +2244,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               "LOAD DATA LOCAL INFILE not permit in batch. file '" + fileName + "'",
               SqlStates.INVALID_AUTHORIZATION.getSqlState(),
               -1);
-
         } else if (!Utils.validateFileName(results.getSql(), results.getParameters(), fileName)) {
           writer.writeEmptyPacket();
           reader.getPacket(true);
@@ -2232,7 +2275,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       try {
-
         byte[] buf = new byte[8192];
         int len;
         while ((len = is.read(buf)) > 0) {
@@ -2241,17 +2283,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           writer.flush();
         }
         writer.writeEmptyPacket();
-
       } catch (IOException ioe) {
         throw handleIoException(ioe);
       } finally {
         is.close();
       }
-
       getResult(results);
-
     } catch (IOException e) {
       throw handleIoException(e);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
     }
   }
 
@@ -2577,6 +2618,53 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     this.iterationCount = iterationCount;
     this.executeMode = executeMode;
     this.checksum = checksum;
+  }
+
+  private UUID ob20BeginTraceAndSpan(String tagStr) {
+    ob20BeginTrace();
+    return ob20BeginSpan(tagStr);
+  }
+
+  private void ob20BeginTrace() {
+    if (enableFullLinkTrace) {
+      try {
+        if (!inTransaction()) {
+          fullLinkTrace.beginTrace();
+        }
+      } catch (Exception e) {
+        logger.warn("Full link trace module failed.", e);
+      }
+    }
+  }
+
+  private UUID ob20BeginSpan(String tagStr) {
+    UUID spanId = null;
+    if (enableFullLinkTrace) {
+      try {
+        spanId = fullLinkTrace.beginSpan(0);
+        fullLinkTrace.setTag(1, FullLinkTrace.TagKey.COMMAND_NAME.getString(), tagStr);
+        fullLinkTrace.setTag(1, FullLinkTrace.TagKey.CLIENT_HOST.getString(), socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort());
+        fullLinkTrace.buildRequest(ob20);
+      } catch (Exception e) {
+        logger.warn("Full link trace module failed.", e);
+      }
+    }
+    return spanId;
+  }
+
+  private void ob20EndSpanAndTrace(UUID spanId) {
+    if (enableFullLinkTrace) {
+      try {
+        if (spanId != null) {
+          fullLinkTrace.endSpan(spanId);
+          if (!inTransaction()) {
+            fullLinkTrace.endTrace();
+          }
+        }
+      } catch (Exception e) {
+        logger.warn("Full link trace module failed.", e);
+      }
+    }
   }
 
 }

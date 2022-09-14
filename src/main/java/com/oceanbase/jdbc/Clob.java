@@ -143,7 +143,7 @@ public class Clob extends Lob implements ObClob {
                     locator.magicCode = buffer.readLongV1();
                     locator.version = buffer.readLongV1();
                     locator.snapshotVersion = buffer.readLongLongV1();
-                    locator.tableId = buffer.getBytes(8);
+                    locator.tableId = buffer.readBytes(8);
                     locator.columnId = buffer.readLongV1();
                     locator.flags = buffer.readIntV1();
                     locator.option = buffer.readIntV1();
@@ -153,7 +153,7 @@ public class Clob extends Lob implements ObClob {
                     if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
                                                                        - ObLobLocator.OB_LOG_LOCATOR_HEADER
                         && conn != null) {
-                        locator.rowId = buffer.getBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
+                        locator.rowId = buffer.readBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
                         locator.connection = conn;
                         try {
                             if ((int) locator.payloadSize <= Clob.maxLength) {

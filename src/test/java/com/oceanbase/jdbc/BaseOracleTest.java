@@ -424,7 +424,13 @@ public class BaseOracleTest {
 //              "        execute immediate 'drop table ' || p_table ||' purge';\n" +
 //              "    end if;\n" +
 //              "end;");
-      stmt.execute("call proc_dropifexists('" + tableName + "')");
+      //stmt.execute("call proc_dropifexists('" + tableName + "')");
+        // for test
+      try {
+          stmt.execute("drop table " + tableName);
+      } catch (Exception e) {
+
+      }
       stmt.execute(
           "create table "
               + tableName

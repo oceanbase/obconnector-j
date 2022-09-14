@@ -81,7 +81,6 @@ import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
 import com.oceanbase.jdbc.authentication.AuthenticationPluginLoader;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.credential.CredentialPlugin;
-import com.oceanbase.jdbc.internal.OceanBaseServerCapabilities;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
@@ -94,13 +93,17 @@ import com.oceanbase.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.io.input.DecompressPacketInputStream;
+import com.oceanbase.jdbc.internal.io.input.Ob20PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.oceanbase.jdbc.internal.io.output.CompressPacketOutputStream;
+import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.StandardPacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
+import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
@@ -163,7 +166,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private HostAddress                   currentHost;
     private boolean                       hostFailed;
     private boolean                       serverMariaDb;
-    private String                        serverVersion;
+    protected String                      serverVersion;
     private int                           majorVersion;
     private int                           minorVersion;
     private int                           patchVersion;
@@ -181,6 +184,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
     String                                authenticationPluginType;
     byte                                  exchangeCharset;
     String                                host;
+
+    protected boolean                     useOceanBaseProtocolV20;
+    protected boolean                     enableFullLinkTrace;
+    protected boolean                     useNewExtraInfo;
+    OceanBaseProtocolV20                  ob20;
+    FullLinkTrace                         fullLinkTrace;
 
     /**
      * Get a protocol instance.
@@ -281,58 +290,58 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private static long initializeClientCapabilities(final Options options,
                                                      final long serverCapabilities,
                                                      final String database) {
-        long capabilities = OceanBaseServerCapabilities.IGNORE_SPACE
-                            | OceanBaseServerCapabilities.CLIENT_PROTOCOL_41
-                            | OceanBaseServerCapabilities.TRANSACTIONS
-                            | OceanBaseServerCapabilities.SECURE_CONNECTION
-                            | OceanBaseServerCapabilities.MULTI_RESULTS
-                            | OceanBaseServerCapabilities.PS_MULTI_RESULTS
-                            | OceanBaseServerCapabilities.PLUGIN_AUTH
-                            | OceanBaseServerCapabilities.CONNECT_ATTRS
-                            | OceanBaseServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                            | OceanBaseServerCapabilities.CLIENT_SESSION_TRACK
-                            | OceanBaseServerCapabilities.CLIENT_SUPPORT_ORACLE;
+        long capabilities = OceanBaseCapabilityFlag.CLIENT_IGNORE_SPACE
+                            | OceanBaseCapabilityFlag.CLIENT_PROTOCOL_41
+                            | OceanBaseCapabilityFlag.CLIENT_TRANSACTIONS
+                            | OceanBaseCapabilityFlag.CLIENT_SECURE_CONNECTION
+                            | OceanBaseCapabilityFlag.CLIENT_MULTI_RESULTS
+                            | OceanBaseCapabilityFlag.CLIENT_PS_MULTI_RESULTS
+                            | OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH
+                            | OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS
+                            | OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+                            | OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK
+                            | OceanBaseCapabilityFlag.CLIENT_SUPPORT_ORACLE;
 
         if (options.allowLocalInfile) {
-            capabilities |= OceanBaseServerCapabilities.LOCAL_FILES;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_LOCAL_FILES;
         }
 
         // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
         // The default (and JDBC standard) is "found rows". The other option is "affected rows".
         // See https://jira.mariadb.org/browse/CONJ-384
         if (!options.useAffectedRows) {
-            capabilities |= OceanBaseServerCapabilities.FOUND_ROWS;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_FOUND_ROWS;
         }
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
-            capabilities |= OceanBaseServerCapabilities.MULTI_STATEMENTS;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_MULTI_STATEMENTS;
         }
 
-        if ((serverCapabilities & OceanBaseServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
-            capabilities |= OceanBaseServerCapabilities.CLIENT_DEPRECATE_EOF;
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_DEPRECATE_EOF) != 0) {
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_DEPRECATE_EOF;
         }
 
         if (options.useCompression) {
-            if ((serverCapabilities & OceanBaseServerCapabilities.COMPRESS) == 0) {
+            if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_COMPRESS) == 0) {
                 // ensure that server has compress capacity - MaxScale doesn't
                 options.useCompression = false;
             } else {
-                capabilities |= OceanBaseServerCapabilities.COMPRESS;
+                capabilities |= OceanBaseCapabilityFlag.CLIENT_COMPRESS;
             }
         }
 
         if (options.interactiveClient) {
-            capabilities |= OceanBaseServerCapabilities.CLIENT_INTERACTIVE;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_INTERACTIVE;
         }
 
         // If a database is given, but createDatabaseIfNotExist is not defined or is false,
         // then just try to connect to the given database
         if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
-            capabilities |= OceanBaseServerCapabilities.CONNECT_WITH_DB;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_CONNECT_WITH_DB;
         }
         // tell ObServer if client support LobLocator.
         if (options.supportLobLocator) {
-            capabilities |= OceanBaseServerCapabilities.CLIENT_SUPPORT_LOB_LOCATOR;
+            capabilities |= OceanBaseCapabilityFlag.CLIENT_SUPPORT_LOB_LOCATOR;
         }
         return capabilities;
     }
@@ -562,11 +571,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sslWrapper(host, socket, options, greetingPacket.getServerCapabilities(),
                 clientCapabilities, exchangeCharset, serverThreadId);
             if (Boolean.TRUE.equals(options.useSsl)) {
-                if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
+                if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SSL) == 0) {
                     exceptionFactory.create(
                         "Trying to connect with ssl, but ssl not enabled in the server", "08000");
                 }
-                clientCapabilities |= OceanBaseServerCapabilities.SSL;
+                clientCapabilities |= OceanBaseCapabilityFlag.CLIENT_SSL;
             }
             String authenticationPluginType = greetingPacket.getAuthenticationPluginType();
             if (credentialPlugin != null
@@ -605,7 +614,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (this.options.socketTimeout != null) {
             this.socketTimeout = this.options.socketTimeout;
         }
-        if ((serverCapabilities & OceanBaseServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_DEPRECATE_EOF) != 0) {
             eofDeprecated = true;
         }
 
@@ -651,11 +660,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                                             IOException {
         if (Boolean.TRUE.equals(options.useSsl)) {
 
-            if ((serverCapabilities & OceanBaseServerCapabilities.SSL) == 0) {
+            if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SSL) == 0) {
                 exceptionFactory.create(
                     "Trying to connect with ssl, but ssl not enabled in the server", "08000");
             }
-            clientCapabilities |= OceanBaseServerCapabilities.SSL;
+            clientCapabilities |= OceanBaseCapabilityFlag.CLIENT_SSL;
             SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
             TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(options.tlsSocketType);
             SSLSocketFactory sslSocketFactory = socketPlugin.getSocketFactory(options);
@@ -714,7 +723,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     // *************************************************************************************
                     sequence.set(reader.getLastPacketSeq());
                     AuthenticationPlugin authenticationPlugin;
-                    if ((serverCapabilities & OceanBaseServerCapabilities.PLUGIN_AUTH) != 0) {
+                    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PLUGIN_AUTH) != 0) {
                         buffer.readByte();
                         String plugin;
                         if (buffer.remaining() > 0) {
@@ -781,9 +790,79 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     buffer.skipByte(); // 0x00 OkPacket Header
                     buffer.skipLengthEncodedNumeric(); // affectedRows
                     buffer.skipLengthEncodedNumeric(); // insertId
-                    serverStatus = buffer.readShort();
+                    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_PROTOCOL_41) != 0) {
+                        serverStatus = buffer.readShort();
+                        buffer.skipBytes(2);
+                    } else if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_TRANSACTIONS) != 0) {
+                        serverStatus = buffer.readShort();
+                    }
                     if ((serverStatus & ServerStatus.OB_SERVER_USE_ORACLE_MODE) != 0) {
                         setOracleMode(true);
+                    }
+
+                    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
+                        buffer.skipLengthEncodedBytes(); // human readable status information
+                        if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
+                            // session state changes
+                            int totalLength = (int) buffer.getLengthEncodedNumeric();
+                            int readLength = 0;
+                            while (readLength < totalLength) {
+                                readLength++;
+                                // read type of data
+                                switch (buffer.readByte()) {
+                                // read data of the changed session info
+                                    case 0x00: // SESSION_TRACK_SYSTEM_VARIABLES
+                                        // read length
+                                        int type = buffer.readByte();
+                                        readLength++;
+                                        long dataLength;
+                                        switch (type) {
+                                            case 251:
+                                                dataLength = -1;
+                                                break;
+                                            case 252:
+                                                dataLength = 0xffff & buffer.readShort();
+                                                readLength += 2;
+                                                break;
+                                            case 253:
+                                                dataLength = 0xffffff & buffer.read24bitword();
+                                                readLength += 3;
+                                                break;
+                                            case 254:
+                                                dataLength = buffer.readLong();
+                                                readLength += 8;
+                                                break;
+                                            default:
+                                                dataLength = type;
+                                                break;
+                                        }
+
+                                        // read string
+                                        String name = buffer
+                                            .readStringLengthEncoded(StandardCharsets.UTF_8);
+                                        String value = buffer
+                                            .readStringLengthEncoded(StandardCharsets.UTF_8);
+                                        readLength += dataLength;
+
+                                        // TODO: process nls_format
+
+                                        // process ob_capability_flag
+                                        if (name.equals("ob_capability_flag")) {
+                                            useOceanBaseProtocolV20 = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2) != 0);
+                                            enableFullLinkTrace = useOceanBaseProtocolV20
+                                                                  && ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE) != 0); // full link trace require for OB2.0 protocol
+                                            useNewExtraInfo = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO) != 0);
+                                        }
+                                        break;
+                                    case 0x01: // SESSION_TRACK_SCHEMA
+                                    case 0x02: // SESSION_TRACK_STATE_CHANGE
+                                    case 0x03: // SESSION_TRACK_GTIDS
+                                        break;
+                                }
+                            }
+                        }
+                    } else {
+                        buffer.skipLengthEncodedBytes(); // human readable status information
                     }
                     break authentication_loop;
 
@@ -795,13 +874,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.permitTrace(true);
     }
 
-    private void compressionHandler(Options options) {
-        if (options.useCompression) {
+    private void compressionHandler(Options options) throws IOException {
+        if (useOceanBaseProtocolV20) {
+            ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
+            writer = new Ob20PacketOutputStream(writer.getOutputStream(),
+                options.maxQuerySizeToLog, options.characterEncoding, serverThreadId, ob20);
+            reader = new Ob20PacketInputStream(socket.getInputStream(), options, serverThreadId,
+                ob20);
+
+            if (enableFullLinkTrace) {
+                fullLinkTrace = new FullLinkTrace(useNewExtraInfo);
+                ob20.setTraceInfo(fullLinkTrace.traceInfo);
+            }
+        } else if (options.useCompression) {
             writer = new CompressPacketOutputStream(writer.getOutputStream(),
                 options.maxQuerySizeToLog, serverThreadId, options.characterEncoding);
             reader = new DecompressPacketInputStream(
                 ((StandardPacketInputStream) reader).getInputStream(), options.maxQuerySizeToLog,
                 serverThreadId);
+
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
                 reader.setTraceCache(traceCache);
@@ -811,16 +902,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void assignStream(Socket socket, Options options) throws SQLException {
         try {
-            this.writer = new StandardPacketOutputStream(socket.getOutputStream(), options,
+            writer = new StandardPacketOutputStream(socket.getOutputStream(), options,
                 serverThreadId);
-            this.reader = new StandardPacketInputStream(socket.getInputStream(), options,
-                serverThreadId);
+            reader = new StandardPacketInputStream(socket.getInputStream(), options, serverThreadId);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
                 reader.setTraceCache(traceCache);
             }
-
         } catch (IOException ioe) {
             destroySocket();
             throw ExceptionFactory.INSTANCE.create("Socket error: " + ioe.getMessage(), "08000",
@@ -1597,6 +1686,104 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return supportFetchWithOffset;
     }
 
+    public boolean useOceanBaseProtocolV20() {
+        return useOceanBaseProtocolV20;
+    }
+
+    public void setFullLinkTraceModule(String module, String action) {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        fullLinkTrace.traceInfo.appInfo.setModule(module, action);
+    }
+
+    public String getFullLinkTraceModule() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.appInfo.getModule();
+    }
+
+    public void setFullLinkTraceAction(String action) {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        fullLinkTrace.traceInfo.appInfo.setAction(action);
+    }
+
+    public String getFullLinkTraceAction() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.appInfo.getAction();
+    }
+
+    public void setFullLinkTraceClientInfo(String clientInfo) {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        fullLinkTrace.traceInfo.appInfo.setClientInfo(clientInfo);
+    }
+
+    public String getFullLinkTraceClientInfo() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.appInfo.getClientInfo();
+    }
+
+    public void setFullLinkTraceIdentifier(String clientIdentifier) {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        fullLinkTrace.traceInfo.appInfo.setClientIdentifier(clientIdentifier);
+    }
+
+    public String getFullLinkTraceIdentifier() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.appInfo.getClientIdentifier();
+    }
+
+    // todo: remove below
+    public byte getFullLinkTraceLevel() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.controlInfo.getLevel();
+    }
+
+    public double getFullLinkTraceSamplePercentage() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.controlInfo.getSamplePercentage();
+    }
+
+    public byte getFullLinkTraceRecordPolicy() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.controlInfo.getRecordPolicy();
+    }
+
+    public double getFullLinkTracePrintSamplePercentage() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.controlInfo.getPrintSamplePercentage();
+    }
+
+    public long getFullLinkTraceSlowQueryThreshold() {
+        if (!enableFullLinkTrace) {
+            throw new UnsupportedOperationException("FullLinkTrace is not enabled.");
+        }
+        return fullLinkTrace.traceInfo.controlInfo.getSlowQueryThreshold();
+    }
+
+    // todo: remove above
+
     public boolean getReadonly() {
         return readOnly;
     }
@@ -1832,7 +2019,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public boolean sessionStateAware() {
-        return (serverCapabilities & OceanBaseServerCapabilities.CLIENT_SESSION_TRACK) != 0;
+        return (serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0;
     }
 
     /**
