@@ -159,6 +159,10 @@ public class ServerPrepareResult implements PrepareResult {
         return shareCounter;
     }
 
+    public void setStatementId(int statementId) {
+        this.statementId = statementId;
+    }
+
     public int getStatementId() {
         return statementId;
     }

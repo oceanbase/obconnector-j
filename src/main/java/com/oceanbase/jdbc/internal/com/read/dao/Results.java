@@ -475,6 +475,7 @@ public class Results {
             statement.realClose();
         }
         statement = null;
+        statementId = 0;
         fetchSize = 0;
     }
 

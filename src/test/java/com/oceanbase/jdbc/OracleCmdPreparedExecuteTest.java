@@ -301,4 +301,34 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         con.close();
     }
 
+    @Test
+    public void fix44858126() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false&useOceanBaseProtocolV20=false");
+
+        Statement s = conn.createStatement();
+        try {
+            s.execute("drop table t0");
+            s.execute("create table t0(c0 int)");
+        } catch (SQLException e) {
+
+        }
+        try {
+            s.execute("create or replace procedure proc_1(c0 int)is begin null;end;");
+        } catch (SQLException e) {
+
+        }
+        for (int i = 0; i < 2; i++) {
+            PreparedStatement ps = conn.prepareStatement("select * from t0");
+            ps.execute();
+            ps.close();
+        }
+
+        for (int i = 0; i < 2; i++) {
+            PreparedStatement call = conn.prepareCall("call proc_1(?)");
+            call.setInt(1, 1);
+            call.execute();
+            call.close();
+        }
+        conn.close();
+    }
 }
