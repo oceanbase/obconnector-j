@@ -230,7 +230,7 @@ public class OceanBaseProtocolV20 {
 
     public void updateRequestId() {
         curRequestId++;
-        if (curRequestId == UINT_MAX24) {
+        if (curRequestId == UINT_MAX24 + 1) {
             curRequestId = 0;
         }
     }
