@@ -78,6 +78,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   protected ServerPrepareResult             serverPrepareResult = null;
   private   OceanBaseResultSetMetaData      resultSetMetaData;
   private   OceanBaseParameterMetaData      parameterMetaData;
+  private   boolean released;
   protected boolean isObFunction;
   private   boolean sendTypesToServer = false;
   private   boolean mustExecuteOnMaster;
@@ -154,6 +155,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    */
   public JDBC4ServerPreparedStatement clone(OceanBaseConnection connection) throws CloneNotSupportedException {
     JDBC4ServerPreparedStatement clone = (JDBC4ServerPreparedStatement) super.clone(connection);
+    clone.released = false;
     clone.resultSetMetaData = resultSetMetaData;
     clone.parameterMetaData = parameterMetaData;
     clone.parametersList = new ArrayList<>();
@@ -928,9 +930,10 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     // No possible future use for the cached results, so these can be cleared
     // This makes the cache eligible for garbage collection earlier if the statement is not
     // immediately garbage collected
-    if (protocol != null && serverPrepareResult != null) {
+    if (!released && protocol != null && serverPrepareResult != null) {
       try {
         serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+        released = true;
       } catch (SQLException e) {
         // eat
       }
@@ -960,10 +963,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   @Override
-  public void realClose() throws  SQLException {
-    if (protocol != null && serverPrepareResult != null) {
+  public void realClose() throws SQLException {
+    if (!released && protocol != null && serverPrepareResult != null) {
       try {
         serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+        released = true;
       } catch (SQLException e) {
         // eat
       }

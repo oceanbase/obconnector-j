@@ -230,8 +230,12 @@ public class ComStmtPrepareExecute {
                         throw protocol.readErrorPacket(buffer, results);
                 }
 
-                return serverPrepareResult != null ? serverPrepareResult : new ServerPrepareResult(
-                    results.getSql(), statementId, columns, params, protocol);
+                if (serverPrepareResult == null) {
+                    serverPrepareResult = new ServerPrepareResult(results.getSql(), statementId, columns, params, protocol);
+                } else {
+                    serverPrepareResult.setStatementId(statementId);
+                }
+                return serverPrepareResult;
 
             case Packet.ERROR:
                 throw protocol.readErrorPacket(buffer, results);

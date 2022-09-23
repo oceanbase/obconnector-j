@@ -234,7 +234,7 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
                 ob20.header.connectionId));
         }
 
-        if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff: ob20.curRequestId - 1)) {
+        if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff : ob20.curRequestId - 1)) {
             throw new IOException(String.format(
                 "requestId mismatch, currRequestId=%d, requestId=%d", ob20.curRequestId,
                 ob20.header.requestId));

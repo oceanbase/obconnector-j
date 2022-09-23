@@ -163,6 +163,12 @@ public class ServerPrepareResult implements PrepareResult {
         this.statementId = statementId;
     }
 
+    public void release() {
+        statementId = 0;
+        shareCounter = 1;
+        isBeingDeallocate = false;
+    }
+
     public int getStatementId() {
         return statementId;
     }

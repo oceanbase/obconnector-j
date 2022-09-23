@@ -303,15 +303,16 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
 
     @Test
     public void fix44858126() throws SQLException {
-        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false&useOceanBaseProtocolV20=false");
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false&useOceanBaseProtocolV20=false"
+                                        + "&useServerPrepStmts=false&cachePrepStmts=false&cacheCallableStmts=false");
 
         Statement s = conn.createStatement();
         try {
             s.execute("drop table t0");
-            s.execute("create table t0(c0 int)");
         } catch (SQLException e) {
-
         }
+        s.execute("create table t0(c0 int)");
+
         try {
             s.execute("create or replace procedure proc_1(c0 int)is begin null;end;");
         } catch (SQLException e) {
@@ -330,5 +331,35 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
             call.close();
         }
         conn.close();
+    }
+
+    @Test
+    public void fix45039070() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        try {
+            conn.createStatement().execute("drop table t0");
+        } catch (Exception e) {
+
+        }
+        conn.createStatement().execute("create table t0 (c0 int)");
+        conn.createStatement()
+            .execute(
+                "create or replace procedure get_result(v_sql in varchar2, c out sys_refcursor) is begin open c for v_sql; end;");
+        //conn.createStatement().execute("create or replace procedure get_result(v_sql in varchar2) is begin null; end;");
+
+        for (int i = 0; i < 60; i++) {
+            CallableStatement call = conn.prepareCall("call get_result(?,?)");
+            String sql = "SELECT  COUNT(*) FROM T0";
+            call.setString(1, sql);
+            call.registerOutParameter(2, Types.REF_CURSOR);
+            call.execute();
+
+            ResultSet rs = (ResultSet) call.getObject(2);
+            while (rs.next()) {
+
+            }
+            rs.close();
+            call.close();
+        }
     }
 }
