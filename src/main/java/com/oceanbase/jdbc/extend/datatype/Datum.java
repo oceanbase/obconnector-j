@@ -51,38 +51,11 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Calendar;
 
-import com.oceanbase.jdbc.OceanBaseConnection;
-
 public abstract class Datum implements Serializable {
 
-    protected byte[] data; // FIXME should use buf/pos/length, but not data
+    protected byte[] data;
 
     public Datum() {
-    }
-
-    public static String getSessionTimeZone(Connection connection) throws SQLException {
-        if (connection instanceof OceanBaseConnection) {
-            return ((OceanBaseConnection) connection).getSessionTimeZone();
-        } else {
-            throw new SQLException("unexpected connection type");
-        }
-    }
-
-    protected static final int getInt(byte[] bytes, int idx) {
-        int value = (bytes[idx + 3] & 255) << 24;
-        value |= (bytes[idx + 2] & 255) << 16;
-        value |= (bytes[idx + 1] & 255) << 8;
-        value |= bytes[idx] & 255;
-        return value;
-    }
-
-    protected static byte[] intToBytes(int val) {
-        byte[] b = new byte[4];
-        b[0] = (byte) (val & 0xff);
-        b[1] = (byte) ((val >> 8) & 0xff);
-        b[2] = (byte) ((val >> 16) & 0xff);
-        b[3] = (byte) ((val >> 24) & 0xff);
-        return b;
     }
 
     public Datum(byte[] bytes) {
@@ -108,7 +81,6 @@ public abstract class Datum implements Serializable {
                             return false;
                         }
                     }
-
                     return true;
                 }
             } else {

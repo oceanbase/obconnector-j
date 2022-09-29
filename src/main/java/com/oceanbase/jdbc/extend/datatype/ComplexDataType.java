@@ -171,7 +171,6 @@ public class ComplexDataType {
         if (attrType.equalsIgnoreCase("CHAR")) {
             return TYPE_CHAR;
         }
-
         return TYPE_MAX;
     }
 

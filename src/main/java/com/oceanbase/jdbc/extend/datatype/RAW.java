@@ -51,7 +51,6 @@ public class RAW extends Datum {
     }
 
     public RAW(Object val) {
-        // todo
     }
 
     @Override

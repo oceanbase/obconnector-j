@@ -47,8 +47,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_DOUBLE extends Datum {
-    public static final boolean TRACE = false;
-
     public BINARY_DOUBLE() {
     }
 
@@ -57,23 +55,23 @@ public class BINARY_DOUBLE extends Datum {
     }
 
     public BINARY_DOUBLE(double doubleVal) {
-        super(doubleToCanonicalFormatBytes(doubleVal));
+        super(DataTypeUtilities.doubleToBytes(doubleVal));
     }
 
     public BINARY_DOUBLE(Double doubleVal) {
-        super(doubleToCanonicalFormatBytes(doubleVal));
+        super(DataTypeUtilities.doubleToBytes(doubleVal));
     }
 
     public BINARY_DOUBLE(String stringVal) throws SQLException {
-        this(stringToDouble(stringVal));
+        this(DataTypeUtilities.stringToDouble(stringVal));
     }
 
     public BINARY_DOUBLE(Boolean booleanVal) {
-        this((double) (booleanVal ? 1 : 0));
+        this(booleanVal ? 1 : 0);
     }
 
     public Object toJdbc() throws SQLException {
-        return new Double(canonicalFormatBytesToDouble(this.getBytes()));
+        return new Double(DataTypeUtilities.bytesToDouble(this.getBytes()));
     }
 
     public boolean isConvertibleTo(Class targetClass) {
@@ -83,104 +81,19 @@ public class BINARY_DOUBLE extends Datum {
     }
 
     public String stringValue() {
-        return Double.toString(canonicalFormatBytesToDouble(this.getBytes()));
+        return Double.toString(DataTypeUtilities.bytesToDouble(this.getBytes()));
     }
 
     public double doubleValue() throws SQLException {
-        return canonicalFormatBytesToDouble(this.getBytes());
+        return DataTypeUtilities.bytesToDouble(this.getBytes());
     }
 
     public BigDecimal bigDecimalValue() throws SQLException {
-        return new BigDecimal(canonicalFormatBytesToDouble(this.getBytes()));
+        return new BigDecimal(DataTypeUtilities.bytesToDouble(this.getBytes()));
     }
 
     public Object makeJdbcArray(int intVal) {
         return new Double[intVal];
     }
 
-    private static double stringToDouble(String stringVal) throws SQLException {
-        try {
-            return Double.valueOf(stringVal);
-        } catch (NumberFormatException numberFormatException) {
-            throw numberFormatException;
-        }
-    }
-
-    static byte[] doubleToCanonicalFormatBytes(double doubleVal) {
-        double doubleValTmp = doubleVal;
-        if (doubleVal == 0.0D) {
-            doubleValTmp = 0.0D;
-        } else if (doubleVal != doubleVal) {
-            doubleValTmp = 0.0D / 0.0;
-        }
-
-        long longVal = Double.doubleToLongBits(doubleValTmp);
-        byte[] bytes = new byte[8];
-        int intPart1 = (int) longVal;
-        int intPart2 = (int) (longVal >> 32);
-        int pos1 = intPart1;
-        intPart1 >>= 8;
-        int pos2 = intPart1;
-        intPart1 >>= 8;
-        int pos3 = intPart1;
-        intPart1 >>= 8;
-        int pos4 = intPart1;
-        int pos5 = intPart2;
-        intPart2 >>= 8;
-        int pos6 = intPart2;
-        intPart2 >>= 8;
-        int pos7 = intPart2;
-        intPart2 >>= 8;
-        int pos8;
-        if ((intPart2 & 128) == 0) {
-            pos8 = intPart2 | 128;
-        } else {
-            pos8 = ~intPart2;
-            pos7 = ~pos7;
-            pos6 = ~pos6;
-            pos5 = ~pos5;
-            pos4 = ~intPart1;
-            pos3 = ~pos3;
-            pos2 = ~pos2;
-            pos1 = ~pos1;
-        }
-
-        bytes[7] = (byte) pos1;
-        bytes[6] = (byte) pos2;
-        bytes[5] = (byte) pos3;
-        bytes[4] = (byte) pos4;
-        bytes[3] = (byte) pos5;
-        bytes[2] = (byte) pos6;
-        bytes[1] = (byte) pos7;
-        bytes[0] = (byte) pos8;
-        return bytes;
-    }
-
-    static double canonicalFormatBytesToDouble(byte[] bytes) {
-        int intPos1, intPos2, intPos3, intPos4, intPos5, intPos6, intPos7, intPos8;
-        if ((bytes[0] & 128) != 0) {
-            intPos1 = bytes[0] & 127;
-            intPos2 = bytes[1] & 255;
-            intPos3 = bytes[2] & 255;
-            intPos4 = bytes[3] & 255;
-            intPos5 = bytes[4] & 255;
-            intPos6 = bytes[5] & 255;
-            intPos7 = bytes[6] & 255;
-            intPos8 = bytes[7] & 255;
-        } else {
-            intPos1 = ~bytes[0] & 255;
-            intPos2 = ~bytes[1] & 255;
-            intPos3 = ~bytes[2] & 255;
-            intPos4 = ~bytes[3] & 255;
-            intPos5 = ~bytes[4] & 255;
-            intPos6 = ~bytes[5] & 255;
-            intPos7 = ~bytes[6] & 255;
-            intPos8 = ~bytes[7] & 255;
-        }
-
-        int longPos1 = intPos1 << 24 | intPos2 << 16 | intPos3 << 8 | intPos4;
-        int longPos2 = intPos5 << 24 | intPos6 << 16 | intPos7 << 8 | intPos8;
-        long longVal = (long) longPos1 << 32 | (long) longPos2 & 4294967295L;
-        return Double.longBitsToDouble(longVal);
-    }
 }

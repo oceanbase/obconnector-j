@@ -707,7 +707,7 @@ public class FullLinkTrace {
 
     private boolean                              traceEnable;
     private boolean                              forcePrint;
-    public  TraceInfo                            traceInfo;
+    public TraceInfo                             traceInfo;
 
     private UUID                                 traceId;
     private UUID                                 rootSpanId;

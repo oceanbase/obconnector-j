@@ -289,7 +289,7 @@ public abstract class RowProtocol {
     sb.append(".");
     byte[] nanosBytes = new byte[4];
     System.arraycopy(bytes, pos + 7, nanosBytes, 0, 4);
-    int nanos = TIMESTAMP.getNanos(nanosBytes, 0); // FIXME
+    int nanos = DataTypeUtilities.getNanos(nanosBytes, 0); // FIXME
     String temp = String.format("%09d", nanos);
     char[] chars = temp.toCharArray();
 

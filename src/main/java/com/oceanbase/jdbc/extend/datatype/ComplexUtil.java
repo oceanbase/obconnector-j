@@ -58,13 +58,10 @@ public class ComplexUtil {
     public static void storeDateTime(PacketOutputStream pos, java.util.Date dt, int bufferType,
                                      Options options) throws SQLException, IOException {
         storeDateTime413AndNewer(pos, dt, bufferType, options);
-        //storeDateTime412AndOlder() fixme
     }
 
     public static void storeDateTime413AndNewer(PacketOutputStream pos, java.util.Date dt,
-                                                int bufferType, Options options)
-                                                                                throws SQLException,
-                                                                                IOException {
+                                                int bufferType, Options options) throws IOException {
         Calendar sessionCalendar = null;
         if (!options.useLegacyDatetimeCode) {
             if (bufferType == ColumnType.DATE.getType()) {
@@ -128,13 +125,12 @@ public class ComplexUtil {
             case ComplexDataType.TYPE_DATE:
                 return ColumnType.DATETIME;
             case ComplexDataType.TYPE_COLLECTION:
+            case ComplexDataType.TYPE_OBJECT:
                 return ColumnType.COMPLEX;
             case ComplexDataType.TYPE_NUMBER:
                 return ColumnType.DECIMAL;
             case ComplexDataType.TYPE_VARCHAR2:
                 return ColumnType.VARCHAR;
-            case ComplexDataType.TYPE_OBJECT:
-                return ColumnType.COMPLEX;
             case ComplexDataType.TYPE_RAW:
                 return ColumnType.RAW;
             default:

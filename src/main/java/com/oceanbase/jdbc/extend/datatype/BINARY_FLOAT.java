@@ -47,8 +47,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_FLOAT extends Datum {
-    public static final boolean TRACE = false;
-
     public BINARY_FLOAT() {
     }
 
@@ -57,15 +55,15 @@ public class BINARY_FLOAT extends Datum {
     }
 
     public BINARY_FLOAT(float floatVal) {
-        super(floatToCanonicalFormatBytes(floatVal));
+        super(DataTypeUtilities.floatToBytes(floatVal));
     }
 
     public BINARY_FLOAT(Float floatVal) {
-        super(floatToCanonicalFormatBytes(floatVal));
+        super(DataTypeUtilities.floatToBytes(floatVal));
     }
 
     public BINARY_FLOAT(String stringVal) throws SQLException {
-        this(stringToFloat(stringVal));
+        this(DataTypeUtilities.stringToFloat(stringVal));
     }
 
     public BINARY_FLOAT(Boolean booleanVal) {
@@ -73,7 +71,7 @@ public class BINARY_FLOAT extends Datum {
     }
 
     public Object toJdbc() throws SQLException {
-        return new Float(canonicalFormatBytesToFloat(this.getBytes()));
+        return new Float(DataTypeUtilities.bytesToFloat(this.getBytes()));
     }
 
     public boolean isConvertibleTo(Class targetClass) {
@@ -83,81 +81,23 @@ public class BINARY_FLOAT extends Datum {
     }
 
     public String stringValue() {
-        return Float.toString(canonicalFormatBytesToFloat(this.getBytes()));
+        return Float.toString(DataTypeUtilities.bytesToFloat(this.getBytes()));
     }
 
     public float floatValue() throws SQLException {
-        return canonicalFormatBytesToFloat(this.getBytes());
+        return DataTypeUtilities.bytesToFloat(this.getBytes());
     }
 
     public double doubleValue() throws SQLException {
-        return (double) this.floatValue();
+        return this.floatValue();
     }
 
     public BigDecimal bigDecimalValue() throws SQLException {
-        return new BigDecimal((double) this.floatValue());
-    }
-
-    private static float stringToFloat(String stringVal) throws SQLException {
-        try {
-            return Float.valueOf(stringVal);
-        } catch (NumberFormatException e) {
-            throw e;
-        }
+        return new BigDecimal(this.floatValue());
     }
 
     public Object makeJdbcArray(int intVal) {
         return new Float[intVal];
     }
 
-    static byte[] floatToCanonicalFormatBytes(float floatVal) {
-        float floatValTmp = floatVal;
-        if (floatVal == 0.0F) {
-            floatValTmp = 0.0F;
-        } else if (floatVal != floatVal) {
-            floatValTmp = (float) (0.0F / 0.0);
-        }
-
-        int floatToIntBits = Float.floatToIntBits(floatValTmp);
-        byte[] bytes = new byte[4];
-        int floatPos1 = floatToIntBits;
-        floatToIntBits >>= 8;
-        int floatPos2 = floatToIntBits;
-        floatToIntBits >>= 8;
-        int floatPos3 = floatToIntBits;
-        floatToIntBits >>= 8;
-        int floatPos4;
-        if ((floatToIntBits & 128) == 0) {
-            floatPos4 = floatToIntBits | 128;
-        } else {
-            floatPos4 = ~floatToIntBits;
-            floatPos3 = ~floatPos3;
-            floatPos2 = ~floatPos2;
-            floatPos1 = ~floatPos1;
-        }
-
-        bytes[3] = (byte) floatPos1;
-        bytes[2] = (byte) floatPos2;
-        bytes[1] = (byte) floatPos3;
-        bytes[0] = (byte) floatPos4;
-        return bytes;
-    }
-
-    static float canonicalFormatBytesToFloat(byte[] bytes) {
-        int aInt1, aInt2, aInt3, aInt4;
-        if ((bytes[0] & 128) != 0) {
-            aInt1 = bytes[0] & 127;
-            aInt2 = bytes[1] & 255;
-            aInt3 = bytes[2] & 255;
-            aInt4 = bytes[3] & 255;
-        } else {
-            aInt1 = ~bytes[0] & 255;
-            aInt2 = ~bytes[1] & 255;
-            aInt3 = ~bytes[2] & 255;
-            aInt4 = ~bytes[3] & 255;
-        }
-
-        int intVal = aInt1 << 24 | aInt2 << 16 | aInt3 << 8 | aInt4;
-        return Float.intBitsToFloat(intVal);
-    }
 }
