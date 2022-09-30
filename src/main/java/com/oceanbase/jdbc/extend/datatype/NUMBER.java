@@ -53,31 +53,18 @@ public class NUMBER extends Datum {
     public NUMBER() {
     }
 
-    public NUMBER(byte[] bytes) {
-        super(bytes);
-        if (bytes != null) {
-            bigDecimal = new BigDecimal(new String(bytes));
+    public String stringValue() {
+        if (this.bigDecimal != null) {
+            return this.bigDecimal.toString();
         }
+        return null;
     }
 
-    @Override
-    public boolean isConvertibleTo(Class targetClass) {
-        String callName = targetClass.getName();
-        switch (callName) {
-            case "java.lang.Integer":
-            case "java.lang.Long":
-            case "java.lang.Float":
-            case "java.lang.Double":
-            case "java.math.BigInteger":
-            case "java.math.BigDecimal":
-            case "java.lang.String":
-            case "java.lang.Boolean":
-            case "java.lang.Byte":
-            case "java.lang.Short":
-                return true;
-            default:
-                return false;
+    public boolean booleanValue() {
+        if (this.bigDecimal != null) {
+            return this.bigDecimal.intValue() == 0;
         }
+        return false;
     }
 
     @Override
@@ -112,13 +99,6 @@ public class NUMBER extends Datum {
         return 0;
     }
 
-    public int intValue() {
-        if (this.bigDecimal != null) {
-            return this.bigDecimal.intValue();
-        }
-        return 0;
-    }
-
     public short shortValue() {
         if (this.bigDecimal != null) {
             return this.bigDecimal.shortValue();
@@ -140,22 +120,15 @@ public class NUMBER extends Datum {
         return null;
     }
 
+    public int intValue() {
+        if (this.bigDecimal != null) {
+            return this.bigDecimal.intValue();
+        }
+        return 0;
+    }
+
     public BigDecimal bigDecimalValue() throws SQLException {
         return this.bigDecimal;
-    }
-
-    public String stringValue() {
-        if (this.bigDecimal != null) {
-            return this.bigDecimal.toString();
-        }
-        return null;
-    }
-
-    public boolean booleanValue() {
-        if (this.bigDecimal != null) {
-            return this.bigDecimal.intValue() == 0;
-        }
-        return false;
     }
 
     @Override
@@ -164,4 +137,32 @@ public class NUMBER extends Datum {
             return this.bigDecimal.toString();
         return null;
     }
+
+    public NUMBER(byte[] bytes) {
+        super(bytes);
+        if (bytes != null) {
+            bigDecimal = new BigDecimal(new String(bytes));
+        }
+    }
+
+    @Override
+    public boolean isConvertibleTo(Class targetClass) {
+        String callName = targetClass.getName();
+        switch (callName) {
+            case "java.lang.Integer":
+            case "java.lang.Long":
+            case "java.lang.Float":
+            case "java.lang.Double":
+            case "java.math.BigInteger":
+            case "java.math.BigDecimal":
+            case "java.lang.String":
+            case "java.lang.Boolean":
+            case "java.lang.Byte":
+            case "java.lang.Short":
+                return true;
+            default:
+                return false;
+        }
+    }
+
 }

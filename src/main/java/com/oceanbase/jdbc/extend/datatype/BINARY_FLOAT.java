@@ -47,28 +47,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_FLOAT extends Datum {
-    public BINARY_FLOAT() {
-    }
-
-    public BINARY_FLOAT(byte[] bytes) {
-        super(bytes);
-    }
-
-    public BINARY_FLOAT(float floatVal) {
-        super(DataTypeUtilities.floatToBytes(floatVal));
-    }
-
-    public BINARY_FLOAT(Float floatVal) {
-        super(DataTypeUtilities.floatToBytes(floatVal));
-    }
-
-    public BINARY_FLOAT(String stringVal) throws SQLException {
-        this(DataTypeUtilities.stringToFloat(stringVal));
-    }
-
-    public BINARY_FLOAT(Boolean booleanVal) {
-        this((float) (booleanVal ? 1 : 0));
-    }
 
     public Object toJdbc() throws SQLException {
         return new Float(DataTypeUtilities.bytesToFloat(this.getBytes()));
@@ -78,6 +56,10 @@ public class BINARY_FLOAT extends Datum {
         String className = targetClass.getName();
         return className.compareTo("java.lang.String") == 0
                || className.compareTo("java.lang.Float") == 0;
+    }
+
+    public Object makeJdbcArray(int intVal) {
+        return new Float[intVal];
     }
 
     public String stringValue() {
@@ -96,8 +78,27 @@ public class BINARY_FLOAT extends Datum {
         return new BigDecimal(this.floatValue());
     }
 
-    public Object makeJdbcArray(int intVal) {
-        return new Float[intVal];
+    public BINARY_FLOAT(float floatVal) {
+        super(DataTypeUtilities.floatToBytes(floatVal));
+    }
+
+    public BINARY_FLOAT(Float floatVal) {
+        super(DataTypeUtilities.floatToBytes(floatVal));
+    }
+
+    public BINARY_FLOAT(Boolean booleanVal) {
+        this((float) (booleanVal ? 1 : 0));
+    }
+
+    public BINARY_FLOAT(String stringVal) throws SQLException {
+        this(DataTypeUtilities.stringToFloat(stringVal));
+    }
+
+    public BINARY_FLOAT(byte[] bytes) {
+        super(bytes);
+    }
+
+    public BINARY_FLOAT() {
     }
 
 }

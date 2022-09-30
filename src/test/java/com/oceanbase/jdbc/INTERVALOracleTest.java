@@ -387,17 +387,17 @@ public class INTERVALOracleTest extends BaseOracleTest {
         try {
             INTERVALDS inHour = new INTERVALDS("+100 24:10:10.10");
         } catch (Exception e) {
-            assertEquals("invalid hour 24 in +100 24:10:10.10", e.getMessage());
+            assertEquals("hour 24 is not valid，should not exceed 23", e.getMessage());
         }
         try {
             INTERVALDS inMinute = new INTERVALDS("+100 12:65:10.11");
         } catch (Exception e) {
-            assertEquals("invalid minute  65 in +100 12:65:10.11", e.getMessage());
+            assertEquals("minute 65 is not valid，should not exceed 59", e.getMessage());
         }
         try {
             INTERVALDS inSecond = new INTERVALDS("+100 12:11:60.11");
         } catch (Exception e) {
-            assertEquals("invalid second  60 in +100 12:11:60.11", e.getMessage());
+            assertEquals("second 60 is not valid，should not exceed 59", e.getMessage());
         }
 
         try {

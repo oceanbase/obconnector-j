@@ -47,37 +47,15 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class BINARY_DOUBLE extends Datum {
-    public BINARY_DOUBLE() {
-    }
-
-    public BINARY_DOUBLE(byte[] bytes) {
-        super(bytes);
-    }
-
-    public BINARY_DOUBLE(double doubleVal) {
-        super(DataTypeUtilities.doubleToBytes(doubleVal));
-    }
-
-    public BINARY_DOUBLE(Double doubleVal) {
-        super(DataTypeUtilities.doubleToBytes(doubleVal));
-    }
-
-    public BINARY_DOUBLE(String stringVal) throws SQLException {
-        this(DataTypeUtilities.stringToDouble(stringVal));
-    }
-
-    public BINARY_DOUBLE(Boolean booleanVal) {
-        this(booleanVal ? 1 : 0);
-    }
-
-    public Object toJdbc() throws SQLException {
-        return new Double(DataTypeUtilities.bytesToDouble(this.getBytes()));
-    }
 
     public boolean isConvertibleTo(Class targetClass) {
         String className = targetClass.getName();
         return className.compareTo("java.lang.String") == 0
                || className.compareTo("java.lang.Double") == 0;
+    }
+
+    public Object toJdbc() throws SQLException {
+        return new Double(DataTypeUtilities.bytesToDouble(this.getBytes()));
     }
 
     public String stringValue() {
@@ -88,12 +66,35 @@ public class BINARY_DOUBLE extends Datum {
         return DataTypeUtilities.bytesToDouble(this.getBytes());
     }
 
+    public Object makeJdbcArray(int intVal) {
+        return new Double[intVal];
+    }
+
     public BigDecimal bigDecimalValue() throws SQLException {
         return new BigDecimal(DataTypeUtilities.bytesToDouble(this.getBytes()));
     }
 
-    public Object makeJdbcArray(int intVal) {
-        return new Double[intVal];
+    public BINARY_DOUBLE(String stringVal) throws SQLException {
+        this(DataTypeUtilities.stringToDouble(stringVal));
+    }
+
+    public BINARY_DOUBLE(Double doubleVal) {
+        super(DataTypeUtilities.doubleToBytes(doubleVal));
+    }
+
+    public BINARY_DOUBLE(double doubleVal) {
+        super(DataTypeUtilities.doubleToBytes(doubleVal));
+    }
+
+    public BINARY_DOUBLE(Boolean booleanVal) {
+        this(booleanVal ? 1 : 0);
+    }
+
+    public BINARY_DOUBLE(byte[] bytes) {
+        super(bytes);
+    }
+
+    public BINARY_DOUBLE() {
     }
 
 }

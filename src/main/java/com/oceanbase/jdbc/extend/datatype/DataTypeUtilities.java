@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc.extend.datatype;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.security.InvalidParameterException;
 import java.sql.*;
 import java.util.Calendar;
@@ -196,27 +197,27 @@ public class DataTypeUtilities {
     }
 
     public static final int getInt(byte[] bytes, int idx) {
-        return ByteBuffer.wrap(bytes, idx, 4).getInt();
-    }
-
-    public static byte[] intToBytes(int intVal) {
-        return ByteBuffer.allocate(4).putInt(intVal).array();
-    }
-
-    public static byte[] doubleToBytes(double doubleVal) {
-        return ByteBuffer.allocate(4).putDouble(doubleVal).array();
-    }
-
-    public static double bytesToDouble(byte[] bytes) {
-        return ByteBuffer.wrap(bytes).getDouble();
+        return ByteBuffer.wrap(bytes, idx, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
     }
 
     public static float bytesToFloat(byte[] bytes) {
-        return ByteBuffer.wrap(bytes).getFloat();
+        return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+    }
+
+    public static double bytesToDouble(byte[] bytes) {
+        return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getDouble();
+    }
+
+    public static byte[] intToBytes(int intVal) {
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(intVal).array();
+    }
+
+    public static byte[] doubleToBytes(double doubleVal) {
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putDouble(doubleVal).array();
     }
 
     static byte[] floatToBytes(float floatVal) {
-        return ByteBuffer.allocate(4).putFloat(floatVal).array();
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(floatVal).array();
     }
 
     public static float stringToFloat(String stringVal) {
@@ -261,7 +262,7 @@ public class DataTypeUtilities {
         return ret;
     }
 
-    public static IntervalDsParts getIntervalDsPartsValue(String str) {
+    public static IntervalDsParts getIntervalDsPartsValue(String str, String origin) {
         int day;
         int hour = 0;
         int minute = 0;
@@ -270,7 +271,7 @@ public class DataTypeUtilities {
         int index = str.indexOf(' '); //find pos of blanket
         String dayStr = str.substring(0, index);
         if (dayStr.length() > MAX_LEADPREC_VALUE) {
-            throw new NumberFormatException("invalid day len " + dayStr);
+            throw new NumberFormatException("invalid daylen " + dayStr);
         } else {
             day = Integer.valueOf(dayStr);
             String subStr = str;
@@ -291,28 +292,23 @@ public class DataTypeUtilities {
                         fracSecondStr = null;
                     }
                 } catch (Exception ex) {
-                    throw new NumberFormatException("invalid format " + str);
+                    throw new NumberFormatException("invalid format " + origin);
                 }
                 hour = Integer.valueOf(hourStr);
                 minute = Integer.valueOf(minuteStr);
                 second = Integer.valueOf(secondStr);
-                if (hour > MAX_HOUR_VALUE) {
-                    throw new NumberFormatException("invalid hour " + hour + " in " + str);
-                } else if (minute > MAX_MINUTE_VALUE) {
-                    throw new NumberFormatException("invalid minute  " + minute + " in " + str);
-                } else if (second > MAX_SECOND_VALUE) {
-                    throw new NumberFormatException("invalid second  " + second + " in " + str);
-                } else {
-                    if (fracSecondStr != null) {
-                        if (fracSecondStr.length() > MAX_LEADPREC_VALUE) {
-                            throw new NumberFormatException("invalid fracsecond length "
-                                                            + fracSecondStr + " in " + str);
-                        }
-                        fractional_second = Integer.valueOf(fracSecondStr);
-                        int lenDiff = MAX_LEADPREC_VALUE - fracSecondStr.length();
-                        for (int i = 0; i < lenDiff; i++) {
-                            fractional_second *= 10;
-                        }
+                checkValidParam("hour", hour, 0, MAX_HOUR_VALUE, false);
+                checkValidParam("minute", minute, 0, MAX_MINUTE_VALUE, false);
+                checkValidParam("second", second, 0, MAX_SECOND_VALUE, false);
+                if (fracSecondStr != null) {
+                    if (fracSecondStr.length() > MAX_LEADPREC_VALUE) {
+                        throw new NumberFormatException("invalid fracsecond length "
+                                                        + fracSecondStr + " in " + origin);
+                    }
+                    fractional_second = Integer.valueOf(fracSecondStr);
+                    int lenDiff = MAX_LEADPREC_VALUE - fracSecondStr.length();
+                    for (int i = 0; i < lenDiff; i++) {
+                        fractional_second *= 10;
                     }
                 }
             }
@@ -327,7 +323,7 @@ public class DataTypeUtilities {
             byte[] bytes = new byte[INTERVALDS_BYTE_SIZE];
             Ret ret = getOriginStringVal(str);
             String subStr = ret.getStr();
-            IntervalDsParts intervalDsParts = getIntervalDsPartsValue(subStr);
+            IntervalDsParts intervalDsParts = getIntervalDsPartsValue(subStr, str);
             bytes[0] = (byte) (ret.getIs_negative() & 0xff);
             byte[] tmpBytes = DataTypeUtilities.intToBytes(intervalDsParts.day);
             System.arraycopy(tmpBytes, 0, bytes, 1, 4);
@@ -358,16 +354,23 @@ public class DataTypeUtilities {
         return is_negative == 0 ? result : "-" + result;
     }
 
-    public static void checkValidParam(String msg, int val, int min, double max) {
+    public static void checkValidParam(String msg, int val, int min, double max, boolean maxIsDouble) {
         if (msg.equals("month")) {
             if (val < min || val >= max) {
-                throw new NumberFormatException(msg + val + " is not valid，should not exceed "
-                                                + max);
+                throw new NumberFormatException(msg + " " + val
+                                                + " is not valid，should not exceed " + max);
             }
         } else {
             if (val < min || val > max) {
-                throw new NumberFormatException(msg + val + " is not valid，should not exceed "
-                                                + max);
+                if (maxIsDouble) {
+                    throw new NumberFormatException(msg + " " + val
+                                                    + " is not valid，should not exceed " + max);
+                } else {
+                    throw new NumberFormatException(msg + " " + val
+                                                    + " is not valid，should not exceed "
+                                                    + new Double(max).intValue());
+                }
+
             }
         }
     }
@@ -376,17 +379,17 @@ public class DataTypeUtilities {
                                                int second, int fractional_second,
                                                int fractional_second_scale, int year, int month) {
         if (isIntervalDS) {
-            checkValidParam("day", day, 0, Math.pow(10, MAX_LEADPREC_VALUE));
-            checkValidParam("hour", hour, 0, MAX_HOUR_VALUE);
-            checkValidParam("minute", minute, 0, MAX_MINUTE_VALUE);
-            checkValidParam("second", second, 0, MAX_SECOND_VALUE);
+            checkValidParam("day", day, 0, Math.pow(10, MAX_LEADPREC_VALUE), true);
+            checkValidParam("hour", hour, 0, MAX_HOUR_VALUE, false);
+            checkValidParam("minute", minute, 0, MAX_MINUTE_VALUE, false);
+            checkValidParam("second", second, 0, MAX_SECOND_VALUE, false);
             checkValidParam("fractional_second", fractional_second, 0,
-                Math.pow(10, MAX_LEADPREC_VALUE));
+                Math.pow(10, MAX_LEADPREC_VALUE), true);
             checkValidParam("fractional_second_scale", fractional_second_scale, 0,
-                MAX_LEADPREC_VALUE);
+                MAX_LEADPREC_VALUE, false);
         } else {
-            checkValidParam("year", year, 0, Math.pow(10, MAX_YEAR_PREC_VALUE));
-            checkValidParam("month", month, 0, Math.pow(10, MAX_YEAR_PREC_VALUE));
+            checkValidParam("year", year, 0, Math.pow(10, MAX_YEAR_PREC_VALUE), true);
+            checkValidParam("month", month, 0, Math.pow(10, MAX_YEAR_PREC_VALUE), true);
         }
     }
 
@@ -407,12 +410,13 @@ public class DataTypeUtilities {
                 intervalDsParts.getFractional_second(),
                 intervalDsParts.getFractional_second_scale(), 0, 0);
             if (intervalDsParts.getFractional_second_scale() < MAX_LEADPREC_VALUE) {
-                intervalDsParts.setFractional_second(intervalDsParts.getFractional_second()
-                                                     / (int) Math.pow(
-                                                         10,
-                                                         MAX_LEADPREC_VALUE
-                                                                 - intervalDsParts
-                                                                     .getFractional_second()));
+                intervalDsParts
+                    .setFractional_second(intervalDsParts.getFractional_second()
+                                          / (int) Math.pow(
+                                              10,
+                                              MAX_LEADPREC_VALUE
+                                                      - intervalDsParts
+                                                          .getFractional_second_scale()));
             }
             return formatIntervalDsString(intervalDsParts.getDay(), intervalDsParts.getHour(),
                 intervalDsParts.getMinute(), intervalDsParts.getSecond(),
