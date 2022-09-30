@@ -90,7 +90,7 @@ public class DefaultSQLs {
                                                                                 + "       10 AS num_prec_radix,\n"
                                                                                 + OB_ORA_GET_COLUMNS_NULLABLE
                                                                                 + "       AS nullable,\n"
-                                                                                + "       NULL AS remarks,\n"
+                                                                                + "       %s AS remarks,\n"
                                                                                 + "       t.data_default AS column_def,\n"
                                                                                 + "       0 AS sql_data_type,\n"
                                                                                 + "       0 AS sql_datetime_sub,\n"
@@ -98,11 +98,11 @@ public class DefaultSQLs {
                                                                                 + "       t.column_id AS ordinal_position,\n"
                                                                                 + OB_ORA_GET_COLUMNS_IS_NULLABLE
                                                                                 + "        AS is_nullable\n"
-                                                                                + "FROM all_tab_columns t\n"
+                                                                                + "FROM all_tab_columns t %s\n"
                                                                                 + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
                                                                                 + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
                                                                                 + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
-                                                                                + "  AND t.owner != '__recyclebin' ORDER BY table_schem, table_name, ordinal_position";
+                                                                                + " %s AND t.owner != '__recyclebin' ORDER BY table_schem, table_name, ordinal_position";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE = "DECODE (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1)";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL               = "SELECT NULL   AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  UNION ALL SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,"
                                                                                 + OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE
