@@ -1,6 +1,7 @@
 package com.oceanbase.jdbc.internal.failover.BlackList.append;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,11 +35,12 @@ public class RetryDuration implements AppendStrategy {
         }
         List<Long> recentFailedTimeList = failureRecords.get(host);
         recentFailedTimeList.add(failedTime);
-
+        Iterator<Long> longIterator = recentFailedTimeList.iterator();
         int count = 0;
-        for (long ts: recentFailedTimeList) {
+        while(longIterator.hasNext()) {
+            long ts = longIterator.next();
             if (failedTime - ts > (maxDuration * 1000)) {
-                recentFailedTimeList.remove(ts);
+                longIterator.remove();
             } else if ((failedTime - ts) <= (duration * 1000)) {
                 count++;
             }
