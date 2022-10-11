@@ -2839,4 +2839,33 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testArrayBindingSetNull() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useArrayBinding=true&usePieceData=true");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table t1");
+            } catch (SQLException e) {
+            }
+
+            //execute the test sql.
+            stmt.execute("create table t1(c timestamp)");
+            conn.setAutoCommit(false);
+            PreparedStatement ps1 = conn.prepareStatement("insert into t1 values(?)");
+
+            ps1.setNull(1, java.sql.Types.TIMESTAMP);
+            ps1.addBatch();
+            ps1.setNull(1, java.sql.Types.TIMESTAMP);
+            ps1.addBatch();
+            ps1.executeBatch();
+            conn.commit();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

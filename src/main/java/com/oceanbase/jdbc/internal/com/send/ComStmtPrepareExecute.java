@@ -317,7 +317,7 @@ public class ComStmtPrepareExecute {
             byte[] nullBitsBuffer = new byte[nullCount];
             for (int j = 0; j < queryParamtersSize; ++j) {
                 ParameterHolder holder = queryParameters.get(j)[i];
-                if (null != holder && !holder.isLongData()) {
+                if (null != holder && !holder.isLongData() && !holder.isNullData()) {
                     holder.writeBinary(pos);
                 } else {
                     nullBitsBuffer[j / 8] |= (1 << (j % 8));
