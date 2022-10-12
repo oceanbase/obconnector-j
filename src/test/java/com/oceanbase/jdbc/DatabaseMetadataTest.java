@@ -751,7 +751,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getBestRowIdentifierBasic() throws SQLException {
         testResultSetColumns(
-            sharedConnection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
+            sharedConnection.getMetaData().getBestRowIdentifier(null, null, "test", 0, true),
             "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
                     + "COLUMN_SIZE int,BUFFER_LENGTH int,"
                     + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");

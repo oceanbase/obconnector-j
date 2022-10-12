@@ -9,7 +9,6 @@
  *  the terms of the GNU Lesser General Public License as published by the Free
  *  Software Foundation; either version 2.1 of the License, or (at your option)
  *  any later version.
- *
  *  This library is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
@@ -454,12 +453,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
                             String constraintName = keys.substring(1, fkParamOpenIndex);
-                            keys = keys.substring(fkParamOpenIndex + 1);
+                            keys = keys.substring(fkParamOpenIndex);
                             int fkParamCloseIndex = keys.indexOf(")");
                             if (fkParamCloseIndex == -1) {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String fkParamNames = keys.substring(1, fkParamCloseIndex - 1);
+                            String fkParamNames = keys.substring(1, fkParamCloseIndex);
                             int refIndex = keys.indexOf("REFER");
                             if (refIndex == -1) {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");
@@ -1226,13 +1225,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                             if (fkParamOpenIndex == -1) {
                                 throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String constraintName = keys.substring(1,fkParamOpenIndex - 1);
-                            keys = keys.substring(fkParamOpenIndex + 1);
+                            String constraintName = keys.substring(1,fkParamOpenIndex);
+                            keys = keys.substring(fkParamOpenIndex );
                             int fkParamCloseIndex = keys.indexOf(")");
                             if (fkParamCloseIndex == -1) {
                                 throw  new SQLException("Error parsing foreign keys definition, couldn't find start of local columns list.");
                             }
-                            String fkParamNames =  keys.substring(1,fkParamCloseIndex-1);
+                            String fkParamNames =  keys.substring(1,fkParamCloseIndex);
                             int refIndex = keys.indexOf("REFER");
                             if (refIndex == -1) {
                                 throw new SQLException("Error parsing foreign keys definition, couldn't find start of referenced tables list");

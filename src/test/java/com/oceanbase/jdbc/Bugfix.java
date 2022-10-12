@@ -908,6 +908,38 @@ public class Bugfix extends BaseTest {
         }
     }
 
+    @Test
+    public void testExportAndForeignKeys() {
+        try {
+            Connection conn = sharedConnection;
+            DatabaseMetaData metaData = conn.getMetaData();
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists t2");
+            stmt.execute("drop table if exists t1");
+            stmt.execute("create table t1(o_1 int, o_2 int , o_3 int, primary key(o_1,o_2,o_3))");
+            stmt.execute("create table t2(p_1 int not null,p_2 int not null,p_3 int not null,"
+                         + "foreign key(p_1,p_2,p_3) references t1(o_1,o_2,o_3) on delete cascade)");
+            ResultSet rs = metaData.getImportedKeys(null, null, "t2");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_1"));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_2"));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_3"));
+
+            rs = metaData.getExportedKeys(null, null, "t1");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_1"));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_2"));
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("p_3"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
     //send long data is only supported in high-level observers, temporarily ignore test case
     @Ignore
     public void testSendLongData() {
