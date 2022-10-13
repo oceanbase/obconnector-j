@@ -860,4 +860,35 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testgetImportedKeyAndExportKeys() {
+        try {
+            Connection conn = sharedConnection;
+            DatabaseMetaData metaData = conn.getMetaData();
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table t2");
+            } catch (Exception e) {
+            }
+            try {
+                stmt.execute("drop table t1");
+            } catch (Exception e) {
+            }
+            stmt.execute("create table t1(o_w_id int primary key)");
+            stmt.execute("create table t2(o_c_id int not null,"
+                         + "constraint fk_t2 foreign key(o_c_id) references t1(o_w_id))");
+            ResultSet rs = null;
+            rs = metaData.getImportedKeys(null, null, "T2");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("O_C_ID"));
+
+            rs = metaData.getExportedKeys(null, null, "T1");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getString("FKCOLUMN_NAME").equals("O_C_ID"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

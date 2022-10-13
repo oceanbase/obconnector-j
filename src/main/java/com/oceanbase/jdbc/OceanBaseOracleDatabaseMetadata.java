@@ -499,10 +499,10 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         int parentSchemaIndex = parentSchema != null && parentSchema.length() > 0 ? index++ : 0;
         int foreignSchemaIndex = foreignSchema != null && foreignSchema.length() > 0 ? index++ : 0;
         String sql = String.format(OB_ORA_KEYS_QUERY,
-            parentTableIndex != 0 ? "  AND p.table_name = ? " : "",
-            foreignTableIndex != 0 ? "  AND f.table_name = ? " : "",
-            parentSchemaIndex != 0 ? "  AND p.owner = ? " : "",
-            foreignSchemaIndex != 0 ? "  AND f.owner = ? " : "");
+            parentTableIndex != 0 ? "  AND p_cons.table_name = ? " : "",
+            foreignTableIndex != 0 ? "  AND f_cons.table_name = ? " : "",
+            parentSchemaIndex != 0 ? "  AND p_cons.owner = ? " : "",
+            foreignSchemaIndex != 0 ? "  AND f_cons.owner = ? " : "");
         PreparedStatement stmt = this.connection.prepareStatement(sql + orderBy);
         if (parentTableIndex != 0) {
             stmt.setString(parentTableIndex, parentTable);
