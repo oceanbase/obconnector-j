@@ -120,12 +120,13 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
       final GlobalStateInfo globalInfo,
       final List<HostAddress> addresses,boolean fallThrough)
       throws SQLException {
-    ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
+        Set<HostAddress> connectedHosts = new LinkedHashSet<>();
+        int attemptedTimes = 0;
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
     if (loopAddresses.isEmpty()) {
       resetHostList(listener, loopAddresses);
     }
-
-    int maxConnectionTry = listener.getCurrentLoadBalanceInfo().getRetryAllDowns();
+    int maxConnectionTry = listener.getRetryAllDowns();
     SQLException lastQueryException = null;
     MasterProtocol protocol;
     while (!loopAddresses.isEmpty() &&  maxConnectionTry > 0) {
@@ -134,7 +135,6 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
       }
       protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
       maxConnectionTry--;
-
       try {
         HostAddress host = loopAddresses.pollFirst();
         if(!fallThrough && listener.getBlacklistKeys().contains(host) && listener.getBlacklist().get(host).getState() == HostStateInfo.STATE.BLACK) {
@@ -146,6 +146,8 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
           host = loopAddresses.pollFirst();
         }
         logger.debug("Connect to " + host);
+        attemptedTimes ++;
+        connectedHosts.add(host);
         protocol.setHostAddress(host);
         protocol.connect();
         if (listener.isExplicitClosed()) {
@@ -180,7 +182,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
       } catch (SQLException businessException) {
           throw businessException;
       } finally {
-          listener.getCurrentLoadBalanceInfo().setRetryAllDowns(maxConnectionTry);
+          listener.setRetryAllDowns(maxConnectionTry);
       }
     }
 
@@ -191,7 +193,14 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
           lastQueryException.getErrorCode(),
           lastQueryException);
     }
-    throw new SQLException("No active connection found for master");
+
+    throw new SQLException("No active connection found for master. " +
+            "\nretryAllDowns remains " +   maxConnectionTry +
+            "\nloopAddresses = " +  loopAddresses +
+            "\nattempted hosts:" + connectedHosts +
+            "\nattempted times:" + attemptedTimes +
+            "\nblacklist hosts:" + listener.getBlacklist()
+    );
   }
 
     /**

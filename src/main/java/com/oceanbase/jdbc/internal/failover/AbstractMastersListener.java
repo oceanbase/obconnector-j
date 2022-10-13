@@ -106,6 +106,8 @@ public abstract class AbstractMastersListener implements Listener {
 
   private LoadBalanceInfo currentLBinfo;
 
+  private int retryAllDowns;
+
 
   @Override
   public void setCurrentLoadBalanceInfo(LoadBalanceInfo loadBalanceInfo) {
@@ -116,6 +118,16 @@ public abstract class AbstractMastersListener implements Listener {
   public LoadBalanceInfo getCurrentLoadBalanceInfo() {
     return currentLBinfo;
   }
+
+    @Override
+    public void setRetryAllDowns(int retryAllDowns) {
+        this.retryAllDowns = retryAllDowns;
+    }
+
+    @Override
+    public int getRetryAllDowns() {
+        return this.retryAllDowns;
+    }
   protected AbstractMastersListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
     this.urlParser = urlParser;
     this.globalInfo = globalInfo;

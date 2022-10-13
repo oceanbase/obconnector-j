@@ -183,4 +183,8 @@ public interface Listener {
 
     void resetHostStateInfo(HostAddress hostAddress);
 
+    void setRetryAllDowns(int retryAllDowns);
+
+    int getRetryAllDowns();
+
 }

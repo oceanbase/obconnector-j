@@ -228,6 +228,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
           Director director = new Director(loadBlanceDriverBuilder);
           LoadBalanceDriver loadBalanceDriver = director.construct();
           this.setCurrentLoadBalanceInfo(loadBlanceInfo);
+          this.setRetryAllDowns(loadBlanceInfo.getRetryAllDowns());
           loadBalanceDriver.loop(urlParser,this,globalInfo,searchFilter,getBlacklist(),getPickedlist());
       }
       else {

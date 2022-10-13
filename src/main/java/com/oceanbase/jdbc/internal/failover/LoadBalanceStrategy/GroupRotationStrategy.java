@@ -47,9 +47,9 @@ public class GroupRotationStrategy implements GroupBalanceStrategy {
             groupNum ++;
         }
         //add fall through mechanism because all hosts are in black list
-        if(!connected && loopGroups.isEmpty()  && listener.getCurrentLoadBalanceInfo().getRetryAllDowns() > 0) {
+        if(!connected && loopGroups.isEmpty()  && listener.getRetryAllDowns() > 0) {
             logger.debug("Fall through mechanism , all hosts are in black list now");
-            logger.debug("retryAllDowns remains " +listener.getCurrentLoadBalanceInfo().getRetryAllDowns() );
+            logger.debug("retryAllDowns remains " +listener.getRetryAllDowns() );
             loopGroups = new ArrayDeque<>(groups);
             groupNum = 1;
             while (!loopGroups.isEmpty()) {

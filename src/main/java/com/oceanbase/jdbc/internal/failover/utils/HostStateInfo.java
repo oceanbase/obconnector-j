@@ -34,4 +34,9 @@ public class HostStateInfo {
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
+
+    @Override
+    public String toString() {
+        return "HostStateInfo{" + "state=" + state + ", timestamp=" + timestamp + '}';
+    }
 }
