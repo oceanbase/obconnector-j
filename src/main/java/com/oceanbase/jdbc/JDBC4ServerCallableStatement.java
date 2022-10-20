@@ -276,8 +276,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
 
-        int index = originalSql.indexOf('?');
         String sqlString = originalSql;
+        int index = sqlString.indexOf('?');
         if (index != -1) {
             for (int i = 0; i < size; i++) {
                 CallParameter inParamInfo = params.get(i);
@@ -286,11 +286,11 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                     sqlString = sqlString.replaceFirst("\\?", inOutParameterName);
                 } else {
-                    ParameterHolder holder = currentParameterHolder.get(i);
-                    if (holder.toString() == "<null>") {
+                    String holderStr = currentParameterHolder.get(i).toString();
+                    if (holderStr.equals("<null>")) {
                         sqlString = sqlString.replaceFirst("\\?", "null");
                     } else {
-                        sqlString = sqlString.replaceFirst("\\?", holder.toString());
+                        sqlString = sqlString.replaceFirst("\\?", holderStr);
                     }
                 }
             }
