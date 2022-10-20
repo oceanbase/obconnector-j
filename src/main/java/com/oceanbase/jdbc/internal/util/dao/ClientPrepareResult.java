@@ -610,23 +610,31 @@ public class ClientPrepareResult implements PrepareResult {
           if (state == LexState.Normal
               && preValuePart1 == null
               && (lastChar == ')' || ((byte) lastChar <= 40))
-              && queryLength > i + 7
+              && queryLength > i + 6
               && (query[i + 1] == 'a' || query[i + 1] == 'A')
               && (query[i + 2] == 'l' || query[i + 2] == 'L')
               && (query[i + 3] == 'u' || query[i + 3] == 'U')
-              && (query[i + 4] == 'e' || query[i + 4] == 'E')
-              && (query[i + 5] == 's' || query[i + 5] == 'S')
-              && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-            sb.append(car);
-            sb.append(query[i + 1]);
-            sb.append(query[i + 2]);
-            sb.append(query[i + 3]);
-            sb.append(query[i + 4]);
-            sb.append(query[i + 5]);
-            i = i + 5;
-            preValuePart1 = sb.toString();
-            sb.setLength(0);
-            skipChar = true;
+              && (query[i + 4] == 'e' || query[i + 4] == 'E')) {
+              boolean flagValues = false;
+              boolean flagValue = false;
+              flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
+              flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
+              if((isOracleMode && flagValues )|| (!isOracleMode && (flagValues || flagValue)) ){
+                  sb.append(car);
+                  sb.append(query[i + 1]);
+                  sb.append(query[i + 2]);
+                  sb.append(query[i + 3]);
+                  sb.append(query[i + 4]);
+                  if(flagValue && !isOracleMode) {
+                      i = i + 4;
+                  } else {
+                      sb.append(query[i + 5]);
+                      i = i + 5;
+                  }
+                  preValuePart1 = sb.toString();
+                  sb.setLength(0);
+                  skipChar = true;
+              }
           }
           break;
         case 'l':

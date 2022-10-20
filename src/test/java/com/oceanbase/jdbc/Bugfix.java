@@ -64,6 +64,7 @@ public class Bugfix extends BaseTest {
     static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
     static String refreshRow             = "refreshRow" + getRandomString(5);
     static String testSetObjectBlob      = "testSetObjectBlob" + getRandomString(5);
+    static String testBatchValue         = "testBatchValue" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -83,6 +84,7 @@ public class Bugfix extends BaseTest {
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
         createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
         createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
+        createTable(testBatchValue, "c1 INT, c2 INT");
     }
 
     // fix for aone 39996582
@@ -1916,6 +1918,24 @@ public class Bugfix extends BaseTest {
         ResultSet rs = ps.executeQuery();
         assertTrue(rs.next());
         assertFalse(rs.getBoolean(1));
+    }
+
+    @Test
+    public void testBatchValue() {
+        Assume.assumeFalse(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + testBatchValue
+                                                            + " VALUE (?, ?)");
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setInt(1, i);
+                pstmt.setInt(2, i);
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
     }
 
 }
