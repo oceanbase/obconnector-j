@@ -179,13 +179,13 @@ public class ColumnDefinition {
         originalTableNameLength = buffer.fastSkipLenString();
         originalTableNameStart = adjustStartForFieldLength(originalTableNameStart,
             originalTableNameLength);
+        nameStart = buffer.getPosition() + 1;
+        nameLength = buffer.fastSkipLenString();
+        nameStart = adjustStartForFieldLength(nameStart, nameLength);
         originalColumnNameStart = buffer.getPosition() + 1;
         originalColumnNameLength = buffer.fastSkipLenString();
         originalColumnNameStart = adjustStartForFieldLength(originalColumnNameStart,
             originalColumnNameLength);
-        nameStart = buffer.getPosition() + 1;
-        nameLength = buffer.fastSkipLenString();
-        nameStart = adjustStartForFieldLength(nameStart, nameLength);
         buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();

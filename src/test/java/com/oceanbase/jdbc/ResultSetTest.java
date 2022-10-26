@@ -1388,4 +1388,42 @@ public class ResultSetTest extends BaseTest {
             .equalsIgnoreCase(rs.getMetaData().getColumnName(rankcodeIndex)));
 
     }
+
+    @Test
+    public void testColumnIndex() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int");
+
+        stmt.execute("insert into table1 values (1)");
+        ResultSet rs = stmt.executeQuery("select table1.c1, c1 from table1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.findColumn("c1"));
+        assertEquals(1, rs.findColumn("table1.c1"));
+
+        rs = stmt.executeQuery("select c1 from table1");
+        assertEquals(1, rs.findColumn("c1"));
+        assertEquals(1, rs.findColumn("table1.c1"));
+    }
+
+    @Test
+    public void testDuplicateColumnAlias() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int, c2 int");
+
+        stmt.execute("insert into table1 values (1, 0)");
+        ResultSet rs = stmt.executeQuery("select c1, c2 ,c2 ,c2 from table1");
+        assertTrue(rs.next());
+        Assert.assertEquals(2, rs.findColumn("c2"));
+    }
+
+    @Test
+    public void testColumnAlias() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int, c2 int");
+
+        stmt.execute("insert into table1 values (1, 0)");
+        ResultSet rs = stmt.executeQuery("select a.c1, a.c2 from table1 as a");
+        assertTrue(rs.next());
+        rs.findColumn("a.c1");
+    }
 }
