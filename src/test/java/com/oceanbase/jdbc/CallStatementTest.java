@@ -629,8 +629,11 @@ public class CallStatementTest extends BaseTest {
         }
 
         CallableStatement callStmt = conn.prepareCall("CALL pl_sql2('what is your name', ?)");
-        callStmt.setString(1, "UPDATE /*+ use_px parallel(2) */ t3 SET t3.c1 = timestamp'2001-1-12 2:49:53', t3.c2 = t3.c2, t3.c3 = t3.c3, t3.c4 = (SELECT MIN(t3.c4) FROM t3), t3.c5 = t3.c5, t3.c6 = t3.c6, t3.c7 = t3.c7, t3.c8 = t3.c8, t3.c9 = t3.c9, t3.c10 = (SELECT MAX(t3.c10) FROM t3), t3.c11 = t3.c11, t3.c12 = t3.c12, t3.c13 = t3.c13, t3.c14 = t3.c14, t3.c15 = t3.c15, t3.c16 = timestamp'2029-3-18 0:5:13', t3.c17 = t3.c17 WHERE t3.c1 >= t3.c16 AND t3.c5 = 221");
+        callStmt
+            .setString(
+                1,
+                "UPDATE /*+ use_px parallel(2) */ t3 SET t3.c1 = timestamp'2001-1-12 2:49:53', t3.c2 = t3.c2, t3.c3 = t3.c3, t3.c4 = (SELECT MIN(t3.c4) FROM t3), t3.c5 = t3.c5, t3.c6 = t3.c6, t3.c7 = t3.c7, t3.c8 = t3.c8, t3.c9 = t3.c9, t3.c10 = (SELECT MAX(t3.c10) FROM t3), t3.c11 = t3.c11, t3.c12 = t3.c12, t3.c13 = t3.c13, t3.c14 = t3.c14, t3.c15 = t3.c15, t3.c16 = timestamp'2029-3-18 0:5:13', t3.c17 = t3.c17 WHERE t3.c1 >= t3.c16 AND t3.c5 = 221");
         callStmt.execute();
-}
+    }
 
 }

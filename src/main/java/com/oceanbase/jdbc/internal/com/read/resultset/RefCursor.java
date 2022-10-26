@@ -64,7 +64,10 @@ public class RefCursor extends CursorResultSet {
         resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
         resultSetConcurType = ResultSet.CONCUR_READ_ONLY;
         this.rowObCursorData = rowObCursorData;
-        cursorFetchInternal(1); // get matched column information
+        try {
+            cursorFetchInternal(1); // get matched column information
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
