@@ -154,7 +154,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     private java.sql.Connection      complexConnection                   = null;
     private boolean                  autoCommit                          = true;
     private Map<String, Class<?>>    typeMap;
-    private static final String      complexTypeSql                      = "SELECT\n"
+    private static final String      complexTypeSql                      = "SELECT * from (SELECT\n"
                                                                            + "  0 DEPTH,\n"
                                                                            + "  NULL PARENT_OWNER,\n"
                                                                            + "  NULL PARENT_TYPE,\n"
@@ -230,7 +230,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                            + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
                                                                            + ")\n"
                                                                            + "SELECT * FROM CTE\n"
-                                                                           + ");";
+                                                                           + ") ) ORDER BY DEPTH;";
     private Map<String, Integer>     indexMap;
     private int                      isolationLevel                      = 2;
     private static ReentrantLock     threadLock                          = new ReentrantLock();
@@ -1758,7 +1758,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 } else {
                     tmpString = "SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')";
                 }
-                String complexAllTypeSql = "SELECT\n" + "    0 DEPTH,\n"
+                String complexAllTypeSql = "SELECT * from (SELECT\n" + "    0 DEPTH,\n"
                                            + "    NULL PARENT_OWNER,\n" + "    NULL PARENT_TYPE,\n"
                                            + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
                                            + "    0 ATTR_NO,\n" + "    OWNER CHILD_TYPE_OWNER,\n"
@@ -1831,7 +1831,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                                            + "      CTE_RESULT.SCALE,\n"
                                            + "      CTE_RESULT.CHARACTER_SET_NAME\n"
                                            + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
-                                           + "  )\n" + "  SELECT * FROM CTE\n" + "  );";
+                                           + "  )\n"
+                                           + "  SELECT * FROM CTE\n"
+                                           + "  ) ) ORDER BY DEPTH;";
                 ps = conn.prepareStatement(complexAllTypeSql, ResultSet.TYPE_SCROLL_INSENSITIVE,
                     ResultSet.CONCUR_READ_ONLY);
 
