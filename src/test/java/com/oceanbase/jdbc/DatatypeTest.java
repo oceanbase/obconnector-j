@@ -58,6 +58,7 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.Calendar;
 
 import org.junit.*;
 
@@ -1138,5 +1139,27 @@ public class DatatypeTest extends BaseTest {
         assertEquals((double) expectedValue, rs.getDouble(index), 0.01);
         assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
         assertEquals(String.valueOf(expectedValue), rs.getString(index));
+    }
+
+    @Test
+    public void testTimestampCalendar() {
+        try {
+            Calendar cal = Calendar.getInstance();
+            java.util.Date date = cal.getTime();
+
+            PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT ?");
+            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()), cal);
+            assertEquals(date, cal.getTime());
+
+            ResultSet rs = pstmt.executeQuery();
+            rs.next();
+            assertEquals(date, cal.getTime());
+            rs.getTimestamp(1, cal);
+            assertEquals(date, cal.getTime());
+            assertEquals(date.toString(), cal.getTime().toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 }

@@ -159,7 +159,12 @@ public abstract class RowProtocol {
   public int getMaxFieldSize() {
     return maxFieldSize;
   }
-
+  public Calendar getCalendarInstance(Calendar calendar) {
+      return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance();
+  }
+    public Calendar getCalendarInstanceWithTimezone(Calendar calendar,TimeZone timeZone) {
+        return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance(timeZone);
+    }
   public abstract String getInternalString(
       ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 

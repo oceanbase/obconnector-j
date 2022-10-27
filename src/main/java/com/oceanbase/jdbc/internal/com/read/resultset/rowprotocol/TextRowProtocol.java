@@ -608,7 +608,7 @@ public class TextRowProtocol extends RowProtocol {
                     year = 1970;
                     month = 1;
                     day = 1;
-                    Calendar dateCal = cal != null ? cal : Calendar.getInstance();
+                    Calendar dateCal = getCalendarInstance(cal);
                     synchronized (dateCal) {
                         java.util.Date origCalDate = dateCal.getTime();
                         try {
@@ -689,7 +689,7 @@ public class TextRowProtocol extends RowProtocol {
                 year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
                 month = buf[pos + 2];
                 day = buf[pos + 3];
-                Calendar calendar = cal != null ? cal : Calendar.getInstance();
+                Calendar calendar = getCalendarInstance(cal);
                 synchronized (calendar) {
                     java.util.Date origCalDate = calendar.getTime();
                     try {
@@ -720,7 +720,7 @@ public class TextRowProtocol extends RowProtocol {
                 int hour = Integer.parseInt(rawPart[0]);
                 int minutes = Integer.parseInt(rawPart[1]);
                 int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
-                Calendar calendar = cal != null ? cal : Calendar.getInstance();
+                Calendar calendar = getCalendarInstance(cal);
                 if (options.useLegacyDatetimeCode) {
                     calendar.setLenient(true);
                 }
@@ -752,12 +752,7 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
         if (this.getProtocol().isOracleMode()) {
-            Calendar cal;
-            if (userCalendar != null) {
-                cal = userCalendar;
-            } else {
-                cal = Calendar.getInstance(timeZone);
-            }
+            Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
             TIMESTAMP timestamp = null;
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP_TZ:
@@ -821,14 +816,7 @@ public class TextRowProtocol extends RowProtocol {
 
                 Timestamp timestamp;
 
-                Calendar calendar;
-                if (userCalendar != null) {
-                    calendar = userCalendar;
-                } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-                    calendar = Calendar.getInstance(TimeZone.getDefault());
-                } else {
-                    calendar = Calendar.getInstance();
-                }
+                Calendar calendar = getCalendarInstance(userCalendar);
 
                 synchronized (calendar) {
                     calendar.clear();
@@ -853,12 +841,7 @@ public class TextRowProtocol extends RowProtocol {
                 return tt;
 
             case TIMESTAMP_NANO:
-                Calendar cal;
-                if (userCalendar != null) {
-                    cal = userCalendar;
-                } else {
-                    cal = Calendar.getInstance(TimeZone.getDefault());
-                }
+                Calendar cal = getCalendarInstance(userCalendar);
                 return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
                     .timestampValue(cal);
 
