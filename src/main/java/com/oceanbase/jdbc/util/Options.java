@@ -138,6 +138,7 @@ public class Options implements Cloneable {
     public int defaultFetchSize;
     public Properties nonMappedOptions = new Properties();
     public String tlsSocketType;
+    public int maxRows;
 
     // logging options
     public boolean log;
@@ -622,6 +623,9 @@ public class Options implements Cloneable {
         if (enableFullLinkTrace != opt.enableFullLinkTrace) {
             return false;
         }
+        if (maxRows != opt.maxRows) {
+            return false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -757,6 +761,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useLocalXID ? 1 : 0);
         result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
+        result = 31 * result + maxRows;
         return result;
     }
     @Override

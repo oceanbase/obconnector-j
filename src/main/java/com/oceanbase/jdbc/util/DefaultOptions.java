@@ -946,8 +946,14 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.0",
             "Based on OceanBase v2.0 protocol",
-            false
-    );
+            false),
+    MAX_ROWS(
+            "maxRows",
+            0,
+            0,
+            "2.4.1",
+            "The maximum number of rows to return. The default \"0\" means return all rows.",
+            false);
 
   private final String optionName;
   private final String description;

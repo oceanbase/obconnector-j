@@ -179,6 +179,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     } else {
         this.fetchSize = this.options.defaultFetchSize;
     }
+    this.maxRows = options.maxRows;
   }
 
   /**
@@ -1021,9 +1022,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void setMaxRows(final int max) throws SQLException {
     if (max < 0) {
-      throw exceptionFactory
-          .raiseStatementError(connection, this)
-          .create("max rows cannot be negative : asked for " + max, "42000");
+      throw exceptionFactory.raiseStatementError(connection, this)
+          .create("Max rows should not be less than 0.", "42000");
     }
     maxRows = max;
   }

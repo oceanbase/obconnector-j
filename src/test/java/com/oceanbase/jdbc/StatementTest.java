@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -739,4 +740,26 @@ public class StatementTest extends BaseTest {
       }
     }
   }
+
+    @Test
+    public void testSetMaxRows() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.setMaxRows(-1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            stmt.setMaxRows(Integer.MAX_VALUE);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testUrlOptionMaxRows() throws SQLException {
+        Assert.assertEquals(0, sharedConnection.createStatement().getMaxRows());
+        Assert.assertEquals(3, setConnection("&maxRows=3").createStatement().getMaxRows());
+    }
+
 }
