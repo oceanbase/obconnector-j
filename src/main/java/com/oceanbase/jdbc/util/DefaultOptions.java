@@ -150,7 +150,7 @@ public enum DefaultOptions {
       "createDatabaseIfNotExist",
       Boolean.FALSE,
       "1.1.8",
-      "the specified database in the " + "url will be created if non-existent.",
+      "the specified database in the url will be created if non-existent.It will not take effect in oracle mode.",
       false),
   SERVER_TIMEZONE(
       "serverTimezone",

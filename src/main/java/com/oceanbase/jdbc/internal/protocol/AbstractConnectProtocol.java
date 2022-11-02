@@ -1283,7 +1283,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         sendPipelineCheckMaster();
         readPipelineCheckMaster();
 
-        if (options.createDatabaseIfNotExist && !database.isEmpty()) {
+        if (options.createDatabaseIfNotExist && !database.isEmpty() && !isOracleMode) {
             // Try to create the database if it does not exist
             String quotedDb = OceanBaseConnection.quoteIdentifier(this.database);
             sendCreateDatabaseIfNotExist(quotedDb);

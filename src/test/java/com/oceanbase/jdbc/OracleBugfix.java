@@ -2868,4 +2868,17 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void createDatabaseIfNotExistTest() {
+        try {
+            Connection conn = setConnection("&createDatabaseIfNotExist=true");
+            ResultSet rs = conn.createStatement().executeQuery(
+                "select sys_context('userenv','current_schema') from dual");
+            rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
