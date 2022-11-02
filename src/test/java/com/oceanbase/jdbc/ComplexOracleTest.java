@@ -70,6 +70,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     public static String struct3         = "test_struct3";
     public static String raw1            = "test_raw1";
     public static String refcursor1      = "test_ref";
+    public static String struct4         = "test_struct4";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -84,6 +85,7 @@ public class ComplexOracleTest extends BaseOracleTest {
         createTable(raw1, "c1 int ,c2 raw(100)");
         createTable(refcursor1, "c1 varchar(20), c2 number");
         createTable("T_NESTED_ARRAY", "c1 number, c2 int");
+        createTable(struct4, "c1 int, c2 varchar2(400)");
     }
 
     public void showArrayRes(Array array) throws Exception {
@@ -671,4 +673,93 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testStrcut() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE or replace  TYPE struct_test_1 force as object (c1 int, c3 varchar2(200))");
+            Object[] objects = new Object[] { 1, new BigDecimal(200) }; // insert bigdecimal value to varchar struct
+            Struct struct = conn.createStruct("struct_test_1", objects);
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_test(x IN struct_test_1,y OUT struct_test_1) IS "
+                                 + " begin "
+                                 + "    y:= struct_test_1(1,null); "
+                                 + "    insert into "
+                                 + struct4
+                                 + " values(x.c1, x.c3) ;"
+                                 + "    y.c1 := x.c1;" + "  y.c3 := x.c3;" + " END;";
+            stmt.execute(createPlSql);
+            CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_test(?,?)");
+            csmt.setObject(1, struct);
+            csmt.registerOutParameter(2, Types.STRUCT, "struct_test_1");
+            csmt.execute();
+            ResultSet rs = conn.createStatement().executeQuery("select count(*) from " + struct4);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testComplex() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c0 int, c1 int);");
+            stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1(a in my_obj, b out obj_array) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj, b out obj_array, c out my_obj) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj, b out obj_array, c out my_obj) IS BEGIN null;end;");
+
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc3(a in my_obj, c out my_obj) IS BEGIN null;end;");
+
+            System.out.println("###proc2###");
+            CallableStatement csmt = conn.prepareCall("{call my_proc2(?,?,?)}");
+            Struct InStruct = conn.createStruct("my_obj", new Object[] { 1, 2 });
+            csmt.setObject(1, InStruct);
+            csmt.registerOutParameter(2, Types.ARRAY, "OBJ_ARRY");
+            csmt.registerOutParameter(3, Types.STRUCT, "MY_OBJ");
+            csmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testComplexChar() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c0 char(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1(a in my_obj) IS BEGIN null;end;");
+
+            stmt.execute("CREATE OR REPLACE TYPE my_obj2 as object (c0 varchar(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj2) IS BEGIN null;end;");
+
+            stmt.close();
+            System.out.println("###proc2###");
+            CallableStatement csmt = conn.prepareCall("{call my_proc2(?)}");
+            Struct InStruct = conn.createStruct("my_obj2", new Object[] { "aa" });
+            csmt.setObject(1, InStruct);
+            csmt.execute();
+
+            System.out.println("###proc1###");
+            csmt = conn.prepareCall("{call my_proc1(?)}");
+            InStruct = conn.createStruct("my_obj", new Object[] { "aa" });
+            csmt.setObject(1, InStruct);
+            csmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
 }

@@ -1853,8 +1853,6 @@ public class OceanBaseConnection implements ConnectionImpl {
                             rs.getString(CHILD_OWNER_INDEX), type);
                         complexType.setValid(false);
                         recacheComplexDataType(complexType);
-                    } else {
-                        complexType.setValid(false);
                     }
                 } else {
                     // for base data type
