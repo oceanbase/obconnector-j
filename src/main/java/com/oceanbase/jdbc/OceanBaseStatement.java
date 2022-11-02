@@ -148,6 +148,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected int       selectEndPos = -1;
   protected int       whereEndPos = -1;
   PreparedStatement   cursorFetchPstmt = null;
+  private    boolean  isPoolable = true;
 
     /**
    * Creates a new Statement.
@@ -1273,7 +1274,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public boolean isPoolable() {
-    return false;
+    return isPoolable;
   }
 
   /**
@@ -1294,7 +1295,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public void setPoolable(final boolean poolable) {
-    // not handled
+      isPoolable = poolable;
   }
 
   /**
