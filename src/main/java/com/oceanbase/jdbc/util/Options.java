@@ -208,6 +208,8 @@ public class Options implements Cloneable {
     public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
 
+    public boolean allowNanAndInf = false;
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -626,6 +628,9 @@ public class Options implements Cloneable {
         if (maxRows != opt.maxRows) {
             return false;
         }
+        if (allowNanAndInf != opt.allowNanAndInf) {
+            return false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -762,6 +767,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
         result = 31 * result + maxRows;
+        result = 31 * result + (allowNanAndInf ? 1 : 0);
         return result;
     }
     @Override

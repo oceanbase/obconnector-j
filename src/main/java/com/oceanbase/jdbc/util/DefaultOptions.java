@@ -953,7 +953,14 @@ public enum DefaultOptions {
             0,
             "2.4.1",
             "The maximum number of rows to return. The default \"0\" means return all rows.",
+            false),
+    ALLOW_NAN_AND_INF(
+            "allowNanAndInf",
+            Boolean.FALSE,
+            "2.4.1",
+            "Should PreparedStatement.setDouble() allow NaN or +/- INF values?",
             false);
+
 
   private final String optionName;
   private final String description;

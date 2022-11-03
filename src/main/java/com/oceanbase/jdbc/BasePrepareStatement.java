@@ -1800,6 +1800,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setDouble(final int parameterIndex, final double value) throws SQLException {
+        if (!options.allowNanAndInf
+            && (value == Double.POSITIVE_INFINITY || value == Double.NEGATIVE_INFINITY || Double
+                .isNaN(value))) {
+            throw new SQLException("'" + value
+                                   + "' is not a valid numeric or approximate numeric value");
+
+        }
         setParameter(parameterIndex, new DoubleParameter(value));
     }
 

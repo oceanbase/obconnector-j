@@ -52,11 +52,14 @@ import org.junit.*;
 public class NewFeatureTest extends BaseTest {
     public static String batchTable  = "batch" + getRandomString(10);
     public static String batchTable2 = "batch2" + getRandomString(10);
+    public static String testDouble  = "testDouble" + getRandomString(10);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(batchTable, "c1  int, c2 int , c3 int  ,test varchar(10)");
         createTable(batchTable2, "c1  int, c2 int , c3 int  ,test varchar(10)");
+        createTable(testDouble, "field1 DOUBLE");
+
     }
 
     // SET SESSION TRANSACTION xxx twice
@@ -278,6 +281,37 @@ public class NewFeatureTest extends BaseTest {
         } catch (Exception truncEx) {
             Assert.assertTrue(truncEx instanceof DataTruncation);
             System.out.println(truncEx.getMessage());
+        }
+    }
+
+    @Test
+    public void testSetDouble() {
+        try {
+            PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO " + testDouble
+                                                                        + " VALUES (?)");
+
+            try {
+                pstmt.setDouble(1, Double.NEGATIVE_INFINITY);
+                fail("Exception should've been thrown");
+            } catch (Exception ex) {
+                // expected
+            }
+
+            try {
+                pstmt.setDouble(1, Double.POSITIVE_INFINITY);
+                fail("Exception should've been thrown");
+            } catch (Exception ex) {
+                // expected
+            }
+            try {
+                pstmt.setDouble(1, Double.NaN);
+                fail("Exception should've been thrown");
+            } catch (Exception ex) {
+                // expected
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }
