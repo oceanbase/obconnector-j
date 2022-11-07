@@ -775,17 +775,62 @@ public class Utils {
    * @return
    */
   public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
-    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment)[0];
+    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment).getTrimedString();
   }
+  public static class TrimSQLInfo{
+      String trimedString;
+      int  paramCount;
+      int  selectEndPos;
+      int  whereEndPos;
+      List<Integer> paramsIndexs;
 
-  public static String[] trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
+      public TrimSQLInfo(String trimedString, int paramCount, int selectEndPos, int whereEndPos, List<Integer> paramsIndexs) {
+          this.trimedString = trimedString;
+          this.paramCount = paramCount;
+          this.selectEndPos = selectEndPos;
+          this.whereEndPos = whereEndPos;
+          this.paramsIndexs = paramsIndexs;
+      }
+
+      public String getTrimedString() {
+          return trimedString;
+      }
+
+      public int getParamCount() {
+          return paramCount;
+      }
+
+      public int getSelectEndPos() {
+          return selectEndPos;
+      }
+
+      public int getWhereEndPos() {
+          return whereEndPos;
+      }
+
+      public List<Integer> getParamsIndexs() {
+          return paramsIndexs;
+      }
+
+      @Override
+      public String toString() {
+          return "TrimSQLInfo{" +
+                  "trimedString='" + trimedString + '\'' +
+                  ", paramCount=" + paramCount +
+                  ", selectEndPos=" + selectEndPos +
+                  ", whereEndPos=" + whereEndPos +
+                  ", paramsIndexs=" + paramsIndexs +
+                  '}';
+      }
+  }
+  public static TrimSQLInfo trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
     int parameterCount = 0;
     StringBuilder trimedSqlString = new StringBuilder();
     StringBuilder paramSb = new StringBuilder();
     boolean multipleQueriesPrepare = true;
-
+    List<Integer> paramIndexs = new ArrayList<>();
     LexState state = LexState.Normal;
     char lastChar = '\0';
     boolean includeCurChar = false;
@@ -918,6 +963,7 @@ public class Utils {
             trimedSqlString.append("?");
             lastParamPos = i + 1;
             parameterCount++;
+            paramIndexs.add(  trimedSqlString.length() - 1);
           }
           break;
 
@@ -993,6 +1039,7 @@ public class Utils {
                 trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length()));
                 trimedSqlString.append("?");
                 parameterCount++;
+                paramIndexs.add(  trimedSqlString.length() - 1);
               }
             }
             lastParamPos = i;
@@ -1007,6 +1054,7 @@ public class Utils {
                 trimedSqlString.append(queryString.substring(lastParamPos, i - paramSb.length() + 1));
                 trimedSqlString.append("?");
                 parameterCount++;
+                  paramIndexs.add(  trimedSqlString.length() - 1);
               }
             }
             lastParamPos = i + 1;
@@ -1025,8 +1073,7 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParamPos, queryLength));
     }
-
-    return new String[]{trimedSqlString.toString(), String.valueOf(parameterCount), String.valueOf(selectEndPos), String.valueOf(whereEndPos)};
+    return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,paramIndexs);
   }
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
@@ -1141,6 +1188,47 @@ public class Utils {
     }
     return retList;
   }
+    public static  List<Integer> findParamIndex(String sqlString, String delimiter, String markers,
+                                                             String markerCloses) {
+        if (sqlString == null) {
+            return null;
+        }
+        sqlString = sqlString.substring(sqlString.indexOf("(") + 1,sqlString.lastIndexOf(")"));
+        List<Integer> retList = new ArrayList<>();
+        boolean trim = true;
+        if (delimiter == null) {
+            throw new IllegalArgumentException();
+        }
+        int delimPos = 0;
+        int currentPos = 0;
+        while((delimPos = nextDelimiterPos(sqlString,currentPos, delimiter, markers,
+                markerCloses)) != -1) {
+            String token = sqlString.substring(currentPos,delimPos);
+            if (trim) {
+                token = token.trim();
+            }
+            if(token.startsWith("?")) {
+                retList.add(currentPos);
+            } else {
+                // do nothing
+            }
+            currentPos = delimPos + 1;
+        }
+        if (currentPos < sqlString.length()) {
+            String token = sqlString.substring(currentPos);
+
+            if (trim) {
+                token = token.trim();
+            }
+            if(token.startsWith("?")) {
+                retList.add(currentPos);
+            } else {
+                // do nothing
+            }
+        }
+        return  retList;
+    }
+
 
   public static int getStatementType(String queryString) {
     char[] query = queryString.toCharArray();

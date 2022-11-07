@@ -116,10 +116,10 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     mustExecuteOnMaster = protocol.isMasterConnection();
 
     originalSql = sql;
-    String[] tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
-    simpleSql = tmp[0];
-    selectEndPos = Integer.parseInt(tmp[2]);
-    whereEndPos = Integer.parseInt(tmp[3]);
+    Utils.TrimSQLInfo tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
+    simpleSql = tmp.getTrimedString();
+    selectEndPos = tmp.getSelectEndPos();
+    whereEndPos = tmp.getWhereEndPos();
     sqlType = Utils.getStatementType(simpleSql);
     actualSql = originalSql;
     // add rowid if needed
@@ -141,7 +141,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       if (!protocol.supportStmtPrepareExecute()) {
         prepare(actualSql);
       } else {
-        parameterCount = Integer.parseInt(tmp[1]);
+        parameterCount = tmp.getParamCount();
       }
     }
   }

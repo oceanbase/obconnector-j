@@ -1942,6 +1942,26 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void fixTwoSingleQuotations1() {
+        try {
+            createTable("tabletodrop", "c1 int");
+            try {
+                Statement s = sharedConnection.createStatement();
+                s.execute("create procedure pl_sql2(test_str varchar(4000), inner_sql2 varchar(4000)) begin set @a=inner_sql2; prepare stmt from @a; execute stmt; deallocate prepare stmt; end;");
+            } catch (Exception e) {
+            }
+
+            CallableStatement callStmt = sharedConnection
+                .prepareCall("CALL pl_sql2('what is your name?', ?)");
+            callStmt.setString(1, "insert into tabletodrop values(1)  /*+ use_px parallel(2) */ ");
+            callStmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testGetBestRowIdentifier23() throws SQLException {
         DatabaseMetaData metaData = sharedConnection.getMetaData();
         ResultSet rs = metaData.getBestRowIdentifier(null, null, testBestRow, 1, false);

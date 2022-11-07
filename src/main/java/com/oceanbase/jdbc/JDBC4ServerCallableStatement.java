@@ -276,26 +276,35 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             }
         }
 
-        String sqlString = originalSql;
-        int index = sqlString.indexOf('?');
-        if (index != -1) {
-            for (int i = 0; i < size; i++) {
+        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(originalSql,false,false,false);
+        String trimedString = trimSQLStringInternal.getTrimedString();
+        int paramCount = trimSQLStringInternal.getParamCount();
+        int beginIndex = 0;
+        StringBuilder sb = new StringBuilder();
+        List<Integer> paramIndexs = trimSQLStringInternal.getParamsIndexs();
+        if (paramCount >0  && paramIndexs.size() > 0) {
+            for (int i = 0; i < paramIndexs.size() ; i++) {
+                int end = paramIndexs.get(i);
+                String partPre = trimedString.substring(beginIndex,end);
                 CallParameter inParamInfo = params.get(i);
+                sb.append(partPre);
+                beginIndex = end + 1;
                 if (inParamInfo.isOutput()) {
                     String inOutParameterName = intoutParams.get(i);
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
-                    sqlString = sqlString.replaceFirst("\\?", inOutParameterName);
+                    sb.append(inOutParameterName);
                 } else {
                     String holderStr = currentParameterHolder.get(i).toString();
                     if (holderStr.equals("<null>")) {
-                        sqlString = sqlString.replaceFirst("\\?", "null");
+                        sb.append("null" );
                     } else {
-                        sqlString = sqlString.replaceFirst("\\?", holderStr);
+                        sb.append(holderStr);
                     }
                 }
             }
         }
-        int r = this.executeUpdate(sqlString);
+        sb.append(trimedString.substring(beginIndex));
+        int r = this.executeUpdate(sb.toString());
         outputResultSet = results.getCallableResultSet();
         if (outputResultSet != null) {
             outputResultSet.next();
