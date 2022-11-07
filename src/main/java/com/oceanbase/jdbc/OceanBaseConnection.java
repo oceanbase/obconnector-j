@@ -1031,6 +1031,8 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getProtocol().isOracleMode()) {
             return;
         }
+
+        checkClosed();
         if (catalog == null) {
             throw new SQLException("The catalog name may not be null", "XAE05");
         }
@@ -2090,22 +2092,22 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public String getSchema() throws SQLException {
         // We support only catalog
-        //        return null;
-        if (this.protocol.isOracleMode()) {
-            return this.getDatabase().toUpperCase();
-            //            return this.getUsername();
-        } else {
-            return this.getCatalog();
+        if (!this.protocol.isOracleMode()) {
+            checkClosed();
         }
+        return null;
     }
 
     public String getDatabase() {
         return this.urlParser.getDatabase();
     }
 
-    public void setSchema(String arg0) {
+    public void setSchema(String arg0) throws SQLException {
         // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will
         // silently ignore this request."
+        if (!this.getProtocol().isOracleMode()) {
+            checkClosed();
+        }
     }
 
     /**
@@ -2208,6 +2210,12 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
 
         warningsCleared = true;
+    }
+
+    public void checkClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("No operations allowed after connection closed.");
+        }
     }
 
     public boolean includeDeadLockInfo() {

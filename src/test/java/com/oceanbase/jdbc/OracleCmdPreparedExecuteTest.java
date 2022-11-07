@@ -362,4 +362,24 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
             call.close();
         }
     }
+
+    @Test
+    public void testEmptySchema() throws SQLException {
+        Connection conn = sharedConnection;
+
+        String oldSchema = conn.getSchema();
+        Assert.assertNull(oldSchema);
+
+        String oldCatalog = conn.getCatalog();
+        Assert.assertNull(oldCatalog);
+        //System.out.println("getSchema: " + oldSchema + ", getCatalog: " + oldCatalog);
+
+        conn.setSchema("name1");
+        String newSchema = conn.getSchema();
+        Assert.assertNull(newSchema);
+
+        conn.setCatalog("name2");
+        String newCatalog = conn.getSchema();
+        Assert.assertNull(newCatalog);
+    }
 }
