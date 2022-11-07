@@ -852,8 +852,14 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
-                return new BigDecimal(new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType())).trim());
+                String strValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim();
+                try {
+                    BigDecimal retVal = new BigDecimal(strValue);
+                    return retVal;
+                } catch (Exception e) {
+                    throw new SQLException("Bad format for BigDecimal '" + strValue + "'");
+                }
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
                                        + columnInfo.getColumnType().getJavaTypeName());

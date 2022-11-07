@@ -504,7 +504,7 @@ public class TextRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return BigDecimal value
      */
-    public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) {
+    public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
             return null;
         }
@@ -529,7 +529,12 @@ public class TextRowProtocol extends RowProtocol {
         }
         String value = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()))
             .trim();
-        return new BigDecimal(value);
+        try {
+            BigDecimal retVal = new BigDecimal(value);
+            return retVal;
+        } catch (Exception e) {
+            throw new SQLException("Bad format for BigDecimal '" + value + "'");
+        }
     }
 
     /**

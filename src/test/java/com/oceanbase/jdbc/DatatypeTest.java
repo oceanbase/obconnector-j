@@ -1162,4 +1162,29 @@ public class DatatypeTest extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGetBigDecimalExecption() {
+        try {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT ' '");
+            assertTrue(rs.next());
+            try {
+                rs.getBigDecimal(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+
+            PreparedStatement ps = sharedConnection.prepareStatement("select ' '");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            try {
+                rs.getBigDecimal(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
 }
