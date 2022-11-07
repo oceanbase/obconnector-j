@@ -1601,19 +1601,24 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (this.connection.getProtocol().isOracleMode()) {
             return super.getBestRowIdentifier(catalog, schema, table, scope, nullable);
         }
+        //Refer to https://jira.mariadb.org/browse/CONJ-812 for modification
+        catalog = catalog == null ? this.connection.getProtocol().getCatalog() : catalog;
         String sql = "SELECT "
-                     + bestRowUnknown
+                     + bestRowSession
                      + " SCOPE, COLUMN_NAME,"
                      + dataTypeClause("COLUMN_TYPE")
                      + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
-                     + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                     + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION)  BUFFER_LENGTH,"
                      + " NUMERIC_SCALE DECIMAL_DIGITS,"
-                     + " 1 PSEUDO_COLUMN"
+                     + bestRowNotPseudo
+                     + " PSEUDO_COLUMN"
                      + " FROM INFORMATION_SCHEMA.COLUMNS"
-                     + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')"
-                     + " AND "
-                     + catalogCond("TABLE_SCHEMA", catalog == null ? this.connection.getProtocol()
-                         .getCatalog() : catalog) + " AND TABLE_NAME = " + escapeQuote(table);
+                     + " WHERE (COLUMN_KEY  = 'PRI'"
+                     + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = "
+                     + "'PRI' AND " + catalogCond("TABLE_SCHEMA", catalog) + " AND TABLE_NAME = "
+                     + escapeQuote(table) + " ))) AND " + catalogCond("TABLE_SCHEMA", catalog)
+                     + " AND TABLE_NAME = " + escapeQuote(table)
+                     + (nullable ? "" : " AND IS_NULLABLE = 'NO'");
         return executeQuery(sql);
     }
 

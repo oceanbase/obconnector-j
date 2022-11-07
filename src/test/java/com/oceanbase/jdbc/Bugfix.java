@@ -65,6 +65,7 @@ public class Bugfix extends BaseTest {
     static String refreshRow             = "refreshRow" + getRandomString(5);
     static String testSetObjectBlob      = "testSetObjectBlob" + getRandomString(5);
     static String testBatchValue         = "testBatchValue" + getRandomString(5);
+    static String testBestRow            = "testBestRow" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -85,6 +86,8 @@ public class Bugfix extends BaseTest {
         createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
         createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
         createTable(testBatchValue, "c1 INT, c2 INT");
+        createTable(testBestRow, "c1 INT NOT NULL primary key, b VARCHAR(32), c INT, d VARCHAR(5)");
+
     }
 
     // fix for aone 39996582
@@ -1936,6 +1939,22 @@ public class Bugfix extends BaseTest {
         } catch (SQLException e) {
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testGetBestRowIdentifier23() throws SQLException {
+        DatabaseMetaData metaData = sharedConnection.getMetaData();
+        ResultSet rs = metaData.getBestRowIdentifier(null, null, testBestRow, 1, false);
+        assertTrue(rs.next());
+        assertEquals(metaData.bestRowSession, rs.getInt("SCOPE")); //bestRowTemporary
+        assertEquals("c1", rs.getString("COLUMN_NAME"));
+        assertEquals(Types.INTEGER, rs.getInt("DATA_TYPE"));
+        assertEquals("int", rs.getString("TYPE_NAME"));
+        assertEquals(11, rs.getInt("COLUMN_SIZE"));
+        assertEquals(11, rs.getInt("BUFFER_LENGTH")); //0
+        assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+        assertEquals(metaData.bestRowNotPseudo, rs.getInt("PSEUDO_COLUMN"));
+        assertFalse(rs.next());
     }
 
 }
