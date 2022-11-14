@@ -386,7 +386,22 @@ public class JDBC4ResultSet implements ResultSetImpl {
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
             if (rowData != 0) {
-                rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
+                if(rowData < 0) {
+                    columns[0].setUnSigned();
+                    byte[] bytes = new byte[8];
+                    bytes[0] = (byte) (rowData >>> 56);
+                    bytes[1] = (byte) (rowData >>> 48);
+                    bytes[2] = (byte) (rowData >>> 40);
+                    bytes[3] = (byte) (rowData >>> 32);
+                    bytes[4] = (byte) (rowData >>> 24);
+                    bytes[5] = (byte) (rowData >>> 16);
+                    bytes[6] = (byte) (rowData >>> 8);
+                    bytes[7] = (byte) (rowData & 0xff);
+                    BigInteger val = new BigInteger(1, bytes);
+                    rows.add(StandardPacketInputStream.create(val.toString().getBytes()));
+                } else {
+                    rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
+                }
             }
         }
         if (findColumnReturnsOne) {

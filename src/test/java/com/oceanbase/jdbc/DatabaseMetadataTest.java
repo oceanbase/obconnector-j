@@ -70,6 +70,7 @@ public class DatabaseMetadataTest extends BaseTest {
     static String getTimePrecision  = randomTableName("getTimePrecision");
     static String getTimePrecision2 = randomTableName("getTimePrecision2");
     static String tableName2        = randomTableName("getIndexInfoTest");
+    static String testUnsigned      = randomTableName("getIndexInfoTest");
 
     /**
      * Initialisation.
@@ -130,6 +131,7 @@ public class DatabaseMetadataTest extends BaseTest {
         createTable(tableName2, "no INT NOT NULL ,\n" + "    product_category INT NOT NULL,\n"
                                 + "    product_id INT NOT NULL,\n"
                                 + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
+        createTable(testUnsigned, "id bigint(20) unsigned AUTO_INCREMENT PRIMARY KEY");
     }
 
     private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -1317,6 +1319,27 @@ public class DatabaseMetadataTest extends BaseTest {
             Assert.assertEquals("unittests", rs.getString(1));
             Assert.assertEquals("TABLE_NAME", resultSetMetaData.getColumnName(3));
             Assert.assertEquals(tableName2, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testUnsigned() {
+        try {
+            //Long.MAX_VALUE = 9223372036854775807
+            //Long.MAX_VALUE*2 = 18446744073709551614
+            Statement stmt = sharedConnection.createStatement();
+            assertEquals(1, stmt.executeUpdate("insert into " + testUnsigned
+                                               + " values(18446744073709551200)",
+                Statement.RETURN_GENERATED_KEYS));
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            System.out.println(rs.getMetaData().getColumnName(1));
+            System.out.println(rs.getMetaData().getColumnTypeName(1));
+            assertEquals("18446744073709551200", rs.getObject(1).toString());
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

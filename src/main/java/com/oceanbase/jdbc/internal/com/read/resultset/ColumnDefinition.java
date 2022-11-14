@@ -447,6 +447,10 @@ public class ColumnDefinition {
         return ((longColFlag & ColumnFlags.UNSIGNED) == 0);
     }
 
+    public void setUnSigned() {
+        longColFlag |= ColumnFlags.UNSIGNED;
+    }
+
     public boolean isNotNull() {
         return ((this.longColFlag & 1) > 0);
     }
