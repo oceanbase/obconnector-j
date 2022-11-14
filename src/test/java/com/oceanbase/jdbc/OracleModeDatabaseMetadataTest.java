@@ -891,4 +891,35 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testFunc() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table TEST_GET_COLUMN;");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table TEST_GET_COLUMN (v0 number , v1 varchar2(32) , v2 varchar2(1))");
+            ResultSet rs = conn.getMetaData().getColumns("%", "%", "TEST_GET_COLUMN", "%");
+            ResultSetMetaData metaData = rs.getMetaData();
+            rs.next();
+            int count = metaData.getColumnCount();
+            for (int i = 1; i <= count; i++) {
+                System.out.print(metaData.getColumnName(i) + "\t:\t");
+                System.out.print(metaData.getColumnType(i) + "\t:\t");
+                try {
+                    System.out.println(rs.getObject(i));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    Assert.fail();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

@@ -1256,6 +1256,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+            case ENUM:
                 if (columnInfo.isBinary()) {
                     byte[] data = new byte[getLengthMaxFieldSize()];
                     System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
@@ -1306,8 +1307,6 @@ public class BinaryRowProtocol extends RowProtocol {
                 byte[] data = new byte[length];
                 System.arraycopy(buf, pos, data, 0, length);
                 return data;
-            case ENUM:
-                break;
             case NEWDATE:
                 break;
             case SET:
