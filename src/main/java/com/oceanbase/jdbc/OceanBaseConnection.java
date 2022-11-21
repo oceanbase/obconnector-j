@@ -603,11 +603,11 @@ public class OceanBaseConnection implements ConnectionImpl {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
-    private String getCachedSql(String originSql) throws SQLException {
+    private String getCachedSql(String originSql) {
         if (StringCacheUtil.sqlStringCache == null) {
             return originSql;
         }
-        String sqlCache = StringCacheUtil.sqlStringCache.getIfPresent(originSql);
+        String sqlCache = (String) StringCacheUtil.sqlStringCache.get(originSql);
         if (sqlCache == null) {
             StringCacheUtil.sqlStringCache.put(originSql, originSql);
             sqlCache = originSql;
