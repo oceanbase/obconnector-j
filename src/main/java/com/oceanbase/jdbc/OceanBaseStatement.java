@@ -1206,9 +1206,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
    *     <code>Statement</code>
    */
   public void setCursorName(final String name) throws SQLException {
-    throw exceptionFactory
-        .raiseStatementError(connection, this)
-        .notSupported("Cursors are not supported");
+      if(!protocol.isOracleMode()) {
+          // No-op
+          return;
+      }
+      throw exceptionFactory.raiseStatementError(connection, this).notSupported("Not supported feature");
+
   }
 
   /**
