@@ -510,7 +510,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             default:
                 throw new SQLException("getInt not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
         rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
         return (int) value;
@@ -597,7 +597,7 @@ public class BinaryRowProtocol extends RowProtocol {
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                 default:
                     throw new SQLException("getLong not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
             return value;
@@ -689,7 +689,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getFloat for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264, nfe);
                     throw sqlException;
                 }
             case OBDECIMAL:
@@ -699,14 +699,14 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
         try {
             return Float.valueOf(String.valueOf(value));
         } catch (NumberFormatException nfe) {
             SQLException sqlException = new SQLException(
                 "Incorrect format for getFloat for data field with type "
-                        + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
+                        + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264, nfe);
             throw sqlException;
         }
     }
@@ -771,7 +771,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getDouble for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
                     sqlException.initCause(nfe);
                     throw sqlException;
@@ -794,7 +794,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -862,7 +862,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -1437,7 +1437,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
             return (byte) value;
@@ -1520,7 +1520,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     break;
                 default:
                     throw new SQLException("getShort not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
             return (short) value;
@@ -1748,7 +1748,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read " + clazz.getName() + " using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
@@ -1840,8 +1840,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 default:
                     throw new SQLException("Cannot read " + OffsetTime.class.getName()
                                            + " using a "
-                                           + columnInfo.getColumnType().getJavaTypeName()
-                                           + " field");
+                                           + columnInfo.getColumnType().getSqlTypeName() + " field");
             }
         }
 
@@ -1930,7 +1929,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalTime using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
@@ -1984,7 +1983,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalDate using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 

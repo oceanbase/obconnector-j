@@ -56,6 +56,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Locale;
 
 import com.oceanbase.jdbc.Blob;
 import com.oceanbase.jdbc.Clob;
@@ -155,17 +156,90 @@ public enum ColumnType {
     }
 
     private final short       protocolType;
-    private final int         javaType;
-    private final String      javaTypeName;
+    private final int         sqlType;
+    private final String      sqlTypeName;
     private final String      className;
     private final int         serverType;     /* 1 just for MySQL / 2 just for Oracle / 3 for both */
 
-    ColumnType(int protocolType, int javaType, String javaTypeName, String className, int serverType) {
+    ColumnType(int protocolType, int sqlType, String sqlTypeName, String className, int serverType) {
         this.protocolType = (short) protocolType;
-        this.javaType = javaType;
-        this.javaTypeName = javaTypeName;
+        this.sqlType = sqlType;
+        this.sqlTypeName = sqlTypeName;
         this.className = className;
         this.serverType = serverType;
+    }
+
+    public static int convertDbTypeToSqlType(String str) {
+        switch (str.toUpperCase(Locale.ROOT)) {
+            case "BIT":
+                return Types.BIT;
+            case "TINYINT":
+                return Types.TINYINT;
+            case "SMALLINT":
+                return Types.SMALLINT;
+            case "MEDIUMINT":
+                return Types.INTEGER;
+            case "INT":
+                return Types.INTEGER;
+            case "INTEGER":
+                return Types.INTEGER;
+            case "LONG":
+                return Types.INTEGER;
+            case "BIGINT":
+                return Types.BIGINT;
+            case "INT24":
+                return Types.INTEGER;
+            case "REAL":
+                return Types.DOUBLE;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DECIMAL":
+                return Types.DECIMAL;
+            case "NUMERIC":
+                return Types.NUMERIC;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "CHAR":
+                return Types.CHAR;
+            case "VARCHAR":
+                return Types.VARCHAR;
+            case "DATE":
+                return Types.DATE;
+            case "TIME":
+                return Types.TIME;
+            case "YEAR":
+                return Types.SMALLINT;
+            case "TIMESTAMP":
+                return Types.TIMESTAMP;
+            case "DATETIME":
+                return Types.TIMESTAMP;
+            case "TINYBLOB":
+                return Types.BINARY;
+            case "BLOB":
+                return Types.LONGVARBINARY;
+            case "MEDIUMBLOB":
+                return Types.LONGVARBINARY;
+            case "LONGBLOB":
+                return Types.LONGVARBINARY;
+            case "TINYTEXT":
+                return Types.VARCHAR;
+            case "TEXT":
+                return Types.LONGVARCHAR;
+            case "MEDIUMTEXT":
+                return Types.LONGVARCHAR;
+            case "LONGTEXT":
+                return Types.LONGVARCHAR;
+            case "ENUM":
+                return Types.VARCHAR;
+            case "SET":
+                return Types.VARCHAR;
+            case "GEOMETRY":
+                return Types.LONGVARBINARY;
+            case "VARBINARY":
+                return Types.VARBINARY;
+            default:
+                return Types.OTHER;
+        }
     }
 
     /**
@@ -174,7 +248,7 @@ public enum ColumnType {
      * @param type java.sql.Type value
      * @return Class name.
      */
-    public static Class classFromJavaType(int type) {
+    public static Class convertSqlTypeToClass(int type) {
         switch (type) {
             case Types.BOOLEAN:
             case Types.BIT:
@@ -253,27 +327,49 @@ public enum ColumnType {
     }
 
     /**
-     * Is type numeric.
+     * Convert protocol type to ColumnType.
      *
-     * @param type mariadb type
-     * @return true if type is numeric
+     * @param typeValue     type value
+     * @param charsetNumber charset
+     * @return MariaDb type
      */
-    public static boolean isNumeric(ColumnType type) {
-        switch (type) {
-            case OLDDECIMAL:
-            case TINYINT:
-            case SMALLINT:
-            case INTEGER:
-            case FLOAT:
-            case DOUBLE:
-            case BIGINT:
-            case MEDIUMINT:
-            case BIT:
-            case DECIMAL:
-                return true;
-            default:
-                return false;
+    public static ColumnType convertProtocolTypeToColumnType(int typeValue, int charsetNumber,
+                                                             boolean isOracleMode) {
+
+        ColumnType columnType;
+        if (isOracleMode) {
+            columnType = typeOracleMap[typeValue];
+        } else {
+            columnType = typeMysqlMap[typeValue];
         }
+
+        if (columnType == null) {
+            // Potential fallback for types that are not implemented.
+            // Should not be normally used.
+            columnType = BLOB;
+        }
+
+        if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252) {
+            // MariaDB Text dataType
+            return ColumnType.VARCHAR;
+        }
+
+        return columnType;
+    }
+
+    /**
+     * Convert sql type to ColumnType.
+     *
+     * @param sqlType sql type value
+     * @return mariaDb type value
+     */
+    public static ColumnType convertSqlTypeToColumnType(int sqlType) {
+        for (ColumnType v : values()) {
+            if (v.sqlType == sqlType) {
+                return v;
+            }
+        }
+        return ColumnType.BLOB;
     }
 
     /**
@@ -365,51 +461,6 @@ public enum ColumnType {
     }
 
     /**
-     * Convert server Type to server type.
-     *
-     * @param typeValue     type value
-     * @param charsetNumber charset
-     * @return MariaDb type
-     */
-    public static ColumnType fromServer(int typeValue, int charsetNumber, boolean isOracleMode) {
-
-        ColumnType columnType;
-        if (isOracleMode) {
-            columnType = typeOracleMap[typeValue];
-        } else {
-            columnType = typeMysqlMap[typeValue];
-        }
-
-        if (columnType == null) {
-            // Potential fallback for types that are not implemented.
-            // Should not be normally used.
-            columnType = BLOB;
-        }
-
-        if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252) {
-            // MariaDB Text dataType
-            return ColumnType.VARCHAR;
-        }
-
-        return columnType;
-    }
-
-    /**
-     * Convert javatype to ColumnType.
-     *
-     * @param javaType javatype value
-     * @return mariaDb type value
-     */
-    public static ColumnType toServer(int javaType) {
-        for (ColumnType v : values()) {
-            if (v.javaType == javaType) {
-                return v;
-            }
-        }
-        return ColumnType.BLOB;
-    }
-
-    /**
      * Get class name.
      *
      * @param type    type
@@ -453,7 +504,7 @@ public enum ColumnType {
     }
 
     public int getSqlType() {
-        return javaType;
+        return sqlType;
     }
 
     public String getTypeName() {
@@ -464,7 +515,32 @@ public enum ColumnType {
         return protocolType;
     }
 
-    public String getJavaTypeName() {
-        return javaTypeName;
+    public String getSqlTypeName() {
+        return sqlTypeName;
     }
+
+    /**
+     * Is type numeric.
+     *
+     * @param type mariadb type
+     * @return true if type is numeric
+     */
+    public static boolean isNumeric(ColumnType type) {
+        switch (type) {
+            case OLDDECIMAL:
+            case TINYINT:
+            case SMALLINT:
+            case INTEGER:
+            case FLOAT:
+            case DOUBLE:
+            case BIGINT:
+            case MEDIUMINT:
+            case BIT:
+            case DECIMAL:
+                return true;
+            default:
+                return false;
+        }
+    }
+
 }

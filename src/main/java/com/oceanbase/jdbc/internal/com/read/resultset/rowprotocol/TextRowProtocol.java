@@ -419,7 +419,7 @@ public class TextRowProtocol extends RowProtocol {
                                 + new String(buf, pos, length,
                                     getCurrentEncoding(columnInfo.getColumnType()))
                                 + "\" for getFloat for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
                     sqlException.initCause(nfe);
                     throw sqlException;
@@ -434,7 +434,7 @@ public class TextRowProtocol extends RowProtocol {
                 return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -477,7 +477,7 @@ public class TextRowProtocol extends RowProtocol {
                                 + new String(buf, pos, length,
                                     getCurrentEncoding(columnInfo.getColumnType()))
                                 + "\" for getDouble for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
                     sqlException.initCause(nfe);
                     throw sqlException;
@@ -494,7 +494,7 @@ public class TextRowProtocol extends RowProtocol {
                 return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -1192,7 +1192,7 @@ public class TextRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read " + clazz.getName() + " using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
         return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
     }
@@ -1261,8 +1261,7 @@ public class TextRowProtocol extends RowProtocol {
                 default:
                     throw new SQLException("Cannot read " + OffsetTime.class.getName()
                                            + " using a "
-                                           + columnInfo.getColumnType().getJavaTypeName()
-                                           + " field");
+                                           + columnInfo.getColumnType().getSqlTypeName() + " field");
             }
         }
 
@@ -1323,7 +1322,7 @@ public class TextRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalTime using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
@@ -1373,7 +1372,7 @@ public class TextRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalDate using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 

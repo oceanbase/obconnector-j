@@ -420,7 +420,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex)
+        Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(parameterIndex)
             .getOutputSqlType());
         if (classType != null) {
             return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
@@ -431,7 +431,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public Object getObject(String parameterName) throws SQLException {
         int index = nameToIndex(parameterName);
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).getOutputSqlType());
+        Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(index)
+            .getOutputSqlType());
         if (classType != null) {
             return getOutputResult().getObject(indexToOutputIndex(index), classType);
         }

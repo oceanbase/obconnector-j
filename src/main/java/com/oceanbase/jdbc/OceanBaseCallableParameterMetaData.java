@@ -58,6 +58,8 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+
 public class OceanBaseCallableParameterMetaData extends CallableParameterMetaData {
 
     protected Map<String, CallParameter> mapNameToParameter;
@@ -152,7 +154,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
         callParameter.setTypeName(matcher.group(2).trim());
-        callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+        callParameter.setSqlType(ColumnType.convertDbTypeToSqlType(callParameter.getTypeName()));
         String scale = matcher.group(3);
         if (scale != null) {
             scale = scale.replace("(", "").replace(")", "").replace(" ", "");
@@ -191,7 +193,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                         "unknown parameter direction " + direction + "for " + callParameter.getName());
             }
 
-            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+            callParameter.setSqlType(ColumnType.convertDbTypeToSqlType(callParameter.getTypeName()));
 
             String scale = matcher2.group(5);
             if (scale != null) {
@@ -268,7 +270,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String typeName = paramTypesRs.getString("DATA_TYPE");
             //TODO need add currect jdbcType
-            int jdbcType = mapMariaDbTypeToJdbc(typeName);//ColumnType.classFromJavaType(1);
+            int jdbcType = ColumnType.convertDbTypeToSqlType(typeName);//ColumnType.convertSqlTypeToClass(1);
             int precision = paramTypesRs.getInt("DATA_PRECISION");
             int scale = paramTypesRs.getInt("DATA_SCALE");
             short nullability = DatabaseMetaData.procedureNullable;

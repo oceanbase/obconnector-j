@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.DatabaseMetaData;
+import java.sql.ParameterMetaData;
 import java.sql.Types;
 
 /** Info about in/out parameters. */
@@ -63,7 +64,7 @@ class CallParameter {
     private int     scale;
     private String  typeName;
     private boolean isSigned;
-    private int     canBeNull;
+    private int     canBeNull     = ParameterMetaData.parameterNullable;
     private int     precision;
     private String  className;
     private String  name;

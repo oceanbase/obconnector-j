@@ -191,7 +191,7 @@ public class ColumnDefinition {
         length = buffer.readInt();
         sqltype = buffer.readByte() & 0xff;
         longColFlag = buffer.readShort();
-        type = ColumnType.fromServer(sqltype, charsetNumber, OracleMode);
+        type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
 
         decimals = buffer.readByte() & 0xff;
         precision = buffer.readByte() & 0xff;
@@ -299,7 +299,7 @@ public class ColumnDefinition {
         arr[pos] = (byte) len; /* 4 bytes : column length */
         pos += 4;
 
-        arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
+        arr[pos++] = (byte) ColumnType.convertSqlTypeToColumnType(type.getSqlType()).getType(); /* 1 byte : type */
 
         return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding);
     }
