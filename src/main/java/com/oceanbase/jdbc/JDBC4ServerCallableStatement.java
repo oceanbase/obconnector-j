@@ -142,18 +142,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
     }
 
-    private void setInputOutputParameterMap() {
-        if (outputParameterMapper == null) {
-            outputParameterMapper = new int[params.size()];
-            int currentOutputMapper = 1;
-
-            for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++
-                    : -1;
-            }
-        }
-    }
-
     protected SelectResultSet getOutputResult() throws SQLException {
         if (outputResultSet == null) {
             if (this.isObFunction) { // For ObFunction
@@ -245,9 +233,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         this.parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments, this.isObFunction);
         this.params = parameterMetadata.params;
         int size = params.size();
-        List<String>  intoutParams = new ArrayList<>(params.size());
-        setInputOutputParameterMap();
+        List<String> intoutParams = new ArrayList<>(params.size());
         validAllParameters();
+
         for (int i = 0; i < size; i++) {
             String paramName = params.get(i).getName();
             String inOutParameterName;
@@ -282,7 +270,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         int beginIndex = 0;
         StringBuilder sb = new StringBuilder();
         List<Integer> paramIndexs = trimSQLStringInternal.getParamsIndexs();
-        if (paramCount >0  && paramIndexs.size() > 0) {
+        if (paramCount > 0  && paramIndexs.size() > 0) {
             for (int i = 0; i < paramIndexs.size() ; i++) {
                 int end = paramIndexs.get(i);
                 String partPre = trimedString.substring(beginIndex,end);
@@ -343,11 +331,25 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                         + "' does not match the number of registered parameters in sql '"
                         + parameterCount + "'.");
         }
-        setInputOutputParameterMap();
+
+        // calculate outputParameterMapper
+        if (outputParameterMapper == null) {
+            outputParameterMapper = new int[params.size()];
+        }
+        int currentOutputMapper = 1;
+        for (int index = 0; index < params.size(); index++) {
+            outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++
+                : -1;
+        }
+
         // Set value for OUT parameters
         for (int index = 0; index < params.size(); index++) {
             if (!params.get(index).isInput()) {
-                super.setParameter(index + 1, new NullParameter());
+                if (!protocol.isOracleMode() || params.get(index).isOutput()) {
+                    super.setParameter(index + 1, new NullParameter());
+                } else {
+                    throw new SQLException("Missing IN or OUT parameter in index::" + (index + 1));
+                }
             }
         }
     }

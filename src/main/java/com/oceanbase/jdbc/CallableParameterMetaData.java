@@ -215,7 +215,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         valid = true;
     }
 
-    void resetParams(String arguments, boolean isObFunction) {
+    void resetParams(String arguments, boolean isObFunction) throws SQLException {
         List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>() ;
         if (arguments != null) {
             arguments = Utils.trimSQLString(arguments, false, true, false);  //arguments  remove comments
@@ -240,16 +240,14 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
         List<CallParameter> currentParams = new ArrayList<>(parameterCount);
         for (int index = 0; index < parameterCount; index++) {
-            if (placeholderToParameterIndexMap != null) {
-                int localIndex = placeholderToParameterIndexMap[index];
-                if (localIndex != -1) {
-                    CallParameter parameter = params.get(localIndex);
-                    currentParams.add(parameter);
-                }
-            } else {
-                CallParameter parameter = params.get(index + 1);
-                if (parameter.getIndex() != -1) {
-                    currentParams.add(parameter);
+            int localIndex = placeholderToParameterIndexMap[index];
+            if (localIndex != -1) {
+                CallParameter parameter = params.get(localIndex);
+                currentParams.add(parameter);
+            } else if (!con.getProtocol().isOracleMode()){
+                CallParameter parameter = params.get(index);
+                if (parameter.isOutput()) {
+                    throw new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
                 }
             }
         }
