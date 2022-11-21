@@ -1426,4 +1426,48 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.next());
         rs.findColumn("a.c1");
     }
+
+    @Test
+    public void testOnDuplicateAnnotate() throws Exception {
+        createTable("test1", "id INT AUTO_INCREMENT PRIMARY KEY, c2 CHAR(1) UNIQUE KEY, c3 INT");
+        Statement stmt = sharedConnection.createStatement();
+
+        /* ***************** &useAffectedRows=false ***************** */
+        Connection conn1 = setConnection("&useAffectedRows=false");
+        Statement stmt1 = conn1.createStatement();
+        stmt1.execute("Insert into test1 (c2, c3) values ('A', 1), ('B', 2)");
+        stmt1
+            .execute(
+                "INSERT INTO test1 (c2, c3) VALUES ('B', 2), ('C', 3)  ON  DUPLICATE KEY /* test */ UPDATE c3 = VALUES(c3)",
+                Statement.RETURN_GENERATED_KEYS);
+
+        ResultSet rs1 = stmt1.getGeneratedKeys();
+        assertTrue(rs1.next());
+        assertEquals(3, rs1.getInt(1));
+        assertFalse(rs1.next());
+
+        ResultSet rs = stmt.executeQuery("select count(*) from test1");
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        stmt.execute("truncate table test1");
+
+        /* ***************** &useAffectedRows=true ***************** */
+        Connection conn2 = setConnection("&useAffectedRows=true");
+        Statement stmt2 = conn2.createStatement();
+        stmt2.execute("Insert into test1 (c2, c3) values ('A', 1), ('B', 2)");
+        stmt2
+            .execute(
+                "INSERT INTO test1 (c2, c3) VALUES ('B', 2), ('C', 3)  ON  DUPLICATE KEY /* test */ UPDATE c3 = VALUES(c3)",
+                Statement.RETURN_GENERATED_KEYS);
+
+        ResultSet rs2 = stmt2.getGeneratedKeys();
+        assertTrue(rs2.next());
+        assertEquals(3, rs2.getInt(1));
+        assertFalse(rs2.next());
+
+        rs = stmt.executeQuery("select count(*) from test1");
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+    }
+
 }

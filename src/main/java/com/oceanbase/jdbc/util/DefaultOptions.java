@@ -627,10 +627,8 @@ public enum DefaultOptions {
       "useAffectedRows",
       Boolean.FALSE,
       "2.3.0",
-      "If false (default), use \"found rows\" for the row "
-          + "count of statements. This corresponds to the JDBC standard.\n"
-          + "If true, use \"affected rows\" for the row count.\n"
-          + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
+      "If false (default), use \"found rows\" for the row count of statements. This corresponds to the JDBC standard.\n"
+          + "If true, use \"affected rows\" for the row count. This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
       false),
   INCLUDE_STATUS(
       "includeInnodbStatusInDeadlockExceptions",
