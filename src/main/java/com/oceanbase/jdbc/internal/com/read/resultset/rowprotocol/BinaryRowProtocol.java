@@ -934,6 +934,9 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
                 String rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
+                if (!getProtocol().isOracleMode()) {
+                    return getDateFromString(rawValue, cal, columnInfo);
+                }
                 if ("0000-00-00".equals(rawValue)) {
                     lastValueNull |= BIT_LAST_ZERO_DATE;
                     return null;
@@ -950,10 +953,11 @@ public class BinaryRowProtocol extends RowProtocol {
                     throw ExceptionFactory.INSTANCE.create(
                         "Could not get object as Date : " + e.getMessage(), "S1009", e);
                 }
-                //                return new Date(Integer.parseInt(rawValue.substring(0, 4)) - 1900,
-                //                    Integer.parseInt(rawValue.substring(5, 7)) - 1, Integer.parseInt(rawValue
-                //                        .substring(8, 10)));
             default:
+                if (!getProtocol().isOracleMode()) {
+                    return getDateFromString(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
+                }
                 if (length == 0) {
                     lastValueNull |= BIT_LAST_FIELD_NULL;
                     return null;
@@ -1041,6 +1045,12 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
+                if (!getProtocol().isOracleMode()) {
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    return getTimeFromString(raw, cal);
+                }
+                // convert string to a date
                 Calendar calendar = getCalendarInstance(cal);
                 calendar.clear();
                 int day = 0;
@@ -1161,6 +1171,9 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR:
                 String rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
+                if (!getProtocol().isOracleMode()) {
+                    return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);
+                }
                 if (rawValue.startsWith("0000-00-00 00:00:00")) {
                     lastValueNull |= BIT_LAST_ZERO_DATE;
                     return null;
@@ -1181,8 +1194,8 @@ public class BinaryRowProtocol extends RowProtocol {
                         }
                     }
                 }
-                break;
 
+                break;
             default:
                 year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
                 month = buf[pos + 2];

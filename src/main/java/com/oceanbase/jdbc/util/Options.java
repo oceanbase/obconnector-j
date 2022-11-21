@@ -60,6 +60,12 @@ public class Options implements Cloneable {
 
     public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
 
+    public static final String                           ZERO_DATETIME_CONVERT_TO_NULL = "convertToNull";
+
+    public static final String                           ZERO_DATETIME_EXCEPTION       = "exception";
+
+    public static final String                           ZERO_DATETIME_ROUND           = "round";
+
     // standard options
     public String user;
     public String password;
@@ -210,6 +216,8 @@ public class Options implements Cloneable {
     public boolean enableFullLinkTrace = false;
 
     public boolean allowNanAndInf = false;
+
+    public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
 
     @Override
     public String toString() {
@@ -636,6 +644,10 @@ public class Options implements Cloneable {
             return false;
         }
 
+        if (zeroDateTimeBehavior != opt.zeroDateTimeBehavior) {
+            return false;
+        }
+
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -773,6 +785,7 @@ public class Options implements Cloneable {
         result = 31 * result + (clobberStreamingResults ? 1 : 0);
         result = 31 * result + maxRows;
         result = 31 * result + (allowNanAndInf ? 1 : 0);
+        result = 31 * result + (zeroDateTimeBehavior != null ? zeroDateTimeBehavior.hashCode() : 0);
         return result;
     }
 

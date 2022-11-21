@@ -750,4 +750,96 @@ public class DateTest extends BaseTest {
         assertEquals(date1.getTime(), date3.getTime());
         assertEquals(timestamp1.getTime(), timestamp3.getTime());
     }
+
+    @Test
+    public void testTimeStampZeroException() throws Exception {
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT '00:00:00'");
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.prepareStatement("SELECT '00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.createStatement().executeQuery("SELECT '0000-00-00 00:00:00'");
+        assertTrue(rs.next());
+        try {
+            rs.getTimestamp(1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp"));
+            e.printStackTrace();
+        }
+
+        rs = sharedConnection.prepareStatement("SELECT '0000-00-00 00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        try {
+            rs.getTimestamp(1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp"));
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testTimeStampZeroRound() throws Exception {
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT '00:00:00'");
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.prepareStatement("SELECT '00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.createStatement().executeQuery("SELECT '0000-00-00 00:00:00'");
+        assertTrue(rs.next());
+        try {
+            assertEquals("0001-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        rs = sharedConnection.prepareStatement("SELECT '0000-00-00 00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        try {
+            assertEquals("0001-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testTimeStampZeroConvertToNull() throws Exception {
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT '00:00:00'");
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.prepareStatement("SELECT '00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("1970-01-01 00:00:00.0", rs.getTimestamp(1).toString());
+
+        rs = sharedConnection.createStatement().executeQuery("SELECT '0000-00-00 00:00:00'");
+        assertTrue(rs.next());
+        try {
+            Timestamp ts = rs.getTimestamp(1);
+            Assert.assertNull(ts);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+        rs = sharedConnection.prepareStatement("SELECT '0000-00-00 00:00:00'").executeQuery();
+        assertTrue(rs.next());
+        try {
+            Timestamp ts = rs.getTimestamp(1);
+            Assert.assertNull(ts);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

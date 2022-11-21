@@ -958,6 +958,13 @@ public enum DefaultOptions {
             "2.4.1",
             "The maximum number of rows to return. The default \"0\" means return all rows.",
             false),
+
+    ZERO_DATE_TIME_BEHAVIOR(
+            "zeroDateTimeBehavior",
+            Options.ZERO_DATETIME_EXCEPTION,
+            "2.4.1",
+            "How Mysql Mode to represent invalid dates?  Valid values are convertToNull,exception or round.",
+            false),
     ALLOW_NAN_AND_INF(
             "allowNanAndInf",
             Boolean.FALSE,

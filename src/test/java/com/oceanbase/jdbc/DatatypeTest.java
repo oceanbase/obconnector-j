@@ -1164,6 +1164,26 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
+    public void testTimeToDate() throws Exception {
+        ResultSet rs = null;
+        rs = sharedConnection.prepareStatement("SELECT '12:10:20'").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("12:10:20", rs.getTime(1).toString());
+        try {
+            assertEquals("1970-01-01", rs.getDate(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            assertEquals("1970-01-01 12:10:20.0", rs.getTimestamp(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testGetBigDecimalExecption() {
         try {
             ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT ' '");

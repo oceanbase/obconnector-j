@@ -646,6 +646,10 @@ public class TextRowProtocol extends RowProtocol {
                 return new Date(year - 1900, 0, 1);
 
             default:
+                if (!getProtocol().isOracleMode()) {
+                    return getDateFromString(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
+                }
                 try {
                     DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     sdf.setTimeZone(timeZone);
@@ -657,6 +661,7 @@ public class TextRowProtocol extends RowProtocol {
                     throw ExceptionFactory.INSTANCE.create(
                         "Could not get object as Date : " + e.getMessage(), "S1009", e);
                 }
+
         }
     }
 
@@ -712,6 +717,9 @@ public class TextRowProtocol extends RowProtocol {
         } else {
             String raw = new String(buf, pos, length,
                 getCurrentEncoding(columnInfo.getColumnType()));
+            if (!getProtocol().isOracleMode()) {
+                return getTimeFromString(raw, cal);
+            }
             if (!options.useLegacyDatetimeCode
                 && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
                 throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
@@ -782,63 +790,12 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
-                int nanoCount = 0;
-                int nanoBegin = -1;
-                int[] timestampsPart = new int[] { 0, 0, 0, 0, 0, 0, 0 };
-                int partIdx = 0;
-                for (int begin = pos; begin < pos + length; begin++) {
-                    byte b = buf[begin];
-                    if (b == '-' || b == ' ' || b == ':') {
-                        partIdx++;
-                        continue;
-                    }
-                    if (b == '.') {
-                        partIdx++;
-                        nanoBegin = begin;
-                        continue;
-                    }
-                    if (b < '0' || b > '9') {
-                        throw new SQLException("cannot parse data in timestamp string '"
-                                               + new String(buf, pos, length,
-                                                   getCurrentEncoding(columnInfo.getColumnType()))
-                                               + "'");
-                    }
-                    if (nanoBegin != -1) {
-                        nanoCount++;
-                    }
-                    timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
-                }
-                if (timestampsPart[0] == 0 && timestampsPart[1] == 0 && timestampsPart[2] == 0
-                    && timestampsPart[3] == 0 && timestampsPart[4] == 0 && timestampsPart[5] == 0
-                    && timestampsPart[6] == 0) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
-                // timestampsPart[6] the number of nanos
-                for (int i = nanoCount; i <= 8; i++) {
-                    timestampsPart[6] = timestampsPart[6] * 10;
-                }
-
-                Timestamp timestamp;
-
-                Calendar calendar = getCalendarInstance(userCalendar);
-
-                synchronized (calendar) {
-                    calendar.clear();
-                    calendar.set(Calendar.YEAR, timestampsPart[0]);
-                    calendar.set(Calendar.MONTH, timestampsPart[1] - 1);
-                    calendar.set(Calendar.DAY_OF_MONTH, timestampsPart[2]);
-                    calendar.set(Calendar.HOUR_OF_DAY, timestampsPart[3]);
-                    calendar.set(Calendar.MINUTE, timestampsPart[4]);
-                    calendar.set(Calendar.SECOND, timestampsPart[5]);
-                    timestamp = new Timestamp(calendar.getTime().getTime());
-                }
-                timestamp.setNanos(timestampsPart[6]);
-                return timestamp;
-
+                String rawValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
+                return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);
             case TIME:
                 // time does not go after millisecond
-                String rawValue = new String(buf, pos, length,
+                rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar,
                     TimeZone.getDefault()).getTime());
