@@ -1263,10 +1263,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         sendSessionInfos();
         getResult(new Results());
-
         try {
             sendCharsetVariables();
             getResult(new Results());
+        } catch (SQLException e) {
+            throw e;
+        }
+        try {
             if (!isOracleMode && this.getOptions().connectionCollation != null) {
                 setCollationVariables();
                 getResult(new Results());

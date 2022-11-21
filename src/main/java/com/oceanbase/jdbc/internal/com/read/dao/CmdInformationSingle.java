@@ -139,8 +139,10 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     private boolean isDuplicateKeyUpdate(String sql) {
-        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(sql, false, false, false);
-        return trimSQLStringInternal.getTrimedString().matches("(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
+        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(sql, false, false,
+            false);
+        return trimSQLStringInternal.getTrimedString().matches(
+            "(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
     }
 
     @Override

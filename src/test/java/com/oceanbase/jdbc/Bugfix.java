@@ -49,6 +49,7 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
@@ -1938,6 +1939,25 @@ public class Bugfix extends BaseTest {
             pstmt.executeBatch();
         } catch (SQLException e) {
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCharacterEncoding() {
+        try {
+            setConnection("&characterEncoding=latin1");
+            fail("Exception should've been thrown");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Unknown character set: 'latin1'"));
+            e.printStackTrace();
+        }
+        System.out.println("================");
+        try {
+            setConnection("&characterEncoding=NonexistentEncoding");
+            fail("Exception should've been thrown");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof UnsupportedCharsetException);
+            e.printStackTrace();
         }
     }
 
