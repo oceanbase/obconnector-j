@@ -2413,7 +2413,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private void cmdPrologue() throws SQLException {
     // load active result if any so buffer are clean for next query
     if (activeStreamingResult != null) {
-      activeStreamingResult.loadFully(false, this);
+      if (!options.clobberStreamingResults) {
+        throw new SQLException("Streaming result set " + activeStreamingResult + " is still active. No statements may be issued when any streaming result sets are open and in use on a given connection. Ensure that you have called .close() on any active streaming result sets before attempting more queries.");
+      }
+      activeStreamingResult.loadFully(true, this);
       activeStreamingResult = null;
     }
 

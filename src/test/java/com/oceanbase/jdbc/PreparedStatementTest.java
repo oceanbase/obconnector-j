@@ -642,4 +642,26 @@ public class PreparedStatementTest extends BaseTest {
         pstmt.close();
         conn.close();
     }
+
+    @Test
+    public void testFetchSize() throws Exception {
+        Connection conn = setConnection("");
+        PreparedStatement pstmt = conn.prepareStatement("SELECT 1");
+        pstmt.setFetchSize(Integer.MIN_VALUE);
+        pstmt.executeQuery();
+
+        try {
+            conn.createStatement().executeQuery("SELECT 2");
+            fail("Should have caught a streaming exception here");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Connection conn2 = setConnection("");
+        ResultSet rs = conn2.createStatement().executeQuery("SELECT 2");
+
+        rs.close();
+        conn2.createStatement().executeQuery("SELECT 3");
+    }
+
 }

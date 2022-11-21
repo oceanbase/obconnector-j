@@ -138,6 +138,7 @@ public class Options implements Cloneable {
     public int defaultFetchSize;
     public Properties nonMappedOptions = new Properties();
     public String tlsSocketType;
+    public boolean clobberStreamingResults;
     public int maxRows;
 
     // logging options
@@ -625,6 +626,9 @@ public class Options implements Cloneable {
         if (enableFullLinkTrace != opt.enableFullLinkTrace) {
             return false;
         }
+        if (clobberStreamingResults != opt.clobberStreamingResults) {
+            return false;
+        }
         if (maxRows != opt.maxRows) {
             return false;
         }
@@ -766,10 +770,12 @@ public class Options implements Cloneable {
         result = 31 * result + (useLocalXID ? 1 : 0);
         result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
+        result = 31 * result + (clobberStreamingResults ? 1 : 0);
         result = 31 * result + maxRows;
         result = 31 * result + (allowNanAndInf ? 1 : 0);
         return result;
     }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();

@@ -945,6 +945,12 @@ public enum DefaultOptions {
             "2.4.0",
             "Based on OceanBase v2.0 protocol",
             false),
+    CLOBBER_STREAMING_RESULTS(
+            "clobberStreamingResults",
+            Boolean.FALSE,
+            "2.4.1",
+            "This will cause a streaming result set to be automatically closed, and any outstanding data still streaming from the server to be discarded if another query is executed before all the data has been read from the server.",
+            false),
     MAX_ROWS(
             "maxRows",
             0,
