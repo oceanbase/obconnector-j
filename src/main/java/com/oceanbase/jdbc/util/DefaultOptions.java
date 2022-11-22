@@ -973,7 +973,14 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.1",
             "Should PreparedStatement.setDouble() allow NaN or +/- INF values?",
-            false);
+            false),
+    DEFAULT_CONNECTION_ATTRIBUTES_BAN_LIST (
+            "defaultConnectionAttributesBanList",
+            (String) null,
+            "2.4.1",
+            "The list of default connectionAttributes that will not be sent to the server when sendConnectionAttributes = true.",
+            false)
+    ;
 
 
   private final String optionName;

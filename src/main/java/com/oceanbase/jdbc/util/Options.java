@@ -217,6 +217,8 @@ public class Options implements Cloneable {
     public boolean enableFullLinkTrace = false;
 
     public boolean allowNanAndInf = false;
+    public String  defaultConnectionAttributesBanList = null;
+
 
     public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
 
@@ -620,6 +622,9 @@ public class Options implements Cloneable {
         if (connectionCollation != opt.connectionCollation) {
           return false;
         }
+        if (defaultConnectionAttributesBanList != opt.defaultConnectionAttributesBanList) {
+            return false;
+        }
         if (useArrayBinding != opt.useArrayBinding) {
           return false;
         }
@@ -781,6 +786,7 @@ public class Options implements Cloneable {
         result = 31 * result + (serverAffinityOrder != null ? serverAffinityOrder.hashCode() : 0);
         result = 31 * result + (blobSendChunkSize);
         result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
+        result = 31 * result + (defaultConnectionAttributesBanList != null ? defaultConnectionAttributesBanList.hashCode() : 0);
         result = 31 * result + (useArrayBinding ? 1 : 0);
         result = 31 * result + (sendConnectionAttributes ? 1 : 0);
         result = 31 * result + (rewriteInsertByMultiQueries ? 1 : 0);
