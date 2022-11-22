@@ -60,12 +60,19 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class OceanBaseClobTest extends BaseTest {
 
-    private final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    private final byte[] bytes     = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    static String        emptyClob = "emptyClob" + getRandomString(5);
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable(emptyClob, "field1 VARCHAR(255)");
+    }
 
     @Test
     public void length() {
@@ -339,4 +346,24 @@ public class OceanBaseClobTest extends BaseTest {
       }
     }
   }
+
+    @Test
+    public void testEmptyClob() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.executeUpdate("INSERT INTO " + emptyClob + " VALUES ('aaa')");
+            ResultSet rs = stmt.executeQuery("SELECT field1 FROM " + emptyClob);
+            rs.next();
+
+            java.sql.Clob clob = rs.getClob(1);
+            System.out.println(clob.toString());
+            PreparedStatement pStmt = sharedConnection.prepareStatement("INSERT INTO " + emptyClob
+                                                                        + " VALUES (?)");
+            pStmt.setClob(1, clob);
+            pStmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

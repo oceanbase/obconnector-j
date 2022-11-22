@@ -621,4 +621,13 @@ public class Clob extends Lob implements ObClob {
             }
         }
     }
+
+    @Override
+    public boolean isEmptyLob() {
+        if (this.locator != null) {
+            return locator.payloadSize == 0;
+        } else {
+            return ((data == null || data.length == 0) && (charData == null || charData.length() == 0));
+        }
+    }
 }
