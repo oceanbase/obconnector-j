@@ -169,6 +169,7 @@ public class CursorResultSet extends Cursor {
         } else if (dataSize == -1) {
             dataSize = 0;
         }
+        processedRows = 0;
 
         // read only fetchSize rows and an EOF packet
         while (tmpFetchSize >= 0 && super.readNextValue()) {

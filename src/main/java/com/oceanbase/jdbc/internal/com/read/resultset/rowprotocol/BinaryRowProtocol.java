@@ -1194,7 +1194,6 @@ public class BinaryRowProtocol extends RowProtocol {
                         }
                     }
                 }
-
                 break;
             default:
                 year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);

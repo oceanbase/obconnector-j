@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.io.socket;
 
 import java.io.IOException;
 
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.sun.jna.Platform;
 
@@ -85,7 +86,16 @@ public class SocketUtility {
             throw new IOException(re.getMessage(), re.getCause());
           }
         }  else  if (options.socksProxyHost != null) {
-           return  Utils.socksSocket(options);
+          return Utils.socksSocket(options);
+        } else if (options.obProxySocket != null) {
+          //Init ProxyVC log
+          LoggerFactory.initProxyVc(options.log);
+          if (options.tcpSndBuf != null || options.tcpRcvBuf != null) {
+            return new OBProxyVCSocket(options.obProxySocket,
+                    options.tcpSndBuf == null ? 0 : options.tcpSndBuf.intValue(),
+                    options.tcpRcvBuf == null ? 0 : options.tcpRcvBuf.intValue());
+          }
+          return new OBProxyVCSocket(options.obProxySocket);
         } else {
           return Utils.standardSocket(options, host);
         }
@@ -93,6 +103,18 @@ public class SocketUtility {
     } catch (Throwable cle) {
       // jna jar's are not in classpath
     }
-    return (options, host) -> Utils.standardSocket(options, host);
+    return (options, host) -> {
+      if (options.obProxySocket != null) {
+        LoggerFactory.initProxyVc(options.log);
+        if (options.tcpSndBuf != null || options.tcpRcvBuf != null) {
+          return new OBProxyVCSocket(options.obProxySocket,
+                  options.tcpSndBuf == null ? 0 : options.tcpSndBuf.intValue(),
+                  options.tcpRcvBuf == null ? 0 : options.tcpRcvBuf.intValue());
+        }
+        return new OBProxyVCSocket(options.obProxySocket);
+      } else {
+        return Utils.standardSocket(options, host);
+      }
+    };
   }
 }

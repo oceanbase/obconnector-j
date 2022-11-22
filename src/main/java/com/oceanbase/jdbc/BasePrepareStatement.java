@@ -148,6 +148,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         if (executeInternal(getFetchSize())) {
             return 0;
         }
+
+        // DML returning rs
+        if (results.isReturning() && results.getResultSet() != null) {
+            return results.getResultSet().getProcessedRows();
+        }
         return getLargeUpdateCount();
     }
 

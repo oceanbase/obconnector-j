@@ -80,6 +80,7 @@ public class Results {
     private boolean                toCursorFetch;       // cursor exists
     private boolean                toPrepareExecute;    // use ComStmtPrepareExecute
     private boolean                internalResult;      // returning into, array binding error, pl out parameter
+    private boolean                returning;
     private boolean                batch;
     private int                    expectedSize;
 
@@ -526,4 +527,13 @@ public class Results {
     public Deque<SelectResultSet> getExecutionResults() {
         return executionResults;
     }
+
+    public void setReturning(boolean isReturning) {
+        returning = isReturning;
+    }
+
+    public boolean isReturning() {
+        return returning;
+    }
+
 }

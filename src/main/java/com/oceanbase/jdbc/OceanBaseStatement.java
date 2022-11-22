@@ -1023,8 +1023,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void setMaxRows(final int max) throws SQLException {
     if (max < 0) {
-      throw exceptionFactory.raiseStatementError(connection, this)
-          .create("Max rows should not be less than 0.", "42000");
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("max rows cannot be negative : asked for " + max, "42000");
     }
     maxRows = max;
   }
@@ -1206,12 +1207,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
    *     <code>Statement</code>
    */
   public void setCursorName(final String name) throws SQLException {
-      if(!protocol.isOracleMode()) {
-          // No-op
-          return;
-      }
-      throw exceptionFactory.raiseStatementError(connection, this).notSupported("Not supported feature");
-
+    throw exceptionFactory
+        .raiseStatementError(connection, this)
+        .notSupported("Cursors are not supported");
   }
 
   /**
@@ -1277,7 +1275,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public boolean isPoolable() {
-    return isPoolable;
+    return false;
   }
 
   /**
@@ -1732,6 +1730,33 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public int getSqlType() {
     return sqlType;
+  }
+
+  public int getSqlType(String Sql) {
+        String simpleSql = Utils.trimSQLString(Sql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
+        return Utils.getStatementType(simpleSql);
+  }
+
+  protected boolean isDml(int sqlType) {
+      switch (sqlType) {
+          case STMT_UPDATE:
+          case STMT_DELETE:
+          case STMT_INSERT:
+              return true;
+      }
+
+      if (!protocol.isOracleMode()) {
+          switch (sqlType) {
+              // TRUNCATE, RENAME
+              case STMT_CREATE:
+              case STMT_DROP:
+              case STMT_ALTER:
+                  return true;
+          }
+      }
+      // Oracle: MERGE
+
+      return false;
   }
 
   public boolean isAddRowid() {

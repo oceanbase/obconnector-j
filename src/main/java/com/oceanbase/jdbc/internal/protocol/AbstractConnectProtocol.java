@@ -100,6 +100,7 @@ import com.oceanbase.jdbc.internal.io.output.CompressPacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.StandardPacketOutputStream;
+import com.oceanbase.jdbc.internal.io.socket.OBProxyVCSocket;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
@@ -591,6 +592,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 greetingPacket.getSeed(), options, database, credential, host);
 
             compressionHandler(options);
+            if (socket instanceof OBProxyVCSocket) {
+                // set the client session it for the trace info
+                ((OBProxyVCSocket) socket).setCsId(this.serverThreadId);
+            }
         } catch (IOException ioException) {
             destroySocket();
             if (host == null) {

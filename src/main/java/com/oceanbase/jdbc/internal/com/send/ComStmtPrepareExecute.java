@@ -64,9 +64,11 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 public class ComStmtPrepareExecute {
 
     /***** Extend Flag *****/
-    private static int RETURNING_RESULT_SET = 0x0001;
-    private static int ARRAY_BINDING_FIELD  = 0x0002;
-    private static int PL_OUT_PARAMETER     = 0x0004;
+    private static int NOT_RETURNING_RESULT_SET           = 0x0000;
+    private static int RETURNING_RESULT_SET_WITHOUT_FIELD = 0x0001;
+    private static int ARRAY_BINDING_FIELD                = 0x0002;
+    private static int RETURNING_RESULT_SET_WITH_FIELD    = 0x0003;
+    private static int PL_OUT_PARAMETER                   = 0x0004;
 
     /**
      * Send a prepare statement binary stream.
@@ -208,12 +210,13 @@ public class ComStmtPrepareExecute {
 
                 ColumnDefinition[] columns = new ColumnDefinition[numColumns];
                 if (hasResultSet == 1) {
-                    if ((extendFlag & RETURNING_RESULT_SET) != 0
+                    if ((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0
                         || (extendFlag & ARRAY_BINDING_FIELD) != 0
                         || (extendFlag & PL_OUT_PARAMETER) != 0) {
                         results.setInternalResult(true);
                     }
                     results.setToPrepareExecute(true);
+                    results.setReturning((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0);
 
                     protocol.readResultSet(columns, results);
 

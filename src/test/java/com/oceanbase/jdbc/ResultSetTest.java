@@ -1470,4 +1470,36 @@ public class ResultSetTest extends BaseTest {
         assertEquals(3, rs.getInt(1));
     }
 
+    @Test
+    public void testMaxRows() throws SQLException {
+        String tableName = "DeleteReturn_ingInto";
+        createTable(tableName, "c1 INT, c2 VARCHAR(100)");
+        String query = "insert into DeleteReturn_ingInto values(1,'1+string')";
+        for (int i = 2; i <= 100; i++) {
+            query += ",(" + i + ",'" + i + "+string')";
+        }
+        Statement st = sharedConnection.createStatement();
+        st.execute(query);
+        st.close();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxRows(5);
+        stmt.setFetchSize(3);
+        ResultSet rs1 = stmt.executeQuery("select * from DeleteReturn_ingInto limit 10;");
+        while (rs1.next()) {
+            String c2 = rs1.getString(2);
+            System.out.println(c2);
+        }
+
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+        PreparedStatement pstmt = conn
+            .prepareStatement("select * from DeleteReturn_ingInto limit 10;");
+        pstmt.setMaxRows(5);
+        pstmt.setFetchSize(3);
+        ResultSet rs2 = pstmt.executeQuery();
+        while (rs2.next()) {
+            String c2 = rs2.getString(1);
+            System.out.println(c2);
+        }
+    }
 }

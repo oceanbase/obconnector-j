@@ -1599,6 +1599,25 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testProcErrorAone40384433() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table  t");
+            } catch (SQLException throwables) {
+            }
+            stmt.execute("create table t(col int primary key)");
+            stmt.execute("create or replace procedure proc is " + "begin"
+                         + "  insert into t values(1);" + "  insert into t values(1);" + "end;");
+            PreparedStatement ps = conn.prepareStatement("call proc()");
+            ps.execute();
+        } catch (SQLException throwables) {
+            Assert.assertTrue(throwables.getMessage().contains("line : 1, col : 5"));
+        }
+    }
+
+    @Test
     public void testCallStmtBatchSqlBugAone40302848() {
         try {
             Connection conn = sharedConnection;
@@ -1733,6 +1752,28 @@ public class Bugfix extends BaseTest {
             fail("Should've caught an exception here");
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testPrepStmtExecuteLargeUpdate() {
+        try {
+            createTable("test1", "id int");
+
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("INSERT INTO test1 VALUES (?), (?), (?), (?), (?)");
+            ps.setInt(1, 1);
+            ps.setInt(2, 2);
+            ps.setInt(3, 3);
+            ps.setInt(4, 4);
+            ps.setInt(5, 5);
+
+            long count = ps.executeLargeUpdate();
+            assertEquals(5, count);
+            assertEquals(5, ps.getLargeUpdateCount());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 

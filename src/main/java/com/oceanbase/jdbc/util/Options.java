@@ -90,6 +90,7 @@ public class Options implements Cloneable {
     public String pipe;
     public String localSocket;
     public String sharedMemory;
+    public String obProxySocket;
     public boolean tcpNoDelay = true;
     public boolean tcpKeepAlive = true;
     public Integer tcpRcvBuf;
@@ -461,6 +462,9 @@ public class Options implements Cloneable {
         if (!Objects.equals(sharedMemory, opt.sharedMemory)) {
             return false;
         }
+        if (!Objects.equals(obProxySocket, opt.obProxySocket)) {
+            return false;
+        }
         if (!Objects.equals(tcpRcvBuf, opt.tcpRcvBuf)) {
             return false;
         }
@@ -672,6 +676,7 @@ public class Options implements Cloneable {
         result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
         result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
         result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
+        result = 31 * result + (obProxySocket != null ? obProxySocket.hashCode() : 0);
         result = 31 * result + (tcpNoDelay ? 1 : 0);
         result = 31 * result + (tcpKeepAlive ? 1 : 0);
         result = 31 * result + (tcpRcvBuf != null ? tcpRcvBuf.hashCode() : 0);

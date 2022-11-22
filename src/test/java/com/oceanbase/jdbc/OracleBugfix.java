@@ -1137,6 +1137,110 @@ public class OracleBugfix extends BaseOracleTest {
     }
 
     @Test
+    public void testSendBatchBugForRwrite() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&usePieceData=true&rewriteBatchedStatements=true&maxBatchTotalParamsNum=200");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table rewriteclob");
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            stmt.execute("create table rewriteclob(c1 clob,c2 varchar2(200),c3 varchar2(200),c4 clob,c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200))");
+            PreparedStatement preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            int val = 0;
+            preparedStatement.setCharacterStream(1, new StringReader("string value"));
+            preparedStatement.setString(2, "string value");
+            preparedStatement.setString(3, "string value");
+            preparedStatement.setString(4, "string value");
+            preparedStatement.setLong(5, val++);
+
+            preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+            preparedStatement.setDate(7, null);
+
+            preparedStatement.setString(8, "string value");
+            preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+            preparedStatement.execute();
+            ResultSet rs = stmt.executeQuery("select * from rewriteclob");
+            val = 0;
+            while (rs.next()) {
+                Assert.assertEquals("string value", rs.getString(1));
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            stmt.execute("delete from rewriteclob");
+            int batchTimes = 99;
+            val = 0;
+            System.out.println("test piece");
+            preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            for (int i = 0; i < batchTimes; i++) {
+                preparedStatement.setCharacterStream(1, new StringReader("string value")); //  test for long data
+                preparedStatement.setString(2, "string value");
+                preparedStatement.setString(3, "string value");
+                preparedStatement.setCharacterStream(4, new StringReader("string value")); // test for long data
+                preparedStatement.setLong(5, val++);
+
+                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+                preparedStatement.setDate(7, null);
+
+                preparedStatement.setString(8, "string value");
+                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+                preparedStatement.addBatch();
+            }
+            val = 0;
+            preparedStatement.executeBatch();
+            rs = stmt.executeQuery("select * from rewriteclob");
+            long count = 0;
+            while (rs.next()) {
+                count++;
+                if (count < 10) {
+                    Assert.assertEquals("string value", rs.getString(1));
+                    Assert.assertEquals("string value", rs.getString(4));
+                }
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            Assert.assertEquals(batchTimes, count);
+
+            stmt.execute("delete from rewriteclob");
+
+            batchTimes = 30001;
+            val = 0;
+            preparedStatement = conn
+                .prepareStatement("insert into rewriteclob values(?,?,?,?,?,?,?,?,?,null,null)");
+            for (int i = 0; i < batchTimes; i++) {
+                preparedStatement.setString(1, "string value");
+                preparedStatement.setString(2, "string value");
+                preparedStatement.setString(3, "string value");
+                preparedStatement.setString(4, "string value");
+                preparedStatement.setLong(5, val++);
+                preparedStatement.setBigDecimal(6, new BigDecimal(134254.3342));
+                preparedStatement.setDate(7, null);
+                preparedStatement.setString(8, "string value");
+                preparedStatement.setBigDecimal(9, new BigDecimal(134254.3342));
+                preparedStatement.addBatch();
+            }
+            val = 0;
+            preparedStatement.executeBatch();
+            rs = stmt.executeQuery("select * from rewriteclob");
+            count = 0;
+            while (rs.next()) {
+                count++;
+                if (count < 10) {
+                    Assert.assertEquals("string value", rs.getString(1));
+                    Assert.assertEquals("string value", rs.getString(4));
+                }
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            Assert.assertEquals(batchTimes, count);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void getObjectFromBlob() {
         try {
             Connection conn = sharedConnection;

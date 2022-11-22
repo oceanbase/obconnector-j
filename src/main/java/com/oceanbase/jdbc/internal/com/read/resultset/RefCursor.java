@@ -56,6 +56,7 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class RefCursor extends CursorResultSet {
     private RowObCursorData rowObCursorData;
+    private boolean         isLastRow = false;
 
     public RefCursor(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
                      boolean callableResult, boolean eofDeprecated, boolean isPsOutParamter,
@@ -105,6 +106,36 @@ public class RefCursor extends CursorResultSet {
         } catch (IOException e) {
             handleIoException(e);
         }
+    }
+
+    private void getCursorFetchData() throws IOException, SQLException {
+        if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
+            lastRowPointer = -1;
+            // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
+            if (resultSetScrollType == TYPE_FORWARD_ONLY && dataSize > 0) {
+                discardedRows += dataSize;
+                dataSize = 0;
+            }
+            super.resetState();
+        }
+        if (dataSize == -1) {
+            dataSize = 0;
+        }
+        // read only fetchSize values
+        int fetchSizeTmp = this.getFetchSize();
+        while (fetchSizeTmp >= 0 && super.readNextValue()) {
+            fetchSizeTmp--;
+        }
+    }
+
+    @Override
+    public boolean last() throws SQLException {
+        throw new SQLException("Operation not supported for streaming result set");
+    }
+
+    @Override
+    public void beforeFirst() throws SQLException {
+        throw new SQLException("Operation not supported for streaming result set");
     }
 
     @Override

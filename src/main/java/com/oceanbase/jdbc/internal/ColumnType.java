@@ -543,4 +543,19 @@ public enum ColumnType {
         }
     }
 
+    /**
+     * Convert javatype to ColumnType.
+     *
+     * @param javaType javatype value
+     * @return mariaDb type value
+     */
+    public static ColumnType toServer(int javaType) {
+        for (ColumnType v : values()) {
+            if (v.sqlType == javaType) {
+                return v;
+            }
+        }
+        return ColumnType.BLOB;
+    }
+
 }

@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.util;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import com.oceanbase.jdbc.credential.CredentialPlugin;
@@ -627,8 +628,10 @@ public enum DefaultOptions {
       "useAffectedRows",
       Boolean.FALSE,
       "2.3.0",
-      "If false (default), use \"found rows\" for the row count of statements. This corresponds to the JDBC standard.\n"
-          + "If true, use \"affected rows\" for the row count. This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
+      "If false (default), use \"found rows\" for the row "
+          + "count of statements. This corresponds to the JDBC standard.\n"
+          + "If true, use \"affected rows\" for the row count.\n"
+          + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
       false),
   INCLUDE_STATUS(
       "includeInnodbStatusInDeadlockExceptions",
@@ -1009,7 +1012,6 @@ public enum DefaultOptions {
     minValue = null;
     maxValue = null;
   }
-
   DefaultOptions(
           final String optionName,
           final int defaultValue,
@@ -1127,6 +1129,53 @@ public enum DefaultOptions {
     return options;
   }
 
+  public static String[] getUrlParameters(String urlParameters) {
+    char last_ch = urlParameters.charAt(0);
+    ArrayList<String> paramlist  = new ArrayList();
+    int start = 0;
+    int i = 0;
+    int status = 0; //NORMAL
+    for(i = 0; i < urlParameters.length(); i++) {
+      char ch = urlParameters.charAt(i);
+      if (ch != '&' && ch != '\\' && ch != '"' && ch != '\'') {
+        last_ch = ch;
+        continue;
+      }
+      switch (status) {
+        case 0: {
+          if (ch == '\'' && last_ch != '\\') {
+            status = 1; //single-quote
+          } else if (ch == '\"' && last_ch != '\"') {
+            status = 2; //double-quote
+          } else if (ch == '&') {
+            paramlist.add(urlParameters.substring(start, i));
+            start = i + 1;
+          }
+          break;
+        }
+        case 1: {
+          if (ch == '\'' && last_ch != '\\') {
+            status = 0;
+          }
+          break;
+        }
+        case 2: {
+          if (ch == '\"' && last_ch != '\\') {
+            status = 0;
+          }
+          break;
+        }
+        default:
+          last_ch = ch; //do nothing
+      }
+      last_ch = ch;
+    }
+    if (i > start) {
+      paramlist.add(urlParameters.substring(start, i));
+    }
+    return (String[]) paramlist.toArray(new String[paramlist.size()]);
+  }
+
   /**
    * Parse additional properties .
    *
@@ -1142,7 +1191,10 @@ public enum DefaultOptions {
       final Properties properties,
       final Options options) {
     if (urlParameters != null && !urlParameters.isEmpty()) {
-      String[] parameters = urlParameters.split("&");
+
+      String[] parameters = getUrlParameters(urlParameters);
+//      String[] parameters = urlParameters.split("&");
+      urlParameters.split("&");
       for (String parameter : parameters) {
         int pos = parameter.indexOf('=');
         if (pos == -1) {

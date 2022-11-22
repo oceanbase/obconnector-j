@@ -57,10 +57,12 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -73,6 +75,8 @@ import com.oceanbase.jdbc.util.OceanBaseCRC32C;
 public class JDBC4ServerPreparedStatement extends BasePrepareStatement implements Cloneable {
 
   private static final Logger logger = LoggerFactory.getLogger(JDBC4ServerPreparedStatement.class);
+  private   List<ReturnParameter>           returnParams = new ArrayList<>();
+  private int returnParamCount = 0;
   protected Map<Integer, ParameterHolder>   currentParameterHolder;
   protected List<ParameterHolder[]>         parametersList = new ArrayList<>();
   protected ServerPrepareResult             serverPrepareResult = null;
@@ -133,11 +137,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       }
     }
 
+    // get count of return parameters for DML Returning Into characteristic
+    initializeReturnParams();
+
     if (!protocol.isOracleMode()) {
       if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
         prepare(actualSql);
       }
-    } else if (protocol.isOracleMode()) {
+    } else {
       if (!protocol.supportStmtPrepareExecute()) {
         prepare(actualSql);
       } else {
@@ -186,6 +193,48 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       throw new CloneNotSupportedException("PrepareStatement not ");
     }
     return clone;
+  }
+
+  private void initializeReturnParams() {
+      // check whether this sql is a DML statement
+      if (!isDml(sqlType)) {
+          return;
+      }
+
+      // calculate where "returning" starts and ends
+      String completeStmt = simpleSql.toLowerCase(Locale.ROOT);
+      int returningStartPos = completeStmt.indexOf("returning");
+      if (returningStartPos < 1 || completeStmt.charAt(returningStartPos - 1) != ' ') {
+          return;
+      }
+      int returningEndPos = returningStartPos + "returning".length();
+      if (returningEndPos >= completeStmt.length() || completeStmt.charAt(returningEndPos) != ' ') {
+          return;
+      }
+
+      // calculate where "into" starts and ends
+      String returningClause = completeStmt.substring(returningStartPos);
+      int intoStartPos = returningClause.indexOf("into");
+      if (intoStartPos < 1 || returningClause.charAt(intoStartPos - 1) != ' ') {
+          return;
+      }
+      int intoEndPos = intoStartPos + "into".length();
+      if (intoEndPos >= returningClause.length() || returningClause.charAt(intoEndPos) != ' ') {
+          return;
+      }
+
+      // calculate the count of ":var" or "?"
+      for (int i = 0; i < returningClause.length(); i++) {
+          if (returningClause.charAt(i) == ':' || returningClause.charAt(i) == '?') {
+              returnParamCount++;
+          }
+      }
+
+      // initialize return parameter list
+      returnParams = new ArrayList<>(returnParamCount);
+      for (int i = 0; i < returnParamCount; i++) {
+          returnParams.add(new ReturnParameter());
+      }
   }
 
   /***
@@ -261,6 +310,57 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     currentParameterHolder.put(parameterIndex - 1, holder);
   }
 
+    public void registerReturnParameter(int parameterIndex, int externalType) throws SQLException {
+        if (parameterCount <= 0) {
+            throw new SQLException("The count of bind parameter must be larger than 0.");
+        } else if (returnParamCount <= 0) {
+            throw new SQLException("The count of return parameter must be larger than 0.");
+        }
+
+        int index = parameterIndex - 1;
+        if ((index >= parameterCount - returnParamCount) && parameterIndex <= parameterCount) {
+            setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+        } else {
+            throw new SQLException("Invalid parameter index.");
+        }
+    }
+
+    public void registerReturnParameter(int parameterIndex, int externalType, int maximumSize) throws SQLException {
+        if (parameterCount <= 0) {
+            throw new SQLException("The count of bind parameter must be larger than 0.");
+        }
+
+        int index = parameterIndex - 1;
+        if (index >= 0 && parameterIndex <= parameterCount) {
+            if (externalType != Types.CHAR && externalType != Types.VARCHAR && externalType != Types.LONGVARCHAR && externalType != Types.BINARY && externalType != Types.VARBINARY && externalType != Types.LONGVARBINARY) {
+                throw new SQLException("Invalid parameter type for this interface.");
+            } else if (maximumSize <= 0) {
+                throw new SQLException("Maximum size of return parameter must be larger than 0.");
+            } else {
+                setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+            }
+        } else {
+            throw new SQLException("Invalid parameter index.");
+        }
+    }
+
+    public void registerReturnParameter(int parameterIndex, int externalType, String internalTypeName) throws SQLException {
+        if (parameterCount <= 0) {
+            throw new SQLException("The count of bind parameter must be larger than 0.");
+        }
+
+        int index = parameterIndex - 1;
+        if (index >= 0 && parameterIndex <= parameterCount) {
+            if (externalType != Types.REF && externalType != Types.STRUCT && externalType != Types.ARRAY && externalType != Types.SQLXML) {
+                throw new SQLException("Invalid parameter type for this interface.");
+            } else {
+                setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+            }
+        } else {
+            throw new SQLException("Invalid parameter index.");
+        }
+    }
+
   @Override
   public ParameterMetaData getParameterMetaData() throws SQLException {
     return parameterMetaData;
@@ -302,12 +402,20 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public void addBatch() throws SQLException {
+    if (returnParamCount > 0) {
+        throw new SQLFeatureNotSupportedException("not support batch operation for DML_Returning_Into feature.");
+    }
+
     validParameters();
     parametersList.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
   }
 
   @Override
   public void addBatch(final String sql) throws SQLException {
+    if (returnParamCount > 0) {
+      throw new SQLException("not support batch operation for DML_Returning_Into feature.");
+    }
+
     String querySetToServer = sql;
     Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
     if (this.protocol.isOracleMode()) {
@@ -744,14 +852,25 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         return results.getResultSet();
       }
     }
+
+    // DML returning rs
+    if (results.isReturning()) {
+      return results.getResultSet();
+    }
     return SelectResultSet.createEmptyResultSet();
   }
+
   @Override
   public long executeLargeUpdate() throws SQLException {
-    if (execute()) {
-      return 0;
-    }
-    return getLargeUpdateCount();
+      if (execute()) {
+          return 0;
+      }
+
+      // DML returning rs
+      if (results.isReturning() && results.getResultSet() != null) {
+          return results.getResultSet().getProcessedRows();
+      }
+      return getLargeUpdateCount();
   }
   /**
    * Executes the SQL statement in this <code>PreparedStatement</code> object, which must be an SQL
@@ -768,6 +887,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   public int executeUpdate() throws SQLException {
     if (execute()) {
       return 0;
+    }
+
+    // DML returning rs
+    if (results.isReturning() && results.getResultSet() != null) {
+      return (int) results.getResultSet().getProcessedRows();
     }
     return getUpdateCount();
   }
@@ -862,7 +986,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       if (results.getCallableResultSet() != null) {
         return true;
       } else {
-        return results.getResultSet() != null;
+        // for DML Returning stmt(insert, delete and update), FALSE would be returned for execute() and executeUpdate()
+        return !results.isReturning() && results.getResultSet() != null;
       }
 
     } catch (SQLException exception) {
@@ -900,6 +1025,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           lock.unlock();
       }
   }
+
 
   public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
       lock.lock();
@@ -1022,4 +1148,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   public long getServerThreadId() {
     return serverPrepareResult.getUnProxiedProtocol().getServerThreadId();
   }
+
+    public ResultSet getReturnResultSet() throws SQLException {
+        checkClose();
+        if (returnParamCount != 0 && returnParams != null) {
+            return (results != null && results.isReturning()) ? results.getResultSet() : null;
+        } else {
+            throw new SQLException("Statement handle not executed");
+        }
+    }
+
 }

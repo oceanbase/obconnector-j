@@ -52,8 +52,9 @@ package com.oceanbase.jdbc.internal.logging;
 
 public class LoggerFactory {
 
-    private static final Logger NO_LOGGER = new NoLogger();
-    private static Boolean      hasToLog  = null;
+    private static final Logger NO_LOGGER    = new NoLogger();
+    private static Boolean      hasToLog     = null;
+    private static Boolean      proxyVcToLog = false;
 
     /**
      * Initialize factory.
@@ -86,6 +87,30 @@ public class LoggerFactory {
     public static Logger getLogger(Class<?> clazz) {
         if (hasToLog != null && hasToLog) {
             return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
+        } else {
+            return NO_LOGGER;
+        }
+    }
+
+    public static void initProxyVc(boolean mustLog) {
+        proxyVcToLog = mustLog;
+    }
+
+    /**
+     * Initialize logger.
+     *
+     * @param clazz initiator class
+     * @return logger
+     */
+    public static Logger getLoggerProxy(Class<?> clazz) {
+        if (proxyVcToLog) {
+            try {
+                Class.forName("org.slf4j.LoggerFactory");
+                return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
+            } catch (ClassNotFoundException classNotFound) {
+                proxyVcToLog = false;
+                return NO_LOGGER;
+            }
         } else {
             return NO_LOGGER;
         }

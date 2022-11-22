@@ -111,7 +111,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected Options                       options;
     protected ColumnDefinition[]            columnsInformation;
     protected int                           columnInformationLength;
-    protected int                           columnIndexOffset     = 0;
+    protected int                           columnIndexOffset;
     protected boolean                       noBackslashEscapes;
     protected Protocol                      protocol;
     protected PacketInputStream             reader;
@@ -130,13 +130,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * 1~n: the number of rows cached in "data[][]"
      */
     protected int                           dataSize              = -1;
+    protected long                          processedRows;
+    protected int                           discardedRows;
     protected int                           rowPointer            = -1;
     protected int                           lastRowPointer        = -1;
-    protected int                           discardedRows         = 0;
-    protected boolean                       isEof                 = false;
-    protected boolean                       isLastRowSent         = false;
-    protected boolean                       isClosed              = false;
-    protected boolean                       isModified            = false;
+    protected boolean                       isEof;
+    protected boolean                       isLastRowSent;
+    protected boolean                       isClosed;
+    protected boolean                       isModified;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
     protected boolean                       forceAlias;
@@ -467,6 +468,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     private void fetchAllResults() throws IOException, SQLException {
         dataSize = 0;
+        processedRows = 0;
         while (readNextValue()) {
             // fetch all results
         }
@@ -539,6 +541,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (dataSize == -1) {
             dataSize = 0;
         }
+        processedRows = 0;
         // read only fetchSize values
         int fetchSizeTmp = fetchSize;
         while (fetchSizeTmp > 0 && readNextValue()) {
@@ -628,6 +631,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         //        Buffer buffer = new Buffer(buf, buf.length);
         //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
         data[dataSize++] = buf;
+        processedRows++;
         return true;
     }
 
@@ -752,7 +756,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     dataSize = 0; // to avoid storing data
                     readNextValue();
                 }
-
+                processedRows = 0;
             } catch (SQLException queryException) {
                 throw ExceptionFactory.INSTANCE.create(queryException);
             } catch (IOException ioe) {
@@ -3826,6 +3830,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public int getDataSize() {
         return dataSize;
+    }
+
+    public long getProcessedRows() {
+        return processedRows;
     }
 
     public boolean isBinaryEncoded() {
