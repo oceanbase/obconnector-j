@@ -96,6 +96,8 @@ public class DatatypeTest extends BaseTest {
         createTable("time_period",
             "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
+        createTable("testBooleans", "c1 BINARY(3), c2 VARBINARY(3), c3 BLOB");
+
     }
 
     /**
@@ -1203,6 +1205,30 @@ public class DatatypeTest extends BaseTest {
                 Assert.assertTrue(e instanceof SQLException);
             }
         } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testByteArrayToBoolean() {
+        try {
+            PreparedStatement pstmt = sharedConnection
+                .prepareStatement("INSERT INTO testBooleans VALUES (?, ?, ?)");
+            pstmt.setBytes(1, new byte[] { 0 });
+            pstmt.setBytes(2, new byte[] { 1 });
+            pstmt.setBytes(3, new byte[] { 1, 0 });
+            pstmt.executeUpdate();
+
+            ResultSet rs = sharedConnection.prepareStatement("SELECT * FROM testBooleans")
+                .executeQuery();
+
+            while (rs.next()) {
+                assertFalse(rs.getBoolean(1));
+                assertTrue(rs.getBoolean(2));
+                assertTrue(rs.getBoolean(3));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
             Assert.fail();
         }
     }

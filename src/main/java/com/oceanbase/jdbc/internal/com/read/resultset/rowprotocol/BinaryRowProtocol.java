@@ -1390,9 +1390,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 boolVal = getInternalLong(columnInfo);
                 return (boolVal > 0 || boolVal == -1);
             default:
-                final String rawVal = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                return Utils.convertStringToBoolean(rawVal);
+                if (columnInfo.isBinary()) {
+                    byte[] bytes = new byte[length];
+                    System.arraycopy(buf, pos, bytes, 0, length);
+                    return Utils.convertBytesToBoolean(bytes);
+                } else {
+                    final String rawVal = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    return Utils.convertStringToBoolean(rawVal);
+                }
         }
     }
 

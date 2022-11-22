@@ -1781,8 +1781,23 @@ public class Utils {
   public static  boolean convertStringToBoolean(String str)  {
     if ((str != null) && (str.length() > 0)) {
       int c = Character.toLowerCase(str.charAt(0));
-      return ((c == 't') || (c == 'y') || (c == '1') || str.equals("-1"));
+      return ((c == (int)'t') || (c == (int)'y') || (c == (int)'1') || str.equals("-1"));
     }
     return false;
   }
+
+    public static boolean convertBytesToBoolean(byte[] bytes) {
+        if (bytes == null) {
+            return false;
+        }
+        if (bytes.length == 0) {
+            return false;
+        }
+        if (bytes[0] == (byte) '1') {
+            return true;
+        } else if (bytes[0] == (byte) '0') {
+            return false;
+        }
+        return bytes[0] == -1 || bytes[0] > 0;
+    }
 }
