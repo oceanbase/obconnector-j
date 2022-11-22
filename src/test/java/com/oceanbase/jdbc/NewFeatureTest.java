@@ -318,6 +318,18 @@ public class NewFeatureTest extends BaseTest {
     }
 
     @Test
+    public void testgetRowIdLifetime() {
+        try {
+            DatabaseMetaData dmd = sharedConnection.getMetaData();
+            RowIdLifetime out = dmd.getRowIdLifetime();
+            Assert.assertTrue(out.equals(RowIdLifetime.ROWID_UNSUPPORTED));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testFixVulnerabilities() throws SQLException {
         try {
             String str1 = new String("select 1 from dual");

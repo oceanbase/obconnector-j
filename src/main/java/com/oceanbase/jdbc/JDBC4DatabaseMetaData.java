@@ -4465,7 +4465,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public RowIdLifetime getRowIdLifetime() {
-        return RowIdLifetime.ROWID_UNSUPPORTED;
+        if (protocol.isOracleMode()) {
+            return RowIdLifetime.ROWID_VALID_FOREVER;
+        } else {
+            return RowIdLifetime.ROWID_UNSUPPORTED;
+        }
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() {

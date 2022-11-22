@@ -1238,6 +1238,9 @@ public class Utils {
     }
 
     String str = queryString.substring(index);
+    if(str.length() < 4) {
+        return OceanBaseStatement.STMT_UNKNOWN;
+    }
     if (str.substring(0, 4).equalsIgnoreCase("with")) {
       return OceanBaseStatement.STMT_SELECT;
     } else if (str.substring(0, 6).equalsIgnoreCase("select")) {
