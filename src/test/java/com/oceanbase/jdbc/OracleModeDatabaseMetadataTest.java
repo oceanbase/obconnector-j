@@ -893,6 +893,47 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
     }
 
     @Test
+    public void testGetFunctionColumns() {
+        Connection conn = sharedConnection;
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop function testFunction");
+            } catch (SQLException e) {
+                //
+            }
+            stmt.execute("create or replace function testFunction(id3 in int) return int is id1 int; begin id1:=1; end;");
+            ResultSet rs = conn.getMetaData().getFunctionColumns(null, null, "TESTFUNCTION", "ID3");
+            assertTrue(rs.next());
+            Assert.assertEquals("TESTFUNCTION", rs.getString("FUNCTION_NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetProcedureColumns() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop procedure testProcedure");
+            } catch (SQLException e) {
+                //
+            }
+            stmt.execute("create or replace procedure testProcedure (id_1 in int,id_2 in nvarchar2,id_3 out int)is id_4 int;  begin id_4:=id_1; end testProcedure;");
+            ResultSet rs = conn.getMetaData().getProcedureColumns(null, null, "TESTPROCEDURE",
+                "ID_2");
+            assertTrue(rs.next());
+            Assert.assertEquals("TESTPROCEDURE", rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testFunc() {
         try {
             Connection conn = sharedConnection;

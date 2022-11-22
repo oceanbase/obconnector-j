@@ -2826,7 +2826,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             proceduresStmt.setString(1, procedureNamePattern);
 
             if (db != null || this.protocol.getDatabase() != null) {
-                db = (db == null) ? this.protocol.getDatabase() : db;
+                String tmp = this.protocol.getDatabase();
+                if (this.protocol.isOracleMode()) {
+                    if (tmp != null && !tmp.startsWith("'")) {
+                        tmp = tmp.toUpperCase();
+                    }
+                }
+                db = (db == null) ? tmp : db;
                 proceduresStmt.setString(2, db);
                 catalog = db;
             } else {
