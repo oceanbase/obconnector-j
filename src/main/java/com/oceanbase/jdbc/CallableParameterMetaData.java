@@ -69,7 +69,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     protected static final Pattern      PARAMETER_PATTERN = Pattern
                                                               .compile(
-                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d\\S]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                   Pattern.CASE_INSENSITIVE);
     protected static final Pattern      RETURN_PATTERN    = Pattern
                                                               .compile(

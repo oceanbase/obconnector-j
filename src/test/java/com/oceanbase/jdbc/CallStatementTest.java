@@ -636,4 +636,23 @@ public class CallStatementTest extends BaseTest {
         callStmt.execute();
     }
 
+    @Test
+    public void testProcedureWithSpecialChar() {
+        try {
+            try {
+                sharedConnection.createStatement().execute("drop procedure if exists p2");
+            } catch (SQLException e) {
+
+            }
+            sharedConnection.createStatement().execute(
+                "CREATE PROCEDURE p2(A$TABLE_NAME VARCHAR(100)) begin set @a=10;end;");
+            CallableStatement call = sharedConnection.prepareCall("call p2(?)");
+            call.setString(1, "0010");
+            call.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }
