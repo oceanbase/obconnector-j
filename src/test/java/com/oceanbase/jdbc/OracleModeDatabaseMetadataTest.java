@@ -433,7 +433,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
                 "supportsColumnAliasing:true\n" +
                 "supportsSavepoints:true\n" +
                 "dataDefinitionCausesTransactionCommit:true\n" +
-                "supportsMixedCaseIdentifiers:false\n" +
+                "supportsMixedCaseIdentifiers:true\n" +
                 "nullsAreSortedAtEnd:false\n" +
                 "supportsAlterTableWithAddColumn:true\n" +
                 "isCatalogAtStart:true\n" +
