@@ -2038,4 +2038,108 @@ public class Bugfix extends BaseTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void testBug10310_1() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        CallableStatement cStmt = null;
+        ResultSet rs = null;
+
+        stmt.executeUpdate("DROP FUNCTION IF EXISTS testBug10310");
+        stmt.executeUpdate("CREATE FUNCTION testBug10310(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+        cStmt = conn.prepareCall("{? = CALL testBug10310(?,?,?)}");
+        cStmt.registerOutParameter(1, Types.INTEGER);
+        cStmt.setFloat(2, 2);
+        cStmt.setInt(3, 1);
+        cStmt.setInt(4, 1);
+        assertEquals(4, cStmt.getParameterMetaData().getParameterCount());
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(1));
+
+        DatabaseMetaData dbmd = conn.getMetaData();
+
+        rs = dbmd.getFunctionColumns(conn.getCatalog(), null, "testBug10310", "%");
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        assertEquals(17, rsmd.getColumnCount());
+        assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+        assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+        assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+        assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+        assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+        assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+        assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+        assertEquals("PRECISION", rsmd.getColumnName(8));
+        assertEquals("LENGTH", rsmd.getColumnName(9));
+        assertEquals("SCALE", rsmd.getColumnName(10));
+        assertEquals("RADIX", rsmd.getColumnName(11));
+        assertEquals("NULLABLE", rsmd.getColumnName(12));
+        assertEquals("REMARKS", rsmd.getColumnName(13));
+        assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+        assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+        assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+        assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+
+        rs.close();
+
+        assertFalse(cStmt.execute());
+        assertEquals(2f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(2f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        cStmt.setFloat("a", 4);
+        cStmt.setInt("b", 1);
+        cStmt.setInt("c", 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        // Check metadata while we're at it
+
+        rs = dbmd.getProcedures(conn.getCatalog(), null, "testBug10310");
+        rs.next();
+        assertEquals("testBug10310", rs.getString("PROCEDURE_NAME"));
+        assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
+        cStmt.setNull(2, Types.FLOAT);
+        cStmt.setInt(3, 1);
+        cStmt.setInt(4, 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(0f, cStmt.getInt(1), .001);
+        assertTrue(cStmt.wasNull());
+        assertNull(cStmt.getObject(1));
+        assertTrue(cStmt.wasNull());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(0f, cStmt.getInt(1), .001);
+        assertTrue(cStmt.wasNull());
+        assertNull(cStmt.getObject(1));
+        assertTrue(cStmt.wasNull());
+
+        // Check with literals, not all parameters filled!
+        cStmt = conn.prepareCall("{? = CALL testBug10310(4,5,?)}");
+        cStmt.registerOutParameter(1, Types.INTEGER);
+        cStmt.setInt(2, 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(2, cStmt.getParameterMetaData().getParameterCount());
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(1));
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(2));
+
+    }
+
 }

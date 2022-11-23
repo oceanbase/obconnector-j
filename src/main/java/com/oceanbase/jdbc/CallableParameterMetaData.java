@@ -71,9 +71,10 @@ public class CallableParameterMetaData implements ParameterMetaData {
                                                               .compile(
                                                                   "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d\\S]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                   Pattern.CASE_INSENSITIVE);
+    // the return characteristic such like ：NO SQL | READS SQL DATA | MODIFIES SQL DATA |DETERMINISTIC
     protected static final Pattern      RETURN_PATTERN    = Pattern
                                                               .compile(
-                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+|\\w+\\s+|\\w+\\s+\\w+|\\w+\\s+\\w+\\s+\\w+)?\\s*",
                                                                   Pattern.CASE_INSENSITIVE);
     protected final OceanBaseConnection con;
     protected final String              name;
