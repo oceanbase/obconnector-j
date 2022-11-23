@@ -2142,4 +2142,31 @@ public class Bugfix extends BaseTest {
 
     }
 
+    @Test
+    public void testUseAffectedRowError() throws Exception {
+        Connection connection = setConnection("&useAffectedRows=true");
+        PreparedStatement preparedStatement;
+        Statement statement = connection.createStatement();
+        int ids[] = { 13, 1, 8 };
+        String vals[] = { "c", "a", "b" };
+        statement.executeUpdate("drop table if exists testBug37458");
+        statement
+            .executeUpdate("create table testBug37458 (id int not null auto_increment, val varchar(100), primary key (id), unique (val))");
+        statement.executeUpdate("insert into testBug37458 values (1, 'a'), (8, 'b'), (13, 'c')");
+        preparedStatement = connection
+            .prepareStatement(
+                "insert into testBug37458 (val) values (?) on duplicate key update id = last_insert_id(id)",
+                Statement.RETURN_GENERATED_KEYS);
+        for (int i = 0; i < ids.length; ++i) {
+            preparedStatement.setString(1, vals[i]);
+            preparedStatement.addBatch();
+        }
+        preparedStatement.executeBatch();
+        ResultSet keys = preparedStatement.getGeneratedKeys();
+        for (int i = 0; i < ids.length; ++i) {
+            assertTrue(keys.next());
+            assertEquals(ids[i], keys.getInt(1));
+        }
+    }
+
 }
