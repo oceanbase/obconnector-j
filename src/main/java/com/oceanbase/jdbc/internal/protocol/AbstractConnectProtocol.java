@@ -805,6 +805,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         setOracleMode(true);
                     }
 
+                    if (buffer.remaining() <= 0) {
+                        break authentication_loop;
+                    }
                     if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
                         buffer.skipLengthEncodedBytes(); // human readable status information
                         if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {

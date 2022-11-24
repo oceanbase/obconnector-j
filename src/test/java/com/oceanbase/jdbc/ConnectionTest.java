@@ -1043,7 +1043,6 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testTransactionIsolation() throws SQLException {
     boolean support = true;
