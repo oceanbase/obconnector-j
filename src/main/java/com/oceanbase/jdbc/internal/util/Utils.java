@@ -1229,43 +1229,73 @@ public class Utils {
         return  retList;
     }
 
-
+  /**
+   * Note: this method uses the first word in a sql string without comments, to compare with some keywords.
+   *    1. Not all SQL types are listed here.
+   *    2. Cannot handle complexly formatted statements.
+   *
+   * @param queryString a sql string without comments
+   */
   public static int getStatementType(String queryString) {
+    if (queryString == null) {
+        return OceanBaseStatement.STMT_UNKNOWN;
+    }
+
     char[] query = queryString.toCharArray();
     int index = 0;
     while (index < query.length && (query[index] == ' ' || query[index] == '\r'  || query[index] == '\n' || query[index] == '\t')) {
       index++;
     }
-
     String str = queryString.substring(index);
-    if(str.length() < 4) {
-        return OceanBaseStatement.STMT_UNKNOWN;
+    int len = str.length();
+
+    if (len >= 4) {
+        String subStr = str.substring(0, 4);
+        if (subStr.equalsIgnoreCase("with")) {
+            return OceanBaseStatement.STMT_SELECT;
+        }
+        if (subStr.equalsIgnoreCase("drop")) {
+            return OceanBaseStatement.STMT_DROP;
+        }
+        if (subStr.equalsIgnoreCase("call")) {
+            return OceanBaseStatement.STMT_CALL;
+        }
     }
-    if (str.substring(0, 4).equalsIgnoreCase("with")) {
-      return OceanBaseStatement.STMT_SELECT;
-    } else if (str.substring(0, 6).equalsIgnoreCase("select")) {
-      return OceanBaseStatement.STMT_SELECT;
-    } else if (str.substring(0, 6).equalsIgnoreCase("update")) {
-      return OceanBaseStatement.STMT_UPDATE;
-    } else if (str.substring(0, 6).equalsIgnoreCase("delete")) {
-      return OceanBaseStatement.STMT_DELETE;
-    } else if (str.substring(0, 6).equalsIgnoreCase("insert")) {
-      return OceanBaseStatement.STMT_INSERT;
-    } else if (str.substring(0, 6).equalsIgnoreCase("create")) {
-      return OceanBaseStatement.STMT_CREATE;
-    } else if (str.substring(0, 4).equalsIgnoreCase("drop")) {
-      return OceanBaseStatement.STMT_DROP;
-    } else if (str.substring(0, 5).equalsIgnoreCase("alter")) {
-      return OceanBaseStatement.STMT_ALTER;
-    } else if (str.substring(0, 5).equalsIgnoreCase("begin")) {
-      return OceanBaseStatement.STMT_BEGIN;
-    } else if (str.substring(0, 7).equalsIgnoreCase("declare")) {
-      return OceanBaseStatement.STMT_DECLARE;
-    } else if (str.substring(0, 4).equalsIgnoreCase("call")) {
-      return OceanBaseStatement.STMT_CALL;
-    } else {
-      return OceanBaseStatement.STMT_UNKNOWN;
+    if (len >= 5) {
+        String subStr = str.substring(0, 5);
+        if (subStr.equalsIgnoreCase("alter")) {
+            return OceanBaseStatement.STMT_ALTER;
+        }
+        if (subStr.equalsIgnoreCase("begin")) {
+            return OceanBaseStatement.STMT_BEGIN;
+        }
     }
+    if (len >= 6) {
+        String subStr = str.substring(0, 6);
+        if (subStr.equalsIgnoreCase("select")) {
+            return OceanBaseStatement.STMT_SELECT;
+        }
+        if (subStr.equalsIgnoreCase("update")) {
+            return OceanBaseStatement.STMT_UPDATE;
+        }
+        if (subStr.equalsIgnoreCase("delete")) {
+            return OceanBaseStatement.STMT_DELETE;
+        }
+        if (subStr.equalsIgnoreCase("insert")) {
+            return OceanBaseStatement.STMT_INSERT;
+        }
+        if (subStr.equalsIgnoreCase("create")) {
+            return OceanBaseStatement.STMT_CREATE;
+        }
+    }
+    if (len >= 7) {
+        String subStr = str.substring(0, 7);
+        if (subStr.equalsIgnoreCase("declare")) {
+            return OceanBaseStatement.STMT_DECLARE;
+        }
+    }
+
+    return OceanBaseStatement.STMT_UNKNOWN;
   }
 
   /**
