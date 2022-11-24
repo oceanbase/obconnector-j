@@ -1240,4 +1240,50 @@ public class OracleResultSetTest extends BaseOracleTest {
             }
         }
     }
+
+    @Test
+    public void testNextAfterClose() throws SQLException {
+        ResultSet rs;
+
+        // close result set
+        Statement stmt = sharedConnection.createStatement();
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("select 1 from dual");
+        rs = ps.executeQuery();
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        // close statement
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        stmt.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = ps.executeQuery();
+        ps.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
 }

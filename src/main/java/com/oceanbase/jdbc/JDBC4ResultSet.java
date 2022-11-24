@@ -74,6 +74,7 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
+import com.oceanbase.jdbc.internal.com.read.dao.CmdInformationSingle;
 import com.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -181,6 +182,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private int                         updatableColumnLength;
     private UpdatableColumnDefinition[] updatableColumns;
     private ParameterHolder[]           updatableParameterHolders;
+    private List<Integer>               primaryKeyIndicies = new ArrayList<>();
     private PreparedStatement           refreshPreparedStatement;
     private ClientSidePreparedStatement insertPreparedStatement;
     private ClientSidePreparedStatement deletePreparedStatement;
@@ -384,7 +386,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(),protocol.getOptions().characterEncoding);
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(), protocol.getOptions().characterEncoding);
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -1942,7 +1944,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public int findColumn(String columnLabel) throws SQLException {
-        return columnLabelIndexer.getIndex(columnLabel) + 1;
+        return columnLabelIndexer.getIndex(columnLabel) - columnIndexOffset + 1;
     }
 
     /**
@@ -2374,7 +2376,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         // check that resultSet concern one table and database exactly
         for (ColumnDefinition columnDefinition : columnsInformation) {
             if (columnDefinition.getDatabase() == null || columnDefinition.getDatabase().isEmpty()) {
-                cannotUpdateInsertRow("The result-set contains fields wit hout without any database information");
+                cannotUpdateInsertRow("The result-set contains fields without any database information");
                 return;
             } else if (database == null) {
                 database = columnDefinition.getDatabase();
@@ -2385,7 +2387,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
             if (columnDefinition.getOriginalTable() == null
                 || columnDefinition.getOriginalTable().isEmpty()) {
-                cannotUpdateInsertRow("The result-set contains fields without without any table information");
+                cannotUpdateInsertRow("The result-set contains fields without any table information");
                 return;
             } else if (table == null) {
                 table = columnDefinition.getOriginalTable();
@@ -2429,9 +2431,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
                         ColumnDefinition columnDefinition = columnsInformation[index];
                         if (fieldName.equals(columnDefinition.getOriginalName())) {
                             updatableColumns[index - columnIndexOffset] = new UpdatableColumnDefinition(
-                                columnDefinition, canBeNull, hasDefault, generated, primary,
-                                autoIncrement);
+                                    columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
                             found = true;
+                            if (primary) {
+                                primaryKeyIndicies.add(index - columnIndexOffset);
+                            }
                         }
                     }
 
@@ -2705,46 +2709,39 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
 
             int fieldsIndex = 0;
-            boolean hasGeneratedPrimaryFields = false;
-            int generatedSqlType = 0;
             for (int pos = 0; pos < updatableColumnLength; pos++) {
                 ParameterHolder value = updatableParameterHolders[pos];
                 if (value != null) {
                     insertPreparedStatement.setParameter((fieldsIndex++) + 1, value);
                 } else {
-                    if (!protocol.isOracleMode()) {
-                        UpdatableColumnDefinition colInfo = updatableColumns[pos];
-                        if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
-                            hasGeneratedPrimaryFields = true;
-                            generatedSqlType = colInfo.getColumnType().getSqlType();
-                        }
-                    }
-                    insertPreparedStatement.setParameter((fieldsIndex++) + 1,
-                        new DefaultParameter());
+                    insertPreparedStatement.setParameter((fieldsIndex++) + 1, new DefaultParameter());
                 }
             }
 
             insertPreparedStatement.execute();
 
             if (!protocol.isOracleMode()) {
-                if (hasGeneratedPrimaryFields) {
-                    // primary is auto_increment (only one field)
-                    ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
-                    if (rsKey.next()) {
-                        prepareRefreshStmt();
-                        refreshPreparedStatement.setObject(1, rsKey.getObject(1), generatedSqlType);
-                        SelectResultSet rs = (SelectResultSet) refreshPreparedStatement
-                            .executeQuery();
+                prepareRefreshStmt();
+                refreshPreparedStatement.clearParameters();
 
-                        // update row data only if not deleted externally
-                        if (rs.next()) {
-                            addRowData(rs.getCurrentRowData());
+                for (int index: primaryKeyIndicies) {
+                    if (updatableColumns[index].isAutoIncrement()) {
+                        long autoIncrementId = ((CmdInformationSingle)insertPreparedStatement.results.getCmdInformation()).getInsertId();
+                        if (autoIncrementId > 0) {
+                            refreshPreparedStatement.setObject(index+1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
                         }
-                        rs.close();
+                    } else {
+                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(index + 1, updatableParameterHolders[index]);
                     }
-                    rsKey.close();
+                }
+
+                SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
+                // update row data only if not deleted externally
+                if (rs.next()) {
+                    addRowData(rs.getCurrentRowData());
+                    rs.close();
                 } else {
-                    addRowData(refreshRowInternalMysql());
+                    throw new SQLException(UpdatableResultSet_12);
                 }
             }
 

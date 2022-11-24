@@ -75,6 +75,10 @@ public class CmdInformationSingle implements CmdInformation {
         this.autoIncrement = autoIncrement;
     }
 
+    public long getInsertId() {
+        return insertId;
+    }
+
     @Override
     public int[] getUpdateCounts() {
         return new int[] { (int) updateCount };

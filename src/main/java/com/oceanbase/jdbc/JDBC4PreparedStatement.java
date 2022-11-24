@@ -199,7 +199,6 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   }
 
   protected boolean executeInternal(int fetchSize) throws SQLException {
-
     // valid parameters
     for (int i = 0; i < parameterCount; i++) {
       if (parameters[i] == null) {
