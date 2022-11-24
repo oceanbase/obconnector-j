@@ -403,4 +403,24 @@ public class DateOracleTest extends BaseOracleTest {
             }
         }
     }
+
+    @Test
+    public void dateMinusDateTest() throws SQLException {
+        String querySql = "select to_char(( ? - to_date('1970-01-01 08:00:00 ' , 'YYYY-MM-DD HH24:MI:SS') )*24*60*60*1000) CAL_MILLISECONDS FROM DUAL";
+        PreparedStatement pst = sharedConnection.prepareStatement(querySql);
+        Date date = new Date(System.currentTimeMillis());
+        pst.setDate(1,date);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+
+        try (Connection connection = setConnection("&useServerPrepStmts=true")) {
+            try (PreparedStatement pstByPs =
+                         connection.prepareStatement(querySql)) {
+                pstByPs.setDate(1, date);
+                ResultSet rsByPs = pstByPs.executeQuery();
+                rsByPs.next();
+                Assert.assertEquals(rs.getString(1),rsByPs.getString(1));
+            }
+        }
+    }
 }
