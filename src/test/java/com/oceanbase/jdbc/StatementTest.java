@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;

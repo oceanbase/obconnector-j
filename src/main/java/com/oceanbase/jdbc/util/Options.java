@@ -218,6 +218,7 @@ public class Options implements Cloneable {
     public boolean allowNanAndInf = false;
     public String  defaultConnectionAttributesBanList = null;
     public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
+    public boolean enableOb20Checksum = true;
 
     @Override
     public String toString() {
@@ -652,6 +653,9 @@ public class Options implements Cloneable {
         if (zeroDateTimeBehavior != opt.zeroDateTimeBehavior) {
             return false;
         }
+        if (enableOb20Checksum != opt.enableOb20Checksum) {
+            return false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -793,6 +797,7 @@ public class Options implements Cloneable {
         result = 31 * result + maxRows;
         result = 31 * result + (allowNanAndInf ? 1 : 0);
         result = 31 * result + (zeroDateTimeBehavior != null ? zeroDateTimeBehavior.hashCode() : 0);
+        result = 31 * result + (enableOb20Checksum ? 1 : 0);
         return result;
     }
 

@@ -76,14 +76,17 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
     private OceanBaseProtocolV20 ob20;
     private OceanBaseCRC32C      crc32              = new OceanBaseCRC32C();
+    private boolean              enableOb20Checksum;
     byte[]                       outBytes;
     private int                  totalPacketLength;
 
     public Ob20PacketOutputStream(OutputStream out, int maxQuerySizeToLog, String encoding,
-                                  long threadId, OceanBaseProtocolV20 ob20) {
+                                  long threadId, OceanBaseProtocolV20 ob20,
+                                  boolean enableOb20Checksum) {
         super(out, maxQuerySizeToLog, threadId, encoding);
         maxPacketLength = MAX_PACKET_LENGTH;
         this.ob20 = ob20;
+        this.enableOb20Checksum = enableOb20Checksum;
     }
 
     @Override
@@ -265,8 +268,12 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         outBuffer.writeInt(ob20.header.flag);
         outBuffer.writeShort(ob20.header.reserved);
 
-        ob20.header.headerChecksum = OceanBaseCRC16.calculate(outBuffer.getByteBuffer(),
-            OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
+        if (enableOb20Checksum) {
+            ob20.header.headerChecksum = OceanBaseCRC16.calculate(outBuffer.getByteBuffer(),
+                OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
+        } else {
+            ob20.header.headerChecksum = 0;
+        }
         outBuffer.writeShort((short) ob20.header.headerChecksum);
     }
 
@@ -282,9 +289,13 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     }
 
     private void writeOb20TailChecksum(Buffer outBuffer, byte[] payload, int pos, int len) {
-        crc32.reset();
-        crc32.update(payload, pos, len);
-        ob20.tailChecksum = crc32.getValue();
+        if (enableOb20Checksum) {
+            crc32.reset();
+            crc32.update(payload, pos, len);
+            ob20.tailChecksum = crc32.getValue();
+        } else {
+            ob20.tailChecksum = 0;
+        }
 
         outBuffer.writeInt((int) ob20.tailChecksum);
     }

@@ -886,7 +886,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (useOceanBaseProtocolV20) {
             ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
             writer = new Ob20PacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, options.characterEncoding, serverThreadId, ob20);
+                options.maxQuerySizeToLog, options.characterEncoding, serverThreadId, ob20,
+                options.enableOb20Checksum);
             reader = new Ob20PacketInputStream(socket.getInputStream(), options, serverThreadId,
                 ob20);
 
