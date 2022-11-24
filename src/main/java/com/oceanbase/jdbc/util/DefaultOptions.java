@@ -87,6 +87,12 @@ public enum DefaultOptions {
       "Permits connecting to the database via shared memory, if the server allows "
           + "it. \nThe value is the base name of the shared memory.",
       false),
+  OBPROXY_SOCKET(
+          "obProxySocket",
+          "2.3.0",
+          "Permits connecting to the database via ObProxy ClientVCSocket, It need be used with libobproxy_so.so."
+                  + " \nThe value is the config url for lanuch a local OBProxy with dynamic libraray",
+          false),
   TCP_NO_DELAY(
       "tcpNoDelay",
       Boolean.TRUE,
@@ -628,10 +634,8 @@ public enum DefaultOptions {
       "useAffectedRows",
       Boolean.FALSE,
       "2.3.0",
-      "If false (default), use \"found rows\" for the row "
-          + "count of statements. This corresponds to the JDBC standard.\n"
-          + "If true, use \"affected rows\" for the row count.\n"
-          + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
+      "If false (default), use \"found rows\" for the row count of statements. This corresponds to the JDBC standard.\n"
+          + "If true, use \"affected rows\" for the row count. This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
       false),
   INCLUDE_STATUS(
       "includeInnodbStatusInDeadlockExceptions",
@@ -1019,6 +1023,7 @@ public enum DefaultOptions {
     minValue = null;
     maxValue = null;
   }
+
   DefaultOptions(
           final String optionName,
           final int defaultValue,

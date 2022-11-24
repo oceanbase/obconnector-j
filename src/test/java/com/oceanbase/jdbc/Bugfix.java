@@ -55,6 +55,10 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
 import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import org.junit.*;
 
@@ -1599,25 +1603,6 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
-    public void testProcErrorAone40384433() {
-        try {
-            Connection conn = sharedConnection;
-            Statement stmt = conn.createStatement();
-            try {
-                stmt.execute("drop table  t");
-            } catch (SQLException throwables) {
-            }
-            stmt.execute("create table t(col int primary key)");
-            stmt.execute("create or replace procedure proc is " + "begin"
-                         + "  insert into t values(1);" + "  insert into t values(1);" + "end;");
-            PreparedStatement ps = conn.prepareStatement("call proc()");
-            ps.execute();
-        } catch (SQLException throwables) {
-            Assert.assertTrue(throwables.getMessage().contains("line : 1, col : 5"));
-        }
-    }
-
-    @Test
     public void testCallStmtBatchSqlBugAone40302848() {
         try {
             Connection conn = sharedConnection;
@@ -1667,43 +1652,6 @@ public class Bugfix extends BaseTest {
         }
     }
 
-    @Test
-    public void testAllDataTypeMysql() {
-        try {
-            Connection conn = sharedConnection;
-            Map<String, Object> map = new HashMap<>();
-            map.put("TypeNameCol1","BLOB");
-            map.put("TypeNameCol2","MEDIUMBLOB");
-            map.put("TypeNameCol3","VARCHAR");
-            map.put("TypeNameCol4","VARCHAR");
-            map.put("TypeValueCol1",-4);
-            map.put("TypeValueCol2",-4);
-            map.put("TypeValueCol3",-1);
-            map.put("TypeValueCol4",-1);
-            Statement statement = conn.createStatement();
-            try {
-                statement.execute("drop table ALL_DATATYPE_TEST");
-            } catch (SQLException e) {
-                // e.printStackTrace();
-            }
-            statement.execute("create table ALL_DATATYPE_TEST(c1 int, c2 tinyInt, c3 smallInt, c4 mediumInt, c5 bigInt," +
-                " c6 float, c7 double, c8 decimal(5,2), c9 date, c10 time, c11 year, c12 datetime, c13 timestamp," +
-                " c14 char(20), c15 varchar(20), c16 tinyBLob, c17 Blob, c18 mediumBlob, c19 longBlob, c20 tinyText," +
-                " c21 Text, c22 mediumText, c23 longText, c24 binary(20), c25 varBinary(20))");
-            ResultSet rs = statement.executeQuery("select c17,c18,c21,c22 FROM ALL_DATATYPE_TEST");
-            for(int i = 1; i <= 4;i++) {
-                String columnTypeName = rs.getMetaData().getColumnTypeName(i);
-                int columnType = rs.getMetaData().getColumnType(i);
-                Assert.assertEquals(map.get("TypeNameCol" + i),columnTypeName);
-                Assert.assertEquals(map.get("TypeValueCol" + i),columnType);
-            }
-
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-            Assert.fail();
-        }
-    }
-
     // The affected rows will fixed by OB 4.0,We will run this case after OB4.0 Released.
     @Ignore
     public void testCallStmtExecuteLargeUpdateBug40830770() {
@@ -1743,19 +1691,6 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
-    public void testConnClosedStmt() {
-        try {
-            Connection conn = setConnection();
-            Statement stmt = conn.createStatement();
-            conn.close();
-            stmt.getResultSet();
-            fail("Should've caught an exception here");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
     public void testPrepStmtExecuteLargeUpdate() {
         try {
             createTable("test1", "id int");
@@ -1773,6 +1708,57 @@ public class Bugfix extends BaseTest {
             assertEquals(5, ps.getLargeUpdateCount());
         } catch (SQLException e) {
             e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testConnClosedStmt() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            conn.close();
+            stmt.getResultSet();
+            fail("Should've caught an exception here");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAllDataTypeMysql() {
+        try {
+            Connection conn = sharedConnection;
+            Map<String, Object> map = new HashMap<>();
+            map.put("TypeNameCol1","BLOB");
+            map.put("TypeNameCol2","MEDIUMBLOB");
+            map.put("TypeNameCol3","VARCHAR");
+            map.put("TypeNameCol4","VARCHAR");
+            map.put("TypeValueCol1",-4);
+            map.put("TypeValueCol2",-4);
+            map.put("TypeValueCol3",-1);
+            map.put("TypeValueCol4",-1);
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop table ALL_DATATYPE_TEST");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            statement.execute("create table ALL_DATATYPE_TEST(c1 int, c2 tinyInt, c3 smallInt, c4 mediumInt, c5 bigInt," +
+                " c6 float, c7 double, c8 decimal(5,2), c9 date, c10 time, c11 year, c12 datetime, c13 timestamp," +
+                " c14 char(20), c15 varchar(20), c16 tinyBLob, c17 Blob, c18 mediumBlob, c19 longBlob, c20 tinyText," +
+                " c21 Text, c22 mediumText, c23 longText, c24 binary(20), c25 varBinary(20))");
+            ResultSet rs = statement.executeQuery("select c17,c18,c21,c22 FROM ALL_DATATYPE_TEST");
+            for(int i = 1; i <= 4;i++) {
+                String columnTypeName = rs.getMetaData().getColumnTypeName(i);
+                int columnType = rs.getMetaData().getColumnType(i);
+                Assert.assertEquals(map.get("TypeNameCol" + i),columnTypeName);
+                Assert.assertEquals(map.get("TypeValueCol" + i),columnType);
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
             Assert.fail();
         }
     }

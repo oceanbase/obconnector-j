@@ -319,7 +319,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
         int index = parameterIndex - 1;
         if ((index >= parameterCount - returnParamCount) && parameterIndex <= parameterCount) {
-            setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+            setParameter(parameterIndex, new NullParameter(ColumnType.convertSqlTypeToColumnType(externalType)));
         } else {
             throw new SQLException("Invalid parameter index.");
         }
@@ -337,7 +337,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             } else if (maximumSize <= 0) {
                 throw new SQLException("Maximum size of return parameter must be larger than 0.");
             } else {
-                setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+                setParameter(parameterIndex, new NullParameter(ColumnType.convertSqlTypeToColumnType(externalType)));
             }
         } else {
             throw new SQLException("Invalid parameter index.");
@@ -354,7 +354,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             if (externalType != Types.REF && externalType != Types.STRUCT && externalType != Types.ARRAY && externalType != Types.SQLXML) {
                 throw new SQLException("Invalid parameter type for this interface.");
             } else {
-                setParameter(parameterIndex, new NullParameter(ColumnType.toServer(externalType)));
+                setParameter(parameterIndex, new NullParameter(ColumnType.convertSqlTypeToColumnType(externalType)));
             }
         } else {
             throw new SQLException("Invalid parameter index.");
@@ -1025,7 +1025,6 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           lock.unlock();
       }
   }
-
 
   public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
       lock.lock();
