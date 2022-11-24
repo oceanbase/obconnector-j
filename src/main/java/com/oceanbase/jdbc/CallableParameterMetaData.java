@@ -297,14 +297,23 @@ public class CallableParameterMetaData implements ParameterMetaData {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
         CallParameter callParameter = new CallParameter();
+
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
-        callParameter.setTypeName(matcher.group(2).trim());
-        callParameter.setSqlType(ColumnType.convertDbTypeToSqlType(callParameter.getTypeName()));
-        String scale = matcher.group(3);
-        if (scale != null) {
-            scale = scale.replace("(", "").replace(")", "").replace(" ", "");
-            callParameter.setScale(Integer.valueOf(scale));
+
+        String typeName = matcher.group(2).trim();
+        callParameter.setTypeName(typeName);
+        int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+        callParameter.setSqlType(sqlType);
+        callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+
+        String columnSize = matcher.group(3);
+        if (columnSize != null) {
+            columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
+            if (columnSize.contains(",")) {
+                columnSize = columnSize.substring(0, columnSize.indexOf(","));
+            }
+            callParameter.setPrecision(Integer.parseInt(columnSize));
         }
         return callParameter;
     }
@@ -345,7 +354,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
             }
 
             callParameter.setName(matcher2.group(2).trim());
-            //callParameter.setSigned(matcher2.group(3) == null);
+            callParameter.setSigned(matcher2.group(3) == null);
 
             String typeName = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
             callParameter.setTypeName(typeName);
