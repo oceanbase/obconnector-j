@@ -662,7 +662,13 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
               }
               remain--;
             }
-            sb.append(list.get(list.size() - 1));
+            if(parameterCountReal == 0) {
+                for(int i = 2 ;i< list.size() ;i++) {
+                    sb.append(list.get(i));
+                }
+            } else {
+                sb.append(list.get(list.size() - 1));
+            }
 
             int total = currentTurnParamSize * parameterCountReal;
             ParameterHolder[] parameterHolder;

@@ -54,6 +54,7 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,6 +78,8 @@ public class BasicBatchTest extends BaseTest {
         createTable("rewritetest2", "id int not null primary key, a varchar(10), b int",
             "engine=innodb");
         createTable("bug501452", "id int not null primary key, value varchar(20)");
+        createTable("testBatchDuplicate", "id INT PRIMARY KEY, c2 INT");
+
     }
 
     @Test
@@ -372,4 +375,20 @@ public class BasicBatchTest extends BaseTest {
     }
     assertEquals(datas.length, counter);
   }
+
+    @Test
+    public void testBatchNoParameter() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            PreparedStatement pstmt = conn
+                .prepareStatement("INSERT INTO testBatchDuplicate VALUES (1, 1) ON DUPLICATE KEY UPDATE id = -id");
+            for (int i = 0; i < 2; i++) {
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
