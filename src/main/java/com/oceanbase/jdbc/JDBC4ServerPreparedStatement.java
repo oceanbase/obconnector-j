@@ -842,7 +842,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   // must have "lock" locked before invoking
   private void executeQueryPrologue(ServerPrepareResult serverPrepareResult) throws SQLException {
     executing = true;
-    if (closed) {
+    if (isClosed) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -1058,6 +1058,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    */
   @Override
   public void close() throws SQLException {
+      realClose(true, true);
+  }
+
+  @Override
+  public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
     // No possible future use for the cached results, so these can be cleared
     // This makes the cache eligible for garbage collection earlier if the statement is not
     // immediately garbage collected
@@ -1069,55 +1074,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         // eat
       }
     }
-    lock.lock();
-    try {
-      closed = true;
-      if (results != null) {
-        if (results.getFetchSize() != 0) {
-          skipMoreResults();
-        }
-
-        results.close();
-      }
-
-      if (connection == null
-          || connection.pooledConnection == null
-          || connection.pooledConnection.noStmtEventListeners()) {
-        return;
-      }
-      connection.pooledConnection.fireStatementClosed(this);
-    } finally {
-      protocol = null;
-      connection = null;
-      lock.unlock();
-    }
-  }
-
-  @Override
-  public void realClose() throws SQLException {
-    if (!released && protocol != null && serverPrepareResult != null) {
-      try {
-        serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
-        released = true;
-      } catch (SQLException e) {
-        // eat
-      }
-    }
-    lock.lock();
-    try {
-      closed = true;
-
-      if (connection == null
-          || connection.pooledConnection == null
-          || connection.pooledConnection.noStmtEventListeners()) {
-        return;
-      }
-      connection.pooledConnection.fireStatementClosed(this);
-    } finally {
-      protocol = null;
-      connection = null;
-      lock.unlock();
-    }
+    super.realClose(calledExplicitly, closeOpenResults);
   }
 
   /**

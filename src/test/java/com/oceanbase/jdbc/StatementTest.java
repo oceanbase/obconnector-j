@@ -826,12 +826,12 @@ public class StatementTest extends BaseTest {
         stmt.setFetchSize(3);
         ResultSet rs = stmt.executeQuery("select * from testMaxRows limit 10");
         for (int i = 1; i <= 5; i++) {
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(rs.getInt(1), i);
+            assertTrue(rs.next());
+            assertEquals(rs.getInt(1), i);
         }
-        Assert.assertTrue(rs.isLast());
-        Assert.assertFalse(rs.next());
-        Assert.assertTrue(rs.isAfterLast());
+        assertTrue(rs.isLast());
+        assertFalse(rs.next());
+        assertTrue(rs.isAfterLast());
 
         Connection conn = setConnectionOrigin("?useServerPrepStmts=true");
         PreparedStatement pstmt1 = conn.prepareStatement("select * from testMaxRows limit 10");
@@ -839,12 +839,12 @@ public class StatementTest extends BaseTest {
         pstmt1.setFetchSize(3);
         ResultSet rs1 = pstmt1.executeQuery();
         for (int i = 1; i <= 5; i++) {
-            Assert.assertTrue(rs1.next());
-            Assert.assertEquals(rs1.getInt(1), i);
+            assertTrue(rs1.next());
+            assertEquals(rs1.getInt(1), i);
         }
-        Assert.assertTrue(rs1.isLast());
-        Assert.assertFalse(rs1.next());
-        Assert.assertTrue(rs1.isAfterLast());
+        assertTrue(rs1.isLast());
+        assertFalse(rs1.next());
+        assertTrue(rs1.isAfterLast());
 
         conn = setConnectionOrigin("?useCursorFetch=true");
         PreparedStatement pstmt2 = conn.prepareStatement("select * from testMaxRows limit 10");
@@ -852,22 +852,22 @@ public class StatementTest extends BaseTest {
         pstmt2.setFetchSize(3);
         ResultSet rs2 = pstmt2.executeQuery();
         for (int i = 1; i <= 5; i++) {
-            Assert.assertTrue(rs2.next());
-            Assert.assertEquals(rs2.getInt(1), i);
+            assertTrue(rs2.next());
+            assertEquals(rs2.getInt(1), i);
         }
-        Assert.assertTrue(rs2.isLast());
-        Assert.assertFalse(rs2.next());
-        Assert.assertTrue(rs2.isAfterLast());
+        assertTrue(rs2.isLast());
+        assertFalse(rs2.next());
+        assertTrue(rs2.isAfterLast());
         // mysql:
         //        for (int i = 1; i <= 6; i ++) {
-        //            Assert.assertTrue(rs2.next());
-        //            Assert.assertEquals(rs2.getInt(1), i);
+        //            assertTrue(rs2.next());
+        //            assertEquals(rs2.getInt(1), i);
         //        }
-        //        Assert.assertFalse(rs2.isLast());
+        //        assertFalse(rs2.isLast());
         //        for (int i = 7; i <= 20; i++) {
-        //            Assert.assertFalse(rs2.next());
-        //            Assert.assertFalse(rs2.isLast());
-        //            Assert.assertFalse(rs2.isAfterLast());
+        //            assertFalse(rs2.next());
+        //            assertFalse(rs2.isLast());
+        //            assertFalse(rs2.isAfterLast());
         //        }
 
         conn = setConnectionOrigin("?useCursorFetch=true");
@@ -876,10 +876,10 @@ public class StatementTest extends BaseTest {
         pstmt3.setMaxRows(5);
         pstmt3.setFetchSize(3);
         ResultSet rs3 = pstmt3.executeQuery();
-        Assert.assertTrue(rs3.absolute(5));
-        Assert.assertTrue(rs3.isLast());
-        Assert.assertFalse(rs3.next());
-        Assert.assertTrue(rs3.isAfterLast());
+        assertTrue(rs3.absolute(5));
+        assertTrue(rs3.isLast());
+        assertFalse(rs3.next());
+        assertTrue(rs3.isAfterLast());
     }
 
 }

@@ -57,6 +57,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -477,12 +478,22 @@ public class Results {
     }
 
     public void close() throws SQLException {
-        if (statement != null) {
-            statement.realClose();
-        }
         statement = null;
         statementId = 0;
         fetchSize = 0;
+
+        resultSet = null;
+        callableResultSet = null;
+        executionResults = null;
+    }
+
+    public void closeAllOpenResults() throws SQLException {
+        if (executionResults != null) {
+            for (JDBC4ResultSet rs : executionResults) {
+                rs.realClose(false);
+            }
+            executionResults.clear();
+        }
     }
 
     public int getMaxFieldSize() {

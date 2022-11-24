@@ -754,6 +754,18 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * Close resultSet.
      */
     public void close() throws SQLException {
+        realClose(true);
+    }
+
+    public void realClose(boolean calledExplicitly) throws SQLException {
+        SQLException exceptionDuringClose = null;
+
+        try {
+            closeUpdatable();
+        } catch (SQLException sqlEx) {
+            exceptionDuringClose = sqlEx;
+        }
+
         if (rsClass == ResultSetClass.STREAMING && !isEof) {
             lock.lock();
             try {
@@ -776,11 +788,24 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Arrays.fill(data, null);
 
         if (statement != null) {
-            statement.checkCloseOnCompletion(this);
+            try {
+                statement.checkCloseOnCompletion(this);
+            } catch (SQLException sqlEx) {
+                exceptionDuringClose = sqlEx;
+            }
             statement = null;
         }
 
+        row = null;
+        columnsInformation = null;
+        complexData = null;
+        complexEndPos = null;
+        protocol = null;
         isClosed = true;
+
+        if (exceptionDuringClose != null) {
+            throw exceptionDuringClose;
+        }
     }
 
     private void resetVariables() {
@@ -2505,6 +2530,41 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return false; // compatible with Oracle
         } else {
             throw ExceptionFactory.INSTANCE.notSupported("Row deletes are not supported");
+        }
+    }
+
+    private void closeUpdatable() throws SQLException {
+        if (canBeUpdate) {
+            SQLException sqlEx = null;
+
+            try {
+                if (refreshPreparedStatement != null) {
+                    refreshPreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+            try {
+                if (insertPreparedStatement != null) {
+                    insertPreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+            try {
+                if (deletePreparedStatement != null) {
+                    deletePreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+
+            updatableColumns = null;
+            updatableParameterHolders = null;
+
+            if (sqlEx != null) {
+                throw sqlEx;
+            }
         }
     }
 

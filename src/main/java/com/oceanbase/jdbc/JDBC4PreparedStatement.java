@@ -590,13 +590,6 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
     parameters = Arrays.copyOf(paramArray, parameterCount);
   }
 
-  // Close prepared statement, maybe fire closed-statement events
-  @Override
-  public void close() throws SQLException {
-    super.close();
-  }
-
-  /** {inherit}. */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("sql : '" + actualSql + "'");
@@ -615,6 +608,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
     sb.append("]");
     return sb.toString();
   }
+
   @Override
   public void setArray(final int parameterIndex, final Array array) throws SQLException {
     throw new SQLFeatureNotSupportedException();

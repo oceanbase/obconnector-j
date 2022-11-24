@@ -535,40 +535,40 @@ public class ResultSetTest extends BaseTest {
     }
 
     @Test
-    public void testResultSetAbsolute() throws Exception {
-        insertRows(50);
-        try (Statement statement =
-                     sharedConnection.createStatement(
-                             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-            statement.setFetchSize(10);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-                assertFalse(rs.absolute(52));
-                assertFalse(rs.absolute(-52));
+  public void testResultSetAbsolute() throws Exception {
+    insertRows(50);
+    try (Statement statement =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        statement.setFetchSize(10);
+      try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+        assertFalse(rs.absolute(52));
+        assertFalse(rs.absolute(-52));
 
-                assertTrue(rs.absolute(42));
-                assertEquals("row42", rs.getString(2));
+        assertTrue(rs.absolute(42));
+        assertEquals("row42", rs.getString(2));
 
-                assertTrue(rs.absolute(-11));
-                assertEquals("row40", rs.getString(2));
+        assertTrue(rs.absolute(-11));
+        assertEquals("row40", rs.getString(2));
 
 //        if (Version.version.compareToIgnoreCase("2.2.8") >= 0) {
-                assertFalse(rs.absolute(0));
+            assertFalse(rs.absolute(0));
 //        } else {
 //            assertTrue(rs.absolute(0));
 //        }
-                assertTrue(rs.isBeforeFirst());
+        assertTrue(rs.isBeforeFirst());
 
-                assertFalse(rs.absolute(51));
-                assertTrue(rs.isAfterLast());
+        assertFalse(rs.absolute(51));
+        assertTrue(rs.isAfterLast());
 
-                assertTrue(rs.absolute(-1));
-                assertEquals("row50", rs.getString(2));
+        assertTrue(rs.absolute(-1));
+        assertEquals("row50", rs.getString(2));
 
-                assertTrue(rs.absolute(-50));
-                assertEquals("row1", rs.getString(2));
-            }
-        }
+        assertTrue(rs.absolute(-50));
+        assertEquals("row1", rs.getString(2));
+      }
     }
+  }
 
     @Test
   public void testResultSetIsAfterLast() throws Exception {
@@ -1468,6 +1468,81 @@ public class ResultSetTest extends BaseTest {
         rs = stmt.executeQuery("select count(*) from test1");
         assertTrue(rs.next());
         assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testStmtCloseResultSet() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select 1");
+            stmt.close();
+            try {
+                rs.next();
+                fail("Should've had an exception here");
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains(
+                        "Operation not permit on a closed resultSet"));
+            }
+            PreparedStatement ps = null;
+            ps = sharedConnection.prepareStatement("select 1");
+            rs = ps.executeQuery();
+            ps.close();
+            try {
+                rs.next();
+                fail("Should've had an exception here");
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains(
+                        "Operation not permit on a closed resultSet"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNextAfterClose() throws SQLException {
+        ResultSet rs;
+
+        // close result set
+        Statement stmt = sharedConnection.createStatement();
+        rs = stmt.executeQuery("SELECT 1");
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("select 1");
+        rs = ps.executeQuery();
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        // close statement
+        rs = stmt.executeQuery("SELECT 1");
+        stmt.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = ps.executeQuery();
+        ps.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
     }
 
     @Test

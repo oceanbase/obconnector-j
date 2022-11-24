@@ -118,7 +118,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   /** the Connection object. */
   protected OceanBaseConnection connection;
 
-  protected volatile boolean closed = false;
+  protected volatile boolean isClosed = false;
   protected int queryTimeout;
   protected long maxRows;
   protected Results results;
@@ -196,7 +196,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.protocol = connection.getProtocol();
     clone.timerTaskFuture = null;
     clone.batchQueries = new ArrayList<>();
-    clone.closed = false;
+    clone.isClosed = false;
     clone.warningsCleared = true;
     clone.maxRows = 0;
     if (clone.protocol.isOracleMode() && options.defaultFetchSize == 0) {
@@ -247,7 +247,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   protected void executeQueryPrologue(boolean isBatch) throws SQLException {
     executing = true;
-    if (closed) {
+    if (isClosed) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -712,7 +712,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   public boolean isCursorResultSet() throws SQLException {
-    if (closed) {
+    if (isClosed) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -922,17 +922,29 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if a database access error occurs
    */
   public void close() throws SQLException {
+      realClose(true, true);
+  }
+
+  public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
     lock.lock();
     try {
-      closed = true;
-      if (results != null) {
-        if (results.getFetchSize() != 0) {
-          skipMoreResults();
-        }
+      if (closeOpenResults) {
+          if (results != null) {
+              if (results.getFetchSize() != 0) {
+                  skipMoreResults();
+              }
 
-        results.close();
+              // close open current result set
+              try {
+                  results.getResultSet().close();
+              } catch (Exception ex) {
+              }
+
+              // MySQL close all open results
+              results.closeAllOpenResults();
+          }
       }
-      if(results == null && cursorFetchPstmt != null) {
+      if (results == null && cursorFetchPstmt != null) {
           cursorFetchPstmt.close();
           cursorFetchPstmt = null;
       }
@@ -944,26 +956,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
       connection.pooledConnection.fireStatementClosed(this);
     } finally {
+      isClosed = true;
       protocol = null;
       connection = null;
-      lock.unlock();
-    }
-  }
-
-
-  public void realClose() throws SQLException {
-    lock.lock();
-    try {
-      closed = true;
-      if (connection == null
-          || connection.pooledConnection == null
-          || connection.pooledConnection.noStmtEventListeners()) {
-        return;
+      if (results != null) {
+          results.close();
       }
-      connection.pooledConnection.fireStatementClosed(this);
-    } finally {
-      protocol = null;
-      connection = null;
       lock.unlock();
     }
   }
@@ -1275,7 +1273,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @since 1.6
    */
   public boolean isClosed() {
-    return closed;
+    return isClosed;
   }
 
   /**
@@ -1721,7 +1719,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
     if (mustCloseOnCompletion
-        && !closed
+        && !isClosed
         && results != null
         && resultSet.equals(results.getResultSet())) {
       close();
@@ -1734,7 +1732,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if statement close
    */
   protected void checkClose() throws SQLException {
-    if (closed || this.connection.isClosed()) {
+    if (isClosed || this.connection.isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("Cannot do an operation on a closed statement");
