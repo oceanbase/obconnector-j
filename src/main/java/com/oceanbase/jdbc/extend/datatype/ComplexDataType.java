@@ -63,7 +63,8 @@ public class ComplexDataType {
     public static final int   TYPE_CURSOR     = 5;
     public static final int   TYPE_RAW        = 6;
     public static final int   TYPE_CHAR       = 7;
-    public static final int   TYPE_MAX        = 8;
+    public static final int   TYPE_TIMESTMAP  = 8;
+    public static final int   TYPE_MAX        = 9;
 
     public ComplexDataType(String typeName, String schemaName, int type) {
         this.schemaName = schemaName;
@@ -146,6 +147,9 @@ public class ComplexDataType {
     }
 
     public static int getObComplexType(String attrType) throws SQLException {
+        if (attrType == null) {
+            return TYPE_MAX;
+        }
         if (attrType.equalsIgnoreCase("COLLECTION")) {
             return TYPE_COLLECTION;
         }
@@ -170,6 +174,9 @@ public class ComplexDataType {
         }
         if (attrType.equalsIgnoreCase("CHAR")) {
             return TYPE_CHAR;
+        }
+        if (attrType.toUpperCase().indexOf("TIMESTAMP") != -1) {
+            return TYPE_TIMESTMAP;
         }
         return TYPE_MAX;
     }

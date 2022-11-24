@@ -279,7 +279,7 @@ public abstract class RowProtocol {
     }
   }
 
-  private TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
+  protected TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
     StringBuilder sb = new StringBuilder();
     sb.append(buildTimestamp(bytes[pos])); // century
     sb.append(buildTimestamp(bytes[pos + 1])); // year

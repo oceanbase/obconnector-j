@@ -2106,6 +2106,11 @@ public class BinaryRowProtocol extends RowProtocol {
         return ts;
     }
 
+    private java.sql.Timestamp getComplexTimestamp(byte[] bits) throws SQLException {
+        TIMESTAMP timestamp = buildTIMETAMP(bits, 0, bits.length);
+        return timestamp.timestampValue();
+    }
+
     private Object getComplexAttrData(Buffer packet, ComplexDataType type) throws SQLException {
         Object value = null;
         byte[] b = null;
@@ -2126,6 +2131,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_DATE:
                 value = getComplexDate(packet.readLenByteArray(0));
+                break;
+            case ComplexDataType.TYPE_TIMESTMAP:
+                value = getComplexTimestamp(packet.readLenByteArray(0));
                 break;
             case ComplexDataType.TYPE_COLLECTION:
                 value = getComplexArray(packet, type);
