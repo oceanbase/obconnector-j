@@ -96,6 +96,7 @@ public class DatatypeTest extends BaseTest {
         createTable("time_period",
             "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
+        createTable("testRanges", "c1 VARCHAR(32)");
         createTable("testBooleans", "c1 BINARY(3), c2 VARBINARY(3), c3 BLOB");
 
     }
@@ -1159,6 +1160,30 @@ public class DatatypeTest extends BaseTest {
             rs.getTimestamp(1, cal);
             assertEquals(date, cal.getTime());
             assertEquals(date.toString(), cal.getTime().toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testStringToLongOrInt() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testRanges VALUES (?)");
+            pstmt.setString(1, "1E4");
+            pstmt.execute();
+
+            ResultSet rs = conn.createStatement().executeQuery("select c1 from testRanges");
+            assertTrue(rs.next());
+            assertEquals(10000, rs.getInt(1));
+            assertEquals(10000, rs.getLong(1));
+
+            PreparedStatement ps = conn.prepareStatement("select c1 from testRanges");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(10000, rs.getInt(1));
+            assertEquals(10000, rs.getLong(1));
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

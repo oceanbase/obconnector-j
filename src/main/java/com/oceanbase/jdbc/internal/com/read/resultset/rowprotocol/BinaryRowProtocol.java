@@ -505,8 +505,19 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case VARCHAR2:
             case NVARCHAR2:
-                value = Long.parseLong(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())).trim());
+                String val = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim();
+                if (!getProtocol().isOracleMode()) {
+                    if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
+                        && (val.indexOf(".") == -1)) {
+                        return Integer.parseInt(val);
+                    } else {
+                        double doubleVal = Double.parseDouble(val);
+                        return (int) doubleVal;
+                    }
+                } else {
+                    value = Long.parseLong(val);
+                }
                 break;
             default:
                 throw new SQLException("getInt not available for data field type "
@@ -593,8 +604,19 @@ public class BinaryRowProtocol extends RowProtocol {
                 case STRING:
                 case VARCHAR2:
                 case NVARCHAR2:
-                    return Long.parseLong(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    String val = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim();
+                    if (!getProtocol().isOracleMode()) {
+                        if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
+                            && (val.indexOf(".") == -1)) {
+                            return Long.parseLong(val);
+                        } else {
+                            double doubleVal = Double.parseDouble(val);
+                            return (long) doubleVal;
+                        }
+                    } else {
+                        return Long.parseLong(val);
+                    }
                 default:
                     throw new SQLException("getLong not available for data field type "
                                            + columnInfo.getColumnType().getSqlTypeName());

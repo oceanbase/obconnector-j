@@ -355,8 +355,19 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     return (negate ? -1 * result : result);
                 default:
-                    return Long.parseLong(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    String val = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim();
+                    if (!getProtocol().isOracleMode()) {
+                        if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
+                            && (val.indexOf(".") == -1)) {
+                            return Integer.parseInt(val);
+                        } else {
+                            double doubleVal = Double.parseDouble(val);
+                            return (int) doubleVal;
+                        }
+                    } else {
+                        return Long.parseLong(val);
+                    }
             }
 
         } catch (NumberFormatException nfe) {
