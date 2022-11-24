@@ -123,7 +123,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected ColumnLabelIndexer            columnLabelIndexer;
     public RowProtocol                      row;
     protected byte[][]                      data;
-    /***
+    /**
      * dataSize can be -1, 0, 1, ..., n.
      * -1: client hasn't got result from server, whether the result set is empty remains unknown.
      * 0: client did get result from server, but the result set is empty without any row.
@@ -134,6 +134,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected int                           discardedRows;
     protected int                           rowPointer            = -1;
     protected int                           lastRowPointer        = -1;
+    /**
+     * Mark the absolute position in entire result for the first row in cache.
+     * The absolute position of the first row in entire result is 1.
+     */
+    protected int                           startIndexInEntireResult;
+    protected int                           endIndexInEntireResult;
     protected boolean                       isEof;
     protected boolean                       isLastRowSent;
     protected boolean                       isClosed;
@@ -273,12 +279,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         rsClass = ResultSetClass.CURSOR;
         data = new byte[Math.max(10, fetchSize)][];
-        // ref cursor cannot read data in constructor
-        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
-            // for new PS protocol, ResultSet reads data from socket while constructing
-            this.lock = protocol.getLock();
-            nextStreamingValue();
-        }
 
         handelUpdatable(results);
     }
@@ -466,37 +466,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return isEof;
     }
 
-    private void fetchAllResults() throws IOException, SQLException {
-        dataSize = 0;
-        processedRows = 0;
-        while (readNextValue()) {
-            // fetch all results
-        }
-    }
-
-    /**
-     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
-     *
-     * @throws SQLException if any error occur
-     */
-    public void fetchRemaining() throws SQLException {
-        if (!isEof) {
-            lock.lock();
-            try {
-                lastRowPointer = -1;
-                while (!isEof) {
-                    addStreamingValue();
-                }
-            } catch (SQLException queryException) {
-                throw ExceptionFactory.INSTANCE.create(queryException);
-            } catch (IOException ioe) {
-                throw handleIoException(ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
     protected SQLException handleIoException(IOException ioe) {
         return ExceptionFactory.INSTANCE
             .create(
@@ -513,6 +482,39 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return columnsInformation;
     }
 
+    private void fetchAllResults() throws IOException, SQLException {
+        dataSize = 0;
+        processedRows = 0;
+        while (!isEof) {
+            addStreamingValue();
+        }
+        updateStartIndexInEntireResult();// startIndexInEntireResult is supposed to be 1
+    }
+
+    /**
+     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
+     *
+     * @throws SQLException if any error occur
+     */
+    public void fetchRemaining() throws SQLException {
+        if (!isEof) {
+            lock.lock();
+            try {
+                lastRowPointer = -1;
+                while (!isEof) {
+                    addStreamingValue();
+                }
+                updateStartIndexInEntireResult();
+            } catch (SQLException queryException) {
+                throw ExceptionFactory.INSTANCE.create(queryException);
+            } catch (IOException ioe) {
+                throw handleIoException(ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
     /**
      * This permit to replace current stream results by next ones.
      *
@@ -522,13 +524,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private void nextStreamingValue() throws IOException, SQLException {
         lastRowPointer = -1;
 
-        // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && dataSize > 0) {
+        // STREAMING has no need to cache a previous row
+        if (dataSize > 0) {
             discardedRows += dataSize;
             dataSize = 0;
         }
 
         addStreamingValue();
+        updateStartIndexInEntireResult();
     }
 
     /**
@@ -537,23 +540,34 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
-    private void addStreamingValue() throws IOException, SQLException {
+    protected void addStreamingValue() throws IOException, SQLException {
         if (dataSize == -1) {
             dataSize = 0;
         }
         processedRows = 0;
-        // read only fetchSize values
-        int fetchSizeTmp = fetchSize;
-        while (fetchSizeTmp > 0 && readNextValue()) {
-            fetchSizeTmp--;
-        }
-
-        // after fetchSize rows have been read, there must be a EOF packet for cursor resultSet
-        if (!isEof && rsClass == ResultSetClass.CURSOR) {
-            readNextValue();
-            if (!isEof) {
-                throw new SQLException("a EOF packet is supposed to be read");
+        // read only one row once
+        byte[] buf = getNextRow();
+        if (statement == null || statement.getMaxRows() <= 0
+            || endIndexInEntireResult < statement.getMaxRows()) {
+            if (buf != null) {
+                if (dataSize + 1 >= data.length) {
+                    growDataArray();
+                }
+                data[dataSize++] = buf;
+                processedRows++;
+                endIndexInEntireResult++;
             }
+        } else {
+            isLastRowSent = true;
+        }
+    }
+
+    protected void updateStartIndexInEntireResult() {
+        if (dataSize > 0) {
+            startIndexInEntireResult = endIndexInEntireResult - dataSize + 1;
+        } else {
+            startIndexInEntireResult = 0;
+            endIndexInEntireResult = 0;
         }
     }
 
@@ -564,7 +578,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-    protected boolean readNextValue() throws IOException, SQLException {
+    protected byte[] getNextRow() throws IOException, SQLException {
         byte[] buf = this.reader.getPacketArray(false);
 
         // is error Packet
@@ -614,25 +628,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
                 protocol.removeActiveStreamingResult();
             }
-            if ((serverStatus & ServerStatus.LAST_ROW_SENT) != 0) {
-                isLastRowSent = true;
-            } else {
-                isLastRowSent = false;
-            }
+            isLastRowSent = (serverStatus & ServerStatus.LAST_ROW_SENT) != 0;
             isEof = true;
-            return false;
+            return null;
         }
 
-        // this is a result-set row, save it
+        // is a result-set row, save it
         isEof = false;
-        if (dataSize + 1 >= data.length) {
-            growDataArray();
-        }
-        //        Buffer buffer = new Buffer(buf, buf.length);
-        //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
-        data[dataSize++] = buf;
-        processedRows++;
-        return true;
+        return buf;
     }
 
     /**
@@ -754,7 +757,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             try {
                 while (!isEof) {
                     dataSize = 0; // to avoid storing data
-                    readNextValue();
+                    getNextRow();
                 }
                 processedRows = 0;
             } catch (SQLException queryException) {
@@ -875,6 +878,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
 
         // COMPLETE ResultSet
+        if (protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         return isEof && rowPointer == dataSize - 1 && dataSize > 0;
     }
 
@@ -3838,12 +3844,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public boolean isBinaryEncoded() {
         return row.isBinaryEncoded();
-    }
-
-    protected void resetState() {
-        this.dataSize = -1;
-        this.rowPointer = -1;
-        this.lastRowPointer = -1;
     }
 
     public boolean isEof() {

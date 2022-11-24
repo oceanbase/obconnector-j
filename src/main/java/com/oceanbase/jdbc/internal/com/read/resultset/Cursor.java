@@ -14,6 +14,6 @@ public abstract class Cursor extends SelectResultSet {
         super(columnDefinition, results, protocol, callableResult, eofDeprecated, isPsOutParameter);
     }
 
-    protected abstract void cursorFetch() throws SQLException;
+    protected abstract boolean cursorFetch() throws SQLException;
 
 }

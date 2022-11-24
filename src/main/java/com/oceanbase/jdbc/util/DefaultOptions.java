@@ -986,7 +986,6 @@ public enum DefaultOptions {
             false)
     ;
 
-
   private final String optionName;
   private final String description;
   private final boolean required;
