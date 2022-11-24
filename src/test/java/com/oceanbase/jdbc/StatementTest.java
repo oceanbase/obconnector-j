@@ -57,7 +57,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -714,32 +713,81 @@ public class StatementTest extends BaseTest {
     }
 
     @Test
-  public void escaping() throws Exception {
-    try (Connection con = setConnection("&dumpQueriesOnException=true")) {
-      Statement stmt = con.createStatement();
-      try {
-        stmt.executeQuery(
-            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
-        fail();
-      } catch (SQLException e) {
-        assertTrue(
-            e.getMessage()
-                .contains("select timestampdiff(HOUR, '2003-02-01','2003-05-01') df df "));
-      }
+    public void escaping() throws Exception {
+        try (Connection con = setConnection("&dumpQueriesOnException=true")) {
+            Statement stmt = con.createStatement();
+            try {
+                stmt.executeQuery(
+                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+                fail();
+            } catch (SQLException e) {
+                assertTrue(
+                        e.getMessage()
+                                .contains("select timestampdiff(HOUR, '2003-02-01','2003-05-01') df df "));
+            }
 
-      stmt.setEscapeProcessing(false);
-      try {
-        stmt.executeQuery(
-            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
-        fail();
-      } catch (SQLException e) {
-        assertTrue(
-            e.getMessage()
-                .contains(
-                    "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df"));
-      }
+            stmt.setEscapeProcessing(false);
+            try {
+                stmt.executeQuery(
+                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+                fail();
+            } catch (SQLException e) {
+                assertTrue(
+                        e.getMessage()
+                                .contains(
+                                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df"));
+            }
+        }
     }
-  }
+
+    @Test
+    public void testMultiQueries() throws Exception {
+        createTable("testMultiQueries", "c1 INT");
+
+        Connection conn = setConnection("&allowMultiQueries=true");
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        stmt.execute("select 1; INSERT INTO testMultiQueries VALUES (1); INSERT INTO testMultiQueries VALUES (2), (3);"
+                     + " select count(*) from testMultiQueries");
+
+        ResultSet rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertFalse(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+
+        assertFalse(stmt.getMoreResults());
+        assertEquals(2, stmt.getUpdateCount());
+
+        assertTrue(stmt.getMoreResults());
+        rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testProcedureMultiQueries() throws Exception {
+        createProcedure("pro_1", "() BEGIN SELECT 1; SELECT 2; SELECT 3; END");
+        CallableStatement cStmt = sharedConnection.prepareCall("{call pro_1()}");
+        cStmt.setFetchSize(Integer.MIN_VALUE);
+        cStmt.execute();
+
+        ResultSet rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertTrue(cStmt.getMoreResults());
+        rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+
+        assertTrue(cStmt.getMoreResults());
+        rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertFalse(cStmt.getMoreResults());
+    }
 
     @Test
     public void testSetMaxRows() throws Exception {
@@ -758,8 +806,8 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testUrlOptionMaxRows() throws SQLException {
-        Assert.assertEquals(0, sharedConnection.createStatement().getMaxRows());
-        Assert.assertEquals(3, setConnection("&maxRows=3").createStatement().getMaxRows());
+        assertEquals(0, sharedConnection.createStatement().getMaxRows());
+        assertEquals(3, setConnection("&maxRows=3").createStatement().getMaxRows());
     }
 
     @Test

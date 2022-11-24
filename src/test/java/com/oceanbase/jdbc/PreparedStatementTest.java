@@ -658,7 +658,9 @@ public class PreparedStatementTest extends BaseTest {
         }
 
         Connection conn2 = setConnection("");
-        ResultSet rs = conn2.createStatement().executeQuery("SELECT 2");
+        pstmt = conn2.prepareStatement("SELECT 2");
+        pstmt.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = pstmt.executeQuery();
 
         rs.close();
         conn2.createStatement().executeQuery("SELECT 3");

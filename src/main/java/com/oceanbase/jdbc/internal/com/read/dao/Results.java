@@ -401,12 +401,17 @@ public class Results {
                 resultSet.close();
             }
             resultSet = null;
+            protocol.removeActiveStreamingResult();
             return false;
         }
     }
 
     public int getFetchSize() {
         return fetchSize;
+    }
+
+    public void setFetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
     }
 
     public OceanBaseStatement getStatement() {

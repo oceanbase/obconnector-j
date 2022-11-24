@@ -215,11 +215,8 @@ public class Options implements Cloneable {
     public boolean useLocalXID = true;
     public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
-
     public boolean allowNanAndInf = false;
     public String  defaultConnectionAttributesBanList = null;
-
-
     public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
 
     @Override
@@ -652,7 +649,6 @@ public class Options implements Cloneable {
         if (allowNanAndInf != opt.allowNanAndInf) {
             return false;
         }
-
         if (zeroDateTimeBehavior != opt.zeroDateTimeBehavior) {
             return false;
         }

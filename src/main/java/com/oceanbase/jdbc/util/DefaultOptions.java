@@ -965,7 +965,6 @@ public enum DefaultOptions {
             "2.4.1",
             "The maximum number of rows to return. The default \"0\" means return all rows.",
             false),
-
     ZERO_DATE_TIME_BEHAVIOR(
             "zeroDateTimeBehavior",
             Options.ZERO_DATETIME_EXCEPTION,

@@ -161,10 +161,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     /****************************** updatable  characters *******************************/
     // Since not all types of result set use these variables, there can be a way not to initial them all the time
-    protected static final int          STATE_STANDARD           = 0;
-    protected static final int          STATE_UPDATE             = 1;
-    protected static final int          STATE_UPDATED            = 2;
-    protected static final int          STATE_INSERT             = 3;
+    protected static final int          STATE_STANDARD = 0;
+    protected static final int          STATE_UPDATE   = 1;
+    protected static final int          STATE_UPDATED  = 2;
+    protected static final int          STATE_INSERT   = 3;
 
     protected OceanBaseConnection       connection;
     private String                      database;
@@ -177,13 +177,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     private String                      exceptionUpdateMsg;
     private String                      exceptionInsertMsg;
-    protected int                       state                    = STATE_STANDARD;
+    protected int                       state          = STATE_STANDARD;
     private int                         updatableColumnLength;
     private UpdatableColumnDefinition[] updatableColumns;
     private ParameterHolder[]           updatableParameterHolders;
-    private PreparedStatement           refreshPreparedStatement = null;
-    private ClientSidePreparedStatement insertPreparedStatement  = null;
-    private ClientSidePreparedStatement deletePreparedStatement  = null;
+    private PreparedStatement           refreshPreparedStatement;
+    private ClientSidePreparedStatement insertPreparedStatement;
+    private ClientSidePreparedStatement deletePreparedStatement;
 
     /*************************** updatable characters ending ****************************/
 
@@ -211,6 +211,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // definition of streaming resultSet by MySQL
             rsClass = ResultSetClass.STREAMING;
             fetchSize = 1;
+            results.setFetchSize(1);
             this.lock = protocol.getLock();
             protocol.setActiveStreamingResult(results);
             protocol.removeHasMoreResults();
@@ -248,7 +249,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
             row = new TextRowProtocol(results.getMaxFieldSize(), options);
         }
         row.setProtocol(protocol);
-        this.fetchSize = results.getFetchSize();
+        this.fetchSize = results.getStatement() != null ? results.getStatement().getFetchSize()
+            : results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
         this.resultSetConcurType = results.getResultSetConcurrency();
         this.callableResult = callableResult;
