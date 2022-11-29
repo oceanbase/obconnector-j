@@ -1058,7 +1058,8 @@ public class UpdateResultSetTest extends BaseTest {
         //                "engine=myisam"); // success
         //        createTable("testUpdatedAbleInsert", "c1 int(20) , c2 int(20) AUTO_INCREMENT, c3 int(20), PRIMARY KEY (c1, c2)",
         //                "engine=innodb"); // fail
-        createTable("testUpdatedAbleInsert", "c1 int(20) , c2 int(20) AUTO_INCREMENT, c3 int(20), PRIMARY KEY (c1, c2)",
+        createTable("testUpdatedAbleInsert",
+            "c1 int(20) , c2 int(20) AUTO_INCREMENT, c3 int(20), PRIMARY KEY (c1, c2)",
             "engine=myisam"); // success
 
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,

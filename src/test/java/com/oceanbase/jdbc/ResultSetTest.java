@@ -1044,7 +1044,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void nullField() throws SQLException {
         createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
-        Statement stmt = sharedConnection.createStatement();
+        Connection conn = setConnection("&zeroDateTimeBehavior=convertToNull");
+        Statement stmt = conn.createStatement();
         stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
                      + "(null, '0000-00-00 00:00:00', '0000-00-00', '0000'), "
                      + "(null, null, null, null)," + "('aa', now(), now(), '2017')");
@@ -1481,7 +1482,7 @@ public class ResultSetTest extends BaseTest {
                 fail("Should've had an exception here");
             } catch (SQLException e) {
                 Assert.assertTrue(e.getMessage().contains(
-                        "Operation not permit on a closed resultSet"));
+                    "Operation not permit on a closed resultSet"));
             }
             PreparedStatement ps = null;
             ps = sharedConnection.prepareStatement("select 1");
@@ -1492,7 +1493,7 @@ public class ResultSetTest extends BaseTest {
                 fail("Should've had an exception here");
             } catch (SQLException e) {
                 Assert.assertTrue(e.getMessage().contains(
-                        "Operation not permit on a closed resultSet"));
+                    "Operation not permit on a closed resultSet"));
             }
         } catch (SQLException e) {
             e.printStackTrace();

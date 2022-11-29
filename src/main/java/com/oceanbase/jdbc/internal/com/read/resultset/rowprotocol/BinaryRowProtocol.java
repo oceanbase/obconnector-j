@@ -976,10 +976,6 @@ public class BinaryRowProtocol extends RowProtocol {
                         "Could not get object as Date : " + e.getMessage(), "S1009", e);
                 }
             default:
-                if (!getProtocol().isOracleMode()) {
-                    return getDateFromString(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
-                }
                 if (length == 0) {
                     lastValueNull |= BIT_LAST_FIELD_NULL;
                     return null;
@@ -1067,7 +1063,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
-                if (!getProtocol().isOracleMode()) {
+                ColumnType type = columnInfo.getColumnType();
+                if (!getProtocol().isOracleMode()
+                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR
+                        || type == ColumnType.STRING || type == ColumnType.VARSTRING)) {
                     String raw = new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                     return getTimeFromString(raw, cal);

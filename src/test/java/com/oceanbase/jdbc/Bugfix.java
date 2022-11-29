@@ -2155,4 +2155,43 @@ public class Bugfix extends BaseTest {
         }
     }
 
+    @Test
+    public void testGetDate() {
+        try {
+            Date date = Date.valueOf("2020-12-12");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+            ps.setString(1, "2020-12-12");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println(rs.getDate(1));
+            ps = sharedConnection.prepareStatement("select ?");
+            ps.setDate(1, date);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println(rs.getDate(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testGetTime() {
+        try {
+            Time time = Time.valueOf("11:22:33");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+            ps.setString(1, "11:22:33");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(time, rs.getTime(1));
+            ps = sharedConnection.prepareStatement("select ?");
+            ps.setTime(1, time);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(time, rs.getTime(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }

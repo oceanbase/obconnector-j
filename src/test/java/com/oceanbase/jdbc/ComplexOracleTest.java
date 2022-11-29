@@ -761,6 +761,7 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
 
     }
+
     @Test
     public void testComplexArrayWithTimestmap() {
         try {
@@ -775,15 +776,15 @@ public class ComplexOracleTest extends BaseOracleTest {
             cs = conn.prepareCall("create table order_line (ol_delivery_d   timestamp)");
             cs.execute();
             cs = conn
-                    .prepareCall("insert into order_line values(to_date('1998-12-1', 'yyyy-mm-dd'))");
+                .prepareCall("insert into order_line values(to_date('1998-12-1', 'yyyy-mm-dd'))");
             cs.execute();
             cs = conn.prepareCall("create or replace type time_array as table of timestamp");
             cs.execute();
             cs = conn.prepareCall("create or replace procedure Order1(\n"
-                    + "out_ol_delivery_d \t  out time_array\n" + ")is\n" + "begin\n"
-                    + "    SELECT ol_delivery_d\n"
-                    + "\tbulk collect into  out_ol_delivery_d\n"
-                    + "\tFROM order_line;\n" + "end Order1;");
+                                  + "out_ol_delivery_d \t  out time_array\n" + ")is\n" + "begin\n"
+                                  + "    SELECT ol_delivery_d\n"
+                                  + "\tbulk collect into  out_ol_delivery_d\n"
+                                  + "\tFROM order_line;\n" + "end Order1;");
             cs.execute();
             cs = conn.prepareCall("{call Order1(?)}");
 
@@ -795,7 +796,7 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.assertTrue(arrayRes.next());
             int index = arrayRes.getInt(1);
             Timestamp ts = arrayRes.getTimestamp(2);
-            Assert.assertEquals("1998-12-01 00:00:00.0",ts.toString());
+            Assert.assertEquals("1998-12-01 00:00:00.0", ts.toString());
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

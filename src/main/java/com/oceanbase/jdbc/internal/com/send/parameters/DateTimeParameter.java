@@ -50,21 +50,21 @@
  */
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+
 public class DateTimeParameter implements Cloneable, ParameterHolder {
 
     private final Timestamp ts;
-    private final TimeZone timeZone;
-    private final boolean fractionalSeconds;
-    private final boolean isDate;
+    private final TimeZone  timeZone;
+    private final boolean   fractionalSeconds;
+    private final boolean   isDate;
 
     /**
      * Constructor.
@@ -73,7 +73,8 @@ public class DateTimeParameter implements Cloneable, ParameterHolder {
      * @param fractionalSeconds must fractional Seconds be send to database.
      * @param isDate
      */
-    public DateTimeParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds, boolean isDate) {
+    public DateTimeParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds,
+                             boolean isDate) {
         this.ts = ts;
         this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;

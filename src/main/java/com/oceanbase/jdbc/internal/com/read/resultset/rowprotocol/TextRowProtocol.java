@@ -657,7 +657,10 @@ public class TextRowProtocol extends RowProtocol {
                 return new Date(year - 1900, 0, 1);
 
             default:
-                if (!getProtocol().isOracleMode()) {
+                ColumnType type = columnInfo.getColumnType();
+                if (!getProtocol().isOracleMode()
+                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR
+                        || type == ColumnType.STRING || type == ColumnType.VARSTRING)) {
                     return getDateFromString(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
                 }
