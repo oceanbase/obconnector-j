@@ -1065,8 +1065,7 @@ public class BinaryRowProtocol extends RowProtocol {
             default:
                 ColumnType type = columnInfo.getColumnType();
                 if (!getProtocol().isOracleMode()
-                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR
-                        || type == ColumnType.STRING || type == ColumnType.VARSTRING)) {
+                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR || type == ColumnType.VARSTRING)) {
                     String raw = new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                     return getTimeFromString(raw, cal);

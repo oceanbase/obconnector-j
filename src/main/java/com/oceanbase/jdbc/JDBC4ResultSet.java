@@ -2429,7 +2429,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     // update column information with SHOW COLUMNS additional informations
                     for (int index = columnIndexOffset; !found && index < columnInformationLength; index++) {
                         ColumnDefinition columnDefinition = columnsInformation[index];
-                        if (fieldName.equals(columnDefinition.getOriginalName())) {
+                        if (fieldName.equals(columnDefinition.getName())) {
                             updatableColumns[index - columnIndexOffset] = new UpdatableColumnDefinition(
                                     columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
                             found = true;
@@ -2481,7 +2481,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                         // abnormal error : some field in META are not listed in SHOW COLUMNS
                         cannotUpdateInsertRow("Metadata information not available for table `"
                                               + database + "`.`" + table + "`, field `"
-                                              + columnsInformation[index].getOriginalName() + "`");
+                                              + columnsInformation[index].getName() + "`");
                         ensureAllColumnHaveMeta = false;
                     }
                 }
@@ -2645,9 +2645,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 }
                 firstPrimary = false;
                 if (protocol.isOracleMode()) {
-                    whereClause.append("\"").append(colInfo.getOriginalName()).append("\" = ? ");
+                    whereClause.append("\"").append(colInfo.getName()).append("\" = ? ");
                 } else {
-                    whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    whereClause.append("`").append(colInfo.getName()).append("` = ? ");
                 }
             }
         }
@@ -2665,9 +2665,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 columnClause.append(",");
             }
             if (protocol.isOracleMode()) {
-                columnClause.append("\"").append(colInfo.getOriginalName()).append("\"");
+                columnClause.append("\"").append(colInfo.getName()).append("\"");
             } else {
-                columnClause.append("`").append(colInfo.getOriginalName()).append("`");
+                columnClause.append("`").append(colInfo.getName()).append("`");
             }
         }
 
@@ -2784,9 +2784,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     firstUpdate = false;
                     fieldsToUpdate++;
                     if (protocol.isOracleMode()) {
-                        updateSql.append("\"").append(colInfo.getOriginalName()).append("\" = ? ");
+                        updateSql.append("\"").append(colInfo.getName()).append("\" = ? ");
                     } else {
-                        updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                        updateSql.append("`").append(colInfo.getName()).append("` = ? ");
                     }
                 }
             }

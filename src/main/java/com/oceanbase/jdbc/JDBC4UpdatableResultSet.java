@@ -204,7 +204,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                     // update column information with SHOW COLUMNS additional informations
                     for (int index = 0; index < columnInformationLength; index++) {
                         ColumnDefinition columnDefinition = columnsInformation[index];
-                        if (fieldName.equals(columnDefinition.getOriginalName())) {
+                        if (fieldName.equals(columnDefinition.getName())) {
                             updatableColumns[index] = new UpdatableColumnDefinition(
                                 columnDefinition, canBeNull, hasDefault, generated, primary,
                                 autoIncrement);
@@ -254,7 +254,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                         // abnormal error : some field in META are not listed in SHOW COLUMNS
                         cannotUpdateInsertRow("Metadata information not available for table `"
                                               + database + "`.`" + table + "`, field `"
-                                              + columnsInformation[index].getOriginalName() + "`");
+                                              + columnsInformation[index].getName() + "`");
                         ensureAllColumnHaveMeta = false;
                     }
                 }
@@ -1071,7 +1071,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                         valueClause.append(", ");
                     }
 
-                    insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+                    insertSql.append("`").append(colInfo.getName()).append("`");
                     valueClause.append("?");
                 }
                 insertSql.append(") VALUES (").append(valueClause).append(")");
@@ -1149,7 +1149,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                         whereClause.append("AND ");
                     }
                     firstPrimary = false;
-                    whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    whereClause.append("`").append(colInfo.getName()).append("` = ? ");
                 }
 
                 if (value != null) {
@@ -1158,7 +1158,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                     }
                     firstUpdate = false;
                     fieldsToUpdate++;
-                    updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    updateSql.append("`").append(colInfo.getName()).append("` = ? ");
                 }
             }
             updateSql.append(whereClause.toString());
@@ -1223,7 +1223,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                         deleteSql.append("AND ");
                     }
                     firstPrimary = false;
-                    deleteSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    deleteSql.append("`").append(colInfo.getName()).append("` = ? ");
                 }
             }
             deletePreparedStatement = connection.clientPrepareStatement(deleteSql.toString());
@@ -1257,14 +1257,14 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
                 if (pos != 0) {
                     selectSql.append(",");
                 }
-                selectSql.append("`").append(colInfo.getOriginalName()).append("`");
+                selectSql.append("`").append(colInfo.getName()).append("`");
 
                 if (colInfo.isPrimary()) {
                     if (!firstPrimary) {
                         whereClause.append("AND ");
                     }
                     firstPrimary = false;
-                    whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    whereClause.append("`").append(colInfo.getName()).append("` = ? ");
                 }
             }
             selectSql.append(" FROM `").append(database).append("`.`").append(table).append("`")

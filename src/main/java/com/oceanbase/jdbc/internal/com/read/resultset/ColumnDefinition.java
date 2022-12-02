@@ -332,10 +332,12 @@ public class ColumnDefinition {
         return getStringFromBytes(originalTableNameStart, originalTableNameLength);
     }
 
+    // alias name
     public String getName() {
         return getStringFromBytes(nameStart, nameLength);
     }
 
+    // real name
     public String getOriginalName() {
         return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
     }
