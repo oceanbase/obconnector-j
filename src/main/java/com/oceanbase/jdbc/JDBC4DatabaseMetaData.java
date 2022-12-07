@@ -2779,7 +2779,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
                         ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR };
                 ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
-                    false, columnNames, columnTypes, false);
+                    false, columnNames, columnTypes, false, columnNamePattern);
                 return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
@@ -2790,7 +2790,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     ResultSet getProcAndFuncs(String catalog, String procedureNamePattern, boolean isProcedure,
                               boolean isFunction, String[] columnNames, ColumnType[] columnTypes,
-                              boolean forGetFunctionColumns) throws SQLException {
+                              boolean forGetFunctionColumns, String columnPattern)
+                                                                                  throws SQLException {
 
         String db = catalog;
 
@@ -2855,7 +2856,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             results = proceduresStmt.executeQuery();
         }
         return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes,
-            forGetFunctionColumns);
+            forGetFunctionColumns, columnPattern);
     }
 
     class TypeInfo {
@@ -3103,7 +3104,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
     }
 
-    private ResultSet parseParamListProc(boolean isFunction, ArrayList<String> paramListArray,String catalog,ArrayList<String> nameArray,String[] columnNames,ColumnType[] columnTypes,boolean forGetFunctionColumns) throws SQLException {
+    private ResultSet parseParamListProc(boolean isFunction, ArrayList<String> paramListArray,String catalog,ArrayList<String> nameArray,String[] columnNames,ColumnType[] columnTypes,boolean forGetFunctionColumns,String columnPattern) throws SQLException {
         List<String[]> list = new ArrayList<>();
         int origin = 1;
         for (int i = 0;i<paramListArray.size();i++) {
@@ -3168,6 +3169,16 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                 "unknown parameter direction " + direction + "for "); // todo
                     }
                     String paramName = matcher2.group(2).trim();
+                    if (paramName.startsWith("`") && paramName.endsWith("`")) {
+                        paramName = paramName.substring(1, paramName.length() - 1);
+                    } else if (paramName.startsWith("") && paramName.endsWith("")) {
+                        paramName = paramName.substring(1, paramName.length() - 1);
+                    }
+                    if(columnPattern != null && !columnPattern.equals("%")) {
+                        if(!paramName.equals(columnPattern)) {
+                            continue;
+                        }
+                    }
                     if (this.protocol.isOracleMode()) {
                         typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
                     } else {
@@ -3177,11 +3188,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                             typeInfo = new TypeInfo(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
                         }
 
-                    }
-                    if (paramName.startsWith("`") && paramName.endsWith("`")) {
-                        paramName = paramName.substring(1, paramName.length() - 1);
-                    } else if (paramName.startsWith("") && paramName.endsWith("")) {
-                        paramName = paramName.substring(1, paramName.length() - 1);
                     }
                     String[] tmp = getRowData(catalog,paramName,procName,forGetFunctionColumns,isInParam,isOutParam,isReturnParam,typeInfo,origin++);
                     list.add(tmp);
@@ -3257,7 +3263,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     ResultSet getCallStmtParameterTypes(String catalog, ResultSet procsAndOrFuncsRs,
-                                        String[] columnNames, ColumnType[] columnTypes, boolean forGetFunctionColumns)
+                                        String[] columnNames, ColumnType[] columnTypes, boolean forGetFunctionColumns,String columnPattern)
             throws SQLException {
         ArrayList<String> paramListArray = new ArrayList<>();
         ArrayList<String> nameArray = new ArrayList<>();
@@ -3319,7 +3325,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             }
         }
 
-        return parseParamListProc(false, paramListArray, catalog, nameArray, columnNames, columnTypes,forGetFunctionColumns);
+        return parseParamListProc(false, paramListArray, catalog, nameArray, columnNames, columnTypes,forGetFunctionColumns,columnPattern);
     }
 
     /**
@@ -3461,7 +3467,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 ColumnType.SMALLINT, ColumnType.VARCHAR, ColumnType.NUMBER, ColumnType.NUMBER,
                 ColumnType.VARCHAR, ColumnType.VARCHAR };
         ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, functionNamePattern, false, true,
-            columnNames, columnTypes, true);
+            columnNames, columnTypes, true, columnNamePattern);
         return procsAndOrFuncsRs;
     }
 

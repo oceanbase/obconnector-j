@@ -50,7 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.Locale;
@@ -153,4 +153,27 @@ public class OracleDatabaseMetadataTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGetPLColumns() throws Exception {
+        Connection conn = sharedConnection;
+
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace procedure testGetProcedureColumns (var1 out int, var2 int) is BEGIN var1 := var2; END;");
+        ResultSet rs = conn.getMetaData().getProcedureColumns(null, null,
+            "TESTGETPROCEDURECOLUMNS", "VAR2");
+        assertTrue(rs.next());
+        assertEquals("VAR2", rs.getString("COLUMN_NAME"));
+        assertEquals("VAR2", rs.getObject("COLUMN_NAME"));
+        assertFalse(rs.next());
+
+        stmt.execute("create or replace function testGetFunctionColumns (var1 out int, var2 int) return int is BEGIN var1 := var2; return var1; END;");
+        rs = conn.getMetaData().getFunctionColumns(null, null, "TESTGETFUNCTIONCOLUMNS", "VAR1");
+        assertTrue(rs.next());
+        assertEquals("VAR1", rs.getString("COLUMN_NAME"));
+        assertEquals("VAR1", rs.getObject("COLUMN_NAME"));
+        assertFalse(rs.next());
+    }
+
 }
