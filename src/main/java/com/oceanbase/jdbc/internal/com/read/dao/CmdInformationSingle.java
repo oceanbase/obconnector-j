@@ -173,6 +173,11 @@ public class CmdInformationSingle implements CmdInformation {
         // cannot occur
     }
 
+    @Override
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+        // cannot occur
+    }
+
     public void setRewrite(boolean rewritten) {
         // no need
     }

@@ -70,6 +70,8 @@ public interface CmdInformation {
 
     void addSuccessStat(long updateCount, long insertId);
 
+    void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey);
+
     void addErrorStat();
 
     void reset();

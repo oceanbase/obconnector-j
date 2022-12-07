@@ -115,6 +115,16 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+        if (containOnDuplicateKey && updateCount == 0) {
+            updateCount = 1;
+        }
+        insertIds.add(insertId);
+        insertIdNumber += updateCount;
+        updateCounts.add(updateCount);
+    }
+
+    @Override
     public int[] getServerUpdateCounts() {
         int[] ret = new int[updateCounts.size()];
 

@@ -92,6 +92,7 @@ public class Bugfix extends BaseTest {
         createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
         createTable(testBatchValue, "c1 INT, c2 INT");
         createTable(testBestRow, "c1 INT NOT NULL primary key, b VARCHAR(32), c INT, d VARCHAR(5)");
+        createTable("testExecuteLargeBatch", "id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT");
 
     }
 
@@ -2192,6 +2193,39 @@ public class Bugfix extends BaseTest {
         } catch (SQLException e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testPrepStmtExecuteLargeBatch() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useAffectedRows=true&rewriteBatchedStatements=true");
+            PreparedStatement ps = conn
+                .prepareStatement("INSERT INTO testExecuteLargeBatch (n) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, 1);
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.addBatch();
+            ps.setInt(1, 3);
+            ps.addBatch();
+            ps.setInt(1, 4);
+            ps.addBatch();
+            ps.setInt(1, 5);
+            ps.addBatch();
+            long[] counts = ps.executeLargeBatch();
+            assertEquals(5, counts.length);
+            System.out.println(Arrays.toString(counts));
+            ResultSet rs = ps.getGeneratedKeys();
+            long generatedKey = 0;
+            while (rs.next()) {
+                assertEquals(++generatedKey, rs.getLong(1));
+                System.out.println(rs.getInt(1));
+            }
+            assertEquals(5, generatedKey);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }

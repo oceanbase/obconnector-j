@@ -62,6 +62,7 @@ import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Results {
@@ -152,6 +153,19 @@ public class Results {
         this.toCursorFetch = false;
     }
 
+    boolean containOnDuplicateKey(String sql, Protocol protocol) {
+        if (sql == null || sql.length() == 0) {
+            return false;
+        }
+        if (protocol == null) {
+            return false;
+        }
+
+        Utils.TrimSQLInfo trimSQLInfo = Utils.trimSQLStringInternal(sql,
+            protocol.noBackslashEscapes(), protocol.isOracleMode(), true);
+        return trimSQLInfo.getOnDuplicateKeyUpdateIndex() == -1 ? false : true;
+    }
+
     /**
      * Add execution statistics.
      *
@@ -170,7 +184,12 @@ public class Results {
                 return;
             }
         }
-        cmdInformation.addSuccessStat(updateCount, insertId);
+        cmdInformation
+            .addSuccessStat(
+                updateCount,
+                insertId,
+                containOnDuplicateKey(statement.getActualSql(), statement.getConnection()
+                    .getProtocol()));
     }
 
     /**

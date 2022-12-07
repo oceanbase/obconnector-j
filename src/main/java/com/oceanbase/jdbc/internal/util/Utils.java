@@ -784,12 +784,23 @@ public class Utils {
       int  whereEndPos;
       List<Integer> paramsIndexs;
 
-      public TrimSQLInfo(String trimedString, int paramCount, int selectEndPos, int whereEndPos, List<Integer> paramsIndexs) {
+      public void setOnDuplicateKeyUpdateIndex(int onDuplicateKeyUpdateIndex) {
+          this.onDuplicateKeyUpdateIndex = onDuplicateKeyUpdateIndex;
+      }
+
+      public int getOnDuplicateKeyUpdateIndex() {
+          return onDuplicateKeyUpdateIndex;
+      }
+
+      int onDuplicateKeyUpdateIndex;
+
+      public TrimSQLInfo(String trimedString, int paramCount, int selectEndPos, int whereEndPos, List<Integer> paramsIndexs, int onDuplicateKeyUpdateIndex) {
           this.trimedString = trimedString;
           this.paramCount = paramCount;
           this.selectEndPos = selectEndPos;
           this.whereEndPos = whereEndPos;
           this.paramsIndexs = paramsIndexs;
+          this.onDuplicateKeyUpdateIndex = onDuplicateKeyUpdateIndex;
       }
 
       public String getTrimedString() {
@@ -820,9 +831,18 @@ public class Utils {
                   ", selectEndPos=" + selectEndPos +
                   ", whereEndPos=" + whereEndPos +
                   ", paramsIndexs=" + paramsIndexs +
+                  ", onDuplicateKeyUpdateIndex=" + onDuplicateKeyUpdateIndex +
                   '}';
       }
   }
+
+    enum KeyState {
+        Normal, /* inside  query */
+        No,
+        Duplicate,
+        Key,
+        Update
+    }
   public static TrimSQLInfo trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
@@ -841,7 +861,10 @@ public class Utils {
     int commentStart = 0;
     boolean slashEnd = false;
     boolean semicolonEnd = false;
+    KeyState keyState = KeyState.Normal;
     boolean nameBindingEnd = false;
+
+    int onDuplicateKeyUpdateIndex = -1;
 
     for (int i = 0; i < queryLength; i++) {
       if (i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
@@ -853,6 +876,7 @@ public class Utils {
       if (state == LexState.Escape && !(car == '\'' && singleQuotes || car == '"' && !singleQuotes)) {
         state = LexState.String;
         lastChar = car;
+
         continue;
       }
 
@@ -996,7 +1020,6 @@ public class Utils {
             }
           }
           break;
-
         case ' ':
         case ',':
         case ')':
@@ -1008,18 +1031,68 @@ public class Utils {
           break;
 
         default:
-          // multiple queries
-          if (state == LexState.Normal) { 
-            if (semicolonEnd && ((int) car >= 40)) {
-              semicolonEnd = false;
-              multipleQueriesPrepare = true;
+            // multiple queries
+            if (state == LexState.Normal) {
+                if (semicolonEnd && ((int) car >= 40)) {
+                    semicolonEnd = false;
+                    multipleQueriesPrepare = true;
+                }
+                switch (car) {
+                    case 'o':
+                    case 'O':
+                        if (state == LexState.Normal
+                                && queryLength > i + 1
+                                && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
+                            onDuplicateKeyUpdateIndex = trimedSqlString.length();
+                            keyState = KeyState.No;
+                        }
+                        break;
+                    case 'd':
+                    case 'D':
+                        if (state == LexState.Normal
+                                && keyState == KeyState.No
+                                && queryLength > i + 8
+                                && (query[i + 1] == 'u' || query[i + 1] == 'U')
+                                && (query[i + 2] == 'p' || query[i + 2] == 'P')
+                                && (query[i + 3] == 'l' || query[i + 3] == 'L')
+                                && (query[i + 4] == 'i' || query[i + 4] == 'I')
+                                && (query[i + 5] == 'c' || query[i + 5] == 'C')
+                                && (query[i + 6] == 'a' || query[i + 6] == 'A')
+                                && (query[i + 7] == 't' || query[i + 7] == 'T')
+                                && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
+                            keyState = KeyState.Duplicate;
+                        }
+                        break;
+                    case 'k':
+                    case 'K':
+                        if (state == LexState.Normal
+                                && keyState == KeyState.Duplicate
+                                && queryLength > i + 2
+                                && (query[i + 1] == 'e' || query[i + 1] == 'E')
+                                && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
+                            keyState = KeyState.Key;
+                        }
+                        break;
+                    case 'u':
+                    case 'U':
+                        if (state == LexState.Normal
+                                && keyState == KeyState.Key
+                                && queryLength > i + 5
+                                && (query[i + 1] == 'p' || query[i + 1] == 'P')
+                                && (query[i + 2] == 'd' || query[i + 2] == 'D')
+                                && (query[i + 3] == 'a' || query[i + 3] == 'A')
+                                && (query[i + 4] == 't' || query[i + 4] == 'T')
+                                && (query[i + 5] == 'e' || query[i + 5] == 'E')) {
+                            keyState = KeyState.Update;
+                        }
+                        break;
+                }
+                if (selectEndPos == -1 && (car == 't' || car == 'T') && i >= 5 && queryString.substring(i - 5, i + 1).equalsIgnoreCase("select")) {
+                    selectEndPos = i;
+                } else if (whereEndPos == -1 && (car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
+                    whereEndPos = i;
+                }
             }
-            if (selectEndPos == -1 && (car == 't' || car == 'T') && i >= 5 && queryString.substring(i - 5, i + 1).equalsIgnoreCase("select")) {
-              selectEndPos = i;
-            } else if (whereEndPos == -1 && (car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
-                whereEndPos = i;
-            }
-          }
           break;
       }
 
@@ -1073,7 +1146,7 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParamPos, queryLength));
     }
-    return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,paramIndexs);
+    return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,paramIndexs,onDuplicateKeyUpdateIndex);
   }
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
