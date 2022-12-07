@@ -2093,7 +2093,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            Array ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type);
+            Array ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
             return ret;
         } else {
@@ -2117,10 +2117,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
             ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
             Object ret = null;
             if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
-                ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type);
+                ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
                 complexEndPos[actualColumnIndex - 1] = row.pos;
             } else if (type.getType() == ComplexDataType.TYPE_OBJECT) {
-                ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type);
+                ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type,conn);
                 complexEndPos[actualColumnIndex - 1] = row.pos;
             }
             return ret;
@@ -2147,7 +2147,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            Struct ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type);
+            Struct ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
             return ret;
         } else {
@@ -2166,12 +2166,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
+        Connection conn = this.statement.getConnection();
         int internalColumnIndex = actualColumnIndex - 1;
         String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
         ComplexDataType type = new ComplexDataType(typeName, typeName, ColumnType.CURSOR.getType());
         if (complexData[internalColumnIndex] == null) {
             ComplexData data = (ComplexData) row.getInternalComplexCursor(
-                columnsInformation[internalColumnIndex], type);
+                columnsInformation[internalColumnIndex], type,conn);
             complexData[internalColumnIndex] = data;
             complexEndPos[actualColumnIndex - 1] = row.pos;
         }

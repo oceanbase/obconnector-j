@@ -67,6 +67,7 @@ import java.util.TimeZone;
 import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
+import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -2026,7 +2027,8 @@ public class BinaryRowProtocol extends RowProtocol {
         }
     }
 
-    private ComplexData getComplexField(Buffer packet, ComplexDataType type) throws SQLException {
+    private ComplexData getComplexField(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData value = null;
         if (null == type || !type.isValid()) {
             throw new SQLException(String.format(
@@ -2034,10 +2036,10 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         switch (type.getType()) {
             case ComplexDataType.TYPE_COLLECTION:
-                value = getComplexArray(packet, type);
+                value = getComplexArray(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_OBJECT:
-                value = getComplexStruct(packet, type);
+                value = getComplexStruct(packet, type, connection);
                 break;
             default:
                 throw new SQLException(String.format(
@@ -2046,7 +2048,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return value;
     }
 
-    private ComplexData getComplexArray(Buffer packet, ComplexDataType type) throws SQLException {
+    private ComplexData getComplexArray(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData array = new ArrayImpl(type);
         int attrCount = (int) packet.readFieldLength();
         array.setAttrCount(attrCount);
@@ -2057,7 +2060,7 @@ public class BinaryRowProtocol extends RowProtocol {
         packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
         for (int i = 0; i < attrCount; ++i) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
-                Object value = getComplexAttrData(packet, type.getAttrType(0));
+                Object value = getComplexAttrData(packet, type.getAttrType(0), connection);
                 array.addAttrData(i, value);
             } else {
                 array.addAttrData(i, null);
@@ -2067,7 +2070,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return array;
     }
 
-    public ComplexData getComplexStruct(Buffer packet, ComplexDataType type) throws SQLException {
+    public ComplexData getComplexStruct(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData struct = new StructImpl(type);
         int attrCount = type.getAttrCount();
         struct.setAttrCount(attrCount);
@@ -2076,7 +2080,7 @@ public class BinaryRowProtocol extends RowProtocol {
         packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
         for (int i = 0; i < attrCount; ++i) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
-                Object value = getComplexAttrData(packet, type.getAttrType(i));
+                Object value = getComplexAttrData(packet, type.getAttrType(i), connection);
                 struct.addAttrData(i, value);
             } else {
                 struct.addAttrData(i, null);
@@ -2131,7 +2135,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return timestamp.timestampValue();
     }
 
-    private Object getComplexAttrData(Buffer packet, ComplexDataType type) throws SQLException {
+    private Object getComplexAttrData(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                 throws SQLException {
         Object value = null;
         byte[] b = null;
         Charset charset = Charset.forName(this.getProtocol().getEncoding());
@@ -2156,14 +2161,24 @@ public class BinaryRowProtocol extends RowProtocol {
                 value = getComplexTimestamp(packet.readLenByteArray(0));
                 break;
             case ComplexDataType.TYPE_COLLECTION:
-                value = getComplexArray(packet, type);
+                value = getComplexArray(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_OBJECT:
-                value = getComplexStruct(packet, type);
+                value = getComplexStruct(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_CHAR:
                 b = packet.readLenByteArray(0);
                 value = (char) (b[0]);
+                break;
+            case ComplexDataType.TYPE_CLOB:
+                b = packet.readLenByteArray(0);
+                if (options.supportLobLocator) {
+                    Clob c = new com.oceanbase.jdbc.Clob(true, b, charset.name(),
+                        (OceanBaseConnection) connection);
+                    value = c.toString();
+                } else {
+                    return new String(buf, pos, length, charset);
+                }
                 break;
             default:
                 throw new SQLException("unsupported complex data type");
@@ -2178,12 +2193,12 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return
      * @throws SQLException
      */
-    public Array getInternalArray(ColumnDefinition columnInf, ComplexDataType complexDataType)
-                                                                                              throws SQLException {
+    public Array getInternalArray(ColumnDefinition columnInf, ComplexDataType complexDataType,
+                                  Connection connection) throws SQLException {
         Array ret = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        ret = (ObArray) getComplexField(buffer, complexDataType);
+        ret = (ObArray) getComplexField(buffer, complexDataType, connection);
         pos = buffer.getPosition();
         return ret;
     }
@@ -2195,19 +2210,19 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return struct value
      * @throws SQLException exception
      */
-    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
-                                                                                                 throws SQLException {
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType,
+                                    Connection connection) throws SQLException {
         ObStruct struct = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        struct = (ObStruct) getComplexField(buffer, complexDataType);
+        struct = (ObStruct) getComplexField(buffer, complexDataType, connection);
         pos = buffer.getPosition();
         return struct;
     }
 
     public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
-                                                ComplexDataType complexDataType)
-                                                                                throws SQLException {
+                                                ComplexDataType complexDataType,
+                                                Connection connection) throws SQLException {
 
         ComplexData value = new ComplexData(complexDataType);
         if (buf.length <= pos) {

@@ -710,20 +710,19 @@ public class ComplexOracleTest extends BaseOracleTest {
         try {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
-            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c0 int, c1 int);");
-            stmt.execute("CREATE OR REPLACE TYPE obj_array IS TABLE OF my_obj;");
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1(a in my_obj, b out obj_array) IS BEGIN null;end;");
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj, b out obj_array, c out my_obj) IS BEGIN null;end;");
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj, b out obj_array, c out my_obj) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE TYPE my_obj_1 as object (c0 int, c1 int);");
+            stmt.execute("CREATE OR REPLACE TYPE obj_array_1 IS TABLE OF my_obj_1;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1_1(a in my_obj_1, b out obj_array_1) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2_1(a in my_obj_1, b out obj_array_1, c out my_obj_1) IS BEGIN null;end;");
 
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc3(a in my_obj, c out my_obj) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc3_1(a in my_obj_1, c out my_obj_1) IS BEGIN null;end;");
 
             System.out.println("###proc2###");
-            CallableStatement csmt = conn.prepareCall("{call my_proc2(?,?,?)}");
-            Struct InStruct = conn.createStruct("my_obj", new Object[] { 1, 2 });
+            CallableStatement csmt = conn.prepareCall("{call my_proc2_1(?,?,?)}");
+            Struct InStruct = conn.createStruct("my_obj_1", new Object[] { 1, 2 });
             csmt.setObject(1, InStruct);
-            csmt.registerOutParameter(2, Types.ARRAY, "OBJ_ARRY");
-            csmt.registerOutParameter(3, Types.STRUCT, "MY_OBJ");
+            csmt.registerOutParameter(2, Types.ARRAY, "OBJ_ARRAY_1");
+            csmt.registerOutParameter(3, Types.STRUCT, "MY_OBJ_1");
             csmt.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -737,22 +736,22 @@ public class ComplexOracleTest extends BaseOracleTest {
         try {
             Connection conn = sharedConnection;
             Statement stmt = conn.createStatement();
-            stmt.execute("CREATE OR REPLACE TYPE my_obj as object (c0 char(2));");
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1(a in my_obj) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE TYPE my_obj_complexchar as object (c0 char(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1_complexchar(a in my_obj_complexchar) IS BEGIN null;end;");
 
-            stmt.execute("CREATE OR REPLACE TYPE my_obj2 as object (c0 varchar(2));");
-            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2(a in my_obj2) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE TYPE my_obj2_complexchar as object (c0 varchar(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2_complexchar(a in my_obj2_complexchar) IS BEGIN null;end;");
 
             stmt.close();
             System.out.println("###proc2###");
-            CallableStatement csmt = conn.prepareCall("{call my_proc2(?)}");
-            Struct InStruct = conn.createStruct("my_obj2", new Object[] { "aa" });
+            CallableStatement csmt = conn.prepareCall("{call my_proc2_complexchar(?)}");
+            Struct InStruct = conn.createStruct("my_obj2_complexchar", new Object[] { "aa" });
             csmt.setObject(1, InStruct);
             csmt.execute();
 
             System.out.println("###proc1###");
-            csmt = conn.prepareCall("{call my_proc1(?)}");
-            InStruct = conn.createStruct("my_obj", new Object[] { "aa" });
+            csmt = conn.prepareCall("{call my_proc1_complexchar(?)}");
+            InStruct = conn.createStruct("my_obj_complexchar", new Object[] { "aa" });
             csmt.setObject(1, InStruct);
             csmt.execute();
         } catch (SQLException e) {
@@ -797,6 +796,38 @@ public class ComplexOracleTest extends BaseOracleTest {
             int index = arrayRes.getInt(1);
             Timestamp ts = arrayRes.getTimestamp(2);
             Assert.assertEquals("1998-12-01 00:00:00.0", ts.toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testArrayWithClob() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table order_line");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            stmt.execute("create table order_line (c1 clob)");
+            stmt.execute("insert into order_line values('aaa')");
+            stmt.execute("create or replace type clob_array as table of clob");
+
+            CallableStatement cs = sharedConnection
+                .prepareCall("create or replace procedure Order1(var out clob_array)"
+                             + " is begin\n"
+                             + " SELECT c1 bulk collect into var FROM order_line;\n"
+                             + " end Order1;");
+            cs.execute();
+            cs = sharedConnection.prepareCall("{call Order1(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+            cs.execute();
+            ResultSet arrayRes = cs.getArray(1).getResultSet();
+            Assert.assertTrue(arrayRes.next());
+            assertEquals(1, arrayRes.getInt(1));
+            Assert.assertEquals("aaa", arrayRes.getString(2));
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();

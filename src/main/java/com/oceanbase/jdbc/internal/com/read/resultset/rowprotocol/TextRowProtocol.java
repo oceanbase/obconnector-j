@@ -830,21 +830,21 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     @Override
-    public Array getInternalArray(ColumnDefinition columnInfo, ComplexDataType complexDataType)
-                                                                                               throws SQLException {
+    public Array getInternalArray(ColumnDefinition columnInfo, ComplexDataType complexDataType,
+                                  Connection connection) throws SQLException {
         return null;
     }
 
     @Override
-    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
-                                                                                                 throws SQLException {
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType,
+                                    Connection connection) throws SQLException {
         return null;
     }
 
     @Override
     public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
-                                                ComplexDataType complexDataType)
-                                                                                throws SQLException {
+                                                ComplexDataType complexDataType,
+                                                Connection connection) throws SQLException {
         return null;
     }
 

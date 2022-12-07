@@ -189,9 +189,9 @@ public abstract class RowProtocol {
   public abstract Timestamp getInternalTimestamp(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
-  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
-  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
-  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
+  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
+  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
   public String getEncoding() {
     return options.characterEncoding;
   }
