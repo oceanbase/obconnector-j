@@ -1716,7 +1716,7 @@ public class Bugfix extends BaseTest {
     @Test
     public void testConnClosedStmt() {
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection();
             Statement stmt = conn.createStatement();
             conn.close();
             stmt.getResultSet();

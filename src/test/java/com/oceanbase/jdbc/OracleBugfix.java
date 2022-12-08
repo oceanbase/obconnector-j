@@ -2881,4 +2881,23 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGetColumnsNullable() {
+        try {
+            createTable("test_nullable", "c1 varchar2(36), c2 number not null");
+            DatabaseMetaData dMetaData = sharedConnection.getMetaData();
+            ResultSet rs = dMetaData.getColumns(null, null, "test_nullable".toUpperCase(), null);
+            assertTrue(rs.next());
+            assertTrue("c1".equalsIgnoreCase(rs.getString("COLUMN_NAME")));
+            assertEquals(1, rs.getInt("NULLABLE"));
+            assertTrue(rs.next());
+            assertTrue("c2".equalsIgnoreCase(rs.getString("COLUMN_NAME")));
+            assertEquals(0, rs.getInt("NULLABLE"));
+            assertFalse(rs.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }

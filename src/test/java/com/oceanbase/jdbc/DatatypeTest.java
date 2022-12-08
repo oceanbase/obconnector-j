@@ -1178,7 +1178,7 @@ public class DatatypeTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(10000, rs.getInt(1));
             assertEquals(10000, rs.getLong(1));
-
+            
             PreparedStatement ps = conn.prepareStatement("select c1 from testRanges");
             rs = ps.executeQuery();
             assertTrue(rs.next());

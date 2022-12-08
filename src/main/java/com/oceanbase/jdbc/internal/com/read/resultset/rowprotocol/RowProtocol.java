@@ -558,6 +558,23 @@ public abstract class RowProtocol {
     }
   }
 
+    protected void rangeCheck(
+            Object className, long minValue, long maxValue, double value, ColumnDefinition columnInfo)
+            throws SQLException {
+        if (value < minValue ||value > maxValue) {
+            throw new SQLException(
+                    "Out of range value for column '"
+                            + columnInfo.getName()
+                            + "' : value "
+                            + value
+                            + " is not in "
+                            + className
+                            + " range",
+                    "22003",
+                    1264);
+        }
+    }
+
   protected void rangeCheck(
       Object className, long minValue, long maxValue, long value, ColumnDefinition columnInfo)
       throws SQLException {

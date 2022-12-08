@@ -351,6 +351,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
 
         this.row = new TextRowProtocol(0, this.options);
+        this.row.setProtocol(protocol);
         this.protocol = protocol;
         this.columnsInformation = columnDefinition;
         this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);

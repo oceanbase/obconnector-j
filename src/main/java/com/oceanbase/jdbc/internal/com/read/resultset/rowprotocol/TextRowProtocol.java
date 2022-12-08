@@ -277,7 +277,8 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return 0;
         }
-        long value = getInternalLong(columnInfo);
+        long value = getInternalLongUtil(columnInfo, Integer.class, Integer.MIN_VALUE,
+            Integer.MAX_VALUE);
         rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
         return (int) value;
     }
@@ -290,6 +291,15 @@ public class TextRowProtocol extends RowProtocol {
      * @throws SQLException if column type doesn't permit conversion or not in Long range (unsigned)
      */
     public long getInternalLong(ColumnDefinition columnInfo) throws SQLException {
+        if (lastValueWasNull()) {
+            return 0;
+        }
+        long value = getInternalLongUtil(columnInfo, Long.class, Long.MIN_VALUE, Long.MAX_VALUE);
+        return value;
+    }
+
+    public long getInternalLongUtil(ColumnDefinition columnInfo, Object className, long minValue,
+                                    long maxValue) throws SQLException {
         if (lastValueWasNull()) {
             return 0;
         }
@@ -355,33 +365,30 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     return (negate ? -1 * result : result);
                 default:
-                    String val = new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())).trim();
-                    if (!getProtocol().isOracleMode()) {
-                        if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
-                            && (val.indexOf(".") == -1)) {
-                            return Integer.parseInt(val);
-                        } else {
-                            double doubleVal = Double.parseDouble(val);
-                            return (int) doubleVal;
-                        }
-                    } else {
-                        return Long.parseLong(val);
-                    }
+                    return Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
             }
 
         } catch (NumberFormatException nfe) {
+            NumberFormatException exceptionTmp = null;
             // parse error.
             // if its a decimal retry without the decimal part.
             String value = new String(buf, pos, length,
                 getCurrentEncoding(columnInfo.getColumnType()));
-            // check
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Long.parseLong(value.substring(0, value.indexOf(".")));
                 } catch (NumberFormatException nfee) {
                     // eat exception
                 }
+            }
+            if (!getProtocol().isOracleMode()) {
+                double doubleVal = Double.parseDouble(value);
+                // check
+                if (options.jdbcCompliantTruncation) {
+                    rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
+                }
+                return (long) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + value, "22003", 1264);

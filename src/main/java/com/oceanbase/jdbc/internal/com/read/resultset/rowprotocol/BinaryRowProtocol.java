@@ -461,71 +461,85 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return 0;
         }
-
-        long value;
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                value = parseBit();
-                break;
-            case TINYINT:
-                value = getInternalTinyInt(columnInfo);
-                break;
-            case SMALLINT:
-            case YEAR:
-                value = getInternalSmallInt(columnInfo);
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-            case NUMBER:
-                value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
-                         + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
-                if (columnInfo.isSigned()) {
-                    return (int) value;
-                } else if (value < 0) {
-                    value = value & 0xffffffffL;
-                }
-                break;
-            case BIGINT:
-                value = getInternalLong(columnInfo);
-                break;
-            case FLOAT:
-                value = (long) getInternalFloat(columnInfo);
-                break;
-            case DOUBLE:
-                value = (long) getInternalDouble(columnInfo);
-                break;
-            case DECIMAL:
-            case OLDDECIMAL:
-            case OBDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
-                    columnInfo);
-                return bigDecimal.intValue();
-            case VARSTRING:
-            case VARCHAR:
-            case STRING:
-            case VARCHAR2:
-            case NVARCHAR2:
-                String val = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType())).trim();
-                if (!getProtocol().isOracleMode()) {
-                    if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
-                        && (val.indexOf(".") == -1)) {
-                        return Integer.parseInt(val);
-                    } else {
-                        double doubleVal = Double.parseDouble(val);
-                        return (int) doubleVal;
+        try {
+            long value;
+            switch (columnInfo.getColumnType()) {
+                case BIT:
+                    value = parseBit();
+                    break;
+                case TINYINT:
+                    value = getInternalTinyInt(columnInfo);
+                    break;
+                case SMALLINT:
+                case YEAR:
+                    value = getInternalSmallInt(columnInfo);
+                    break;
+                case INTEGER:
+                case MEDIUMINT:
+                case NUMBER:
+                    value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
+                             + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
+                    if (columnInfo.isSigned()) {
+                        return (int) value;
+                    } else if (value < 0) {
+                        value = value & 0xffffffffL;
                     }
-                } else {
-                    value = Long.parseLong(val);
+                    break;
+                case BIGINT:
+                    value = getInternalLong(columnInfo);
+                    break;
+                case FLOAT:
+                    value = (long) getInternalFloat(columnInfo);
+                    break;
+                case DOUBLE:
+                    value = (long) getInternalDouble(columnInfo);
+                    break;
+                case DECIMAL:
+                case OLDDECIMAL:
+                case OBDECIMAL:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
+                        columnInfo);
+                    return bigDecimal.intValue();
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case VARCHAR2:
+                case NVARCHAR2:
+                    value = Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    break;
+                default:
+                    throw new SQLException("getInt not available for data field type "
+                                           + columnInfo.getColumnType().getSqlTypeName());
+            }
+            rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
+            return (int) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String stringVal = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
+            if (isIntegerRegex.matcher(stringVal).find()) {
+                try {
+                    return Integer.parseInt(stringVal.substring(0, stringVal.indexOf(".")));
+                } catch (NumberFormatException nfee) {
+                    // eat exception
                 }
-                break;
-            default:
-                throw new SQLException("getInt not available for data field type "
-                                       + columnInfo.getColumnType().getSqlTypeName());
+            }
+            if (!getProtocol().isOracleMode()) {
+                double doubleVal = Double.parseDouble(stringVal);
+                // check
+                if (options.jdbcCompliantTruncation) {
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
+                        columnInfo);
+                }
+                return (int) doubleVal;
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                   + "' : value " + stringVal, "22003", 1264);
+
         }
-        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-        return (int) value;
     }
 
     /**
@@ -605,19 +619,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 case STRING:
                 case VARCHAR2:
                 case NVARCHAR2:
-                    String val = new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())).trim();
-                    if (!getProtocol().isOracleMode()) {
-                        if ((val.indexOf("e") == -1) && (val.indexOf("E") == -1)
-                            && (val.indexOf(".") == -1)) {
-                            return Long.parseLong(val);
-                        } else {
-                            double doubleVal = Double.parseDouble(val);
-                            return (long) doubleVal;
-                        }
-                    } else {
-                        return Long.parseLong(val);
-                    }
+                    return Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
                 default:
                     throw new SQLException("getLong not available for data field type "
                                            + columnInfo.getColumnType().getSqlTypeName());
@@ -627,18 +630,26 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String valueParams = new String(buf, pos, length,
+            String stringVal = new String(buf, pos, length,
                 getCurrentEncoding(columnInfo.getColumnType()));
-            if (isIntegerRegex.matcher(valueParams).find()) {
+            if (isIntegerRegex.matcher(stringVal).find()) {
                 try {
-                    return Long
-                        .parseLong(valueParams.substring(0, valueParams.indexOf(".")).trim());
+                    return Long.parseLong(stringVal.substring(0, stringVal.indexOf(".")));
                 } catch (NumberFormatException nfee) {
                     // eat exception
                 }
             }
+            if (!getProtocol().isOracleMode()) {
+                double doubleVal = Double.parseDouble(stringVal);
+                // check
+                if (options.jdbcCompliantTruncation) {
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal, columnInfo);
+                }
+                return (long) doubleVal;
+            }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                   + "' : value " + valueParams, "22003", 1264);
+                                   + "' : value " + stringVal, "22003", 1264);
+
         }
     }
 
