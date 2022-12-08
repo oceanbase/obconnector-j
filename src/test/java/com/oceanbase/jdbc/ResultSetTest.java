@@ -740,6 +740,17 @@ public class ResultSetTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
 
+        try {
+            rs = stmt.executeQuery("select * from testStreamForward");
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle
+                .getMessage()
+                .contains(
+                    "No statements may be issued when any streaming result sets are open and in use on a given connection"));
+        }
+        rs.close();
+
         rs = stmt.executeQuery("select * from testStreamForward");
         try {
             rs.last();
@@ -753,6 +764,7 @@ public class ResultSetTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
+        rs.close();
     }
 
     /**
