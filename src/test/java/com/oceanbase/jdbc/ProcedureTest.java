@@ -159,6 +159,7 @@ public class ProcedureTest extends BaseTest {
     public void testParameterNoRegister2() throws SQLException {
         createProcedure("testProc1", "(out a int) BEGIN SELECT 1; END");
         CallableStatement cs = sharedConnection.prepareCall("call testProc1(?)");
+
         cs.execute();
         Assert.assertEquals(0, cs.getInt(1));
 
@@ -176,4 +177,30 @@ public class ProcedureTest extends BaseTest {
         cs2.execute();
         Assert.assertEquals(1, cs2.getInt(1));
     }
+
+    @Test
+    public void testProcedureDefaultValue() throws Exception {
+        createProcedure(
+            "testPro",
+            "(c1 int, out c2 int, c3 int, out c4 int, out c5 int, c6 int, c7 int) BEGIN SELECT 1 into c2; select 2 into c4; select 3 into c5; END");
+
+        CallableStatement cstmt = sharedConnection
+            .prepareCall("{CALL testPro(4, ?, 5, ?, ?, 6, 7)}");
+        cstmt.registerOutParameter(2, Types.INTEGER);
+        cstmt.registerOutParameter(3, Types.INTEGER);
+        cstmt.execute();
+        Assert.assertEquals(1, cstmt.getInt(1));
+        Assert.assertEquals(2, cstmt.getInt(2));
+        Assert.assertEquals(3, cstmt.getInt(3));
+
+        cstmt.clearParameters();
+        cstmt.registerOutParameter(1, Types.INTEGER);
+        cstmt.registerOutParameter(2, Types.INTEGER);
+        cstmt.registerOutParameter(3, Types.INTEGER);
+        cstmt.execute();
+        Assert.assertEquals(1, cstmt.getInt(1));
+        Assert.assertEquals(2, cstmt.getInt(2));
+        Assert.assertEquals(3, cstmt.getInt(3));
+    }
+
 }

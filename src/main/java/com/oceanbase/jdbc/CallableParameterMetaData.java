@@ -240,16 +240,26 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
 
         List<CallParameter> currentParams = new ArrayList<>(parameterCount);
+        // Traverse each parameter： if it has a placeholder in SQL, add to the container;
+        // otherwise, an exception will be thrown for an OUT parameter
         for (int index = 0; index < parameterCount; index++) {
-            int localIndex = placeholderToParameterIndexMap[index];
-            if (localIndex != -1) {
-                CallParameter parameter = params.get(localIndex);
-                currentParams.add(parameter);
-            } else if (!con.getProtocol().isOracleMode()){
-                CallParameter parameter = params.get(index);
-                if (parameter.isOutput()) {
-                    throw new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
+            CallParameter parameter = params.get(index);
+
+            boolean found = false;
+            for (int placeholderIndex = 0; placeholderIndex <= index; placeholderIndex++) {
+                if (placeholderToParameterIndexMap[placeholderIndex] == index) {
+                    found = true;
+                    currentParams.add(parameter);
+                    break;
+                } else if (placeholderToParameterIndexMap[placeholderIndex] > index || placeholderToParameterIndexMap[placeholderIndex] == -1) {
+                    // if placeholderToParameterIndexMap[placeholderIndex] > index, then placeholderToParameterIndexMap[placeholderIndex + 1] > index
+                    // if placeholderToParameterIndexMap[placeholderIndex] == -1, then placeholderToParameterIndexMap[placeholderIndex + 1] == -1
+                    break;
                 }
+            }
+
+            if (!found && !con.getProtocol().isOracleMode() && parameter.isOutput()) {
+                throw new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
             }
         }
         this.params = currentParams;
