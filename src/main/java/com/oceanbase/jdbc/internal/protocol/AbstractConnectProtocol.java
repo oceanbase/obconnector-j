@@ -884,11 +884,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void compressionHandler(Options options) throws IOException {
         if (useOceanBaseProtocolV20) {
-            ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
-            writer = new Ob20PacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, options.characterEncoding, serverThreadId, ob20,
-                options.enableOb20Checksum);
-            reader = new Ob20PacketInputStream(socket.getInputStream(), options, serverThreadId,
+            boolean enableDebug = Boolean.parseBoolean(System.getProperty(
+                "debugOceanBaseProtocolV20", "false"));
+            ob20 = new OceanBaseProtocolV20(useNewExtraInfo, enableDebug);
+            writer = new Ob20PacketOutputStream(writer.getOutputStream(), serverThreadId, options,
+                ob20);
+            reader = new Ob20PacketInputStream(socket.getInputStream(), serverThreadId, options,
                 ob20);
 
             if (enableFullLinkTrace) {
@@ -896,11 +897,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 ob20.setTraceInfo(fullLinkTrace.traceInfo);
             }
         } else if (options.useCompression) {
-            writer = new CompressPacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, serverThreadId, options.characterEncoding);
+            writer = new CompressPacketOutputStream(writer.getOutputStream(), serverThreadId,
+                options);
             reader = new DecompressPacketInputStream(
-                ((StandardPacketInputStream) reader).getInputStream(), options.maxQuerySizeToLog,
-                serverThreadId);
+                ((StandardPacketInputStream) reader).getInputStream(), serverThreadId, options);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
@@ -911,9 +911,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void assignStream(Socket socket, Options options) throws SQLException {
         try {
-            writer = new StandardPacketOutputStream(socket.getOutputStream(), options,
-                serverThreadId);
-            reader = new StandardPacketInputStream(socket.getInputStream(), options, serverThreadId);
+            writer = new StandardPacketOutputStream(socket.getOutputStream(), serverThreadId,
+                options);
+            reader = new StandardPacketInputStream(socket.getInputStream(), serverThreadId, options);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);

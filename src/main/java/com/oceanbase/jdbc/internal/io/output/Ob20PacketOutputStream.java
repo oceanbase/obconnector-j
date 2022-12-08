@@ -62,6 +62,7 @@ import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.OceanBaseCRC16;
 import com.oceanbase.jdbc.util.OceanBaseCRC32C;
+import com.oceanbase.jdbc.util.Options;
 
 public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
@@ -80,13 +81,12 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     byte[]                       outBytes;
     private int                  totalPacketLength;
 
-    public Ob20PacketOutputStream(OutputStream out, int maxQuerySizeToLog, String encoding,
-                                  long threadId, OceanBaseProtocolV20 ob20,
-                                  boolean enableOb20Checksum) {
-        super(out, maxQuerySizeToLog, threadId, encoding);
+    public Ob20PacketOutputStream(OutputStream out, long threadId, Options options,
+                                  OceanBaseProtocolV20 ob20) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
         maxPacketLength = MAX_PACKET_LENGTH;
         this.ob20 = ob20;
-        this.enableOb20Checksum = enableOb20Checksum;
+        this.enableOb20Checksum = options.enableOb20Checksum;
     }
 
     @Override
@@ -256,6 +256,14 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     }
 
     private void writeOb20Header(Buffer outBuffer) {
+        if (ob20.enableDebug) {
+            System.out.println("\n[Request] connectionId = " + ob20.header.connectionId
+                               + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
+                               + ob20.header.obSeqNo + ", payloadLength = "
+                               + ob20.header.payloadLength + ", headerChecksum = "
+                               + ob20.header.headerChecksum);
+        }
+
         outBuffer.writeLongInt(ob20.header.compressLength);
         outBuffer.writeByte((byte) ob20.header.compressSeqNo);
         outBuffer.writeLongInt(ob20.header.uncompressLength);

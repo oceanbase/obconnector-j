@@ -1,5 +1,6 @@
 package com.oceanbase.jdbc;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Calendar;
 
@@ -485,4 +486,50 @@ public class ObProtocolV20OracleTest extends BaseOracleTest {
         stmt.close();
         conn.close();
     }
+
+    @Test
+    public void testStringBatchBug38240942() {
+        int runtime = 30000;
+        try {
+            createTable(
+                "stringTest",
+                "c1 varchar2(200),c2 varchar2(200),c3 varchar2(200),c4 varchar2(200),"
+                        + "c5 int,c6 number(12,6),c7 date,c8 varchar2(200),c9 number(12,6),c10 varchar2(200),c11 varchar2(200)");
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            PreparedStatement ps = conn
+                .prepareStatement("insert into stringtest values(?,?,?,?,?,?,?,?,?,null,null)");
+            int val = 0;
+            // 30000 * 9 > 65535 （the prepare parameters limit）
+            for (int i = 0; i < runtime; i++) {
+                ps.setString(1, "string value");
+                ps.setString(2, "string value");
+                ps.setString(3, "string value");
+                ps.setString(4, "string value");
+                ps.setLong(5, val++);
+
+                ps.setBigDecimal(6, new BigDecimal("134254.3342"));
+                ps.setDate(7, null);
+
+                ps.setString(8, "string value");
+                ps.setBigDecimal(9, new BigDecimal(134254.3342));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            long result = val;
+            ResultSet rs = stmt.executeQuery("select * from stringtest");
+            val = 0;
+            long count = 0;
+            while (rs.next()) {
+                count++;
+                Assert.assertEquals(val++, rs.getLong(5));
+            }
+            System.out.printf("count: " + count + ", val: " + val + "\n");
+            Assert.assertEquals(count, runtime);
+            Assert.assertEquals(val, result);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
 }

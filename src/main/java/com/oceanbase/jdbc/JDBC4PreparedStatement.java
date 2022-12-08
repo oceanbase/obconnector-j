@@ -623,7 +623,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
 
   public String asSql(boolean quoteStreamsAndUnknowns) throws SQLException {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    PacketOutputStream out  = new StandardPacketOutputStream(byteArrayOutputStream,options, connection.getServerThreadId());
+    PacketOutputStream out  = new StandardPacketOutputStream(byteArrayOutputStream, connection.getServerThreadId(), options);
     ClientPrepareResult clientPrepareResult = prepareResult;
     try {
       out.startPacket(0);

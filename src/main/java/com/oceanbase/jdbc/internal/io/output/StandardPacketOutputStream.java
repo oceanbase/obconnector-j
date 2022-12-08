@@ -67,7 +67,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     private static final int    MAX_PACKET_LENGTH = 0x00ffffff + 4;
 
-    public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
+    public StandardPacketOutputStream(OutputStream out, long threadId, Options options) {
         super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
         maxPacketLength = MAX_PACKET_LENGTH;
     }

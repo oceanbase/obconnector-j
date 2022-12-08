@@ -208,13 +208,14 @@ public class OceanBaseProtocolV20 {
     public long                    tailChecksum;
     public FullLinkTrace.TraceInfo traceInfo;
 
+    public boolean                 enableDebug;
     public int                     curRequestId;
     public short                   curObSeqNo;
 
-    public OceanBaseProtocolV20(boolean useNewExtraInfo) {
+    public OceanBaseProtocolV20(boolean useNewExtraInfo, boolean enableDebug) {
         header = new Header(useNewExtraInfo);
         extraInfo = new ExtraInfo(useNewExtraInfo);
-
+        this.enableDebug = enableDebug;
         curRequestId = (new Random()).nextInt(UINT_MAX24);
     }
 
