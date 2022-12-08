@@ -1954,7 +1954,6 @@ public class Bugfix extends BaseTest {
 
     @Test
     public void testBatchValue() {
-        Assume.assumeFalse(sharedUsePrepare());
         try {
             Connection conn = setConnection("&rewriteBatchedStatements=true");
             PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + testBatchValue
