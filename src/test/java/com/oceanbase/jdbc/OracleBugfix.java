@@ -494,8 +494,8 @@ public class OracleBugfix extends BaseOracleTest {
                 Assert.assertEquals(1, nullable);
             }
         } catch (Exception e) {
-            Assert.fail();
             e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -2249,7 +2249,7 @@ public class OracleBugfix extends BaseOracleTest {
     @Test
     public void testAone39114534() {
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection("&useOraclePrepareExecute=false");
             createFunction("testFunctionCall",
                 "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
             CallableStatement cs = conn.prepareCall("? = CALL testFunctionCall(?,?,?)");
@@ -2694,6 +2694,7 @@ public class OracleBugfix extends BaseOracleTest {
 
     @Test
     public void testUpdateCounts2() {
+        Assume.assumeFalse(sharedUsePrepare());
         try {
             for (int t = 0; t < 2; t++) {
                 Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=true&rewriteInsertByMultiQueries="
@@ -2743,7 +2744,7 @@ public class OracleBugfix extends BaseOracleTest {
                     if (t == 0) {
                         Assert.assertEquals(0, counts.length);
                     } else {
-                        Assert.assertEquals(0, counts.length);
+                        Assert.assertEquals(999, counts.length);
                     }
                 }
                 ResultSet rs = stmt.executeQuery("select count(*) from blobtest1");
@@ -2771,7 +2772,7 @@ public class OracleBugfix extends BaseOracleTest {
                     if (t == 0) {
                         Assert.assertEquals(5, counts.length);
                     } else {
-                        Assert.assertEquals(0, counts.length);
+                        Assert.assertEquals(999, counts.length);
                     }
                 }
                 rs = stmt.executeQuery("select count(*) from blobtest1");

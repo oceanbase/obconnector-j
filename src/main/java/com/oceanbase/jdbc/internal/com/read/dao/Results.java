@@ -94,6 +94,16 @@ public class Results {
     private CmdInformation         cmdInformation;
     private boolean                batchSucceed = false;
 
+    public boolean isExecuteBatchStmt() {
+        return executeBatchStmt;
+    }
+
+    public void setExecuteBatchStmt(boolean executeBatchStmt) {
+        this.executeBatchStmt = executeBatchStmt;
+    }
+
+    private boolean executeBatchStmt = false;
+
     /**
      * Single Text query. /! use internally, because autoincrement value is not right for
      * multi-queries !/

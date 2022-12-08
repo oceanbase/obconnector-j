@@ -952,8 +952,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       final List<String> queries) throws SQLException {
     cmdPrologue();
+    results.setExecuteBatchStmt(true);
     if (this.options.rewriteBatchedStatements) {
-        results.setRewritten(true);
 
       // check that queries are rewritable
       boolean canAggregateSemiColumn = true;

@@ -805,7 +805,7 @@ public class Bugfix extends BaseTest {
             cstmt.setInt(4, 4);
             cstmt.setInt(5, 5);
             cstmt.execute();
-            assertEquals(0, cstmt.getUpdateCount()); // objdbc 1.x=0 2.x=-1
+            assertEquals(1, cstmt.getUpdateCount()); // mysql jdbc 1
             ResultSet rs = stmt.executeQuery("select * from testCallStmtUpdate");
             int j = 1;
             while (rs.next()) {
@@ -1723,7 +1723,6 @@ public class Bugfix extends BaseTest {
             fail("Should've caught an exception here");
         } catch (SQLException e) {
             e.printStackTrace();
-            Assert.fail();
         }
     }
 
@@ -1767,7 +1766,7 @@ public class Bugfix extends BaseTest {
     @Test
     public void testUpdateCounts1() {
         try {
-            Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=false");
+            Connection conn = setConnection("&continueBatchOnError=true&rewriteBatchedStatements=true");
             Statement stmt = conn.createStatement();
 
             stmt.execute("drop table if exists test1");
@@ -2198,11 +2197,15 @@ public class Bugfix extends BaseTest {
 
     @Test
     public void testPrepStmtExecuteLargeBatch() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
-            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useAffectedRows=true&rewriteBatchedStatements=true");
-            PreparedStatement ps = conn
-                .prepareStatement("INSERT INTO testExecuteLargeBatch (n) VALUES (?)",
-                    Statement.RETURN_GENERATED_KEYS);
+            Connection conn = setConnection("&useAffectedRows=true&rewriteBatchedStatements=true");
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP table if exists testExecuteLargeBatch_1");
+            stmt.execute("create table testExecuteLargeBatch_1(id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT)");
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO testExecuteLargeBatch_1 (n) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, 1);
             ps.addBatch();
             ps.setInt(1, 2);
@@ -2227,5 +2230,23 @@ public class Bugfix extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testTextRewriteBatch() throws Exception {
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("testRewriteBatch", "id int");
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (1)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (2)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (3)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (4)");
+        stmt.addBatch("UPDATE testRewriteBatch SET id=10 WHERE id=1 OR id=2");
+
+        int[] counts = stmt.executeBatch();
+
+        assertEquals(counts.length, 5);
+        System.out.println(Arrays.toString(counts));
+        assertArrayEquals(new int[] { 1, 1, 1, 1, 2 }, counts);
     }
 }

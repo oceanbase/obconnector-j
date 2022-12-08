@@ -397,27 +397,46 @@ public class OceanBaseStatement implements Statement, Cloneable {
         } else {
             ret = results.getCmdInformation().getUpdateCounts();
         }
-       if(!options.continueBatchOnError) {
-
-      int end = 0;
-      if(results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries) ) {
-        end = ret.length - 1;
-      } else {
-          for (int i = 0; i < ret.length; i++) {
-              if (ret[i] == Statement.EXECUTE_FAILED) {
-                  end = i;
-                  break;
-              }
-          }
-      }
-      if (end != 0) {
-        int[] tmp = new int[end];
-        System.arraycopy(ret, 0, tmp, 0, end);
-        ret = tmp;
-      } else {
-        ret = new int[0];
-      }
-    }
+        if(!protocol.isOracleMode() && results.isExecuteBatchStmt()) {
+            if (!options.continueBatchOnError) {
+                int end = ret.length - 1;
+                int[] tmp = new int[end];
+                System.arraycopy(ret, 0, tmp, 0, end);
+                ret = tmp;
+                for (int i = 0; i < ret.length; i++) {
+                    ret[i] = Statement.EXECUTE_FAILED;
+                }
+            } else {
+                for (int i = 0; i < ret.length; i++) {
+                    if (i == 0) {
+                        ret[i] = -1;
+                    } else {
+                        ret[i] = Statement.EXECUTE_FAILED;
+                    }
+                }
+            }
+        } else {
+            if (!options.continueBatchOnError) {
+                int end = 0;
+                if (results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries)) {
+                    end = ret.length - 1;
+                } else {
+                    for (int i = 0; i < ret.length; i++) {
+                        if (ret[i] == Statement.EXECUTE_FAILED) {
+                            end = i;
+                            break;
+                        }
+                    }
+                }
+                if (end != 0) {
+                    int[] tmp = new int[end];
+                    System.arraycopy(ret, 0, tmp, 0, end);
+                    ret = tmp;
+                } else {
+                    ret = new int[0];
+                }
+            }
+        }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
 
