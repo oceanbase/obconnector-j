@@ -2196,6 +2196,36 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void fixExecptionType() {
+        try {
+            ResultSet rs = sharedConnection.prepareStatement("SELECT '00/00/0000 00:00:00'")
+                .executeQuery();
+            assertTrue(rs.next());
+            try {
+                rs.getTime(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getDate(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getTimestamp(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testPrepStmtExecuteLargeBatch() {
         Assume.assumeTrue(sharedUsePrepare());
         try {

@@ -912,117 +912,128 @@ public class BinaryRowProtocol extends RowProtocol {
     @SuppressWarnings("deprecation")
     public Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                              throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
-        switch (columnInfo.getColumnType()) {
-            case TIMESTAMP:
-            case TIMESTAMP_NANO:
-            case DATETIME:
-            case TIMESTAMP_TZ:
-            case TIMESTAMP_LTZ:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-                return (timestamp == null) ? null : new Date(timestamp.getTime());
-            case TIME:
-                if (length != 0) {
-                    int year = 0;
-                    int month = 0;
-                    int day = 0;
-                    int hour = 0;
-                    int minute = 0;
-                    int seconds = 0;
+        try {
+            if (lastValueWasNull()) {
+                return null;
+            }
+            switch (columnInfo.getColumnType()) {
+                case TIMESTAMP:
+                case TIMESTAMP_NANO:
+                case DATETIME:
+                case TIMESTAMP_TZ:
+                case TIMESTAMP_LTZ:
+                    Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                    return (timestamp == null) ? null : new Date(timestamp.getTime());
+                case TIME:
                     if (length != 0) {
-                        // bits[0] // skip tm->neg
-                        // binaryData.readLong(); // skip daysPart
-                        hour = buf[pos + 5];
-                        minute = buf[pos + 6];
-                        seconds = buf[pos + 7];
-                    }
+                        int year = 0;
+                        int month = 0;
+                        int day = 0;
+                        int hour = 0;
+                        int minute = 0;
+                        int seconds = 0;
+                        if (length != 0) {
+                            // bits[0] // skip tm->neg
+                            // binaryData.readLong(); // skip daysPart
+                            hour = buf[pos + 5];
+                            minute = buf[pos + 6];
+                            seconds = buf[pos + 7];
+                        }
 
-                    year = 1970;
-                    month = 1;
-                    day = 1;
-                    Calendar dateCal = getCalendarInstance(cal);
-                    synchronized (dateCal) {
-                        java.util.Date origCalDate = dateCal.getTime();
-                        try {
-                            dateCal.clear();
-                            dateCal.set(Calendar.MILLISECOND, 0);
+                        year = 1970;
+                        month = 1;
+                        day = 1;
+                        Calendar dateCal = getCalendarInstance(cal);
+                        synchronized (dateCal) {
+                            java.util.Date origCalDate = dateCal.getTime();
+                            try {
+                                dateCal.clear();
+                                dateCal.set(Calendar.MILLISECOND, 0);
 
-                            // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
-                            dateCal.set(year, month - 1, day, 0, 0, 0);
+                                // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
+                                dateCal.set(year, month - 1, day, 0, 0, 0);
 
-                            long dateAsMillis = dateCal.getTimeInMillis();
+                                long dateAsMillis = dateCal.getTimeInMillis();
 
-                            return new Date(dateAsMillis);
-                        } finally {
-                            dateCal.setTime(origCalDate);
+                                return new Date(dateAsMillis);
+                            } finally {
+                                dateCal.setTime(origCalDate);
+                            }
                         }
                     }
-                }
-                throw new SQLException("Cannot read Date using a Types.TIME field");
-            case STRING:
-            case VARCHAR:
-            case VARCHAR2:
-            case NVARCHAR2:
-            case VARSTRING:
-                String rawValue = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                if (!getProtocol().isOracleMode()) {
-                    return getDateFromString(rawValue, cal, columnInfo);
-                }
-                if ("0000-00-00".equals(rawValue)) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
-
-                try {
-                    DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    sdf.setTimeZone(timeZone);
-                    java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
-                    return new Date(utilDate.getTime());
-
-                } catch (ParseException e) {
-                    throw ExceptionFactory.INSTANCE.create(
-                        "Could not get object as Date : " + e.getMessage(), "S1009", e);
-                }
-            default:
-                if (length == 0) {
-                    lastValueNull |= BIT_LAST_FIELD_NULL;
-                    return null;
-                }
-
-                int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-
-                if (length == 2 && columnInfo.getLength() == 2) {
-                    // YEAR(2) - deprecated
-                    if (year <= 69) {
-                        year += 2000;
-                    } else {
-                        year += 1900;
+                    throw new SQLException("Cannot read Date using a Types.TIME field");
+                case STRING:
+                case VARCHAR:
+                case VARCHAR2:
+                case NVARCHAR2:
+                case VARSTRING:
+                    String rawValue = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    if (!getProtocol().isOracleMode()) {
+                        return getDateFromString(rawValue, cal, columnInfo);
                     }
-                }
+                    if ("0000-00-00".equals(rawValue)) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
+                    }
 
-                int month = 1;
-                int day = 1;
+                    try {
+                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setTimeZone(timeZone);
+                        java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType())));
+                        return new Date(utilDate.getTime());
 
-                if (length >= 4) {
-                    month = buf[pos + 2];
-                    day = buf[pos + 3];
-                }
+                    } catch (ParseException e) {
+                        throw ExceptionFactory.INSTANCE.create("Could not get object as Date : "
+                                                               + e.getMessage(), "S1009", e);
+                    }
+                default:
+                    if (length == 0) {
+                        lastValueNull |= BIT_LAST_FIELD_NULL;
+                        return null;
+                    }
 
-                Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.set(Calendar.YEAR, year);
-                calendar.set(Calendar.MONTH, month - 1);
-                calendar.set(Calendar.DAY_OF_MONTH, day);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MILLISECOND, 0);
-                Date dt = new Date(calendar.getTimeInMillis());
-                return dt;
+                    int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+
+                    if (length == 2 && columnInfo.getLength() == 2) {
+                        // YEAR(2) - deprecated
+                        if (year <= 69) {
+                            year += 2000;
+                        } else {
+                            year += 1900;
+                        }
+                    }
+
+                    int month = 1;
+                    int day = 1;
+
+                    if (length >= 4) {
+                        month = buf[pos + 2];
+                        day = buf[pos + 3];
+                    }
+
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.clear();
+                    calendar.set(Calendar.YEAR, year);
+                    calendar.set(Calendar.MONTH, month - 1);
+                    calendar.set(Calendar.DAY_OF_MONTH, day);
+                    calendar.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+                    Date dt = new Date(calendar.getTimeInMillis());
+                    return dt;
+            }
+        } catch (SQLException sqlException) {
+            throw sqlException; // don't re-wrap
+        } catch (Exception e) {
+            SQLException sqlException = new SQLException("Bad format for DATE "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType())));
+            sqlException.initCause(e);
+            throw sqlException;
         }
     }
 
@@ -1128,133 +1139,145 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public Timestamp getInternalTimestamp(ColumnDefinition columnInfo, Calendar userCalendar,
                                           TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-        if (this.getProtocol().isOracleMode()) {
-            Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
-            TIMESTAMP timestamp = null;
-            switch (columnInfo.getColumnType()) {
-                case TIMESTAMP_TZ:
-                    TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
-                        timeZone);
-                    timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
-                        oracleTimestampZ.toBytes());
-                    return timestamp.timestampValue(cal);
-                case TIMESTAMP_LTZ:
-                    TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
-                        userCalendar, timeZone);
-                    timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
-                        oracleTimestampLTZ.getBytes());
-                    return timestamp.timestampValue(cal);
+        try {
+            if (lastValueWasNull()) {
+                return null;
             }
-        }
-        if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
-            Calendar cal = getCalendarInstance(userCalendar);
-            return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
-                .timestampValue(cal);
-        }
-
-        int year = 1970;
-        int month = 0;
-        int day = 0;
-        int hour = 0;
-        int minutes = 0;
-        int seconds = 0;
-        int microseconds = 0;
-        int nanos = 0;
-
-        switch (columnInfo.getColumnType()) {
-            case TIME:
-
-                boolean negate = false;
-                if (length > 0) {
-                    negate = (buf[pos] & 0xff) == 0x01;
+            if (length == 0) {
+                lastValueNull |= BIT_LAST_FIELD_NULL;
+                return null;
+            }
+            if (this.getProtocol().isOracleMode()) {
+                Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                TIMESTAMP timestamp = null;
+                switch (columnInfo.getColumnType()) {
+                    case TIMESTAMP_TZ:
+                        TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo,
+                            userCalendar, timeZone);
+                        timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
+                            oracleTimestampZ.toBytes());
+                        return timestamp.timestampValue(cal);
+                    case TIMESTAMP_LTZ:
+                        TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
+                            userCalendar, timeZone);
+                        timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
+                            oracleTimestampLTZ.getBytes());
+                        return timestamp.timestampValue(cal);
                 }
-                if (length > 4) {
-                    day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
-                           + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
-                }
-                if (length > 7) {
-                    hour = buf[pos + 5];
-                    minutes = buf[pos + 6];
-                    seconds = buf[pos + 7];
-                }
+            }
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
+                Calendar cal = getCalendarInstance(userCalendar);
+                return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                    .timestampValue(cal);
+            }
 
-                if (length > 8) {
-                    microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
-                                    + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
-                    nanos = microseconds * 1000000;
-                }
-                year = 1970;
-                month = 1;
-                day = ((negate ? -1 : 1) * day) + 1;
-                hour = (negate ? -1 : 1) * hour;
-                break;
+            int year = 1970;
+            int month = 0;
+            int day = 0;
+            int hour = 0;
+            int minutes = 0;
+            int seconds = 0;
+            int microseconds = 0;
+            int nanos = 0;
 
-            case STRING:
-            case VARSTRING:
-            case NVARCHAR2:
-            case VARCHAR2:
-            case VARCHAR:
-                String rawValue = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                if (!getProtocol().isOracleMode()) {
-                    return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);
-                }
-                if (rawValue.startsWith("0000-00-00 00:00:00")) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
+            switch (columnInfo.getColumnType()) {
+                case TIME:
 
-                if (rawValue.length() >= 4) {
-                    year = Integer.parseInt(rawValue.substring(0, 4));
-                    if (rawValue.length() >= 7) {
-                        month = Integer.parseInt(rawValue.substring(5, 7));
-                        if (rawValue.length() >= 10) {
-                            day = Integer.parseInt(rawValue.substring(8, 10));
-                            if (rawValue.length() >= 19) {
-                                hour = Integer.parseInt(rawValue.substring(11, 13));
-                                minutes = Integer.parseInt(rawValue.substring(14, 16));
-                                seconds = Integer.parseInt(rawValue.substring(17, 19));
+                    boolean negate = false;
+                    if (length > 0) {
+                        negate = (buf[pos] & 0xff) == 0x01;
+                    }
+                    if (length > 4) {
+                        day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
+                               + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
+                    }
+                    if (length > 7) {
+                        hour = buf[pos + 5];
+                        minutes = buf[pos + 6];
+                        seconds = buf[pos + 7];
+                    }
+
+                    if (length > 8) {
+                        microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
+                                        + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
+                        nanos = microseconds * 1000000;
+                    }
+                    year = 1970;
+                    month = 1;
+                    day = ((negate ? -1 : 1) * day) + 1;
+                    hour = (negate ? -1 : 1) * hour;
+                    break;
+
+                case STRING:
+                case VARSTRING:
+                case NVARCHAR2:
+                case VARCHAR2:
+                case VARCHAR:
+                    String rawValue = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    if (!getProtocol().isOracleMode()) {
+                        return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);
+                    }
+                    if (rawValue.startsWith("0000-00-00 00:00:00")) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
+                    }
+
+                    if (rawValue.length() >= 4) {
+                        year = Integer.parseInt(rawValue.substring(0, 4));
+                        if (rawValue.length() >= 7) {
+                            month = Integer.parseInt(rawValue.substring(5, 7));
+                            if (rawValue.length() >= 10) {
+                                day = Integer.parseInt(rawValue.substring(8, 10));
+                                if (rawValue.length() >= 19) {
+                                    hour = Integer.parseInt(rawValue.substring(11, 13));
+                                    minutes = Integer.parseInt(rawValue.substring(14, 16));
+                                    seconds = Integer.parseInt(rawValue.substring(17, 19));
+                                }
+                                nanos = extractNanos(rawValue);
                             }
-                            nanos = extractNanos(rawValue);
                         }
                     }
-                }
 
-                break;
-            default:
-                year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                month = buf[pos + 2];
-                day = buf[pos + 3];
-                if (length > 4) {
-                    hour = buf[pos + 4];
-                    minutes = buf[pos + 5];
-                    seconds = buf[pos + 6];
+                    break;
+                default:
+                    year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                    month = buf[pos + 2];
+                    day = buf[pos + 3];
+                    if (length > 4) {
+                        hour = buf[pos + 4];
+                        minutes = buf[pos + 5];
+                        seconds = buf[pos + 6];
 
-                    if (length > 7) {
-                        microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
-                                        + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
-                        nanos = microseconds * 1000;
+                        if (length > 7) {
+                            microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
+                                            + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
+                            nanos = microseconds * 1000;
+                        }
                     }
-                }
-        }
+            }
 
-        Calendar calendar = getCalendarInstance(userCalendar);
+            Calendar calendar = getCalendarInstance(userCalendar);
 
-        Timestamp tt;
-        synchronized (calendar) {
-            calendar.clear();
-            calendar.set(year, month - 1, day, hour, minutes, seconds);
-            tt = new Timestamp(calendar.getTimeInMillis());
+            Timestamp tt;
+            synchronized (calendar) {
+                calendar.clear();
+                calendar.set(year, month - 1, day, hour, minutes, seconds);
+                tt = new Timestamp(calendar.getTimeInMillis());
+            }
+            tt.setNanos(nanos);
+            return tt;
+        } catch (SQLException e) {
+            throw e; // don't re-wrap
+        } catch (NumberFormatException e) {
+            SQLException sqlException = new SQLException("Cannot convert value "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType()))
+                                                         + " to TIMESTAMP.");
+            sqlException.initCause(e);
+            throw sqlException;
         }
-        tt.setNanos(nanos);
-        return tt;
     }
 
     /**

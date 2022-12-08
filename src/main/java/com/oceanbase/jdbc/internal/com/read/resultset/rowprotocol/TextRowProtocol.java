@@ -567,121 +567,132 @@ public class TextRowProtocol extends RowProtocol {
     @SuppressWarnings("deprecation")
     public Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                              throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
+        try {
+            if (lastValueWasNull()) {
+                return null;
+            }
 
-        switch (columnInfo.getColumnType()) {
-            case DATE:
-                int[] datePart = new int[] { 0, 0, 0 };
-                int partIdx = 0;
-                for (int begin = pos; begin < pos + length; begin++) {
-                    byte b = buf[begin];
-                    if (b == '-') {
-                        partIdx++;
-                        continue;
+            switch (columnInfo.getColumnType()) {
+                case DATE:
+                    int[] datePart = new int[] { 0, 0, 0 };
+                    int partIdx = 0;
+                    for (int begin = pos; begin < pos + length; begin++) {
+                        byte b = buf[begin];
+                        if (b == '-') {
+                            partIdx++;
+                            continue;
+                        }
+                        if (b < '0' || b > '9') {
+                            throw new SQLException("cannot parse data in date string '"
+                                                   + new String(buf, pos, length,
+                                                       getCurrentEncoding(columnInfo
+                                                           .getColumnType())) + "'");
+                        }
+                        datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
                     }
-                    if (b < '0' || b > '9') {
-                        throw new SQLException("cannot parse data in date string '"
-                                               + new String(buf, pos, length,
-                                                   getCurrentEncoding(columnInfo.getColumnType()))
-                                               + "'");
+
+                    if (datePart[0] == 0 && datePart[1] == 0 && datePart[2] == 0) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
                     }
-                    datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
-                }
 
-                if (datePart[0] == 0 && datePart[1] == 0 && datePart[2] == 0) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
+                    return new Date(datePart[0] - 1900, datePart[1] - 1, datePart[2]);
 
-                return new Date(datePart[0] - 1900, datePart[1] - 1, datePart[2]);
-
-            case TIMESTAMP:
-            case TIMESTAMP_NANO:
-            case DATETIME:
-            case TIMESTAMP_LTZ:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-                if (timestamp == null) {
-                    return null;
-                }
-                return new Date(timestamp.getTime());
-            case TIMESTAMP_TZ:
-                TIMESTAMPTZ timestamptz = getInternalTIMESTAMPTZ(columnInfo, cal, timeZone);
-                if (timestamptz == null) {
-                    return null;
-                }
-                return timestamptz.dateValue();
-            case TIME:
-                if (length != 0) {
-                    int year = 0;
-                    int month = 0;
-                    int day = 0;
-                    int hour = 0;
-                    int minute = 0;
-                    int seconds = 0;
+                case TIMESTAMP:
+                case TIMESTAMP_NANO:
+                case DATETIME:
+                case TIMESTAMP_LTZ:
+                    Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                    if (timestamp == null) {
+                        return null;
+                    }
+                    return new Date(timestamp.getTime());
+                case TIMESTAMP_TZ:
+                    TIMESTAMPTZ timestamptz = getInternalTIMESTAMPTZ(columnInfo, cal, timeZone);
+                    if (timestamptz == null) {
+                        return null;
+                    }
+                    return timestamptz.dateValue();
+                case TIME:
                     if (length != 0) {
-                        // bits[0] // skip tm->neg
-                        // binaryData.readLong(); // skip daysPart
-                        hour = buf[pos + 5];
-                        minute = buf[pos + 6];
-                        seconds = buf[pos + 7];
-                    }
+                        int year = 0;
+                        int month = 0;
+                        int day = 0;
+                        int hour = 0;
+                        int minute = 0;
+                        int seconds = 0;
+                        if (length != 0) {
+                            // bits[0] // skip tm->neg
+                            // binaryData.readLong(); // skip daysPart
+                            hour = buf[pos + 5];
+                            minute = buf[pos + 6];
+                            seconds = buf[pos + 7];
+                        }
 
-                    year = 1970;
-                    month = 1;
-                    day = 1;
-                    Calendar dateCal = getCalendarInstance(cal);
-                    synchronized (dateCal) {
-                        java.util.Date origCalDate = dateCal.getTime();
-                        try {
-                            dateCal.clear();
-                            dateCal.set(Calendar.MILLISECOND, 0);
+                        year = 1970;
+                        month = 1;
+                        day = 1;
+                        Calendar dateCal = getCalendarInstance(cal);
+                        synchronized (dateCal) {
+                            java.util.Date origCalDate = dateCal.getTime();
+                            try {
+                                dateCal.clear();
+                                dateCal.set(Calendar.MILLISECOND, 0);
 
-                            // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
-                            dateCal.set(year, month - 1, day, 0, 0, 0);
+                                // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
+                                dateCal.set(year, month - 1, day, 0, 0, 0);
 
-                            long dateAsMillis = dateCal.getTimeInMillis();
+                                long dateAsMillis = dateCal.getTimeInMillis();
 
-                            return new Date(dateAsMillis);
-                        } finally {
-                            dateCal.setTime(origCalDate);
+                                return new Date(dateAsMillis);
+                            } finally {
+                                dateCal.setTime(origCalDate);
+                            }
                         }
                     }
-                }
-            case YEAR:
-                int year = 0;
-                for (int begin = pos; begin < pos + length; begin++) {
-                    year = year * 10 + buf[begin] - 48;
-                }
-                if (length == 2 && columnInfo.getLength() == 2) {
-                    if (year <= 69) {
-                        year += 2000;
-                    } else {
-                        year += 1900;
+                case YEAR:
+                    int year = 0;
+                    for (int begin = pos; begin < pos + length; begin++) {
+                        year = year * 10 + buf[begin] - 48;
                     }
-                }
-                return new Date(year - 1900, 0, 1);
+                    if (length == 2 && columnInfo.getLength() == 2) {
+                        if (year <= 69) {
+                            year += 2000;
+                        } else {
+                            year += 1900;
+                        }
+                    }
+                    return new Date(year - 1900, 0, 1);
 
-            default:
-                ColumnType type = columnInfo.getColumnType();
-                if (!getProtocol().isOracleMode()
-                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR || type == ColumnType.VARSTRING)) {
-                    return getDateFromString(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
-                }
-                try {
-                    DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    sdf.setTimeZone(timeZone);
-                    java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
-                    return new Date(utilDate.getTime());
+                default:
+                    ColumnType type = columnInfo.getColumnType();
+                    if (!getProtocol().isOracleMode()
+                        && (type == ColumnType.STRING || type == ColumnType.VARCHAR || type == ColumnType.VARSTRING)) {
+                        return getDateFromString(new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
+                    }
+                    try {
+                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setTimeZone(timeZone);
+                        java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType())));
+                        return new Date(utilDate.getTime());
 
-                } catch (ParseException e) {
-                    throw ExceptionFactory.INSTANCE.create(
-                        "Could not get object as Date : " + e.getMessage(), "S1009", e);
-                }
+                    } catch (ParseException e) {
+                        throw ExceptionFactory.INSTANCE.create("Could not get object as Date : "
+                                                               + e.getMessage(), "S1009", e);
+                    }
 
+            }
+        } catch (SQLException sqlException) {
+            throw sqlException; // don't re-wrap
+        } catch (Exception e) {
+            SQLException sqlException = new SQLException("Bad format for DATE "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType())));
+            sqlException.initCause(e);
+            throw sqlException;
         }
     }
 
@@ -696,77 +707,91 @@ public class TextRowProtocol extends RowProtocol {
      */
     public Time getInternalTime(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                              throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
+        try {
+            if (lastValueWasNull()) {
+                return null;
+            }
 
-        if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
-            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
-            || columnInfo.getColumnType() == ColumnType.DATETIME
-            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
-            || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
-            Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-            return (timestamp == null) ? null : new Time(timestamp.getTime());
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
+                || columnInfo.getColumnType() == ColumnType.DATETIME
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                return (timestamp == null) ? null : new Time(timestamp.getTime());
 
-        } else if (columnInfo.getColumnType() == ColumnType.DATE) {
-            if (length != 0) {
-                int year = 0;
-                int month = 0;
-                int day = 0;
-                int hour = 0;
-                int minute = 0;
-                int seconds = 0;
-                year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
-                month = buf[pos + 2];
-                day = buf[pos + 3];
-                Calendar calendar = getCalendarInstance(cal);
-                synchronized (calendar) {
-                    java.util.Date origCalDate = calendar.getTime();
-                    try {
-                        calendar.clear();
-                        // Set 'date' to epoch of Jan 1, 1970
-                        calendar.set(1970, 0, 1, hour, minute, seconds);
-                        long timeAsMillis = calendar.getTimeInMillis();
-                        return new Time(timeAsMillis);
-                    } finally {
-                        calendar.setTime(origCalDate);
+            } else if (columnInfo.getColumnType() == ColumnType.DATE) {
+                if (length != 0) {
+                    int year = 0;
+                    int month = 0;
+                    int day = 0;
+                    int hour = 0;
+                    int minute = 0;
+                    int seconds = 0;
+                    year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
+                    month = buf[pos + 2];
+                    day = buf[pos + 3];
+                    Calendar calendar = getCalendarInstance(cal);
+                    synchronized (calendar) {
+                        java.util.Date origCalDate = calendar.getTime();
+                        try {
+                            calendar.clear();
+                            // Set 'date' to epoch of Jan 1, 1970
+                            calendar.set(1970, 0, 1, hour, minute, seconds);
+                            long timeAsMillis = calendar.getTimeInMillis();
+                            return new Time(timeAsMillis);
+                        } finally {
+                            calendar.setTime(origCalDate);
+                        }
                     }
                 }
-            }
-            throw new SQLException("Cannot read Time using a Types.DATE field");
-        } else {
-            String raw = new String(buf, pos, length,
-                getCurrentEncoding(columnInfo.getColumnType()));
-            if (!getProtocol().isOracleMode()) {
-                return getTimeFromString(raw, cal);
-            }
-            if (!options.useLegacyDatetimeCode
-                && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
-                throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
-            }
-            boolean negate = raw.startsWith("-");
-            if (negate) {
-                raw = raw.substring(1);
-            }
-            String[] rawPart = raw.split(":");
-            if (rawPart.length == 3) {
-                int hour = Integer.parseInt(rawPart[0]);
-                int minutes = Integer.parseInt(rawPart[1]);
-                int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
-                Calendar calendar = getCalendarInstance(cal);
-                if (options.useLegacyDatetimeCode) {
-                    calendar.setLenient(true);
-                }
-                calendar.clear();
-                calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes, seconds);
-                int nanoseconds = extractNanos(raw);
-                calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
-
-                return new Time(calendar.getTimeInMillis());
+                throw new SQLException("Cannot read Time using a Types.DATE field");
             } else {
-                throw new SQLException(
-                    raw + " cannot be parse as time. time must have \"99:99:99\" format");
+                String raw = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
+                if (!getProtocol().isOracleMode()) {
+                    return getTimeFromString(raw, cal);
+                }
+                if (!options.useLegacyDatetimeCode
+                    && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
+                    throw new SQLException("Time format \"" + raw
+                                           + "\" incorrect, must be HH:mm:ss");
+                }
+                boolean negate = raw.startsWith("-");
+                if (negate) {
+                    raw = raw.substring(1);
+                }
+                String[] rawPart = raw.split(":");
+                if (rawPart.length == 3) {
+                    int hour = Integer.parseInt(rawPart[0]);
+                    int minutes = Integer.parseInt(rawPart[1]);
+                    int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
+                    Calendar calendar = getCalendarInstance(cal);
+                    if (options.useLegacyDatetimeCode) {
+                        calendar.setLenient(true);
+                    }
+                    calendar.clear();
+                    calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes,
+                        seconds);
+                    int nanoseconds = extractNanos(raw);
+                    calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
+
+                    return new Time(calendar.getTimeInMillis());
+                } else {
+                    throw new SQLException(
+                        raw + " cannot be parse as time. time must have \"99:99:99\" format");
+                }
             }
+        } catch (SQLException e) {
+            throw e; // don't re-wrap
+        } catch (NumberFormatException e) {
+            SQLException sqlException = new SQLException("Cannot convert value "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType()))
+                                                         + " to TIMESTAMP.");
+            sqlException.initCause(e);
+            throw sqlException;
         }
     }
 
