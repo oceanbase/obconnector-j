@@ -411,6 +411,7 @@ public class OracleResultSetTest extends BaseOracleTest {
 
     @Test
     public void lastTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);
@@ -463,6 +464,7 @@ public class OracleResultSetTest extends BaseOracleTest {
 
     @Test
     public void relativeBackwardTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);

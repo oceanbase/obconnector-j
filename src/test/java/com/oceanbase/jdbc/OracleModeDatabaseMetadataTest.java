@@ -346,7 +346,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             sharedConnection.getSchema(), "TEST_GETTABLES", null);
         rs.next();
 
-        assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
+        assertEquals("UNITTESTS", rs.getString("TABLE_SCHEM"));
         assertEquals("TEST_GETTABLES", rs.getString("TABLE_NAME"));
         assertEquals("TABLE", rs.getString("TABLE_TYPE"));
     }

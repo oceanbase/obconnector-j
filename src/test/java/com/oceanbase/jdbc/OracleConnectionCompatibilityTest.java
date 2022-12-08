@@ -163,12 +163,6 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
     }
 
     @Test
-    public void testGetSchema() throws SQLException {
-        String schema = sharedConnection.getSchema();
-        assertEquals(schema, "UNITTESTS");
-    }
-
-    @Test
     public void testTypeMap() throws SQLException {
         HashMap map = new HashMap<String, Class<?>>();
         map.put("1", Integer.class);

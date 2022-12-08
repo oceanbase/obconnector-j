@@ -1723,6 +1723,7 @@ public class Bugfix extends BaseTest {
             fail("Should've caught an exception here");
         } catch (SQLException e) {
             e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains("Cannot do an operation on a closed statement"));
         }
     }
 
