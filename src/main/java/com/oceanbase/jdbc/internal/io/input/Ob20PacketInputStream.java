@@ -300,17 +300,17 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
 
     private void printHeader() {
         System.out.println(" ---[Response] connectionId = " + ob20.header.connectionId
-                + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
-                + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
-                + ", headerChecksum = " + ob20.header.headerChecksum);
+                           + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
+                           + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
+                           + ", headerChecksum = " + ob20.header.headerChecksum);
     }
 
     private void printHeaderAndTail() {
         System.out.println(" ---[Response] connectionId = " + ob20.header.connectionId
-                + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
-                + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
-                + ", headerChecksum = " + ob20.header.headerChecksum
-                + ", tailChecksum = " + ob20.tailChecksum);
+                           + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
+                           + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
+                           + ", headerChecksum = " + ob20.header.headerChecksum
+                           + ", tailChecksum = " + ob20.tailChecksum);
     }
 
 }

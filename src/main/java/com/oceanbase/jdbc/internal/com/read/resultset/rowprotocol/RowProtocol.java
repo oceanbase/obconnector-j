@@ -742,6 +742,7 @@ public abstract class RowProtocol {
                           getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
               }
               if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+                  lastValueNull |= BIT_LAST_ZERO_DATE;
                   return null;
               } else {
                   // round
@@ -936,6 +937,7 @@ public abstract class RowProtocol {
                       getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
           }
           if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+              lastValueNull |= BIT_LAST_ZERO_DATE;
               return null;
           } else {
               // round
@@ -948,7 +950,7 @@ public abstract class RowProtocol {
               calendar.setLenient(true);
           }
           calendar.clear();
-          calendar.set(year,day,month);
+          calendar.set(year,month-1,day);
           Date dt = new Date(calendar.getTimeInMillis());
           return dt;
       } else {
@@ -984,7 +986,8 @@ public abstract class RowProtocol {
               calendar.setLenient(true);
           }
           calendar.clear();
-          calendar.set(year,month,day);
+          //  This different than java.util.date, in the year part, but it still keeps the silly '0' for the start month
+          calendar.set(year,month - 1,day,0,0,0);
           Date dt = new Date(calendar.getTimeInMillis());
           return dt;
       }

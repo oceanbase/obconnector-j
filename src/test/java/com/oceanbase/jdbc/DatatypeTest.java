@@ -435,9 +435,14 @@ public class DatatypeTest extends BaseTest {
         ps.setObject(2, "true", Types.BIT);
         ps.addBatch();
 
-        ps.setObject(1, "truee", Types.BOOLEAN);
-        ps.setObject(2, "truee", Types.BIT);
-        ps.addBatch();
+        try {
+            ps.setObject(1, "truee", Types.BOOLEAN);
+            ps.setObject(2, "truee", Types.BIT);
+            ps.addBatch();
+            fail();
+        } catch (SQLException e) {
+            // eat exception
+        }
 
         ps.setObject(1, "false", Types.BOOLEAN);
         ps.setObject(2, "false", Types.BIT);
@@ -450,7 +455,6 @@ public class DatatypeTest extends BaseTest {
             assertValue(rs, false);
             assertValue(rs, true);
             assertValue(rs, false);
-            assertValue(rs, true);
             assertValue(rs, true);
             assertValue(rs, true);
             assertValue(rs, false);

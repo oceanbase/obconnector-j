@@ -825,7 +825,9 @@ public class OracleBugfix extends BaseOracleTest {
                 Assert.fail();
             } catch (SQLException e) {
                 e.printStackTrace();
-                assertEquals("The number of parameter names '1' does not match the number of registered parameters in sql '3'.", e.getMessage());
+                assertEquals(
+                    "The number of parameter names '1' does not match the number of registered parameters in sql '3'.",
+                    e.getMessage());
             }
             Assert.assertEquals(1, callableStatement.getInt(1));
             Assert.assertEquals(3, callableStatement.getInt(2));

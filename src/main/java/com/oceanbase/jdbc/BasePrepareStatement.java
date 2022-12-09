@@ -1259,7 +1259,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                         setInt(parameterIndex, intVal);
                         break;
                     case Types.BOOLEAN:
-                        setBoolean(parameterIndex, "true".equalsIgnoreCase(str) || !"0".equals(str));
+                        if ("true".equalsIgnoreCase(str) || "Y".equalsIgnoreCase(str)) {
+                            setBoolean(parameterIndex, true);
+                        } else if ("false".equalsIgnoreCase(str) || "N".equalsIgnoreCase(str)) {
+                            setBoolean(parameterIndex, false);
+                        } else if ((str).matches("-?\\d+\\.?\\d*")) {
+                            setBoolean(parameterIndex, !(str).matches("-?[0]+[.]*[0]*"));
+                        } else {
+                            throw new SQLException("No conversion from " + str
+                                                   + " to Types.BOOLEAN possible.", "S1009", 0);
+                        }
                         break;
                     case Types.TINYINT:
                         setByte(parameterIndex, Byte.parseByte(str));

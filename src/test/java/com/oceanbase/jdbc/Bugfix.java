@@ -1723,7 +1723,8 @@ public class Bugfix extends BaseTest {
             fail("Should've caught an exception here");
         } catch (SQLException e) {
             e.printStackTrace();
-            Assert.assertTrue(e.getMessage().contains("Cannot do an operation on a closed statement"));
+            Assert.assertTrue(e.getMessage().contains(
+                "Cannot do an operation on a closed statement"));
         }
     }
 
@@ -1863,7 +1864,7 @@ public class Bugfix extends BaseTest {
     public void testSetObjectTypesBOOLEAN() throws Exception {
         String[] falses = new String[] { "False", "0", "n", "-0", "0.00", "-0.0" };
         PreparedStatement ps = sharedConnection.prepareStatement("select ?");
-        int[] ret = new int[] { 1, 0, 1, 1, 1, 1 };
+        int[] ret = new int[] { 0, 0, 0, 0, 0, 0 };
         int index = 0;
         for (String val : falses) {
             ps.clearParameters();
@@ -2169,6 +2170,23 @@ public class Bugfix extends BaseTest {
             rs = ps.executeQuery();
             assertTrue(rs.next());
             System.out.println(rs.getDate(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testGetDate2() {
+        try {
+            Date date = Date.valueOf("2020-12-12");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?, ?");
+            ps.setString(1, "2020-12-12");
+            ps.setDate(2, date);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(date, rs.getDate(1));
+            assertEquals(date, rs.getDate(2));
         } catch (SQLException e) {
             e.printStackTrace();
             fail();

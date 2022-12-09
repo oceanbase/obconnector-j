@@ -621,9 +621,9 @@ public class CallStatementTest extends BaseTest {
     public void fixTwoSingleQuotations() throws SQLException {
         Connection conn = sharedConnection;
         createTable(
-                "test_rsmd",
-                "id_col int not null primary key auto_increment, "
-                        + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
+            "test_rsmd",
+            "id_col int not null primary key auto_increment, "
+                    + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
         createTable("t1", "id int, name varchar(20)");
         createTable("t2", "id int, name varchar(20)");
         createTable("t3", "id int, name varchar(20)");

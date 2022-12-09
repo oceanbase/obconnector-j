@@ -488,7 +488,9 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 //Assert.assertEquals(20, callableStatement.getInt(1));
             } catch (SQLException e) {
                 e.printStackTrace();
-                assertEquals("The number of parameter names '2' does not match the number of registered parameters in sql '3'.", e.getMessage());
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '3'.",
+                    e.getMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -532,7 +534,9 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 //Assert.assertEquals(20, callableStatement.getInt(1));
             } catch (SQLException e) {
                 e.printStackTrace();
-                assertEquals("The number of parameter names '2' does not match the number of registered parameters in sql '4'.", e.getMessage());
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '4'.",
+                    e.getMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -576,7 +580,9 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 //Assert.assertEquals(20, callableStatement.getInt(1));
             } catch (SQLException e) {
                 e.printStackTrace();
-                assertEquals("The number of parameter names '2' does not match the number of registered parameters in sql '4'.", e.getMessage());
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '4'.",
+                    e.getMessage());
             }
 
         } catch (Exception e) {
