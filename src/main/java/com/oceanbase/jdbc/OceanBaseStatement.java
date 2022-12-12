@@ -963,7 +963,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
               results.closeAllOpenResults();
           }
       }
-      if (results == null && cursorFetchPstmt != null) {
+      if (cursorFetchPstmt != null) {
           cursorFetchPstmt.close();
           cursorFetchPstmt = null;
       }
