@@ -60,7 +60,6 @@ import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -1841,7 +1840,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         } else if (type.equals(ZonedDateTime.class)) {
             ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class,
-                timeZone);
+                    timeZone);
             if (zonedDateTime == null) {
                 return null;
             }
@@ -1849,26 +1848,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         } else if (type.equals(OffsetDateTime.class)) {
             if (!this.protocol.isOracleMode()) {
-                try {
-                    return type.cast(OffsetDateTime.parse(this.getString(columnIndex)));
-                } catch (DateTimeParseException dateTimeParseException) {
-                    SQLException sqlException = new SQLException();
-                    sqlException.initCause(dateTimeParseException);
-                    throw sqlException;
+                OffsetDateTime offsetDateTime = row.getInternalOffsetDateTime(col, timeZone);
+                if (offsetDateTime == null) {
+                    return null;
                 }
+                return type.cast(offsetDateTime);
             } else {
                 ZonedDateTime tmpZonedDateTime = row.getInternalZonedDateTime(col,
-                    OffsetDateTime.class, timeZone);
+                        OffsetDateTime.class, timeZone);
                 return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime
-                    .toOffsetDateTime());
+                        .toOffsetDateTime());
             }
-
-        } else if (type.equals(OffsetDateTime.class)) {
-            LocalDate localDate = row.getInternalLocalDate(col, timeZone);
-            if (localDate == null) {
-                return null;
-            }
-            return type.cast(localDate);
 
         } else if (type.equals(LocalDate.class)) {
             LocalDate localDate = row.getInternalLocalDate(col, timeZone);

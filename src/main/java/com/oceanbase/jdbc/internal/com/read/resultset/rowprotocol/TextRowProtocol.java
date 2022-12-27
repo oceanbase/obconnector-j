@@ -1287,6 +1287,45 @@ public class TextRowProtocol extends RowProtocol {
                     + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
     }
 
+    public OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)
+                                                                                                   throws SQLException {
+        if (lastValueWasNull()) {
+            return null;
+        }
+        if (length == 0) {
+            lastValueNull |= BIT_LAST_FIELD_NULL;
+            return null;
+        }
+
+        String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+
+        switch (columnInfo.getColumnType().getSqlType()) {
+            case Types.TIME:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CHAR:
+                try {
+                    return OffsetDateTime.parse(raw.replace(" ", "T"));
+                } catch (DateTimeParseException dateParserEx) {
+                    throw new SQLException(
+                        raw
+                                + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
+                                + columnInfo.getColumnType() + "\")");
+                }
+
+            case Types.TIMESTAMP:
+                ZonedDateTime zonedDateTime = getInternalZonedDateTime(columnInfo, LocalTime.class,
+                    timeZone);
+                return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(
+                    ZoneId.systemDefault()).toOffsetDateTime();
+
+            default:
+                throw new SQLException("Cannot read LocalTime using a "
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
+        }
+
+    }
+
     /**
      * Get LocalTime format from raw text format.
      *

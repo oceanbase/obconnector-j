@@ -1932,6 +1932,103 @@ public class BinaryRowProtocol extends RowProtocol {
                     + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
     }
 
+    public OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)
+                                                                                                   throws SQLException {
+        if (lastValueWasNull()) {
+            return null;
+        }
+        if (length == 0) {
+            lastValueNull |= BIT_LAST_FIELD_NULL;
+            return null;
+        }
+
+        ZoneId zoneId = timeZone.toZoneId().normalized();
+        if (zoneId instanceof ZoneOffset) {
+            ZoneOffset zoneOffset = (ZoneOffset) zoneId;
+
+            int day = 0;
+            int hour = 0;
+            int minutes = 0;
+            int seconds = 0;
+            int microseconds = 0;
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIMESTAMP:
+                    int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                    int month = buf[pos + 2];
+                    day = buf[pos + 3];
+
+                    if (length > 4) {
+                        hour = buf[pos + 4];
+                        minutes = buf[pos + 5];
+                        seconds = buf[pos + 6];
+
+                        if (length > 7) {
+                            microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
+                                            + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
+                        }
+                    }
+
+                    return ZonedDateTime.of(year, month, day, hour, minutes, seconds,
+                        microseconds * 1000, zoneOffset).toOffsetDateTime();
+
+                    //                case Types.TIME:
+                    //                    final boolean negate = (buf[pos] & 0xff) == 0x01;
+                    //
+                    //                    if (length > 4) {
+                    //                        day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
+                    //                                + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
+                    //                    }
+                    //
+                    //                    if (length > 7) {
+                    //                        hour = buf[pos + 5];
+                    //                        minutes = buf[pos + 6];
+                    //                        seconds = buf[pos + 7];
+                    //                    }
+                    //
+                    //                    if (length > 8) {
+                    //                        microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
+                    //                                + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
+                    //                    }
+                    //
+                    //                    return OffsetDateTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds,
+                    //                            microseconds * 1000, zoneOffset);
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    try {
+                        return OffsetDateTime.parse(raw.replace(" ", "T"));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(
+                            raw
+                                    + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                    }
+
+                default:
+                    throw new SQLException("Cannot read " + OffsetTime.class.getName()
+                                           + " using a "
+                                           + columnInfo.getColumnType().getSqlTypeName() + " field");
+            }
+        }
+
+        if (options.useLegacyDatetimeCode) {
+            // system timezone is not an offset
+            throw new SQLException(
+                "Cannot return an OffsetTime for a TIME field when default timezone is '"
+                        + zoneId
+                        + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+        }
+
+        // server timezone is not an offset
+        throw new SQLException(
+            "Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
+                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+    }
+
     /**
      * Get LocalTime from raw binary format.
      *

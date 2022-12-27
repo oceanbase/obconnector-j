@@ -58,10 +58,7 @@ import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
@@ -348,6 +345,9 @@ public abstract class RowProtocol {
 
   public abstract OffsetTime getInternalOffsetTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
+
+    public abstract OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)
+            throws SQLException;
 
   public abstract LocalTime getInternalLocalTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;

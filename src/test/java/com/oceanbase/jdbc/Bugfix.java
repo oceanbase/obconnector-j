@@ -1458,6 +1458,7 @@ public class Bugfix extends BaseTest {
 
     @Test
     public void testBug84189() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Statement stmt = sharedConnection.createStatement();
             createTable("testBug84189",
@@ -1493,8 +1494,56 @@ public class Bugfix extends BaseTest {
             assertNull(rs.getObject(5, OffsetTime.class));
             assertNull(rs.getObject(6, OffsetDateTime.class));
             assertFalse(rs.next());
+
+            PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM testBug84189");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(LocalDate.of(2017, 1, 1), rs.getObject(1, LocalDate.class));
+            assertEquals(LocalTime.of(10, 20, 30), rs.getObject(2, LocalTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(3, LocalDateTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(4, LocalDateTime.class));
+            assertEquals(OffsetTime.of(10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(5, OffsetTime.class));
+            assertEquals(OffsetDateTime.of(2017, 01, 01, 10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(6, OffsetDateTime.class));
+
+            assertEquals(LocalDate.class, rs.getObject(1, LocalDate.class).getClass());
+            assertEquals(LocalTime.class, rs.getObject(2, LocalTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(3, LocalDateTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(4, LocalDateTime.class).getClass());
+            assertEquals(OffsetTime.class, rs.getObject(5, OffsetTime.class).getClass());
+            assertEquals(OffsetDateTime.class, rs.getObject(6, OffsetDateTime.class).getClass());
+
+            assertTrue(rs.next());
+            assertNull(rs.getObject(1, LocalDate.class));
+            assertNull(rs.getObject(2, LocalTime.class));
+            assertNull(rs.getObject(3, LocalDateTime.class));
+            assertNull(rs.getObject(4, LocalDateTime.class));
+            assertNull(rs.getObject(5, OffsetTime.class));
+            assertNull(rs.getObject(6, OffsetDateTime.class));
+            assertFalse(rs.next());
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCurrentTimestmap() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select CURRENT_TIMESTAMP");
+            Assert.assertTrue(rs.next());
+            rs.getObject(1, OffsetDateTime.class);
+            PreparedStatement ps = sharedConnection.prepareStatement("select CURRENT_TIMESTAMP");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            rs.getObject(1, OffsetDateTime.class);
+        } catch (SQLException e) {
+            e.printStackTrace();
             Assert.fail();
         }
     }
