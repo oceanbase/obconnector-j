@@ -65,7 +65,8 @@ public class ComplexDataType {
     public static final int   TYPE_CHAR       = 7;
     public static final int   TYPE_TIMESTMAP  = 8;
     public static final int   TYPE_CLOB       = 9;
-    public static final int   TYPE_MAX        = 10;
+    public static final int   TYPE_BLOB       = 10;
+    public static final int   TYPE_MAX        = 11;
 
     public ComplexDataType(String typeName, String schemaName, int type) {
         this.schemaName = schemaName;
@@ -181,6 +182,9 @@ public class ComplexDataType {
         }
         if (attrType.equalsIgnoreCase("CLOB")) {
             return TYPE_CLOB;
+        }
+        if (attrType.equalsIgnoreCase("BLOB")) {
+            return TYPE_BLOB;
         }
         return TYPE_MAX;
     }

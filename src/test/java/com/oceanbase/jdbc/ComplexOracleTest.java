@@ -763,6 +763,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void testComplexArrayWithTimestmap() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Connection conn = sharedConnection;
             CallableStatement cs = null;
@@ -804,6 +805,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void testArrayWithClob() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Statement stmt = sharedConnection.createStatement();
             try {
@@ -834,4 +836,36 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testArrayWithBlob() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_blob");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            stmt.execute("create table test_blob (c1 blob)");
+            stmt.execute("insert into test_blob values ('abc')");
+            stmt.execute("create or replace type blob_array as table of blob");
+
+            CallableStatement cs = conn
+                .prepareCall("create or replace procedure pro_blob(var out blob_array)"
+                             + " is begin\n" + " SELECT c1 bulk collect into var FROM test_blob;\n"
+                             + " end;");
+            cs.execute();
+            cs = conn.prepareCall("{call pro_blob(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "BLOB_ARRAY");
+            cs.execute();
+            ResultSet arrayRes = cs.getArray(1).getResultSet();
+            Assert.assertTrue(arrayRes.next());
+            assertEquals(1, arrayRes.getInt(1));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
