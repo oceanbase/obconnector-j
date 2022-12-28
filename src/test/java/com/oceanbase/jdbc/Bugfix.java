@@ -96,6 +96,37 @@ public class Bugfix extends BaseTest {
 
     }
 
+    @Test
+    public void fixExceptionType() throws Exception {
+        try {
+            ResultSet rs = sharedConnection.prepareStatement("SELECT ' '").executeQuery();
+            assertTrue(rs.next());
+
+            try {
+                rs.getShort(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getByte(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getInt(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getLong(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
     // fix for aone 39996582
     @Test
     public void testResetStreamAndRead() {

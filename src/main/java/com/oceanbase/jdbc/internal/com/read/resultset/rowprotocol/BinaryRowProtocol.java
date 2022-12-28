@@ -528,13 +528,18 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(stringVal);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
-                        columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(stringVal);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
+                            columnInfo);
+                    }
+                    return (int) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + stringVal, "22003", 1264);
                 }
-                return (int) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + stringVal, "22003", 1264);
@@ -640,12 +645,18 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(stringVal);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal, columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(stringVal);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal,
+                            columnInfo);
+                    }
+                    return (long) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + stringVal, "22003", 1264);
                 }
-                return (long) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + stringVal, "22003", 1264);

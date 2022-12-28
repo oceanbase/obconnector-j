@@ -383,12 +383,17 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(value);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(value);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
+                    }
+                    return (long) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + value, "22003", 1264);
                 }
-                return (long) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + value, "22003", 1264);
