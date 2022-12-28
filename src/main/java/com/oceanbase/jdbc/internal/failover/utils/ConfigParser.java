@@ -306,7 +306,12 @@ public class ConfigParser {
             }
         } else {
             if(urlParser.getExtendDescription() != null) {
-                loadBalanceInfos = ConfigParser.getLoadBalanceInfosFromReader(new StringReader(urlParser.getExtendDescription()));
+                try {
+                    loadBalanceInfos = ConfigParser.getLoadBalanceInfosFromReader(new StringReader(urlParser.getExtendDescription()));
+                } catch (Exception e) {
+                    SQLException sqlException = new SQLException("LoadBalance config error", e);
+                    throw sqlException;
+                }
                 //extend description with net service name (NET_SERVICE_NAME=(DESCRIPTION=()))
                 //extend description without net service name (DESCRIPTION=())
                 String netServiceName = getNetServiceName(urlParser.getExtendDescription());
@@ -328,8 +333,8 @@ public class ConfigParser {
                 } else {
                     serverAffinityOrder = serverAffinityOrder.trim();
                     String[] urls = serverAffinityOrder.split(",");
-                    ConcurrentHashMap<HostAddress, Integer> weights = new ConcurrentHashMap<>();
                     LoadBalanceAddressList  loadBalanceAddressList = new LoadBalanceAddressList();
+                    loadBalanceAddressList.getBalanceStrategyConfigs().put(Consts.NAME,strategy);
                     for (String str : urls) {
                         LoadBalanceHostAddress loadBalanceHostAddress = new LoadBalanceHostAddress("0.0.0.0",0);
                         String[] vals = str.split(":");
