@@ -205,8 +205,6 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length,
-                            getCurrentEncoding(columnInfo.getColumnType()));
                     }
                     return null;
                 }

@@ -50,6 +50,9 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -1218,7 +1221,6 @@ public class BinaryRowProtocol extends RowProtocol {
                     day = ((negate ? -1 : 1) * day) + 1;
                     hour = (negate ? -1 : 1) * hour;
                     break;
-
                 case STRING:
                 case VARSTRING:
                 case NVARCHAR2:
@@ -1265,6 +1267,26 @@ public class BinaryRowProtocol extends RowProtocol {
                                             + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
                             nanos = microseconds * 1000;
                         }
+                    }
+                    if (length == 0 || ((year == 0) && (month == 0) && (day == 0))) {
+
+                        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                            throw new SQLException(
+                                "Value '"
+                                        + new String(buf, pos, length,
+                                            getCurrentEncoding(columnInfo.getColumnType()))
+                                        + "' can not be represented as java.sql.Timestamp");
+                        }
+                        if (options.zeroDateTimeBehavior
+                            .equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+                            return null;
+                        } else {
+                            // round
+                            year = 1;
+                            month = 1;
+                            day = 1;
+                        }
+
                     }
             }
 

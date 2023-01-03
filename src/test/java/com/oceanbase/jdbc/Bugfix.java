@@ -2377,4 +2377,26 @@ public class Bugfix extends BaseTest {
         System.out.println(Arrays.toString(counts));
         assertArrayEquals(new int[] { 1, 1, 1, 1, 2 }, counts);
     }
+
+    @Test
+    public void testDateTimeToTimeStamp() {
+        try {
+            createTable("datetimetest", "c1 datetime");
+            Connection connection = setConnection("&zeroDateTimeBehavior=convertToNull");
+            Statement stmt = connection.createStatement();
+            stmt.execute("insert into datetimetest values('0000-00-00 00:00:00')");
+            ResultSet rs = stmt.executeQuery("select * from datetimetest");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(null, rs.getString(1));
+            Assert.assertEquals(null, rs.getTimestamp(1));
+            PreparedStatement ps = connection.prepareStatement("select * from datetimetest");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(null, rs.getString(1));
+            Assert.assertEquals(null, rs.getTimestamp(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
