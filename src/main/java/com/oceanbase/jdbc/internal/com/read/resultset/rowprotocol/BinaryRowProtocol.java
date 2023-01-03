@@ -840,6 +840,11 @@ public class BinaryRowProtocol extends RowProtocol {
                     getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.doubleValue();
+            case BINARY_FLOAT:
+            case NUMBER_FLOAT:
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
+                return (double) f;
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getSqlTypeName());

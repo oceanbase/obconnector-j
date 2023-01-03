@@ -2913,4 +2913,35 @@ public class OracleBugfix extends BaseOracleTest {
             fail();
         }
     }
+    @Test
+    public void testOceanBaseFloat() {
+        try {
+            Connection conn = sharedConnection;
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop table TEST_FLOAT_ORACLE");
+            } catch (Exception e) {
+                // eat exception
+            } finally {
+                statement.execute("CREATE TABLE TEST_FLOAT_ORACLE (c1 int,c2 float);");
+            }
+            String sql = "INSERT INTO TEST_FLOAT_ORACLE(C1,C2) VALUES (?,?)";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "111");
+            pstmt.setFloat(2, 3.1f);
+            pstmt.executeUpdate();
+
+            String querySql = "SELECT C2 FROM TEST_FLOAT_ORACLE WHERE C1 = ?";
+            pstmt = conn.prepareStatement(querySql);
+            pstmt.setInt(1, 111);
+            ResultSet rs = pstmt.executeQuery();
+            Assert.assertTrue(rs.next());
+            final double THRESHOLD = .0001;
+            Assert.assertTrue(Math.abs(rs.getDouble(1) - 3.1d) < THRESHOLD);
+            Assert.assertTrue(Math.abs(rs.getFloat(1) - 3.1f) < THRESHOLD);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
