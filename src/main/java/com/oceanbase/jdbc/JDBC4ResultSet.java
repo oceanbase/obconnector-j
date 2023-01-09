@@ -2716,14 +2716,15 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 prepareRefreshStmt();
                 refreshPreparedStatement.clearParameters();
 
-                for (int index: primaryKeyIndicies) {
+                for (int i = 0; i < primaryKeyIndicies.size(); i++) {
+                    int index = primaryKeyIndicies.get(i);
                     if (updatableColumns[index].isAutoIncrement()) {
                         long autoIncrementId = ((CmdInformationSingle)insertPreparedStatement.results.getCmdInformation()).getInsertId();
                         if (autoIncrementId > 0) {
-                            refreshPreparedStatement.setObject(index+1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
+                            refreshPreparedStatement.setObject(i + 1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
                         }
                     } else {
-                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(index + 1, updatableParameterHolders[index]);
+                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(i + 1, updatableParameterHolders[index]);
                     }
                 }
 

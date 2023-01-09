@@ -1085,4 +1085,45 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals(2, rs.getInt("c3"));
     }
 
+    @Test
+    public void fix46558224() throws Exception {
+        Assume.assumeFalse(sharedUsePrepare());
+        //createTable("testUpdate", "c1 int, c2 varchar(20), c3 int, PRIMARY KEY (c1,c2)");
+        createTable("testUpdate", "c1 int, c2 varchar(20), c3 int, PRIMARY KEY (c1,c3)");
+
+        // text protocol
+        Connection conn = sharedConnection;
+        PreparedStatement ps = conn.prepareStatement("select * From testUpdate",
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = ps.executeQuery();
+
+        rs.moveToInsertRow();
+        rs.updateInt(1, 1);
+        rs.updateString(2, "aaa");
+        rs.updateInt(3, 2);
+        rs.insertRow();
+
+        assertTrue(rs.last());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("aaa", rs.getString(2));
+        assertEquals(2, rs.getInt(3));
+
+        // PS protocol
+        conn = setConnection("&useServerPrepStmts=true");
+        ps = conn.prepareStatement("select * From testUpdate", ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE);
+        rs = ps.executeQuery();
+
+        rs.moveToInsertRow();
+        rs.updateInt(1, 3);
+        rs.updateString(2, "bbb");
+        rs.updateInt(3, 4);
+        rs.insertRow();
+
+        assertTrue(rs.last());
+        assertEquals(3, rs.getInt(1));
+        assertEquals("bbb", rs.getString(2));
+        assertEquals(4, rs.getInt(3));
+    }
+
 }
