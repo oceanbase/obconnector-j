@@ -45,4 +45,33 @@ public class ObProtocolV20Test extends BaseTest {
             return false;
         }
     }
+
+    @Test
+    public void fix44336056() throws SQLException {
+        Connection conn = setConnection("&enableFullLinkTrace=true&useServerPrepStmts=true");//&useOceanBaseProtocolV20=false
+        String tableName = "test_send_split_payload";
+        createTable(tableName, "c1 int, c2 varchar(30), constraint pk_yxy primary key(c1)");
+
+        ((OceanBaseConnection) conn).setFullLinkTraceIdentifier("OB_JDBC");
+        Statement stmt = conn.createStatement();
+        stmt.execute("select 1 from dual");
+
+        String x = "";
+        for (int j = 0; j < 1000; j++) {
+            x += "hello000000000012313123";
+        }
+
+        String query = "insert into " + tableName + " values(1,'1+" + x + "')";
+        for (int i = 2; i <= 800; i++) {
+            query += ",(" + i + ",'" + i + x + "')";
+        }
+        System.out.println("\n************* insert all into *************");
+        System.out.println("\n query len:" + query.length());
+        stmt.execute(query);
+        stmt.execute("select 1 from dual");
+        conn.commit();
+        stmt.close();
+        conn.close();
+    }
+
 }
