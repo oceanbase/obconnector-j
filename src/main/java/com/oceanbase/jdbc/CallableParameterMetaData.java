@@ -378,7 +378,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
             if (columnSize != null) {
                 columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
                 if (columnSize.contains(",")) {
-                    columnSize = columnSize.substring(0, columnSize.indexOf(","));
+                    int delimiter = columnSize.indexOf(",");
+                    if (delimiter != -1) {
+                        callParameter.setScale(Integer.parseInt(columnSize.substring(delimiter + 1)));
+                    }
+                    columnSize = columnSize.substring(0, delimiter);
                 }
                 callParameter.setPrecision(Integer.parseInt(columnSize));
             }
