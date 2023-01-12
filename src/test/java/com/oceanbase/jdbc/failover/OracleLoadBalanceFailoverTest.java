@@ -358,42 +358,6 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void testLoadBalanceFromOcp() throws InterruptedException {
-        for (int i = 0;i < 5; i++) {
-            int finalI = i;
-            Thread t = new Thread(() -> {
-                System.out.println("thread " + finalI +" run...");
-                Connection conn;
-                try {
-                    conn = DriverManager.getConnection("jdbc:oceanbase:loadbalance://@ocpApi=11.158.249.14:30081:obproxy1/test?user=root@t_mysql3#ob4000_3&password=aaAA__1&connectTimeout=10000&log=true");
-                    System.out.println("((OceanBaseConnection)conn).getHostname() = " + ((OceanBaseConnection) conn).getHostname());
-                    System.out.println("((OceanBaseConnection)conn).getHostname() = " + ((OceanBaseConnection) conn).getPort());
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("thread " + finalI +" end.");
-            });
-            t.start();
-
-            Thread t2 = new Thread(() -> {
-                System.out.println("thread " + finalI +" run...");
-                Connection conn;
-                try {
-                    conn = DriverManager.getConnection("jdbc:oceanbase:loadbalance://@ocpApi=11.158.249.14:30081:test123/test?user=root@t_mysql3#ob4000_3&password=aaAA__1&connectTimeout=10000&log=true");
-                    System.out.println("((OceanBaseConnection)conn).getHostname() = " + ((OceanBaseConnection) conn).getHostname());
-                    System.out.println("((OceanBaseConnection)conn).getHostname() = " + ((OceanBaseConnection) conn).getPort());
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("thread " + finalI +" end.");
-            });
-            t2.start();
-        }
-
-        Thread.sleep(600000);
-    }
-
-    @Test
     public void testParseBalanceInfoJson1() throws InvalidObjectException {
         String balanceJson = "{\n"
                             + "    \"OBLB\" : \"ON\" ,\n"
