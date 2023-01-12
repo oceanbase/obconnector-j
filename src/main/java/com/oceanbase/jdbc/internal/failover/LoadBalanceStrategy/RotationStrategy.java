@@ -28,6 +28,10 @@ public class RotationStrategy implements BalanceStrategy {
         return "RotationStrategy{}";
     }
 
+    public String toJson() {
+        return "\"OBLB_STRATEGY\":\"ROTATION\"";
+    }
+
     @Override
     public void pickConnection(LoadBalanceAddressList loadBalanceAddressList, UrlParser urlParser,
                                Listener listener, GlobalStateInfo globalInfo,

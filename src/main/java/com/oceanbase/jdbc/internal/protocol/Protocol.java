@@ -395,4 +395,5 @@ public interface Protocol {
 
     PacketOutputStream getWriter();
 
+    HostAddress getCurrentHost();
 }

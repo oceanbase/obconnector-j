@@ -24,6 +24,10 @@ public class GroupRotationStrategy implements GroupBalanceStrategy {
         return "GroupRotationStrategy{}";
     }
 
+    public String toJson() {
+        return "\"OBLB_GROUP_STRATEGY\":\"ROTATION\"";
+    }
+
     @Override
     public void pickAddressList(List<LoadBalanceAddressList> groups, UrlParser urlParser,
                                 Listener listener, final GlobalStateInfo globalInfo,

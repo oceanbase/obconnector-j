@@ -145,7 +145,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
           loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
           host = loopAddresses.pollFirst();
         }
-        logger.debug("Connect to " + host);
+        logger.debug("Connect to " + host + ", RetryAllDowns=" + maxConnectionTry);
         attemptedTimes ++;
         connectedHosts.add(host);
         protocol.setHostAddress(host);
@@ -162,6 +162,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
       } catch (IOException ioException) {
           long failedTime = System.nanoTime();
           HostAddress host = protocol.getHostAddress();
+          logger.debug("Failed to connect {}", host);
           if(listener.getBlacklistKeys().contains(host) && listener.getBlacklist().get(host).getState() == HostStateInfo.STATE.GREY) { // in blackList but the host is grey ,reset its timeout
               listener.resetHostStateInfo(host);
               continue;

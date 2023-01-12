@@ -2069,4 +2069,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public PacketOutputStream getWriter() {
         return writer;
     }
+
+    public HostAddress getCurrentHost() {
+        return currentHost;
+    }
+
 }

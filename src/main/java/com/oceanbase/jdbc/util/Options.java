@@ -219,6 +219,9 @@ public class Options implements Cloneable {
     public String  defaultConnectionAttributesBanList = null;
     public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
     public boolean enableOb20Checksum = true;
+    public int     ocpAccessInterval = 5;
+    public int     httpConnectTimeout;
+    public int     httpReadTimeout;
 
     @Override
     public String toString() {
@@ -656,6 +659,15 @@ public class Options implements Cloneable {
         if (enableOb20Checksum != opt.enableOb20Checksum) {
             return false;
         }
+        if(ocpAccessInterval != opt.ocpAccessInterval) {
+            return  false;
+        }
+        if(httpConnectTimeout != opt.httpConnectTimeout) {
+            return  false;
+        }
+        if(httpReadTimeout != opt.httpReadTimeout) {
+            return  false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -798,6 +810,9 @@ public class Options implements Cloneable {
         result = 31 * result + (allowNanAndInf ? 1 : 0);
         result = 31 * result + (zeroDateTimeBehavior != null ? zeroDateTimeBehavior.hashCode() : 0);
         result = 31 * result + (enableOb20Checksum ? 1 : 0);
+        result = 31 * result + ocpAccessInterval;
+        result = 31 * result + httpConnectTimeout;
+        result = 31 * result + httpReadTimeout;
         return result;
     }
 

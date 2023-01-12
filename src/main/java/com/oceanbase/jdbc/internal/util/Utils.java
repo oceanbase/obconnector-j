@@ -123,11 +123,11 @@ public class Utils {
     } else {
         // Initialize the config file first of all
         try {
-            ConfigParser.TnsFileInfo tnsFileInfo = ConfigParser.getTnsFilePath();
+            ConfigParser.ConfigInfo tnsFileInfo = ConfigParser.getTnsFilePath();
             String filePath = tnsFileInfo.path + "/" + tnsFileInfo.name;
             File file = new File(filePath);
             Reader reader = new InputStreamReader(new FileInputStream(file));
-            ConfigParser.getLoadBalanceInfosFromReader(reader);
+            ConfigParser.readLoadBalanceInfosFromTns(reader);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {

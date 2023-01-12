@@ -9,11 +9,20 @@ public class TimeoutRecover implements RemoveStrategy {
     long timeout;
 
     public TimeoutRecover() {
+        this.timeout = 50;
+    }
+
+    public TimeoutRecover(long timeout) {
+        this.timeout = timeout;
     }
 
     @Override
     public String toString() {
         return "TimeoutRecover{}";
+    }
+
+    public String toJson() {
+        return "\"REMOVE_STRATEGY\":{" + "\"NAME\":\"TIMEOUT\"," + "\"TIMEOUT\":" + timeout + "}";
     }
 
     public long getTimeout() {

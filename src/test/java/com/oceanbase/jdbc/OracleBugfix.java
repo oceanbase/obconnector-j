@@ -2913,6 +2913,7 @@ public class OracleBugfix extends BaseOracleTest {
             fail();
         }
     }
+
     @Test
     public void testOceanBaseFloat() {
         try {

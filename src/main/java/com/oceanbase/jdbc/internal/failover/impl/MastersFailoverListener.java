@@ -76,6 +76,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final HaMode        mode;
+    private long                ocpTimestamp;
 
     /**
      * Initialisation.
@@ -204,31 +205,37 @@ public class MastersFailoverListener extends AbstractMastersListener {
       if (HaMode.LOADBALANCE.equals(mode)) {
           logger.trace("LoadBalance on!");
 
-          LoadBalanceInfo loadBlanceInfo = null;
+          LoadBalanceInfo loadBalanceInfo = null;
           try {
-              loadBlanceInfo = ConfigParser.getGloabalLoadBalanceInfo(urlParser);
+              loadBalanceInfo = getGlobalLoadBalanceInfo(urlParser);
           } catch (IOException e) {
               throw new RuntimeException(e);
           }
-          if(loadBlanceInfo == null) {
+          if (loadBalanceInfo == null) {
               StringBuilder stringBuilder = new StringBuilder("LoadBalance config error ");
               if(urlParser.getExtendDescription() != null) {
                   stringBuilder.append("extend description error :");
                   stringBuilder.append(urlParser.getExtendDescription());
                   stringBuilder.append("\n");
+              } else if (urlParser.getOcpApi() != null) {
+                  stringBuilder.append("OCP API error :");
+                  stringBuilder.append(urlParser.getOcpApi());
+                  stringBuilder.append("\n");
               } else {
-                  stringBuilder.append("extend description net service name error :");
+                  stringBuilder.append(" net service name error :");
                   stringBuilder.append(urlParser.getTnsServiceName());
                   stringBuilder.append("\n");
               }
-              throw  new SQLException(stringBuilder.toString());
+              logger.error(stringBuilder.toString());
+              throw new SQLException(stringBuilder.toString());
           }
-          logger.trace("load balance info =" + loadBlanceInfo.toString());
-          LoadBlanceDriverBuilder loadBlanceDriverBuilder = new LoadBlanceDriverBuilder(loadBlanceInfo);
-          Director director = new Director(loadBlanceDriverBuilder);
-          LoadBalanceDriver loadBalanceDriver = director.construct();
-          this.setCurrentLoadBalanceInfo(loadBlanceInfo);
-          this.setRetryAllDowns(loadBlanceInfo.getRetryAllDowns());
+          logger.trace("load balance info =" + loadBalanceInfo.toString());
+          LoadBalanceDriver loadBalanceDriver = new LoadBalanceDriver(loadBalanceInfo);
+          if (urlParser.getOcpApi() == null) {
+              loadBalanceDriver.construct();
+          }
+          this.setCurrentLoadBalanceInfo(loadBalanceInfo);
+          this.setRetryAllDowns(loadBalanceInfo.getRetryAllDowns());
           loadBalanceDriver.loop(urlParser,this,globalInfo,searchFilter,getBlacklist(),getPickedlist());
       }
       else {
@@ -253,6 +260,26 @@ public class MastersFailoverListener extends AbstractMastersListener {
       proxy.lock.unlock();
     }
   }
+
+    /**
+     * Obtain the current LoadBalance configuration information in different ways, add other
+     * mechanisms here
+     * @param urlParser oceanbase url parser ,get options from here
+     * @return the loadbalance config information
+     */
+    private LoadBalanceInfo getGlobalLoadBalanceInfo(UrlParser urlParser) throws SQLException,
+                                                                         IOException {
+        if (urlParser.getTnsServiceName() != null) {
+            return ConfigParser.getLoadBalanceInfoFromTns(urlParser);
+        } else if (urlParser.getExtendDescription() != null) {
+            return ConfigParser.getLoadBalanceInfoFromExtendDescription(urlParser);
+        } else if (urlParser.getOcpApi() != null) {
+            return ConfigParser.getLoadBalanceInfoFromOcpApi(urlParser.getOcpApi(),
+                urlParser.getOptions());
+        } else {
+            return ConfigParser.getLoadBalanceInfoByDefault(urlParser);
+        }
+    }
 
     /**
      * Force session to read-only according to options.
