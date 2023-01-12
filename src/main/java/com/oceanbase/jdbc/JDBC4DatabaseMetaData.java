@@ -429,9 +429,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return this.keysQuery((String) null, (String) null, schema, table,
                 "ORDER BY pktable_schem, pktable_name, key_seq");
         }
-        ArrayList<String> tableNameList;
+        if (table == null) {
+            throw new SQLException("Table not specified.");
+        }
+
+        ArrayList<String> tableNameList = new ArrayList<>();
         try {
-            tableNameList = getALlTableNames(catalog);
+            tableNameList.add(table);
             ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog);
             ArrayList<String[]> list = new ArrayList<>();
             while (allTableRS.next()) {
