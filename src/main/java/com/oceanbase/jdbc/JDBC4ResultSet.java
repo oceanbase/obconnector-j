@@ -917,6 +917,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
 
         // COMPLETE ResultSet
+        if (protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         return isEof && rowPointer == dataSize - 1 && dataSize > 0;
     }
 
@@ -1156,22 +1159,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (!protocol.isOracleMode()) {
             checkClose();
         }
-        //        if (streaming && fetchSize == 0) {
-        //            lock.lock();
-        //            try {
-        //                // fetch all results
-        //                while (!isEof) {
-        //                    addStreamingValue();
-        //                }
-        //            } catch (IOException ioe) {
-        //                throw handleIoException(ioe);
-        //            } finally {
-        //                lock.unlock();
-        //            }
-        //
-        //            streaming = dataFetchTime == 1;
-        //        }
-        //        this.fetchSize = fetchSize;
 
         if (rows < 0) {
             throw new SQLException("invalid fetch size ");
@@ -3221,14 +3208,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public void updateShort(int columnIndex, short value) throws SQLException {
         checkUpdatable(columnIndex);
         updatableParameterHolders[columnIndex - 1] = new ShortParameter(value);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            byte[] targets = new byte[2];
-        //            targets[1] = (byte) (value & 0xFF);
-        //            targets[0] = (byte) (value >> 8 & 0xFF);
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(targets);
-        //        }
     }
 
     public void updateShort(String columnLabel, short value) throws SQLException {
@@ -3239,16 +3218,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public void updateInt(int columnIndex, int value) throws SQLException {
         checkUpdatable(columnIndex);
         updatableParameterHolders[columnIndex - 1] = new IntParameter(value);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            byte[] targets = new byte[4];
-        //            targets[3] = (byte) (value & 0xFF);
-        //            targets[2] = (byte) (value >> 8 & 0xFF);
-        //            targets[1] = (byte) (value >> 16 & 0xFF);
-        //            targets[0] = (byte) (value >> 24 & 0xFF);
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(targets);
-        //        }
     }
 
     public void updateInt(String columnLabel, int value) throws SQLException {
@@ -3298,11 +3267,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         updatableParameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes,
             protocol.getOptions().characterEncoding);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(value.getBytes());
-        //        }
     }
 
     public void updateString(String columnLabel, String value) throws SQLException {
