@@ -834,13 +834,14 @@ public class BinaryRowProtocol extends RowProtocol {
                                    | ((long) (buf[pos + 7] & 0xff) << 56);
 
                 return Double.longBitsToDouble(valueAsLong);
+            case BINARY_FLOAT:
+                return getInternalFloat(columnInfo);
                 //                return Double.parseDouble(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
                 String val = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.doubleValue();
-            case BINARY_FLOAT:
             case NUMBER_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
                     .getColumnType())));

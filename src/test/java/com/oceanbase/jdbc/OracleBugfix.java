@@ -2945,4 +2945,24 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testNumericFloat() {
+        try {
+            Connection conn = sharedConnection;
+            createTable("binaryfloattest", "c1 binary_float");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into binaryfloattest values(1.5)");
+            PreparedStatement ps = conn.prepareStatement("select c1 from binaryfloattest");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println("Type Name " + rs.getMetaData().getColumnTypeName(1));
+            System.out.println("Type " + rs.getMetaData().getColumnType(1));
+            assertEquals(1.5f, rs.getFloat(1), 0.01);
+            assertEquals(1.5f, rs.getDouble(1), 0.01);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
