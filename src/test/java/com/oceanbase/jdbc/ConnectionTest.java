@@ -1092,4 +1092,69 @@ public class ConnectionTest extends BaseTest {
             sharedConnection.getTransactionIsolation());
   }
 
+  @Test
+  public void testAutoCommitFalse() throws SQLException {
+    createTable("test_auto_commit_false","v0 int");
+    Statement sharedStmt = sharedConnection.createStatement();
+
+      // insert succeed, close connection
+      Connection testConn = setConnection();
+      testConn.setAutoCommit(false);
+      Statement stmt = testConn.createStatement();
+      stmt.execute("insert into test_auto_commit_false values (1)");
+      stmt.execute("insert into test_auto_commit_false values (2)");
+      stmt.execute("insert into test_auto_commit_false values (3)");
+      stmt.execute("insert into test_auto_commit_false values (4)");
+      stmt.execute("insert into test_auto_commit_false values (5)");
+
+      testConn.close();
+
+      ResultSet rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
+      assertFalse(rs.next());
+
+      // primary key conflict, close connection
+      sharedStmt.execute("delete from test_auto_commit_false");
+      testConn = setConnection();
+      testConn.setAutoCommit(false);
+      stmt = testConn.createStatement();
+      stmt.execute("insert into test_auto_commit_false values (1)");
+      stmt.execute("insert into test_auto_commit_false values (2)");
+      try {
+          stmt.execute("insert into test_auto_commit_false values (1)");
+      } catch (SQLException e) {
+      }
+      stmt.execute("insert into test_auto_commit_false values (4)");
+      stmt.execute("insert into test_auto_commit_false values (5)");
+
+      testConn.close();
+
+      rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
+      assertFalse(rs.next());
+
+      // primary key conflict, kill session
+      sharedStmt.execute("delete from test_auto_commit_false");
+      testConn = setConnection();
+      testConn.setAutoCommit(false);
+      stmt = testConn.createStatement();
+      stmt.execute("insert into test_auto_commit_false values (1)");
+      stmt.execute("insert into test_auto_commit_false values (2)");
+      try {
+          stmt.execute("insert into test_auto_commit_false values (1)");
+      } catch (SQLException e) {
+      }
+      stmt.execute("insert into test_auto_commit_false values (4)");
+      stmt.execute("insert into test_auto_commit_false values (5)");
+
+      ResultSet sesstionIdRs = stmt.executeQuery("show processlist;");
+      sesstionIdRs.next();
+      String sessionId = sesstionIdRs.getString("ID");
+      try {
+          stmt.execute("kill " + sessionId);
+      } catch (SQLException ignored) {
+      }
+
+      rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
+      assertFalse(rs.next());
+  }
+
 }
