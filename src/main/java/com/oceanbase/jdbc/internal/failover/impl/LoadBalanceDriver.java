@@ -63,11 +63,11 @@ public class LoadBalanceDriver {
                                    + blackListConfig.getRemoveStrategyConfigs());
         }
         switch (name.toUpperCase()) {
-            case Consts.TIMEOUT:
+            case Consts.TIMEOUT_MS:
             default:
                 removeStrategy = new TimeoutRecover();
                 int timeout = Integer.parseInt(blackListConfig.getRemoveStrategyConfigs().get(
-                    Consts.TIMEOUT));
+                    Consts.TIMEOUT_MS));
                 ((TimeoutRecover) removeStrategy).setTimeout(timeout);
                 break;
 
@@ -84,7 +84,8 @@ public class LoadBalanceDriver {
             case Consts.RETRYDURATION:
                 String retryTimes = blackListConfig.getAppendStrategyConfigs().get(
                     Consts.RETRYTIMES);
-                String duration = blackListConfig.getAppendStrategyConfigs().get(Consts.DURATION);
+                String duration = blackListConfig.getAppendStrategyConfigs()
+                    .get(Consts.DURATION_MS);
                 appendStrategy = new RetryDuration(Long.parseLong(duration),
                     Integer.parseInt(retryTimes));
                 break;

@@ -289,7 +289,7 @@ public abstract class AbstractMastersListener implements Listener {
         if (removeStrategy != null) {
             timeout = ((TimeoutRecover)removeStrategy).getTimeout();
         } else {
-            timeout = Long.parseLong(getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategyConfigs().get(Consts.TIMEOUT));
+            timeout = Long.parseLong(getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategyConfigs().get(Consts.TIMEOUT_MS));
         }
         HostStateInfo hostStateInfo = new HostStateInfo(HostStateInfo.STATE.BLACK,System.nanoTime() + timeout);
         if (hostAddress != null) {

@@ -147,19 +147,19 @@ public class ConfigParser {
                                     break;
                                 case NAME:
                                     if(curZone == ZONE.INREMOVESTRATGY) {
-                                        blackListConfig.getRemoveStrategyConfigs().put(Consts.NAME,Consts.TIMEOUT);
+                                        blackListConfig.getRemoveStrategyConfigs().put(Consts.NAME,Consts.TIMEOUT_MS);
                                     } else {
                                         blackListConfig.getAppendStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     }
                                     break;
                                 case TIMEOUT:
-                                    blackListConfig.getRemoveStrategyConfigs().put(Consts.TIMEOUT,value.toUpperCase());
+                                    blackListConfig.getRemoveStrategyConfigs().put(Consts.TIMEOUT_MS,value.toUpperCase());
                                     break;
                                 case RETRYTIMES:
                                     blackListConfig.getAppendStrategyConfigs().put(Consts.RETRYTIMES,value.toUpperCase());
                                     break;
                                 case DURATION:
-                                    blackListConfig.getAppendStrategyConfigs().put(Consts.DURATION,value.toUpperCase());
+                                    blackListConfig.getAppendStrategyConfigs().put(Consts.DURATION_MS,value.toUpperCase());
                                     RetryDuration.updateMaxDuration(Long.parseLong(value));
                                     break;
                                 case PORT:

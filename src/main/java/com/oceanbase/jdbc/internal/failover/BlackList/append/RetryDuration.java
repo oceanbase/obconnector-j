@@ -13,13 +13,13 @@ public class RetryDuration implements AppendStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(RetryDuration.class);
 
-    private long        duration; //millisecond
+    private long        durationMs;
     private int         retryTimes;
-    private static long maxDuration;
+    private static long maxDurationMs;
     private static ConcurrentMap<HostAddress, HashSet<Long>> failureRecords = new ConcurrentHashMap<>();
 
-    public RetryDuration(long duration, int retryTimes) {
-        this.duration = duration;
+    public RetryDuration(long durationMs, int retryTimes) {
+        this.durationMs = durationMs;
         this.retryTimes = retryTimes;
     }
 
@@ -29,11 +29,11 @@ public class RetryDuration implements AppendStrategy {
     }
 
     public String toJson() {
-        return "\"APPEND_STRATEGY\":{" + "\"NAME\":\"RETRYDURATION\"" + ",\"RETRYTIMES\":" + retryTimes + ",\"DURATION\":" + duration + "}";
+        return "\"APPEND_STRATEGY\":{" + "\"NAME\":\"RETRYDURATION\"" + ",\"RETRYTIMES\":" + retryTimes + ",\"DURATION\":" + durationMs + "}";
     }
 
     public long getDuration() {
-        return duration;
+        return durationMs;
     }
 
     public int getRetryTimes() {
@@ -54,21 +54,21 @@ public class RetryDuration implements AppendStrategy {
 
             Set<Long> recentFailedTimeList = failureRecords.get(host);
             synchronized (recentFailedTimeList) {
-                long failedTime = Long.parseLong((String) properties.get(Consts.FAILED_TIME));
+                long failedTimeMs = Long.parseLong((String) properties.get(Consts.FAILED_TIME_MS));
                 logger.debug("{} --> {}", host.host, recentFailedTimeList);
-                logger.debug("{} add {}", host.host, failedTime);
-                recentFailedTimeList.add(failedTime);
+                logger.debug("{} add {}", host.host, failedTimeMs);
+                recentFailedTimeList.add(failedTimeMs);
                 logger.debug("{} --> {}", host.host, failureRecords.get(host));
 
                 Iterator<Long> longIterator = recentFailedTimeList.iterator();
                 while(longIterator.hasNext()) {
                     long ts = longIterator.next();
-                    if (failedTime - ts > (maxDuration * 1000)) {
+                    if (failedTimeMs - ts > maxDurationMs) {
                         logger.debug("{} --> {}", host.host, recentFailedTimeList);
                         logger.debug("{} remove {}", host.host, ts);
                         longIterator.remove();
                         logger.debug("{} --> {}", host.host, failureRecords.get(host));
-                    } else if ((failedTime - ts) <= (duration * 1000)) {
+                    } else if (failedTimeMs - ts <= durationMs) {
                         count++;
                     }
                 }
@@ -91,7 +91,7 @@ public class RetryDuration implements AppendStrategy {
     }
 
     public static void updateMaxDuration(long newDuration) {
-        maxDuration = Math.max(newDuration, maxDuration);
+        maxDurationMs = Math.max(newDuration, maxDurationMs);
     }
 
 }
