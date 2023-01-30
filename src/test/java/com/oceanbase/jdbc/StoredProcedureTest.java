@@ -335,7 +335,7 @@ public class StoredProcedureTest extends BaseTest {
 
         ParameterMetaData paramMeta = storedProc2.getParameterMetaData();
         Assert.assertEquals(paramMeta.getParameterCount(), 3);
-        Assert.assertEquals(paramMeta.isNullable(1), ParameterMetaData.parameterNoNulls);
+        Assert.assertEquals(paramMeta.isNullable(1), ParameterMetaData.parameterNullable);
         Assert.assertEquals(paramMeta.getParameterType(2), Types.INTEGER);
         Assert.assertEquals(paramMeta.getParameterMode(3), 2);// parameterModeInOut
 

@@ -494,8 +494,8 @@ public class OracleBugfix extends BaseOracleTest {
                 Assert.assertEquals(1, nullable);
             }
         } catch (Exception e) {
-            Assert.fail();
             e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -820,9 +820,18 @@ public class OracleBugfix extends BaseOracleTest {
             callableStatement.registerOutParameter(2, Types.NUMERIC);
             //            callableStatement.setInt(3, 20);
             callableStatement.setInt("c3", 20);
-            callableStatement.execute();
+            try {
+                callableStatement.execute();
+                Assert.fail();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertEquals(
+                    "The number of parameter names '1' does not match the number of registered parameters in sql '3'.",
+                    e.getMessage());
+            }
             Assert.assertEquals(1, callableStatement.getInt(1));
             Assert.assertEquals(3, callableStatement.getInt(2));
+
             callableStatement = conn.prepareCall("? = call " + testFunction + "('fsfsfs',?,?,?)");
             callableStatement.registerOutParameter(1, Types.NUMERIC);
             callableStatement.registerOutParameter(3, Types.NUMERIC);
@@ -2249,7 +2258,7 @@ public class OracleBugfix extends BaseOracleTest {
     @Test
     public void testAone39114534() {
         try {
-            Connection conn = sharedConnection;
+            Connection conn = setConnection("&useOraclePrepareExecute=false");
             createFunction("testFunctionCall",
                 "(a float, b NUMBER, c int) RETURN INT IS\nBEGIN\n RETURN a + b + c;\nEND;");
             CallableStatement cs = conn.prepareCall("? = CALL testFunctionCall(?,?,?)");
@@ -2537,7 +2546,6 @@ public class OracleBugfix extends BaseOracleTest {
         cstmt.registerOutParameter(1, Types.REF_CURSOR);
         cstmt.registerOutParameter(2, Types.VARCHAR);
         cstmt.execute();
-
         assertEquals("bbb", cstmt.getString(2));
 
         ResultSet rs = (ResultSet) cstmt.getObject(1);
@@ -2545,8 +2553,12 @@ public class OracleBugfix extends BaseOracleTest {
         assertEquals(1, rs.getInt(1));
         assertFalse(rs.next());
         assertFalse(rs.next());
-        int i = rs.getInt(1);
-
+        try {
+            int i = rs.getInt(1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("结果集已耗尽", e.getMessage());
+        }
     }
 
     @Test
@@ -2694,6 +2706,7 @@ public class OracleBugfix extends BaseOracleTest {
 
     @Test
     public void testUpdateCounts2() {
+        Assume.assumeFalse(sharedUsePrepare());
         try {
             for (int t = 0; t < 2; t++) {
                 Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=true&rewriteInsertByMultiQueries="
@@ -2743,7 +2756,7 @@ public class OracleBugfix extends BaseOracleTest {
                     if (t == 0) {
                         Assert.assertEquals(0, counts.length);
                     } else {
-                        Assert.assertEquals(0, counts.length);
+                        Assert.assertEquals(999, counts.length);
                     }
                 }
                 ResultSet rs = stmt.executeQuery("select count(*) from blobtest1");
@@ -2771,7 +2784,7 @@ public class OracleBugfix extends BaseOracleTest {
                     if (t == 0) {
                         Assert.assertEquals(5, counts.length);
                     } else {
-                        Assert.assertEquals(0, counts.length);
+                        Assert.assertEquals(999, counts.length);
                     }
                 }
                 rs = stmt.executeQuery("select count(*) from blobtest1");
@@ -2866,6 +2879,38 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void createDatabaseIfNotExistTest() {
+        try {
+            Connection conn = setConnection("&createDatabaseIfNotExist=true");
+            ResultSet rs = conn.createStatement().executeQuery(
+                "select sys_context('userenv','current_schema') from dual");
+            rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetColumnsNullable() {
+        try {
+            createTable("test_nullable", "c1 varchar2(36), c2 number not null");
+            DatabaseMetaData dMetaData = sharedConnection.getMetaData();
+            ResultSet rs = dMetaData.getColumns(null, null, "test_nullable".toUpperCase(), null);
+            assertTrue(rs.next());
+            assertTrue("c1".equalsIgnoreCase(rs.getString("COLUMN_NAME")));
+            assertEquals(1, rs.getInt("NULLABLE"));
+            assertTrue(rs.next());
+            assertTrue("c2".equalsIgnoreCase(rs.getString("COLUMN_NAME")));
+            assertEquals(0, rs.getInt("NULLABLE"));
+            assertFalse(rs.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         }
     }
 }

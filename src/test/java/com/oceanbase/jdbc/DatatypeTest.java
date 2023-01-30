@@ -58,6 +58,7 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.Calendar;
 
 import org.junit.*;
 
@@ -95,6 +96,9 @@ public class DatatypeTest extends BaseTest {
         createTable("time_period",
             "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
+        createTable("testRanges", "c1 VARCHAR(32)");
+        createTable("testBooleans", "c1 BINARY(3), c2 VARBINARY(3), c3 BLOB");
+
     }
 
     /**
@@ -431,9 +435,14 @@ public class DatatypeTest extends BaseTest {
         ps.setObject(2, "true", Types.BIT);
         ps.addBatch();
 
-        ps.setObject(1, "truee", Types.BOOLEAN);
-        ps.setObject(2, "truee", Types.BIT);
-        ps.addBatch();
+        try {
+            ps.setObject(1, "truee", Types.BOOLEAN);
+            ps.setObject(2, "truee", Types.BIT);
+            ps.addBatch();
+            fail();
+        } catch (SQLException e) {
+            // eat exception
+        }
 
         ps.setObject(1, "false", Types.BOOLEAN);
         ps.setObject(2, "false", Types.BIT);
@@ -446,7 +455,6 @@ public class DatatypeTest extends BaseTest {
             assertValue(rs, false);
             assertValue(rs, true);
             assertValue(rs, false);
-            assertValue(rs, true);
             assertValue(rs, true);
             assertValue(rs, true);
             assertValue(rs, false);
@@ -1139,4 +1147,119 @@ public class DatatypeTest extends BaseTest {
         assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
         assertEquals(String.valueOf(expectedValue), rs.getString(index));
     }
+
+    @Test
+    public void testTimestampCalendar() {
+        try {
+            Calendar cal = Calendar.getInstance();
+            java.util.Date date = cal.getTime();
+
+            PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT ?");
+            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()), cal);
+            assertEquals(date, cal.getTime());
+
+            ResultSet rs = pstmt.executeQuery();
+            rs.next();
+            assertEquals(date, cal.getTime());
+            rs.getTimestamp(1, cal);
+            assertEquals(date, cal.getTime());
+            assertEquals(date.toString(), cal.getTime().toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testStringToLongOrInt() {
+        try {
+            Connection conn = sharedConnection;
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testRanges VALUES (?)");
+            pstmt.setString(1, "1E4");
+            pstmt.execute();
+
+            ResultSet rs = conn.createStatement().executeQuery("select c1 from testRanges");
+            assertTrue(rs.next());
+            assertEquals(10000, rs.getInt(1));
+            assertEquals(10000, rs.getLong(1));
+
+            PreparedStatement ps = conn.prepareStatement("select c1 from testRanges");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(10000, rs.getInt(1));
+            assertEquals(10000, rs.getLong(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTimeToDate() throws Exception {
+        ResultSet rs = null;
+        rs = sharedConnection.prepareStatement("SELECT '12:10:20'").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("12:10:20", rs.getTime(1).toString());
+        try {
+            assertEquals("1970-01-01", rs.getDate(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            assertEquals("1970-01-01 12:10:20.0", rs.getTimestamp(1).toString());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetBigDecimalExecption() {
+        try {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT ' '");
+            assertTrue(rs.next());
+            try {
+                rs.getBigDecimal(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+
+            PreparedStatement ps = sharedConnection.prepareStatement("select ' '");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            try {
+                rs.getBigDecimal(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testByteArrayToBoolean() {
+        try {
+            PreparedStatement pstmt = sharedConnection
+                .prepareStatement("INSERT INTO testBooleans VALUES (?, ?, ?)");
+            pstmt.setBytes(1, new byte[] { 0 });
+            pstmt.setBytes(2, new byte[] { 1 });
+            pstmt.setBytes(3, new byte[] { 1, 0 });
+            pstmt.executeUpdate();
+
+            ResultSet rs = sharedConnection.prepareStatement("SELECT * FROM testBooleans")
+                .executeQuery();
+
+            while (rs.next()) {
+                assertFalse(rs.getBoolean(1));
+                assertTrue(rs.getBoolean(2));
+                assertTrue(rs.getBoolean(3));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

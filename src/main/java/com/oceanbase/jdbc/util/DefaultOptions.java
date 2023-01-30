@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.util;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import com.oceanbase.jdbc.credential.CredentialPlugin;
@@ -72,7 +73,11 @@ public enum DefaultOptions {
       "1.1.8",
       "The connect timeout value, in milliseconds, or zero for no timeout.",
       false),
-  PIPE("pipe", "1.1.3", "On Windows, specify named pipe name to connect.", false),
+  PIPE(
+      "pipe",
+      "1.1.3",
+      "On Windows, specify named pipe name to connect.",
+      false),
   LOCAL_SOCKET(
       "localSocket",
       "1.1.4",
@@ -85,6 +90,12 @@ public enum DefaultOptions {
       "1.1.4",
       "Permits connecting to the database via shared memory, if the server allows "
           + "it. \nThe value is the base name of the shared memory.",
+      false),
+  OBPROXY_SOCKET(
+      "obProxySocket",
+      "2.3.0",
+      "Permits connecting to the database via ObProxy ClientVCSocket, It need be used with libobproxy_so.so."
+        + " \nThe value is the config url for lanuch a local OBProxy with dynamic libraray",
       false),
   TCP_NO_DELAY(
       "tcpNoDelay",
@@ -138,8 +149,8 @@ public enum DefaultOptions {
           + " permits activating the legacy code that sends the table alias if set.",
       false),
   // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
-//  ALLOW_LOCAL_INFILE(
-//      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
+  //  ALLOW_LOCAL_INFILE(
+  //      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
   SESSION_VARIABLES(
       "sessionVariables",
       "1.1.0",
@@ -150,7 +161,7 @@ public enum DefaultOptions {
       "createDatabaseIfNotExist",
       Boolean.FALSE,
       "1.1.8",
-      "the specified database in the " + "url will be created if non-existent.",
+      "the specified database in the url will be created if non-existent.It will not take effect in oracle mode.",
       false),
   SERVER_TIMEZONE(
       "serverTimezone",
@@ -172,7 +183,11 @@ public enum DefaultOptions {
       "Datatype mapping flag, handle Tiny as BIT(boolean).",
       false),
   YEAR_IS_DATE_TYPE(
-      "yearIsDateType", Boolean.TRUE, "1.0.0", "Year is date type, rather than numerical.", false),
+      "yearIsDateType",
+      Boolean.TRUE,
+      "1.0.0",
+      "Year is date type, rather than numerical.",
+      false),
   USE_SSL(
       "useSsl",
       Boolean.FALSE,
@@ -237,7 +252,10 @@ public enum DefaultOptions {
           + " implements javax.net.SocketFactory.",
       false),
   PIN_GLOBAL_TX_TO_PHYSICAL_CONNECTION(
-      "pinGlobalTxToPhysicalConnection", Boolean.FALSE, "1.1.8", "", false),
+      "pinGlobalTxToPhysicalConnection",
+      Boolean.FALSE, "1.1.8",
+      "",
+      false),
   TRUST_SERVER_CERTIFICATE(
       "trustServerCertificate",
       Boolean.FALSE,
@@ -481,8 +499,19 @@ public enum DefaultOptions {
           + "require Slf4j version > 1.4 dependency.\n"
           + "Log level correspond to Slf4j logging implementation",
       false),
-  PROFILE_SQL("profileSql", Boolean.FALSE, "1.5.0", "log query execution time.", false),
-  MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0", "Max query log size.", false),
+  PROFILE_SQL(
+      "profileSql",
+      Boolean.FALSE,
+      "1.5.0",
+      "log query execution time.",
+      false),
+  MAX_QUERY_LOG_SIZE(
+      "maxQuerySizeToLog",
+      1024,
+      0,
+      "1.5.0",
+      "Max query log size.",
+      false),
   SLOW_QUERY_TIME(
       "slowQueryThresholdNanos",
       null,
@@ -596,7 +625,11 @@ public enum DefaultOptions {
           + " tx_isolation) won't be changed, permitting the pool to create new connections faster.",
       false),
   REGISTER_POOL_JMX(
-      "registerJmxPool", Boolean.TRUE, "2.2.0", "Register JMX monitoring pools.", false),
+      "registerJmxPool",
+      Boolean.TRUE,
+      "2.2.0",
+      "Register JMX monitoring pools.",
+      false),
   USE_RESET_CONNECTION(
       "useResetConnection",
       Boolean.FALSE,
@@ -627,10 +660,8 @@ public enum DefaultOptions {
       "useAffectedRows",
       Boolean.FALSE,
       "2.3.0",
-      "If false (default), use \"found rows\" for the row "
-          + "count of statements. This corresponds to the JDBC standard.\n"
-          + "If true, use \"affected rows\" for the row count.\n"
-          + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
+      "If false (default), use \"found rows\" for the row count of statements. This corresponds to the JDBC standard.\n"
+          + "If true, use \"affected rows\" for the row count. This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
       false),
   INCLUDE_STATUS(
       "includeInnodbStatusInDeadlockExceptions",
@@ -670,7 +701,7 @@ public enum DefaultOptions {
           + "connector will use this value, ignoring server information",
       false),
   DEFAULT_FETCH_SIZE(
-          "defaultFetchSize",
+      "defaultFetchSize",
       0,
       0,
       "2.4.2",
@@ -709,7 +740,11 @@ public enum DefaultOptions {
       "Permit to get MySQL server key retrieval",
       false),
   TLS_SOCKET_TYPE(
-      "tlsSocketType", (String) null, "2.5.0", "Indicate TLS socket type implementation", false),
+      "tlsSocketType",
+      (String) null,
+      "2.5.0",
+      "Indicate TLS socket type implementation",
+      false),
   TRACK_SCHEMA(
       "trackSchema",
       Boolean.TRUE,
@@ -718,236 +753,259 @@ public enum DefaultOptions {
       false),
   // Oceanbase extended options
   SUPPORT_LOB_LOCATOR(
-          "supportLobLocator",
-          Boolean.TRUE,
-          "2.0.1",
-          "Lob locator switch for BLOB and CLOB type data",
-          false),
+      "supportLobLocator",
+      Boolean.TRUE,
+      "2.0.1",
+      "Lob locator switch for BLOB and CLOB type data",
+      false),
   USE_OB_CHECKSUM(
-          "useObChecksum",
-          Boolean.TRUE,
-          "2.0.1",
-          "A connection option for protocol v20",
-          false
-  ),
+      "useObChecksum",
+      Boolean.TRUE,
+      "2.0.1",
+      "Support the calculation of checksum or not for MySQL Compress Protocol. "
+              + "If false, MySQL Compress protocol will not be used by server, even though client declares to use the compression protocol.",
+      false),
   ALLOW_ALWAYS_SEND_PARAM_TYPES(
-          "allowSendParamTypes",
-          Boolean.FALSE,
-          "2.0.1",
-          "Store types of parameters in first package that is sent to the server",
-          false
-  ),
+      "allowSendParamTypes",
+      Boolean.FALSE,
+      "2.0.1",
+      "Store types of parameters in first package that is sent to the server",
+      false),
   USE_FORMAT_EXCEPTION_MESSAGE(
-          "useFormatExceptionMessage",
-          Boolean.FALSE,
-          "2.0.1",
-          "Error message in ORACLE format used, such as 'ORA-'",
-          false
-  ),
+      "useFormatExceptionMessage",
+      Boolean.FALSE,
+      "2.0.1",
+      "Error message in ORACLE format used, such as 'ORA-'",
+      false),
   COMPLEX_DATA_CACHE_SIZE(
-          "complexDataCacheSize",
-          50,
-          0,
-          "2.0.1",
-          "Cached complex data size",
-          false
-  ),
+      "complexDataCacheSize",
+      50,
+      0,
+      "2.0.1",
+      "Cached complex data size",
+      false),
   CACHE_COMPLEX_DATA(
-          "cacheComplexData",
-          Boolean.TRUE,
-          "2.0.1",
-          "Whether to cache complex data",
-          false
-  ),
+      "cacheComplexData",
+      Boolean.TRUE,
+      "2.0.1",
+      "Whether to cache complex data",
+      false),
   USE_SQL_STRING_CACHE(
-          "useSqlStringCache",
-          Boolean.FALSE,
-          "2.0.1",
-          "Cache sql sql strings into local jdbc memory",
-          false
-
-  ),
+      "useSqlStringCache",
+      Boolean.FALSE,
+      "2.0.1",
+      "Cache sql sql strings into local jdbc memory",
+      false),
   USE_SERVER_PS_STMT_CHECKSUM(
-          "useServerPsStmtChecksum",
-          Boolean.TRUE,
-          "2.0.1",
-          "Use prepare statement checksum to ensure the correctness of the mysql protocol",
-          false
-
-  ),
+      "useServerPsStmtChecksum",
+      Boolean.TRUE,
+      "2.0.1",
+      "Use prepare statement checksum to ensure the correctness of the mysql protocol",
+      false),
   CHARACTER_ENCODING(
-          "characterEncoding",
-          "utf8",
-          "2.0.1",
-          "Support mysql url option characterEncoding",
-          false
-  ),
+      "characterEncoding",
+      "utf8",
+      "2.0.1",
+      "Support mysql url option characterEncoding",
+      false),
   USE_CURSOR_FETCH(
-          "useCursorFetch",
-          Boolean.FALSE,
-          "NA",
-          "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
-          false
-  ),
+      "useCursorFetch",
+      Boolean.FALSE,
+      "NA",
+      "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
+      false),
   SOCKS_PROXY_HOST(
-          "socksProxyHost",
-          (String) null,
-          "2.2.3",
-          "Name or IP address of SOCKS host to connect through.",
-          false
-  ),
+      "socksProxyHost",
+      (String) null,
+      "2.2.3",
+      "Name or IP address of SOCKS host to connect through.",
+      false),
   SOCKS_PROXY_PORT(
-          "socksProxyPort",
-          1080,
-          0,
-          "2.2.3",
-          "Port of SOCKS server.",
-          false
-  ),
+      "socksProxyPort",
+      1080,
+      0,
+      "2.2.3",
+      "Port of SOCKS server.",
+      false),
   CONNECT_PROXY(
-          "connectProxy",
-          Boolean.FALSE,
-          "2.2.3",
-          "Indicate driver to connect to ob proxy ",
-          false
-  ),
+      "connectProxy",
+      Boolean.FALSE,
+      "2.2.3",
+      "Indicate driver to connect to ob proxy ",
+      false),
   SUPPORT_NAME_BINDING(
-          "supportNameBinding",
-          Boolean.TRUE,
-          "2.2.2",
-          "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
-          false),
+      "supportNameBinding",
+      Boolean.TRUE,
+      "2.2.2",
+      "Oracle name binding switch the apis such as setIntAtName and registerOutParameterAtName",
+      false),
   PIECE_LENGTH(
-          "pieceLength",
-          1048576,
-          0,
-          "2.2.6",
-          "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",
-          false),
+      "pieceLength",
+      1048576,
+      0,
+      "2.2.6",
+      "The size of data sent each time when COM_STMT_SEND_PIECE_DATA protocol is used in Oracle mode",
+      false),
   USE_PIECE_DATA(
-          "usePieceData",
-          Boolean.FALSE,
-          "2.2.6",
-                  "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
-                  false),
+      "usePieceData",
+      Boolean.FALSE,
+      "2.2.6",
+      "Use COM_STMT_SEND_PIECE_DATA protocol to set InputStream and Reader parameters in Oracle mode",
+      false),
   USE_ORACLE_PREPARE_EXECUTE(
-          "useOraclePrepareExecute",
-          Boolean.FALSE,
-          "2.2.6",
-          "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
-          false),
+      "useOraclePrepareExecute",
+      Boolean.FALSE,
+      "2.2.6",
+      "Oracle mode preparedStatement don't communicate with server until execute using COM_STMT_PREPARE_EXECUTE",
+      false),
   AUTO_DESERIALIZE(
-          "autoDeserialize",
-          Boolean.FALSE,
-          "2.2.7",
-                  "NA",
-                  false),
+      "autoDeserialize",
+      Boolean.FALSE,
+      "2.2.7",
+      "NA",
+      false),
   MAX_BATCH_TOTOAL_PARAMS_NUM(
-          "maxBatchTotalParamsNum",
-                  30000,
-                  0,
-                  "2.2.6",
-                  "When using executeBatch, the maximum number of spliced parameters",
-                  false),
+      "maxBatchTotalParamsNum",
+      30000,
+      0,
+      "2.2.6",
+      "When using executeBatch, the maximum number of spliced parameters",
+      false),
   EMULATE_UNSUPPORTED_PSTMTS(
-          "emulateUnsupportedPstmts",
-          Boolean.FALSE,
-          "2.2.8",
-          "If ps is abnormal, it will be degraded to the text protocol, otherwise it throws exception",
-          true),
+      "emulateUnsupportedPstmts",
+      Boolean.FALSE,
+      "2.2.8",
+      "If ps is abnormal, it will be degraded to the text protocol, otherwise it throws exception",
+      true),
   ENABLE_QUERY_TIMEOUT(
-          "enableQueryTimeouts",
-          Boolean.TRUE,
-          "2.2.8",
-                  "When enabled, query timeouts set via Statement.setQueryTimeout() use a shared java.util.Timer instance for scheduling. Even if the timeout doesn't expire before the query is processed, there will be memory used by the TimerTask for the given timeout which won't be reclaimed until the time the timeout would have expired if it hadn't been cancelled by the driver. High-load environments might want to consider disabling this functionality.",
-                  true),
+      "enableQueryTimeouts",
+      Boolean.TRUE,
+      "2.2.8",
+      "When enabled, query timeouts set via Statement.setQueryTimeout() use a shared java.util.Timer instance for scheduling. Even if the timeout doesn't expire before the query is processed, there will be memory used by the TimerTask for the given timeout which won't be reclaimed until the time the timeout would have expired if it hadn't been cancelled by the driver. High-load environments might want to consider disabling this functionality.",
+      true),
   USE_CURSOR_OFFSET(
-          "useCursorOffset",
-          Boolean.FALSE,
-          "2.2.8",
-          "Use special COM_STMT_FETCH protocol for Oracle mode to fetch rows of specific position",
-          false),
+      "useCursorOffset",
+      Boolean.FALSE,
+      "2.2.8",
+      "Use special COM_STMT_FETCH protocol for Oracle mode to fetch rows of specific position",
+      false),
   BLOB_SEND_CHUNK_SIZE(
-          "blobSendChunkSize",
-          1024*1204,
-          0,
-          "2.2.9",
-          "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
-          false),
+      "blobSendChunkSize",
+      1024*1204,
+      0,
+      "2.2.9",
+      "Chunk size to use when sending BLOB/CLOBs via ServerPreparedStatements. Note that this value cannot exceed the value of \"maxAllowedPacket\" and, if that is the case, then this value will be corrected automatically.",
+      false),
   TNSNAMES_PATH(
-          "tnsnamesPath",
-          (String) null,
-          "NA",
-          "NA",
-          false),
+      "tnsnamesPath",
+      (String) null,
+      "NA",
+      "NA",
+      false),
   TNSNAMES_DETECTION_PERIOD(
-          "tnsnamesDetectionPeriod",
-          10,
-          0,
-          "NA",
-          "NA",
-          false),
+      "tnsnamesDetectionPeriod",
+      10,
+      0,
+      "NA",
+      "NA",
+      false),
   LOAD_BALANCE_STRATEGY(
-          "loadBalanceStrategy",
-          (String) "random",
-          "NA",
-          "NA",
-          false),
+      "loadBalanceStrategy",
+      (String) "random",
+      "NA",
+      "NA",
+      false),
   SERVER_AFFINITY_ORDER (
-          "serverAffinityOrder",
-          (String) null,
-          "NA",
-          "NA",
-          false),
+      "serverAffinityOrder",
+      (String) null,
+      "NA",
+      "NA",
+      false),
   TRANSFORMED_BIT_BOOLEAN(
-                  "transformedBitIsBoolean",
-                  Boolean.FALSE,
-                  "2.2.9",
-                  "If the driver converts TINYINT(1) to a different type, should it use BOOLEAN instead of BIT for future compatibility with MySQL-5.0, as MySQL-5.0 has a BIT type?",
-                  false),
+      "transformedBitIsBoolean",
+      Boolean.FALSE,
+      "2.2.9",
+      "If the driver converts TINYINT(1) to a different type, should it use BOOLEAN instead of BIT for future compatibility with MySQL-5.0, as MySQL-5.0 has a BIT type?",
+      false),
   CONNECTION_COLLATION (
-                  "connectionCollation",
-          (String) null,
-                  "2.2.9",
-                  "Instructs the server to set session system variable 'collation_connection' to the specified collation name and set 'character_set_client' and 'character_set_connection' to the corresponding character set. ",
-                  false),
+      "connectionCollation",
+      (String) null,
+      "2.2.9",
+      "Instructs the server to set session system variable 'collation_connection' to the specified collation name and set 'character_set_client' and 'character_set_connection' to the corresponding character set. ",
+      false),
   USE_ARRAY_BINDING(
-          "useArrayBinding",
-          Boolean.FALSE,
-          "2.3.0",
-          "Oracle mode Use array binding to reduce network round-trips and increase performance.",
-          false),
+      "useArrayBinding",
+      Boolean.FALSE,
+      "2.3.0",
+      "Oracle mode Use array binding to reduce network round-trips and increase performance.",
+      false),
     SEND_CONNECTION_ATTRIBUTES(
-          "sendConnectionAttributes",
-          Boolean.TRUE,
-          "2.3.0",
-                  "Used to determine whether to send connection extended attributes.",
-                  false),
+        "sendConnectionAttributes",
+        Boolean.TRUE,
+        "2.3.0",
+        "Used to determine whether to send connection extended attributes.",
+        false),
     REWRITE_INSERT_BY_MULTI_QUERIES (
-          "rewriteInsertByMultiQueries",
-          Boolean.FALSE,
-          "2.2.10.2",
-                  "Force to rewrite the sql as multiple INSERT queries which are separated by semi-colons",
-                  false),
+        "rewriteInsertByMultiQueries",
+        Boolean.FALSE,
+        "2.2.10.2",
+        "Force to rewrite the sql as multiple INSERT queries which are separated by semi-colons",
+        false),
     USE_LOCAL_XID (
-          "useLocalXID",
-          Boolean.TRUE,
-          "2.2.10.4",
-                  "Construct XID entity locally",
-                  false),
+        "useLocalXID",
+        Boolean.TRUE,
+        "2.2.10.4",
+        "Construct XID entity locally",
+        false),
     USE_OCEANBASE_PROTOCOLV20(
-            "useOceanBaseProtocolV20",
-            Boolean.TRUE,
-            "2.4.0",
-            "Use v20 protocol to transmit data",
-            false),
+        "useOceanBaseProtocolV20",
+        Boolean.TRUE,
+        "2.4.0",
+        "Use v20 protocol to transmit data",
+        false),
     ENABLE_FULL_LINK_TRACE(
-            "enableFullLinkTrace",
-            Boolean.FALSE,
-            "2.4.0",
-            "Based on OceanBase v2.0 protocol",
-            false
-    );
+        "enableFullLinkTrace",
+        Boolean.FALSE,
+        "2.4.0",
+        "Based on OceanBase v2.0 protocol",
+        false),
+    CLOBBER_STREAMING_RESULTS(
+        "clobberStreamingResults",
+        Boolean.FALSE,
+        "2.4.1",
+        "This will cause a streaming result set to be automatically closed, and any outstanding data still streaming from the server to be discarded if another query is executed before all the data has been read from the server.",
+        false),
+    MAX_ROWS(
+        "maxRows",
+        0,
+        0,
+        "2.4.1",
+        "The maximum number of rows to return. The default \"0\" means return all rows.",
+        false),
+    ZERO_DATE_TIME_BEHAVIOR(
+        "zeroDateTimeBehavior",
+        Options.ZERO_DATETIME_EXCEPTION,
+        "2.4.1",
+        "How Mysql Mode to represent invalid dates?  Valid values are convertToNull,exception or round.",
+        false),
+    ALLOW_NAN_AND_INF(
+        "allowNanAndInf",
+        Boolean.FALSE,
+        "2.4.1",
+        "Should PreparedStatement.setDouble() allow NaN or +/- INF values?",
+        false),
+    DEFAULT_CONNECTION_ATTRIBUTES_BAN_LIST (
+        "defaultConnectionAttributesBanList",
+        (String) null,
+        "2.4.1",
+        "The list of default connectionAttributes that will not be sent to the server when sendConnectionAttributes = true.",
+        false),
+    ENABLE_OB20_CHECKSUM(
+        "enableOb20Checksum",
+        Boolean.TRUE,
+        "2.4.1",
+        "Calculate header checksum and tail checksum in OceanBase v2.0 protocol packet",
+        false);
 
   private final String optionName;
   private final String description;
@@ -1103,6 +1161,53 @@ public enum DefaultOptions {
     return options;
   }
 
+  public static String[] getUrlParameters(String urlParameters) {
+    char last_ch = urlParameters.charAt(0);
+    ArrayList<String> paramlist  = new ArrayList();
+    int start = 0;
+    int i = 0;
+    int status = 0; //NORMAL
+    for(i = 0; i < urlParameters.length(); i++) {
+      char ch = urlParameters.charAt(i);
+      if (ch != '&' && ch != '\\' && ch != '"' && ch != '\'') {
+        last_ch = ch;
+        continue;
+      }
+      switch (status) {
+        case 0: {
+          if (ch == '\'' && last_ch != '\\') {
+            status = 1; //single-quote
+          } else if (ch == '\"' && last_ch != '\"') {
+            status = 2; //double-quote
+          } else if (ch == '&') {
+            paramlist.add(urlParameters.substring(start, i));
+            start = i + 1;
+          }
+          break;
+        }
+        case 1: {
+          if (ch == '\'' && last_ch != '\\') {
+            status = 0;
+          }
+          break;
+        }
+        case 2: {
+          if (ch == '\"' && last_ch != '\\') {
+            status = 0;
+          }
+          break;
+        }
+        default:
+          last_ch = ch; //do nothing
+      }
+      last_ch = ch;
+    }
+    if (i > start) {
+      paramlist.add(urlParameters.substring(start, i));
+    }
+    return (String[]) paramlist.toArray(new String[paramlist.size()]);
+  }
+
   /**
    * Parse additional properties .
    *
@@ -1118,7 +1223,10 @@ public enum DefaultOptions {
       final Properties properties,
       final Options options) {
     if (urlParameters != null && !urlParameters.isEmpty()) {
-      String[] parameters = urlParameters.split("&");
+
+      String[] parameters = getUrlParameters(urlParameters);
+//      String[] parameters = urlParameters.split("&");
+      urlParameters.split("&");
       for (String parameter : parameters) {
         int pos = parameter.indexOf('=');
         if (pos == -1) {

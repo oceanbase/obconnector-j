@@ -161,6 +161,7 @@ public class Clob extends Lob implements ObClob {
                                     buffer.getBytes(
                                         (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset),
                                         (int) locator.payloadSize), this.encoding);
+                                length = charData.length();
                             } else {
                                 throw new SQLException("Exceed max length of Clob for support "
                                                        + Clob.maxLength + " current "
@@ -479,6 +480,10 @@ public class Clob extends Lob implements ObClob {
             }
             return;
         }
+        if (charData != null && charData.length() > 0 && truncateLen < charData.length()) {
+            this.charData = this.charData.substring(0, (int) truncateLen);
+            return;
+        }
         // truncate the number of UTF-16 characters
         // this can result in a bad UTF-8 string if string finish with a
         // character represented in 2 UTF-16
@@ -614,6 +619,15 @@ public class Clob extends Lob implements ObClob {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
 
             }
+        }
+    }
+
+    @Override
+    public boolean isEmptyLob() {
+        if (this.locator != null) {
+            return locator.payloadSize == 0;
+        } else {
+            return ((data == null || data.length == 0) && (charData == null || charData.length() == 0));
         }
     }
 }

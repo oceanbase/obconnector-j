@@ -60,6 +60,12 @@ public class Options implements Cloneable {
 
     public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
 
+    public static final String                           ZERO_DATETIME_CONVERT_TO_NULL = "convertToNull";
+
+    public static final String                           ZERO_DATETIME_EXCEPTION       = "exception";
+
+    public static final String                           ZERO_DATETIME_ROUND           = "round";
+
     // standard options
     public String user;
     public String password;
@@ -84,6 +90,7 @@ public class Options implements Cloneable {
     public String pipe;
     public String localSocket;
     public String sharedMemory;
+    public String obProxySocket;
     public boolean tcpNoDelay = true;
     public boolean tcpKeepAlive = true;
     public Integer tcpRcvBuf;
@@ -138,6 +145,8 @@ public class Options implements Cloneable {
     public int defaultFetchSize;
     public Properties nonMappedOptions = new Properties();
     public String tlsSocketType;
+    public boolean clobberStreamingResults;
+    public int maxRows;
 
     // logging options
     public boolean log;
@@ -206,6 +215,10 @@ public class Options implements Cloneable {
     public boolean useLocalXID = true;
     public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
+    public boolean allowNanAndInf = false;
+    public String  defaultConnectionAttributesBanList = null;
+    public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
+    public boolean enableOb20Checksum = true;
 
     @Override
     public String toString() {
@@ -449,6 +462,9 @@ public class Options implements Cloneable {
         if (!Objects.equals(sharedMemory, opt.sharedMemory)) {
             return false;
         }
+        if (!Objects.equals(obProxySocket, opt.obProxySocket)) {
+            return false;
+        }
         if (!Objects.equals(tcpRcvBuf, opt.tcpRcvBuf)) {
             return false;
         }
@@ -604,6 +620,9 @@ public class Options implements Cloneable {
         if (connectionCollation != opt.connectionCollation) {
           return false;
         }
+        if (defaultConnectionAttributesBanList != opt.defaultConnectionAttributesBanList) {
+            return false;
+        }
         if (useArrayBinding != opt.useArrayBinding) {
           return false;
         }
@@ -620,6 +639,21 @@ public class Options implements Cloneable {
             return false;
         }
         if (enableFullLinkTrace != opt.enableFullLinkTrace) {
+            return false;
+        }
+        if (clobberStreamingResults != opt.clobberStreamingResults) {
+            return false;
+        }
+        if (maxRows != opt.maxRows) {
+            return false;
+        }
+        if (allowNanAndInf != opt.allowNanAndInf) {
+            return false;
+        }
+        if (zeroDateTimeBehavior != opt.zeroDateTimeBehavior) {
+            return false;
+        }
+        if (enableOb20Checksum != opt.enableOb20Checksum) {
             return false;
         }
 
@@ -647,6 +681,7 @@ public class Options implements Cloneable {
         result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
         result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
         result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
+        result = 31 * result + (obProxySocket != null ? obProxySocket.hashCode() : 0);
         result = 31 * result + (tcpNoDelay ? 1 : 0);
         result = 31 * result + (tcpKeepAlive ? 1 : 0);
         result = 31 * result + (tcpRcvBuf != null ? tcpRcvBuf.hashCode() : 0);
@@ -751,14 +786,21 @@ public class Options implements Cloneable {
         result = 31 * result + (serverAffinityOrder != null ? serverAffinityOrder.hashCode() : 0);
         result = 31 * result + (blobSendChunkSize);
         result = 31 * result + (connectionCollation != null ? connectionCollation.hashCode() : 0);
+        result = 31 * result + (defaultConnectionAttributesBanList != null ? defaultConnectionAttributesBanList.hashCode() : 0);
         result = 31 * result + (useArrayBinding ? 1 : 0);
         result = 31 * result + (sendConnectionAttributes ? 1 : 0);
         result = 31 * result + (rewriteInsertByMultiQueries ? 1 : 0);
         result = 31 * result + (useLocalXID ? 1 : 0);
         result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
+        result = 31 * result + (clobberStreamingResults ? 1 : 0);
+        result = 31 * result + maxRows;
+        result = 31 * result + (allowNanAndInf ? 1 : 0);
+        result = 31 * result + (zeroDateTimeBehavior != null ? zeroDateTimeBehavior.hashCode() : 0);
+        result = 31 * result + (enableOb20Checksum ? 1 : 0);
         return result;
     }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();

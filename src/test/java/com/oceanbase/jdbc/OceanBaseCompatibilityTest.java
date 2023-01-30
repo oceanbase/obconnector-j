@@ -87,7 +87,6 @@ public class OceanBaseCompatibilityTest extends BaseTest {
       }
 
       ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
-      stmt.close();
       if (rs.next()) {
         assertEquals("longvarcharTest", rs.getString(1));
       } else {

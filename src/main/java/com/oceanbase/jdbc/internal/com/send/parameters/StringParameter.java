@@ -90,7 +90,6 @@ public class StringParameter implements Cloneable, ParameterHolder {
 
     private String escapedString(String str, int length) {
         StringBuilder stringBuilder = new StringBuilder((int) (str.length() * 1.1));
-        stringBuilder.append('\'');
         for (int i = 0; i < length; i++) {
             char c = str.charAt(i);
             switch (c) {
@@ -143,7 +142,6 @@ public class StringParameter implements Cloneable, ParameterHolder {
             }
         }
 
-        stringBuilder.append('\'');
         return stringBuilder.toString();
     }
 

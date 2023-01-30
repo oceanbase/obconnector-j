@@ -57,40 +57,36 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class CursorResultSet extends Cursor {
 
     private int       statementId;
-    /***
+    /**
      * When COM_STMT_PREPARE_EXECUTE protocol is supported
      * and URL option "useCursorOffset" which controls OB_Oracle_Fetch protocol are activated,
-     * a scrollable cursor is used on server side.
+     * a scrollable cursor can be used on server side.
      */
-    protected boolean isServerSide     = false;
-    /***
-     * Mark the absolute position in entire result for the first row in cache.
-     * The absolute position of the first row in entire result is 1.
-     */
-    private int       clientStartIndex = 0;
-    /***
-     * Mark the absolute position in entire Result for the last row in cache.
-     */
-    private int       clientEndIndex   = 0;
-    /***
-     * Mark the absolute position in entire result for the current row in cache.
-     */
-    private int       currentIndex     = 0;
-    /***
+    protected boolean isServerSide;
+
+    private int       currentIndexInEntireResult;
+    /**
      * Mark the absolute position in entire result for the target row,
      * which is going to be fetched next time.
      */
-    private int       fetchIndex       = 0;
-    /***
+    private int       fetchIndexInEntireResult;
+    /**
      * Mark the absolute position of the last row in entire result.
      */
-    private int       lastRowIndex     = 0;
+    private int       lastRowIndexInEntireResult;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
                            Protocol protocol, boolean callableResult, boolean eofDeprecated,
                            boolean isPsOutParamter) throws IOException, SQLException {
         super(columnsInformation, results, protocol, callableResult, eofDeprecated, isPsOutParamter);
         this.statementId = results.getStatementId();
+
+        // ref cursor cannot read data in constructor
+        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
+            // for new PS protocol, ResultSet reads data from socket while constructing
+            getCursorFetchData(fetchSize);
+        }
+
         if (protocol.supportFetchWithOffset()) {
             if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
                 isServerSide = true;
@@ -98,24 +94,22 @@ public class CursorResultSet extends Cursor {
                 // serverside scrollable cursor rely on new PS protocol, in which EXECUTE_MODE is set as OCI_STMT_SCROLLABLE_READONLY
                 isServerSide = true;
             }
-            if (isServerSide && dataSize > 0) {
-                clientStartIndex = 1;
-                clientEndIndex = dataSize;
-                setLastRowIndex();
-            }
         }
     }
 
     private void setLastRowIndex() {
-        if (isLastRowSent && lastRowIndex != clientEndIndex) {
-            lastRowIndex = clientEndIndex;
+        if (isLastRowSent && lastRowIndexInEntireResult != endIndexInEntireResult) {
+            lastRowIndexInEntireResult = endIndexInEntireResult;
         }
     }
 
-    protected void cursorFetch() throws SQLException {
-        if (isLastRowSent) {
-            return;
+    protected boolean cursorFetch() throws SQLException {
+        if (isLastRowSent || statement != null && statement.getMaxRows() > 0
+            && endIndexInEntireResult >= statement.getMaxRows()) {
+            isLastRowSent = true;
+            return false;
         }
+
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
                 this.getFetchSize());
@@ -125,73 +119,94 @@ public class CursorResultSet extends Cursor {
             }
             throw e;
         }
-        try {
-            getCursorFetchData(fetchSize);
-        } catch (IOException e) {
-            handleIoException(e);
-        }
+
+        getCursorFetchData(fetchSize);
+        return true;
     }
 
-    private void cursorFetchForOracle(byte offsetType, int offset) throws SQLException {
+    private boolean cursorFetchForOracle(byte offsetType, int offset) throws SQLException {
+        if (statement != null && statement.getMaxRows() > 0
+            && endIndexInEntireResult >= statement.getMaxRows()) {
+            isLastRowSent = true;
+            return false;
+        }
+
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetchForOracle(
                 this.statementId, this.getFetchSize(), offsetType, offset);
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRowSent = true;
-                return;
+                return false;
             } else {
                 throw e;
             }
         }
-        try {
-            getCursorFetchData(fetchSize);
-        } catch (IOException e) {
-            handleIoException(e);
+
+        if (offsetType == Packet.OCI_FETCH_LAST) {
+            endIndexInEntireResult = 0;
+        } else if (offsetType == Packet.OCI_FETCH_ABSOLUTE) {
+            endIndexInEntireResult = offset - 1;
         }
+        getCursorFetchData(fetchSize);
+        return true;
     }
 
-    protected void getCursorFetchData(int tmpFetchSize) throws IOException, SQLException {
-        if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
-            lastRowPointer = -1;
+    private void resetState() {
+        dataSize = 0;
+        rowPointer = -1;
+        lastRowPointer = -1;
+    }
 
-            // this resultSet must be CURSOR , and if it has no need to get previous value
+    protected void getCursorFetchData(int tmpFetchSize) throws SQLException {
+        try {
+            // reset dataSize, rowPointer and lastRowPointer if necessary
             if (dataSize > 0) {
-                discardedRows += dataSize;
-                dataSize = 0;
+                if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
+                    discardedRows += dataSize;
+                    resetState();
+                } else if (isServerSide) {
+                    resetState();
+                }
             }
-            super.resetState();
-        }
-        // client side CURSOR ResultSet caches all rows step by step
-        if (isServerSide) {
-            dataSize = 0;
-            lastRowPointer = -1;
-        } else if (dataSize == -1) {
-            dataSize = 0;
-        }
 
-        // read only fetchSize rows and an EOF packet
-        while (tmpFetchSize >= 0 && super.readNextValue()) {
-            tmpFetchSize--;
-        }
-
-        if (isServerSide) {
-            // there is an OK packet at the end of OB Oracle Fetch Response
-            Buffer buffer = reader.getPacket(true);
-            if (buffer.getByteAt(0) != Packet.OK) {
-                throw ExceptionFactory.INSTANCE
-                    .create("expected OK packet at the end of FETCH Response not found");
+            // fetch at most tmpFetchSize rows one time
+            // after fetchSize rows have been read, there must be an EOF packet
+            isEof = false;
+            while (tmpFetchSize >= 0 && !isEof) {
+                tmpFetchSize--;
+                addStreamingValue();
             }
-            buffer.skipByte(); // header
-            final long rowCount = buffer.getLengthEncodedNumeric();
-            //            final long lastInsertId = buffer.getLengthEncodedNumeric();
-            //            short serverStatus = buffer.readShort();
-            //            short warnings = buffer.readShort();
 
-            clientEndIndex = (int) rowCount;
-            clientStartIndex = (int) (rowCount - dataSize + 1);
+            if (isServerSide) {
+                // there is an OK packet at the end of OB Oracle Fetch Response
+                Buffer buffer = reader.getPacket(true);
+                if (buffer.getByteAt(0) != Packet.OK) {
+                    throw ExceptionFactory.INSTANCE
+                        .create("expected OK packet at the end of FETCH Response not found");
+                }
+                buffer.skipByte(); // header
+                final long rowCount = buffer.getLengthEncodedNumeric();
+                //            final long lastInsertId = buffer.getLengthEncodedNumeric();
+                //            short serverStatus = buffer.readShort();
+                //            short warnings = buffer.readShort();
 
-            setLastRowIndex();
+                endIndexInEntireResult = (int) rowCount;
+                if (statement != null && statement.getMaxRows() > 0
+                    && endIndexInEntireResult > statement.getMaxRows()) {
+                    // offsetType == Packet.OCI_FETCH_LAST
+                    dataSize = 0;
+                }
+                updateStartIndexInEntireResult();
+                setLastRowIndex();
+            } else if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
+                updateStartIndexInEntireResult();
+            } else {
+                // client-side oracle-mode scrollable result set
+                updateStartIndexInEntireResult();
+            }
+        } catch (IOException e) {
+            handleIoException(e);
         }
     }
 
@@ -205,7 +220,7 @@ public class CursorResultSet extends Cursor {
         if (!isServerSide) {
             return rowPointer == -1;
         }
-        return currentIndex == 0;
+        return currentIndexInEntireResult == 0;
     }
 
     @Override
@@ -218,7 +233,7 @@ public class CursorResultSet extends Cursor {
         if (!isServerSide) {
             return isLastRowSent && rowPointer >= dataSize;
         }
-        return currentIndex == -1;
+        return currentIndexInEntireResult == -1;
     }
 
     @Override
@@ -231,15 +246,14 @@ public class CursorResultSet extends Cursor {
         if (!isServerSide) {
             return rowPointer == 0;
         }
-        return currentIndex == 1;
+        return currentIndexInEntireResult == 1;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClose();
         if (resultSetScrollType == TYPE_FORWARD_ONLY && getProtocol().isOracleMode()) {
-            throw new SQLException(
-                "Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet for oracle mode");
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
         }
         if (dataSize <= 0) {
             return false;
@@ -248,7 +262,7 @@ public class CursorResultSet extends Cursor {
         if (!isServerSide) {
             return isLastRowSent && rowPointer == dataSize - 1;
         }
-        return isLastRowSent && currentIndex == lastRowIndex;
+        return isLastRowSent && currentIndexInEntireResult == lastRowIndexInEntireResult;
     }
 
     @Override
@@ -263,7 +277,7 @@ public class CursorResultSet extends Cursor {
             rowPointer = -1;
         } else {
             rowPointer = -1;
-            currentIndex = 0;
+            currentIndexInEntireResult = 0;
         }
     }
 
@@ -280,13 +294,12 @@ public class CursorResultSet extends Cursor {
         }
 
         if (!isServerSide) {
-            while (!isLastRowSent) {
-                cursorFetch();
+            while (!isLastRowSent && cursorFetch()) {
             }
             rowPointer = dataSize;
         } else {
             rowPointer = dataSize;
-            currentIndex = -1; // -1 marks the position after last
+            currentIndexInEntireResult = -1; // -1 marks the position after last
         }
     }
 
@@ -319,8 +332,7 @@ public class CursorResultSet extends Cursor {
         }
 
         if (!isServerSide) {
-            while (!isLastRowSent) {
-                cursorFetch();
+            while (!isLastRowSent && cursorFetch()) {
             }
             rowPointer = dataSize - 1;
             return dataSize > 0;
@@ -328,14 +340,16 @@ public class CursorResultSet extends Cursor {
 
         if (!isLastRowSent) {
             cursorFetchForOracle(Packet.OCI_FETCH_LAST, 0);
-            if (clientStartIndex != clientEndIndex) {
+            if (startIndexInEntireResult != endIndexInEntireResult) {
                 throw new SQLException(
-                    "clientStartIndex is supposed to equal to clientEndIndex, but actually clientStartIndex is "
-                            + clientStartIndex + " and clientEndIndex is " + clientEndIndex);
+                    "startIndexInEntireResult is supposed to equal to endIndexInEntireResult, but actually startIndexInEntireResult is "
+                            + startIndexInEntireResult
+                            + " and endIndexInEntireResult is "
+                            + endIndexInEntireResult);
             }
         }
         rowPointer = dataSize - 1;
-        currentIndex = lastRowIndex;
+        currentIndexInEntireResult = lastRowIndexInEntireResult;
         return true;
     }
 
@@ -358,8 +372,7 @@ public class CursorResultSet extends Cursor {
 
         if (!isServerSide) {
             if (row > 0) {
-                while (!isLastRowSent && row > dataSize) {
-                    cursorFetch();
+                while (!isLastRowSent && row > dataSize && cursorFetch()) {
                 }
                 if (row <= dataSize) {
                     rowPointer = row - 1;
@@ -379,14 +392,14 @@ public class CursorResultSet extends Cursor {
         }
 
         if (row > 0) {
-            fetchIndex = row;
+            fetchIndexInEntireResult = row;
         } else {
-            if (lastRowIndex == 0 && !last()) {
+            if (lastRowIndexInEntireResult == 0 && !last()) {
                 return false;
             }
-            fetchIndex = lastRowIndex + row + 1;
+            fetchIndexInEntireResult = lastRowIndexInEntireResult + row + 1;
         }
-        return fetchAbsoluteRow(fetchIndex);
+        return fetchAbsoluteRow(fetchIndexInEntireResult);
     }
 
     @Override
@@ -425,9 +438,9 @@ public class CursorResultSet extends Cursor {
             if (!last()) {
                 return false;
             }
-            return absolute(currentIndex + rows + 1);
+            return absolute(currentIndexInEntireResult + rows + 1);
         }
-        return absolute(currentIndex + rows);
+        return absolute(currentIndexInEntireResult + rows);
     }
 
     @Override
@@ -453,8 +466,8 @@ public class CursorResultSet extends Cursor {
         if (isAfterLast()) {
             return last();
         }
-        fetchIndex = currentIndex - 1;
-        return fetchAbsoluteRow(fetchIndex);
+        fetchIndexInEntireResult = currentIndexInEntireResult - 1;
+        return fetchAbsoluteRow(fetchIndexInEntireResult);
     }
 
     @Override
@@ -476,7 +489,12 @@ public class CursorResultSet extends Cursor {
                 return false;
             }
 
-            cursorFetch();
+            if (!cursorFetch()) {
+                if (rowPointer < dataSize) {
+                    rowPointer++;
+                }
+                return false;
+            }
             rowPointer++;
             return dataSize > rowPointer;
         }
@@ -484,8 +502,8 @@ public class CursorResultSet extends Cursor {
         if (isAfterLast()) {
             return false;
         }
-        fetchIndex = currentIndex + 1;
-        return fetchAbsoluteRow(fetchIndex);
+        fetchIndexInEntireResult = currentIndexInEntireResult + 1;
+        return fetchAbsoluteRow(fetchIndexInEntireResult);
     }
 
     @Override
@@ -495,29 +513,29 @@ public class CursorResultSet extends Cursor {
             return super.getRow();
         }
 
-        return currentIndex;
+        return currentIndexInEntireResult;
     }
 
     private boolean fetchAbsoluteRow(int fetchIndex) throws SQLException {
         if (fetchIndex < 1) {
             rowPointer = -1;
-            currentIndex = 0;
+            currentIndexInEntireResult = 0;
             return false;
         }
-        if (lastRowIndex < fetchIndex && lastRowIndex > 0) {
+        if (lastRowIndexInEntireResult < fetchIndex && lastRowIndexInEntireResult > 0) {
             rowPointer = dataSize;
-            currentIndex = -1; // -1 marks the position after last
+            currentIndexInEntireResult = -1; // -1 marks the position after last
             return false;
         }
-        if (clientStartIndex <= fetchIndex && fetchIndex <= clientEndIndex) {
-            rowPointer = fetchIndex - clientStartIndex;
-            currentIndex = fetchIndex;
+        if (startIndexInEntireResult <= fetchIndex && fetchIndex <= endIndexInEntireResult) {
+            rowPointer = fetchIndex - startIndexInEntireResult;
+            currentIndexInEntireResult = fetchIndex;
             return true;
         }
         try {
             cursorFetchForOracle(Packet.OCI_FETCH_ABSOLUTE, fetchIndex);
             rowPointer = 0;
-            currentIndex = clientStartIndex;
+            currentIndexInEntireResult = startIndexInEntireResult;
             return dataSize > 0;
         } catch (Exception ex) {
             return false;

@@ -740,6 +740,17 @@ public class ResultSetTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
 
+        try {
+            rs = stmt.executeQuery("select * from testStreamForward");
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle
+                .getMessage()
+                .contains(
+                    "No statements may be issued when any streaming result sets are open and in use on a given connection"));
+        }
+        rs.close();
+
         rs = stmt.executeQuery("select * from testStreamForward");
         try {
             rs.last();
@@ -753,6 +764,7 @@ public class ResultSetTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains("Invalid operation on STREAMING ResultSet"));
         }
+        rs.close();
     }
 
     /**
@@ -1044,7 +1056,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void nullField() throws SQLException {
         createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
-        Statement stmt = sharedConnection.createStatement();
+        Connection conn = setConnection("&zeroDateTimeBehavior=convertToNull");
+        Statement stmt = conn.createStatement();
         stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
                      + "(null, '0000-00-00 00:00:00', '0000-00-00', '0000'), "
                      + "(null, null, null, null)," + "('aa', now(), now(), '2017')");
@@ -1388,4 +1401,194 @@ public class ResultSetTest extends BaseTest {
             .equalsIgnoreCase(rs.getMetaData().getColumnName(rankcodeIndex)));
 
     }
+
+    @Test
+    public void testColumnIndex() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int");
+
+        stmt.execute("insert into table1 values (1)");
+        ResultSet rs = stmt.executeQuery("select table1.c1, c1 from table1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.findColumn("c1"));
+        assertEquals(1, rs.findColumn("table1.c1"));
+
+        rs = stmt.executeQuery("select c1 from table1");
+        assertEquals(1, rs.findColumn("c1"));
+        assertEquals(1, rs.findColumn("table1.c1"));
+    }
+
+    @Test
+    public void testDuplicateColumnAlias() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int, c2 int");
+
+        stmt.execute("insert into table1 values (1, 0)");
+        ResultSet rs = stmt.executeQuery("select c1, c2 ,c2 ,c2 from table1");
+        assertTrue(rs.next());
+        Assert.assertEquals(2, rs.findColumn("c2"));
+    }
+
+    @Test
+    public void testColumnAlias() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("table1", "c1 int, c2 int");
+
+        stmt.execute("insert into table1 values (1, 0)");
+        ResultSet rs = stmt.executeQuery("select a.c1, a.c2 from table1 as a");
+        assertTrue(rs.next());
+        rs.findColumn("a.c1");
+    }
+
+    @Test
+    public void testOnDuplicateAnnotate() throws Exception {
+        createTable("test1", "id INT AUTO_INCREMENT PRIMARY KEY, c2 CHAR(1) UNIQUE KEY, c3 INT");
+        Statement stmt = sharedConnection.createStatement();
+
+        /* ***************** &useAffectedRows=false ***************** */
+        Connection conn1 = setConnection("&useAffectedRows=false");
+        Statement stmt1 = conn1.createStatement();
+        stmt1.execute("Insert into test1 (c2, c3) values ('A', 1), ('B', 2)");
+        stmt1
+            .execute(
+                "INSERT INTO test1 (c2, c3) VALUES ('B', 2), ('C', 3)  ON  DUPLICATE KEY /* test */ UPDATE c3 = VALUES(c3)",
+                Statement.RETURN_GENERATED_KEYS);
+
+        ResultSet rs1 = stmt1.getGeneratedKeys();
+        assertTrue(rs1.next());
+        assertEquals(3, rs1.getInt(1));
+        assertFalse(rs1.next());
+
+        ResultSet rs = stmt.executeQuery("select count(*) from test1");
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        stmt.execute("truncate table test1");
+
+        /* ***************** &useAffectedRows=true ***************** */
+        Connection conn2 = setConnection("&useAffectedRows=true");
+        Statement stmt2 = conn2.createStatement();
+        stmt2.execute("Insert into test1 (c2, c3) values ('A', 1), ('B', 2)");
+        stmt2
+            .execute(
+                "INSERT INTO test1 (c2, c3) VALUES ('B', 2), ('C', 3)  ON  DUPLICATE KEY /* test */ UPDATE c3 = VALUES(c3)",
+                Statement.RETURN_GENERATED_KEYS);
+
+        ResultSet rs2 = stmt2.getGeneratedKeys();
+        assertTrue(rs2.next());
+        assertEquals(3, rs2.getInt(1));
+        assertFalse(rs2.next());
+
+        rs = stmt.executeQuery("select count(*) from test1");
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testStmtCloseResultSet() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select 1");
+            stmt.close();
+            try {
+                rs.next();
+                fail("Should've had an exception here");
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains(
+                    "Operation not permit on a closed resultSet"));
+            }
+            PreparedStatement ps = null;
+            ps = sharedConnection.prepareStatement("select 1");
+            rs = ps.executeQuery();
+            ps.close();
+            try {
+                rs.next();
+                fail("Should've had an exception here");
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains(
+                    "Operation not permit on a closed resultSet"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNextAfterClose() throws SQLException {
+        ResultSet rs;
+
+        // close result set
+        Statement stmt = sharedConnection.createStatement();
+        rs = stmt.executeQuery("SELECT 1");
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("select 1");
+        rs = ps.executeQuery();
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        // close statement
+        rs = stmt.executeQuery("SELECT 1");
+        stmt.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = ps.executeQuery();
+        ps.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testMaxRows() throws SQLException {
+        String tableName = "DeleteReturn_ingInto";
+        createTable(tableName, "c1 INT, c2 VARCHAR(100)");
+        String query = "insert into DeleteReturn_ingInto values(1,'1+string')";
+        for (int i = 2; i <= 100; i++) {
+            query += ",(" + i + ",'" + i + "+string')";
+        }
+        Statement st = sharedConnection.createStatement();
+        st.execute(query);
+        st.close();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxRows(5);
+        stmt.setFetchSize(3);
+        ResultSet rs1 = stmt.executeQuery("select * from DeleteReturn_ingInto limit 10;");
+        while (rs1.next()) {
+            String c2 = rs1.getString(2);
+            System.out.println(c2);
+        }
+
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+        PreparedStatement pstmt = conn
+            .prepareStatement("select * from DeleteReturn_ingInto limit 10;");
+        pstmt.setMaxRows(5);
+        pstmt.setFetchSize(3);
+        ResultSet rs2 = pstmt.executeQuery();
+        while (rs2.next()) {
+            String c2 = rs2.getString(1);
+            System.out.println(c2);
+        }
+    }
+
 }

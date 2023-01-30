@@ -50,6 +50,9 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -68,7 +71,6 @@ import java.util.regex.Pattern;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.util.Options;
 
@@ -159,7 +161,12 @@ public abstract class RowProtocol {
   public int getMaxFieldSize() {
     return maxFieldSize;
   }
-
+  public Calendar getCalendarInstance(Calendar calendar) {
+      return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance();
+  }
+    public Calendar getCalendarInstanceWithTimezone(Calendar calendar,TimeZone timeZone) {
+        return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance(timeZone);
+    }
   public abstract String getInternalString(
       ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 
@@ -182,9 +189,9 @@ public abstract class RowProtocol {
   public abstract Timestamp getInternalTimestamp(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
-  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
-  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
-  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType) throws  SQLException;
+  public abstract Array getInternalArray(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
+  public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
+  public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
   public String getEncoding() {
     return options.characterEncoding;
   }
@@ -272,7 +279,7 @@ public abstract class RowProtocol {
     }
   }
 
-  private TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
+  protected TIMESTAMP buildTIMETAMP(byte[] bytes, int pos, int length) throws SQLException {
     StringBuilder sb = new StringBuilder();
     sb.append(buildTimestamp(bytes[pos])); // century
     sb.append(buildTimestamp(bytes[pos + 1])); // year
@@ -551,6 +558,23 @@ public abstract class RowProtocol {
     }
   }
 
+    protected void rangeCheck(
+            Object className, long minValue, long maxValue, double value, ColumnDefinition columnInfo)
+            throws SQLException {
+        if (value < minValue ||value > maxValue) {
+            throw new SQLException(
+                    "Out of range value for column '"
+                            + columnInfo.getName()
+                            + "' : value "
+                            + value
+                            + " is not in "
+                            + className
+                            + " range",
+                    "22003",
+                    1264);
+        }
+    }
+
   protected void rangeCheck(
       Object className, long minValue, long maxValue, long value, ColumnDefinition columnInfo)
       throws SQLException {
@@ -609,7 +633,364 @@ public abstract class RowProtocol {
   public void setProtocol(Protocol protocol) {
     this.protocol = protocol;
 	}
-  public SelectResultSet sendFechRowViaCursor(long statementid,int fetchSize) {
-      return (SelectResultSet) SelectResultSet.createEmptyResultSet();
+
+  public int[]  getTimestampPart(ColumnDefinition columnInfo) throws SQLException {
+      int nanoCount = 0;
+      int nanoBegin = -1;
+      int[] timestampsPart = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+      boolean onlyTimeFormat = false;
+      boolean withColon = false;
+      int partIdx = 0;
+      for (int begin = pos; begin < pos  + length; begin++) {
+          byte b = buf[begin];
+          if(b == ':'){
+              onlyTimeFormat = true;
+          }
+      }
+      for (int begin = pos; begin < pos + length; begin++) {
+          byte b = buf[begin];
+          if (b == ' ' || b == '-' || b == '/') {
+              onlyTimeFormat = false;
+          }
+          if(b == ':') {
+              withColon = true;
+          }
+          if (b == '-' || b == ' ' || b == ':') {
+              partIdx++;
+              continue;
+          }
+
+          if (b == '.') {
+              partIdx++;
+              nanoBegin = begin;
+              continue;
+          }
+          if (b < '0' || b > '9') {
+              throw new SQLException("cannot parse data in timestamp string '"
+                      + new String(buf, pos, length,
+                      getCurrentEncoding(columnInfo.getColumnType()))
+                      + "'");
+          }
+          if (nanoBegin != -1) {
+              nanoCount++;
+          }
+          timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+      }
+      if (timestampsPart[0] == 0 && timestampsPart[1] == 0 && timestampsPart[2] == 0
+              && timestampsPart[3] == 0 && timestampsPart[4] == 0 && timestampsPart[5] == 0 && timestampsPart[6] == 0) {
+          // all zero
+          if(getProtocol().isOracleMode()) {
+              lastValueNull |= BIT_LAST_ZERO_DATE;
+              return null;
+          } else {
+              if(options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION) && !onlyTimeFormat) {
+                  throw new SQLException("Value '"+ new String(buf, pos, length,
+                          getCurrentEncoding(columnInfo.getColumnType())) +"' can not be represented as java.sql.Timestamp");
+              }  if(options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL) && !onlyTimeFormat) {
+                  return null;
+              } else {
+                  // round
+                  timestampsPart[0] = 1;
+                  timestampsPart[1] = 1;
+                  timestampsPart[2] = 1;
+              }
+          }
+      }
+      if(length == 8 && !getProtocol().isOracleMode()) {
+          timestampsPart[0] = 1970;
+          timestampsPart[1] = 1;
+          timestampsPart[2] = 1;
+      }
+      // timestampsPart[6] the number of nanos
+      for (int i = nanoCount; i <= 8; i++) {
+          timestampsPart[6] = timestampsPart[6] * 10;
+      }
+      return  timestampsPart;
+
   }
+
+  private Timestamp buildTimestmap(int year,int month,int day,int hour,int minutes,int seconds,int nanos,Calendar calendar,TimeZone timezone) {
+      Calendar localCal = getCalendarInstance(calendar);
+      if (options.useLegacyDatetimeCode) {
+          localCal.setTimeZone(timezone);
+      }
+      Timestamp tt;
+      synchronized (localCal) {
+          localCal.clear();
+          localCal.set(year, month - 1, day, hour, minutes, seconds);
+          tt = new Timestamp(localCal.getTimeInMillis());
+      }
+      tt.setNanos(nanos);
+      return tt;
+  }
+
+  public Timestamp  getTimestampFromString(ColumnDefinition columnInfo ,String stringValue ,Calendar calendar,TimeZone timezone) throws SQLException {
+      try {
+          int year = 1970;
+          int month = 0;
+          int day = 0;
+          int hour = 0;
+          int minutes = 0;
+          int seconds = 0;
+          int nanos = 0;
+          stringValue = stringValue.trim();
+          int length = stringValue.length();
+          if ((length > 0) && (stringValue.charAt(0) == '0') && (stringValue.equals("0000-00-00") || stringValue.equals("0000-00-00 00:00:00") || stringValue.equals("00000000000000") || stringValue.equals("0"))) {
+
+              if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                  throw new SQLException("Value '" + new String(buf, pos, length,
+                          getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
+              }
+              if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+                  lastValueNull |= BIT_LAST_ZERO_DATE;
+                  return null;
+              } else {
+                  // round
+                  year = 1;
+                  month = 1;
+                  day = 1;
+              }
+              Timestamp tt;
+              Calendar localCal = getCalendarInstance(calendar);
+              synchronized (localCal) {
+                  localCal.clear();
+                  localCal.set(year, month - 1, day, hour, minutes, seconds);
+                  tt = new Timestamp(localCal.getTimeInMillis());
+              }
+              tt.setNanos(nanos);
+              return tt;
+          } else {
+              int decimalIndex = stringValue.indexOf(".");
+              if (decimalIndex == length - 1) {
+                  length--;
+              } else if (decimalIndex != -1) {
+                  if ((decimalIndex + 2) <= length) {
+                      nanos = Integer.parseInt(stringValue.substring(decimalIndex + 1));
+                      int numDigits = length - (decimalIndex + 1);
+                      if (numDigits < 9) {
+                          int factor = (int) (Math.pow(10, 9 - numDigits));
+                          nanos = nanos * factor;
+                      }
+                      length = decimalIndex;
+                  } else {
+                      throw new IllegalArgumentException(); // re-thrown further down with a much better error message
+                  }
+              }
+
+              switch (length) {
+                  case 2: // YY
+                  case 4: // YYMM
+                  case 6: // YYMMDD
+                      year = Integer.parseInt(stringValue.substring(0, 2));
+                      if (year <= 69) {
+                          year = (year + 100);
+                      }
+                      year += 1900;
+                      switch (length) {
+                          case 2:
+                              month = 1;
+                              day = 1;
+                              break;
+                          case 4:
+                              month = Integer.parseInt(stringValue.substring(2, 4));
+                              day = 1;
+                              break;
+                          case 6:
+                              month = Integer.parseInt(stringValue.substring(2, 4));
+                              day = Integer.parseInt(stringValue.substring(4, 6));
+                              break;
+                      }
+                      break;
+                  case 12:
+                      // yymmddhhmmss
+                      year = Integer.parseInt(stringValue.substring(0, 2));
+                      if (year <= 69) {
+                          year = (year + 100);
+                      }
+                      year += 1900;
+                      month = Integer.parseInt(stringValue.substring(2, 4));
+                      day = Integer.parseInt(stringValue.substring(4, 6));
+                      hour = Integer.parseInt(stringValue.substring(6, 8));
+                      minutes = Integer.parseInt(stringValue.substring(8, 10));
+                      seconds = Integer.parseInt(stringValue.substring(10, 12));
+                      break;
+                  case 14:
+                      // yyyymmddhhmmss
+                      year = Integer.parseInt(stringValue.substring(0, 4));
+                      month = Integer.parseInt(stringValue.substring(4, 6));
+                      day = Integer.parseInt(stringValue.substring(6, 8));
+                      hour = Integer.parseInt(stringValue.substring(8, 10));
+                      minutes = Integer.parseInt(stringValue.substring(10, 12));
+                      seconds = Integer.parseInt(stringValue.substring(12, 14));
+                      break;
+                  case 10:
+                      if ((columnInfo.getColumnType() ==ColumnType.DATE)
+                              || (stringValue.indexOf("-") != -1)) {
+                          //yyyy-mm-dd
+                          year = Integer.parseInt(stringValue.substring(0, 4));
+                          month = Integer.parseInt(stringValue.substring(5, 7));
+                          day = Integer.parseInt(stringValue.substring(8, 10));
+                          hour = 0;
+                          minutes = 0;
+                      } else {
+                          //yymmddhhmm
+                          year = Integer.parseInt(stringValue.substring(0, 2));
+                          if (year <= 69) {
+                              year = (year + 100);
+                          }
+                          month = Integer.parseInt(stringValue.substring(2, 4));
+                          day = Integer.parseInt(stringValue.substring(4, 6));
+                          hour = Integer.parseInt(stringValue.substring(6, 8));
+                          minutes = Integer.parseInt(stringValue.substring(8, 10));
+                          year += 1900;
+                          // two-digit year
+                      }
+                      break;
+                  case 8:
+                      if (stringValue.indexOf(":") != -1) {
+                          // hh:mm:ss
+                          hour = Integer.parseInt(stringValue.substring(0, 2));
+                          minutes = Integer.parseInt(stringValue.substring(3, 5));
+                          seconds = Integer.parseInt(stringValue.substring(6, 8));
+                          year = 1970;
+                          month = 1;
+                          day = 1;
+                          break;
+                      } else {
+                          // yyyymmdd
+                          year = Integer.parseInt(stringValue.substring(0, 4));
+                          month = Integer.parseInt(stringValue.substring(4, 6));
+                          day = Integer.parseInt(stringValue.substring(6, 8));
+                          year -= 1900;
+                          month--;
+                      }
+                      break;
+                  default:
+                      if(length >= 19 && length <= 26){
+                          // yyyy-mm-dd hh:mm:ss[.f...]
+                          year = Integer.parseInt(stringValue.substring(0, 4));
+                          month = Integer.parseInt(stringValue.substring(5, 7));
+                          day = Integer.parseInt(stringValue.substring(8, 10));
+                          hour = Integer.parseInt(stringValue.substring(11, 13));
+                          minutes = Integer.parseInt(stringValue.substring(14, 16));
+                          seconds = Integer.parseInt(stringValue.substring(17, 19));
+                          break;
+                      }
+                      throw new SQLException("Bad format for Timestamp ");
+              }
+              return  buildTimestmap(year,month,day,hour,minutes,seconds,nanos,calendar,timezone);
+          }
+      } catch (SQLException e) {
+          throw e; // don't re-wrap
+      } catch (NumberFormatException e) {
+          SQLException sqlException = new SQLException("Cannot convert value " +new String(buf, pos, length,
+                  getCurrentEncoding(columnInfo.getColumnType()))+ " to TIMESTAMP.");
+          sqlException.initCause(e);
+          throw  sqlException;
+      }
+  }
+
+  public Time getTimeFromString(String raw,Calendar cal) throws SQLException {
+      if (!options.useLegacyDatetimeCode
+              && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
+          throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
+      }
+      boolean negate = raw.startsWith("-");
+      if (negate) {
+          raw = raw.substring(1);
+      }
+      String[] rawPart = raw.split(":");
+      if (rawPart.length == 3) {
+          int hour = Integer.parseInt(rawPart[0]);
+          int minutes = Integer.parseInt(rawPart[1]);
+          int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
+          Calendar calendar = getCalendarInstance(cal);
+          if (options.useLegacyDatetimeCode) {
+              calendar.setLenient(true);
+          }
+          calendar.clear();
+          calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes, seconds);
+          int nanoseconds = extractNanos(raw);
+          calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
+          return new Time(calendar.getTimeInMillis());
+      } else {
+          throw new SQLException(
+                  raw + " cannot be parse as time. time must have \"99:99:99\" format");
+      }
+  }
+
+  public Date getDateFromString(String raw,Calendar cal,ColumnDefinition columnInfo) throws SQLException {
+      if(raw == null) {
+          return  null;
+      }
+      int year = 0;
+      int month = 0;
+      int day = 0;
+      // remove fractional
+      int index = raw.indexOf(".");
+      if (index > -1) {
+          raw = raw.substring(0, index);
+      }
+      if (raw.equals("00000000000000") || raw.equals("0") || raw.equals("0000-00-00") || raw.equals("0000-00-00 00:00:00")) {
+          if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+              throw new SQLException("Value '" + new String(buf, pos, length,
+                      getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
+          }
+          if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+              lastValueNull |= BIT_LAST_ZERO_DATE;
+              return null;
+          } else {
+              // round
+              year = 1;
+              month = 1;
+              day = 1;
+          }
+          Calendar calendar = getCalendarInstance(cal);
+          if (options.useLegacyDatetimeCode) {
+              calendar.setLenient(true);
+          }
+          calendar.clear();
+          calendar.set(year,month-1,day);
+          Date dt = new Date(calendar.getTimeInMillis());
+          return dt;
+      } else {
+          if (raw.length() < 10) {
+              if (raw.length() == 8) {
+                  Calendar calendar = getCalendarInstance(cal);
+                  if (options.useLegacyDatetimeCode) {
+                      calendar.setLenient(true);
+                  }
+                  synchronized (calendar) {
+                      java.util.Date origCalDate = calendar.getTime();
+                      try {
+                          calendar.clear();
+                          calendar.set(Calendar.MILLISECOND, 0);
+                          calendar.set(1970,  0, 1, 0, 0, 0);
+                          long dateAsMillis = calendar.getTimeInMillis();
+                          return new Date(dateAsMillis);
+                      } finally {
+                          calendar.setTime(origCalDate);
+                      }
+                  }
+              }
+              throw new SQLException("date format error");
+          }
+
+          if (raw.length() != 18) {
+              year = Integer.parseInt(raw.substring(0, 4));
+              month = Integer.parseInt(raw.substring(5, 7));
+              day = Integer.parseInt(raw.substring(8, 10));
+          }
+          Calendar calendar = getCalendarInstance(cal);
+          if (options.useLegacyDatetimeCode) {
+              calendar.setLenient(true);
+          }
+          calendar.clear();
+          //  This different than java.util.date, in the year part, but it still keeps the silly '0' for the start month
+          calendar.set(year,month - 1,day,0,0,0);
+          Date dt = new Date(calendar.getTimeInMillis());
+          return dt;
+      }
+  }
+
 }

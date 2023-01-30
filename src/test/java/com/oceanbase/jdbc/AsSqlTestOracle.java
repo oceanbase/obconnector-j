@@ -118,4 +118,17 @@ public class AsSqlTestOracle extends BaseOracleTest {
         }
 
     }
+
+    @Test
+    public void testCommit() throws SQLException {
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true");
+        try {
+            PreparedStatement ps = conn.prepareStatement("COMMIT");
+            ps.execute();
+        } catch (Exception e) {
+            Assert.fail();
+            e.printStackTrace();
+        }
+    }
+
 }

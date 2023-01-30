@@ -55,11 +55,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
-import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
@@ -69,11 +69,12 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     protected static final Pattern      PARAMETER_PATTERN = Pattern
                                                               .compile(
-                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d\\S]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                   Pattern.CASE_INSENSITIVE);
+    // the return characteristic such like ：NO SQL | READS SQL DATA | MODIFIES SQL DATA |DETERMINISTIC
     protected static final Pattern      RETURN_PATTERN    = Pattern
                                                               .compile(
-                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+|\\w+\\s+|\\w+\\s+\\w+|\\w+\\s+\\w+\\s+\\w+)?\\s*",
                                                                   Pattern.CASE_INSENSITIVE);
     protected final OceanBaseConnection con;
     protected final String              name;
@@ -215,7 +216,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         valid = true;
     }
 
-    void resetParams(String arguments, boolean isObFunction) {
+    void resetParams(String arguments, boolean isObFunction) throws SQLException {
         List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>() ;
         if (arguments != null) {
             arguments = Utils.trimSQLString(arguments, false, true, false);  //arguments  remove comments
@@ -239,94 +240,29 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
 
         List<CallParameter> currentParams = new ArrayList<>(parameterCount);
+        // Traverse each parameter： if it has a placeholder in SQL, add to the container;
+        // otherwise, an exception will be thrown for an OUT parameter
         for (int index = 0; index < parameterCount; index++) {
-            if (placeholderToParameterIndexMap != null) {
-                int localIndex = placeholderToParameterIndexMap[index];
-                if (localIndex != -1) {
-                    CallParameter parameter = params.get(localIndex);
+            CallParameter parameter = params.get(index);
+
+            boolean found = false;
+            for (int placeholderIndex = 0; placeholderIndex <= index; placeholderIndex++) {
+                if (placeholderToParameterIndexMap[placeholderIndex] == index) {
+                    found = true;
                     currentParams.add(parameter);
+                    break;
+                } else if (placeholderToParameterIndexMap[placeholderIndex] > index || placeholderToParameterIndexMap[placeholderIndex] == -1) {
+                    // if placeholderToParameterIndexMap[placeholderIndex] > index, then placeholderToParameterIndexMap[placeholderIndex + 1] > index
+                    // if placeholderToParameterIndexMap[placeholderIndex] == -1, then placeholderToParameterIndexMap[placeholderIndex + 1] == -1
+                    break;
                 }
-            } else {
-                CallParameter parameter = params.get(index + 1);
-                if (parameter.getIndex() != -1) {
-                    currentParams.add(parameter);
-                }
+            }
+
+            if (!found && !con.getProtocol().isOracleMode() && parameter.isOutput()) {
+                throw new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
             }
         }
         this.params = currentParams;
-    }
-
-    protected int mapMariaDbTypeToJdbc(String str) {
-        switch (str.toUpperCase(Locale.ROOT)) {
-            case "BIT":
-                return Types.BIT;
-            case "TINYINT":
-                return Types.TINYINT;
-            case "SMALLINT":
-                return Types.SMALLINT;
-            case "MEDIUMINT":
-                return Types.INTEGER;
-            case "INT":
-                return Types.INTEGER;
-            case "INTEGER":
-                return Types.INTEGER;
-            case "LONG":
-                return Types.INTEGER;
-            case "BIGINT":
-                return Types.BIGINT;
-            case "INT24":
-                return Types.INTEGER;
-            case "REAL":
-                return Types.DOUBLE;
-            case "FLOAT":
-                return Types.FLOAT;
-            case "DECIMAL":
-                return Types.DECIMAL;
-            case "NUMERIC":
-                return Types.NUMERIC;
-            case "DOUBLE":
-                return Types.DOUBLE;
-            case "CHAR":
-                return Types.CHAR;
-            case "VARCHAR":
-                return Types.VARCHAR;
-            case "DATE":
-                return Types.DATE;
-            case "TIME":
-                return Types.TIME;
-            case "YEAR":
-                return Types.SMALLINT;
-            case "TIMESTAMP":
-                return Types.TIMESTAMP;
-            case "DATETIME":
-                return Types.TIMESTAMP;
-            case "TINYBLOB":
-                return Types.BINARY;
-            case "BLOB":
-                return Types.LONGVARBINARY;
-            case "MEDIUMBLOB":
-                return Types.LONGVARBINARY;
-            case "LONGBLOB":
-                return Types.LONGVARBINARY;
-            case "TINYTEXT":
-                return Types.VARCHAR;
-            case "TEXT":
-                return Types.LONGVARCHAR;
-            case "MEDIUMTEXT":
-                return Types.LONGVARCHAR;
-            case "LONGTEXT":
-                return Types.LONGVARCHAR;
-            case "ENUM":
-                return Types.VARCHAR;
-            case "SET":
-                return Types.VARCHAR;
-            case "GEOMETRY":
-                return Types.LONGVARBINARY;
-            case "VARBINARY":
-                return Types.VARBINARY;
-            default:
-                return Types.OTHER;
-        }
     }
 
     private String[] queryMetaInfos(boolean isFunction) throws SQLException {
@@ -371,14 +307,23 @@ public class CallableParameterMetaData implements ParameterMetaData {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
         CallParameter callParameter = new CallParameter();
+
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
-        callParameter.setTypeName(matcher.group(2).trim());
-        callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-        String scale = matcher.group(3);
-        if (scale != null) {
-            scale = scale.replace("(", "").replace(")", "").replace(" ", "");
-            callParameter.setScale(Integer.valueOf(scale));
+
+        String typeName = matcher.group(2).trim();
+        callParameter.setTypeName(typeName);
+        int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+        callParameter.setSqlType(sqlType);
+        callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+
+        String columnSize = matcher.group(3);
+        if (columnSize != null) {
+            columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
+            if (columnSize.contains(",")) {
+                columnSize = columnSize.substring(0, columnSize.indexOf(","));
+            }
+            callParameter.setPrecision(Integer.parseInt(columnSize));
         }
         return callParameter;
     }
@@ -401,13 +346,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
         Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
         while (matcher2.find()) {
             CallParameter callParameter = new CallParameter();
+
             String direction = matcher2.group(1);
             if (direction != null) {
                 direction = direction.trim();
             }
-            callParameter.setName(matcher2.group(2).trim());
-            callParameter.setSigned(matcher2.group(3) == null);
-            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
             if (direction == null || direction.equalsIgnoreCase("IN")) {
                 callParameter.setInput(true);
             } else if (direction.equalsIgnoreCase("OUT")) {
@@ -419,15 +362,27 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 throw new SQLException(
                         "unknown parameter direction " + direction + "for " + callParameter.getName());
             }
-            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-            String scale = matcher2.group(5);
-            if (scale != null) {
-                scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
-                if (scale.contains(",")) {
-                    scale = scale.substring(0, scale.indexOf(","));
+
+            callParameter.setName(matcher2.group(2).trim());
+            callParameter.setSigned(matcher2.group(3) == null);
+
+            String typeName = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
+            callParameter.setTypeName(typeName);
+            int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+            callParameter.setSqlType(sqlType);
+            callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+
+            // getPrecision: specified column size
+            // getScale: number of digits to right of the decimal point
+            String columnSize = matcher2.group(5);
+            if (columnSize != null) {
+                columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
+                if (columnSize.contains(",")) {
+                    columnSize = columnSize.substring(0, columnSize.indexOf(","));
                 }
-                callParameter.setScale(Integer.valueOf(scale));
+                callParameter.setPrecision(Integer.parseInt(columnSize));
             }
+
             params.add(callParameter);
             callParameter.setIndex(index++);
         }

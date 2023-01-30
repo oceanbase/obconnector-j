@@ -411,6 +411,7 @@ public class OracleResultSetTest extends BaseOracleTest {
 
     @Test
     public void lastTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);
@@ -463,6 +464,7 @@ public class OracleResultSetTest extends BaseOracleTest {
 
     @Test
     public void relativeBackwardTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         insertRows(3);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);
@@ -1238,6 +1240,89 @@ public class OracleResultSetTest extends BaseOracleTest {
                         e.getMessage().contains("Can't call rollback when autocommit enable"));
                 }
             }
+        }
+    }
+
+    @Test
+    public void testNextAfterClose() throws SQLException {
+        ResultSet rs;
+
+        // close result set
+        Statement stmt = sharedConnection.createStatement();
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("select 1 from dual");
+        rs = ps.executeQuery();
+        rs.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        // close statement
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        stmt.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = ps.executeQuery();
+        ps.close();
+        try {
+            rs.next();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSelectFunctionColumnName() {
+        try {
+            String url = "jdbc:oceanbase://11.124.5.197:1130/test?user=test@xyoracle&password=test&useServerPrepStmts=false";
+            Connection conn = DriverManager.getConnection(url);
+            sharedConnection = conn;
+            createTable("read_blob_t1", "c1 BLOB, c2 int");
+
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("insert into read_blob_t1 values ( '010', 1001);");
+            stmt.execute("insert into read_blob_t1 values ( '0a0b0c0d0e0f', 1002);");
+            stmt.execute("insert into read_blob_t1 values ( '0123456789abcdef63646566', 1003);");
+            stmt.execute("insert into read_blob_t1 values ( '0a0b0c0d0e0f', 1004);");
+            stmt.execute("insert into read_blob_t1 values ( '0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFFF', 1005);");
+
+            stmt.execute("create or replace function read_blob_f1 return raw\n" + "is\n"
+                         + " blob_var blob;\n" + " amount number(30);\n" + " offset number(30);\n"
+                         + " return_raw raw(2000);\n" + " begin\n"
+                         + "  select c1 into blob_var from read_blob_t1 where c2=1003;\n"
+                         + "  amount :=2000;\n" + "  offset :=3;\n"
+                         + "  dbms_lob.read(blob_var,amount,offset, return_raw);\n"
+                         + "  return return_raw;\n" + " end;");
+
+            ResultSet rs = stmt.executeQuery("select read_blob_f1() from dual;");
+            ResultSetMetaData rsMeta = rs.getMetaData();
+            Assert.assertTrue(rsMeta.getColumnName(1).equals("READ_BLOB_F1()"));
+            Assert.assertTrue(rsMeta.getColumnLabel(1).equals("READ_BLOB_F1()"));
+
+            rs = stmt.executeQuery("select read_blob_f1() as rb from dual");
+            rsMeta = rs.getMetaData();
+            Assert.assertEquals("RB", rsMeta.getColumnName(1));
+            Assert.assertEquals("RB", rsMeta.getColumnLabel(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }

@@ -621,4 +621,16 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testgetRowIdLifetime() {
+        try {
+            DatabaseMetaData dmd = sharedConnection.getMetaData();
+            RowIdLifetime out = dmd.getRowIdLifetime();
+            Assert.assertTrue(out.equals(RowIdLifetime.ROWID_VALID_FOREVER));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

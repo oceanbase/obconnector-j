@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class UpdateResultSetOracleTest extends BaseOracleTest {
@@ -41,6 +42,40 @@ public class UpdateResultSetOracleTest extends BaseOracleTest {
         pstmt = conn.prepareStatement("delete from ResultSetTypePRIMARY where c1=?");
         pstmt.setInt(1, 1);
         pstmt.executeQuery();
+    }
+
+    @Test
+    public void testDefaultPrimaryKey() throws Exception {
+        createTable("testUpdatedAbleInsert", "c1 int , c2 int , c3 int, PRIMARY KEY (c1, c2)");
+
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("SELECT c1, c2, c3 FROM testUpdatedAbleInsert");
+
+        rs.moveToInsertRow();
+        rs.updateInt("c1", 1);
+        //        rs.updateInt("c2", 1);
+        rs.updateInt("c3", 1);
+        try {
+            rs.insertRow();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("ORA-01400: cannot insert NULL into '(C2)'"));
+        }
+
+        PreparedStatement ps = sharedPSConnection.prepareStatement(
+            "SELECT c1, c2, c3 FROM testUpdatedAbleInsert", ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE);
+        rs = ps.executeQuery();
+
+        rs.moveToInsertRow();
+        rs.updateInt("c1", 2);
+        //        rs.updateInt("c2", 1);
+        rs.updateInt("c3", 2);
+        try {
+            rs.insertRow();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("ORA-01400: cannot insert NULL into '(C2)'"));
+        }
     }
 
 }

@@ -62,6 +62,7 @@ import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.OceanBaseCRC16;
 import com.oceanbase.jdbc.util.OceanBaseCRC32C;
+import com.oceanbase.jdbc.util.Options;
 
 public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
@@ -76,14 +77,16 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
     private OceanBaseProtocolV20 ob20;
     private OceanBaseCRC32C      crc32              = new OceanBaseCRC32C();
+    private boolean              enableOb20Checksum;
     byte[]                       outBytes;
     private int                  totalPacketLength;
 
-    public Ob20PacketOutputStream(OutputStream out, int maxQuerySizeToLog, String encoding,
-                                  long threadId, OceanBaseProtocolV20 ob20) {
-        super(out, maxQuerySizeToLog, threadId, encoding);
+    public Ob20PacketOutputStream(OutputStream out, long threadId, Options options,
+                                  OceanBaseProtocolV20 ob20) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
         maxPacketLength = MAX_PACKET_LENGTH;
         this.ob20 = ob20;
+        this.enableOb20Checksum = options.enableOb20Checksum;
     }
 
     @Override
@@ -253,6 +256,14 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     }
 
     private void writeOb20Header(Buffer outBuffer) {
+        if (ob20.enableDebug) {
+            System.out.println("\n[Request] connectionId = " + ob20.header.connectionId
+                               + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
+                               + ob20.header.obSeqNo + ", payloadLength = "
+                               + ob20.header.payloadLength + ", headerChecksum = "
+                               + ob20.header.headerChecksum);
+        }
+
         outBuffer.writeLongInt(ob20.header.compressLength);
         outBuffer.writeByte((byte) ob20.header.compressSeqNo);
         outBuffer.writeLongInt(ob20.header.uncompressLength);
@@ -265,8 +276,12 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         outBuffer.writeInt(ob20.header.flag);
         outBuffer.writeShort(ob20.header.reserved);
 
-        ob20.header.headerChecksum = OceanBaseCRC16.calculate(outBuffer.getByteBuffer(),
-            OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
+        if (enableOb20Checksum) {
+            ob20.header.headerChecksum = OceanBaseCRC16.calculate(outBuffer.getByteBuffer(),
+                OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
+        } else {
+            ob20.header.headerChecksum = 0;
+        }
         outBuffer.writeShort((short) ob20.header.headerChecksum);
     }
 
@@ -282,9 +297,13 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     }
 
     private void writeOb20TailChecksum(Buffer outBuffer, byte[] payload, int pos, int len) {
-        crc32.reset();
-        crc32.update(payload, pos, len);
-        ob20.tailChecksum = crc32.getValue();
+        if (enableOb20Checksum) {
+            crc32.reset();
+            crc32.update(payload, pos, len);
+            ob20.tailChecksum = crc32.getValue();
+        } else {
+            ob20.tailChecksum = 0;
+        }
 
         outBuffer.writeInt((int) ob20.tailChecksum);
     }

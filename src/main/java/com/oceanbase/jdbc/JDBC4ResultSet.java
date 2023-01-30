@@ -74,6 +74,7 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.ErrorPacket;
+import com.oceanbase.jdbc.internal.com.read.dao.CmdInformationSingle;
 import com.oceanbase.jdbc.internal.com.read.dao.ColumnLabelIndexer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -111,7 +112,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected Options                       options;
     protected ColumnDefinition[]            columnsInformation;
     protected int                           columnInformationLength;
-    protected int                           columnIndexOffset     = 0;
+    protected int                           columnIndexOffset;
     protected boolean                       noBackslashEscapes;
     protected Protocol                      protocol;
     protected PacketInputStream             reader;
@@ -123,20 +124,27 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected ColumnLabelIndexer            columnLabelIndexer;
     public RowProtocol                      row;
     protected byte[][]                      data;
-    /***
+    /**
      * dataSize can be -1, 0, 1, ..., n.
      * -1: client hasn't got result from server, whether the result set is empty remains unknown.
      * 0: client did get result from server, but the result set is empty without any row.
      * 1~n: the number of rows cached in "data[][]"
      */
     protected int                           dataSize              = -1;
+    protected long                          processedRows;
+    protected int                           discardedRows;
     protected int                           rowPointer            = -1;
     protected int                           lastRowPointer        = -1;
-    protected int                           discardedRows         = 0;
-    protected boolean                       isEof                 = false;
-    protected boolean                       isLastRowSent         = false;
-    protected boolean                       isClosed              = false;
-    protected boolean                       isModified            = false;
+    /**
+     * Mark the absolute position in entire result for the first row in cache.
+     * The absolute position of the first row in entire result is 1.
+     */
+    protected int                           startIndexInEntireResult;
+    protected int                           endIndexInEntireResult;
+    protected boolean                       isEof;
+    protected boolean                       isLastRowSent;
+    protected boolean                       isClosed;
+    protected boolean                       isModified;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
     protected boolean                       forceAlias;
@@ -154,10 +162,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     /****************************** updatable  characters *******************************/
     // Since not all types of result set use these variables, there can be a way not to initial them all the time
-    protected static final int          STATE_STANDARD           = 0;
-    protected static final int          STATE_UPDATE             = 1;
-    protected static final int          STATE_UPDATED            = 2;
-    protected static final int          STATE_INSERT             = 3;
+    protected static final int          STATE_STANDARD = 0;
+    protected static final int          STATE_UPDATE   = 1;
+    protected static final int          STATE_UPDATED  = 2;
+    protected static final int          STATE_INSERT   = 3;
 
     protected OceanBaseConnection       connection;
     private String                      database;
@@ -170,13 +178,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     private String                      exceptionUpdateMsg;
     private String                      exceptionInsertMsg;
-    protected int                       state                    = STATE_STANDARD;
+    protected int                       state          = STATE_STANDARD;
     private int                         updatableColumnLength;
     private UpdatableColumnDefinition[] updatableColumns;
     private ParameterHolder[]           updatableParameterHolders;
-    private PreparedStatement           refreshPreparedStatement = null;
-    private ClientSidePreparedStatement insertPreparedStatement  = null;
-    private ClientSidePreparedStatement deletePreparedStatement  = null;
+    private List<Integer>               primaryKeyIndicies = new ArrayList<>();
+    private PreparedStatement           refreshPreparedStatement;
+    private ClientSidePreparedStatement insertPreparedStatement;
+    private ClientSidePreparedStatement deletePreparedStatement;
 
     /*************************** updatable characters ending ****************************/
 
@@ -204,6 +213,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // definition of streaming resultSet by MySQL
             rsClass = ResultSetClass.STREAMING;
             fetchSize = 1;
+            results.setFetchSize(1);
             this.lock = protocol.getLock();
             protocol.setActiveStreamingResult(results);
             protocol.removeHasMoreResults();
@@ -241,7 +251,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
             row = new TextRowProtocol(results.getMaxFieldSize(), options);
         }
         row.setProtocol(protocol);
-        this.fetchSize = results.getFetchSize();
+        this.fetchSize = results.getStatement() != null ? results.getStatement().getFetchSize()
+            : results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
         this.resultSetConcurType = results.getResultSetConcurrency();
         this.callableResult = callableResult;
@@ -272,12 +283,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         rsClass = ResultSetClass.CURSOR;
         data = new byte[Math.max(10, fetchSize)][];
-        // ref cursor cannot read data in constructor
-        if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
-            // for new PS protocol, ResultSet reads data from socket while constructing
-            this.lock = protocol.getLock();
-            nextStreamingValue();
-        }
 
         handelUpdatable(results);
     }
@@ -346,6 +351,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
 
         this.row = new TextRowProtocol(0, this.options);
+        this.row.setProtocol(protocol);
         this.protocol = protocol;
         this.columnsInformation = columnDefinition;
         this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
@@ -381,12 +387,27 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(),protocol.getOptions().characterEncoding);
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(), protocol.getOptions().characterEncoding);
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
             if (rowData != 0) {
-                rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
+                if(rowData < 0) {
+                    columns[0].setUnSigned();
+                    byte[] bytes = new byte[8];
+                    bytes[0] = (byte) (rowData >>> 56);
+                    bytes[1] = (byte) (rowData >>> 48);
+                    bytes[2] = (byte) (rowData >>> 40);
+                    bytes[3] = (byte) (rowData >>> 32);
+                    bytes[4] = (byte) (rowData >>> 24);
+                    bytes[5] = (byte) (rowData >>> 16);
+                    bytes[6] = (byte) (rowData >>> 8);
+                    bytes[7] = (byte) (rowData & 0xff);
+                    BigInteger val = new BigInteger(1, bytes);
+                    rows.add(StandardPacketInputStream.create(val.toString().getBytes()));
+                } else {
+                    rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
+                }
             }
         }
         if (findColumnReturnsOne) {
@@ -450,36 +471,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return isEof;
     }
 
-    private void fetchAllResults() throws IOException, SQLException {
-        dataSize = 0;
-        while (readNextValue()) {
-            // fetch all results
-        }
-    }
-
-    /**
-     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
-     *
-     * @throws SQLException if any error occur
-     */
-    public void fetchRemaining() throws SQLException {
-        if (!isEof) {
-            lock.lock();
-            try {
-                lastRowPointer = -1;
-                while (!isEof) {
-                    addStreamingValue();
-                }
-            } catch (SQLException queryException) {
-                throw ExceptionFactory.INSTANCE.create(queryException);
-            } catch (IOException ioe) {
-                throw handleIoException(ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
     protected SQLException handleIoException(IOException ioe) {
         return ExceptionFactory.INSTANCE
             .create(
@@ -496,6 +487,39 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return columnsInformation;
     }
 
+    private void fetchAllResults() throws IOException, SQLException {
+        dataSize = 0;
+        processedRows = 0;
+        while (!isEof) {
+            addStreamingValue();
+        }
+        updateStartIndexInEntireResult();// startIndexInEntireResult is supposed to be 1
+    }
+
+    /**
+     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
+     *
+     * @throws SQLException if any error occur
+     */
+    public void fetchRemaining() throws SQLException {
+        if (!isEof) {
+            lock.lock();
+            try {
+                lastRowPointer = -1;
+                while (!isEof) {
+                    addStreamingValue();
+                }
+                updateStartIndexInEntireResult();
+            } catch (SQLException queryException) {
+                throw ExceptionFactory.INSTANCE.create(queryException);
+            } catch (IOException ioe) {
+                throw handleIoException(ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
     /**
      * This permit to replace current stream results by next ones.
      *
@@ -505,13 +529,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private void nextStreamingValue() throws IOException, SQLException {
         lastRowPointer = -1;
 
-        // this resultSet must be CURSOR or STREAMING, and if it has no need to get previous value
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && dataSize > 0) {
+        // STREAMING has no need to cache a previous row
+        if (dataSize > 0) {
             discardedRows += dataSize;
             dataSize = 0;
         }
 
         addStreamingValue();
+        updateStartIndexInEntireResult();
     }
 
     /**
@@ -520,22 +545,34 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
-    private void addStreamingValue() throws IOException, SQLException {
+    protected void addStreamingValue() throws IOException, SQLException {
         if (dataSize == -1) {
             dataSize = 0;
         }
-        // read only fetchSize values
-        int fetchSizeTmp = fetchSize;
-        while (fetchSizeTmp > 0 && readNextValue()) {
-            fetchSizeTmp--;
-        }
-
-        // after fetchSize rows have been read, there must be a EOF packet for cursor resultSet
-        if (!isEof && rsClass == ResultSetClass.CURSOR) {
-            readNextValue();
-            if (!isEof) {
-                throw new SQLException("a EOF packet is supposed to be read");
+        processedRows = 0;
+        // read only one row once
+        byte[] buf = getNextRow();
+        if (statement == null || statement.getMaxRows() <= 0
+            || endIndexInEntireResult < statement.getMaxRows()) {
+            if (buf != null) {
+                if (dataSize + 1 >= data.length) {
+                    growDataArray();
+                }
+                data[dataSize++] = buf;
+                processedRows++;
+                endIndexInEntireResult++;
             }
+        } else {
+            isLastRowSent = true;
+        }
+    }
+
+    protected void updateStartIndexInEntireResult() {
+        if (dataSize > 0) {
+            startIndexInEntireResult = endIndexInEntireResult - dataSize + 1;
+        } else {
+            startIndexInEntireResult = 0;
+            endIndexInEntireResult = 0;
         }
     }
 
@@ -546,7 +583,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-    protected boolean readNextValue() throws IOException, SQLException {
+    protected byte[] getNextRow() throws IOException, SQLException {
         byte[] buf = this.reader.getPacketArray(false);
 
         // is error Packet
@@ -596,24 +633,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
                 protocol.removeActiveStreamingResult();
             }
-            if ((serverStatus & ServerStatus.LAST_ROW_SENT) != 0) {
-                isLastRowSent = true;
-            } else {
-                isLastRowSent = false;
-            }
+            isLastRowSent = (serverStatus & ServerStatus.LAST_ROW_SENT) != 0;
             isEof = true;
-            return false;
+            return null;
         }
 
-        // this is a result-set row, save it
+        // is a result-set row, save it
         isEof = false;
-        if (dataSize + 1 >= data.length) {
-            growDataArray();
-        }
-        //        Buffer buffer = new Buffer(buf, buf.length);
-        //        handleCompleDataForBufferRow(buffer,this.columnsInformation,0);
-        data[dataSize++] = buf;
-        return true;
+        return buf;
     }
 
     /**
@@ -730,14 +757,26 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * Close resultSet.
      */
     public void close() throws SQLException {
+        realClose(true);
+    }
+
+    public void realClose(boolean calledExplicitly) throws SQLException {
+        SQLException exceptionDuringClose = null;
+
+        try {
+            closeUpdatable();
+        } catch (SQLException sqlEx) {
+            exceptionDuringClose = sqlEx;
+        }
+
         if (rsClass == ResultSetClass.STREAMING && !isEof) {
             lock.lock();
             try {
                 while (!isEof) {
                     dataSize = 0; // to avoid storing data
-                    readNextValue();
+                    getNextRow();
                 }
-
+                processedRows = 0;
             } catch (SQLException queryException) {
                 throw ExceptionFactory.INSTANCE.create(queryException);
             } catch (IOException ioe) {
@@ -752,11 +791,24 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Arrays.fill(data, null);
 
         if (statement != null) {
-            statement.checkCloseOnCompletion(this);
+            try {
+                statement.checkCloseOnCompletion(this);
+            } catch (SQLException sqlEx) {
+                exceptionDuringClose = sqlEx;
+            }
             statement = null;
         }
 
+        row = null;
+        columnsInformation = null;
+        complexData = null;
+        complexEndPos = null;
+        protocol = null;
         isClosed = true;
+
+        if (exceptionDuringClose != null) {
+            throw exceptionDuringClose;
+        }
     }
 
     private void resetVariables() {
@@ -856,6 +908,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
 
         // COMPLETE ResultSet
+        if (protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         return isEof && rowPointer == dataSize - 1 && dataSize > 0;
     }
 
@@ -1890,23 +1945,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public int findColumn(String columnLabel) throws SQLException {
-        int index = columnLabelIndexer.getIndex(columnLabel);
-        if (metaData == null) {
-            this.forceAlias = true;
-            metaData = this.getMetaData();
-        }
-
-        if (index == 0 || !columnLabel.equalsIgnoreCase(metaData.getColumnName(index))){
-            HashMap<String, Integer> map = new HashMap<>();
-            for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                String columnName = metaData.getColumnName(i);
-                map.put(columnName.toLowerCase(Locale.ROOT),i);
-            }
-            columnLabelIndexer.setAliasMap(map);
-            return columnLabelIndexer.getIndex(columnLabel);
-        } else {
-            return index;
-        }
+        return columnLabelIndexer.getIndex(columnLabel) - columnIndexOffset + 1;
     }
 
     /**
@@ -2055,7 +2094,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            Array ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type);
+            Array ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
             return ret;
         } else {
@@ -2079,10 +2118,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
             ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
             Object ret = null;
             if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
-                ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type);
+                ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
                 complexEndPos[actualColumnIndex - 1] = row.pos;
             } else if (type.getType() == ComplexDataType.TYPE_OBJECT) {
-                ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type);
+                ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type,conn);
                 complexEndPos[actualColumnIndex - 1] = row.pos;
             }
             return ret;
@@ -2109,7 +2148,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
                 throw new SQLException("the field complex type is not TYPE_COLLECTION");
             }
-            Struct ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type);
+            Struct ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
             return ret;
         } else {
@@ -2128,12 +2167,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
+        Connection conn = this.statement.getConnection();
         int internalColumnIndex = actualColumnIndex - 1;
         String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
         ComplexDataType type = new ComplexDataType(typeName, typeName, ColumnType.CURSOR.getType());
         if (complexData[internalColumnIndex] == null) {
             ComplexData data = (ComplexData) row.getInternalComplexCursor(
-                columnsInformation[internalColumnIndex], type);
+                columnsInformation[internalColumnIndex], type,conn);
             complexData[internalColumnIndex] = data;
             complexEndPos[actualColumnIndex - 1] = row.pos;
         }
@@ -2338,7 +2378,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         // check that resultSet concern one table and database exactly
         for (ColumnDefinition columnDefinition : columnsInformation) {
             if (columnDefinition.getDatabase() == null || columnDefinition.getDatabase().isEmpty()) {
-                cannotUpdateInsertRow("The result-set contains fields wit hout without any database information");
+                cannotUpdateInsertRow("The result-set contains fields without any database information");
                 return;
             } else if (database == null) {
                 database = columnDefinition.getDatabase();
@@ -2349,7 +2389,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
             if (columnDefinition.getOriginalTable() == null
                 || columnDefinition.getOriginalTable().isEmpty()) {
-                cannotUpdateInsertRow("The result-set contains fields without without any table information");
+                cannotUpdateInsertRow("The result-set contains fields without any table information");
                 return;
             } else if (table == null) {
                 table = columnDefinition.getOriginalTable();
@@ -2391,11 +2431,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     // update column information with SHOW COLUMNS additional informations
                     for (int index = columnIndexOffset; !found && index < columnInformationLength; index++) {
                         ColumnDefinition columnDefinition = columnsInformation[index];
-                        if (fieldName.equals(columnDefinition.getOriginalName())) {
+                        if (fieldName.equals(columnDefinition.getName())) {
                             updatableColumns[index - columnIndexOffset] = new UpdatableColumnDefinition(
-                                columnDefinition, canBeNull, hasDefault, generated, primary,
-                                autoIncrement);
+                                    columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
                             found = true;
+                            if (primary) {
+                                primaryKeyIndicies.add(index - columnIndexOffset);
+                            }
                         }
                     }
 
@@ -2441,7 +2483,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                         // abnormal error : some field in META are not listed in SHOW COLUMNS
                         cannotUpdateInsertRow("Metadata information not available for table `"
                                               + database + "`.`" + table + "`, field `"
-                                              + columnsInformation[index].getOriginalName() + "`");
+                                              + columnsInformation[index].getName() + "`");
                         ensureAllColumnHaveMeta = false;
                     }
                 }
@@ -2494,6 +2536,41 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return false; // compatible with Oracle
         } else {
             throw ExceptionFactory.INSTANCE.notSupported("Row deletes are not supported");
+        }
+    }
+
+    private void closeUpdatable() throws SQLException {
+        if (canBeUpdate) {
+            SQLException sqlEx = null;
+
+            try {
+                if (refreshPreparedStatement != null) {
+                    refreshPreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+            try {
+                if (insertPreparedStatement != null) {
+                    insertPreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+            try {
+                if (deletePreparedStatement != null) {
+                    deletePreparedStatement.close();
+                }
+            } catch (SQLException ex) {
+                sqlEx = ex;
+            }
+
+            updatableColumns = null;
+            updatableParameterHolders = null;
+
+            if (sqlEx != null) {
+                throw sqlEx;
+            }
         }
     }
 
@@ -2570,9 +2647,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 }
                 firstPrimary = false;
                 if (protocol.isOracleMode()) {
-                    whereClause.append("\"").append(colInfo.getOriginalName()).append("\" = ? ");
+                    whereClause.append("\"").append(colInfo.getName()).append("\" = ? ");
                 } else {
-                    whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                    whereClause.append("`").append(colInfo.getName()).append("` = ? ");
                 }
             }
         }
@@ -2590,9 +2667,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 columnClause.append(",");
             }
             if (protocol.isOracleMode()) {
-                columnClause.append("\"").append(colInfo.getOriginalName()).append("\"");
+                columnClause.append("\"").append(colInfo.getName()).append("\"");
             } else {
-                columnClause.append("`").append(colInfo.getOriginalName()).append("`");
+                columnClause.append("`").append(colInfo.getName()).append("`");
             }
         }
 
@@ -2634,46 +2711,39 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
 
             int fieldsIndex = 0;
-            boolean hasGeneratedPrimaryFields = false;
-            int generatedSqlType = 0;
             for (int pos = 0; pos < updatableColumnLength; pos++) {
                 ParameterHolder value = updatableParameterHolders[pos];
                 if (value != null) {
                     insertPreparedStatement.setParameter((fieldsIndex++) + 1, value);
                 } else {
-                    if (!protocol.isOracleMode()) {
-                        UpdatableColumnDefinition colInfo = updatableColumns[pos];
-                        if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
-                            hasGeneratedPrimaryFields = true;
-                            generatedSqlType = colInfo.getColumnType().getSqlType();
-                        }
-                    }
-                    insertPreparedStatement.setParameter((fieldsIndex++) + 1,
-                        new DefaultParameter());
+                    insertPreparedStatement.setParameter((fieldsIndex++) + 1, new DefaultParameter());
                 }
             }
 
             insertPreparedStatement.execute();
 
             if (!protocol.isOracleMode()) {
-                if (hasGeneratedPrimaryFields) {
-                    // primary is auto_increment (only one field)
-                    ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
-                    if (rsKey.next()) {
-                        prepareRefreshStmt();
-                        refreshPreparedStatement.setObject(1, rsKey.getObject(1), generatedSqlType);
-                        SelectResultSet rs = (SelectResultSet) refreshPreparedStatement
-                            .executeQuery();
+                prepareRefreshStmt();
+                refreshPreparedStatement.clearParameters();
 
-                        // update row data only if not deleted externally
-                        if (rs.next()) {
-                            addRowData(rs.getCurrentRowData());
+                for (int index: primaryKeyIndicies) {
+                    if (updatableColumns[index].isAutoIncrement()) {
+                        long autoIncrementId = ((CmdInformationSingle)insertPreparedStatement.results.getCmdInformation()).getInsertId();
+                        if (autoIncrementId > 0) {
+                            refreshPreparedStatement.setObject(index+1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
                         }
-                        rs.close();
+                    } else {
+                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(index + 1, updatableParameterHolders[index]);
                     }
-                    rsKey.close();
+                }
+
+                SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
+                // update row data only if not deleted externally
+                if (rs.next()) {
+                    addRowData(rs.getCurrentRowData());
+                    rs.close();
                 } else {
-                    addRowData(refreshRowInternalMysql());
+                    throw new SQLException(UpdatableResultSet_12);
                 }
             }
 
@@ -2716,9 +2786,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     firstUpdate = false;
                     fieldsToUpdate++;
                     if (protocol.isOracleMode()) {
-                        updateSql.append("\"").append(colInfo.getOriginalName()).append("\" = ? ");
+                        updateSql.append("\"").append(colInfo.getName()).append("\" = ? ");
                     } else {
-                        updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+                        updateSql.append("`").append(colInfo.getName()).append("` = ? ");
                     }
                 }
             }
@@ -3829,14 +3899,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
         return dataSize;
     }
 
-    public boolean isBinaryEncoded() {
-        return row.isBinaryEncoded();
+    public long getProcessedRows() {
+        return processedRows;
     }
 
-    protected void resetState() {
-        this.dataSize = -1;
-        this.rowPointer = -1;
-        this.lastRowPointer = -1;
+    public boolean isBinaryEncoded() {
+        return row.isBinaryEncoded();
     }
 
     public boolean isEof() {

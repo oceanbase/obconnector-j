@@ -52,9 +52,10 @@ package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Locale;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.function.Supplier;
+
+import javax.swing.*;
 
 import com.oceanbase.jdbc.OceanBaseDatabaseMetaData;
 import com.oceanbase.jdbc.credential.Credential;
@@ -284,7 +285,8 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0) {
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0
+            && options.sendConnectionAttributes) {
             writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
         }
 
@@ -296,37 +298,56 @@ public class SendHandshakeResponsePacket {
                                                String host, Options options, String clientIp)
                                                                                              throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
-        buffer.writeStringSmallLength(_MYSQL_CLIENT_TYPE.getBytes(pos.getCharset()));
-        buffer.writeStringLength(CLIENT_TYPE, pos.getCharset());
-
-        buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
-        buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
-
-        buffer.writeStringSmallLength(_CLIENT_VERSION.getBytes(pos.getCharset()));
-        buffer.writeStringLength(Version.version, pos.getCharset());
-
-        buffer.writeStringSmallLength(_SERVER_HOST.getBytes(pos.getCharset()));
-        buffer.writeStringLength((host != null) ? host : "", pos.getCharset());
-
-        buffer.writeStringSmallLength(_CLIENT_IP.getBytes(pos.getCharset()));
-        buffer.writeStringLength((clientIp != null) ? clientIp : "", pos.getCharset());
-
-        buffer.writeStringSmallLength(_OS.getBytes(pos.getCharset()));
-        buffer.writeStringLength(System.getProperty("os.name"), pos.getCharset());
-        String pid = pidRequest.get();
-        if (pid != null) {
-            buffer.writeStringSmallLength(_PID.getBytes(pos.getCharset()));
-            buffer.writeStringLength(pid, pos.getCharset());
+        Set<String>  banListSet = new HashSet<>();
+        String[] banListArray = new String[0];
+        if (options.defaultConnectionAttributesBanList!=null) {
+            banListArray = options.defaultConnectionAttributesBanList.split(",");
+        }
+        Collections.addAll(banListSet,banListArray);
+        if (!banListSet.contains(_MYSQL_CLIENT_TYPE)) {
+            buffer.writeStringSmallLength(_MYSQL_CLIENT_TYPE.getBytes(pos.getCharset()));
+            buffer.writeStringLength(CLIENT_TYPE, pos.getCharset());
+        }
+        if (!banListSet.contains(_CLIENT_NAME)) {
+            buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
+            buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
+        }
+        if (!banListSet.contains(_CLIENT_VERSION)) {
+            buffer.writeStringSmallLength(_CLIENT_VERSION.getBytes(pos.getCharset()));
+            buffer.writeStringLength(Version.version, pos.getCharset());
         }
 
-        buffer.writeStringSmallLength(_THREAD.getBytes(pos.getCharset()));
-        buffer.writeStringLength(Long.toString(Thread.currentThread().getId()), pos.getCharset());
-
-        buffer.writeStringLength(_JAVA_VENDOR.getBytes(pos.getCharset()));
-        buffer.writeStringLength(System.getProperty("java.vendor"), pos.getCharset());
-
-        buffer.writeStringSmallLength(_JAVA_VERSION.getBytes(pos.getCharset()));
-        buffer.writeStringLength(System.getProperty("java.version"), pos.getCharset());
+        if (!banListSet.contains(_SERVER_HOST)) {
+            buffer.writeStringSmallLength(_SERVER_HOST.getBytes(pos.getCharset()));
+            buffer.writeStringLength((host != null) ? host : "", pos.getCharset());
+        }
+        if (!banListSet.contains(_CLIENT_IP)) {
+            buffer.writeStringSmallLength(_CLIENT_IP.getBytes(pos.getCharset()));
+            buffer.writeStringLength((clientIp != null) ? clientIp : "", pos.getCharset());
+        }
+        if (!banListSet.contains(_OS)) {
+            buffer.writeStringSmallLength(_OS.getBytes(pos.getCharset()));
+            buffer.writeStringLength(System.getProperty("os.name"), pos.getCharset());
+        }
+        if (!banListSet.contains(_PID)) {
+            String pid = pidRequest.get();
+            if (pid != null) {
+                buffer.writeStringSmallLength(_PID.getBytes(pos.getCharset()));
+                buffer.writeStringLength(pid, pos.getCharset());
+            }
+        }
+        if (!banListSet.contains(_THREAD)) {
+            buffer.writeStringSmallLength(_THREAD.getBytes(pos.getCharset()));
+            buffer.writeStringLength(Long.toString(Thread.currentThread().getId()), pos.getCharset());
+        }
+        if (!banListSet.contains(_JAVA_VENDOR)) {
+            buffer.writeStringLength(_JAVA_VENDOR.getBytes(pos.getCharset()));
+            buffer.writeStringLength(System.getProperty("java.vendor"), pos.getCharset());
+        }
+        if (!banListSet.contains(_JAVA_VERSION)) {
+            buffer.writeStringSmallLength(_JAVA_VERSION.getBytes(pos.getCharset()));
+            buffer.writeStringLength(System.getProperty("java.version"), pos.getCharset());
+        }
 
         if (connectionAttributes != null) {
             StringTokenizer tokenizer = new StringTokenizer(connectionAttributes, ",");
@@ -342,22 +363,24 @@ public class SendHandshakeResponsePacket {
                 }
             }
         }
+        if (!banListSet.contains("__proxy_capability_flag")) {
+            long capFlag = OB_CAPABILITY_FLAG_VALUE;
+            if (!options.useObChecksum) {
+                capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM);
+                capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH);
+            }
+            if (!options.useOceanBaseProtocolV20) {
+                capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2);
+            }
+            if (options.enableFullLinkTrace) {
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE;
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO;
+            }
+            // add ob_connector_capability_flag for oceanbase server
 
-        long capFlag = OB_CAPABILITY_FLAG_VALUE;
-        if (!options.useObChecksum) {
-            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM);
-            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH);
+            buffer.writeStringSmallLength("__proxy_capability_flag".getBytes(pos.getCharset()));
+            buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }
-        if (!options.useOceanBaseProtocolV20) {
-            capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2);
-        }
-        if (options.enableFullLinkTrace) {
-            capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE;
-            capFlag |= OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO;
-        }
-        // add ob_connector_capability_flag for oceanbase server
-        buffer.writeStringSmallLength("__proxy_capability_flag".getBytes(pos.getCharset()));
-        buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
 
         // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);

@@ -57,10 +57,12 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Results {
@@ -80,6 +82,7 @@ public class Results {
     private boolean                toCursorFetch;       // cursor exists
     private boolean                toPrepareExecute;    // use ComStmtPrepareExecute
     private boolean                internalResult;      // returning into, array binding error, pl out parameter
+    private boolean                returning;
     private boolean                batch;
     private int                    expectedSize;
 
@@ -90,6 +93,16 @@ public class Results {
     private boolean                rewritten;
     private CmdInformation         cmdInformation;
     private boolean                batchSucceed = false;
+
+    public boolean isExecuteBatchStmt() {
+        return executeBatchStmt;
+    }
+
+    public void setExecuteBatchStmt(boolean executeBatchStmt) {
+        this.executeBatchStmt = executeBatchStmt;
+    }
+
+    private boolean executeBatchStmt = false;
 
     /**
      * Single Text query. /! use internally, because autoincrement value is not right for
@@ -150,6 +163,19 @@ public class Results {
         this.toCursorFetch = false;
     }
 
+    boolean containOnDuplicateKey(String sql, Protocol protocol) {
+        if (sql == null || sql.length() == 0) {
+            return false;
+        }
+        if (protocol == null) {
+            return false;
+        }
+
+        Utils.TrimSQLInfo trimSQLInfo = Utils.trimSQLStringInternal(sql,
+            protocol.noBackslashEscapes(), protocol.isOracleMode(), true);
+        return trimSQLInfo.getOnDuplicateKeyUpdateIndex() == -1 ? false : true;
+    }
+
     /**
      * Add execution statistics.
      *
@@ -168,7 +194,12 @@ public class Results {
                 return;
             }
         }
-        cmdInformation.addSuccessStat(updateCount, insertId);
+        cmdInformation
+            .addSuccessStat(
+                updateCount,
+                insertId,
+                containOnDuplicateKey(statement.getActualSql(), statement.getConnection()
+                    .getProtocol()));
     }
 
     /**
@@ -400,12 +431,17 @@ public class Results {
                 resultSet.close();
             }
             resultSet = null;
+            protocol.removeActiveStreamingResult();
             return false;
         }
     }
 
     public int getFetchSize() {
         return fetchSize;
+    }
+
+    public void setFetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
     }
 
     public OceanBaseStatement getStatement() {
@@ -471,12 +507,22 @@ public class Results {
     }
 
     public void close() throws SQLException {
-        if (statement != null) {
-            statement.realClose();
-        }
         statement = null;
         statementId = 0;
         fetchSize = 0;
+
+        resultSet = null;
+        callableResultSet = null;
+        executionResults = null;
+    }
+
+    public void closeAllOpenResults() throws SQLException {
+        if (executionResults != null) {
+            for (JDBC4ResultSet rs : executionResults) {
+                rs.realClose(false);
+            }
+            executionResults.clear();
+        }
     }
 
     public int getMaxFieldSize() {
@@ -526,4 +572,13 @@ public class Results {
     public Deque<SelectResultSet> getExecutionResults() {
         return executionResults;
     }
+
+    public void setReturning(boolean isReturning) {
+        returning = isReturning;
+    }
+
+    public boolean isReturning() {
+        return returning;
+    }
+
 }

@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.util.dao;
 
 import java.nio.charset.Charset;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,12 +66,17 @@ public class ClientPrepareResult implements PrepareResult {
 
     private ClientPrepareResult(String sql, List<byte[]> queryParts,
                                 boolean isQueryMultiValuesRewritable,
-                                boolean isQueryMultipleRewritable, boolean rewriteType) {
+                                boolean isQueryMultipleRewritable, boolean rewriteType,
+                                boolean hasParam) {
         this.sql = sql;
         this.queryParts = queryParts;
         this.isQueryMultiValuesRewritable = isQueryMultiValuesRewritable;
         this.isQueryMultipleRewritable = isQueryMultipleRewritable;
-        this.paramCount = queryParts.size() - (rewriteType ? 3 : 1);
+        if (!hasParam) {
+            this.paramCount = 0;
+        } else {
+            this.paramCount = queryParts.size() - (rewriteType ? 3 : 1);
+        }
         this.rewriteType = rewriteType;
     }
 
@@ -281,7 +287,7 @@ public class ClientPrepareResult implements PrepareResult {
         }
 
     return new ClientPrepareResult(
-        queryString, partList, reWritablePrepare, multipleQueriesPrepare, false);
+        queryString, partList, reWritablePrepare, multipleQueriesPrepare, false,true);
   }
 
     /**
@@ -442,6 +448,7 @@ public class ClientPrepareResult implements PrepareResult {
     boolean multipleQueriesPrepare = true;
     List<byte[]> partList = new ArrayList<>();
     LexState state = LexState.Normal;
+    KeyState keyState = KeyState.Normal;
     char lastChar = '\0';
 
     StringBuilder sb = new StringBuilder();
@@ -459,6 +466,8 @@ public class ClientPrepareResult implements PrepareResult {
     boolean semicolon = false;
     boolean hasParam = false;
     boolean endNameBinding = false;
+    int     onDuplicateKeyUpdateIndex = -1;
+
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
     for (int i = 0; i < queryLength; i++) {
@@ -610,23 +619,31 @@ public class ClientPrepareResult implements PrepareResult {
           if (state == LexState.Normal
               && preValuePart1 == null
               && (lastChar == ')' || ((byte) lastChar <= 40))
-              && queryLength > i + 7
+              && queryLength > i + 6
               && (query[i + 1] == 'a' || query[i + 1] == 'A')
               && (query[i + 2] == 'l' || query[i + 2] == 'L')
               && (query[i + 3] == 'u' || query[i + 3] == 'U')
-              && (query[i + 4] == 'e' || query[i + 4] == 'E')
-              && (query[i + 5] == 's' || query[i + 5] == 'S')
-              && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-            sb.append(car);
-            sb.append(query[i + 1]);
-            sb.append(query[i + 2]);
-            sb.append(query[i + 3]);
-            sb.append(query[i + 4]);
-            sb.append(query[i + 5]);
-            i = i + 5;
-            preValuePart1 = sb.toString();
-            sb.setLength(0);
-            skipChar = true;
+              && (query[i + 4] == 'e' || query[i + 4] == 'E')) {
+              boolean flagValues = false;
+              boolean flagValue = false;
+              flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
+              flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
+              if((isOracleMode && flagValues )|| (!isOracleMode && (flagValues || flagValue)) ){
+                  sb.append(car);
+                  sb.append(query[i + 1]);
+                  sb.append(query[i + 2]);
+                  sb.append(query[i + 3]);
+                  sb.append(query[i + 4]);
+                  if(flagValue && !isOracleMode) {
+                      i = i + 4;
+                  } else {
+                      sb.append(query[i + 5]);
+                      i = i + 5;
+                  }
+                  preValuePart1 = sb.toString();
+                  sb.setLength(0);
+                  skipChar = true;
+              }
           }
           break;
         case 'l':
@@ -668,6 +685,67 @@ public class ClientPrepareResult implements PrepareResult {
             }
           }
           break;
+          case 'o':
+          case 'O':
+              if (state == LexState.Normal
+                      && postValuePart == null
+                      && queryLength > i  + 1
+                      && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
+                  onDuplicateKeyUpdateIndex = sb.toString().length();
+                  sb.append(car);
+                  keyState = KeyState.No;
+                  skipChar = true;
+              }
+              break;
+          case 'd':
+          case 'D':
+              if (state == LexState.Normal
+                      && keyState == KeyState.No
+                      && postValuePart == null
+                      && queryLength > i  + 8
+                      && (query[i + 1] == 'u' || query[i + 1] == 'U')
+                      && (query[i + 2] == 'p' || query[i + 2] == 'P')
+                      && (query[i + 3] == 'l' || query[i + 3] == 'L')
+                      && (query[i + 4] == 'i' || query[i + 4] == 'I')
+                      && (query[i + 5] == 'c' || query[i + 5] == 'C')
+                      && (query[i + 6] == 'a' || query[i + 6] == 'A')
+                      && (query[i + 7] == 't' || query[i + 7] == 'T')
+                      && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
+                  sb.append(car);
+                  keyState = KeyState.Duplicate;
+                  skipChar = true;
+              }
+              break;
+          case 'k':
+          case 'K':
+              if (state == LexState.Normal
+                      && keyState == KeyState.Duplicate
+                      && postValuePart == null
+                      && queryLength > i  + 2
+                      && (query[i + 1] == 'e' || query[i + 1] == 'E')
+                      && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
+                  sb.append(car);
+                  keyState = KeyState.Key;
+                  skipChar = true;
+              }
+              break;
+          case 'u':
+          case 'U':
+              if (state == LexState.Normal
+                      && keyState == KeyState.Key
+                      && postValuePart == null
+                      && queryLength > i  + 5
+                      && (query[i + 1] == 'p' || query[i + 1] == 'P')
+                      && (query[i + 2] == 'd' || query[i + 2] == 'D')
+                      && (query[i + 3] == 'a' || query[i + 3] == 'A')
+                      && (query[i + 4] == 't' || query[i + 4] == 'T')
+                      && (query[i + 5] == 'e' || query[i + 5] == 'E')) {
+                  sb.append(car);
+                  keyState = KeyState.Update;
+                  skipChar = true;
+              }
+              break;
+
         default:
           if (state == LexState.Normal && isFirstChar && ((byte) car >= 40)) {
             if (car == 'I' || car == 'i') {
@@ -698,7 +776,12 @@ public class ClientPrepareResult implements PrepareResult {
         partList.add(1, new byte[0]);
       } else {
         partList.add(0, preValuePart1.getBytes(charset));
-        partList.add(1, sb.toString().getBytes(charset));
+        if(keyState == KeyState.Update && onDuplicateKeyUpdateIndex !=-1) {
+            partList.add(1, sb.substring(0,onDuplicateKeyUpdateIndex).getBytes(charset));
+            partList.add(2, sb.substring(onDuplicateKeyUpdateIndex).getBytes(charset));
+        } else {
+            partList.add(1, sb.toString().getBytes(charset));
+        }
       }
       sb.setLength(0);
     } else {
@@ -723,7 +806,7 @@ public class ClientPrepareResult implements PrepareResult {
     partList.add(sb.toString().getBytes(charset));
 
     return new ClientPrepareResult(
-        queryString, partList, reWritablePrepare, multipleQueriesPrepare, true);
+        queryString, partList, reWritablePrepare, multipleQueriesPrepare, true,hasParam);
   }
 
     public static List<String> rewritablePartsInsertSql(
@@ -752,6 +835,8 @@ public class ClientPrepareResult implements PrepareResult {
         boolean endNameBinding = false;
         char[] query = queryString.toCharArray();
         int queryLength = query.length;
+        KeyState keyState = KeyState.Normal;
+        int onDuplicateKeyUpdateIndex = -1;
         for (int i = 0; i < queryLength; i++) {
 
             char car = query[i];
@@ -901,23 +986,31 @@ public class ClientPrepareResult implements PrepareResult {
                     if (state == LexState.Normal
                             && preValuePart1 == null
                             && (lastChar == ')' || ((byte) lastChar <= 40))
-                            && queryLength > i + 7
+                            && queryLength > i + 6
                             && (query[i + 1] == 'a' || query[i + 1] == 'A')
                             && (query[i + 2] == 'l' || query[i + 2] == 'L')
                             && (query[i + 3] == 'u' || query[i + 3] == 'U')
-                            && (query[i + 4] == 'e' || query[i + 4] == 'E')
-                            && (query[i + 5] == 's' || query[i + 5] == 'S')
-                            && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-                        sb.append(car);
-                        sb.append(query[i + 1]);
-                        sb.append(query[i + 2]);
-                        sb.append(query[i + 3]);
-                        sb.append(query[i + 4]);
-                        sb.append(query[i + 5]);
-                        i = i + 5;
-                        preValuePart1 = sb.toString();
-                        sb.setLength(0);
-                        skipChar = true;
+                            && (query[i + 4] == 'e' || query[i + 4] == 'E')){
+                        boolean flagValues = false;
+                        boolean flagValue = false;
+                        flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
+                        flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
+                        if((isOracleMode && flagValues )|| (!isOracleMode && (flagValues || flagValue)) ) {
+                            sb.append(car);
+                            sb.append(query[i + 1]);
+                            sb.append(query[i + 2]);
+                            sb.append(query[i + 3]);
+                            sb.append(query[i + 4]);
+                            if (flagValue && !isOracleMode) {
+                                i = i + 4;
+                            } else {
+                                sb.append(query[i + 5]);
+                                i = i + 5;
+                            }
+                            preValuePart1 = sb.toString();
+                            sb.setLength(0);
+                            skipChar = true;
+                        }
                     }
                     break;
                 case 'l':
@@ -940,6 +1033,67 @@ public class ClientPrepareResult implements PrepareResult {
                             && query[i + 14] == '(') {
                         sb.append(car);
                         reWritablePrepare = false;
+                        skipChar = true;
+                    }
+                    break;
+
+                case 'o':
+                case 'O':
+                    if (state == LexState.Normal
+                            && postValuePart == null
+                            && queryLength > i  + 1
+                            && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
+                        onDuplicateKeyUpdateIndex = sb.toString().length();
+                        sb.append(car);
+                        keyState = KeyState.No;
+                        skipChar = true;
+                    }
+                    break;
+                case 'd':
+                case 'D':
+                    if (state == LexState.Normal
+                            && keyState == KeyState.No
+                            && postValuePart == null
+                            && queryLength > i  + 8
+                            && (query[i + 1] == 'u' || query[i + 1] == 'U')
+                            && (query[i + 2] == 'p' || query[i + 2] == 'P')
+                            && (query[i + 3] == 'l' || query[i + 3] == 'L')
+                            && (query[i + 4] == 'i' || query[i + 4] == 'I')
+                            && (query[i + 5] == 'c' || query[i + 5] == 'C')
+                            && (query[i + 6] == 'a' || query[i + 6] == 'A')
+                            && (query[i + 7] == 't' || query[i + 7] == 'T')
+                            && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
+                        sb.append(car);
+                        keyState = KeyState.Duplicate;
+                        skipChar = true;
+                    }
+                    break;
+                case 'k':
+                case 'K':
+                    if (state == LexState.Normal
+                            && keyState == KeyState.Duplicate
+                            && postValuePart == null
+                            && queryLength > i  + 2
+                            && (query[i + 1] == 'e' || query[i + 1] == 'E')
+                            && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
+                        sb.append(car);
+                        keyState = KeyState.Key;
+                        skipChar = true;
+                    }
+                    break;
+                case 'u':
+                case 'U':
+                    if (state == LexState.Normal
+                            && keyState == KeyState.Key
+                            && postValuePart == null
+                            && queryLength > i  + 5
+                            && (query[i + 1] == 'p' || query[i + 1] == 'P')
+                            && (query[i + 2] == 'd' || query[i + 2] == 'D')
+                            && (query[i + 3] == 'a' || query[i + 3] == 'A')
+                            && (query[i + 4] == 't' || query[i + 4] == 'T')
+                            && (query[i + 5] == 'e' || query[i + 5] == 'E')) {
+                        sb.append(car);
+                        keyState = KeyState.Update;
                         skipChar = true;
                     }
                     break;
@@ -988,8 +1142,14 @@ public class ClientPrepareResult implements PrepareResult {
                 stringPartList.add(0,sb.toString());
                 stringPartList.add(1,"?");
             } else {
+
                 stringPartList.add(0,preValuePart1);
-                stringPartList.add(1,sb.toString());
+                if(keyState == KeyState.Update && onDuplicateKeyUpdateIndex !=-1) {
+                    stringPartList.add(1, sb.substring(0,onDuplicateKeyUpdateIndex));
+                    stringPartList.add(2, sb.substring(onDuplicateKeyUpdateIndex));
+                } else {
+                    stringPartList.add(1, sb.toString());
+                }
             }
             sb.setLength(0);
         } else {
@@ -1051,5 +1211,13 @@ public class ClientPrepareResult implements PrepareResult {
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */,
         NabmeBinding /* in name binding such as :name */
+    }
+
+    enum KeyState {
+        Normal, /* inside  query */
+        No,
+        Duplicate,
+        Key,
+        Update
     }
 }

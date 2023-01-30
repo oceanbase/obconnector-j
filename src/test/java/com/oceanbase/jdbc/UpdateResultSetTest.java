@@ -1049,4 +1049,40 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
         assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
     }
+
+    @Test
+    public void testDefaultPrimaryKey() throws Exception {
+        //        createTable("testUpdatedAbleInsert", "c1 int(20) AUTO_INCREMENT, c2 int(20) , c3 int(20), PRIMARY KEY (c1, c2)",
+        //                "engine=innodb"); // success
+        //        createTable("testUpdatedAbleInsert", "c1 int(20) AUTO_INCREMENT, c2 int(20) , c3 int(20), PRIMARY KEY (c1, c2)",
+        //                "engine=myisam"); // success
+        //        createTable("testUpdatedAbleInsert", "c1 int(20) , c2 int(20) AUTO_INCREMENT, c3 int(20), PRIMARY KEY (c1, c2)",
+        //                "engine=innodb"); // fail
+        createTable("testUpdatedAbleInsert",
+            "c1 int(20) , c2 int(20) AUTO_INCREMENT, c3 int(20), PRIMARY KEY (c1, c2)",
+            "engine=myisam"); // success
+
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdatedAbleInsert");
+
+        rs.moveToInsertRow();
+        rs.updateInt("c1", 1);
+        //        rs.updateInt("c2", 1);
+        rs.updateInt("c3", 1);
+        rs.insertRow();
+        rs.last();
+        assertEquals(1, rs.getInt("c2"));
+        assertEquals(1, rs.getInt("c3"));
+
+        rs.moveToInsertRow();
+        rs.updateInt("c1", 2);
+        //        rs.updateInt("c2", 1);
+        rs.updateInt("c3", 2);
+        rs.insertRow();
+        rs.last();
+        assertEquals(2, rs.getInt("c2")); //mysql:1
+        assertEquals(2, rs.getInt("c3"));
+    }
+
 }

@@ -43,13 +43,15 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.fail;
+
 import java.sql.*;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ProcTest extends BaseTest {
+public class ProcedureTest extends BaseTest {
     public static String procName  = "testProc" + getRandomString(5);
     public static String tableUser = "tUser" + getRandomString(5);
 
@@ -127,4 +129,78 @@ public class ProcTest extends BaseTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testParameterNoRegister() throws SQLException {
+        createProcedure("testProc1", "(out a int) BEGIN SELECT 1; END");
+        CallableStatement cs = sharedConnection.prepareCall("call testProc1(1)");
+        try {
+            cs.execute();
+            fail();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.assertEquals(e.getMessage(),
+                "Parameter `a` is not registered as an output parameter.");
+        }
+
+        createProcedure("testProc2", "(out a int) BEGIN SELECT 1 into a; END");
+        CallableStatement cs2 = sharedConnection.prepareCall("call testProc2(1)");
+        try {
+            cs2.execute();
+            fail();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.assertEquals(e.getMessage(),
+                "Parameter `a` is not registered as an output parameter.");
+        }
+    }
+
+    @Test
+    public void testParameterNoRegister2() throws SQLException {
+        createProcedure("testProc1", "(out a int) BEGIN SELECT 1; END");
+        CallableStatement cs = sharedConnection.prepareCall("call testProc1(?)");
+
+        cs.execute();
+        Assert.assertEquals(0, cs.getInt(1));
+
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        Assert.assertEquals(0, cs.getInt(1));
+
+        createProcedure("testProc2", "(out a int) BEGIN SELECT 1 into a; END");
+        CallableStatement cs2 = sharedConnection.prepareCall("call testProc2(?)");
+
+        cs2.execute();
+        Assert.assertEquals(1, cs2.getInt(1));
+
+        cs2.registerOutParameter(1, Types.INTEGER);
+        cs2.execute();
+        Assert.assertEquals(1, cs2.getInt(1));
+    }
+
+    @Test
+    public void testProcedureDefaultValue() throws Exception {
+        createProcedure(
+            "testPro",
+            "(c1 int, out c2 int, c3 int, out c4 int, out c5 int, c6 int, c7 int) BEGIN SELECT 1 into c2; select 2 into c4; select 3 into c5; END");
+
+        CallableStatement cstmt = sharedConnection
+            .prepareCall("{CALL testPro(4, ?, 5, ?, ?, 6, 7)}");
+        cstmt.registerOutParameter(2, Types.INTEGER);
+        cstmt.registerOutParameter(3, Types.INTEGER);
+        cstmt.execute();
+        Assert.assertEquals(1, cstmt.getInt(1));
+        Assert.assertEquals(2, cstmt.getInt(2));
+        Assert.assertEquals(3, cstmt.getInt(3));
+
+        cstmt.clearParameters();
+        cstmt.registerOutParameter(1, Types.INTEGER);
+        cstmt.registerOutParameter(2, Types.INTEGER);
+        cstmt.registerOutParameter(3, Types.INTEGER);
+        cstmt.execute();
+        Assert.assertEquals(1, cstmt.getInt(1));
+        Assert.assertEquals(2, cstmt.getInt(2));
+        Assert.assertEquals(3, cstmt.getInt(3));
+    }
+
 }

@@ -58,6 +58,8 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import com.oceanbase.jdbc.internal.ColumnType;
+
 public class OceanBaseCallableParameterMetaData extends CallableParameterMetaData {
 
     protected Map<String, CallParameter> mapNameToParameter;
@@ -149,14 +151,23 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
         CallParameter callParameter = params.get(0);
+
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
-        callParameter.setTypeName(matcher.group(2).trim());
-        callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-        String scale = matcher.group(3);
-        if (scale != null) {
-            scale = scale.replace("(", "").replace(")", "").replace(" ", "");
-            callParameter.setScale(Integer.valueOf(scale));
+
+        String typeName = matcher.group(2).trim();
+        callParameter.setTypeName(typeName);
+        int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+        callParameter.setSqlType(sqlType);
+        callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+
+        String columnSize = matcher.group(3);
+        if (columnSize != null) {
+            columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
+            if (columnSize.contains(",")) {
+                columnSize = columnSize.substring(0, columnSize.indexOf(","));
+            }
+            callParameter.setPrecision(Integer.parseInt(columnSize));
         }
     }
 
@@ -170,15 +181,11 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
         while (matcher2.find()) {
             CallParameter callParameter = new CallParameter();
+
             String direction = matcher2.group(1);
             if (direction != null) {
                 direction = direction.trim();
             }
-
-            callParameter.setName(matcher2.group(2).trim());
-            callParameter.setSigned(matcher2.group(3) == null);
-            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
-
             if (direction == null || direction.equalsIgnoreCase("IN")) {
                 callParameter.setInput(true);
             } else if (direction.equalsIgnoreCase("OUT")) {
@@ -191,16 +198,24 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                         "unknown parameter direction " + direction + "for " + callParameter.getName());
             }
 
-            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+            callParameter.setName(matcher2.group(2).trim());
+            callParameter.setSigned(matcher2.group(3) == null);
 
-            String scale = matcher2.group(5);
-            if (scale != null) {
-                scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
-                if (scale.contains(",")) {
-                    scale = scale.substring(0, scale.indexOf(","));
+            String typeName = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
+            callParameter.setTypeName(typeName);
+            int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+            callParameter.setSqlType(sqlType);
+            callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+
+            String columnSize = matcher2.group(5);
+            if (columnSize != null) {
+                columnSize = columnSize.trim().replace("(", "").replace(")", "").replace(" ", "");
+                if (columnSize.contains(",")) {
+                    columnSize = columnSize.substring(0, columnSize.indexOf(","));
                 }
-                callParameter.setScale(Integer.valueOf(scale));
+                callParameter.setPrecision(Integer.parseInt(columnSize));
             }
+
             params.add(callParameter);
         }
     }
@@ -268,7 +283,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             String paramName = paramTypesRs.getString("ARGUMENT_NAME");
             String typeName = paramTypesRs.getString("DATA_TYPE");
             //TODO need add currect jdbcType
-            int jdbcType = mapMariaDbTypeToJdbc(typeName);//ColumnType.classFromJavaType(1);
+            int jdbcType = ColumnType.convertDbTypeToSqlType(typeName);//ColumnType.convertSqlTypeToClass(1);
             int precision = paramTypesRs.getInt("DATA_PRECISION");
             int scale = paramTypesRs.getInt("DATA_SCALE");
             short nullability = DatabaseMetaData.procedureNullable;

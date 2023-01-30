@@ -154,7 +154,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     private java.sql.Connection      complexConnection                   = null;
     private boolean                  autoCommit                          = true;
     private Map<String, Class<?>>    typeMap;
-    private static final String      complexTypeSql                      = "SELECT\n"
+    private static final String      complexTypeSql                      = "SELECT * from (SELECT\n"
                                                                            + "  0 DEPTH,\n"
                                                                            + "  NULL PARENT_OWNER,\n"
                                                                            + "  NULL PARENT_TYPE,\n"
@@ -230,7 +230,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                            + "  FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE\n"
                                                                            + ")\n"
                                                                            + "SELECT * FROM CTE\n"
-                                                                           + ");";
+                                                                           + ") ) ORDER BY DEPTH;";
     private Map<String, Integer>     indexMap;
     private int                      isolationLevel                      = 2;
     private static ReentrantLock     threadLock                          = new ReentrantLock();
@@ -603,11 +603,11 @@ public class OceanBaseConnection implements ConnectionImpl {
         return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
-    private String getCachedSql(String originSql) throws SQLException {
+    private String getCachedSql(String originSql) {
         if (StringCacheUtil.sqlStringCache == null) {
             return originSql;
         }
-        String sqlCache = StringCacheUtil.sqlStringCache.getIfPresent(originSql);
+        String sqlCache = (String) StringCacheUtil.sqlStringCache.get(originSql);
         if (sqlCache == null) {
             StringCacheUtil.sqlStringCache.put(originSql, originSql);
             sqlCache = originSql;
@@ -1031,6 +1031,8 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getProtocol().isOracleMode()) {
             return;
         }
+
+        checkClosed();
         if (catalog == null) {
             throw new SQLException("The catalog name may not be null", "XAE05");
         }
@@ -1758,7 +1760,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 } else {
                     tmpString = "SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')";
                 }
-                String complexAllTypeSql = "SELECT\n" + "    0 DEPTH,\n"
+                String complexAllTypeSql = "SELECT * from (SELECT\n" + "    0 DEPTH,\n"
                                            + "    NULL PARENT_OWNER,\n" + "    NULL PARENT_TYPE,\n"
                                            + "    to_char(TYPE_NAME) CHILD_TYPE,\n"
                                            + "    0 ATTR_NO,\n" + "    OWNER CHILD_TYPE_OWNER,\n"
@@ -1831,7 +1833,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                                            + "      CTE_RESULT.SCALE,\n"
                                            + "      CTE_RESULT.CHARACTER_SET_NAME\n"
                                            + "    FROM CTE_RESULT INNER JOIN CTE ON CTE_RESULT.PARENT_TYPE = CTE.CHILD_TYPE AND CTE_RESULT.PARENT_OWNER = CTE.CHILD_TYPE_OWNER\n"
-                                           + "  )\n" + "  SELECT * FROM CTE\n" + "  );";
+                                           + "  )\n"
+                                           + "  SELECT * FROM CTE\n"
+                                           + "  ) ) ORDER BY DEPTH;";
                 ps = conn.prepareStatement(complexAllTypeSql, ResultSet.TYPE_SCROLL_INSENSITIVE,
                     ResultSet.CONCUR_READ_ONLY);
 
@@ -1851,8 +1855,6 @@ public class OceanBaseConnection implements ConnectionImpl {
                             rs.getString(CHILD_OWNER_INDEX), type);
                         complexType.setValid(false);
                         recacheComplexDataType(complexType);
-                    } else {
-                        complexType.setValid(false);
                     }
                 } else {
                     // for base data type
@@ -2090,22 +2092,22 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public String getSchema() throws SQLException {
         // We support only catalog
-        //        return null;
-        if (this.protocol.isOracleMode()) {
-            return this.getDatabase().toUpperCase();
-            //            return this.getUsername();
-        } else {
-            return this.getCatalog();
+        if (!this.protocol.isOracleMode()) {
+            checkClosed();
         }
+        return null;
     }
 
     public String getDatabase() {
         return this.urlParser.getDatabase();
     }
 
-    public void setSchema(String arg0) {
+    public void setSchema(String arg0) throws SQLException {
         // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will
         // silently ignore this request."
+        if (!this.getProtocol().isOracleMode()) {
+            checkClosed();
+        }
     }
 
     /**
@@ -2208,6 +2210,12 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
 
         warningsCleared = true;
+    }
+
+    public void checkClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("No operations allowed after connection closed.");
+        }
     }
 
     public boolean includeDeadLockInfo() {

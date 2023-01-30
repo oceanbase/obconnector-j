@@ -354,6 +354,7 @@ public class DataTypeSignedTest extends BaseTest {
             rs.getInt(1);
             fail("getInt must have thrown error !");
         } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Out of range value for column"));
             assertEquals("22003", e.getSQLState());
         }
     }

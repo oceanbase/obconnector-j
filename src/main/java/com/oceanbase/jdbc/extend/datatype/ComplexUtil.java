@@ -44,8 +44,11 @@
 package com.oceanbase.jdbc.extend.datatype;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -203,15 +206,35 @@ public class ComplexUtil {
                 return;
             case ComplexDataType.TYPE_VARCHAR2:
             case ComplexDataType.TYPE_RAW:
+            case ComplexDataType.TYPE_CHAR:
+
                 if (value instanceof byte[]) {
                     byte[] tmp = (byte[]) value;
                     pos.writeFieldLength(tmp.length);
                     pos.write(tmp);
                 } else {
-                    byte[] tmp = ((String) value).getBytes(); // 
+                    String strValue = null;
+                    if (value instanceof String) {
+                        strValue = (String) value;
+                    } else if (value instanceof BigDecimal) {
+                        strValue = ((BigDecimal) value).toString();
+                    } else if (value instanceof Date) {
+                        strValue = ((Date) value).toString();
+                    } else if (value instanceof Timestamp) {
+                        strValue = ((Timestamp) value).toString();
+                    } else {
+                        try {
+                            strValue = String.valueOf(value);
+                        } catch (Exception e) {
+                            throw new SQLException("unsupported complex data set for String, type:"
+                                                   + value.getClass() + " and content: " + value);
+                        }
+                    }
+                    byte[] tmp = ((String) strValue).getBytes(); //
                     pos.writeFieldLength(tmp.length);
                     pos.write(tmp);
                 }
+
                 return;
             default:
                 throw new SQLException("unsupported complex data type");

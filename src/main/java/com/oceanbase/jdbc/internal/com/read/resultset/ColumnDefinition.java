@@ -179,19 +179,19 @@ public class ColumnDefinition {
         originalTableNameLength = buffer.fastSkipLenString();
         originalTableNameStart = adjustStartForFieldLength(originalTableNameStart,
             originalTableNameLength);
+        nameStart = buffer.getPosition() + 1;
+        nameLength = buffer.fastSkipLenString();
+        nameStart = adjustStartForFieldLength(nameStart, nameLength);
         originalColumnNameStart = buffer.getPosition() + 1;
         originalColumnNameLength = buffer.fastSkipLenString();
         originalColumnNameStart = adjustStartForFieldLength(originalColumnNameStart,
             originalColumnNameLength);
-        nameStart = buffer.getPosition() + 1;
-        nameLength = buffer.fastSkipLenString();
-        nameStart = adjustStartForFieldLength(nameStart, nameLength);
         buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
         sqltype = buffer.readByte() & 0xff;
         longColFlag = buffer.readShort();
-        type = ColumnType.fromServer(sqltype, charsetNumber, OracleMode);
+        type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
 
         decimals = buffer.readByte() & 0xff;
         precision = buffer.readByte() & 0xff;
@@ -299,7 +299,7 @@ public class ColumnDefinition {
         arr[pos] = (byte) len; /* 4 bytes : column length */
         pos += 4;
 
-        arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
+        arr[pos++] = (byte) ColumnType.convertSqlTypeToColumnType(type.getSqlType()).getType(); /* 1 byte : type */
 
         return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding);
     }
@@ -332,10 +332,12 @@ public class ColumnDefinition {
         return getStringFromBytes(originalTableNameStart, originalTableNameLength);
     }
 
+    // alias name
     public String getName() {
         return getStringFromBytes(nameStart, nameLength);
     }
 
+    // real name
     public String getOriginalName() {
         return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
     }
@@ -445,6 +447,10 @@ public class ColumnDefinition {
 
     public boolean isSigned() {
         return ((longColFlag & ColumnFlags.UNSIGNED) == 0);
+    }
+
+    public void setUnSigned() {
+        longColFlag |= ColumnFlags.UNSIGNED;
     }
 
     public boolean isNotNull() {

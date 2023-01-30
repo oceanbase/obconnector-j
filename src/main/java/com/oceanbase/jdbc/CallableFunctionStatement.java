@@ -352,7 +352,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex)
+        Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(parameterIndex)
             .getOutputSqlType());
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
@@ -366,7 +366,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     @Override
     public Object getObject(String parameterName) throws SQLException {
         int index = nameToIndex(parameterName);
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).getOutputSqlType());
+        Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(index)
+            .getOutputSqlType());
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(index), classType);
         }

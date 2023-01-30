@@ -346,7 +346,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             sharedConnection.getSchema(), "TEST_GETTABLES", null);
         rs.next();
 
-        assertEquals(sharedConnection.getSchema(), rs.getString("TABLE_SCHEM"));
+        assertEquals("UNITTESTS", rs.getString("TABLE_SCHEM"));
         assertEquals("TEST_GETTABLES", rs.getString("TABLE_NAME"));
         assertEquals("TABLE", rs.getString("TABLE_TYPE"));
     }
@@ -433,7 +433,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
                 "supportsColumnAliasing:true\n" +
                 "supportsSavepoints:true\n" +
                 "dataDefinitionCausesTransactionCommit:true\n" +
-                "supportsMixedCaseIdentifiers:false\n" +
+                "supportsMixedCaseIdentifiers:true\n" +
                 "nullsAreSortedAtEnd:false\n" +
                 "supportsAlterTableWithAddColumn:true\n" +
                 "isCatalogAtStart:true\n" +
@@ -891,4 +891,76 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGetFunctionColumns() {
+        Connection conn = sharedConnection;
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop function testFunction");
+            } catch (SQLException e) {
+                //
+            }
+            stmt.execute("create or replace function testFunction(id3 in int) return int is id1 int; begin id1:=1; end;");
+            ResultSet rs = conn.getMetaData().getFunctionColumns(null, null, "TESTFUNCTION", "ID3");
+            assertTrue(rs.next());
+            Assert.assertEquals("TESTFUNCTION", rs.getString("FUNCTION_NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetProcedureColumns() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop procedure testProcedure");
+            } catch (SQLException e) {
+                //
+            }
+            stmt.execute("create or replace procedure testProcedure (id_1 in int,id_2 in nvarchar2,id_3 out int)is id_4 int;  begin id_4:=id_1; end testProcedure;");
+            ResultSet rs = conn.getMetaData().getProcedureColumns(null, null, "TESTPROCEDURE",
+                "ID_2");
+            assertTrue(rs.next());
+            Assert.assertEquals("TESTPROCEDURE", rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testFunc() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table TEST_GET_COLUMN;");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table TEST_GET_COLUMN (v0 number , v1 varchar2(32) , v2 varchar2(1))");
+            ResultSet rs = conn.getMetaData().getColumns("%", "%", "TEST_GET_COLUMN", "%");
+            ResultSetMetaData metaData = rs.getMetaData();
+            rs.next();
+            int count = metaData.getColumnCount();
+            for (int i = 1; i <= count; i++) {
+                System.out.print(metaData.getColumnName(i) + "\t:\t");
+                System.out.print(metaData.getColumnType(i) + "\t:\t");
+                try {
+                    System.out.println(rs.getObject(i));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    Assert.fail();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

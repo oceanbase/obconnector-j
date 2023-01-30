@@ -617,4 +617,52 @@ public class CallStatementTest extends BaseTest {
         // none
     }
 
+    @Test
+    public void fixTwoSingleQuotations() throws SQLException {
+        Connection conn = sharedConnection;
+        createTable(
+            "test_rsmd",
+            "id_col int not null primary key auto_increment, "
+                    + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
+        createTable("t1", "id int, name varchar(20)");
+        createTable("t2", "id int, name varchar(20)");
+        createTable("t3", "id int, name varchar(20)");
+        try {
+            Statement s = conn.createStatement();
+            s.execute("create procedure pl_sql2(test_str varchar(4000), inner_sql2 varchar(4000)) begin set @a=inner_sql2; prepare stmt from @a; execute stmt; deallocate prepare stmt; end;");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        CallableStatement callStmt = conn.prepareCall("CALL pl_sql2('what is your name', ?)");
+        callStmt
+            .setString(
+                1,
+                "UPDATE /*+ use_px parallel(2) */ t3 SET t3.c1 = timestamp'2001-1-12 2:49:53', t3.c2 = t3.c2, t3.c3 = t3.c3, t3.c4 = (SELECT MIN(t3.c4) FROM t3), t3.c5 = t3.c5, t3.c6 = t3.c6, t3.c7 = t3.c7, t3.c8 = t3.c8, t3.c9 = t3.c9, t3.c10 = (SELECT MAX(t3.c10) FROM t3), t3.c11 = t3.c11, t3.c12 = t3.c12, t3.c13 = t3.c13, t3.c14 = t3.c14, t3.c15 = t3.c15, t3.c16 = timestamp'2029-3-18 0:5:13', t3.c17 = t3.c17 WHERE t3.c1 >= t3.c16 AND t3.c5 = 221");
+        try {
+            callStmt.execute();
+        } catch (SQLSyntaxErrorException e) {
+            assertTrue(e.getMessage().contains("Unknown column 't3.c1' in 'field list'"));
+        }
+    }
+
+    @Test
+    public void testProcedureWithSpecialChar() {
+        try {
+            try {
+                sharedConnection.createStatement().execute("drop procedure if exists p2");
+            } catch (SQLException e) {
+
+            }
+            sharedConnection.createStatement().execute(
+                "CREATE PROCEDURE p2(A$TABLE_NAME VARCHAR(100)) begin set @a=10;end;");
+            CallableStatement call = sharedConnection.prepareCall("call p2(?)");
+            call.setString(1, "0010");
+            call.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

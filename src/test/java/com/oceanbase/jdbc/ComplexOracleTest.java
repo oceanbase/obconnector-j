@@ -70,6 +70,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     public static String struct3         = "test_struct3";
     public static String raw1            = "test_raw1";
     public static String refcursor1      = "test_ref";
+    public static String struct4         = "test_struct4";
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -84,6 +85,7 @@ public class ComplexOracleTest extends BaseOracleTest {
         createTable(raw1, "c1 int ,c2 raw(100)");
         createTable(refcursor1, "c1 varchar(20), c2 number");
         createTable("T_NESTED_ARRAY", "c1 number, c2 int");
+        createTable(struct4, "c1 int, c2 varchar2(400)");
     }
 
     public void showArrayRes(Array array) throws Exception {
@@ -671,4 +673,165 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testStrcut() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE or replace  TYPE struct_test_1 force as object (c1 int, c3 varchar2(200))");
+            Object[] objects = new Object[] { 1, new BigDecimal(200) }; // insert bigdecimal value to varchar struct
+            Struct struct = conn.createStruct("struct_test_1", objects);
+            String createPlSql = "CREATE OR REPLACE PROCEDURE my_proc_obj_out_test(x IN struct_test_1,y OUT struct_test_1) IS "
+                                 + " begin "
+                                 + "    y:= struct_test_1(1,null); "
+                                 + "    insert into "
+                                 + struct4
+                                 + " values(x.c1, x.c3) ;"
+                                 + "    y.c1 := x.c1;" + "  y.c3 := x.c3;" + " END;";
+            stmt.execute(createPlSql);
+            CallableStatement csmt = conn.prepareCall("call my_proc_obj_out_test(?,?)");
+            csmt.setObject(1, struct);
+            csmt.registerOutParameter(2, Types.STRUCT, "struct_test_1");
+            csmt.execute();
+            ResultSet rs = conn.createStatement().executeQuery("select count(*) from " + struct4);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testComplex() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE OR REPLACE TYPE my_obj_1 as object (c0 int, c1 int);");
+            stmt.execute("CREATE OR REPLACE TYPE obj_array_1 IS TABLE OF my_obj_1;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1_1(a in my_obj_1, b out obj_array_1) IS BEGIN null;end;");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2_1(a in my_obj_1, b out obj_array_1, c out my_obj_1) IS BEGIN null;end;");
+
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc3_1(a in my_obj_1, c out my_obj_1) IS BEGIN null;end;");
+
+            System.out.println("###proc2###");
+            CallableStatement csmt = conn.prepareCall("{call my_proc2_1(?,?,?)}");
+            Struct InStruct = conn.createStruct("my_obj_1", new Object[] { 1, 2 });
+            csmt.setObject(1, InStruct);
+            csmt.registerOutParameter(2, Types.ARRAY, "OBJ_ARRAY_1");
+            csmt.registerOutParameter(3, Types.STRUCT, "MY_OBJ_1");
+            csmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testComplexChar() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE OR REPLACE TYPE my_obj_complexchar as object (c0 char(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc1_complexchar(a in my_obj_complexchar) IS BEGIN null;end;");
+
+            stmt.execute("CREATE OR REPLACE TYPE my_obj2_complexchar as object (c0 varchar(2));");
+            stmt.execute("CREATE OR REPLACE PROCEDURE my_proc2_complexchar(a in my_obj2_complexchar) IS BEGIN null;end;");
+
+            stmt.close();
+            System.out.println("###proc2###");
+            CallableStatement csmt = conn.prepareCall("{call my_proc2_complexchar(?)}");
+            Struct InStruct = conn.createStruct("my_obj2_complexchar", new Object[] { "aa" });
+            csmt.setObject(1, InStruct);
+            csmt.execute();
+
+            System.out.println("###proc1###");
+            csmt = conn.prepareCall("{call my_proc1_complexchar(?)}");
+            InStruct = conn.createStruct("my_obj_complexchar", new Object[] { "aa" });
+            csmt.setObject(1, InStruct);
+            csmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+    }
+
+    @Test
+    public void testComplexArrayWithTimestmap() {
+        try {
+            Connection conn = sharedConnection;
+            CallableStatement cs = null;
+            try {
+                cs = conn.prepareCall("drop table order_line");
+                cs.execute();
+            } catch (SQLException e) {
+                //                e.printStackTrace();
+            }
+            cs = conn.prepareCall("create table order_line (ol_delivery_d   timestamp)");
+            cs.execute();
+            cs = conn
+                .prepareCall("insert into order_line values(to_date('1998-12-1', 'yyyy-mm-dd'))");
+            cs.execute();
+            cs = conn.prepareCall("create or replace type time_array as table of timestamp");
+            cs.execute();
+            cs = conn.prepareCall("create or replace procedure Order1(\n"
+                                  + "out_ol_delivery_d \t  out time_array\n" + ")is\n" + "begin\n"
+                                  + "    SELECT ol_delivery_d\n"
+                                  + "\tbulk collect into  out_ol_delivery_d\n"
+                                  + "\tFROM order_line;\n" + "end Order1;");
+            cs.execute();
+            cs = conn.prepareCall("{call Order1(?)}");
+
+            cs.registerOutParameter(1, Types.ARRAY, "TIME_ARRAY");
+            cs.execute();
+
+            Array resArray = cs.getArray(1);
+            ResultSet arrayRes = resArray.getResultSet();
+            Assert.assertTrue(arrayRes.next());
+            int index = arrayRes.getInt(1);
+            Timestamp ts = arrayRes.getTimestamp(2);
+            Assert.assertEquals("1998-12-01 00:00:00.0", ts.toString());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testArrayWithClob() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            try {
+                stmt.execute("drop table order_line");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            stmt.execute("create table order_line (c1 clob)");
+            stmt.execute("insert into order_line values('aaa')");
+            stmt.execute("create or replace type clob_array as table of clob");
+
+            CallableStatement cs = sharedConnection
+                .prepareCall("create or replace procedure Order1(var out clob_array)"
+                             + " is begin\n"
+                             + " SELECT c1 bulk collect into var FROM order_line;\n"
+                             + " end Order1;");
+            cs.execute();
+            cs = sharedConnection.prepareCall("{call Order1(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+            cs.execute();
+            ResultSet arrayRes = cs.getArray(1).getResultSet();
+            Assert.assertTrue(arrayRes.next());
+            assertEquals(1, arrayRes.getInt(1));
+            Assert.assertEquals("aaa", arrayRes.getString(2));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

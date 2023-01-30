@@ -118,7 +118,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   /** the Connection object. */
   protected OceanBaseConnection connection;
 
-  protected volatile boolean closed = false;
+  protected volatile boolean isClosed = false;
   protected int queryTimeout;
   protected long maxRows;
   protected Results results;
@@ -148,6 +148,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected int       selectEndPos = -1;
   protected int       whereEndPos = -1;
   PreparedStatement   cursorFetchPstmt = null;
+  private    boolean  isPoolable = true;
 
     /**
    * Creates a new Statement.
@@ -179,6 +180,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     } else {
         this.fetchSize = this.options.defaultFetchSize;
     }
+    this.maxRows = options.maxRows;
   }
 
   /**
@@ -194,7 +196,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.protocol = connection.getProtocol();
     clone.timerTaskFuture = null;
     clone.batchQueries = new ArrayList<>();
-    clone.closed = false;
+    clone.isClosed = false;
     clone.warningsCleared = true;
     clone.maxRows = 0;
     if (clone.protocol.isOracleMode() && options.defaultFetchSize == 0) {
@@ -245,7 +247,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   protected void executeQueryPrologue(boolean isBatch) throws SQLException {
     executing = true;
-    if (closed) {
+    if (isClosed) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -395,27 +397,46 @@ public class OceanBaseStatement implements Statement, Cloneable {
         } else {
             ret = results.getCmdInformation().getUpdateCounts();
         }
-       if(!options.continueBatchOnError) {
-
-      int end = 0;
-      if(results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries) ) {
-        end = ret.length - 1;
-      } else {
-          for (int i = 0; i < ret.length; i++) {
-              if (ret[i] == Statement.EXECUTE_FAILED) {
-                  end = i;
-                  break;
-              }
-          }
-      }
-      if (end != 0) {
-        int[] tmp = new int[end];
-        System.arraycopy(ret, 0, tmp, 0, end);
-        ret = tmp;
-      } else {
-        ret = new int[0];
-      }
-    }
+        if(!protocol.isOracleMode() && results.isExecuteBatchStmt()) {
+            if (!options.continueBatchOnError) {
+                int end = ret.length - 1;
+                int[] tmp = new int[end];
+                System.arraycopy(ret, 0, tmp, 0, end);
+                ret = tmp;
+                for (int i = 0; i < ret.length; i++) {
+                    ret[i] = Statement.EXECUTE_FAILED;
+                }
+            } else {
+                for (int i = 0; i < ret.length; i++) {
+                    if (i == 0) {
+                        ret[i] = -1;
+                    } else {
+                        ret[i] = Statement.EXECUTE_FAILED;
+                    }
+                }
+            }
+        } else {
+            if (!options.continueBatchOnError) {
+                int end = 0;
+                if (results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries)) {
+                    end = ret.length - 1;
+                } else {
+                    for (int i = 0; i < ret.length; i++) {
+                        if (ret[i] == Statement.EXECUTE_FAILED) {
+                            end = i;
+                            break;
+                        }
+                    }
+                }
+                if (end != 0) {
+                    int[] tmp = new int[end];
+                    System.arraycopy(ret, 0, tmp, 0, end);
+                    ret = tmp;
+                } else {
+                    ret = new int[0];
+                }
+            }
+        }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
 
@@ -708,8 +729,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public boolean execute(final String sql, final String[] columnNames) throws SQLException {
     return executeInternal(sql, fetchSize, Statement.RETURN_GENERATED_KEYS);
   }
+
   public boolean isCursorResultSet() throws SQLException {
-    if (closed) {
+    if (isClosed) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -719,6 +741,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           && this.getFetchSize() > 0));
     }
   }
+
   /**
    * executes a select query.
    *
@@ -736,11 +759,15 @@ public class OceanBaseStatement implements Statement, Cloneable {
       ResultSet rs = pstmt.executeQuery();
       this.results =((OceanBaseStatement)pstmt).results;
       return rs;
-    } else if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
-      if (results != null && results.getResultSet() != null) {
-        return results.getResultSet();
-      }
     }
+
+    if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
+        return results.getResultSet();
+    }
+    // DML returning rs
+      if (results.isReturning()) {
+          return results.getResultSet();
+      }
     return SelectResultSet.createEmptyResultSet();
   }
 
@@ -753,10 +780,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if the query could not be sent to server.
    */
   public int executeUpdate(String sql) throws SQLException {
-    if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
-      return 0;
-    }
-    return getUpdateCount();
+      return executeUpdate(sql, Statement.NO_GENERATED_KEYS);
   }
 
   /**
@@ -781,6 +805,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public int executeUpdate(final String sql, final int autoGeneratedKeys) throws SQLException {
     if (executeInternal(sql, fetchSize, autoGeneratedKeys)) {
       return 0;
+    }
+
+    // DML returning rs
+    if (results.isReturning() && results.getResultSet() != null) {
+      return (int) results.getResultSet().getProcessedRows();
     }
     return getUpdateCount();
   }
@@ -844,10 +873,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public long executeLargeUpdate(String sql) throws SQLException {
-    if (executeInternal(sql, fetchSize, Statement.NO_GENERATED_KEYS)) {
-      return 0;
-    }
-    return getLargeUpdateCount();
+      return executeLargeUpdate(sql, Statement.NO_GENERATED_KEYS);
   }
 
   /**
@@ -868,6 +894,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
     if (executeInternal(sql, fetchSize, autoGeneratedKeys)) {
       return 0;
     }
+
+      // DML returning rs
+      if (results.isReturning() && results.getResultSet() != null) {
+          return results.getResultSet().getProcessedRows();
+      }
     return getLargeUpdateCount();
   }
 
@@ -910,17 +941,29 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if a database access error occurs
    */
   public void close() throws SQLException {
+      realClose(true, true);
+  }
+
+  public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
     lock.lock();
     try {
-      closed = true;
-      if (results != null) {
-        if (results.getFetchSize() != 0) {
-          skipMoreResults();
-        }
+      if (closeOpenResults) {
+          if (results != null) {
+              if (results.getFetchSize() != 0) {
+                  skipMoreResults();
+              }
 
-        results.close();
+              // close open current result set
+              try {
+                  results.getResultSet().close();
+              } catch (Exception ex) {
+              }
+
+              // MySQL close all open results
+              results.closeAllOpenResults();
+          }
       }
-      if(results == null && cursorFetchPstmt != null) {
+      if (cursorFetchPstmt != null) {
           cursorFetchPstmt.close();
           cursorFetchPstmt = null;
       }
@@ -932,26 +975,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
       connection.pooledConnection.fireStatementClosed(this);
     } finally {
+      isClosed = true;
       protocol = null;
       connection = null;
-      lock.unlock();
-    }
-  }
-
-
-  public void realClose() throws SQLException {
-    lock.lock();
-    try {
-      closed = true;
-      if (connection == null
-          || connection.pooledConnection == null
-          || connection.pooledConnection.noStmtEventListeners()) {
-        return;
+      if (results != null) {
+          results.close();
       }
-      connection.pooledConnection.fireStatementClosed(this);
-    } finally {
-      protocol = null;
-      connection = null;
       lock.unlock();
     }
   }
@@ -1205,9 +1234,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
    *     <code>Statement</code>
    */
   public void setCursorName(final String name) throws SQLException {
-    throw exceptionFactory
-        .raiseStatementError(connection, this)
-        .notSupported("Cursors are not supported");
+      if(!protocol.isOracleMode()) {
+          // No-op
+          return;
+      }
+      throw exceptionFactory.raiseStatementError(connection, this).notSupported("Not supported feature");
+
   }
 
   /**
@@ -1260,7 +1292,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @since 1.6
    */
   public boolean isClosed() {
-    return closed;
+    return isClosed;
   }
 
   /**
@@ -1273,7 +1305,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public boolean isPoolable() {
-    return false;
+    return isPoolable;
   }
 
   /**
@@ -1294,7 +1326,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public void setPoolable(final boolean poolable) {
-    // not handled
+      isPoolable = poolable;
   }
 
   /**
@@ -1308,7 +1340,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public ResultSet getResultSet() throws SQLException {
     checkClose();
-    return results != null ? results.getResultSet() : null;
+    return (results != null && !results.isReturning()) ? results.getResultSet() : null;
   }
 
   /**
@@ -1318,8 +1350,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @return the current result as an update count; -1 if the current result is a ResultSet object
    *     or there are no more results
    */
-  public int getUpdateCount() {
+  public int getUpdateCount() throws SQLException {
     if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
+        // DML returning rs
+        if (results.isReturning() && results.getResultSet() != null) {
+            return (int) results.getResultSet().getProcessedRows();
+        }
       return results.getCmdInformation().getUpdateCount();
     }
     return -1;
@@ -1334,6 +1370,10 @@ public class OceanBaseStatement implements Statement, Cloneable {
   @Override
   public long getLargeUpdateCount() {
     if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
+        // DML returning rs
+        if (results.isReturning() && results.getResultSet() != null) {
+            return results.getResultSet().getProcessedRows();
+        }
       return results.getCmdInformation().getLargeUpdateCount();
     }
     return -1;
@@ -1698,7 +1738,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
     if (mustCloseOnCompletion
-        && !closed
+        && !isClosed
         && results != null
         && resultSet.equals(results.getResultSet())) {
       close();
@@ -1711,7 +1751,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if statement close
    */
   protected void checkClose() throws SQLException {
-    if (closed || this.connection.isClosed()) {
+    if (isClosed || this.connection.isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("Cannot do an operation on a closed statement");
@@ -1728,6 +1768,33 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public int getSqlType() {
     return sqlType;
+  }
+
+  public int getSqlType(String Sql) {
+        String simpleSql = Utils.trimSQLString(Sql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
+        return Utils.getStatementType(simpleSql);
+  }
+
+  protected boolean isDml(int sqlType) {
+      switch (sqlType) {
+          case STMT_UPDATE:
+          case STMT_DELETE:
+          case STMT_INSERT:
+              return true;
+      }
+
+      if (!protocol.isOracleMode()) {
+          switch (sqlType) {
+              // TRUNCATE, RENAME
+              case STMT_CREATE:
+              case STMT_DROP:
+              case STMT_ALTER:
+                  return true;
+          }
+      }
+      // Oracle: MERGE
+
+      return false;
   }
 
   public boolean isAddRowid() {

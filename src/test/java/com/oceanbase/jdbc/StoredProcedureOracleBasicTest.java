@@ -468,21 +468,30 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             conn.createStatement().execute(
                 "create or replace function func_test(p1 int, p2 int) return int as v_result int; begin\n"
                         + " return p1+p2;end;");
-            CallableStatement callableStatement = conn.prepareCall("{? = call \nfunc_test\n(?,?)}");
+
             System.out.println("index binding");
+            CallableStatement callableStatement = conn.prepareCall("{? = call \nfunc_test\n(?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(2, 10);
             callableStatement.setInt(3, 10);
             callableStatement.execute();
             Assert.assertEquals(20, callableStatement.getInt(1));
+
             System.out.println("name binding");
             callableStatement = conn.prepareCall("{? = call func_test(?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt("p1", 10);
             callableStatement.setInt("p2", 10);
-            callableStatement.execute();
-            Assert.assertEquals(20, callableStatement.getInt(1));
-
+            try {
+                callableStatement.execute();
+                Assert.fail();
+                //Assert.assertEquals(20, callableStatement.getInt(1));
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '3'.",
+                    e.getMessage());
+            }
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -502,25 +511,33 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 .execute(
                     "create or replace function func_test2\n(p1 int, p2 int, total out int) return int as v_result int; begin\n"
                             + " total := p1+p2; return total; end;");
+
+            System.out.println("index binding");
             CallableStatement callableStatement = conn
                 .prepareCall("{? = call \nfunc_test2\n(?,?,?)}");
-            System.out.println("index binding");
-
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt(2, 10);
             callableStatement.setInt(3, 10);
             callableStatement.execute();
             Assert.assertEquals(20, callableStatement.getInt(1));
+
             System.out.println("name binding");
             callableStatement = conn.prepareCall("{? = call func_test2(?,?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt("p1", 10);
             callableStatement.setInt("p2", 10);
-            callableStatement.execute();
-            Assert.assertEquals(20, callableStatement.getInt(1));
-
+            try {
+                callableStatement.execute();
+                Assert.fail();
+                //Assert.assertEquals(20, callableStatement.getInt(1));
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '4'.",
+                    e.getMessage());
+            }
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -540,24 +557,33 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 .execute(
                     "create or replace function func_test3\n(p1 int, p2 int, total out int) return int as v_result int; begin\n"
                             + " total := p1+p2; return total; end;");
+
+            System.out.println("index binding");
             CallableStatement callableStatement = conn
                 .prepareCall("{? = call \nfunc_test3\n(?,?,?)}");
-            System.out.println("index binding");
-
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt(2, 10);
             callableStatement.setInt(3, 10);
             callableStatement.execute();
             Assert.assertEquals(20, callableStatement.getInt(1));
+
             System.out.println("name binding");
             callableStatement = conn.prepareCall("{? = call func_test2(?,?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt("p1", 10);
             callableStatement.setInt("p2", 10);
-            callableStatement.execute();
-            Assert.assertEquals(20, callableStatement.getInt(1));
+            try {
+                callableStatement.execute();
+                Assert.fail();
+                //Assert.assertEquals(20, callableStatement.getInt(1));
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertEquals(
+                    "The number of parameter names '2' does not match the number of registered parameters in sql '4'.",
+                    e.getMessage());
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

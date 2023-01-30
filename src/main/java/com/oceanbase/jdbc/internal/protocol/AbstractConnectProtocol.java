@@ -100,6 +100,7 @@ import com.oceanbase.jdbc.internal.io.output.CompressPacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.StandardPacketOutputStream;
+import com.oceanbase.jdbc.internal.io.socket.OBProxyVCSocket;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
@@ -591,6 +592,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 greetingPacket.getSeed(), options, database, credential, host);
 
             compressionHandler(options);
+            if (socket instanceof OBProxyVCSocket) {
+                // set the client session it for the trace info
+                ((OBProxyVCSocket) socket).setCsId(this.serverThreadId);
+            }
         } catch (IOException ioException) {
             destroySocket();
             if (host == null) {
@@ -800,6 +805,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         setOracleMode(true);
                     }
 
+                    if (buffer.remaining() <= 0) {
+                        break authentication_loop;
+                    }
                     if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
                         buffer.skipLengthEncodedBytes(); // human readable status information
                         if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
@@ -876,10 +884,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void compressionHandler(Options options) throws IOException {
         if (useOceanBaseProtocolV20) {
-            ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
-            writer = new Ob20PacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, options.characterEncoding, serverThreadId, ob20);
-            reader = new Ob20PacketInputStream(socket.getInputStream(), options, serverThreadId,
+            boolean enableDebug = Boolean.parseBoolean(System.getProperty(
+                "debugOceanBaseProtocolV20", "false"));
+            ob20 = new OceanBaseProtocolV20(useNewExtraInfo, enableDebug);
+            writer = new Ob20PacketOutputStream(writer.getOutputStream(), serverThreadId, options,
+                ob20);
+            reader = new Ob20PacketInputStream(socket.getInputStream(), serverThreadId, options,
                 ob20);
 
             if (enableFullLinkTrace) {
@@ -887,11 +897,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 ob20.setTraceInfo(fullLinkTrace.traceInfo);
             }
         } else if (options.useCompression) {
-            writer = new CompressPacketOutputStream(writer.getOutputStream(),
-                options.maxQuerySizeToLog, serverThreadId, options.characterEncoding);
+            writer = new CompressPacketOutputStream(writer.getOutputStream(), serverThreadId,
+                options);
             reader = new DecompressPacketInputStream(
-                ((StandardPacketInputStream) reader).getInputStream(), options.maxQuerySizeToLog,
-                serverThreadId);
+                ((StandardPacketInputStream) reader).getInputStream(), serverThreadId, options);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
@@ -902,9 +911,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void assignStream(Socket socket, Options options) throws SQLException {
         try {
-            writer = new StandardPacketOutputStream(socket.getOutputStream(), options,
-                serverThreadId);
-            reader = new StandardPacketInputStream(socket.getInputStream(), options, serverThreadId);
+            writer = new StandardPacketOutputStream(socket.getOutputStream(), serverThreadId,
+                options);
+            reader = new StandardPacketInputStream(socket.getInputStream(), serverThreadId, options);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
@@ -1267,6 +1276,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             sendCharsetVariables();
             getResult(new Results());
+        } catch (SQLException e) {
+            throw e;
+        }
+        try {
             if (!isOracleMode && this.getOptions().connectionCollation != null) {
                 setCollationVariables();
                 getResult(new Results());
@@ -1283,7 +1296,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         sendPipelineCheckMaster();
         readPipelineCheckMaster();
 
-        if (options.createDatabaseIfNotExist && !database.isEmpty()) {
+        if (options.createDatabaseIfNotExist && !database.isEmpty() && !isOracleMode) {
             // Try to create the database if it does not exist
             String quotedDb = OceanBaseConnection.quoteIdentifier(this.database);
             sendCreateDatabaseIfNotExist(quotedDb);

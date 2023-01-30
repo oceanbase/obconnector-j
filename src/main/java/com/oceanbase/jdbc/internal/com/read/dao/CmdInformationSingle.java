@@ -54,6 +54,7 @@ import java.sql.ResultSet;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.Utils;
 
 public class CmdInformationSingle implements CmdInformation {
 
@@ -72,6 +73,10 @@ public class CmdInformationSingle implements CmdInformation {
         this.insertId = insertId;
         this.updateCount = updateCount;
         this.autoIncrement = autoIncrement;
+    }
+
+    public long getInsertId() {
+        return insertId;
     }
 
     @Override
@@ -138,7 +143,10 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     private boolean isDuplicateKeyUpdate(String sql) {
-        return sql.matches("(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
+        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(sql, false, false,
+            false);
+        return trimSQLStringInternal.getTrimedString().matches(
+            "(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
     }
 
     @Override
@@ -162,6 +170,11 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
+        // cannot occur
+    }
+
+    @Override
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
         // cannot occur
     }
 

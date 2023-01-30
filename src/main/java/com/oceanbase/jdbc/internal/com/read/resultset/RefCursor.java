@@ -64,22 +64,26 @@ public class RefCursor extends CursorResultSet {
         resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
         resultSetConcurType = ResultSet.CONCUR_READ_ONLY;
         this.rowObCursorData = rowObCursorData;
-        cursorFetchInternal(1); // get matched column information
+        try {
+            cursorFetchInternal(1); // get matched column information
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
-    protected void cursorFetch() throws SQLException {
-        cursorFetchInternal(fetchSize);
+    protected boolean cursorFetch() throws SQLException {
+        return cursorFetchInternal(fetchSize);
     }
 
-    private void cursorFetchInternal(int tmpFetchSize) throws SQLException {
+    private boolean cursorFetchInternal(int tmpFetchSize) throws SQLException {
         if (isLastRowSent) {
-            return;
+            return false;
         }
         if (this.rowObCursorData == null) {
             isLastRowSent = true;
-            return;
+            return false;
         }
+
         try {
             ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement())
                 .cursorFetch(this.rowObCursorData.getCursorId(), tmpFetchSize);
@@ -97,11 +101,9 @@ public class RefCursor extends CursorResultSet {
             }
             throw e;
         }
-        try {
-            getCursorFetchData(tmpFetchSize);
-        } catch (IOException e) {
-            handleIoException(e);
-        }
+
+        getCursorFetchData(tmpFetchSize);
+        return true;
     }
 
     @Override

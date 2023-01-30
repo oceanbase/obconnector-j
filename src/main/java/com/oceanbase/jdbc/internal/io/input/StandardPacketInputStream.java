@@ -79,7 +79,7 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
      * @param options connection options
      * @param threadId thread id
      */
-    public StandardPacketInputStream(InputStream in, Options options, long threadId) {
+    public StandardPacketInputStream(InputStream in, long threadId, Options options) {
         inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)
             : new BufferedInputStream(in, 16384);
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
@@ -109,6 +109,11 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         lastPacketLength = (mysqlHeader[0] & 0xff) + ((mysqlHeader[1] & 0xff) << 8)
                            + ((mysqlHeader[2] & 0xff) << 16);
         mysqlSeqNo = mysqlHeader[3] & 0xff;
+        if (this instanceof Ob20PacketInputStream
+            && ((Ob20PacketInputStream) this).ob20.enableDebug) {
+            System.out.println(" ---------[mysql] packetLength = " + lastPacketLength
+                               + ", packetNumber = " + mysqlSeqNo);
+        }
 
         // prepare array
         byte[] mysqlBody;

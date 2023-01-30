@@ -60,6 +60,7 @@ import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.util.Options;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -76,9 +77,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private byte[]              remainingData                  = new byte[0];
     private boolean             lastPacketExactMaxPacketLength = false;
 
-    public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
-                                      String encoding) {
-        super(out, maxQuerySizeToLog, threadId, encoding);
+    public CompressPacketOutputStream(OutputStream out, long threadId, Options options) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
         maxPacketLength = MAX_PACKET_LENGTH;
     }
 

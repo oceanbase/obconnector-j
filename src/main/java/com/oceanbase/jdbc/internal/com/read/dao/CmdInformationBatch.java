@@ -114,6 +114,15 @@ public class CmdInformationBatch implements CmdInformation {
     updateCounts.add(updateCount);
   }
 
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+        if (containOnDuplicateKey && updateCount == 0) {
+            updateCount = 1;
+        }
+        addSuccessStat(updateCount, insertId);
+    }
+
+
+
   @Override
   public int[] getUpdateCounts() {
     if (rewritten) {
@@ -215,21 +224,21 @@ public class CmdInformationBatch implements CmdInformation {
 
   @Override
   public ResultSet getBatchGeneratedKeys(Protocol protocol) {
-    long[] ret = new long[insertIdNumber];
-    int position = 0;
-    long insertId;
-    Iterator<Long> idIterator = insertIds.iterator();
-    for (Long updateCountLong : updateCounts) {
-      int updateCount = updateCountLong.intValue();
-      if (updateCount != Statement.EXECUTE_FAILED
-          && updateCount != RESULT_SET_VALUE
-          && (insertId = idIterator.next()) > 0) {
-        for (int i = 0; i < updateCount; i++) {
-          ret[position++] = insertId + i * autoIncrement;
-        }
+      long[] ret = new long[insertIdNumber == 0 ? insertIds.size() : insertIdNumber];
+      int position = 0;
+      long insertId;
+      Iterator<Long> idIterator = insertIds.iterator();
+      for (Long updateCountLong : updateCounts) {
+          int updateCount = updateCountLong.intValue();
+          if (updateCount != Statement.EXECUTE_FAILED
+                  && updateCount != RESULT_SET_VALUE
+                  && (insertId = idIterator.next()) > 0) {
+              for (int i = 0; i < updateCount; i++) {
+                  ret[position++] = insertId + i * autoIncrement;
+              }
+          }
       }
-    }
-    return SelectResultSet.createGeneratedData(ret, protocol, true);
+      return SelectResultSet.createGeneratedData(ret, protocol, true);
   }
 
   /**
@@ -241,22 +250,27 @@ public class CmdInformationBatch implements CmdInformation {
    * @return a resultSet with insert ids.
    */
   public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
-    long[] ret = new long[insertIdNumber];
-    int position = 0;
-    long insertId;
-    Iterator<Long> idIterator = insertIds.iterator();
+      long[] ret = new long[insertIdNumber == 0 ? insertIds.size() : insertIdNumber];
+      int position = 0;
+      long insertId;
+      Iterator<Long> idIterator = insertIds.iterator();
 
-    for (Long updateCountLong : updateCounts) {
-      int updateCount = updateCountLong.intValue();
-      if (updateCount != Statement.EXECUTE_FAILED
-          && updateCount != RESULT_SET_VALUE
-          && (insertId = idIterator.next()) > 0) {
-        for (int i = 0; i < updateCount; i++) {
-          ret[position++] = insertId + i * autoIncrement;
-        }
+      for (Long updateCountLong : updateCounts) {
+          int updateCount = 0;
+          if (protocol.getOptions().useAffectedRows == true) {
+              updateCount = 1;
+          } else {
+              updateCount = updateCountLong.intValue();
+          }
+          if (updateCount != Statement.EXECUTE_FAILED
+                  && updateCount != RESULT_SET_VALUE
+                  && (insertId = idIterator.next()) > 0) {
+              for (int i = 0; i < updateCount; i++) {
+                  ret[position++] = insertId + i * autoIncrement;
+              }
+          }
       }
-    }
-    return SelectResultSet.createGeneratedData(ret, protocol, true);
+      return SelectResultSet.createGeneratedData(ret, protocol, true);
   }
 
   public int getCurrentStatNumber() {

@@ -162,7 +162,7 @@ public class SensitiveCursorResultSet extends CursorResultSet {
             return;
         }
 
-        int refetchSize = super.refreshRowInternalOracle(fetchSize);
+        int refetchSize = refreshRowInternalOracle(fetchSize);
         lastRefetchBeginIndex = rowPointer;
         lastRefetchEndIndex = rowPointer + refetchSize - 1;
     }

@@ -713,30 +713,173 @@ public class StatementTest extends BaseTest {
     }
 
     @Test
-  public void escaping() throws Exception {
-    try (Connection con = setConnection("&dumpQueriesOnException=true")) {
-      Statement stmt = con.createStatement();
-      try {
-        stmt.executeQuery(
-            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
-        fail();
-      } catch (SQLException e) {
-        assertTrue(
-            e.getMessage()
-                .contains("select timestampdiff(HOUR, '2003-02-01','2003-05-01') df df "));
-      }
+    public void escaping() throws Exception {
+        try (Connection con = setConnection("&dumpQueriesOnException=true")) {
+            Statement stmt = con.createStatement();
+            try {
+                stmt.executeQuery(
+                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+                fail();
+            } catch (SQLException e) {
+                assertTrue(
+                        e.getMessage()
+                                .contains("select timestampdiff(HOUR, '2003-02-01','2003-05-01') df df "));
+            }
 
-      stmt.setEscapeProcessing(false);
-      try {
-        stmt.executeQuery(
-            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
-        fail();
-      } catch (SQLException e) {
-        assertTrue(
-            e.getMessage()
-                .contains(
-                    "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df"));
-      }
+            stmt.setEscapeProcessing(false);
+            try {
+                stmt.executeQuery(
+                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+                fail();
+            } catch (SQLException e) {
+                assertTrue(
+                        e.getMessage()
+                                .contains(
+                                        "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df"));
+            }
+        }
     }
-  }
+
+    @Test
+    public void testMultiQueries() throws Exception {
+        createTable("testMultiQueries", "c1 INT");
+
+        Connection conn = setConnection("&allowMultiQueries=true");
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        stmt.execute("select 1; INSERT INTO testMultiQueries VALUES (1); INSERT INTO testMultiQueries VALUES (2), (3);"
+                     + " select count(*) from testMultiQueries");
+
+        ResultSet rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertFalse(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+
+        assertFalse(stmt.getMoreResults());
+        assertEquals(2, stmt.getUpdateCount());
+
+        assertTrue(stmt.getMoreResults());
+        rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testProcedureMultiQueries() throws Exception {
+        createProcedure("pro_1", "() BEGIN SELECT 1; SELECT 2; SELECT 3; END");
+        CallableStatement cStmt = sharedConnection.prepareCall("{call pro_1()}");
+        cStmt.setFetchSize(Integer.MIN_VALUE);
+        cStmt.execute();
+
+        ResultSet rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertTrue(cStmt.getMoreResults());
+        rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+
+        assertTrue(cStmt.getMoreResults());
+        rs = cStmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertFalse(cStmt.getMoreResults());
+    }
+
+    @Test
+    public void testSetMaxRows() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.setMaxRows(-1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            stmt.setMaxRows(Integer.MAX_VALUE);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testUrlOptionMaxRows() throws SQLException {
+        assertEquals(0, sharedConnection.createStatement().getMaxRows());
+        assertEquals(3, setConnection("&maxRows=3").createStatement().getMaxRows());
+    }
+
+    @Test
+    public void testMaxRowsAndLimit() throws SQLException {
+        createTable("testMaxRows", "c1 INT, c2 VARCHAR(100)");
+        String query = "insert into testMaxRows values(1,'1+string')";
+        for (int i = 2; i <= 20; i++) {
+            query += ",(" + i + ",'" + i + "+string')";
+        }
+        Statement st = sharedConnection.createStatement();
+        st.execute(query);
+        st.close();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxRows(5);
+        stmt.setFetchSize(3);
+        ResultSet rs = stmt.executeQuery("select * from testMaxRows limit 10");
+        for (int i = 1; i <= 5; i++) {
+            assertTrue(rs.next());
+            assertEquals(rs.getInt(1), i);
+        }
+        assertTrue(rs.isLast());
+        assertFalse(rs.next());
+        assertTrue(rs.isAfterLast());
+
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true");
+        PreparedStatement pstmt1 = conn.prepareStatement("select * from testMaxRows limit 10");
+        pstmt1.setMaxRows(5);
+        pstmt1.setFetchSize(3);
+        ResultSet rs1 = pstmt1.executeQuery();
+        for (int i = 1; i <= 5; i++) {
+            assertTrue(rs1.next());
+            assertEquals(rs1.getInt(1), i);
+        }
+        assertTrue(rs1.isLast());
+        assertFalse(rs1.next());
+        assertTrue(rs1.isAfterLast());
+
+        conn = setConnectionOrigin("?useCursorFetch=true");
+        PreparedStatement pstmt2 = conn.prepareStatement("select * from testMaxRows limit 10");
+        pstmt2.setMaxRows(5);
+        pstmt2.setFetchSize(3);
+        ResultSet rs2 = pstmt2.executeQuery();
+        for (int i = 1; i <= 5; i++) {
+            assertTrue(rs2.next());
+            assertEquals(rs2.getInt(1), i);
+        }
+        assertTrue(rs2.isLast());
+        assertFalse(rs2.next());
+        assertTrue(rs2.isAfterLast());
+        // mysql:
+        //        for (int i = 1; i <= 6; i ++) {
+        //            assertTrue(rs2.next());
+        //            assertEquals(rs2.getInt(1), i);
+        //        }
+        //        assertFalse(rs2.isLast());
+        //        for (int i = 7; i <= 20; i++) {
+        //            assertFalse(rs2.next());
+        //            assertFalse(rs2.isLast());
+        //            assertFalse(rs2.isAfterLast());
+        //        }
+
+        conn = setConnectionOrigin("?useCursorFetch=true");
+        PreparedStatement pstmt3 = conn.prepareStatement("select * from testMaxRows",
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        pstmt3.setMaxRows(5);
+        pstmt3.setFetchSize(3);
+        ResultSet rs3 = pstmt3.executeQuery();
+        assertTrue(rs3.absolute(5));
+        assertTrue(rs3.isLast());
+        assertFalse(rs3.next());
+        assertTrue(rs3.isAfterLast());
+    }
+
 }

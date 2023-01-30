@@ -239,7 +239,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getColumnLabel(final int column) throws SQLException {
-        return getColumnInformation(column).getOriginalName();
+        return getColumnInformation(column).getName();
     }
 
     /**
@@ -251,9 +251,9 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      */
     public String getColumnName(final int column) throws SQLException {
         if (isOracleMode) {
-            return getColumnInformation(column).getOriginalName();
+            return getColumnInformation(column).getName();
         }
-        String columnName = getColumnInformation(column).getName();
+        String columnName = getColumnInformation(column).getOriginalName();
         if ("".equals(columnName) || options.useOldAliasMetadataBehavior || forceAlias) {
             return getColumnLabel(column);
         }
@@ -441,7 +441,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     public boolean isReadOnly(final int column) throws SQLException {
         ColumnDefinition ci = getColumnInformation(column);
         return !(ci.getOriginalTable() != null && ci.getOriginalTable().length() > 0
-                 && ci.getOriginalName() != null && ci.getOriginalName().length() > 0);
+                 && ci.getName() != null && ci.getName().length() > 0);
     }
 
     /**

@@ -419,7 +419,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean storesLowerCaseIdentifiers() throws SQLException {

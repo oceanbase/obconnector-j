@@ -67,6 +67,7 @@ import java.util.TimeZone;
 import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
+import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -460,60 +461,85 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return 0;
         }
-
-        long value;
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                value = parseBit();
-                break;
-            case TINYINT:
-                value = getInternalTinyInt(columnInfo);
-                break;
-            case SMALLINT:
-            case YEAR:
-                value = getInternalSmallInt(columnInfo);
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-            case NUMBER:
-                value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
-                         + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
-                if (columnInfo.isSigned()) {
-                    return (int) value;
-                } else if (value < 0) {
-                    value = value & 0xffffffffL;
+        try {
+            long value;
+            switch (columnInfo.getColumnType()) {
+                case BIT:
+                    value = parseBit();
+                    break;
+                case TINYINT:
+                    value = getInternalTinyInt(columnInfo);
+                    break;
+                case SMALLINT:
+                case YEAR:
+                    value = getInternalSmallInt(columnInfo);
+                    break;
+                case INTEGER:
+                case MEDIUMINT:
+                case NUMBER:
+                    value = ((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8)
+                             + ((buf[pos + 2] & 0xff) << 16) + ((buf[pos + 3] & 0xff) << 24));
+                    if (columnInfo.isSigned()) {
+                        return (int) value;
+                    } else if (value < 0) {
+                        value = value & 0xffffffffL;
+                    }
+                    break;
+                case BIGINT:
+                    value = getInternalLong(columnInfo);
+                    break;
+                case FLOAT:
+                    value = (long) getInternalFloat(columnInfo);
+                    break;
+                case DOUBLE:
+                    value = (long) getInternalDouble(columnInfo);
+                    break;
+                case DECIMAL:
+                case OLDDECIMAL:
+                case OBDECIMAL:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
+                        columnInfo);
+                    return bigDecimal.intValue();
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case VARCHAR2:
+                case NVARCHAR2:
+                    value = Long.parseLong(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    break;
+                default:
+                    throw new SQLException("getInt not available for data field type "
+                                           + columnInfo.getColumnType().getSqlTypeName());
+            }
+            rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
+            return (int) value;
+        } catch (NumberFormatException nfe) {
+            // parse error.
+            // if its a decimal retry without the decimal part.
+            String stringVal = new String(buf, pos, length,
+                getCurrentEncoding(columnInfo.getColumnType()));
+            if (isIntegerRegex.matcher(stringVal).find()) {
+                try {
+                    return Integer.parseInt(stringVal.substring(0, stringVal.indexOf(".")));
+                } catch (NumberFormatException nfee) {
+                    // eat exception
                 }
-                break;
-            case BIGINT:
-                value = getInternalLong(columnInfo);
-                break;
-            case FLOAT:
-                value = (long) getInternalFloat(columnInfo);
-                break;
-            case DOUBLE:
-                value = (long) getInternalDouble(columnInfo);
-                break;
-            case DECIMAL:
-            case OLDDECIMAL:
-            case OBDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal,
-                    columnInfo);
-                return bigDecimal.intValue();
-            case VARSTRING:
-            case VARCHAR:
-            case STRING:
-            case VARCHAR2:
-            case NVARCHAR2:
-                value = Long.parseLong(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())).trim());
-                break;
-            default:
-                throw new SQLException("getInt not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+            }
+            if (!getProtocol().isOracleMode()) {
+                double doubleVal = Double.parseDouble(stringVal);
+                // check
+                if (options.jdbcCompliantTruncation) {
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
+                        columnInfo);
+                }
+                return (int) doubleVal;
+            }
+            throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                   + "' : value " + stringVal, "22003", 1264);
+
         }
-        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-        return (int) value;
     }
 
     /**
@@ -597,25 +623,33 @@ public class BinaryRowProtocol extends RowProtocol {
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                 default:
                     throw new SQLException("getLong not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
             return value;
         } catch (NumberFormatException nfe) {
             // parse error.
             // if its a decimal retry without the decimal part.
-            String valueParams = new String(buf, pos, length,
+            String stringVal = new String(buf, pos, length,
                 getCurrentEncoding(columnInfo.getColumnType()));
-            if (isIntegerRegex.matcher(valueParams).find()) {
+            if (isIntegerRegex.matcher(stringVal).find()) {
                 try {
-                    return Long
-                        .parseLong(valueParams.substring(0, valueParams.indexOf(".")).trim());
+                    return Long.parseLong(stringVal.substring(0, stringVal.indexOf(".")));
                 } catch (NumberFormatException nfee) {
                     // eat exception
                 }
             }
+            if (!getProtocol().isOracleMode()) {
+                double doubleVal = Double.parseDouble(stringVal);
+                // check
+                if (options.jdbcCompliantTruncation) {
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal, columnInfo);
+                }
+                return (long) doubleVal;
+            }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                   + "' : value " + valueParams, "22003", 1264);
+                                   + "' : value " + stringVal, "22003", 1264);
+
         }
     }
 
@@ -689,7 +723,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getFloat for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264, nfe);
                     throw sqlException;
                 }
             case OBDECIMAL:
@@ -699,14 +733,14 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.floatValue();
             default:
                 throw new SQLException("getFloat not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
         try {
             return Float.valueOf(String.valueOf(value));
         } catch (NumberFormatException nfe) {
             SQLException sqlException = new SQLException(
                 "Incorrect format for getFloat for data field with type "
-                        + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
+                        + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264, nfe);
             throw sqlException;
         }
     }
@@ -771,7 +805,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format for getDouble for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getSqlTypeName(), "22003", 1264);
                     //noinspection UnnecessaryInitCause
                     sqlException.initCause(nfe);
                     throw sqlException;
@@ -794,7 +828,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return bigDecimal.doubleValue();
             default:
                 throw new SQLException("getDouble not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -852,11 +886,17 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
-                return new BigDecimal(new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType())).trim());
+                String strValue = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())).trim();
+                try {
+                    BigDecimal retVal = new BigDecimal(strValue);
+                    return retVal;
+                } catch (Exception e) {
+                    throw new SQLException("Bad format for BigDecimal '" + strValue + "'");
+                }
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
-                                       + columnInfo.getColumnType().getJavaTypeName());
+                                       + columnInfo.getColumnType().getSqlTypeName());
         }
     }
 
@@ -872,117 +912,128 @@ public class BinaryRowProtocol extends RowProtocol {
     @SuppressWarnings("deprecation")
     public Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                              throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
-        switch (columnInfo.getColumnType()) {
-            case TIMESTAMP:
-            case TIMESTAMP_NANO:
-            case DATETIME:
-            case TIMESTAMP_TZ:
-            case TIMESTAMP_LTZ:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-                return (timestamp == null) ? null : new Date(timestamp.getTime());
-            case TIME:
-                if (length != 0) {
-                    int year = 0;
-                    int month = 0;
-                    int day = 0;
-                    int hour = 0;
-                    int minute = 0;
-                    int seconds = 0;
+        try {
+            if (lastValueWasNull()) {
+                return null;
+            }
+            switch (columnInfo.getColumnType()) {
+                case TIMESTAMP:
+                case TIMESTAMP_NANO:
+                case DATETIME:
+                case TIMESTAMP_TZ:
+                case TIMESTAMP_LTZ:
+                    Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                    return (timestamp == null) ? null : new Date(timestamp.getTime());
+                case TIME:
                     if (length != 0) {
-                        // bits[0] // skip tm->neg
-                        // binaryData.readLong(); // skip daysPart
-                        hour = buf[pos + 5];
-                        minute = buf[pos + 6];
-                        seconds = buf[pos + 7];
-                    }
+                        int year = 0;
+                        int month = 0;
+                        int day = 0;
+                        int hour = 0;
+                        int minute = 0;
+                        int seconds = 0;
+                        if (length != 0) {
+                            // bits[0] // skip tm->neg
+                            // binaryData.readLong(); // skip daysPart
+                            hour = buf[pos + 5];
+                            minute = buf[pos + 6];
+                            seconds = buf[pos + 7];
+                        }
 
-                    year = 1970;
-                    month = 1;
-                    day = 1;
-                    Calendar dateCal = cal != null ? cal : Calendar.getInstance();
-                    synchronized (dateCal) {
-                        java.util.Date origCalDate = dateCal.getTime();
-                        try {
-                            dateCal.clear();
-                            dateCal.set(Calendar.MILLISECOND, 0);
+                        year = 1970;
+                        month = 1;
+                        day = 1;
+                        Calendar dateCal = getCalendarInstance(cal);
+                        synchronized (dateCal) {
+                            java.util.Date origCalDate = dateCal.getTime();
+                            try {
+                                dateCal.clear();
+                                dateCal.set(Calendar.MILLISECOND, 0);
 
-                            // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
-                            dateCal.set(year, month - 1, day, 0, 0, 0);
+                                // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
+                                dateCal.set(year, month - 1, day, 0, 0, 0);
 
-                            long dateAsMillis = dateCal.getTimeInMillis();
+                                long dateAsMillis = dateCal.getTimeInMillis();
 
-                            return new Date(dateAsMillis);
-                        } finally {
-                            dateCal.setTime(origCalDate);
+                                return new Date(dateAsMillis);
+                            } finally {
+                                dateCal.setTime(origCalDate);
+                            }
                         }
                     }
-                }
-                throw new SQLException("Cannot read Date using a Types.TIME field");
-            case STRING:
-            case VARCHAR:
-            case VARCHAR2:
-            case NVARCHAR2:
-            case VARSTRING:
-                String rawValue = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                if ("0000-00-00".equals(rawValue)) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
-
-                try {
-                    DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    sdf.setTimeZone(timeZone);
-                    java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
-                    return new Date(utilDate.getTime());
-
-                } catch (ParseException e) {
-                    throw ExceptionFactory.INSTANCE.create(
-                        "Could not get object as Date : " + e.getMessage(), "S1009", e);
-                }
-                //                return new Date(Integer.parseInt(rawValue.substring(0, 4)) - 1900,
-                //                    Integer.parseInt(rawValue.substring(5, 7)) - 1, Integer.parseInt(rawValue
-                //                        .substring(8, 10)));
-            default:
-                if (length == 0) {
-                    lastValueNull |= BIT_LAST_FIELD_NULL;
-                    return null;
-                }
-
-                int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-
-                if (length == 2 && columnInfo.getLength() == 2) {
-                    // YEAR(2) - deprecated
-                    if (year <= 69) {
-                        year += 2000;
-                    } else {
-                        year += 1900;
+                    throw new SQLException("Cannot read Date using a Types.TIME field");
+                case STRING:
+                case VARCHAR:
+                case VARCHAR2:
+                case NVARCHAR2:
+                case VARSTRING:
+                    String rawValue = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    if (!getProtocol().isOracleMode()) {
+                        return getDateFromString(rawValue, cal, columnInfo);
                     }
-                }
+                    if ("0000-00-00".equals(rawValue)) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
+                    }
 
-                int month = 1;
-                int day = 1;
+                    try {
+                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setTimeZone(timeZone);
+                        java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType())));
+                        return new Date(utilDate.getTime());
 
-                if (length >= 4) {
-                    month = buf[pos + 2];
-                    day = buf[pos + 3];
-                }
+                    } catch (ParseException e) {
+                        throw ExceptionFactory.INSTANCE.create("Could not get object as Date : "
+                                                               + e.getMessage(), "S1009", e);
+                    }
+                default:
+                    if (length == 0) {
+                        lastValueNull |= BIT_LAST_FIELD_NULL;
+                        return null;
+                    }
 
-                Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.set(Calendar.YEAR, year);
-                calendar.set(Calendar.MONTH, month - 1);
-                calendar.set(Calendar.DAY_OF_MONTH, day);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MILLISECOND, 0);
-                Date dt = new Date(calendar.getTimeInMillis());
-                return dt;
+                    int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+
+                    if (length == 2 && columnInfo.getLength() == 2) {
+                        // YEAR(2) - deprecated
+                        if (year <= 69) {
+                            year += 2000;
+                        } else {
+                            year += 1900;
+                        }
+                    }
+
+                    int month = 1;
+                    int day = 1;
+
+                    if (length >= 4) {
+                        month = buf[pos + 2];
+                        day = buf[pos + 3];
+                    }
+
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.clear();
+                    calendar.set(Calendar.YEAR, year);
+                    calendar.set(Calendar.MONTH, month - 1);
+                    calendar.set(Calendar.DAY_OF_MONTH, day);
+                    calendar.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+                    Date dt = new Date(calendar.getTimeInMillis());
+                    return dt;
+            }
+        } catch (SQLException sqlException) {
+            throw sqlException; // don't re-wrap
+        } catch (Exception e) {
+            SQLException sqlException = new SQLException("Bad format for DATE "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType())));
+            sqlException.initCause(e);
+            throw sqlException;
         }
     }
 
@@ -1019,7 +1070,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
                     month = buf[pos + 2];
                     day = buf[pos + 3];
-                    Calendar calendar = cal != null ? cal : Calendar.getInstance();
+                    Calendar calendar = getCalendarInstance(cal);
                     synchronized (calendar) {
                         java.util.Date origCalDate = calendar.getTime();
                         try {
@@ -1035,7 +1086,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
-                Calendar calendar = cal != null ? cal : Calendar.getInstance();
+                ColumnType type = columnInfo.getColumnType();
+                if (!getProtocol().isOracleMode()
+                    && (type == ColumnType.STRING || type == ColumnType.VARCHAR || type == ColumnType.VARSTRING)) {
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    return getTimeFromString(raw, cal);
+                }
+                // convert string to a date
+                Calendar calendar = getCalendarInstance(cal);
                 calendar.clear();
                 int day = 0;
                 int hour = 0;
@@ -1080,148 +1139,145 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public Timestamp getInternalTimestamp(ColumnDefinition columnInfo, Calendar userCalendar,
                                           TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) {
-            return null;
-        }
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-        if (this.getProtocol().isOracleMode()) {
-            Calendar cal;
-            if (userCalendar != null) {
-                cal = userCalendar;
-            } else {
-                cal = Calendar.getInstance(timeZone);
+        try {
+            if (lastValueWasNull()) {
+                return null;
             }
-            TIMESTAMP timestamp = null;
+            if (length == 0) {
+                lastValueNull |= BIT_LAST_FIELD_NULL;
+                return null;
+            }
+            if (this.getProtocol().isOracleMode()) {
+                Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                TIMESTAMP timestamp = null;
+                switch (columnInfo.getColumnType()) {
+                    case TIMESTAMP_TZ:
+                        TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo,
+                            userCalendar, timeZone);
+                        timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
+                            oracleTimestampZ.toBytes());
+                        return timestamp.timestampValue(cal);
+                    case TIMESTAMP_LTZ:
+                        TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
+                            userCalendar, timeZone);
+                        timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
+                            oracleTimestampLTZ.getBytes());
+                        return timestamp.timestampValue(cal);
+                }
+            }
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
+                Calendar cal = getCalendarInstance(userCalendar);
+                return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                    .timestampValue(cal);
+            }
+
+            int year = 1970;
+            int month = 0;
+            int day = 0;
+            int hour = 0;
+            int minutes = 0;
+            int seconds = 0;
+            int microseconds = 0;
+            int nanos = 0;
+
             switch (columnInfo.getColumnType()) {
-                case TIMESTAMP_TZ:
-                    TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
-                        timeZone);
-                    timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
-                        oracleTimestampZ.toBytes());
-                    return timestamp.timestampValue(cal);
-                case TIMESTAMP_LTZ:
-                    TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
-                        userCalendar, timeZone);
-                    timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
-                        oracleTimestampLTZ.getBytes());
-                    return timestamp.timestampValue(cal);
-            }
-        }
-        if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
-            Calendar cal;
-            if (userCalendar != null) {
-                cal = userCalendar;
-            } else {
-                cal = Calendar.getInstance(TimeZone.getDefault());
-            }
-            return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
-                .timestampValue(cal);
-        }
+                case TIME:
 
-        int year = 1970;
-        int month = 0;
-        int day = 0;
-        int hour = 0;
-        int minutes = 0;
-        int seconds = 0;
-        int microseconds = 0;
-        int nanos = 0;
+                    boolean negate = false;
+                    if (length > 0) {
+                        negate = (buf[pos] & 0xff) == 0x01;
+                    }
+                    if (length > 4) {
+                        day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
+                               + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
+                    }
+                    if (length > 7) {
+                        hour = buf[pos + 5];
+                        minutes = buf[pos + 6];
+                        seconds = buf[pos + 7];
+                    }
 
-        switch (columnInfo.getColumnType()) {
-            case TIME:
-                Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
+                    if (length > 8) {
+                        microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
+                                        + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
+                        nanos = microseconds * 1000000;
+                    }
+                    year = 1970;
+                    month = 1;
+                    day = ((negate ? -1 : 1) * day) + 1;
+                    hour = (negate ? -1 : 1) * hour;
+                    break;
 
-                boolean negate = false;
-                if (length > 0) {
-                    negate = (buf[pos] & 0xff) == 0x01;
-                }
-                if (length > 4) {
-                    day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
-                           + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
-                }
-                if (length > 7) {
-                    hour = buf[pos + 5];
-                    minutes = buf[pos + 6];
-                    seconds = buf[pos + 7];
-                }
+                case STRING:
+                case VARSTRING:
+                case NVARCHAR2:
+                case VARCHAR2:
+                case VARCHAR:
+                    String rawValue = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    if (!getProtocol().isOracleMode()) {
+                        return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);
+                    }
+                    if (rawValue.startsWith("0000-00-00 00:00:00")) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
+                    }
 
-                if (length > 8) {
-                    microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
-                                    + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
-                    nanos = microseconds * 1000000;
-                }
-                year = 1970;
-                month = 1;
-                day = ((negate ? -1 : 1) * day) + 1;
-                hour = (negate ? -1 : 1) * hour;
-                break;
-
-            case STRING:
-            case VARSTRING:
-            case NVARCHAR2:
-            case VARCHAR2:
-            case VARCHAR:
-                String rawValue = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                if (rawValue.startsWith("0000-00-00 00:00:00")) {
-                    lastValueNull |= BIT_LAST_ZERO_DATE;
-                    return null;
-                }
-
-                if (rawValue.length() >= 4) {
-                    year = Integer.parseInt(rawValue.substring(0, 4));
-                    if (rawValue.length() >= 7) {
-                        month = Integer.parseInt(rawValue.substring(5, 7));
-                        if (rawValue.length() >= 10) {
-                            day = Integer.parseInt(rawValue.substring(8, 10));
-                            if (rawValue.length() >= 19) {
-                                hour = Integer.parseInt(rawValue.substring(11, 13));
-                                minutes = Integer.parseInt(rawValue.substring(14, 16));
-                                seconds = Integer.parseInt(rawValue.substring(17, 19));
+                    if (rawValue.length() >= 4) {
+                        year = Integer.parseInt(rawValue.substring(0, 4));
+                        if (rawValue.length() >= 7) {
+                            month = Integer.parseInt(rawValue.substring(5, 7));
+                            if (rawValue.length() >= 10) {
+                                day = Integer.parseInt(rawValue.substring(8, 10));
+                                if (rawValue.length() >= 19) {
+                                    hour = Integer.parseInt(rawValue.substring(11, 13));
+                                    minutes = Integer.parseInt(rawValue.substring(14, 16));
+                                    seconds = Integer.parseInt(rawValue.substring(17, 19));
+                                }
+                                nanos = extractNanos(rawValue);
                             }
-                            nanos = extractNanos(rawValue);
                         }
                     }
-                }
-                break;
 
-            default:
-                year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                month = buf[pos + 2];
-                day = buf[pos + 3];
-                if (length > 4) {
-                    hour = buf[pos + 4];
-                    minutes = buf[pos + 5];
-                    seconds = buf[pos + 6];
+                    break;
+                default:
+                    year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                    month = buf[pos + 2];
+                    day = buf[pos + 3];
+                    if (length > 4) {
+                        hour = buf[pos + 4];
+                        minutes = buf[pos + 5];
+                        seconds = buf[pos + 6];
 
-                    if (length > 7) {
-                        microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
-                                        + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
-                        nanos = microseconds * 1000;
+                        if (length > 7) {
+                            microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
+                                            + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
+                            nanos = microseconds * 1000;
+                        }
                     }
-                }
-        }
+            }
 
-        Calendar calendar;
-        if (userCalendar != null) {
-            calendar = userCalendar;
-        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-            calendar = Calendar.getInstance(TimeZone.getDefault());
-        } else {
-            calendar = Calendar.getInstance();
-        }
+            Calendar calendar = getCalendarInstance(userCalendar);
 
-        Timestamp tt;
-        synchronized (calendar) {
-            calendar.clear();
-            calendar.set(year, month - 1, day, hour, minutes, seconds);
-            tt = new Timestamp(calendar.getTimeInMillis());
+            Timestamp tt;
+            synchronized (calendar) {
+                calendar.clear();
+                calendar.set(year, month - 1, day, hour, minutes, seconds);
+                tt = new Timestamp(calendar.getTimeInMillis());
+            }
+            tt.setNanos(nanos);
+            return tt;
+        } catch (SQLException e) {
+            throw e; // don't re-wrap
+        } catch (NumberFormatException e) {
+            SQLException sqlException = new SQLException("Cannot convert value "
+                                                         + new String(buf, pos, length,
+                                                             getCurrentEncoding(columnInfo
+                                                                 .getColumnType()))
+                                                         + " to TIMESTAMP.");
+            sqlException.initCause(e);
+            throw sqlException;
         }
-        tt.setNanos(nanos);
-        return tt;
     }
 
     /**
@@ -1268,6 +1324,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+            case ENUM:
                 if (columnInfo.isBinary()) {
                     byte[] data = new byte[getLengthMaxFieldSize()];
                     System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
@@ -1318,8 +1375,6 @@ public class BinaryRowProtocol extends RowProtocol {
                 byte[] data = new byte[length];
                 System.arraycopy(buf, pos, data, 0, length);
                 return data;
-            case ENUM:
-                break;
             case NEWDATE:
                 break;
             case SET:
@@ -1391,9 +1446,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 boolVal = getInternalLong(columnInfo);
                 return (boolVal > 0 || boolVal == -1);
             default:
-                final String rawVal = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
-                return Utils.convertStringToBoolean(rawVal);
+                if (columnInfo.isBinary()) {
+                    byte[] bytes = new byte[length];
+                    System.arraycopy(buf, pos, bytes, 0, length);
+                    return Utils.convertBytesToBoolean(bytes);
+                } else {
+                    final String rawVal = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    return Utils.convertStringToBoolean(rawVal);
+                }
         }
     }
 
@@ -1450,7 +1511,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
             return (byte) value;
@@ -1533,7 +1594,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     break;
                 default:
                     throw new SQLException("getShort not available for data field type "
-                                           + columnInfo.getColumnType().getJavaTypeName());
+                                           + columnInfo.getColumnType().getSqlTypeName());
             }
             rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
             return (short) value;
@@ -1761,7 +1822,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read " + clazz.getName() + " using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
@@ -1853,8 +1914,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 default:
                     throw new SQLException("Cannot read " + OffsetTime.class.getName()
                                            + " using a "
-                                           + columnInfo.getColumnType().getJavaTypeName()
-                                           + " field");
+                                           + columnInfo.getColumnType().getSqlTypeName() + " field");
             }
         }
 
@@ -1943,7 +2003,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalTime using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
@@ -1997,11 +2057,12 @@ public class BinaryRowProtocol extends RowProtocol {
 
             default:
                 throw new SQLException("Cannot read LocalDate using a "
-                                       + columnInfo.getColumnType().getJavaTypeName() + " field");
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
         }
     }
 
-    private ComplexData getComplexField(Buffer packet, ComplexDataType type) throws SQLException {
+    private ComplexData getComplexField(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData value = null;
         if (null == type || !type.isValid()) {
             throw new SQLException(String.format(
@@ -2009,10 +2070,10 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         switch (type.getType()) {
             case ComplexDataType.TYPE_COLLECTION:
-                value = getComplexArray(packet, type);
+                value = getComplexArray(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_OBJECT:
-                value = getComplexStruct(packet, type);
+                value = getComplexStruct(packet, type, connection);
                 break;
             default:
                 throw new SQLException(String.format(
@@ -2021,7 +2082,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return value;
     }
 
-    private ComplexData getComplexArray(Buffer packet, ComplexDataType type) throws SQLException {
+    private ComplexData getComplexArray(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData array = new ArrayImpl(type);
         int attrCount = (int) packet.readFieldLength();
         array.setAttrCount(attrCount);
@@ -2032,7 +2094,7 @@ public class BinaryRowProtocol extends RowProtocol {
         packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
         for (int i = 0; i < attrCount; ++i) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
-                Object value = getComplexAttrData(packet, type.getAttrType(0));
+                Object value = getComplexAttrData(packet, type.getAttrType(0), connection);
                 array.addAttrData(i, value);
             } else {
                 array.addAttrData(i, null);
@@ -2042,7 +2104,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return array;
     }
 
-    public ComplexData getComplexStruct(Buffer packet, ComplexDataType type) throws SQLException {
+    public ComplexData getComplexStruct(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                   throws SQLException {
         ComplexData struct = new StructImpl(type);
         int attrCount = type.getAttrCount();
         struct.setAttrCount(attrCount);
@@ -2051,7 +2114,7 @@ public class BinaryRowProtocol extends RowProtocol {
         packet.setPosition(curPos + (attrCount + 7 + 2) / 8);
         for (int i = 0; i < attrCount; ++i) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) == 0) {
-                Object value = getComplexAttrData(packet, type.getAttrType(i));
+                Object value = getComplexAttrData(packet, type.getAttrType(i), connection);
                 struct.addAttrData(i, value);
             } else {
                 struct.addAttrData(i, null);
@@ -2101,7 +2164,13 @@ public class BinaryRowProtocol extends RowProtocol {
         return ts;
     }
 
-    private Object getComplexAttrData(Buffer packet, ComplexDataType type) throws SQLException {
+    private java.sql.Timestamp getComplexTimestamp(byte[] bits) throws SQLException {
+        TIMESTAMP timestamp = buildTIMETAMP(bits, 0, bits.length);
+        return timestamp.timestampValue();
+    }
+
+    private Object getComplexAttrData(Buffer packet, ComplexDataType type, Connection connection)
+                                                                                                 throws SQLException {
         Object value = null;
         byte[] b = null;
         Charset charset = Charset.forName(this.getProtocol().getEncoding());
@@ -2122,15 +2191,28 @@ public class BinaryRowProtocol extends RowProtocol {
             case ComplexDataType.TYPE_DATE:
                 value = getComplexDate(packet.readLenByteArray(0));
                 break;
+            case ComplexDataType.TYPE_TIMESTMAP:
+                value = getComplexTimestamp(packet.readLenByteArray(0));
+                break;
             case ComplexDataType.TYPE_COLLECTION:
-                value = getComplexArray(packet, type);
+                value = getComplexArray(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_OBJECT:
-                value = getComplexStruct(packet, type);
+                value = getComplexStruct(packet, type, connection);
                 break;
             case ComplexDataType.TYPE_CHAR:
                 b = packet.readLenByteArray(0);
                 value = (char) (b[0]);
+                break;
+            case ComplexDataType.TYPE_CLOB:
+                b = packet.readLenByteArray(0);
+                if (options.supportLobLocator) {
+                    Clob c = new com.oceanbase.jdbc.Clob(true, b, charset.name(),
+                        (OceanBaseConnection) connection);
+                    value = c.toString();
+                } else {
+                    return new String(buf, pos, length, charset);
+                }
                 break;
             default:
                 throw new SQLException("unsupported complex data type");
@@ -2145,12 +2227,12 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return
      * @throws SQLException
      */
-    public Array getInternalArray(ColumnDefinition columnInf, ComplexDataType complexDataType)
-                                                                                              throws SQLException {
+    public Array getInternalArray(ColumnDefinition columnInf, ComplexDataType complexDataType,
+                                  Connection connection) throws SQLException {
         Array ret = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        ret = (ObArray) getComplexField(buffer, complexDataType);
+        ret = (ObArray) getComplexField(buffer, complexDataType, connection);
         pos = buffer.getPosition();
         return ret;
     }
@@ -2162,19 +2244,19 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return struct value
      * @throws SQLException exception
      */
-    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType)
-                                                                                                 throws SQLException {
+    public Struct getInternalStruct(ColumnDefinition columnInfo, ComplexDataType complexDataType,
+                                    Connection connection) throws SQLException {
         ObStruct struct = null;
         Buffer buffer = new Buffer(buf);
         buffer.setPosition(pos);
-        struct = (ObStruct) getComplexField(buffer, complexDataType);
+        struct = (ObStruct) getComplexField(buffer, complexDataType, connection);
         pos = buffer.getPosition();
         return struct;
     }
 
     public ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,
-                                                ComplexDataType complexDataType)
-                                                                                throws SQLException {
+                                                ComplexDataType complexDataType,
+                                                Connection connection) throws SQLException {
 
         ComplexData value = new ComplexData(complexDataType);
         if (buf.length <= pos) {

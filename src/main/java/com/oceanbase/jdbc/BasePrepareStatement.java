@@ -148,6 +148,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         if (executeInternal(getFetchSize())) {
             return 0;
         }
+
+        // DML returning rs
+        if (results.isReturning() && results.getResultSet() != null) {
+            return results.getResultSet().getProcessedRows();
+        }
         return getLargeUpdateCount();
     }
 
@@ -537,8 +542,15 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        setParameter(parameterIndex, new DateParameter(date, cal != null ? cal.getTimeZone()
-            : TimeZone.getDefault(), protocol.getOptions()));
+        if (connection.getProtocol().isOracleMode()) {
+            setParameter(
+                parameterIndex,
+                new DateTimeParameter(new Timestamp(date.getTime()), cal != null ? cal
+                    .getTimeZone() : TimeZone.getDefault(), useFractionalSeconds, true));
+        } else {
+            setParameter(parameterIndex, new DateParameter(date, cal != null ? cal.getTimeZone()
+                : TimeZone.getDefault(), protocol.getOptions()));
+        }
     }
 
     /**
@@ -563,8 +575,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
                 return;
             }
-            setParameter(parameterIndex, new OBTIMESTAMPParameter(timestamp,
-                protocol.getTimeZone(), useFractionalSeconds, true));
+            setParameter(parameterIndex, new DateTimeParameter(timestamp, protocol.getTimeZone(),
+                useFractionalSeconds, true));
         } else {
             setParameter(parameterIndex,
                 new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
@@ -1247,7 +1259,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                         setInt(parameterIndex, intVal);
                         break;
                     case Types.BOOLEAN:
-                        setBoolean(parameterIndex, "true".equalsIgnoreCase(str) || !"0".equals(str));
+                        if ("true".equalsIgnoreCase(str) || "Y".equalsIgnoreCase(str)) {
+                            setBoolean(parameterIndex, true);
+                        } else if ("false".equalsIgnoreCase(str) || "N".equalsIgnoreCase(str)) {
+                            setBoolean(parameterIndex, false);
+                        } else if ((str).matches("-?\\d+\\.?\\d*")) {
+                            setBoolean(parameterIndex, !(str).matches("-?[0]+[.]*[0]*"));
+                        } else {
+                            throw new SQLException("No conversion from " + str
+                                                   + " to Types.BOOLEAN possible.", "S1009", 0);
+                        }
                         break;
                     case Types.TINYINT:
                         setByte(parameterIndex, Byte.parseByte(str));
@@ -1800,6 +1821,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setDouble(final int parameterIndex, final double value) throws SQLException {
+        if (!options.allowNanAndInf
+            && (value == Double.POSITIVE_INFINITY || value == Double.NEGATIVE_INFINITY || Double
+                .isNaN(value))) {
+            throw new SQLException("'" + value
+                                   + "' is not a valid numeric or approximate numeric value");
+
+        }
         setParameter(parameterIndex, new DoubleParameter(value));
     }
 

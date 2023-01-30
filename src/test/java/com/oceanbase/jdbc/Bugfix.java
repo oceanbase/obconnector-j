@@ -49,11 +49,16 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
 import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import org.junit.*;
 
@@ -64,6 +69,8 @@ public class Bugfix extends BaseTest {
     static String testDateAndTS          = "testDateAndTS" + getRandomString(5);
     static String refreshRow             = "refreshRow" + getRandomString(5);
     static String testSetObjectBlob      = "testSetObjectBlob" + getRandomString(5);
+    static String testBatchValue         = "testBatchValue" + getRandomString(5);
+    static String testBestRow            = "testBestRow" + getRandomString(5);
 
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -83,6 +90,10 @@ public class Bugfix extends BaseTest {
         createTable(testDateAndTS, "c1 date ,c2 timestamp");
         createTable(refreshRow, "c1 int not null primary key,c2 varchar(200)");
         createTable(testSetObjectBlob, "c1 blob,c2 blob,c3 blob,c4 blob");
+        createTable(testBatchValue, "c1 INT, c2 INT");
+        createTable(testBestRow, "c1 INT NOT NULL primary key, b VARCHAR(32), c INT, d VARCHAR(5)");
+        createTable("testExecuteLargeBatch", "id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT");
+
     }
 
     // fix for aone 39996582
@@ -794,7 +805,7 @@ public class Bugfix extends BaseTest {
             cstmt.setInt(4, 4);
             cstmt.setInt(5, 5);
             cstmt.execute();
-            assertEquals(0, cstmt.getUpdateCount()); // objdbc 1.x=0 2.x=-1
+            assertEquals(1, cstmt.getUpdateCount()); // mysql jdbc 1
             ResultSet rs = stmt.executeQuery("select * from testCallStmtUpdate");
             int j = 1;
             while (rs.next()) {
@@ -1642,43 +1653,6 @@ public class Bugfix extends BaseTest {
         }
     }
 
-    @Test
-    public void testAllDataTypeMysql() {
-        try {
-            Connection conn = sharedConnection;
-            Map<String, Object> map = new HashMap<>();
-            map.put("TypeNameCol1","BLOB");
-            map.put("TypeNameCol2","MEDIUMBLOB");
-            map.put("TypeNameCol3","VARCHAR");
-            map.put("TypeNameCol4","VARCHAR");
-            map.put("TypeValueCol1",-4);
-            map.put("TypeValueCol2",-4);
-            map.put("TypeValueCol3",-1);
-            map.put("TypeValueCol4",-1);
-            Statement statement = conn.createStatement();
-            try {
-                statement.execute("drop table ALL_DATATYPE_TEST");
-            } catch (SQLException e) {
-                // e.printStackTrace();
-            }
-            statement.execute("create table ALL_DATATYPE_TEST(c1 int, c2 tinyInt, c3 smallInt, c4 mediumInt, c5 bigInt," +
-                " c6 float, c7 double, c8 decimal(5,2), c9 date, c10 time, c11 year, c12 datetime, c13 timestamp," +
-                " c14 char(20), c15 varchar(20), c16 tinyBLob, c17 Blob, c18 mediumBlob, c19 longBlob, c20 tinyText," +
-                " c21 Text, c22 mediumText, c23 longText, c24 binary(20), c25 varBinary(20))");
-            ResultSet rs = statement.executeQuery("select c17,c18,c21,c22 FROM ALL_DATATYPE_TEST");
-            for(int i = 1; i <= 4;i++) {
-                String columnTypeName = rs.getMetaData().getColumnTypeName(i);
-                int columnType = rs.getMetaData().getColumnType(i);
-                Assert.assertEquals(map.get("TypeNameCol" + i),columnTypeName);
-                Assert.assertEquals(map.get("TypeValueCol" + i),columnType);
-            }
-
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-            Assert.fail();
-        }
-    }
-
     // The affected rows will fixed by OB 4.0,We will run this case after OB4.0 Released.
     @Ignore
     public void testCallStmtExecuteLargeUpdateBug40830770() {
@@ -1718,6 +1692,28 @@ public class Bugfix extends BaseTest {
     }
 
     @Test
+    public void testPrepStmtExecuteLargeUpdate() {
+        try {
+            createTable("test1", "id int");
+
+            PreparedStatement ps = sharedConnection
+                .prepareStatement("INSERT INTO test1 VALUES (?), (?), (?), (?), (?)");
+            ps.setInt(1, 1);
+            ps.setInt(2, 2);
+            ps.setInt(3, 3);
+            ps.setInt(4, 4);
+            ps.setInt(5, 5);
+
+            long count = ps.executeLargeUpdate();
+            assertEquals(5, count);
+            assertEquals(5, ps.getLargeUpdateCount());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testConnClosedStmt() {
         try {
             Connection conn = setConnection();
@@ -1725,15 +1721,54 @@ public class Bugfix extends BaseTest {
             conn.close();
             stmt.getResultSet();
             fail("Should've caught an exception here");
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains(
+                "Cannot do an operation on a closed statement"));
+        }
+    }
+
+    @Test
+    public void testAllDataTypeMysql() {
+        try {
+            Connection conn = sharedConnection;
+            Map<String, Object> map = new HashMap<>();
+            map.put("TypeNameCol1","BLOB");
+            map.put("TypeNameCol2","MEDIUMBLOB");
+            map.put("TypeNameCol3","VARCHAR");
+            map.put("TypeNameCol4","VARCHAR");
+            map.put("TypeValueCol1",-4);
+            map.put("TypeValueCol2",-4);
+            map.put("TypeValueCol3",-1);
+            map.put("TypeValueCol4",-1);
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop table ALL_DATATYPE_TEST");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            statement.execute("create table ALL_DATATYPE_TEST(c1 int, c2 tinyInt, c3 smallInt, c4 mediumInt, c5 bigInt," +
+                " c6 float, c7 double, c8 decimal(5,2), c9 date, c10 time, c11 year, c12 datetime, c13 timestamp," +
+                " c14 char(20), c15 varchar(20), c16 tinyBLob, c17 Blob, c18 mediumBlob, c19 longBlob, c20 tinyText," +
+                " c21 Text, c22 mediumText, c23 longText, c24 binary(20), c25 varBinary(20))");
+            ResultSet rs = statement.executeQuery("select c17,c18,c21,c22 FROM ALL_DATATYPE_TEST");
+            for(int i = 1; i <= 4;i++) {
+                String columnTypeName = rs.getMetaData().getColumnTypeName(i);
+                int columnType = rs.getMetaData().getColumnType(i);
+                Assert.assertEquals(map.get("TypeNameCol" + i),columnTypeName);
+                Assert.assertEquals(map.get("TypeValueCol" + i),columnType);
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            Assert.fail();
         }
     }
 
     @Test
     public void testUpdateCounts1() {
         try {
-            Connection conn = setConnection("&continueBatchOnError=false&rewriteBatchedStatements=false");
+            Connection conn = setConnection("&continueBatchOnError=true&rewriteBatchedStatements=true");
             Statement stmt = conn.createStatement();
 
             stmt.execute("drop table if exists test1");
@@ -1829,7 +1864,7 @@ public class Bugfix extends BaseTest {
     public void testSetObjectTypesBOOLEAN() throws Exception {
         String[] falses = new String[] { "False", "0", "n", "-0", "0.00", "-0.0" };
         PreparedStatement ps = sharedConnection.prepareStatement("select ?");
-        int[] ret = new int[] { 1, 0, 1, 1, 1, 1 };
+        int[] ret = new int[] { 0, 0, 0, 0, 0, 0 };
         int index = 0;
         for (String val : falses) {
             ps.clearParameters();
@@ -1918,4 +1953,348 @@ public class Bugfix extends BaseTest {
         assertFalse(rs.getBoolean(1));
     }
 
+    @Test
+    public void testBatchValue() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true");
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + testBatchValue
+                                                            + " VALUE (?, ?)");
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setInt(1, i);
+                pstmt.setInt(2, i);
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCharacterEncoding() {
+        try {
+            setConnection("&characterEncoding=latin1");
+            fail("Exception should've been thrown");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Unknown character set: 'latin1'"));
+            e.printStackTrace();
+        }
+        System.out.println("================");
+        try {
+            setConnection("&characterEncoding=NonexistentEncoding");
+            fail("Exception should've been thrown");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof UnsupportedCharsetException);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void fixTwoSingleQuotations1() {
+        try {
+            createTable("tabletodrop", "c1 int");
+            try {
+                Statement s = sharedConnection.createStatement();
+                s.execute("create procedure pl_sql2(test_str varchar(4000), inner_sql2 varchar(4000)) begin set @a=inner_sql2; prepare stmt from @a; execute stmt; deallocate prepare stmt; end;");
+            } catch (Exception e) {
+            }
+
+            CallableStatement callStmt = sharedConnection
+                .prepareCall("CALL pl_sql2('what is your name?', ?)");
+            callStmt.setString(1, "insert into tabletodrop values(1)  /*+ use_px parallel(2) */ ");
+            callStmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetBestRowIdentifier23() throws SQLException {
+        DatabaseMetaData metaData = sharedConnection.getMetaData();
+        ResultSet rs = metaData.getBestRowIdentifier(null, null, testBestRow, 1, false);
+        assertTrue(rs.next());
+        assertEquals(metaData.bestRowSession, rs.getInt("SCOPE")); //bestRowTemporary
+        assertEquals("c1", rs.getString("COLUMN_NAME"));
+        assertEquals(Types.INTEGER, rs.getInt("DATA_TYPE"));
+        assertEquals("int", rs.getString("TYPE_NAME"));
+        assertEquals(11, rs.getInt("COLUMN_SIZE"));
+        assertEquals(11, rs.getInt("BUFFER_LENGTH")); //0
+        assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+        assertEquals(metaData.bestRowNotPseudo, rs.getInt("PSEUDO_COLUMN"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void testBug10310_1() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        CallableStatement cStmt = null;
+        ResultSet rs = null;
+
+        stmt.executeUpdate("DROP FUNCTION IF EXISTS testBug10310");
+        stmt.executeUpdate("CREATE FUNCTION testBug10310(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+        cStmt = conn.prepareCall("{? = CALL testBug10310(?,?,?)}");
+        cStmt.registerOutParameter(1, Types.INTEGER);
+        cStmt.setFloat(2, 2);
+        cStmt.setInt(3, 1);
+        cStmt.setInt(4, 1);
+        assertEquals(4, cStmt.getParameterMetaData().getParameterCount());
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(1));
+
+        DatabaseMetaData dbmd = conn.getMetaData();
+
+        rs = dbmd.getFunctionColumns(conn.getCatalog(), null, "testBug10310", "%");
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        assertEquals(17, rsmd.getColumnCount());
+        assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+        assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+        assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+        assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+        assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+        assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+        assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+        assertEquals("PRECISION", rsmd.getColumnName(8));
+        assertEquals("LENGTH", rsmd.getColumnName(9));
+        assertEquals("SCALE", rsmd.getColumnName(10));
+        assertEquals("RADIX", rsmd.getColumnName(11));
+        assertEquals("NULLABLE", rsmd.getColumnName(12));
+        assertEquals("REMARKS", rsmd.getColumnName(13));
+        assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+        assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+        assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+        assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+
+        rs.close();
+
+        assertFalse(cStmt.execute());
+        assertEquals(2f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(2f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        cStmt.setFloat("a", 4);
+        cStmt.setInt("b", 1);
+        cStmt.setInt("c", 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        // Check metadata while we're at it
+
+        rs = dbmd.getProcedures(conn.getCatalog(), null, "testBug10310");
+        rs.next();
+        assertEquals("testBug10310", rs.getString("PROCEDURE_NAME"));
+        assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
+        cStmt.setNull(2, Types.FLOAT);
+        cStmt.setInt(3, 1);
+        cStmt.setInt(4, 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(0f, cStmt.getInt(1), .001);
+        assertTrue(cStmt.wasNull());
+        assertNull(cStmt.getObject(1));
+        assertTrue(cStmt.wasNull());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(0f, cStmt.getInt(1), .001);
+        assertTrue(cStmt.wasNull());
+        assertNull(cStmt.getObject(1));
+        assertTrue(cStmt.wasNull());
+
+        // Check with literals, not all parameters filled!
+        cStmt = conn.prepareCall("{? = CALL testBug10310(4,5,?)}");
+        cStmt.registerOutParameter(1, Types.INTEGER);
+        cStmt.setInt(2, 1);
+
+        assertFalse(cStmt.execute());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(-1, cStmt.executeUpdate());
+        assertEquals(4f, cStmt.getInt(1), .001);
+        assertEquals("java.lang.Integer", cStmt.getObject(1).getClass().getName());
+
+        assertEquals(2, cStmt.getParameterMetaData().getParameterCount());
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(1));
+        assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(2));
+
+    }
+
+    @Test
+    public void testUseAffectedRowError() throws Exception {
+        Connection connection = setConnection("&useAffectedRows=true");
+        PreparedStatement preparedStatement;
+        Statement statement = connection.createStatement();
+        int ids[] = { 13, 1, 8 };
+        String vals[] = { "c", "a", "b" };
+        statement.executeUpdate("drop table if exists testBug37458");
+        statement
+            .executeUpdate("create table testBug37458 (id int not null auto_increment, val varchar(100), primary key (id), unique (val))");
+        statement.executeUpdate("insert into testBug37458 values (1, 'a'), (8, 'b'), (13, 'c')");
+        preparedStatement = connection
+            .prepareStatement(
+                "insert into testBug37458 (val) values (?) on duplicate key update id = last_insert_id(id)",
+                Statement.RETURN_GENERATED_KEYS);
+        for (int i = 0; i < ids.length; ++i) {
+            preparedStatement.setString(1, vals[i]);
+            preparedStatement.addBatch();
+        }
+        preparedStatement.executeBatch();
+        ResultSet keys = preparedStatement.getGeneratedKeys();
+        for (int i = 0; i < ids.length; ++i) {
+            assertTrue(keys.next());
+            assertEquals(ids[i], keys.getInt(1));
+        }
+    }
+
+    @Test
+    public void testGetDate() {
+        try {
+            Date date = Date.valueOf("2020-12-12");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+            ps.setString(1, "2020-12-12");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println(rs.getDate(1));
+            ps = sharedConnection.prepareStatement("select ?");
+            ps.setDate(1, date);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println(rs.getDate(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testGetDate2() {
+        try {
+            Date date = Date.valueOf("2020-12-12");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?, ?");
+            ps.setString(1, "2020-12-12");
+            ps.setDate(2, date);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(date, rs.getDate(1));
+            assertEquals(date, rs.getDate(2));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testGetTime() {
+        try {
+            Time time = Time.valueOf("11:22:33");
+            PreparedStatement ps = sharedConnection.prepareStatement("select ?");
+            ps.setString(1, "11:22:33");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(time, rs.getTime(1));
+            ps = sharedConnection.prepareStatement("select ?");
+            ps.setTime(1, time);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(time, rs.getTime(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void fixExecptionType() {
+        try {
+            ResultSet rs = sharedConnection.prepareStatement("SELECT '00/00/0000 00:00:00'")
+                .executeQuery();
+            assertTrue(rs.next());
+            try {
+                rs.getTime(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getDate(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getTimestamp(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testPrepStmtExecuteLargeBatch() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = setConnection("&useAffectedRows=true&rewriteBatchedStatements=true");
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP table if exists testExecuteLargeBatch_1");
+            stmt.execute("create table testExecuteLargeBatch_1(id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT)");
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO testExecuteLargeBatch_1 (n) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, 1);
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.addBatch();
+            ps.setInt(1, 3);
+            ps.addBatch();
+            ps.setInt(1, 4);
+            ps.addBatch();
+            ps.setInt(1, 5);
+            ps.addBatch();
+            long[] counts = ps.executeLargeBatch();
+            assertEquals(5, counts.length);
+            System.out.println(Arrays.toString(counts));
+            ResultSet rs = ps.getGeneratedKeys();
+            long generatedKey = 0;
+            while (rs.next()) {
+                assertEquals(++generatedKey, rs.getLong(1));
+                System.out.println(rs.getInt(1));
+            }
+            assertEquals(5, generatedKey);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testTextRewriteBatch() throws Exception {
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("testRewriteBatch", "id int");
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (1)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (2)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (3)");
+        stmt.addBatch("INSERT INTO testRewriteBatch(id) VALUES (4)");
+        stmt.addBatch("UPDATE testRewriteBatch SET id=10 WHERE id=1 OR id=2");
+
+        int[] counts = stmt.executeBatch();
+
+        assertEquals(counts.length, 5);
+        System.out.println(Arrays.toString(counts));
+        assertArrayEquals(new int[] { 1, 1, 1, 1, 2 }, counts);
+    }
 }

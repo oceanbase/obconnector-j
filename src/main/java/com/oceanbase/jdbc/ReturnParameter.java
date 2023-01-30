@@ -48,71 +48,36 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  *  OF SUCH DAMAGE.
  */
-package com.oceanbase.jdbc.internal.logging;
+package com.oceanbase.jdbc;
 
-public class LoggerFactory {
+import java.sql.Types;
 
-    private static final Logger NO_LOGGER    = new NoLogger();
-    private static Boolean      hasToLog     = null;
-    private static Boolean      proxyVcToLog = false;
+public class ReturnParameter {
+    private int    index;
+    private int    externalType;
+    private int    internalScale;
+    private String internalTypeName;
 
-    /**
-     * Initialize factory.
-     *
-     * @param mustLog indicate if must initiate Slf4j log
-     */
-    @SuppressWarnings("unchecked")
-    public static void init(boolean mustLog) {
-        if ((hasToLog == null || hasToLog != mustLog) && mustLog) {
-            synchronized (LoggerFactory.class) {
-                if (hasToLog == null || hasToLog != mustLog) {
-                    try {
-                        Class.forName("org.slf4j.LoggerFactory");
-                        hasToLog = Boolean.TRUE;
-                    } catch (ClassNotFoundException classNotFound) {
-                        System.out.println("Logging cannot be activated, missing slf4j dependency");
-                        hasToLog = Boolean.FALSE;
-                    }
-                }
-            }
-        }
+    public ReturnParameter() {
+        externalType = Types.OTHER;
     }
 
-    /**
-     * Initialize logger.
-     *
-     * @param clazz initiator class
-     * @return logger
-     */
-    public static Logger getLogger(Class<?> clazz) {
-        if (hasToLog != null && hasToLog) {
-            return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
-        } else {
-            return NO_LOGGER;
-        }
+    public ReturnParameter(int index, int externalType) {
+        this.index = index;
+        this.externalType = externalType;
     }
 
-    public static void initProxyVc(boolean mustLog) {
-        proxyVcToLog = mustLog;
+    public ReturnParameter(int index, int externalType, int internalScale) {
+        this.index = index;
+        this.externalType = externalType;
+        this.internalScale = internalScale;
     }
 
-    /**
-     * Initialize logger.
-     *
-     * @param clazz initiator class
-     * @return logger
-     */
-    public static Logger getLoggerProxy(Class<?> clazz) {
-        if (proxyVcToLog) {
-            try {
-                Class.forName("org.slf4j.LoggerFactory");
-                return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
-            } catch (ClassNotFoundException classNotFound) {
-                proxyVcToLog = false;
-                return NO_LOGGER;
-            }
-        } else {
-            return NO_LOGGER;
-        }
+    public ReturnParameter(int index, int externalType, int internalScale, String internalTypeName) {
+        this.index = index;
+        this.externalType = externalType;
+        this.internalScale = internalScale;
+        this.internalTypeName = internalTypeName;
     }
+
 }
