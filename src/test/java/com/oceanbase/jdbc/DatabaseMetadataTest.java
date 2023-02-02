@@ -872,7 +872,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getImportedKeysBasic() throws SQLException {
         testResultSetColumns(
-            sharedConnection.getMetaData().getImportedKeys(null, null, ""),
+            sharedConnection.getMetaData().getImportedKeys(null, null, "test"),
             "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
                     + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
                     + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
