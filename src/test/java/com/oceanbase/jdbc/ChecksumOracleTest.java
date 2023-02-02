@@ -334,7 +334,7 @@ public class ChecksumOracleTest extends BaseOracleTest {
                 .prepareStatement("  /* trace_id=1234567421568388972063772055923,rpc_id=0.33 *//* table=pmt_comm_fd_dtl_00,part_key=63 */ insert into "
                                   + tableName + " values (?,   ?,     ?, ?, ?, ?)    ");
             Class psClass = (Class) ps.getClass();
-            java.lang.reflect.Field f = psClass.getDeclaredField("checksum");
+            java.lang.reflect.Field f = psClass.getSuperclass().getDeclaredField("checksum");
             f.setAccessible(true);
             f.set(ps, 1222);
             for (int i = 0; i < 10; ++i) {

@@ -1071,7 +1071,7 @@ public class ResultSetTest extends BaseTest {
             assertNull(rs.getTimestamp(2));
             assertTrue(rs.wasNull());
 
-            assertEquals("0000-00-00 00:00:00", rs.getString(2));
+            assertEquals(null, rs.getString(2));
             assertFalse(rs.wasNull());
 
             assertNull(rs.getDate(3));
