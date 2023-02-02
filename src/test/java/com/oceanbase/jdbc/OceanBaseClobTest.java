@@ -356,7 +356,7 @@ public class OceanBaseClobTest extends BaseTest {
             rs.next();
 
             java.sql.Clob clob = rs.getClob(1);
-            System.out.println(clob.toString());
+            Assert.assertEquals("aaa", clob.toString());
             PreparedStatement pStmt = sharedConnection.prepareStatement("INSERT INTO " + emptyClob
                                                                         + " VALUES (?)");
             pStmt.setClob(1, clob);

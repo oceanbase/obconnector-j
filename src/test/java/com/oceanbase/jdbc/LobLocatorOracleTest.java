@@ -588,8 +588,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             conn.setAutoCommit(true);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-
+            fail();
         }
     }
 

@@ -442,7 +442,7 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             try {
                 ps.executeBatch();
             } catch (SQLException e) {
-                e.printStackTrace();
+                Assert.assertTrue(e.getMessage().contains("invalid number"));
             }
             conn.commit();
             conn.setAutoCommit(true);

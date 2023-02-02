@@ -937,7 +937,8 @@ public class Bugfix extends BaseTest {
             stmt.execute("create table foreign_yyy (foreign_1_id int(8) not null, primary key (foreign_1_id),"
                          + " CONSTRAINT foreign_fk_abcdefg foreign key (foreign_1_id) references foreign_xxx(id1))");
             DatabaseMetaData dbmd = conn.getMetaData();
-            ResultSet rs = dbmd.getImportedKeys("unittests", "unittests", "foreign_yyy");
+            String catalog = conn.getCatalog();
+            ResultSet rs = dbmd.getImportedKeys(catalog, catalog, "foreign_yyy");
             assertTrue(rs.next());
             assertEquals("foreign_fk_abcdefg", rs.getString("FK_NAME"));
             assertEquals("id1", rs.getString("PKCOLUMN_NAME"));
@@ -1619,8 +1620,12 @@ public class Bugfix extends BaseTest {
             OceanBaseDataSource ds = new OceanBaseDataSource("localhost", 1130, "db");
             Connection connection = ds.getConnection("username", "password");
         } catch (Exception throwables) {
-            throwables.printStackTrace();
-            Assert.assertFalse(throwables instanceof ClassCastException);
+            Assert.assertTrue(throwables instanceof SQLNonTransientConnectionException);
+            Assert
+                .assertTrue(throwables
+                    .getMessage()
+                    .contains(
+                        "Could not connect to HostAddress{host='localhost', port=1130, type='master'}. Connection refused (Connection refused)"));
         }
     }
 
@@ -1802,7 +1807,6 @@ public class Bugfix extends BaseTest {
             stmt.getResultSet();
             fail("Should've caught an exception here");
         } catch (SQLException e) {
-            e.printStackTrace();
             Assert.assertTrue(e.getMessage().contains(
                 "Cannot do an operation on a closed statement"));
         }
@@ -2302,20 +2306,23 @@ public class Bugfix extends BaseTest {
             try {
                 rs.getTime(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage().contains(
+                    "Time format \"00/00/0000 00:00:00\" incorrect, must be HH:mm:ss"));
             }
             try {
                 rs.getDate(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage()
+                    .contains("Bad format for DATE 00/00/0000 00:00:00"));
             }
             try {
                 rs.getTimestamp(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage().contains(
+                    "Cannot convert value 00/00/0000 00:00:00 to TIMESTAMP."));
             }
         } catch (SQLException e) {
             e.printStackTrace();

@@ -123,12 +123,6 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void paramNumber() throws SQLException {
-        try {
-            sharedConnection.prepareStatement("SELECT ?, ?");
-        } catch (SQLException e) {
-            Assert.assertTrue(e.getMessage().contains(
-                "ORA-00900: You have an error in your SQL syntax"));
-        }
         if (!sharedOptions().emulateUnsupportedPstmts) {
             Connection newConn = setConnection("&emulateUnsupportedPstmts=true");
             PreparedStatement preparedStatement = newConn.prepareStatement("SELECT ?, ?");
@@ -156,7 +150,7 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             try {
                 sharedConnection.prepareStatement("SELECT ?, ?");
             } catch (SQLSyntaxErrorException e) {
-                e.printStackTrace();
+                Assert.assertTrue(e.getMessage().contains("You have an error in your SQL syntax"));
             }
             newConn.close();
         }
@@ -404,7 +398,10 @@ public class ClientPreparedStatementOracleTest extends BaseOracleTest {
             try {
                 preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
             } catch (SQLSyntaxErrorException e) {
-                e.printStackTrace();
+                assertTrue(e
+                    .getMessage()
+                    .contains(
+                        "You have an error in your SQL syntax; check the manual that corresponds to your OceanBase version for the right syntax to use near 'WRONG QUERY' at line 1"));
             } finally {
                 newConn.close();
             }

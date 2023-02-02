@@ -579,7 +579,6 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                 Assert.fail();
                 //Assert.assertEquals(20, callableStatement.getInt(1));
             } catch (SQLException e) {
-                e.printStackTrace();
                 assertEquals(
                     "The number of parameter names '2' does not match the number of registered parameters in sql '4'.",
                     e.getMessage());
@@ -674,8 +673,11 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             callableStatement.execute();
             Assert.fail(); // The program cannot be executed to this code segment
         } catch (Throwable e) {
-            Assert.assertNotNull(e);
-            e.printStackTrace();
+            Assert
+                .assertTrue(e
+                    .getMessage()
+                    .contains(
+                        "You have an error in your SQL syntax; check the manual that corresponds to your OceanBase version for the right syntax to use near '?' at line 1"));
         }
     }
 

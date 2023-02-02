@@ -607,10 +607,11 @@ public class OracleBugfix extends BaseOracleTest {
             PreparedStatement ps = conn.prepareStatement("insert into " + blobFix
                                                          + "(c1) values(?)");
             ps.setBlob(1, new SerialBlob(new byte[] { (byte) 0x00, 0x32, 0x32 }));
+            fail();
             ps.execute();
         } catch (Throwable e) {
-            Assert.assertNotNull(e);
-            e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains(
+                "javax.sql.rowset.serial.SerialBlob is not supported"));
         }
     }
 
@@ -639,8 +640,8 @@ public class OracleBugfix extends BaseOracleTest {
             ps.setClob(1, new SerialClob(new char[] { 'a', 'b', 'c' }));
             ps.execute();
         } catch (Throwable e) {
-            Assert.assertNotNull(e);
-            e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains(
+                "javax.sql.rowset.serial.SerialBlob is not supported"));
         }
     }
 
@@ -2639,7 +2640,8 @@ public class OracleBugfix extends BaseOracleTest {
                     count++;
                 }
             } catch (SQLException throwables) {
-                throwables.printStackTrace();
+                Assert.assertTrue(throwables.getMessage().contains(
+                    "Operation not permit on a closed resultSet"));
             }
             Assert.assertEquals(1, count);
         } catch (SQLException throwables) {
