@@ -87,6 +87,7 @@ import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.ResourceStatus;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
@@ -142,7 +143,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected int                           endIndexInEntireResult;
     protected boolean                       isEof;
     protected boolean                       isLastRowSent;
-    protected boolean                       isClosed;
+    protected ResourceStatus                status = ResourceStatus.OPEN;
     protected boolean                       isModified;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
@@ -738,7 +739,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException exception
      */
     public void abort() throws SQLException {
-        isClosed = true;
+        status = ResourceStatus.CLOSED;
         isEof = true;
 
         // keep garbage easy
@@ -760,6 +761,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void realClose(boolean calledExplicitly) throws SQLException {
+        if (status == ResourceStatus.CLOSING) {
+            return;
+        }
+        status = ResourceStatus.CLOSING;
         SQLException exceptionDuringClose = null;
 
         try {
@@ -802,7 +807,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         columnsInformation = null;
         complexData = null;
         complexEndPos = null;
-        isClosed = true;
+        status = ResourceStatus.CLOSED;
 
         if (exceptionDuringClose != null) {
             throw exceptionDuringClose;
@@ -1187,11 +1192,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     protected void checkClose() throws SQLException {
-        if (isClosed) {
+        if (isClosed()) {
             throw new SQLException("Operation not permit on a closed resultSet", "HY000");
         }
 
-        if (statement != null && statement.isClosed) {
+        if (statement != null && statement.isClosed()) {
             throw new SQLException("Operation not permit on a closed statement", "HY000");
         }
     }
@@ -1205,7 +1210,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public boolean isClosed() {
-        return isClosed;
+        return status == ResourceStatus.CLOSED;
     }
 
     public OceanBaseStatement getStatement() throws SQLException {

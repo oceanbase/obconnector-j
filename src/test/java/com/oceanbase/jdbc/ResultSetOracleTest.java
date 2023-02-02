@@ -1557,4 +1557,13 @@ public class ResultSetOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testFunc() throws SQLException {
+        DatabaseMetaData metaData = sharedConnection.getMetaData();
+        String[] s = { "TABLE" };
+        ResultSet tables = metaData.getTables(null, null, "test_close", s);
+        tables.close();
+    }
+
 }

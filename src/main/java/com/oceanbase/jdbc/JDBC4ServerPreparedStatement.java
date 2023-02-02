@@ -842,7 +842,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   // must have "lock" locked before invoking
   private void executeQueryPrologue(ServerPrepareResult serverPrepareResult) throws SQLException {
     executing = true;
-    if (isClosed) {
+    if (isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
