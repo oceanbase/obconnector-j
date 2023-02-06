@@ -245,15 +245,20 @@ public abstract class AbstractMastersListener implements Listener {
           qe.getMessage());
       addToBlacklist(currentProtocol.getHostAddress());
     }
+    if(protocol.getOptions().loadBalanceHandleFailover) {
+        // check that failover is due to kill command
+        boolean killCmd =
+                qe != null
+                        && qe.getSQLState() != null
+                        && qe.getSQLState().equals("70100")
+                        && 1927 == qe.getErrorCode();
 
-    // check that failover is due to kill command
-    boolean killCmd =
-        qe != null
-            && qe.getSQLState() != null
-            && qe.getSQLState().equals("70100")
-            && 1927 == qe.getErrorCode();
-
-    return primaryFail(method, args, killCmd, isClosed);
+        HandleErrorResult handleErrorResult = primaryFail(method, args, killCmd, isClosed);
+        this.currentProtocol.setAutoCommit(protocol.getAutocommit());
+        return handleErrorResult;
+    } else {
+        return new HandleErrorResult(false,true);
+    }
   }
 
   /**

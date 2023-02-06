@@ -222,6 +222,7 @@ public class Options implements Cloneable {
     public int     ocpAccessInterval = 5;
     public int     httpConnectTimeout;
     public int     httpReadTimeout;
+    public boolean loadBalanceHandleFailover = true;
 
     @Override
     public String toString() {
@@ -668,6 +669,9 @@ public class Options implements Cloneable {
         if(httpReadTimeout != opt.httpReadTimeout) {
             return  false;
         }
+        if(loadBalanceHandleFailover != opt.loadBalanceHandleFailover) {
+            return  false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -813,6 +817,7 @@ public class Options implements Cloneable {
         result = 31 * result + ocpAccessInterval;
         result = 31 * result + httpConnectTimeout;
         result = 31 * result + httpReadTimeout;
+        result = 31 * result + (loadBalanceHandleFailover ? 1 : 0);
         return result;
     }
 
