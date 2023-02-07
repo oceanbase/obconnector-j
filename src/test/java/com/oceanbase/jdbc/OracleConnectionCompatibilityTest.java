@@ -50,7 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -60,7 +60,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ConnectionOracleTest extends BaseOracleTest {
+public class OracleConnectionCompatibilityTest extends BaseOracleTest {
 
     @BeforeClass
     public static void initClass() throws SQLException {
@@ -184,88 +184,5 @@ public class ConnectionOracleTest extends BaseOracleTest {
         //In Oracle,This is not implemented
         sharedConnection.setCatalog("test");
         assertEquals(null, sharedConnection.getCatalog());
-    }
-
-    @Test
-    public void testAutoCommitFalse() throws SQLException {
-        createTable("test_auto_commit_false", "v0 number primary key");
-        Statement sharedStmt = sharedConnection.createStatement();
-
-        // insert succeed, close connection
-        Connection testConn = openNewConnection(sharedConnection.getMetaData().getURL());
-        testConn.setAutoCommit(false);
-        Statement stmt = testConn.createStatement();
-        stmt.execute("insert into test_auto_commit_false values (1)");
-        stmt.execute("insert into test_auto_commit_false values (2)");
-        stmt.execute("insert into test_auto_commit_false values (3)");
-        stmt.execute("insert into test_auto_commit_false values (4)");
-        stmt.execute("insert into test_auto_commit_false values (5)");
-
-        testConn.close();
-
-        ResultSet rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(3, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(4, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(5, rs.getInt(1));
-        assertFalse(rs.next());
-
-        // primary key conflict, close connection
-        sharedStmt.execute("delete from test_auto_commit_false");
-        testConn = openNewConnection(sharedConnection.getMetaData().getURL());
-        testConn.setAutoCommit(false);
-        stmt = testConn.createStatement();
-        stmt.execute("insert into test_auto_commit_false values (1)");
-        stmt.execute("insert into test_auto_commit_false values (2)");
-        try {
-            stmt.execute("insert into test_auto_commit_false values (1)");
-        } catch (SQLException e) {
-        }
-        stmt.execute("insert into test_auto_commit_false values (4)");
-        stmt.execute("insert into test_auto_commit_false values (5)");
-
-        testConn.close();
-
-        rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(4, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(5, rs.getInt(1));
-        assertFalse(rs.next());
-
-        // primary key conflict, kill session
-        sharedStmt.execute("delete from test_auto_commit_false");
-        testConn = openNewConnection(sharedConnection.getMetaData().getURL());
-        testConn.setAutoCommit(false);
-        stmt = testConn.createStatement();
-        stmt.execute("insert into test_auto_commit_false values (1)");
-        stmt.execute("insert into test_auto_commit_false values (2)");
-        try {
-            stmt.execute("insert into test_auto_commit_false values (1)");
-        } catch (SQLException e) {
-        }
-        stmt.execute("insert into test_auto_commit_false values (4)");
-        stmt.execute("insert into test_auto_commit_false values (5)");
-
-        ResultSet sesstionIdRs = stmt.executeQuery("show processlist;");
-        sesstionIdRs.next();
-        String sessionId = sesstionIdRs.getString("ID");
-        try {
-            stmt.execute("kill " + sessionId);
-        } catch (SQLException ignored) {
-        }
-
-        rs = sharedStmt.executeQuery("select * from test_auto_commit_false");
-        assertFalse(rs.next());
     }
 }

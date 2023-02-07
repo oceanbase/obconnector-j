@@ -942,15 +942,8 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is a problem talking to the server.
      */
     public void close() throws SQLException {
-        if (!getAutoCommit() && protocol.isOracleMode()) {
-            try {
-                commit();
-            } catch (SQLException e) {
-                //ignore
-            }
-        }
         if (pooledConnection != null) {
-            if (!getAutoCommit() && !protocol.isOracleMode()) {
+            if (!getAutoCommit()) {
                 rollback();
             }
             pooledConnection.fireConnectionClosed();
