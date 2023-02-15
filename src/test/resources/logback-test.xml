@@ -50,22 +50,42 @@
   ~ OF SUCH DAMAGE.
   ~
   -->
-
 <!--suppress XmlUnboundNsPrefix -->
 <configuration>
 
-  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+          <level>warn</level>
+      </filter>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
+  </appender>
+
+  <property name="LOG_HOME" value="/Users/xiexinyan/Desktop"/>
+  <appender name="FILE-AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_HOME}/debug.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${DEV_HOME}/archived/debug.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <maxFileSize>100MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+    </rollingPolicy>
+      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+          <level>debug</level>
+      </filter>
   </appender>
 
   <logger additivity="false" level="debug" name="org.mariadb.jdbc">
     <appender-ref ref="STDOUT"/>
   </logger>
 
-  <root level="error">
-    <appender-ref ref="STDOUT"/>
+  <root level="trace">
+      <appender-ref ref="STDOUT"/>
+      <appender-ref ref="FILE-AUDIT"/>
   </root>
 
 </configuration>

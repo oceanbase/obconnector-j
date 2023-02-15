@@ -14,6 +14,9 @@ import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public interface GroupBalanceStrategy {
+
+    String toJson();
+
     void pickAddressList(List<LoadBalanceAddressList> groups, UrlParser urlParser,
                          Listener listener, final GlobalStateInfo globalInfo,
                          SearchFilter searchFilter,

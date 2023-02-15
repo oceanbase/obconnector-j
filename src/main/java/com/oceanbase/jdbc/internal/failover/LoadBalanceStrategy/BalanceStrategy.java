@@ -15,6 +15,8 @@ import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public interface BalanceStrategy {
 
+    String toJson();
+
     static boolean allBlack(List<HostAddress> loopAddress, ConcurrentMap<HostAddress, HostStateInfo> blacklist ) {
         if(blacklist.keySet().size() == 0) {
             return false;

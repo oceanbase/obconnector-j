@@ -424,7 +424,7 @@ public class BaseTest {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop procedure IF EXISTS " + name);
-      stmt.execute("create  procedure " + name + body);
+      stmt.execute("create procedure " + name + body);
       tempProcedureList.add(name);
     }
   }

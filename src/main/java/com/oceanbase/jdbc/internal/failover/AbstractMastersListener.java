@@ -67,6 +67,8 @@ import com.oceanbase.jdbc.HostAddress;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.RemoveStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.TimeoutRecover;
 import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.failover.thread.ConnectionValidator;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
@@ -137,7 +139,8 @@ public abstract class AbstractMastersListener implements Listener {
 
   /** Clear blacklist data. */
   public static void clearBlacklist() {
-    blacklist.clear();
+      logger.debug("Clear black list.");
+      blacklist.clear();
   }
 
   /**
@@ -242,15 +245,20 @@ public abstract class AbstractMastersListener implements Listener {
           qe.getMessage());
       addToBlacklist(currentProtocol.getHostAddress());
     }
+    if(protocol.getOptions().loadBalanceHandleFailover) {
+        // check that failover is due to kill command
+        boolean killCmd =
+                qe != null
+                        && qe.getSQLState() != null
+                        && qe.getSQLState().equals("70100")
+                        && 1927 == qe.getErrorCode();
 
-    // check that failover is due to kill command
-    boolean killCmd =
-        qe != null
-            && qe.getSQLState() != null
-            && qe.getSQLState().equals("70100")
-            && 1927 == qe.getErrorCode();
-
-    return primaryFail(method, args, killCmd, isClosed);
+        HandleErrorResult handleErrorResult = primaryFail(method, args, killCmd, isClosed);
+        this.currentProtocol.setAutoCommit(protocol.getAutocommit());
+        return handleErrorResult;
+    } else {
+        return new HandleErrorResult(false,true);
+    }
   }
 
   /**
@@ -262,6 +270,7 @@ public abstract class AbstractMastersListener implements Listener {
   public void addToBlacklist(HostAddress hostAddress) {
     if (hostAddress != null && !isExplicitClosed()) {
       // todo: adding to the blacklist could be reflected in log module of slf4j framework
+      logger.debug("Add into black list : " + hostAddress);
       blacklist.putIfAbsent(hostAddress, new HostStateInfo());
       pickedList.remove(hostAddress);
     }
@@ -270,21 +279,28 @@ public abstract class AbstractMastersListener implements Listener {
   /**
    * After a successfull connection, permit to remove a hostAddress from blacklist.
    *
-   * @param hostAddress the host address tho be remove of blacklist
+   * @param hostAddress the host address which is going to be removed from blacklist
    */
   public void removeFromBlacklist(HostAddress hostAddress) {
     if (hostAddress != null) {
+      logger.debug("Remove from black list : " + hostAddress);
       blacklist.remove(hostAddress);
     }
   }
 
-   public  void resetHostStateInfo(HostAddress hostAddress) {
-       long timeout = Long.parseLong(getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategyConfigs().get(Consts.TIMEOUT));
-       HostStateInfo hostStateInfo = new HostStateInfo(HostStateInfo.STATE.BLACK,System.nanoTime() + timeout);
-       if (hostAddress != null) {
-           blacklist.put(hostAddress,hostStateInfo);
-       }
-   }
+    public void resetHostStateInfo(HostAddress hostAddress) {
+        long timeout;
+        RemoveStrategy removeStrategy = getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategy();
+        if (removeStrategy != null) {
+            timeout = ((TimeoutRecover)removeStrategy).getTimeout();
+        } else {
+            timeout = Long.parseLong(getCurrentLoadBalanceInfo().getBlackListConfig().getRemoveStrategyConfigs().get(Consts.TIMEOUT_MS));
+        }
+        HostStateInfo hostStateInfo = new HostStateInfo(HostStateInfo.STATE.BLACK,System.nanoTime() + timeout);
+        if (hostAddress != null) {
+            blacklist.put(hostAddress,hostStateInfo);
+        }
+    }
 
   /** Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds. */
   public void resetOldsBlackListHosts() {

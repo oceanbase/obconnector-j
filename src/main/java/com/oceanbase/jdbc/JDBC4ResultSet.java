@@ -60,7 +60,6 @@ import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -88,6 +87,7 @@ import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.ResourceStatus;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
@@ -143,7 +143,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected int                           endIndexInEntireResult;
     protected boolean                       isEof;
     protected boolean                       isLastRowSent;
-    protected boolean                       isClosed;
+    protected ResourceStatus                status = ResourceStatus.OPEN;
     protected boolean                       isModified;
     private boolean                         eofDeprecated;
     private ReentrantLock                   lock;
@@ -739,7 +739,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * @throws SQLException exception
      */
     public void abort() throws SQLException {
-        isClosed = true;
+        status = ResourceStatus.CLOSED;
         isEof = true;
 
         // keep garbage easy
@@ -761,6 +761,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void realClose(boolean calledExplicitly) throws SQLException {
+        if (status == ResourceStatus.CLOSING) {
+            return;
+        }
+        status = ResourceStatus.CLOSING;
         SQLException exceptionDuringClose = null;
 
         try {
@@ -803,8 +807,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         columnsInformation = null;
         complexData = null;
         complexEndPos = null;
-        protocol = null;
-        isClosed = true;
+        status = ResourceStatus.CLOSED;
 
         if (exceptionDuringClose != null) {
             throw exceptionDuringClose;
@@ -816,7 +819,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
         isLastRowSent = false;
     }
 
+    // check row pos and column bounds
     private void checkObjectRange(int position) throws SQLException {
+        checkClose();
+
         if (rowPointer < 0) {
             throw new SQLDataException("Current position is before the first row", "22023");
         }
@@ -838,6 +844,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
+
         if (this.statement == null) {
             return null;
         }
@@ -845,7 +855,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     @Override
-    public void clearWarnings() {
+    public void clearWarnings() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
+
         if (this.statement != null) {
             this.statement.clearWarnings();
         }
@@ -916,6 +930,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public void beforeFirst() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -930,6 +947,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public void afterLast() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -944,6 +964,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean first() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -960,6 +983,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean last() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -973,6 +999,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean absolute(int row) throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -983,7 +1012,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // Compatible with Oracle
             throw new SQLException("Invalid parameter: absolute(0)");
         }
-
         cancelRowInserts();
 
         if (dataSize == 0) {
@@ -1018,6 +1046,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean relative(int rows) throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1043,12 +1074,16 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean previous() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
+            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+        }
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
         }
         cancelRowInserts();
 
+        // COMPLETE ResultSet
         if (rowPointer > -1) {
             rowPointer--;
             return rowPointer > -1;
@@ -1098,41 +1133,37 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     @Override
-    public int getFetchDirection() {
-        return FETCH_UNKNOWN;
+    public int getFetchDirection() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
+        return FETCH_UNKNOWN;//todo
     }
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (direction == FETCH_REVERSE) {
             throw new SQLException(
                 "Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and ResultSet.FETCH_UNKNOWN");
-        }
+        }//todo
     }
 
     @Override
-    public int getFetchSize() {
+    public int getFetchSize() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         return this.fetchSize;
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        //        if (streaming && fetchSize == 0) {
-        //            lock.lock();
-        //            try {
-        //                // fetch all results
-        //                while (!isEof) {
-        //                    addStreamingValue();
-        //                }
-        //            } catch (IOException ioe) {
-        //                throw handleIoException(ioe);
-        //            } finally {
-        //                lock.unlock();
-        //            }
-        //
-        //            streaming = dataFetchTime == 1;
-        //        }
-        //        this.fetchSize = fetchSize;
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
 
         if (rows < 0) {
             throw new SQLException("invalid fetch size ");
@@ -1161,8 +1192,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     protected void checkClose() throws SQLException {
-        if (isClosed) {
+        if (isClosed()) {
             throw new SQLException("Operation not permit on a closed resultSet", "HY000");
+        }
+
+        if (statement != null && statement.isClosed()) {
+            throw new SQLException("Operation not permit on a closed statement", "HY000");
         }
     }
 
@@ -1175,10 +1210,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public boolean isClosed() {
-        return isClosed;
+        return status == ResourceStatus.CLOSED;
     }
 
-    public OceanBaseStatement getStatement() {
+    public OceanBaseStatement getStatement() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         return statement;
     }
 
@@ -1189,7 +1227,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     /**
      * {inheritDoc}.
      */
-    public boolean wasNull() {
+    public boolean wasNull() throws SQLException {
+        if (protocol.isOracleMode()) {
+            checkClose();
+        }
         return row.wasNull();
     }
 
@@ -1565,12 +1606,18 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public NUMBER getNUMBER(int columnIndex) throws SQLException {
+        if (protocol.isOracleMode()) {
+            checkClose();
+        }
         return null;
     }
 
     @Override
     public NUMBER getNUMBER(String columnName) throws SQLException {
-        return null;
+        if (protocol.isOracleMode()) {
+            checkClose();
+        }
+        return null;//todo
     }
 
     public INTERVALDS getINTERVALDS(int columnIndex) throws SQLException {
@@ -1673,7 +1720,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     /**
      * {inheritDoc}.
      */
-    public ResultSetMetaData getMetaData() {
+    public ResultSetMetaData getMetaData() throws SQLException {
+        checkClose();
         return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias, this
             .getProtocol().isOracleMode(), columnIndexOffset);
     }
@@ -1841,7 +1889,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         } else if (type.equals(ZonedDateTime.class)) {
             ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class,
-                timeZone);
+                    timeZone);
             if (zonedDateTime == null) {
                 return null;
             }
@@ -1849,26 +1897,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         } else if (type.equals(OffsetDateTime.class)) {
             if (!this.protocol.isOracleMode()) {
-                try {
-                    return type.cast(OffsetDateTime.parse(this.getString(columnIndex)));
-                } catch (DateTimeParseException dateTimeParseException) {
-                    SQLException sqlException = new SQLException();
-                    sqlException.initCause(dateTimeParseException);
-                    throw sqlException;
+                OffsetDateTime offsetDateTime = row.getInternalOffsetDateTime(col, timeZone);
+                if (offsetDateTime == null) {
+                    return null;
                 }
+                return type.cast(offsetDateTime);
             } else {
                 ZonedDateTime tmpZonedDateTime = row.getInternalZonedDateTime(col,
-                    OffsetDateTime.class, timeZone);
+                        OffsetDateTime.class, timeZone);
                 return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime
-                    .toOffsetDateTime());
+                        .toOffsetDateTime());
             }
-
-        } else if (type.equals(OffsetDateTime.class)) {
-            LocalDate localDate = row.getInternalLocalDate(col, timeZone);
-            if (localDate == null) {
-                return null;
-            }
-            return type.cast(localDate);
 
         } else if (type.equals(LocalDate.class)) {
             LocalDate localDate = row.getInternalLocalDate(col, timeZone);
@@ -1945,6 +1984,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public int findColumn(String columnLabel) throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         return columnLabelIndexer.getIndex(columnLabel) - columnIndexOffset + 1;
     }
 
@@ -1991,7 +2033,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        int actualColumnIndex = columnIndex + columnIndexOffset;
         return getCharacterStream(columnIndex);
     }
 
@@ -2006,7 +2047,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public Ref getRef(int columnIndex) throws SQLException {
-        throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
+        throw ExceptionFactory.INSTANCE.notSupported("Getting REFs not supported");
     }
 
     /**
@@ -2677,6 +2718,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void insertRow() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE
                 .notSupported("insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
@@ -2726,14 +2770,15 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 prepareRefreshStmt();
                 refreshPreparedStatement.clearParameters();
 
-                for (int index: primaryKeyIndicies) {
+                for (int i = 0; i < primaryKeyIndicies.size(); i++) {
+                    int index = primaryKeyIndicies.get(i);
                     if (updatableColumns[index].isAutoIncrement()) {
                         long autoIncrementId = ((CmdInformationSingle)insertPreparedStatement.results.getCmdInformation()).getInsertId();
                         if (autoIncrementId > 0) {
-                            refreshPreparedStatement.setObject(index+1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
+                            refreshPreparedStatement.setObject(i + 1, autoIncrementId, updatableColumns[index].getColumnType().getSqlType());
                         }
                     } else {
-                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(index + 1, updatableParameterHolders[index]);
+                        ((BasePrepareStatement)refreshPreparedStatement).setParameter(i + 1, updatableParameterHolders[index]);
                     }
                 }
 
@@ -2839,6 +2884,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void deleteRow() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE
                 .notSupported("deleteRow are not supported when using ResultSet.CONCUR_READ_ONLY");
@@ -2904,6 +2952,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * support FETCH_FORWARD direction for Oracle mode now
      */
     public void refreshRow() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if ((protocol.isOracleMode() && (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY || (resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE && resultSetConcurType == ResultSet.CONCUR_READ_ONLY)))
             || (!protocol.isOracleMode() && resultSetConcurType == ResultSet.CONCUR_READ_ONLY)) {
             throw ExceptionFactory.INSTANCE.notSupported("refreshRow are not supported when using "
@@ -3074,6 +3125,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void cancelRowUpdates() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
         }
@@ -3083,6 +3137,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void moveToInsertRow() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
         }
@@ -3096,6 +3153,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void moveToCurrentRow() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         if (resultSetConcurType == ResultSet.CONCUR_READ_ONLY) {
             throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
         }
@@ -3153,14 +3213,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public void updateShort(int columnIndex, short value) throws SQLException {
         checkUpdatable(columnIndex);
         updatableParameterHolders[columnIndex - 1] = new ShortParameter(value);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            byte[] targets = new byte[2];
-        //            targets[1] = (byte) (value & 0xFF);
-        //            targets[0] = (byte) (value >> 8 & 0xFF);
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(targets);
-        //        }
     }
 
     public void updateShort(String columnLabel, short value) throws SQLException {
@@ -3171,16 +3223,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public void updateInt(int columnIndex, int value) throws SQLException {
         checkUpdatable(columnIndex);
         updatableParameterHolders[columnIndex - 1] = new IntParameter(value);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            byte[] targets = new byte[4];
-        //            targets[3] = (byte) (value & 0xFF);
-        //            targets[2] = (byte) (value >> 8 & 0xFF);
-        //            targets[1] = (byte) (value >> 16 & 0xFF);
-        //            targets[0] = (byte) (value >> 24 & 0xFF);
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(targets);
-        //        }
     }
 
     public void updateInt(String columnLabel, int value) throws SQLException {
@@ -3230,11 +3272,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         updatableParameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes,
             protocol.getOptions().characterEncoding);
-
-        //        if (state != STATE_INSERT && protocol.isOracleMode()) {
-        //            checkObjectRange(columnIndex + columnIndexOffset);
-        //            updateRowDataOneColumn(value.getBytes());
-        //        }
     }
 
     public void updateString(String columnLabel, String value) throws SQLException {
@@ -3844,7 +3881,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
     /**
      * {inheritDoc}.
      */
-    public int getHoldability() {
+    public int getHoldability() throws SQLException {
+        if (!protocol.isOracleMode()) {
+            throw ExceptionFactory.INSTANCE.notSupported("Method ResultSet.getHoldability() not supported");
+
+        }
         return HOLD_CURSORS_OVER_COMMIT;
     }
 
@@ -3868,6 +3909,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * {inheritDoc}.
      */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkClose();
+        }
         return iface.isInstance(this);
     }
 

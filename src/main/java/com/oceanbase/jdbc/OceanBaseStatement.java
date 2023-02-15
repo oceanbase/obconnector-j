@@ -68,6 +68,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.ResourceStatus;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -118,7 +119,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   /** the Connection object. */
   protected OceanBaseConnection connection;
 
-  protected volatile boolean isClosed = false;
+  protected volatile ResourceStatus status = ResourceStatus.OPEN;
   protected int queryTimeout;
   protected long maxRows;
   protected Results results;
@@ -196,7 +197,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.protocol = connection.getProtocol();
     clone.timerTaskFuture = null;
     clone.batchQueries = new ArrayList<>();
-    clone.isClosed = false;
+    clone.status = ResourceStatus.OPEN;
     clone.warningsCleared = true;
     clone.maxRows = 0;
     if (clone.protocol.isOracleMode() && options.defaultFetchSize == 0) {
@@ -247,7 +248,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   protected void executeQueryPrologue(boolean isBatch) throws SQLException {
     executing = true;
-    if (isClosed) {
+    if (isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -731,7 +732,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   public boolean isCursorResultSet() throws SQLException {
-    if (isClosed) {
+    if (isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
@@ -946,6 +947,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
     lock.lock();
+    if (status == ResourceStatus.CLOSING) {
+        return;
+    }
+    status = ResourceStatus.CLOSING;
+
     try {
       if (closeOpenResults) {
           if (results != null) {
@@ -975,7 +981,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
       connection.pooledConnection.fireStatementClosed(this);
     } finally {
-      isClosed = true;
+      status = ResourceStatus.CLOSED;
       protocol = null;
       connection = null;
       if (results != null) {
@@ -1292,7 +1298,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @since 1.6
    */
   public boolean isClosed() {
-    return isClosed;
+      return status == ResourceStatus.CLOSED;
   }
 
   /**
@@ -1738,7 +1744,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
     if (mustCloseOnCompletion
-        && !isClosed
+        && status == ResourceStatus.OPEN
         && results != null
         && resultSet.equals(results.getResultSet())) {
       close();
@@ -1751,7 +1757,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @throws SQLException if statement close
    */
   protected void checkClose() throws SQLException {
-    if (isClosed || this.connection.isClosed()) {
+    if (isClosed() || this.connection.isClosed()) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
           .create("Cannot do an operation on a closed statement");

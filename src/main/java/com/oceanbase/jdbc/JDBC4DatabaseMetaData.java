@@ -429,9 +429,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return this.keysQuery((String) null, (String) null, schema, table,
                 "ORDER BY pktable_schem, pktable_name, key_seq");
         }
-        ArrayList<String> tableNameList;
+        if (table == null) {
+            throw new SQLException("Table not specified.");
+        }
+
+        ArrayList<String> tableNameList = new ArrayList<>();
         try {
-            tableNameList = getALlTableNames(catalog);
+            tableNameList.add(table);
             ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog);
             ArrayList<String[]> list = new ArrayList<>();
             while (allTableRS.next()) {
@@ -4118,12 +4122,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return super.getIndexInfo(catalog, schema, table, unique, approximate);
         }
 
-        String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
+        String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, if(i.NON_UNIQUE != 0,'true','false') as NON_UNIQUE, "
                      + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
                      + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
-                     + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
-                     + " FROM INFORMATION_SCHEMA.STATISTICS" + " WHERE TABLE_NAME = "
-                     + escapeQuote(table) + " AND " + catalogCond("TABLE_SCHEMA", catalog)
+                     + " IFNULL(i.CARDINALITY,'0') as CARDINALITY , 0 PAGES, NULL FILTER_CONDITION"
+                     + " FROM INFORMATION_SCHEMA.STATISTICS i"
+                     + " WHERE TABLE_NAME = "
+                     + escapeQuote(table)
+                     + " AND "
+                     + catalogCond("TABLE_SCHEMA", catalog)
                      + ((unique) ? " AND NON_UNIQUE = 0" : "")
                      + " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
 

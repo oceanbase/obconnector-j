@@ -62,6 +62,7 @@
   https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
   https://bugs.mysql.com/bug.php?id=97633
   https://jira.mariadb.org/browse/MDEV-18281
+  https://jira.mariadb.org/browse/CONJ-812
   https://facebook.github.io/watchman/)
 --------------------------------------------------------
 # Should use GLOB wildcard to config and analysis the ignored folder

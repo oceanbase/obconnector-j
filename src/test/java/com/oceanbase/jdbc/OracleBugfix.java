@@ -607,10 +607,11 @@ public class OracleBugfix extends BaseOracleTest {
             PreparedStatement ps = conn.prepareStatement("insert into " + blobFix
                                                          + "(c1) values(?)");
             ps.setBlob(1, new SerialBlob(new byte[] { (byte) 0x00, 0x32, 0x32 }));
+            fail();
             ps.execute();
         } catch (Throwable e) {
-            Assert.assertNotNull(e);
-            e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains(
+                "javax.sql.rowset.serial.SerialBlob is not supported"));
         }
     }
 
@@ -639,8 +640,8 @@ public class OracleBugfix extends BaseOracleTest {
             ps.setClob(1, new SerialClob(new char[] { 'a', 'b', 'c' }));
             ps.execute();
         } catch (Throwable e) {
-            Assert.assertNotNull(e);
-            e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains(
+                "javax.sql.rowset.serial.SerialBlob is not supported"));
         }
     }
 
@@ -2639,7 +2640,8 @@ public class OracleBugfix extends BaseOracleTest {
                     count++;
                 }
             } catch (SQLException throwables) {
-                throwables.printStackTrace();
+                Assert.assertTrue(throwables.getMessage().contains(
+                    "Operation not permit on a closed resultSet"));
             }
             Assert.assertEquals(1, count);
         } catch (SQLException throwables) {
@@ -2911,6 +2913,58 @@ public class OracleBugfix extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testOceanBaseFloat() {
+        try {
+            Connection conn = sharedConnection;
+            Statement statement = conn.createStatement();
+            try {
+                statement.execute("drop table TEST_FLOAT_ORACLE");
+            } catch (Exception e) {
+                // eat exception
+            } finally {
+                statement.execute("CREATE TABLE TEST_FLOAT_ORACLE (c1 int,c2 float);");
+            }
+            String sql = "INSERT INTO TEST_FLOAT_ORACLE(C1,C2) VALUES (?,?)";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "111");
+            pstmt.setFloat(2, 3.1f);
+            pstmt.executeUpdate();
+
+            String querySql = "SELECT C2 FROM TEST_FLOAT_ORACLE WHERE C1 = ?";
+            pstmt = conn.prepareStatement(querySql);
+            pstmt.setInt(1, 111);
+            ResultSet rs = pstmt.executeQuery();
+            Assert.assertTrue(rs.next());
+            final double THRESHOLD = .0001;
+            Assert.assertTrue(Math.abs(rs.getDouble(1) - 3.1d) < THRESHOLD);
+            Assert.assertTrue(Math.abs(rs.getFloat(1) - 3.1f) < THRESHOLD);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNumericFloat() {
+        try {
+            Connection conn = sharedConnection;
+            createTable("binaryfloattest", "c1 binary_float");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into binaryfloattest values(1.5)");
+            PreparedStatement ps = conn.prepareStatement("select c1 from binaryfloattest");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            System.out.println("Type Name " + rs.getMetaData().getColumnTypeName(1));
+            System.out.println("Type " + rs.getMetaData().getColumnType(1));
+            assertEquals(1.5f, rs.getFloat(1), 0.01);
+            assertEquals(1.5f, rs.getDouble(1), 0.01);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 }

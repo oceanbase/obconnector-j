@@ -477,14 +477,9 @@ public class LobLocatorOracleTest extends BaseOracleTest {
 
             conn = sharedPSLobConnection;
             Statement stmt = conn.createStatement();
-            //            if (sharedUsePrepare()) {
-            //                return;
-            //            }
             PreparedStatement pstmt = null;
             PreparedStatement pstmtt = null;
-            pstmtt = conn.prepareStatement("");
             String c_sql = null;
-
             ResultSet rs = null;
 
             c_sql = "insert into " + tableOBOracleModeClob + " values('111', 'CLOB_1111111');";
@@ -513,9 +508,9 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             apstmt.executeUpdate();
 
             com.oceanbase.jdbc.Blob blob = null;
-
-            rs = pstmtt.executeQuery("SELECT * FROM " + tableOBOracleModeBlob
-                                     + " WHERE c1='112' for update;");
+            pstmtt = conn.prepareStatement("SELECT * FROM " + tableOBOracleModeBlob
+                    + " WHERE c1='112' for update;");
+            rs = pstmtt.executeQuery();
             String c1 = null;
             while (rs.next()) {
                 c1 = rs.getString(1);
@@ -588,8 +583,7 @@ public class LobLocatorOracleTest extends BaseOracleTest {
             conn.setAutoCommit(true);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-
+            fail();
         }
     }
 

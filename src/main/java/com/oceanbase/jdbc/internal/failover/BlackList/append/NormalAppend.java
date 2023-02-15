@@ -12,6 +12,10 @@ public class NormalAppend implements AppendStrategy {
         return "NormalAppend{}";
     }
 
+    public String toJson() {
+        return "\"APPEND_STRATEGY\":{\"NAME\":\"NORMAL\"}";
+    }
+
     @Override
     public boolean needToAppend(HostAddress hostAddress, Properties properties) {
         return true;

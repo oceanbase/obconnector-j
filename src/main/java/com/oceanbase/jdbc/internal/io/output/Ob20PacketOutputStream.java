@@ -60,6 +60,7 @@ import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.oceanbase.jdbc.util.OceanBaseCRC16;
 import com.oceanbase.jdbc.util.OceanBaseCRC32C;
 import com.oceanbase.jdbc.util.Options;
@@ -157,8 +158,6 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
                     uncompressSize = Math.min(PROTO20_SPLIT_LEN, totalPayloadLength
                                                                  - totalPayloadPos);
                 }
-                checkMaxAllowedLength(uncompressSize);
-                cmdLength += uncompressSize;
 
                 // set fields in header
                 ob20.header.obSeqNo = (byte) ob20.getObSeqNo();
@@ -170,7 +169,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
                 if (ob20.isExtraInfoExist() && totalPayloadPos >= extraPayloadLength) {
                     ob20.header.flag &= (~OceanBaseProtocolV20.OB_EXTRA_INFO_EXIST);
                 }
-                if (totalPayloadPos + uncompressSize == totalPayloadLength) {
+                if (commandEnd && totalPayloadPos + uncompressSize == totalPayloadLength) {
                     ob20.header.flag |= OceanBaseProtocolV20.OB_IS_LAST_PACKET;
                 }
 
@@ -251,8 +250,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     public void setMaxAllowedPacket(int maxAllowedPacket) {
         this.maxAllowedPacket = maxAllowedPacket;
         maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket
-                                                      + OceanBaseProtocolV20.TOTAL_HEADER_LENGTH
-                                                      + OceanBaseProtocolV20.OB20_TAIL_LENGTH);
+                                                      + OceanBaseProtocolV20.MYSQL_PACKET_HEADER);
     }
 
     private void writeOb20Header(Buffer outBuffer) {
@@ -290,10 +288,12 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         outBuffer.writeBytes(ob20.getExtraInfoBytes(), 0, (int) ob20.extraInfo.extraLength);
     }
 
-    private void fillOb20BasicInfo(Buffer outBuffer) {
+    private void fillOb20BasicInfo(Buffer outBuffer) throws MaxAllowedPacketException {
         outBuffer.writeLongInt(pos);
         outBuffer.writeByte((byte) mysqlSeqNo++);
+        checkMaxAllowedLength(pos);
         outBuffer.writeBytes(buf, 0, pos);
+        cmdLength += pos;
     }
 
     private void writeOb20TailChecksum(Buffer outBuffer, byte[] payload, int pos, int len) {

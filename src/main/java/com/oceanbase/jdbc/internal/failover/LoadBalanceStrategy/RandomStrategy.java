@@ -28,6 +28,10 @@ public class RandomStrategy implements BalanceStrategy {
         return "RandomStrategy{}";
     }
 
+    public String toJson() {
+        return "\"OBLB_STRATEGY\":\"RANDOM\"";
+    }
+
     @Override
     public void pickConnection(LoadBalanceAddressList loadBalanceAddressList, UrlParser urlParser,
                                Listener listener, GlobalStateInfo globalInfo,

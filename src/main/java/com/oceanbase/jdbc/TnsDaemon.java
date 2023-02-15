@@ -13,13 +13,13 @@ public class TnsDaemon extends Thread {
         String filePath = tnsPath + "/" + configFileName;
         File file = new File(filePath);
         Reader reader = new InputStreamReader(new FileInputStream(file));
-        ConfigParser.getLoadBalanceInfosFromReader(reader);
+        ConfigParser.readLoadBalanceInfosFromTns(reader);
     }
 
     @Override
     public void run() {
         try {
-            ConfigParser.TnsFileInfo tnsFileInfo = ConfigParser.getTnsFilePath();
+            ConfigParser.ConfigInfo tnsFileInfo = ConfigParser.getTnsFilePath();
             configFileName = tnsFileInfo.name;
             fullFillMap(tnsFileInfo.path);
             WatchService watchService = FileSystems.getDefault().newWatchService();

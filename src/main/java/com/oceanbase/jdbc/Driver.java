@@ -82,7 +82,8 @@ public class Driver implements java.sql.Driver {
     public Connection connect(final String url, final Properties props) throws SQLException {
         UrlParser urlParser = UrlParser.parse(url, props);
         if (urlParser == null
-            || (urlParser.getHostAddresses() == null && urlParser.getExtendDescription() == null)) {
+            || (urlParser.getHostAddresses() == null && urlParser.getExtendDescription() == null && urlParser
+                .getOcpApi() == null)) {
             return null;
         } else {
             return OceanBaseConnection.newConnection(urlParser, null);

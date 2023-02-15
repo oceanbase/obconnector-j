@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.failover;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import java.util.Map;
 
 import org.junit.*;
 
+import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 /**
@@ -127,6 +129,28 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       // normal exception
     }
   }
+
+    @Test
+    public void testNewLoadBalance() throws SQLException {
+        String config = "(tns_1=(DESCRIPTION=\n"
+                        + "  (OBLB_RETRY_ALL_DOWNS=10)\n"
+                        + "  (OBLB_BLACKLIST=(\n"
+                        + "     (REMOVE_STRATEGY=((NAME=timeout)(TIMEOUT=10000)))\n"
+                        + "     (APPEND_STRATEGY=((NAME=retryDuration)(RETRYTIMES=2)(DURATION=10000)))\n"
+                        + "  ))" + "  (ADDRT=         \n" + "     (OBLB_STRATEGY=RANDOM) \n"
+                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=host1)(port=port1))\n"
+                        + "     (ADDRESS=(PROTOCOL=tcp)(HOST=host1)(port=port2))\n" + "  )))  ";
+        Connection conn;
+        int count = 5;
+        for (int i = 0; i < count; i++) {
+            System.out.println("i = " + i);
+            conn = DriverManager
+                .getConnection("jdbc:oceanbase:loadbalance://@" + config
+                               + "/db?user=usr&password=pwd&connectTimeout=10000&log=true");
+            System.out.println("port = " + ((OceanBaseConnection) conn).getPort());
+            conn.close();
+        }
+    }
 
     class MutableInt {
 

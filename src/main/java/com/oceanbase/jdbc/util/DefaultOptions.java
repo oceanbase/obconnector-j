@@ -1005,7 +1005,34 @@ public enum DefaultOptions {
         Boolean.TRUE,
         "2.4.1",
         "Calculate header checksum and tail checksum in OceanBase v2.0 protocol packet",
-        false);
+        false),
+    OCP_ACCESS_INTERVAL(
+        "ocpAccessInterval",
+        5,
+        0,
+        "2.4.2",
+        "Interval time in minutes between accesses to OCP.",
+        false),
+    HTTP_CONNECT_TIMEOUT(
+        "httpConnectTimeout",
+        0,
+        0,
+        "2.4.2",
+        "Sets a specified timeout value, in milliseconds, to be used when opening a communications link to the resource referenced by this URLConnection. A timeout of zero is interpreted as an infinite timeout.",
+        false),
+    HTTP_READ_TIMEOUT(
+        "httpReadTimeout",
+        0,
+        0,
+        "2.4.2",
+        "A non-zero value specifies the timeout in milliseconds when reading from Input stream when an URLConnection is established to a resource. A timeout of zero is interpreted as an infinite timeout.",
+        false),
+    LOAD_BALANCE_HANDLE_FAILOVER(
+            "loadBalanceHandleFailover",
+            Boolean.TRUE,
+            "2.4.2",
+            "This parameter is used to control whether a new connection is created to replace the old one when an exception occurs when using loadbalance.",
+            false);
 
   private final String optionName;
   private final String description;

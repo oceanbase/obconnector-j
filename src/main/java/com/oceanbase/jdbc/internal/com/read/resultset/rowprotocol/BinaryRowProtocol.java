@@ -1,54 +1,57 @@
 /**
- *  OceanBase Client for Java
- *
- *  Copyright (c) 2012-2014 Monty Program Ab.
- *  Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *  Copyright (c) 2021 OceanBase.
- *
- *  This library is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License along
- *  with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- *  This particular MariaDB Client for Java file is work
- *  derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- *  the following copyright and notice provisions:
- *
- *  Copyright (c) 2009-2011, Marcus Eriksson
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *  Redistributions of source code must retain the above copyright notice, this list
- *  of conditions and the following disclaimer.
- *
- *  Redistributions in binary form must reproduce the above copyright notice, this
- *  list of conditions and the following disclaimer in the documentation and/or
- *  other materials provided with the distribution.
- *
- *  Neither the name of the driver nor the names of its contributors may not be
- *  used to endorse or promote products derived from this software without specific
- *  prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- *  OF SUCH DAMAGE.
+ * OceanBase Client for Java
+ * <p>
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ * Copyright (c) 2021 OceanBase.
+ * <p>
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * <p>
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ * <p>
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ * <p>
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ * <p>
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ * <p>
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ * <p>
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ * <p>
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * <p>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
+
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -528,13 +531,18 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(stringVal);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
-                        columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(stringVal);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, doubleVal,
+                            columnInfo);
+                    }
+                    return (int) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + stringVal, "22003", 1264);
                 }
-                return (int) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + stringVal, "22003", 1264);
@@ -640,12 +648,18 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(stringVal);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal, columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(stringVal);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal,
+                            columnInfo);
+                    }
+                    return (long) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + stringVal, "22003", 1264);
                 }
-                return (long) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + stringVal, "22003", 1264);
@@ -820,12 +834,18 @@ public class BinaryRowProtocol extends RowProtocol {
                                    | ((long) (buf[pos + 7] & 0xff) << 56);
 
                 return Double.longBitsToDouble(valueAsLong);
+            case BINARY_FLOAT:
+                return getInternalFloat(columnInfo);
                 //                return Double.parseDouble(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
                 String val = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.doubleValue();
+            case NUMBER_FLOAT:
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
+                return (double) f;
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getSqlTypeName());
@@ -1207,7 +1227,6 @@ public class BinaryRowProtocol extends RowProtocol {
                     day = ((negate ? -1 : 1) * day) + 1;
                     hour = (negate ? -1 : 1) * hour;
                     break;
-
                 case STRING:
                 case VARSTRING:
                 case NVARCHAR2:
@@ -1254,6 +1273,26 @@ public class BinaryRowProtocol extends RowProtocol {
                                             + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
                             nanos = microseconds * 1000;
                         }
+                    }
+                    if (length == 0 || ((year == 0) && (month == 0) && (day == 0))) {
+
+                        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                            throw new SQLException(
+                                "Value '"
+                                        + new String(buf, pos, length,
+                                            getCurrentEncoding(columnInfo.getColumnType()))
+                                        + "' can not be represented as java.sql.Timestamp");
+                        }
+                        if (options.zeroDateTimeBehavior
+                            .equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+                            return null;
+                        } else {
+                            // round
+                            year = 1;
+                            month = 1;
+                            day = 1;
+                        }
+
                     }
             }
 
@@ -1932,6 +1971,103 @@ public class BinaryRowProtocol extends RowProtocol {
                     + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
     }
 
+    public OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)
+                                                                                                   throws SQLException {
+        if (lastValueWasNull()) {
+            return null;
+        }
+        if (length == 0) {
+            lastValueNull |= BIT_LAST_FIELD_NULL;
+            return null;
+        }
+
+        ZoneId zoneId = timeZone.toZoneId().normalized();
+        if (zoneId instanceof ZoneOffset) {
+            ZoneOffset zoneOffset = (ZoneOffset) zoneId;
+
+            int day = 0;
+            int hour = 0;
+            int minutes = 0;
+            int seconds = 0;
+            int microseconds = 0;
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIMESTAMP:
+                    int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                    int month = buf[pos + 2];
+                    day = buf[pos + 3];
+
+                    if (length > 4) {
+                        hour = buf[pos + 4];
+                        minutes = buf[pos + 5];
+                        seconds = buf[pos + 6];
+
+                        if (length > 7) {
+                            microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
+                                            + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
+                        }
+                    }
+
+                    return ZonedDateTime.of(year, month, day, hour, minutes, seconds,
+                        microseconds * 1000, zoneOffset).toOffsetDateTime();
+
+                    //                case Types.TIME:
+                    //                    final boolean negate = (buf[pos] & 0xff) == 0x01;
+                    //
+                    //                    if (length > 4) {
+                    //                        day = ((buf[pos + 1] & 0xff) + ((buf[pos + 2] & 0xff) << 8)
+                    //                                + ((buf[pos + 3] & 0xff) << 16) + ((buf[pos + 4] & 0xff) << 24));
+                    //                    }
+                    //
+                    //                    if (length > 7) {
+                    //                        hour = buf[pos + 5];
+                    //                        minutes = buf[pos + 6];
+                    //                        seconds = buf[pos + 7];
+                    //                    }
+                    //
+                    //                    if (length > 8) {
+                    //                        microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
+                    //                                + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
+                    //                    }
+                    //
+                    //                    return OffsetDateTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds,
+                    //                            microseconds * 1000, zoneOffset);
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    try {
+                        return OffsetDateTime.parse(raw.replace(" ", "T"));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(
+                            raw
+                                    + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                    }
+
+                default:
+                    throw new SQLException("Cannot read " + OffsetTime.class.getName()
+                                           + " using a "
+                                           + columnInfo.getColumnType().getSqlTypeName() + " field");
+            }
+        }
+
+        if (options.useLegacyDatetimeCode) {
+            // system timezone is not an offset
+            throw new SQLException(
+                "Cannot return an OffsetTime for a TIME field when default timezone is '"
+                        + zoneId
+                        + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+        }
+
+        // server timezone is not an offset
+        throw new SQLException(
+            "Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
+                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+    }
+
     /**
      * Get LocalTime from raw binary format.
      *
@@ -2212,6 +2348,16 @@ public class BinaryRowProtocol extends RowProtocol {
                     value = c.toString();
                 } else {
                     return new String(buf, pos, length, charset);
+                }
+                break;
+            case ComplexDataType.TYPE_BLOB:
+                b = packet.readLenByteArray(0);
+                if (options.supportLobLocator) {
+                    Blob blob = new com.oceanbase.jdbc.Blob(true, b, charset.name(),
+                        (OceanBaseConnection) connection);
+                    value = blob.getBytes(1, (int) blob.length());
+                } else {
+                    value = b;
                 }
                 break;
             default:

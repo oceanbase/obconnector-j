@@ -96,6 +96,37 @@ public class Bugfix extends BaseTest {
 
     }
 
+    @Test
+    public void fixExceptionType() throws Exception {
+        try {
+            ResultSet rs = sharedConnection.prepareStatement("SELECT ' '").executeQuery();
+            assertTrue(rs.next());
+
+            try {
+                rs.getShort(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getByte(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getInt(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getLong(1);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+            }
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
     // fix for aone 39996582
     @Test
     public void testResetStreamAndRead() {
@@ -906,7 +937,8 @@ public class Bugfix extends BaseTest {
             stmt.execute("create table foreign_yyy (foreign_1_id int(8) not null, primary key (foreign_1_id),"
                          + " CONSTRAINT foreign_fk_abcdefg foreign key (foreign_1_id) references foreign_xxx(id1))");
             DatabaseMetaData dbmd = conn.getMetaData();
-            ResultSet rs = dbmd.getImportedKeys("unittests", "unittests", "foreign_yyy");
+            String catalog = conn.getCatalog();
+            ResultSet rs = dbmd.getImportedKeys(catalog, catalog, "foreign_yyy");
             assertTrue(rs.next());
             assertEquals("foreign_fk_abcdefg", rs.getString("FK_NAME"));
             assertEquals("id1", rs.getString("PKCOLUMN_NAME"));
@@ -1458,6 +1490,7 @@ public class Bugfix extends BaseTest {
 
     @Test
     public void testBug84189() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Statement stmt = sharedConnection.createStatement();
             createTable("testBug84189",
@@ -1493,8 +1526,56 @@ public class Bugfix extends BaseTest {
             assertNull(rs.getObject(5, OffsetTime.class));
             assertNull(rs.getObject(6, OffsetDateTime.class));
             assertFalse(rs.next());
+
+            PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM testBug84189");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(LocalDate.of(2017, 1, 1), rs.getObject(1, LocalDate.class));
+            assertEquals(LocalTime.of(10, 20, 30), rs.getObject(2, LocalTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(3, LocalDateTime.class));
+            assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(4, LocalDateTime.class));
+            assertEquals(OffsetTime.of(10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(5, OffsetTime.class));
+            assertEquals(OffsetDateTime.of(2017, 01, 01, 10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(6, OffsetDateTime.class));
+
+            assertEquals(LocalDate.class, rs.getObject(1, LocalDate.class).getClass());
+            assertEquals(LocalTime.class, rs.getObject(2, LocalTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(3, LocalDateTime.class).getClass());
+            assertEquals(LocalDateTime.class, rs.getObject(4, LocalDateTime.class).getClass());
+            assertEquals(OffsetTime.class, rs.getObject(5, OffsetTime.class).getClass());
+            assertEquals(OffsetDateTime.class, rs.getObject(6, OffsetDateTime.class).getClass());
+
+            assertTrue(rs.next());
+            assertNull(rs.getObject(1, LocalDate.class));
+            assertNull(rs.getObject(2, LocalTime.class));
+            assertNull(rs.getObject(3, LocalDateTime.class));
+            assertNull(rs.getObject(4, LocalDateTime.class));
+            assertNull(rs.getObject(5, OffsetTime.class));
+            assertNull(rs.getObject(6, OffsetDateTime.class));
+            assertFalse(rs.next());
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCurrentTimestmap() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("select CURRENT_TIMESTAMP");
+            Assert.assertTrue(rs.next());
+            rs.getObject(1, OffsetDateTime.class);
+            PreparedStatement ps = sharedConnection.prepareStatement("select CURRENT_TIMESTAMP");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            rs.getObject(1, OffsetDateTime.class);
+        } catch (SQLException e) {
+            e.printStackTrace();
             Assert.fail();
         }
     }
@@ -1539,8 +1620,12 @@ public class Bugfix extends BaseTest {
             OceanBaseDataSource ds = new OceanBaseDataSource("localhost", 1130, "db");
             Connection connection = ds.getConnection("username", "password");
         } catch (Exception throwables) {
-            throwables.printStackTrace();
-            Assert.assertFalse(throwables instanceof ClassCastException);
+            Assert.assertTrue(throwables instanceof SQLNonTransientConnectionException);
+            Assert
+                .assertTrue(throwables
+                    .getMessage()
+                    .contains(
+                        "Could not connect to HostAddress{host='localhost', port=1130, type='master'}. Connection refused (Connection refused)"));
         }
     }
 
@@ -1722,7 +1807,6 @@ public class Bugfix extends BaseTest {
             stmt.getResultSet();
             fail("Should've caught an exception here");
         } catch (SQLException e) {
-            e.printStackTrace();
             Assert.assertTrue(e.getMessage().contains(
                 "Cannot do an operation on a closed statement"));
         }
@@ -2222,20 +2306,23 @@ public class Bugfix extends BaseTest {
             try {
                 rs.getTime(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage().contains(
+                    "Time format \"00/00/0000 00:00:00\" incorrect, must be HH:mm:ss"));
             }
             try {
                 rs.getDate(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage()
+                    .contains("Bad format for DATE 00/00/0000 00:00:00"));
             }
             try {
                 rs.getTimestamp(1);
             } catch (Exception e) {
-                e.printStackTrace();
                 Assert.assertTrue(e instanceof SQLException);
+                Assert.assertTrue(e.getMessage().contains(
+                    "Cannot convert value 00/00/0000 00:00:00 to TIMESTAMP."));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -2296,5 +2383,27 @@ public class Bugfix extends BaseTest {
         assertEquals(counts.length, 5);
         System.out.println(Arrays.toString(counts));
         assertArrayEquals(new int[] { 1, 1, 1, 1, 2 }, counts);
+    }
+
+    @Test
+    public void testDateTimeToTimeStamp() {
+        try {
+            createTable("datetimetest", "c1 datetime");
+            Connection connection = setConnection("&zeroDateTimeBehavior=convertToNull");
+            Statement stmt = connection.createStatement();
+            stmt.execute("insert into datetimetest values('0000-00-00 00:00:00')");
+            ResultSet rs = stmt.executeQuery("select * from datetimetest");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(null, rs.getString(1));
+            Assert.assertEquals(null, rs.getTimestamp(1));
+            PreparedStatement ps = connection.prepareStatement("select * from datetimetest");
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(null, rs.getString(1));
+            Assert.assertEquals(null, rs.getTimestamp(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 }

@@ -28,6 +28,10 @@ public class ServerAffinityStrategy implements BalanceStrategy {
         return "ServerAffinityStrategy{}";
     }
 
+    public String toJson() {
+        return "\"OBLB_STRATEGY\":\"SERVERAFFINITY\"";
+    }
+
     public static List<LoadBalanceHostAddress> shuffleWeight(List<LoadBalanceHostAddress> list) throws SQLException {
         List<LoadBalanceHostAddress> addressList = new ArrayList<>();
         int size = list.size();

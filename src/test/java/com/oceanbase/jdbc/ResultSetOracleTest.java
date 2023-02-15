@@ -57,7 +57,7 @@ import java.sql.*;
 
 import org.junit.*;
 
-public class OracleResultSetTest extends BaseOracleTest {
+public class ResultSetOracleTest extends BaseOracleTest {
 
     /**
      * Initialisation.
@@ -1289,6 +1289,238 @@ public class OracleResultSetTest extends BaseOracleTest {
     }
 
     @Test
+    public void testGetAfterClose() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 from dual");
+        try {
+            rs.getInt(1);
+        } catch (SQLException e) {
+            Assert.assertEquals("Current position is before the first row", e.getMessage());
+        }
+
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        rs.next();
+        rs.close();
+        try {
+            rs.getInt(1);
+        } catch (SQLException | NullPointerException e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = stmt.executeQuery("SELECT 1 from dual");
+        rs.close();
+        try {
+            rs.getInt(1);
+        } catch (SQLException e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
+    @Test
+    public void fix46494300AfterClose_CloseStmt() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 from dual");
+        stmt.close();
+
+        try {
+            rs.getMetaData();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        Assert.assertNull(rs.getWarnings());
+        Assert.assertEquals(1, rs.getHoldability());
+        try {
+            Assert.assertEquals(0, rs.getRow());
+        } catch (Exception e) {
+            System.out.println("expected rs.getRow()=0, but exception is " + e.getMessage());
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            rs.next();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.previous();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            rs.first();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.last();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            rs.beforeFirst();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.afterLast();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            Assert.assertFalse(rs.isFirst());
+        } catch (Exception e) {
+            System.out.println("expected rs.isFirst()=false, but exception is " + e.getMessage());
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        try {
+            rs.isLast();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            Assert.assertFalse(rs.isBeforeFirst());
+        } catch (Exception e) {
+            System.out.println("expected rs.isBeforeFirst()=false, but exception is "
+                               + e.getMessage());
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        try {
+            Assert.assertTrue(rs.isAfterLast());
+        } catch (Exception e) {
+            System.out
+                .println("expected rs.isAfterLast()=true, but exception is " + e.getMessage());
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            rs.relative(0);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.absolute(0);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+    }
+
+    @Test
+    public void fix46494300AfterCloseOracle_CloseRe() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 from dual");
+        rs.close();
+
+        try {
+            rs.getMetaData();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        Assert.assertNull(rs.getWarnings());
+        Assert.assertEquals(1, rs.getHoldability());
+        try {
+            rs.getRow();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            rs.next();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        try {
+            rs.previous();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            rs.first();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.last();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            rs.beforeFirst();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.afterLast();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+
+        try {
+            rs.isFirst();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        try {
+            rs.isLast();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            rs.isBeforeFirst();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+        try {
+            rs.isAfterLast();
+        } catch (Exception e) {
+            Assert
+                .assertTrue(e.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        try {
+            rs.relative(0);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+        try {
+            rs.absolute(0);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                "Invalid operation on TYPE_FORWARD_ONLY ResultSet"));
+        }
+    }
+
+    @Test
     public void testSelectFunctionColumnName() {
         try {
             String url = "jdbc:oceanbase://11.124.5.197:1130/test?user=test@xyoracle&password=test&useServerPrepStmts=false";
@@ -1325,4 +1557,13 @@ public class OracleResultSetTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testFunc() throws SQLException {
+        DatabaseMetaData metaData = sharedConnection.getMetaData();
+        String[] s = { "TABLE" };
+        ResultSet tables = metaData.getTables(null, null, "test_close", s);
+        tables.close();
+    }
+
 }

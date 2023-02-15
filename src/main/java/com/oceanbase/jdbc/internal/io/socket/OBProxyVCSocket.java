@@ -53,10 +53,7 @@ package com.oceanbase.jdbc.internal.io.socket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.oceanbase.jdbc.internal.logging.Logger;
@@ -319,6 +316,20 @@ public class OBProxyVCSocket extends Socket {
 
     public void shutdownOutput() {
         // do nothing
+    }
+
+    public InetAddress getLocalAddress() {
+        InetAddress addr = null;
+        if (connected) { // for OBProxyVCSocket just return '127.0.0.1'
+            addr = InetAddress.getLoopbackAddress();
+        }
+        return addr;
+    }
+
+    public SocketAddress getRemoteSocketAddress() {
+        if (!isConnected())
+            return null;
+        return new InetSocketAddress(getLocalAddress(), getPort()); //just return '127.0.0.1:-1' for obproxyVCSocket
     }
 
     class OBProxyVCSocketInputStream extends InputStream {

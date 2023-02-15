@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.failover;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InvalidObjectException;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +66,20 @@ import com.oceanbase.jdbc.ObResultSet;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.extend.datatype.INTERVALDS;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.failover.BlackList.BlackListConfig;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.AppendStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.NormalAppend;
+import com.oceanbase.jdbc.internal.failover.BlackList.append.RetryDuration;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.RemoveStrategy;
+import com.oceanbase.jdbc.internal.failover.BlackList.recover.TimeoutRecover;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.GroupRotationStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RandomStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.RotationStrategy;
+import com.oceanbase.jdbc.internal.failover.LoadBalanceStrategy.ServerAffinityStrategy;
+import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceAddressList;
+import com.oceanbase.jdbc.internal.failover.impl.LoadBalanceInfo;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.JsonParser;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
@@ -341,5 +355,285 @@ public class OracleLoadBalanceFailoverTest extends BaseMultiHostTest {
         testLoadBalanceSingleConnWithProcedure();
         stmt.execute("drop table test_intervalds");
         conn.close();
+    }
+
+    @Test
+    public void testParseBalanceInfoJson1() throws InvalidObjectException {
+        String balanceJson = "{\n"
+                            + "    \"OBLB\" : \"ON\" ,\n"
+                            + "    \"OBLB_RETRY_ALL_DOWNS\" : 110 ,\n"
+                            + "    \"OBLB_GROUP_STRATEGY\" : \"ROTATION\" ,\n"
+                            + "    \"OBLB_STRATEGY\" : \"ROTATION\" ,\n"
+                            + "    \"OBLB_BLACKLIST\" : {\n"
+                            + "        \"REMOVE_STRATEGY\" : {\n"
+                            + "            \"NAME\" : \"TIMEOUT\" , \n"
+                            + "            \"TIMEOUT\" : 100\n"
+                            + "        } ,\n"
+                            + "        \"APPEND_STRATEGY\" : {\n"
+                            + "            \"NAME\" : \"RETRYDURATION\" , \n"
+                            + "            \"RETRYTIMES\" : 3 , \n"
+                            + "            \"DURATION\" : 100\n"
+                            + "        }\n"
+                            + "    } ,\n"
+                            + "    \"ADDRESS_LIST\" : [\n"
+                            + "        {   \n"
+                            + "            \"OBLB_BLACKLIST\" : {\n"
+                            + "                \"REMOVE_STRATEGY\" : {\n"
+                            + "                    \"NAME\" : \"TIMEOUT\" , \n"
+                            + "                    \"TIMEOUT\" : 88\n"
+                            + "                } ,\n"
+                            + "                \"APPEND_STRATEGY\" : {\n"
+                            + "                    \"NAME\" : \"RETRYDURATION\" , \n"
+                            + "                    \"RETRYTIMES\" : 5 , \n"
+                            + "                    \"DURATION\" : 200\n"
+                            + "                }\n"
+                            + "            } ,\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host1\" , \n"
+                            + "                    \"PORT\" : 1111\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host2\" , \n"
+                            + "                    \"PORT\" : 2222\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        } , \n"
+                            + "        {\n"
+                            + "            \"OBLB_STRATEGY\" : \"RANDOM\" ,\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host3\" , \n"
+                            + "                    \"PORT\" : 3333\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host4\" , \n"
+                            + "                    \"PORT\" : 4444\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        } , \n"
+                            + "        {\n"
+                            + "            \"OBLB_STRATEGY\" : \"SERVERAFFINITY\" ,\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host5\" , \n"
+                            + "                    \"PORT\" : 5555,\n"
+                            + "                    \"WEIGHT\" : 1\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host6\" , \n"
+                            + "                    \"PORT\" : 6666,\n"
+                            + "                    \"WEIGHT\" : 10\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host7\" , \n"
+                            + "                    \"PORT\" : 7777,\n"
+                            + "                    \"WEIGHT\" : 0\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        }\n"
+                            + "    ] ,\n"
+                            + "    \"CONNECT_DATA\" : {\n"
+                            + "        \"SERVICE_NAME\" : \"OBDATABASE\"\n"
+                            + "    }\n"
+                            + "}";
+
+        JsonParser parsing = new JsonParser(balanceJson);
+        parsing.parse();
+        HashMap mapDescription = (HashMap) parsing.getStack().peek();
+        LoadBalanceInfo balanceInfo = new LoadBalanceInfo(mapDescription);
+
+        Assert.assertEquals("OBDATABASE", balanceInfo.getServiceName());
+        Assert.assertEquals(110, balanceInfo.getRetryAllDowns());
+
+        Assert.assertTrue(balanceInfo.getGroupBalanceStrategy() instanceof GroupRotationStrategy);
+        Assert.assertNull(balanceInfo.getGroupBalanceStrategyConfigs());
+        Assert.assertTrue(balanceInfo.getBalanceStrategy() instanceof RotationStrategy);
+        Assert.assertNull(balanceInfo.getBalanceStrategyConfigs());
+
+        BlackListConfig blackListConfig = balanceInfo.getBlackListConfig();
+        Assert.assertNotNull(blackListConfig);
+        Assert.assertNull(blackListConfig.getRemoveStrategyConfigs());
+        Assert.assertNull(blackListConfig.getAppendStrategyConfigs());
+
+        RemoveStrategy removeStrategy = blackListConfig.getRemoveStrategy();
+        Assert.assertTrue(removeStrategy instanceof TimeoutRecover);
+        Assert.assertEquals(100, ((TimeoutRecover) removeStrategy).getTimeout());
+
+        AppendStrategy appendStrategy = blackListConfig.getAppendStrategy();
+        Assert.assertTrue(appendStrategy instanceof RetryDuration);
+        Assert.assertEquals(100, ((RetryDuration) appendStrategy).getDuration());
+        Assert.assertEquals(3, ((RetryDuration) appendStrategy).getRetryTimes());
+
+        Assert.assertEquals(3, balanceInfo.getGroups().size());
+
+        LoadBalanceAddressList addressList1 = balanceInfo.getGroups().get(0);
+        Assert.assertTrue(addressList1.getBalanceStrategy() instanceof RotationStrategy);
+        Assert.assertNull(addressList1.getBlackListConfig());
+        Assert.assertNull(addressList1.getBalanceStrategyConfigs());
+        Assert.assertEquals(2, addressList1.getAddressList().size());
+
+        LoadBalanceAddressList addressList2 = balanceInfo.getGroups().get(1);
+        Assert.assertTrue(addressList2.getBalanceStrategy() instanceof RandomStrategy);
+        Assert.assertNull(addressList2.getBlackListConfig());
+        Assert.assertNull(addressList2.getBalanceStrategyConfigs());
+        Assert.assertEquals(2, addressList2.getAddressList().size());
+
+        LoadBalanceAddressList addressList3 = balanceInfo.getGroups().get(2);
+        Assert.assertTrue(addressList3.getBalanceStrategy() instanceof ServerAffinityStrategy);
+        Assert.assertNull(addressList3.getBlackListConfig());
+        Assert.assertNull(addressList3.getBalanceStrategyConfigs());
+        Assert.assertEquals(3, addressList3.getAddressList().size());
+    }
+
+    @Test
+    public void testParseBalanceInfoJson2() throws InvalidObjectException {
+        String balanceJson = "{\n"
+                            + "    \"OBLB\" : \"ON\" ,\n"
+                            + "    \"ADDRESS_LIST\" : [\n"
+                            + "        {   \n"
+                            + "            \"OBLB_STRATEGY\" : \"ROTATION\" ,\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host1\" , \n"
+                            + "                    \"PORT\" : 1111\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host2\" , \n"
+                            + "                    \"PORT\" : 2222\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        } , \n"
+                            + "        {\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host3\" , \n"
+                            + "                    \"PORT\" : 3333\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host4\" , \n"
+                            + "                    \"PORT\" : 4444\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        } , \n"
+                            + "        {\n"
+                            + "            \"OBLB_STRATEGY\" : \"SERVERAFFINITY\" ,\n"
+                            + "            \"ADDRESS\" : [\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host5\" , \n"
+                            + "                    \"PORT\" : 5555,\n"
+                            + "                    \"WEIGHT\" : 1\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host6\" , \n"
+                            + "                    \"PORT\" : 6666,\n"
+                            + "                    \"WEIGHT\" : 10\n"
+                            + "                } ,\n"
+                            + "                {\n"
+                            + "                    \"PROTOCOL\" : \"tcp\" , \n"
+                            + "                    \"HOST\" : \"host7\" , \n"
+                            + "                    \"PORT\" : 7777,\n"
+                            + "                    \"WEIGHT\" : 0\n"
+                            + "                }\n"
+                            + "            ]\n"
+                            + "        }\n"
+                            + "    ] ,\n"
+                            + "    \"CONNECT_DATA\" : {\n"
+                            + "        \"SERVICE_NAME\" : \"OBDATABASE\"\n"
+                            + "    }\n"
+                            + "}";
+
+        JsonParser parsing = new JsonParser(balanceJson);
+        parsing.parse();
+        HashMap mapDescription = (HashMap) parsing.getStack().peek();
+        LoadBalanceInfo balanceInfo = new LoadBalanceInfo(mapDescription);
+
+        Assert.assertEquals("OBDATABASE", balanceInfo.getServiceName());
+        Assert.assertEquals(120, balanceInfo.getRetryAllDowns());
+
+        Assert.assertTrue(balanceInfo.getGroupBalanceStrategy() instanceof GroupRotationStrategy);
+        Assert.assertNull(balanceInfo.getGroupBalanceStrategyConfigs());
+        Assert.assertTrue(balanceInfo.getBalanceStrategy() instanceof RandomStrategy);
+        Assert.assertNull(balanceInfo.getBalanceStrategyConfigs());
+
+        BlackListConfig blackListConfig = balanceInfo.getBlackListConfig();
+        Assert.assertNotNull(blackListConfig);
+        Assert.assertNull(blackListConfig.getRemoveStrategyConfigs());
+        Assert.assertNull(blackListConfig.getAppendStrategyConfigs());
+
+        RemoveStrategy removeStrategy = blackListConfig.getRemoveStrategy();
+        Assert.assertTrue(removeStrategy instanceof TimeoutRecover);
+        Assert.assertEquals(50, ((TimeoutRecover) removeStrategy).getTimeout());
+
+        AppendStrategy appendStrategy = blackListConfig.getAppendStrategy();
+        Assert.assertTrue(appendStrategy instanceof NormalAppend);
+
+        Assert.assertEquals(3, balanceInfo.getGroups().size());
+
+        LoadBalanceAddressList addressList1 = balanceInfo.getGroups().get(0);
+        Assert.assertTrue(addressList1.getBalanceStrategy() instanceof RotationStrategy);
+        Assert.assertNull(addressList1.getBlackListConfig());
+        Assert.assertNull(addressList1.getBalanceStrategyConfigs());
+        Assert.assertEquals(2, addressList1.getAddressList().size());
+
+        LoadBalanceAddressList addressList2 = balanceInfo.getGroups().get(1);
+        Assert.assertTrue(addressList2.getBalanceStrategy() instanceof RandomStrategy);
+        Assert.assertNull(addressList2.getBlackListConfig());
+        Assert.assertNull(addressList2.getBalanceStrategyConfigs());
+        Assert.assertEquals(2, addressList2.getAddressList().size());
+
+        LoadBalanceAddressList addressList3 = balanceInfo.getGroups().get(2);
+        Assert.assertTrue(addressList3.getBalanceStrategy() instanceof ServerAffinityStrategy);
+        Assert.assertNull(addressList3.getBlackListConfig());
+        Assert.assertNull(addressList3.getBalanceStrategyConfigs());
+        Assert.assertEquals(3, addressList3.getAddressList().size());
+    }
+
+    @Test
+    public void testEmptyAddressList() throws InvalidObjectException {
+        String balanceJson = "{\n" +
+                "            \"ADDRESS_LIST\":[\n" +
+                "\n" +
+                "            ],\n" +
+                "            \"CONNECT_DATA\":{\n" +
+                "                \"SERVICE_NAME\":\"OBDATABASE\"\n" +
+                "            },\n" +
+                "            \"OBLB\":\"ON\",\n" +
+                "            \"OBLB_BLACKLIST\":{\n" +
+                "                \"APPEND_STRATEGY\":{\n" +
+                "                    \"DURATION\":100,\n" +
+                "                    \"NAME\":\"RETRYDURATION\",\n" +
+                "                    \"RETRYTIMES\":3\n" +
+                "                },\n" +
+                "                \"REMOVE_STRATEGY\":{\n" +
+                "                    \"NAME\":\"TIMEOUT\",\n" +
+                "                    \"TIMEOUT\":50\n" +
+                "                }\n" +
+                "            },\n" +
+                "            \"OBLB_GROUP_STRATEGY\":\"ROTATION\",\n" +
+                "            \"OBLB_RETRY_ALL_DOWNS\":120\n" +
+                "        }";
+
+        JsonParser parsing = new JsonParser(balanceJson);
+        parsing.parse();
+        HashMap mapDescription = (HashMap) parsing.getStack().peek();
+        try {
+            LoadBalanceInfo balanceInfo = new LoadBalanceInfo(mapDescription);
+        } catch (InvalidObjectException e) {
+            Assert.assertEquals("ADDRESS_LIST can't be empty!", e.getMessage());
+        }
     }
 }

@@ -1071,7 +1071,7 @@ public class ResultSetTest extends BaseTest {
             assertNull(rs.getTimestamp(2));
             assertTrue(rs.wasNull());
 
-            assertEquals("0000-00-00 00:00:00", rs.getString(2));
+            assertEquals(null, rs.getString(2));
             assertFalse(rs.wasNull());
 
             assertNull(rs.getDate(3));
@@ -1555,6 +1555,125 @@ public class ResultSetTest extends BaseTest {
             fail();
         } catch (SQLException e) {
             assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetAfterClose() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        try {
+            rs.getInt(1);
+        } catch (SQLException e) {
+            Assert.assertEquals("Current position is before the first row", e.getMessage());
+        }
+
+        rs = stmt.executeQuery("SELECT 1");
+        rs.next();
+        rs.close();
+        try {
+            rs.getInt(1);
+        } catch (SQLException | NullPointerException e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        rs = stmt.executeQuery("SELECT 1");
+        rs.close();
+        try {
+            rs.getInt(1);
+        } catch (SQLException e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+    }
+
+    @Test
+    public void fix46494300AfterClose() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        stmt.close();
+        //        rs.close();
+
+        try {
+            rs.getMetaData();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+
+        try {
+            rs.getWarnings();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.getHoldability();
+        } catch (Exception e) {
+            Assert.assertEquals("Method ResultSet.getHoldability() not supported", e.getMessage());
+        }
+
+        try {
+            rs.getRow();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.next();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.previous();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.first();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.last();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.beforeFirst();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.afterLast();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.isFirst();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.isLast();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.isBeforeFirst();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.isAfterLast();
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.relative(0);
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
+        }
+        try {
+            rs.absolute(0);
+        } catch (Exception e) {
+            Assert.assertEquals("Operation not permit on a closed resultSet", e.getMessage());
         }
     }
 

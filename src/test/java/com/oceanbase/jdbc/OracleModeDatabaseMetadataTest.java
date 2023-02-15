@@ -107,7 +107,7 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             assertEquals(null, rs.getString(13)); // DATA_DEFAULT
             assertEquals(0, rs.getInt(14));//SQL_DATA_TYPE
             assertEquals(0, rs.getInt(15));//SQL_DATETIME_SUB
-            assertEquals(0, rs.getInt(16)); // DATA_LENGTH
+            assertEquals(22, rs.getInt(16)); // DATA_LENGTH
             assertEquals(1, rs.getInt(17)); // COLUMN_ID
             assertEquals("NO", rs.getString(18)); // IS_NULLABLE
             assertEquals(null, rs.getString(19)); // SCOPE_CATALOG

@@ -60,6 +60,7 @@ import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.credential.CredentialPlugin;
 import com.oceanbase.jdbc.credential.CredentialPluginLoader;
+import com.oceanbase.jdbc.internal.failover.utils.ConfigParser;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
@@ -116,6 +117,7 @@ public class UrlParser implements Cloneable {
     private String               tnsServiceName;
     public static final String   DBNAME_PROPERTY_KEY = "DBNAME";
     private String               extendDescription;
+    private ConfigParser.OcpApi  ocpApi;
 
     public static String getPropertyDbName(Properties props) {
         return props.getProperty(DBNAME_PROPERTY_KEY);
@@ -278,6 +280,8 @@ public class UrlParser implements Cloneable {
             String extendDescription = hostAddressesString.substring(1);
             if(extendDescription.indexOf('(') == 0) {
                 urlParser.extendDescription = extendDescription;
+            } else if (extendDescription.startsWith("ocpApi=")) {
+                urlParser.setOcpApi(extendDescription.substring(extendDescription.indexOf('=') + 1));
             } else {
                 urlParser.addresses = new ArrayList<>();
                 urlParser.tnsServiceName = hostAddressesString.substring(1);
@@ -558,4 +562,18 @@ public class UrlParser implements Cloneable {
     public String getExtendDescription() {
         return extendDescription;
     }
+
+    public ConfigParser.OcpApi getOcpApi() {
+        return ocpApi;
+    }
+
+    public void setOcpApi(String urlPart) {
+        ocpApi = new ConfigParser.OcpApi();
+
+        String[] info = urlPart.split(":");
+        ocpApi.ip = info[0];
+        ocpApi.port = info[1];
+        ocpApi.appName = info[2];
+    }
+
 }

@@ -513,82 +513,64 @@ public class ComplexOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void testRefCursor() {
-        for (int loop = 0; loop < 2; loop++) {
+    public void testRefCursor() throws SQLException {
+        try {
             Connection conn = sharedPSConnection;
-            {
-                {
-                    String sql = "insert into " + refcursor1 + " values(?, ?)";
-                    for (int i = 0; i < 10; i++) {
-                        try {
-                            PreparedStatement statement = conn.prepareStatement(sql);
-                            statement.setString(1, "test" + i);
-                            statement.setInt(2, i);
-                            statement.execute();
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                try {
-                    String sql = "select * from " + refcursor1;
-                    PreparedStatement statement = conn.prepareStatement(sql);
-                    statement.execute();
-                    ResultSet resultSet = statement.getResultSet();
-                    while (resultSet.next()) {
-                        int columnCnt = resultSet.getMetaData().getColumnCount();
-                        for (int j = 1; j <= columnCnt; j++) {
-                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
-                                               + resultSet.getString(j));
-                        }
-                    }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    Statement statement = conn.createStatement();
-                    String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(a out int, p_cursor OUT sys_refcursor, b in out varchar2) "
-                                         + "is BEGIN "
-                                         + " open p_cursor for select * from "
-                                         + refcursor1 + ";" + " a := 66; b := '99';" + "end;";
-                    statement.execute(createPlSql);
-                    CallableStatement csmt = conn.prepareCall("call test_cursor(?, ?, ?)",
-                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-                    csmt.setFetchSize(10);
-                    csmt.registerOutParameter(1, Types.INTEGER);
-                    csmt.registerOutParameter(2, Types.REF);
-                    csmt.registerOutParameter(3, Types.VARCHAR);
-                    csmt.setString(3, "111");
-                    csmt.execute();
-                    ResultSet resultSet = (ResultSet) csmt.getObject(2);
-                    resultSet.setFetchSize(2);
-                    System.out.println("=========refcursor output==========");
-                    while (resultSet.next()) {
-                        int columnCnt = resultSet.getMetaData().getColumnCount();
-                        for (int j = 1; j <= columnCnt; j++) {
-                            System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
-                                               + resultSet.getString(j));
-                        }
-                    }
-                    resultSet.close();
-                    resultSet = (ResultSet) csmt.getObject(2);
-                    System.out.println("=========refcursor output==========");
-                    try {
-                        while (resultSet.next()) {
-                            int columnCnt = resultSet.getMetaData().getColumnCount();
-                            for (int j = 1; j <= columnCnt; j++) {
-                                System.out.println(resultSet.getMetaData().getColumnName(j) + ":"
-                                                   + resultSet.getString(j));
-                            }
-                        }
-                    } catch (SQLException e) {
-                        Assert.assertEquals(e.getErrorCode(), 600);
-                    }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    Assert.assertEquals(e.getMessage(), "cursor is not open");
-                }
+            String sql = "insert into " + refcursor1 + " values(?, ?)";
+            for (int i = 0; i < 10; i++) {
+                PreparedStatement statement = conn.prepareStatement(sql);
+                statement.setString(1, "test" + i);
+                statement.setInt(2, i);
+                statement.execute();
             }
+
+            sql = "select * from " + refcursor1;
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.execute();
+            ResultSet resultSet = ps.getResultSet();
+            int count = 0;
+            while (resultSet.next()) {
+                Assert.assertEquals(2, resultSet.getMetaData().getColumnCount());
+                Assert.assertEquals("test" + count, resultSet.getString(1));
+                Assert.assertEquals(Integer.toString(count), resultSet.getString(2));
+                count++;
+            }
+            Assert.assertEquals(10, count);
+
+            Statement statement = conn.createStatement();
+            String createPlSql = "CREATE OR REPLACE PROCEDURE test_cursor(a out int, p_cursor OUT sys_refcursor, b in out varchar2) "
+                    + "is BEGIN "
+                    + " open p_cursor for select * from "
+                    + refcursor1 + ";" + " a := 66; b := '99';" + "end;";
+            statement.execute(createPlSql);
+            CallableStatement csmt = conn.prepareCall("call test_cursor(?, ?, ?)",
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            csmt.setFetchSize(10);
+            csmt.registerOutParameter(1, Types.INTEGER);
+            csmt.registerOutParameter(2, Types.REF);
+            csmt.registerOutParameter(3, Types.VARCHAR);
+            csmt.setString(3, "111");
+            csmt.execute();
+
+            resultSet = (ResultSet) csmt.getObject(2);
+            resultSet.setFetchSize(2);
+            count = 0;
+            while (resultSet.next()) {
+                Assert.assertEquals(2, resultSet.getMetaData().getColumnCount());
+                Assert.assertEquals("test" + count, resultSet.getString(1));
+                Assert.assertEquals(Integer.toString(count), resultSet.getString(2));
+                count++;
+            }
+            Assert.assertEquals(10, count);
+
+            resultSet.close();
+            try {
+                resultSet = (ResultSet) csmt.getObject(2);
+            } catch (Exception e) {
+                Assert.assertEquals(e.getMessage(), "cursor is not open");
+            }
+        } catch (Exception e) {
+            fail();
         }
     }
 
@@ -763,6 +745,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void testComplexArrayWithTimestmap() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Connection conn = sharedConnection;
             CallableStatement cs = null;
@@ -804,6 +787,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void testArrayWithClob() {
+        Assume.assumeTrue(sharedUsePrepare());
         try {
             Statement stmt = sharedConnection.createStatement();
             try {
@@ -834,4 +818,36 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testArrayWithBlob() {
+        Assume.assumeTrue(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table test_blob");
+            } catch (SQLException e) {
+                // e.printStackTrace();
+            }
+            stmt.execute("create table test_blob (c1 blob)");
+            stmt.execute("insert into test_blob values ('abc')");
+            stmt.execute("create or replace type blob_array as table of blob");
+
+            CallableStatement cs = conn
+                .prepareCall("create or replace procedure pro_blob(var out blob_array)"
+                             + " is begin\n" + " SELECT c1 bulk collect into var FROM test_blob;\n"
+                             + " end;");
+            cs.execute();
+            cs = conn.prepareCall("{call pro_blob(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "BLOB_ARRAY");
+            cs.execute();
+            ResultSet arrayRes = cs.getArray(1).getResultSet();
+            Assert.assertTrue(arrayRes.next());
+            assertEquals(1, arrayRes.getInt(1));
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

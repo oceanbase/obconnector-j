@@ -872,7 +872,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getImportedKeysBasic() throws SQLException {
         testResultSetColumns(
-            sharedConnection.getMetaData().getImportedKeys(null, null, ""),
+            sharedConnection.getMetaData().getImportedKeys(null, null, "test"),
             "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
                     + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
                     + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
@@ -1343,6 +1343,39 @@ public class DatabaseMetadataTest extends BaseTest {
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetImportedKeys() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("DROP TABLE IF EXISTS foreign_33");
+            stmt.execute("DROP TABLE IF EXISTS foreign_22");
+            stmt.execute("DROP TABLE IF EXISTS foreign_11");
+
+            stmt.execute("create table foreign_11 (id1 int primary key)");
+            stmt.execute("create table foreign_22 (id2 int primary key)");
+            stmt.execute("create table foreign_33 (foreign_1_id int, foreign_2_id int, primary key (foreign_1_id, foreign_2_id),"
+                         + " foreign key (foreign_1_id) references foreign_11(id1),foreign key (foreign_2_id) references foreign_22(id2))");
+
+            DatabaseMetaData dbmd = conn.getMetaData();
+            ResultSet rs = dbmd.getImportedKeys(null, null, "foreign_33");
+            assertTrue(rs.next());
+            assertEquals("id2", rs.getString("PKCOLUMN_NAME"));
+            assertEquals("foreign_2_id", rs.getString("FKCOLUMN_NAME"));
+            assertTrue(rs.next());
+            assertEquals("id1", rs.getString("PKCOLUMN_NAME"));
+            assertEquals("foreign_1_id", rs.getString("FKCOLUMN_NAME"));
+            assertFalse(rs.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            stmt.execute("DROP TABLE IF EXISTS foreign_33");
+            stmt.execute("DROP TABLE IF EXISTS foreign_22");
+            stmt.execute("DROP TABLE IF EXISTS foreign_11");
         }
     }
 }

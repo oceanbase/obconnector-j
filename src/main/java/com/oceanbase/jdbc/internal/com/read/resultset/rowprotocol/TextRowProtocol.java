@@ -205,8 +205,6 @@ public class TextRowProtocol extends RowProtocol {
                 if (timestamp == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(buf, pos, length,
-                            getCurrentEncoding(columnInfo.getColumnType()));
                     }
                     return null;
                 }
@@ -383,12 +381,17 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
             if (!getProtocol().isOracleMode()) {
-                double doubleVal = Double.parseDouble(value);
-                // check
-                if (options.jdbcCompliantTruncation) {
-                    rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
+                try {
+                    double doubleVal = Double.parseDouble(value);
+                    // check
+                    if (options.jdbcCompliantTruncation) {
+                        rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
+                    }
+                    return (long) doubleVal;
+                } catch (NumberFormatException e) {
+                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                           + "' : value " + value, "22003", 1264);
                 }
-                return (long) doubleVal;
             }
             throw new SQLException("Out of range value for column '" + columnInfo.getName()
                                    + "' : value " + value, "22003", 1264);
@@ -1285,6 +1288,45 @@ public class TextRowProtocol extends RowProtocol {
         throw new SQLException(
             "Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
                     + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+    }
+
+    public OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)
+                                                                                                   throws SQLException {
+        if (lastValueWasNull()) {
+            return null;
+        }
+        if (length == 0) {
+            lastValueNull |= BIT_LAST_FIELD_NULL;
+            return null;
+        }
+
+        String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+
+        switch (columnInfo.getColumnType().getSqlType()) {
+            case Types.TIME:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CHAR:
+                try {
+                    return OffsetDateTime.parse(raw.replace(" ", "T"));
+                } catch (DateTimeParseException dateParserEx) {
+                    throw new SQLException(
+                        raw
+                                + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
+                                + columnInfo.getColumnType() + "\")");
+                }
+
+            case Types.TIMESTAMP:
+                ZonedDateTime zonedDateTime = getInternalZonedDateTime(columnInfo, LocalTime.class,
+                    timeZone);
+                return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(
+                    ZoneId.systemDefault()).toOffsetDateTime();
+
+            default:
+                throw new SQLException("Cannot read LocalTime using a "
+                                       + columnInfo.getColumnType().getSqlTypeName() + " field");
+        }
+
     }
 
     /**

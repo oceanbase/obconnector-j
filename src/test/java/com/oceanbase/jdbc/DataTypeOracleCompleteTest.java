@@ -1184,10 +1184,7 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
                 testStr.equals(((String) resultSet.getRef("strm").getObject()).trim()));
         } catch (Exception e) {
             if (type.equals("char")) {
-                Assert.assertTrue(
-                    "",
-                    e.getMessage().contains(
-                        "Updates are not supported when using ResultSet.CONCUR_READ_ONLY"));
+                Assert.assertTrue(e.getMessage().contains("Getting REFs not supported"));
             } else {
                 Assert.assertTrue("",
                     e.getClass().getName().contains("SQLFeatureNotSupportedException"));

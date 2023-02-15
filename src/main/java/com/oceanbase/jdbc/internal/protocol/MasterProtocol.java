@@ -145,7 +145,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
           loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
           host = loopAddresses.pollFirst();
         }
-        logger.debug("Connect to " + host);
+        logger.debug("Connect to " + host + ", RetryAllDowns=" + maxConnectionTry);
         attemptedTimes ++;
         connectedHosts.add(host);
         protocol.setHostAddress(host);
@@ -160,8 +160,9 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         listener.foundActiveMaster(protocol);
         return;
       } catch (IOException ioException) {
-          long failedTime = System.nanoTime();
+          long failedTimeMs = System.currentTimeMillis();
           HostAddress host = protocol.getHostAddress();
+          logger.debug("Failed to connect {}", host);
           if(listener.getBlacklistKeys().contains(host) && listener.getBlacklist().get(host).getState() == HostStateInfo.STATE.GREY) { // in blackList but the host is grey ,reset its timeout
               listener.resetHostStateInfo(host);
               continue;
@@ -169,7 +170,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
 
           BlackListConfig blackListConfig = listener.getCurrentLoadBalanceInfo().getBlackListConfig();
           Properties info = new Properties();
-          info.setProperty(Consts.FAILED_TIME, String.valueOf(failedTime));
+          info.setProperty(Consts.FAILED_TIME_MS, String.valueOf(failedTimeMs));
           if (blackListConfig.getAppendStrategy().needToAppend(host, info)) {
               listener.addToBlacklist(host);
               lastQueryException = ExceptionFactory.INSTANCE.create(String.format("Could not connect to %s. %s", protocol.getHostAddress(), ioException.getMessage()), "08000", ioException);
