@@ -103,5 +103,6 @@ public class OceanBaseCapabilityFlag {
     public static final long OB_CAP_PROXY_SESSION_SYNC             = 1 << 13;
     public static final long OB_CAP_FULL_LINK_TRACE                = 1 << 14;
     public static final long OB_CAP_NEW_EXTRA_INFO                 = 1 << 15;
+    public static final long OB_CAP_FULL_LINK_TRACE_SHOW_TRACE     = 1 << 16;
 
 }

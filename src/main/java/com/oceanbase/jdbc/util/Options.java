@@ -215,6 +215,7 @@ public class Options implements Cloneable {
     public boolean useLocalXID = true;
     public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
+    public boolean enableShowTrace = false;
     public boolean allowNanAndInf = false;
     public String  defaultConnectionAttributesBanList = null;
     public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
@@ -645,6 +646,9 @@ public class Options implements Cloneable {
         if (enableFullLinkTrace != opt.enableFullLinkTrace) {
             return false;
         }
+        if (enableShowTrace != opt.enableShowTrace) {
+            return false;
+        }
         if (clobberStreamingResults != opt.clobberStreamingResults) {
             return false;
         }
@@ -809,6 +813,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useLocalXID ? 1 : 0);
         result = 31 * result + (useOceanBaseProtocolV20 ? 1 : 0);
         result = 31 * result + (enableFullLinkTrace ? 1 : 0);
+        result = 31 * result + (enableShowTrace ? 1 : 0);
         result = 31 * result + (clobberStreamingResults ? 1 : 0);
         result = 31 * result + maxRows;
         result = 31 * result + (allowNanAndInf ? 1 : 0);
