@@ -12,6 +12,7 @@ public class Consts {
     public static final String ROTATION       = "ROTATION";
     public static final String RANDOM         = "RANDOM";
     public static final String ON             = "ON";
+    public static final String DEFAULT        = "DEFAULT";
 
     // blacklist
     public static final String FAILED_TIME_MS = "failedTime";

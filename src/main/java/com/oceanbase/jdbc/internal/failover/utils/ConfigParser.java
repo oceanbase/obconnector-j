@@ -137,6 +137,7 @@ public class ConfigParser {
                                     } else {
                                         loadBalanceInfo.getGroups().get(loadBalanceInfo.getGroups().size() -1 ).getBalanceStrategyConfigs().put(Consts.NAME,value.toUpperCase());
                                     }
+                                    break;
                                 case LOADBALANCEALIAS:
                                 case LOADBALANCE:
                                     if(value.equalsIgnoreCase(Consts.ON)) {
