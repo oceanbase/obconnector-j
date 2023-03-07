@@ -70,35 +70,34 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      */
     public OBReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
         this.reader = reader;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
-        this.bytes = null;
         this.hasLobLocator = false;
         this.clob = null;
+        this.length = length;
+        this.bytes = null;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
 
     public OBReaderParameter(Clob clob, long length, boolean noBackslashEscapes) {
-        this.clob = clob;
         this.reader = null;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
-        this.bytes = null;
         this.hasLobLocator = false;
-    }
-
-    public OBReaderParameter(Reader reader, boolean noBackslashEscapes) {
-        this(reader, Long.MAX_VALUE, noBackslashEscapes);
+        this.clob = clob;
+        this.length = length;
+        this.bytes = null;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
 
     public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length,
                              boolean noBackslashEscapes) {
-
         this.reader = null;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
-        this.bytes = bytes;
         this.hasLobLocator = hasLobLocator;
         this.clob = null;
+        this.length = length;
+        this.bytes = bytes;
+        this.noBackslashEscapes = noBackslashEscapes;
+    }
+
+    public OBReaderParameter(Reader reader, boolean noBackslashEscapes) {
+        this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
 
     private void setReader() {
@@ -154,7 +153,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return this.hasLobLocator ? ColumnType.OBCLOB : ColumnType.BLOB;
+        return this.hasLobLocator ? ColumnType.ORA_CLOB : ColumnType.BLOB;
     }
 
     @Override

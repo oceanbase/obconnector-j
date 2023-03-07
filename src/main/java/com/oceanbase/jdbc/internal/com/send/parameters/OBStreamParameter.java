@@ -173,7 +173,7 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
     }
 
     public ColumnType getColumnType() {
-        return this.hasLobLocator ? ColumnType.OBBLOB : ColumnType.STRING;
+        return this.hasLobLocator ? ColumnType.ORA_BLOB : ColumnType.STRING;
     }
 
     public boolean isNullData() {

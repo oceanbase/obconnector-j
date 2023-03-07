@@ -433,7 +433,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_FLOAT:
                 Float f = getInternalFloat(columnInfo);
                 return Float.toString(f);
-            case OBCLOB:
+            case ORA_CLOB:
                 if (options.supportLobLocator) {
                     String encoding = this.options.characterEncoding;
                     byte[] data = new byte[buf.length];

@@ -1250,7 +1250,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
             .getType()) {
             java.sql.Clob clob = getClob(columnIndex);
             if (clob == null) {
@@ -1258,7 +1258,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return clob.getAsciiStream();
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
@@ -1281,14 +1281,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
         switch (columnsInformation[actualColumnIndex - 1].getColumnType()) {
-            case OBCLOB:
+            case ORA_CLOB:
                 java.sql.Clob clob = getClob(columnIndex);
                 if (clob == null) {
                     return null;
                 }
                 long len = clob.length();
                 return clob.getSubString(1, (int) len);
-            case OBBLOB:
+            case ORA_BLOB:
                 throw new SQLFeatureNotSupportedException();
             case TIMESTAMP_TZ:
                 TIMESTAMPTZ timestamptz = row.getInternalTIMESTAMPTZ(
@@ -1339,11 +1339,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
             .getType()) {
             return getClob(columnIndex).getAsciiStream();
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             return getBlob(columnIndex).getBinaryStream();
         }
@@ -1476,11 +1476,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
             .getType()) {
             throw new SQLFeatureNotSupportedException();
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
@@ -1743,9 +1743,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return getArray(columnIndex);
             case CURSOR:
                 return getComplexCursor(columnIndex);
-            case OBBLOB:
+            case ORA_BLOB:
                 return getBlob(columnIndex);
-            case OBCLOB:
+            case ORA_CLOB:
                 return getClob(columnIndex);
             case ROWID:
                 return new RowIdImpl(getString(columnIndex));
@@ -1794,7 +1794,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         ColumnDefinition col = columnsInformation[actualColumnIndex - 1];
 
         if (type.equals(String.class)) {
-            if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+            if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
                 .getType()) {
                 String encoding = this.options.characterEncoding;
                 byte[] data = new byte[row.length];
@@ -1824,7 +1824,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return (T) (Byte) row.getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
-            if (col.getColumnType() == ColumnType.OBBLOB) {
+            if (col.getColumnType() == ColumnType.ORA_BLOB) {
                 String encoding = this.options.characterEncoding;
                 if (encoding == null) {
                     encoding = "UTF8";
@@ -1930,7 +1930,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return type.cast(offsetTime);
         } else if (type.equals(com.oceanbase.jdbc.Blob.class)) {
-            if (col.getColumnType() == ColumnType.OBBLOB) {
+            if (col.getColumnType() == ColumnType.ORA_BLOB) {
                 return (T) getBlob(columnIndex);
             } else {
                 return (T) new com.oceanbase.jdbc.Blob(row.buf, row.pos,
@@ -1938,7 +1938,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
 
         } else if (type.equals(com.oceanbase.jdbc.Clob.class)) {
-            if (col.getColumnType() == ColumnType.OBCLOB) {
+            if (col.getColumnType() == ColumnType.ORA_CLOB) {
                 return (T) getClob(columnIndex);
             } else {
                 return (T) new com.oceanbase.jdbc.Clob(row.buf, row.pos,
@@ -2003,7 +2003,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
             .getType()) {
             java.sql.Clob clob = getClob(columnIndex);
             if (clob == null) {
@@ -2012,7 +2012,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 return clob.getCharacterStream();
             }
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
@@ -2072,7 +2072,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         byte[] data = new byte[row.length];
         System.arraycopy(row.buf, row.pos, data, 0, row.length);
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBBLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             return new com.oceanbase.jdbc.Blob(true, data, encoding, this.statement.getConnection());
 
@@ -2100,7 +2100,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         String encoding = this.options.characterEncoding;
         byte[] data = new byte[row.length];
         System.arraycopy(row.buf, row.pos, data, 0, row.length);
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.OBCLOB
+        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
             .getType()) {
             return new com.oceanbase.jdbc.Clob(true, data, encoding, this.statement.getConnection());
         } else {

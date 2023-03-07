@@ -390,7 +390,7 @@ public class ColumnDefinition {
             case VARCHAR2:
             case STRING:
             case VARSTRING:
-            case OBCLOB:
+            case ORA_CLOB:
                 if (isOracleMode) {
                     return length;
                 } else {

@@ -104,9 +104,10 @@ public enum ColumnType {
                   ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -102
     TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(),
                    ColumnType.ORACLE_TYPE), //
-    OBBLOB(210, Types.BLOB, "Types.LONGVARBINARY", "java.sql.Clob", ColumnType.ORACLE_TYPE), //
-    OBCLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob",
-           ColumnType.ORACLE_TYPE), //
+    ORA_BLOB(210, Types.BLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Blob",
+             ColumnType.ORACLE_TYPE), // ObLobType
+    ORA_CLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob",
+             ColumnType.ORACLE_TYPE), // ObLobType
     INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
                ColumnType.ORACLE_TYPE), //
     INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(),
@@ -434,9 +435,9 @@ public enum ColumnType {
                     return "BINARY";
                 }
                 return "CHAR";
-            case OBCLOB:
+            case ORA_CLOB:
                 return "CLOB";
-            case OBBLOB:
+            case ORA_BLOB:
                 return "BLOB";
             case TIMESTAMP_NANO:
                 return "TIMESTAMP";
