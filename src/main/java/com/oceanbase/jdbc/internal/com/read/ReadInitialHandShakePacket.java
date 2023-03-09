@@ -93,8 +93,8 @@ public class ReadInitialHandShakePacket {
         protocolVersion = buffer.readByte();
         serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         // server send truncated threadId (4 byte out of 8)
-        serverThreadId = buffer.readLongV1();
-        final byte[] seed1 = buffer.readRawBytes(8);
+        serverThreadId = buffer.readLong4BytesV1();
+        final byte[] seed1 = buffer.readBytes(8);
         buffer.skipByte();
         int serverCapabilities2FirstBytes = buffer.readShort() & 0x0000ffff;
         serverLanguage = buffer.readByte();
@@ -117,7 +117,7 @@ public class ReadInitialHandShakePacket {
         if ((serverCapabilities4FirstBytes & OceanBaseCapabilityFlag.CLIENT_SECURE_CONNECTION) != 0) {
             final byte[] seed2;
             if (saltLength > 0) {
-                seed2 = buffer.readRawBytes(saltLength);
+                seed2 = buffer.readBytes(saltLength);
             } else {
                 // for servers before 5.5 version
                 seed2 = buffer.readBytesNullEnd();

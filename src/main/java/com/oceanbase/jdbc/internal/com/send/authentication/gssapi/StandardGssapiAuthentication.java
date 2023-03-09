@@ -148,7 +148,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
                     if (!context.isEstablished()) {
                       Buffer buffer = in.getPacket(true);
                       sequence.set(in.getLastPacketSeq());
-                      inToken = buffer.readRawBytes(buffer.remaining());
+                      inToken = buffer.readBytes(buffer.remaining());
                     }
                   }
 

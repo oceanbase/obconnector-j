@@ -288,8 +288,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (blob instanceof com.oceanbase.jdbc.Blob) {
-            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob()
-                && this.options.useServerPrepStmts == false) {
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts) {
                 if (((Blob) blob).getLocator() != null) {
                     setParameter(parameterIndex, new OBEmptyLobParameter(0));
                     return;

@@ -734,7 +734,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         if (buffer.remaining() > 0) {
                             // AuthSwitchRequest packet.
                             plugin = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
-                            seed = buffer.readRawBytes(buffer.remaining());
+                            seed = buffer.readBytes(buffer.remaining());
                         } else {
                             // OldAuthSwitchRequest
                             plugin = OldPasswordPlugin.TYPE;
@@ -833,7 +833,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                 readLength += 2;
                                                 break;
                                             case 253:
-                                                dataLength = 0xffffff & buffer.read24bitword();
+                                                dataLength = 0xffffff & buffer.readInt3Bytes();
                                                 readLength += 3;
                                                 break;
                                             case 254:

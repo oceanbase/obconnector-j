@@ -1282,7 +1282,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readInt3();
+        return buf.readInt3Bytes();
     }
 
     private static int getInt4(Buffer buf, long valLen) throws IOException {
@@ -1290,7 +1290,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readInt4();
+        return buf.readInt();
     }
 
     private static long getInt8(Buffer buf, long valLen) throws IOException {
@@ -1298,7 +1298,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readLong8();
+        return buf.readLong();
     }
 
     private static double getDouble(Buffer buf, long valLen) throws IOException {
@@ -1306,7 +1306,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return Double.longBitsToDouble(buf.readLong8());
+        return Double.longBitsToDouble(buf.readLong());
     }
 
     private static float getFloat(Buffer buf, long valLen) throws IOException {
@@ -1314,7 +1314,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return Float.intBitsToFloat(buf.readInt4());
+        return Float.intBitsToFloat(buf.readInt());
     }
 
     private static UUID getUUID(Buffer buf, long valLen) throws IOException {
@@ -1322,8 +1322,8 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        long high = buf.readLong8();
-        long low = buf.readLong8();
+        long high = buf.readLong();
+        long low = buf.readLong();
         return new UUID(low, high);
     }
 
@@ -1339,7 +1339,7 @@ public class FullLinkTrace {
 
     static int resolveLength(Buffer buf) throws IOException {
         buf.checkRemainder(LEN_LENGTH);
-        return buf.readInt4();
+        return buf.readInt();
     }
 
 }

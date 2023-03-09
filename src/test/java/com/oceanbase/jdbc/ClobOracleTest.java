@@ -52,30 +52,30 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-public class OceanBaseClobTest extends BaseTest {
+public class ClobOracleTest extends BaseOracleTest {
 
-    private final byte[] bytes     = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-    static String        emptyClob = "emptyClob" + getRandomString(5);
+    private final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    private final String str1  = "以后怎么教育对于然后到了.网站阅读系列那个.这些时候这里运行.";
+    private final String str2  = "jdbc characterEncoding test.";
+    private final String str3  = "手机您的全部.";
 
-    @BeforeClass()
+    @BeforeClass
     public static void initClass() throws SQLException {
-        createTable(emptyClob, "field1 VARCHAR(255)");
+        createTable("testGBK", "c1 clob,c2 clob,c3 varchar(200)");
+        createTable("testGB18030", "c1 clob,c2 clob,c3 varchar(200)");
+        createTable("testUTF8", "c1 clob,c2 clob,c3 varchar(200)");
     }
 
     @Test
-    public void length() {
+    public void length() throws SQLException {
         com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
         assertEquals(10, clob.length());
 
@@ -176,6 +176,27 @@ public class OceanBaseClobTest extends BaseTest {
     }
 
     @Test
+    public void setString() throws SQLException {
+        final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+        com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
+        assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
+        clob.setString(2, "zuv");
+        assertEquals("azuve🙏", clob.getSubString(1, 7));
+        clob.setString(9, "zzz");
+        assertEquals("azuve🙏fgzzz", clob.getSubString(1, 12));
+
+        clob = new com.oceanbase.jdbc.Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
+        assureReaderEqual("cde🙏fg", clob.getCharacterStream(1, 7));
+        assertEquals("cde🙏fg", clob.getSubString(1, 7));
+
+        clob.setString(2, "zg");
+        assertEquals("czg🙏f", clob.getSubString(1, 6));
+        clob.setString(7, "zzz");
+        String ss = clob.getSubString(1, 12);
+        assertEquals("czg🙏fgzzz", clob.getSubString(1, 12));
+    }
+
+    @Test
     public void setAsciiStream() throws SQLException, IOException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
         com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
@@ -244,7 +265,7 @@ public class OceanBaseClobTest extends BaseTest {
         com.oceanbase.jdbc.Clob blob2 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes, 3, 2);
-        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, }, blob2.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5 }, blob2.getBytes(1, 7));
 
         com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(
             new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
@@ -303,7 +324,7 @@ public class OceanBaseClobTest extends BaseTest {
         assertEquals(0, blob.length);
     }
 
-    @Ignore
+    @Test
   @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
   public void clobLength() throws Exception {
     Statement stmt = sharedConnection.createStatement();
@@ -348,22 +369,159 @@ public class OceanBaseClobTest extends BaseTest {
   }
 
     @Test
-    public void testEmptyClob() {
+    public void clobSetStringGBK() {
         try {
-            Statement stmt = sharedConnection.createStatement();
-            stmt.executeUpdate("INSERT INTO " + emptyClob + " VALUES ('aaa')");
-            ResultSet rs = stmt.executeQuery("SELECT field1 FROM " + emptyClob);
-            rs.next();
+            Connection connection = setConnection("&characterEncoding=GBK");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testGBK values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testGBK");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
 
-            java.sql.Clob clob = rs.getClob(1);
-            Assert.assertEquals("aaa", clob.toString());
-            PreparedStatement pStmt = sharedConnection.prepareStatement("INSERT INTO " + emptyClob
-                                                                        + " VALUES (?)");
-            pStmt.setClob(1, clob);
-            pStmt.executeUpdate();
+    }
+
+    @Test
+    public void clobSetStringGB18030() {
+        try {
+            Connection connection = setConnection("&characterEncoding=GB18030");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testGB18030 values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testGB18030");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
         }
     }
+
+    @Test
+    public void clobSetStringUTF8() {
+        try {
+            Connection connection = setConnection("&characterEncoding=UTF8");
+            PreparedStatement stmt = connection
+                .prepareStatement("insert into testUTF8 values(?,?,?)");
+            stmt.setString(1, str1);
+            stmt.setString(2, str2);
+            stmt.setString(3, str3);
+            stmt.addBatch();
+            stmt.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("select * from testUTF8");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(str1, rs.getString(1));
+            Assert.assertEquals(str2, rs.getString(2));
+            Assert.assertEquals(str3, rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+
+        }
+    }
+
+    @Test
+    public void testLobLocatorV2() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            String clobTest3 = "t_clob" + getRandomString(5);
+
+            createTable(clobTest3, "id int, c1 clob, c2 clob, c3 clob, c4 clob, c5 clob, c6 clob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest3
+                    + " values(1, ?, ?, ?, ?, ?, ?)");
+
+            ps.setCharacterStream(1, null);
+            ps.setClob(2, (Clob) null);
+            ps.setCharacterStream(3, new StringReader("")); //(CLOB)null
+            ps.setClob(4, Clob.getEmptyCLOB());
+            ps.setCharacterStream(5, new StringReader("1234abcd奥星贝斯")); // oracle sends request
+            java.sql.Clob clob = conn.createClob(); // oracle sends request
+            Writer writer = clob.setCharacterStream(1);
+            for (int i = 0;i < 1024;i++) {
+                writer.write("abcde");
+            }
+            writer.flush(); // oracle sends request
+            ps.setClob(6, clob);
+            ps.execute();
+
+            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(rs.getString(1), null);
+            assertEquals(rs.getString(2), null);
+            assertEquals(rs.getString(3), null);
+            assertEquals(rs.getString(4), "");
+            assertEquals(rs.getString(5), "1234abcd奥星贝斯");
+            String str = rs.getString(6);
+            assertEquals(str.length(), 5120);
+            assertTrue(str.startsWith("abcde"));
+
+            java.sql.Clob c5 = rs.getClob(5);
+            java.sql.Clob c6 = rs.getClob(6);
+            ps = conn.prepareStatement("update " + clobTest3 + " set c1 = ?, c2 = ? where id = 1");
+            ps.setClob(1, c5);
+            ps.setClob(2, c6);
+            ps.execute();
+
+            conn.setAutoCommit(false);
+            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3 + " where id = 1 for update");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(rs.getString(1), "1234abcd奥星贝斯");
+            str = rs.getString(2);
+            assertEquals(str.length(), 5120);
+            assertTrue(str.startsWith("abcde"));
+            assertEquals(rs.getString(3), null);
+            assertEquals(rs.getString(4), "");
+            assertEquals(rs.getString(5), "1234abcd奥星贝斯");
+            str = rs.getString(6);
+            assertEquals(str.length(), 5120);
+            assertTrue(str.startsWith("abcde"));
+
+            java.sql.Clob clob5 = rs.getClob(5);
+            java.sql.Clob clob6 = rs.getClob(6);
+            clob5.setString(1, "认真工作，live happily!");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0;i < 1024;i++) {
+                sb.append("1234abcd");
+            }
+            clob6.setString(1, sb.toString());
+
+            conn.commit();
+            conn.setAutoCommit(true);
+            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(rs.getString(1), "1234abcd奥星贝斯");
+            str = rs.getString(2);
+            assertEquals(str.length(), 5120);
+            assertTrue(str.startsWith("abcde"));
+            assertEquals(rs.getString(3), null);
+            assertEquals(rs.getString(4), "");
+            assertEquals(rs.getString(5), "认真工作，live happily!");
+            str = rs.getString(6);
+            assertEquals(str.length(), 8192);
+            assertTrue(str.startsWith("1234abcd"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

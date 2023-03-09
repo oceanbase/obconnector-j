@@ -153,7 +153,7 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
             byte[] extraLength = new byte[OceanBaseProtocolV20.OB20_EXTRA_LENGTH];
             readFully(extraLength, 0, OceanBaseProtocolV20.OB20_EXTRA_LENGTH);
             crc32.update(extraLength, 0, OceanBaseProtocolV20.OB20_EXTRA_LENGTH);
-            ob20.extraInfo.extraLength = new Buffer(extraLength).readLong4();
+            ob20.extraInfo.extraLength = new Buffer(extraLength).readLong4BytesV1();
 
             ob20.extraInfo.extraBytes = new byte[(int) ob20.extraInfo.extraLength];
             readFully(ob20.extraInfo.extraBytes, 0, ob20.extraInfo.extraLength);
@@ -186,18 +186,18 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
 
     private void checkHeader() throws IOException {
         Buffer headerBuffer = new Buffer(headerBytes);
-        ob20.header.compressLength = headerBuffer.readInt3();
+        ob20.header.compressLength = headerBuffer.readInt3Bytes();
         ob20.header.compressSeqNo = (short) (headerBuffer.readByte() & 0xff);
-        ob20.header.uncompressLength = headerBuffer.readInt3();
+        ob20.header.uncompressLength = headerBuffer.readInt3Bytes();
         ob20.header.magicNum = headerBuffer.readShort();
         ob20.header.version = headerBuffer.readShort();
-        ob20.header.connectionId = headerBuffer.readLong4();
-        ob20.header.requestId = headerBuffer.readInt3();
+        ob20.header.connectionId = headerBuffer.readLong4BytesV1();
+        ob20.header.requestId = headerBuffer.readInt3Bytes();
         ob20.header.obSeqNo = (short) (headerBuffer.readByte() & 0xff);
-        ob20.header.payloadLength = headerBuffer.readLong4();
-        ob20.header.flag = headerBuffer.readInt4();
+        ob20.header.payloadLength = headerBuffer.readLong4BytesV1();
+        ob20.header.flag = headerBuffer.readInt();
         ob20.header.reserved = headerBuffer.readShort();
-        ob20.header.headerChecksum = headerBuffer.readInt2();
+        ob20.header.headerChecksum = headerBuffer.readInt2BytesV1();
         if (ob20.enableDebug) {
             printHeader();
         }

@@ -190,7 +190,7 @@ public class ComStmtPrepareExecute {
                 final int statementId = buffer.readInt();
                 results.setStatementId(statementId);
                 final int numColumns = buffer.readShort() & 0xffff;
-                final int numParams = buffer.readIntV1();
+                final int numParams = buffer.readInt2BytesV1();
                 final byte reserved1 = buffer.readByte();
                 final short warningCount = buffer.readShort();
                 final int extendFlag = buffer.readInt();

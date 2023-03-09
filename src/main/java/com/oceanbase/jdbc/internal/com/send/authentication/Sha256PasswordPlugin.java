@@ -126,7 +126,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
             default:
                 // AuthMoreData packet
                 buffer.skipByte();
-                return generatePublicKey(buffer.readRawBytes(buffer.remaining()));
+                return generatePublicKey(buffer.readBytes(buffer.remaining()));
         }
     }
 

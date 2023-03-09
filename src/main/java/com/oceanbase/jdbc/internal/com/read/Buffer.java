@@ -149,14 +149,12 @@ public class Buffer {
      *
      * @return a int
      */
-    public int readInt2() {
-        return (buf[this.position++] & 0xff) | ((buf[this.position++] & 0xff) << 8);
+    public int readInt2Bytes() {
+        return (buf[this.position++] & 0xff) + ((buf[this.position++] & 0xff) << 8);
     }
 
-    public int readIntV1() {
-        byte[] b = this.buf; // a little bit optimization
-
-        return (b[this.position++] & 0xff) | ((b[this.position++] & 0xff) << 8);
+    public int readInt2BytesV1() {
+        return (buf[this.position++] & 0xff) | ((buf[this.position++] & 0xff) << 8);
     }
 
     /**
@@ -164,12 +162,7 @@ public class Buffer {
      *
      * @return length
      */
-    public int readInt3() {
-        return (buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8)
-               + ((buf[position++] & 0xff) << 16);
-    }
-
-    public int read24bitword() {
+    public int readInt3Bytes() {
         return (buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8)
                + ((buf[position++] & 0xff) << 16);
     }
@@ -179,11 +172,6 @@ public class Buffer {
      *
      * @return a int
      */
-    public int readInt4() {
-        return ((buf[position++] & 0xff) | ((buf[position++] & 0xff) << 8)
-                + ((buf[position++] & 0xff) << 16) | ((buf[position++] & 0xff) << 24));
-    }
-
     public int readInt() {
         return ((buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8)
                 + ((buf[position++] & 0xff) << 16) + ((buf[position++] & 0xff) << 24));
@@ -197,13 +185,13 @@ public class Buffer {
                 return this.buf[this.position++] & 0xff;
 
             case 2:
-                return this.readInt4();
+                return this.readInt();
 
             case 3:
-                return this.readInt3();
+                return this.readInt3Bytes();
 
             case 4:
-                return (int) this.readLong4();
+                return (int) this.readLong4BytesV1();
 
             default:
                 return 255;
@@ -215,20 +203,9 @@ public class Buffer {
      *
      * @return a long
      */
-    public long readLong4() {
-        byte[] b = this.buf;
-
-        return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
-               | ((long) (b[this.position++] & 0xff) << 16)
-               | ((long) (b[this.position++] & 0xff) << 24);
-    }
-
-    public long readLongV1() {
-        byte[] b = this.buf;
-
-        return ((long) b[this.position++] & 0xff) | (((long) b[this.position++] & 0xff) << 8)
-               | ((long) (b[this.position++] & 0xff) << 16)
-               | ((long) (b[this.position++] & 0xff) << 24);
+    public long readLong4BytesV1() {
+        return ((long) buf[this.position++] & 0xff) | (((long) buf[this.position++] & 0xff) << 8)
+               | ((long) (buf[this.position++] & 0xff) << 16) | ((long) (buf[this.position++] & 0xff) << 24);
     }
 
     /**
@@ -236,30 +213,18 @@ public class Buffer {
      *
      * @return a long
      */
-    public long readLong8() {
-        return ((buf[position++] & 0xff) + ((long) (buf[position++] & 0xff) << 8)
-                + ((long) (buf[position++] & 0xff) << 16) + ((long) (buf[position++] & 0xff) << 24)
-                + ((long) (buf[position++] & 0xff) << 32) + ((long) (buf[position++] & 0xff) << 40)
-                + ((long) (buf[position++] & 0xff) << 48) + ((long) (buf[position++] & 0xff) << 56));
-    }
-
-    public long readLongLongV1() {
-        byte[] b = this.buf;
-
-        return (b[this.position++] & 0xff) | ((long) (b[this.position++] & 0xff) << 8)
-               | ((long) (b[this.position++] & 0xff) << 16)
-               | ((long) (b[this.position++] & 0xff) << 24)
-               | ((long) (b[this.position++] & 0xff) << 32)
-               | ((long) (b[this.position++] & 0xff) << 40)
-               | ((long) (b[this.position++] & 0xff) << 48)
-               | ((long) (b[this.position++] & 0xff) << 56);
-    }
-
     public long readLong() {
         return ((buf[position++] & 0xff) + ((long) (buf[position++] & 0xff) << 8)
                 + ((long) (buf[position++] & 0xff) << 16) + ((long) (buf[position++] & 0xff) << 24)
                 + ((long) (buf[position++] & 0xff) << 32) + ((long) (buf[position++] & 0xff) << 40)
                 + ((long) (buf[position++] & 0xff) << 48) + ((long) (buf[position++] & 0xff) << 56));
+    }
+
+    public long readLongV1() {
+        return (buf[this.position++] & 0xff) | ((long) (buf[this.position++] & 0xff) << 8)
+               | ((long) (buf[this.position++] & 0xff) << 16) | ((long) (buf[this.position++] & 0xff) << 24)
+               | ((long) (buf[this.position++] & 0xff) << 32) | ((long) (buf[this.position++] & 0xff) << 40)
+               | ((long) (buf[this.position++] & 0xff) << 48) | ((long) (buf[this.position++] & 0xff) << 56);
     }
 
     /**
@@ -311,13 +276,6 @@ public class Buffer {
      * @return raw data
      */
     public byte[] readBytes(final int numberOfBytes) {
-        final byte[] tmpArr = new byte[numberOfBytes];
-        System.arraycopy(buf, position, tmpArr, 0, numberOfBytes);
-        position += numberOfBytes;
-        return tmpArr;
-    }
-
-    public byte[] readRawBytes(final int numberOfBytes) {
         final byte[] tmpArr = new byte[numberOfBytes];
         System.arraycopy(buf, position, tmpArr, 0, numberOfBytes);
         position += numberOfBytes;
@@ -381,9 +339,9 @@ public class Buffer {
             case 252:
                 return 0xffff & readShort();
             case 253:
-                return 0xffffff & readInt3();
+                return 0xffffff & readInt3Bytes();
             case 254:
-                return readLong8();
+                return readLong();
             default:
                 return type;
         }
@@ -445,13 +403,13 @@ public class Buffer {
                 return NULL_LENGTH;
 
             case 252:
-                return readInt2();
+                return readInt2BytesV1();
 
             case 253:
-                return readInt3();
+                return readInt3Bytes();
 
             case 254:
-                return readLong8();
+                return readLong();
 
             default:
                 return sw;

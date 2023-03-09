@@ -314,7 +314,7 @@ public class OceanBaseProtocolV20 {
         } else {
             while (extra.remaining() > 0) {
                 short key = extra.readShort();
-                int len = extra.readInt4();
+                int len = extra.readInt();
                 int keyEndPos = extra.getPosition() + len;
 
                 if (key == ExtraInfoKey.FULL_TRC.getValue()) {

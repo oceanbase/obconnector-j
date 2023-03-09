@@ -1476,12 +1476,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
-            .getType()) {
+        if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_CLOB) {
             throw new SQLFeatureNotSupportedException();
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
-            .getType()) {
+        if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_BLOB) {
             java.sql.Blob blob = getBlob(columnIndex);
             if (blob == null) {
                 return null;
@@ -2100,13 +2098,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
         String encoding = this.options.characterEncoding;
         byte[] data = new byte[row.length];
         System.arraycopy(row.buf, row.pos, data, 0, row.length);
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
-            .getType()) {
+        if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_CLOB) {
             return new com.oceanbase.jdbc.Clob(true, data, encoding, this.statement.getConnection());
         } else {
-            return new com.oceanbase.jdbc.Clob(false, data, encoding,
-                this.statement.getConnection());
-
+            return new com.oceanbase.jdbc.Clob(false, data, encoding, this.statement.getConnection());
         }
     }
 

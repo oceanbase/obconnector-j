@@ -61,24 +61,21 @@ import java.sql.*;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class OceanBaseClobOracleTest extends BaseOracleTest {
+public class ClobTest extends BaseTest {
 
-    private final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-    private final String str1  = "以后怎么教育对于然后到了.网站阅读系列那个.这些时候这里运行.";
-    private final String str2  = "jdbc characterEncoding test.";
-    private final String str3  = "手机您的全部.";
+    private final byte[] bytes     = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    static String        emptyClob = "emptyClob" + getRandomString(5);
 
-    @BeforeClass
+    @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("testGBK", "c1 clob,c2 clob,c3 varchar(200)");
-        createTable("testGB18030", "c1 clob,c2 clob,c3 varchar(200)");
-        createTable("testUTF8", "c1 clob,c2 clob,c3 varchar(200)");
+        createTable(emptyClob, "field1 VARCHAR(255)");
     }
 
     @Test
-    public void length() {
+    public void length() throws SQLException {
         com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
         assertEquals(10, clob.length());
 
@@ -179,27 +176,6 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void setString() throws SQLException {
-        final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-        com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
-        assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
-        clob.setString(2, "zuv");
-        assertEquals("azuve🙏", clob.getSubString(1, 7));
-        clob.setString(9, "zzz");
-        assertEquals("azuve🙏fgzzz", clob.getSubString(1, 12));
-
-        clob = new com.oceanbase.jdbc.Clob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
-        assureReaderEqual("cde🙏fg", clob.getCharacterStream(1, 7));
-        assertEquals("cde🙏fg", clob.getSubString(1, 7));
-
-        clob.setString(2, "zg");
-        assertEquals("czg🙏f", clob.getSubString(1, 6));
-        clob.setString(7, "zzz");
-        String ss = clob.getSubString(1, 12);
-        assertEquals("czg🙏fgzzz", clob.getSubString(1, 12));
-    }
-
-    @Test
     public void setAsciiStream() throws SQLException, IOException {
         final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
         com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
@@ -268,7 +244,7 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
         com.oceanbase.jdbc.Clob blob2 = new com.oceanbase.jdbc.Clob(new byte[] { 0, 1, 2, 3, 4, 5 });
         OutputStream out2 = blob2.setBinaryStream(4);
         out2.write(otherBytes, 3, 2);
-        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5 }, blob2.getBytes(1, 7));
+        assertArrayEquals(new byte[] { 0, 1, 2, 13, 4, 5, }, blob2.getBytes(1, 7));
 
         com.oceanbase.jdbc.Clob blob3 = new com.oceanbase.jdbc.Clob(
             new byte[] { 0, 1, 2, 3, 4, 5 }, 2, 4);
@@ -327,7 +303,7 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
         assertEquals(0, blob.length);
     }
 
-    @Test
+    @Ignore
   @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
   public void clobLength() throws Exception {
     Statement stmt = sharedConnection.createStatement();
@@ -372,70 +348,22 @@ public class OceanBaseClobOracleTest extends BaseOracleTest {
   }
 
     @Test
-    public void clobSetStringGBK() {
+    public void testEmptyClob() {
         try {
-            Connection connection = setConnection("&characterEncoding=GBK");
-            PreparedStatement stmt = connection
-                .prepareStatement("insert into testGBK values(?,?,?)");
-            stmt.setString(1, str1);
-            stmt.setString(2, str2);
-            stmt.setString(3, str3);
-            stmt.addBatch();
-            stmt.executeBatch();
-            ResultSet rs = connection.createStatement().executeQuery("select * from testGBK");
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(str1, rs.getString(1));
-            Assert.assertEquals(str2, rs.getString(2));
-            Assert.assertEquals(str3, rs.getString(3));
+            Statement stmt = sharedConnection.createStatement();
+            stmt.executeUpdate("INSERT INTO " + emptyClob + " VALUES ('aaa')");
+            ResultSet rs = stmt.executeQuery("SELECT field1 FROM " + emptyClob);
+            rs.next();
+
+            java.sql.Clob clob = rs.getClob(1);
+            Assert.assertEquals("aaa", clob.toString());
+            PreparedStatement pStmt = sharedConnection.prepareStatement("INSERT INTO " + emptyClob
+                                                                        + " VALUES (?)");
+            pStmt.setClob(1, clob);
+            pStmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
-        }
-
-    }
-
-    @Test
-    public void clobSetStringGB18030() {
-        try {
-            Connection connection = setConnection("&characterEncoding=GB18030");
-            PreparedStatement stmt = connection
-                .prepareStatement("insert into testGB18030 values(?,?,?)");
-            stmt.setString(1, str1);
-            stmt.setString(2, str2);
-            stmt.setString(3, str3);
-            stmt.addBatch();
-            stmt.executeBatch();
-            ResultSet rs = connection.createStatement().executeQuery("select * from testGB18030");
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(str1, rs.getString(1));
-            Assert.assertEquals(str2, rs.getString(2));
-            Assert.assertEquals(str3, rs.getString(3));
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-
-    @Test
-    public void clobSetStringUTF8() {
-        try {
-            Connection connection = setConnection("&characterEncoding=UTF8");
-            PreparedStatement stmt = connection
-                .prepareStatement("insert into testUTF8 values(?,?,?)");
-            stmt.setString(1, str1);
-            stmt.setString(2, str2);
-            stmt.setString(3, str3);
-            stmt.addBatch();
-            stmt.executeBatch();
-            ResultSet rs = connection.createStatement().executeQuery("select * from testUTF8");
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(str1, rs.getString(1));
-            Assert.assertEquals(str2, rs.getString(2));
-            Assert.assertEquals(str3, rs.getString(3));
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Assert.fail();
-
         }
     }
 }
