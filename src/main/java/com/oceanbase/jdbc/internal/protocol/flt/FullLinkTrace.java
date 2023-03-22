@@ -74,7 +74,7 @@ public class FullLinkTrace {
     private static final int  FLT_SIZE                 = 4;
     private static final int  DBL_SIZE                 = 8;
     private static final int  MAX_DRIVER_LOG_SIZE      = 1024 * 8;
-    private static final long MAX_SHOW_TRACE_SPAN_SIZE = 1L << 32;
+    private static final int  MAX_SHOW_TRACE_SPAN_SIZE = 1 << 31 - 1;
 
     /**
      * 0~999      belong to ob client
@@ -790,7 +790,7 @@ public class FullLinkTrace {
 
     private byte[]                               logBuf        = new byte[MAX_DRIVER_LOG_SIZE];
     private int                                  logBufOffset;
-    private byte[]                               showTraceBuf  = new byte[(int) MAX_SHOW_TRACE_SPAN_SIZE];
+    private byte[]                               showTraceBuf  = new byte[MAX_SHOW_TRACE_SPAN_SIZE];
     private int                                  showTraceBufOffset;
 
     // todo: consider whether threads share one connection

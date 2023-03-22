@@ -969,12 +969,6 @@ public enum DefaultOptions {
         "2.4.0",
         "Based on OceanBase v2.0 protocol",
         false),
-    ENABLE_SHOW_TRACE(
-        "enableShowTrace",
-        Boolean.FALSE,
-        "2.4.3",
-        "Based on full link trace",
-        false),
     CLOBBER_STREAMING_RESULTS(
         "clobberStreamingResults",
         Boolean.FALSE,
