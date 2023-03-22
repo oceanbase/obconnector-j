@@ -1016,7 +1016,7 @@ public class BlobOracleTest extends BaseOracleTest {
             ps.setBinaryStream(5, new ByteArrayInputStream("1234abcd奥星贝斯".getBytes()));
             java.sql.Blob blob = conn.createBlob(); // oracle sends request
             OutputStream os = blob.setBinaryStream(1);
-            for (int i = 0;i < 1024;i++) {
+            for (int i = 0; i < 1024; i++) {
                 os.write("abcde".getBytes(StandardCharsets.UTF_8));
             }
             os.flush();
@@ -1026,11 +1026,11 @@ public class BlobOracleTest extends BaseOracleTest {
             ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + blobTest3);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(rs.getBytes(1), null);
-            assertEquals(rs.getBytes(2), null);
-            assertEquals(rs.getBytes(3), null);
-            assertEquals(rs.getBytes(4), null);
-            assertEquals(new String(rs.getBytes(5)), "1234abcd奥星贝斯");
+            assertEquals(null, rs.getBytes(1));
+            assertEquals(null, rs.getBytes(2));
+            assertEquals(null, rs.getBytes(3));
+            assertEquals(null, rs.getBytes(4));
+            assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(5)));
             String str = new String(rs.getBytes(6));
             assertEquals(str.length(), 5120);
             assertTrue(str.startsWith("abcde"));
@@ -1043,16 +1043,17 @@ public class BlobOracleTest extends BaseOracleTest {
             ps.execute();
 
             conn.setAutoCommit(false);
-            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + blobTest3 + " where id = 1 for update");
+            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + blobTest3
+                                       + " where id = 1 for update");
             rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(new String(rs.getBytes(1)), "1234abcd奥星贝斯");
+            assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(1)));
             str = new String(rs.getBytes(2));
-            assertEquals(str.length(), 5120);
+            assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
-            assertEquals(rs.getBytes(3), null);
-            assertEquals(rs.getBytes(4), null);
-            assertEquals(new String(rs.getBytes(5)), "1234abcd奥星贝斯");
+            assertEquals(null, rs.getBytes(3));
+            assertEquals(null, rs.getBytes(4));
+            assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(5)));
             str = new String(rs.getBytes(6));
             assertEquals(str.length(), 5120);
             assertTrue(str.startsWith("abcde"));
@@ -1061,7 +1062,7 @@ public class BlobOracleTest extends BaseOracleTest {
             java.sql.Blob blob6 = rs.getBlob(6);
             blob5.setBytes(1, "认真工作，live happily!".getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
-            for (int i = 0;i < 1024;i++) {
+            for (int i = 0; i < 10240; i++) {
                 sb.append("1234abcd");
             }
             blob6.setBytes(1, sb.toString().getBytes(StandardCharsets.UTF_8));
@@ -1071,16 +1072,15 @@ public class BlobOracleTest extends BaseOracleTest {
             ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + blobTest3);
             rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(new String(rs.getBytes(1)), "1234abcd奥星贝斯");
+            assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(1)));
             str = new String(rs.getBytes(2));
             assertEquals(str.length(), 5120);
             assertTrue(str.startsWith("abcde"));
-            assertEquals(rs.getBytes(3), null);
-            assertEquals(rs.getBytes(4), null);
-            assertEquals(new String(rs.getBytes(5)), "认真工作，live happily!");
+            assertEquals(null, rs.getBytes(3));
+            assertEquals(null, rs.getBytes(4));
+            assertEquals("认真工作，live happily!", new String(rs.getBytes(5)));
             str = new String(rs.getBytes(6));
-            assertEquals(str.length(), 8192);
-            assertTrue(str.startsWith("1234abcd"));
+            assertEquals(sb.toString(), str);
         } catch (Exception e) {
             e.printStackTrace();
             fail();

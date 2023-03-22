@@ -444,7 +444,7 @@ public class ClobOracleTest extends BaseOracleTest {
 
             createTable(clobTest3, "id int, c1 clob, c2 clob, c3 clob, c4 clob, c5 clob, c6 clob");
             PreparedStatement ps = conn.prepareStatement("insert into " + clobTest3
-                    + " values(1, ?, ?, ?, ?, ?, ?)");
+                                                         + " values(1, ?, ?, ?, ?, ?, ?)");
 
             ps.setCharacterStream(1, null);
             ps.setClob(2, (Clob) null);
@@ -453,7 +453,7 @@ public class ClobOracleTest extends BaseOracleTest {
             ps.setCharacterStream(5, new StringReader("1234abcd奥星贝斯")); // oracle sends request
             java.sql.Clob clob = conn.createClob(); // oracle sends request
             Writer writer = clob.setCharacterStream(1);
-            for (int i = 0;i < 1024;i++) {
+            for (int i = 0; i < 1024; i++) {
                 writer.write("abcde");
             }
             writer.flush(); // oracle sends request
@@ -463,13 +463,13 @@ public class ClobOracleTest extends BaseOracleTest {
             ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(rs.getString(1), null);
-            assertEquals(rs.getString(2), null);
-            assertEquals(rs.getString(3), null);
-            assertEquals(rs.getString(4), "");
-            assertEquals(rs.getString(5), "1234abcd奥星贝斯");
+            assertEquals(null, rs.getString(1));
+            assertEquals(null, rs.getString(2));
+            assertEquals(null, rs.getString(3));
+            assertEquals("", rs.getString(4));
+            assertEquals("1234abcd奥星贝斯", rs.getString(5));
             String str = rs.getString(6);
-            assertEquals(str.length(), 5120);
+            assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
 
             java.sql.Clob c5 = rs.getClob(5);
@@ -480,25 +480,26 @@ public class ClobOracleTest extends BaseOracleTest {
             ps.execute();
 
             conn.setAutoCommit(false);
-            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3 + " where id = 1 for update");
+            ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3
+                                       + " where id = 1 for update");
             rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(rs.getString(1), "1234abcd奥星贝斯");
+            assertEquals("1234abcd奥星贝斯", rs.getString(1));
             str = rs.getString(2);
-            assertEquals(str.length(), 5120);
+            assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
-            assertEquals(rs.getString(3), null);
-            assertEquals(rs.getString(4), "");
-            assertEquals(rs.getString(5), "1234abcd奥星贝斯");
+            assertEquals(null, rs.getString(3));
+            assertEquals("", rs.getString(4));
+            assertEquals("1234abcd奥星贝斯", rs.getString(5));
             str = rs.getString(6);
-            assertEquals(str.length(), 5120);
+            assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
 
             java.sql.Clob clob5 = rs.getClob(5);
             java.sql.Clob clob6 = rs.getClob(6);
             clob5.setString(1, "认真工作，live happily!");
             StringBuilder sb = new StringBuilder();
-            for (int i = 0;i < 1024;i++) {
+            for (int i = 0; i < 10240; i++) {
                 sb.append("1234abcd");
             }
             clob6.setString(1, sb.toString());
@@ -508,16 +509,15 @@ public class ClobOracleTest extends BaseOracleTest {
             ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3);
             rs = ps.executeQuery();
             assertTrue(rs.next());
-            assertEquals(rs.getString(1), "1234abcd奥星贝斯");
+            assertEquals("1234abcd奥星贝斯", rs.getString(1));
             str = rs.getString(2);
-            assertEquals(str.length(), 5120);
+            assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
-            assertEquals(rs.getString(3), null);
-            assertEquals(rs.getString(4), "");
-            assertEquals(rs.getString(5), "认真工作，live happily!");
+            assertEquals(null, rs.getString(3));
+            assertEquals("", rs.getString(4));
+            assertEquals("认真工作，live happily!", rs.getString(5));
             str = rs.getString(6);
-            assertEquals(str.length(), 8192);
-            assertTrue(str.startsWith("1234abcd"));
+            assertEquals(sb.toString(), str);
         } catch (Exception e) {
             e.printStackTrace();
             fail();

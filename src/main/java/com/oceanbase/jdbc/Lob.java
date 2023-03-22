@@ -113,15 +113,15 @@ class ObMemLobCommon {
 
     protected long magic;       // uint32_t. Consistent with V1
     // type, flags, version correspond to the old version in V1
+    protected byte version;     // uint32_t: 8 bits. When version is 1, parse according to V1
     protected byte type;        // uint32_t: 4 bits. Persistent/TmpFull/TmpDelta
     protected int  flags;       // uint32_t: 20 bits
-    protected byte version;     // uint32_t: 8 bits. When version is 1, parse according to V1
 
     ObMemLobCommon(long magicCode, long version) {
         this.magic = magicCode;
-        this.type = (byte) (version & 0x0f);
-        this.flags = (int) (version >> 4 & 0xfffff);
-        this.version = (byte) (version >> 24 & 0xff);
+        this.version = (byte) (version & 0xff);
+        this.type = (byte) (version >> 8 & 0x0f);
+        this.flags = (int) (version >> 12 & 0xfffff);
     }
 
     public boolean hasInrowData() {

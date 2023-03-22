@@ -56,7 +56,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -141,7 +140,7 @@ public class Clob extends Lob implements java.sql.Clob {
 
                 if (version == 1) {
                     buildObLobLocatorV1(false, buffer, magicCode, version, conn);
-                } else if (version >> 24 == 2) {
+                } else if ((version & 0x000000ff) == 2) {
                     buildObLobLocatorV2(false, buffer, magicCode, version, conn);
                 } else {
                     throw new SQLException("Unknown version of lob locator!");
@@ -331,7 +330,7 @@ public class Clob extends Lob implements java.sql.Clob {
     public int setString(long pos, String str) throws SQLException {
         if (this.locator != null) {
             try {
-                updateClobToServer(pos, str.getBytes(this.encoding), str.length());
+                updateClobToServer(pos, str, str.length());
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
             }
@@ -514,32 +513,39 @@ public class Clob extends Lob implements java.sql.Clob {
      *    amount   IN             INTEGER,
      *    offset   IN             INTEGER,
      *    buffer   IN             VARCHAR2 CHARACTER SET lob_loc%CHARSET);
+     *
      * lob_loc: Locator for the internal LOB to be written to. For more information
      * amount: Number of bytes (for BLOBs) or characters (for CLOBs) to write
      * offset: Offset in bytes (for BLOBs) or characters (for CLOBs) from the start of the LOB (origin: 1) for the write operation.
      * buffer: Input buffer for the write
      *
-     * @param offset Start position to be write.
-     * @param bytes   byte[] data to be write.
+     * @param writeAt Start position to be write.
+     * @param str   String data to be write.
      * @param length  date length to be write.
      * @throws SQLException if database error occur
      */
-    private synchronized void updateClobToServer(long offset, byte[] bytes, int length) throws SQLException {
+    private synchronized void updateClobToServer(long writeAt, String str, int length) throws SQLException, UnsupportedEncodingException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        cstmt.setClob(1, this);
-        cstmt.setInt(2, length);
-        cstmt.setInt(3, (int) offset);
-        try {
-            //            cstmt.setString(4, StringUtils.toString(bytes, this.encoding)); // todo
-            cstmt.setString(4, new String(bytes, this.encoding));
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException(e.getMessage());
+
+        int writeAmount, writeOffset = (int) writeAt, localOffset = 0, lengthLeft = length;
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
+        while (lengthLeft > 0) {
+            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+
+            cstmt.setClob(1, this);
+            cstmt.setInt(2, writeAmount);
+            cstmt.setInt(3, writeOffset);
+            cstmt.setString(4, str.substring(localOffset, localOffset + writeAmount));
+            cstmt.registerOutParameter(1, Types.CLOB);
+            cstmt.execute();
+
+            writeOffset += writeAmount;
+            localOffset += writeAmount;
+            lengthLeft -= writeAmount;
         }
-        cstmt.registerOutParameter(1, Types.CLOB);
-        cstmt.execute();
 
         Clob r = (Clob) cstmt.getClob(1);
         if (r == null || r.getLocator() == null) {
@@ -550,7 +556,6 @@ public class Clob extends Lob implements java.sql.Clob {
             this.encoding = r.encoding;
             this.charData = r.charData;
         }
-
     }
 
     /**

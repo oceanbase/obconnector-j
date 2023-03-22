@@ -139,7 +139,7 @@ public class Blob extends Lob implements java.sql.Blob {
 
             if (version == 1) {
                 buildObLobLocatorV1(true, buffer, magicCode, version, conn);
-            } else if (version >> 24 == 2) {
+            } else if ((version & 0x000000ff) == 2) {
                 buildObLobLocatorV2(true, buffer, magicCode, version, conn);
             } else {
                 throw new SQLException("Unknown version of lob locator!");
@@ -231,7 +231,7 @@ public class Blob extends Lob implements java.sql.Blob {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
         if (this.locator != null) {
-            updateBlobToServer(pos, bytes, offset, bytes.length);
+            updateBlobToServer(pos, bytes, 0, bytes.length);
             return bytes.length;
         }
         final int arrayPos = (int) pos - 1;
@@ -367,14 +367,25 @@ public class Blob extends Lob implements java.sql.Blob {
             throw new SQLException("Invalid operation on closed BLOB");
         }
 
+        int writeAmount, writeOffset = (int) writeAt, localOffset = offset, lengthLeft = length;
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        ((BasePrepareStatement) cstmt).setLobLocator(1, this);
-        cstmt.setInt(2, length);
-        cstmt.setInt(3, (int) writeAt);
-        cstmt.setBytes(4, bytes);
-        cstmt.registerOutParameter(1, Types.BLOB);
-        cstmt.execute();
+        while (lengthLeft > 0) {
+            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+            byte[] writeBuffer = new byte[writeAmount];
+            System.arraycopy(bytes, localOffset, writeBuffer, 0, writeAmount);
+
+            ((BasePrepareStatement) cstmt).setLobLocator(1, this);
+            cstmt.setInt(2, writeAmount);
+            cstmt.setInt(3, writeOffset);
+            cstmt.setBytes(4, writeBuffer);
+            cstmt.registerOutParameter(1, Types.BLOB);
+            cstmt.execute();
+
+            writeOffset += writeAmount;
+            localOffset += writeAmount;
+            lengthLeft -= writeAmount;
+        }
 
         Blob r = (Blob) cstmt.getBlob(1);
         if (r == null || r.getLocator() == null) {
@@ -383,7 +394,6 @@ public class Blob extends Lob implements java.sql.Blob {
             setLocator(r.locator);
             this.data = r.data;
         }
-
     }
 
     /**
@@ -456,7 +466,15 @@ public class Blob extends Lob implements java.sql.Blob {
                 int amount = cstmt.getInt(2);
                 offset += amount;
 
-                data = cstmt.getBytes(4);
+                byte[] outRaw = cstmt.getBytes(4);
+                if (data == null || data.length == 0) {
+                    data = outRaw;
+                } else {
+                    byte[] newData = new byte[data.length + outRaw.length];
+                    System.arraycopy(data, 0, newData, 0, data.length);
+                    System.arraycopy(outRaw, 0, newData, data.length, outRaw.length);
+                    data = newData;
+                }
             } catch (SQLException ex) {
                 if (ex.getMessage().contains("no data found")) {
                     sqlEx = ex;
