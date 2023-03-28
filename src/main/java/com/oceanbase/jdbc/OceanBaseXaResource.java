@@ -61,6 +61,9 @@ public class OceanBaseXaResource implements XAResource {
     private static final int          MAX_COMMAND_LENGTH = 300;
     private final OceanBaseConnection connection;
     private boolean                   isChangedCommit;
+    public static final int           ORATMSERIALIZABLE  = 1024;
+    public static final int           ORATRANSLOOSE      = 65536;
+    public static final int           ORATMREADONLY      = 256;
 
     public OceanBaseXaResource(OceanBaseConnection connection) {
         this.connection = connection;
@@ -421,7 +424,8 @@ public class OceanBaseXaResource implements XAResource {
      * @throws XAException An error has occurred.
      */
     public void start(Xid xid, int flags) throws XAException {
-        if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
+        if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS
+            && flags != ORATMSERIALIZABLE && flags != ORATRANSLOOSE && flags != ORATMREADONLY) {
             throw new XAException(XAException.XAER_INVAL);
         }
         if (this.connection.getProtocol().isOracleMode()) {
