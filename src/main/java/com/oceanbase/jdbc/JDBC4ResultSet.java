@@ -1799,7 +1799,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 System.arraycopy(row.buf, row.pos, data, 0, row.length);
                 com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(true, data, encoding,
                     this.statement.getConnection());
-                return (T) clob.toString();
+                return (T) clob.getSubString(1, (int) clob.length());
             }
             return (T) row.getInternalString(col, null, timeZone);
 
@@ -1859,7 +1859,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-            return (T) new com.oceanbase.jdbc.Clob(row.buf, row.pos, row.getLengthMaxFieldSize());
+            if (col.getColumnType() == ColumnType.ORA_CLOB) {
+                return (T) getClob(columnIndex);
+            } else {
+                return (T) new com.oceanbase.jdbc.Clob(row.buf, row.pos, row.getLengthMaxFieldSize());
+            }
 
         } else if (type.equals(InputStream.class)) {
             return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());

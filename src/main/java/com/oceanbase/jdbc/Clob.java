@@ -64,20 +64,20 @@ public class Clob extends Lob implements java.sql.Clob {
 
     private static final long serialVersionUID = -3066501059817815286L;
     static int                maxLength        = 1024 * 1024 * 1024;
-    String                    Clob_0           = "indexToWriteAt must be >= 1";
-    String                    Clob_1           = "indexToWriteAt must be >= 1";
-    String                    Clob_2           = "Starting position can not be < 1";
-    String                    Clob_3           = "String to set can not be NULL";
-    String                    Clob_4           = "Starting position can not be < 1";
-    String                    Clob_5           = "String to set can not be NULL";
-    String                    Clob_6           = "CLOB start position can not be < 1";
-    String                    Clob_7           = "CLOB start position + length can not be > length of CLOB";
-    String                    Clob_8           = "Illegal starting position for search, '";
-    String                    Clob_9           = "'";
-    String                    Clob_10          = "Starting position for search is past end of CLOB";
-    String                    Clob_11          = "Cannot truncate CLOB of length";
-    String                    Clob_12          = "\\\\ to length of";
-    String                    Clob_13          = ".";
+    private static final String                    Clob_0           = "indexToWriteAt must be >= 1";
+    private static final String                    Clob_1           = "indexToWriteAt must be >= 1";
+    private static final String                    Clob_2           = "Starting position can not be < 1";
+    private static final String                    Clob_3           = "String to set can not be NULL";
+    private static final String                    Clob_4           = "Starting position can not be < 1";
+    private static final String                    Clob_5           = "String to set can not be NULL";
+    private static final String                    Clob_6           = "CLOB start position can not be < 1";
+    private static final String                    Clob_7           = "CLOB start position + length can not be > length of CLOB";
+    private static final String                    Clob_8           = "Illegal starting position for search, '";
+    private static final String                    Clob_9           = "'";
+    private static final String                    Clob_10          = "Starting position for search is past end of CLOB";
+    private static final String                    Clob_11          = "Cannot truncate CLOB of length";
+    private static final String                    Clob_12          = "\\\\ to length of";
+    private static final String                    Clob_13          = ".";
 
     /**
      * Creates a Clob with content.
@@ -187,10 +187,10 @@ public class Clob extends Lob implements java.sql.Clob {
             throw ExceptionFactory.INSTANCE.create("length must be > 0");
         }
 
-        if (length == 0 && !isEmptyLob()) {
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
             if (locator != null && locator instanceof ObLobLocatorV2) {
-                readClobFromServer();
-                length = (int) length();
+                readFromServer();
             }
         }
 
@@ -374,6 +374,15 @@ public class Clob extends Lob implements java.sql.Clob {
             return this.charData.length();
         }
 
+        if ((data == null || data.length == 0) && lengthFromServer == -1) {
+            if (locator != null && locator.payloadSize > 0 && locator instanceof ObLobLocatorV2) {
+                lengthFromServer = 0; // change state
+                // in this case, this is out-row lob which hasn't been read from server, so both charData and data are empty
+                getLengthFromServer();
+                return lengthFromServer;
+            }
+        }
+
         Charset charset = Charset.forName(encoding);
         if (!charset.equals(StandardCharsets.UTF_8)) {
             return toString().length();
@@ -381,7 +390,6 @@ public class Clob extends Lob implements java.sql.Clob {
 
         long len = 0;
         int pos = offset;
-
         // set ASCII (<= 127 chars)
         while (len < length && data[pos] >= 0) {
             len++;
@@ -494,16 +502,6 @@ public class Clob extends Lob implements java.sql.Clob {
         length = pos - offset;
     }
 
-    public byte[] getBytes(final long pos, int length) throws SQLException {
-        if (length == 0 && !isEmptyLob()) {
-            if (locator != null && locator instanceof ObLobLocatorV2) {
-                readClobFromServer();
-                length = (int) length();
-            }
-        }
-        return super.getBytes(pos, length);
-    }
-
     /**
      * Update <code>Clob</code> object by the DBMS_LOB.WRITE(lob_loc, amount, offset, buffer), starting with writeAt and write the bytes to
      * database.
@@ -551,10 +549,7 @@ public class Clob extends Lob implements java.sql.Clob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
-            this.encoding = r.encoding;
-            this.charData = r.charData;
+            copy(r);
         }
     }
 
@@ -569,6 +564,7 @@ public class Clob extends Lob implements java.sql.Clob {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
+        clearData();
 
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
@@ -581,10 +577,7 @@ public class Clob extends Lob implements java.sql.Clob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
-            this.encoding = r.encoding;
-            this.charData = r.charData;
+            copy(r);
         }
     }
 
@@ -608,7 +601,7 @@ public class Clob extends Lob implements java.sql.Clob {
      *                 amount is greater, in bytes or characters, than the capacity of buffer.
      * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
      */
-    private synchronized void readClobFromServer() throws SQLException {
+    protected synchronized void readFromServer() throws SQLException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
@@ -652,6 +645,32 @@ public class Clob extends Lob implements java.sql.Clob {
             }
         }
         length = charData.length();
+    }
+
+    /**
+     * This function gets the length of the specified LOB. The length in bytes or characters is returned.
+     *
+     * The length returned for a BFILE includes the EOF, if it exists.
+     * Any 0-byte or space filler in the LOB caused by previous ERASE or WRITE operations is also included in the length count.
+     * The length of an empty internal LOB is 0.
+     *
+     * DBMS_LOB.GETLENGTH (
+     *    lob_loc    IN  CLOB   CHARACTER SET ANY_CS)
+     *   RETURN INTEGER;
+     *
+     * @throws SQLException if database error occur
+     */
+    private synchronized void getLengthFromServer() throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        }
+
+        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}");
+        cstmt.setClob(2, this);
+        cstmt.registerOutParameter(1, Types.INTEGER);
+        cstmt.execute();
+
+        lengthFromServer = cstmt.getInt(1);
     }
 
 }

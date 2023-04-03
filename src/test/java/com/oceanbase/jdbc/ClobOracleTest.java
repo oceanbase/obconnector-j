@@ -524,4 +524,139 @@ public class ClobOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void fix48575083() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+//            Connection conn = setConnectionOrigin("?useServerPrepStmts=false");
+            String clobTest3 = "t_clob" + getRandomString(5);
+
+            createTable(clobTest3, "c1 clob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest3 + " values(?)");
+            int size = 1024 * 65;
+            java.sql.Clob clob = conn.createClob();
+            Writer writer = clob.setCharacterStream(1);
+            for (int i = 0; i < size; i++) {
+                writer.write("a");
+            }
+            writer.flush();
+            ps.setClob(1, clob);
+            ps.execute();
+
+            ps = conn.prepareStatement("select c1 from " + clobTest3);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+
+            java.sql.Clob var1 = rs.getClob(1);
+            long len1 = var1.length();
+            String str1 = var1.toString();
+//                System.out.println("var1.length: " + len1);
+//                System.out.println("var1.toString: " + str1);
+            Assert.assertEquals(size, len1);
+
+            String var2 = rs.getString(1);
+            long len2 = var2.length();
+            String str2 = var2.toString();
+//                System.out.println("var2.length: " + len2);
+//                System.out.println("var2.toString: " + str2);
+            Assert.assertEquals(size, len2);
+
+            java.sql.Clob var3 = rs.getObject(1, java.sql.Clob.class);
+            long len3 = var3.length();
+            String str3 = var3.toString();
+//                System.out.println("var3.length: " + len3);
+//                System.out.println("var3.toString: " + str3);
+            Assert.assertEquals(size, len3);
+
+            String var4 = rs.getObject(1, String.class);
+            long len4 = var4.length();
+            String str4 = var4.toString();
+//                System.out.println("var4.length: " + len4);
+//                System.out.println("var4.toString: " + str4);
+            Assert.assertEquals(size, len4);
+
+            java.sql.Clob var5 = (java.sql.Clob) rs.getObject(1);
+            long len5 = var5.length();
+            String str5 = var5.toString();
+//                System.out.println("var5.length: " + len5);
+//                System.out.println("var5.toString: " + str5);
+            Assert.assertEquals(size, len5);
+
+            try {
+                String var6 = (String) rs.getObject(1);
+                long len6 = var6.length();
+                String str6 = var6.toString();
+//                System.out.println("var6.length: " + len6);
+//                System.out.println("var6.toString: " + str6);
+                Assert.assertEquals(size, len6);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.assertTrue(e.getMessage().contains("Clob cannot be cast to java.lang.String"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void fix48650339() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            String clobTest = "t_clob";
+
+            createTable(clobTest, "c1 clob, c2 clob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest + " values(?,?)");
+            int size1 = 1024 * 64;
+            int size2 = 1024 * 65;
+            java.sql.Clob clob = conn.createClob();
+            java.sql.Clob clob1 = conn.createClob();
+            Writer writer = clob.setCharacterStream(1);
+            for (int i = 0; i < size1; i++) {
+                writer.write("a");
+            }
+            writer.flush();
+            ps.setClob(1, clob);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < size2 ; i++) {
+                sb.append("b");
+            }
+            clob1.setString(1, sb.toString());
+            ps.setClob(2, clob1);
+            ps.execute();
+
+
+            conn.setAutoCommit(false);
+            ps = conn.prepareStatement("select c1,c2 from " + clobTest + " for update");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+
+            java.sql.Clob clob2 = rs.getClob(1);
+            java.sql.Clob clob3 = rs.getClob(2);
+            clob2.setString(1, "abc中文ABC");
+            sb = new StringBuilder();
+            for (int i = 0; i < 1024 * 10; i++) {
+                sb.append("abc中文ABC");
+            }
+            clob3.setString(1, sb.toString());
+            conn.commit();
+            conn.setAutoCommit(true);
+
+            ps = conn.prepareStatement("select c1,c2 from " + clobTest);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(size1, rs.getString(1).length());
+            assertTrue(rs.getString(1).startsWith("abc中文ABCaaa"));
+            Assert.assertEquals(65536, rs.getClob(1).length());
+
+            String str = rs.getString(2);
+            assertEquals(81920, str.length());
+            assertTrue(str.startsWith("abc中文ABC"));
+            Assert.assertEquals(81920, rs.getClob(2).length());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

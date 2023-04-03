@@ -154,6 +154,10 @@ public class Blob extends Lob implements java.sql.Blob {
      * @return length of the <code>BLOB</code> in bytes
      */
     public long length() {
+        // locator.payloadSize in JDBC(not in server) always represents the length of lob data, no matter locator is v1 or v2
+        if (locator != null && locator instanceof ObLobLocatorV2) {
+            return locator.payloadSize;
+        }
         return length;
     }
 
@@ -313,16 +317,6 @@ public class Blob extends Lob implements java.sql.Blob {
         return byteToWrite;
     }
 
-    public byte[] getBytes(final long pos, int length) throws SQLException {
-        if (length == 0 && !isEmptyLob()) {
-            if (locator != null && locator instanceof ObLobLocatorV2) {
-                readBlobFromServer();
-                length = (int) length();
-            }
-        }
-        return super.getBytes(pos, length);
-    }
-
     /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be
      * <code>len</code> bytes in length.
@@ -391,8 +385,7 @@ public class Blob extends Lob implements java.sql.Blob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on setBytes for BLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
+            copy(r);
         }
     }
 
@@ -422,8 +415,7 @@ public class Blob extends Lob implements java.sql.Blob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on trim() for BLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
+            copy(r);
         }
     }
 
@@ -446,10 +438,11 @@ public class Blob extends Lob implements java.sql.Blob {
      *                 amount is greater, in bytes or characters, than the capacity of buffer.
      * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
      */
-    private synchronized void readBlobFromServer() throws SQLException {
+    protected synchronized void readFromServer() throws SQLException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
+        clearData();
 
         java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
         SQLException sqlEx = null;

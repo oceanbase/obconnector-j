@@ -45,6 +45,7 @@ package com.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -91,20 +92,6 @@ class ObLobLocatorV1 extends ObLobLocator {
     public static int                      OB_LOG_LOCATOR_HEADER = 40;
 
     public ObLobLocatorV1() {}
-
-    public ObLobLocatorV1(ObLobLocatorV1 locator) {
-        this.columnId = locator.columnId;
-        this.flags = locator.flags;
-        this.magicCode = locator.magicCode;
-        this.option = locator.option;
-        this.snapshotVersion = locator.snapshotVersion;
-        this.tableId = locator.tableId;
-        this.rowId = locator.rowId;
-        this.version = locator.version;
-        this.payloadOffset = locator.payloadOffset;
-        this.payloadSize = locator.payloadSize;
-        this.binaryData = locator.binaryData;
-    }
 
 }
 
@@ -159,12 +146,9 @@ class ObLobLocatorV2 extends ObLobLocator {
 
     public ObLobLocatorV2() {}
 
-    public ObLobLocatorV2(ObLobLocatorV2 locator) {
-        this.common = locator.common;
-    }
 }
 
-public class Lob implements Serializable {
+public abstract class Lob implements Serializable {
 
     protected static int DBMS_LOB_MAX_AMOUNT = 32767;
 
@@ -174,6 +158,7 @@ public class Lob implements Serializable {
     protected ObLobLocator         locator              = null;
     protected String               encoding             = null;
     protected String               charData             = null;
+    protected int                  lengthFromServer     = -1;
     protected ExceptionInterceptor exceptionInterceptor = null;
 
     public Lob() {
@@ -213,6 +198,24 @@ public class Lob implements Serializable {
         this.length = Math.min(bytes.length - offset, length);
     }
 
+    public void copy(Lob lob) {
+        this.locator = lob.locator;
+        this.data = lob.data;
+        this.offset = lob.offset;
+        this.length = lob.length;
+        this.encoding = lob.encoding;
+        this.charData = lob.charData;
+        this.lengthFromServer = lob.lengthFromServer;
+        this.exceptionInterceptor = lob.exceptionInterceptor;
+    }
+
+    public void clearData() {
+        data = new byte[0];
+        charData = null;
+        offset = 0;
+        length = 0;
+    }
+
     public void buildObLobLocatorV1(boolean isBinary, Buffer buffer, long magicCode, long version, OceanBaseConnection conn) throws SQLException {
         ObLobLocatorV1 locator = new ObLobLocatorV1();
         locator.binaryData = buffer.getByteBuffer();
@@ -238,9 +241,8 @@ public class Lob implements Serializable {
 
     public void buildObLobLocatorV2(boolean isBinary, Buffer buffer, long magicCode, long version, OceanBaseConnection conn) throws SQLException {
         ObLobLocatorV2 locator = new ObLobLocatorV2();
-        locator.binaryData = buffer.getByteBuffer();
-
         ObMemLobCommon common = new ObMemLobCommon(magicCode, version);
+
         if (common.hasInrowData()) {
             if (common.hasExtern()) {
                 // [ObMemLobCommon 8 bytes][ObMemLobExternHeader 32 bytes]<---- payload_offset ---->[data]
@@ -298,6 +300,8 @@ public class Lob implements Serializable {
             }
         }
 
+        locator.binaryData = buffer.getByteBuffer();
+        locator.common = common;
         locator.connection = conn;
         this.locator = locator;
     }
@@ -429,6 +433,13 @@ public class Lob implements Serializable {
                     "Out of range (position should be > 0, but is %s)", pos));
         }
 
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
+
         final int offset = this.offset + (int) (pos - 1);
         int len = length > this.length ? this.length : length;
         byte[] result = new byte[len];
@@ -452,12 +463,6 @@ public class Lob implements Serializable {
         return this.locator;
     }
 
-    public synchronized void setLocator(ObLobLocator locator) {
-        if (locator instanceof ObLobLocatorV1) {
-            this.locator = new ObLobLocatorV1((ObLobLocatorV1) locator);
-        } else if (locator instanceof ObLobLocatorV2) {
-            this.locator = new ObLobLocatorV2((ObLobLocatorV2) locator);
-        }
-    }
+    abstract protected void readFromServer() throws SQLException;
 
 }
