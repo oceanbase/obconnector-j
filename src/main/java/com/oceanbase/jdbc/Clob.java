@@ -62,22 +62,22 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Clob extends Lob implements java.sql.Clob {
 
-    private static final long serialVersionUID = -3066501059817815286L;
-    static int                maxLength        = 1024 * 1024 * 1024;
-    private static final String                    Clob_0           = "indexToWriteAt must be >= 1";
-    private static final String                    Clob_1           = "indexToWriteAt must be >= 1";
-    private static final String                    Clob_2           = "Starting position can not be < 1";
-    private static final String                    Clob_3           = "String to set can not be NULL";
-    private static final String                    Clob_4           = "Starting position can not be < 1";
-    private static final String                    Clob_5           = "String to set can not be NULL";
-    private static final String                    Clob_6           = "CLOB start position can not be < 1";
-    private static final String                    Clob_7           = "CLOB start position + length can not be > length of CLOB";
-    private static final String                    Clob_8           = "Illegal starting position for search, '";
-    private static final String                    Clob_9           = "'";
-    private static final String                    Clob_10          = "Starting position for search is past end of CLOB";
-    private static final String                    Clob_11          = "Cannot truncate CLOB of length";
-    private static final String                    Clob_12          = "\\\\ to length of";
-    private static final String                    Clob_13          = ".";
+    private static final long   serialVersionUID = -3066501059817815286L;
+    static int                  maxLength        = 1024 * 1024 * 1024;
+    private static final String Clob_0           = "indexToWriteAt must be >= 1";
+    private static final String Clob_1           = "indexToWriteAt must be >= 1";
+    private static final String Clob_2           = "Starting position can not be < 1";
+    private static final String Clob_3           = "String to set can not be NULL";
+    private static final String Clob_4           = "Starting position can not be < 1";
+    private static final String Clob_5           = "String to set can not be NULL";
+    private static final String Clob_6           = "CLOB start position can not be < 1";
+    private static final String Clob_7           = "CLOB start position + length can not be > length of CLOB";
+    private static final String Clob_8           = "Illegal starting position for search, '";
+    private static final String Clob_9           = "'";
+    private static final String Clob_10          = "Starting position for search is past end of CLOB";
+    private static final String Clob_11          = "Cannot truncate CLOB of length";
+    private static final String Clob_12          = "\\\\ to length of";
+    private static final String Clob_13          = ".";
 
     /**
      * Creates a Clob with content.
@@ -522,7 +522,9 @@ public class Clob extends Lob implements java.sql.Clob {
      * @param length  date length to be write.
      * @throws SQLException if database error occur
      */
-    private synchronized void updateClobToServer(long writeAt, String str, int length) throws SQLException, UnsupportedEncodingException {
+    private synchronized void updateClobToServer(long writeAt, String str, int length)
+                                                                                      throws SQLException,
+                                                                                      UnsupportedEncodingException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
@@ -596,8 +598,8 @@ public class Clob extends Lob implements java.sql.Clob {
      * buffer: Output buffer for the read operation.
      *
      * @throws SQLException if database READ procedure exceptions occur
-     * INVALID_ARGVAL: amount < 1, amount > 32767 bytes (or the character equivalent)
-     *                 offset < 1, offset > LOBMAXSIZE
+     * INVALID_ARGVAL: amount is less than 1, or amount is larger than 32767 bytes (or the character equivalent)
+     *                 offset is less than 1, or offset is larger than LOBMAXSIZE
      *                 amount is greater, in bytes or characters, than the capacity of buffer.
      * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
      */
@@ -606,7 +608,8 @@ public class Clob extends Lob implements java.sql.Clob {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
         SQLException sqlEx = null;
         int offset = 1;
         while (sqlEx == null) {
@@ -631,7 +634,8 @@ public class Clob extends Lob implements java.sql.Clob {
                             charData += str;
                         }
                     } else {
-                        throw new SQLException("Exceed max length of Clob for support " + Clob.maxLength + " current " + amount);
+                        throw new SQLException("Exceed max length of Clob for support "
+                                               + Clob.maxLength + " current " + amount);
                     }
                 } catch (UnsupportedEncodingException e) {
                     throw new SQLException("Unsupported character encoding " + this.encoding);
@@ -665,7 +669,8 @@ public class Clob extends Lob implements java.sql.Clob {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}");
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}");
         cstmt.setClob(2, this);
         cstmt.registerOutParameter(1, Types.INTEGER);
         cstmt.execute();

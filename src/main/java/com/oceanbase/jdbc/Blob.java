@@ -120,7 +120,8 @@ public class Blob extends Lob implements java.sql.Blob {
      * Create a BLOB with Locator
      * @param data
      */
-    public Blob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) throws SQLException {
+    public Blob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
+                                                                                           throws SQLException {
         if (null != conn) {
             this.encoding = "UTF-8";
             /* It only be used by getCharacterStream for Blob, and to decode the byte[] data to char[]
@@ -253,7 +254,7 @@ public class Blob extends Lob implements java.sql.Blob {
             length = arrayPos + bytes.length;
             offset = 0;
             charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
-                    : this.encoding));
+                : this.encoding));
         }
         return bytes.length;
     }
@@ -284,7 +285,7 @@ public class Blob extends Lob implements java.sql.Blob {
      * @see #getBytes
      */
     public int setBytes(final long pos, final byte[] bytes, final int offset, final int len)
-            throws SQLException {
+                                                                                            throws SQLException {
 
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
@@ -311,7 +312,7 @@ public class Blob extends Lob implements java.sql.Blob {
             length = arrayPos + byteToWrite;
             this.offset = 0;
             charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
-                    : this.encoding));
+                : this.encoding));
         }
 
         return byteToWrite;
@@ -433,8 +434,8 @@ public class Blob extends Lob implements java.sql.Blob {
      * buffer: Output buffer for the read operation.
      *
      * @throws SQLException if database READ procedure exceptions occur
-     * INVALID_ARGVAL: amount < 1, amount > 32767 bytes (or the character equivalent)
-     *                 offset < 1, offset > LOBMAXSIZE
+     * INVALID_ARGVAL: amount is less than 1, or amount is larger than 32767 bytes (or the character equivalent)
+     *                 offset is less than 1, or offset is larger than LOBMAXSIZE
      *                 amount is greater, in bytes or characters, than the capacity of buffer.
      * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
      */
@@ -444,7 +445,8 @@ public class Blob extends Lob implements java.sql.Blob {
         }
         clearData();
 
-        java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
         SQLException sqlEx = null;
         int offset = 1;
         while (sqlEx == null) {
