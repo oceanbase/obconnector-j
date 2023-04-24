@@ -50,8 +50,17 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
-import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
-import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
+import com.oceanbase.jdbc.Clob;
+import com.oceanbase.jdbc.ObArray;
+import com.oceanbase.jdbc.ObStruct;
+import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.extend.datatype.*;
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.Buffer;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.oceanbase.jdbc.util.Options;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -67,17 +76,8 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import com.oceanbase.jdbc.Clob;
-import com.oceanbase.jdbc.ObArray;
-import com.oceanbase.jdbc.ObStruct;
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.extend.datatype.*;
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.com.read.Buffer;
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.util.Options;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
 
 public class BinaryRowProtocol extends RowProtocol {
 
@@ -87,10 +87,10 @@ public class BinaryRowProtocol extends RowProtocol {
     /**
      * Constructor.
      *
-     * @param columnDefinition column information.
+     * @param columnDefinition        column information.
      * @param columnInformationLength number of columns
-     * @param maxFieldSize max field size
-     * @param options connection options
+     * @param maxFieldSize            max field size
+     * @param options                 connection options
      */
     public BinaryRowProtocol(ColumnDefinition[] columnDefinition, int columnInformationLength,
                              int maxFieldSize, Options options) {
@@ -104,7 +104,7 @@ public class BinaryRowProtocol extends RowProtocol {
      *
      * @param newIndex index (0 is first).
      * @see <a href="https://mariadb.com/kb/en/mariadb/resultset-row/">Resultset row protocol
-     *     documentation</a>
+     * documentation</a>
      */
     public void setPosition(int newIndex) {
 
@@ -323,8 +323,8 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get string from raw binary format.
      *
      * @param columnInfo column information
-     * @param cal calendar
-     * @param timeZone time zone
+     * @param cal        calendar
+     * @param timeZone   time zone
      * @return String value of raw bytes
      * @throws SQLException if conversion failed
      */
@@ -556,7 +556,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return long value
      * @throws SQLException if column is not numeric or is not in Long bounds (for big unsigned
-     *     values)
+     *                      values)
      */
     public long getInternalLong(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
@@ -897,6 +897,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 return BigDecimal.valueOf(getInternalFloat(columnInfo));
             case DOUBLE:
             case BINARY_DOUBLE:
+                if (!getProtocol().isOracleMode()) {
+                    return BigDecimal.valueOf(getInternalDouble(columnInfo)).setScale(columnInfo.getDecimals());
+                }
                 return BigDecimal.valueOf(getInternalDouble(columnInfo));
             case DECIMAL:
             case VARSTRING:
@@ -924,8 +927,8 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get date from raw binary format.
      *
      * @param columnInfo column information
-     * @param cal calendar
-     * @param timeZone time zone
+     * @param cal        calendar
+     * @param timeZone   time zone
      * @return date value
      * @throws SQLException if column is not compatible to Date
      */
@@ -1061,8 +1064,8 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get time from raw binary format.
      *
      * @param columnInfo column information
-     * @param cal calendar
-     * @param timeZone time zone
+     * @param cal        calendar
+     * @param timeZone   time zone
      * @return Time value
      * @throws SQLException if column cannot be converted to Time
      */
@@ -1151,9 +1154,9 @@ public class BinaryRowProtocol extends RowProtocol {
     /**
      * Get timestamp from raw binary format.
      *
-     * @param columnInfo column information
+     * @param columnInfo   column information
      * @param userCalendar user calendar
-     * @param timeZone time zone
+     * @param timeZone     time zone
      * @return timestamp value
      * @throws SQLException if column type is not compatible
      */
@@ -1323,7 +1326,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get Object from raw binary format.
      *
      * @param columnInfo column information
-     * @param timeZone time zone
+     * @param timeZone   time zone
      * @return Object value
      * @throws SQLException if column type is not compatible
      */
@@ -1735,7 +1738,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return BigInteger value
      * @throws SQLException if column type doesn't permit conversion or value is not in BigInteger
-     *     range
+     *                      range
      */
     public BigInteger getInternalBigInteger(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
@@ -1790,8 +1793,8 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get ZonedDateTime from raw binary format.
      *
      * @param columnInfo column information
-     * @param clazz asked class
-     * @param timeZone time zone
+     * @param clazz      asked class
+     * @param timeZone   time zone
      * @return ZonedDateTime value
      * @throws SQLException if column type doesn't permit conversion
      */
@@ -1869,7 +1872,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get OffsetTime from raw binary format.
      *
      * @param columnInfo column information
-     * @param timeZone time zone
+     * @param timeZone   time zone
      * @return OffsetTime value
      * @throws SQLException if column type doesn't permit conversion
      */
@@ -2072,7 +2075,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get LocalTime from raw binary format.
      *
      * @param columnInfo column information
-     * @param timeZone time zone
+     * @param timeZone   time zone
      * @return LocalTime value
      * @throws SQLException if column type doesn't permit conversion
      */
@@ -2147,7 +2150,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get LocalDate from raw binary format.
      *
      * @param columnInfo column information
-     * @param timeZone time zone
+     * @param timeZone   time zone
      * @return LocalDate value
      * @throws SQLException if column type doesn't permit conversion
      */
@@ -2367,7 +2370,6 @@ public class BinaryRowProtocol extends RowProtocol {
     }
 
     /**
-     *
      * @param columnInf
      * @param complexDataType
      * @return

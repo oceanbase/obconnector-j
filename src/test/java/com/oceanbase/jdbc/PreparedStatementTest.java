@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -233,6 +234,36 @@ public class PreparedStatementTest extends BaseTest {
 
         assertTrue(rs.next());
         assertEquals(value, rs.getDouble(1), 0.00000001);
+    }
+
+    @Test
+    public void testDoubleToBigDecimal() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement s = sharedConnection.createStatement();
+        ResultSet rss = s.executeQuery("select -1.0 from dual");
+        assertTrue(rss.next());
+        assertEquals("DECIMAL", rss.getMetaData().getColumnTypeName(1));
+//        System.out.println("getDouble: " + rss.getDouble(1));
+        assertEquals(-1.0, rss.getDouble(1), 0.01);
+//        System.out.println("getBigDecimal: " + rss.getBigDecimal(1));
+        assertEquals(new BigDecimal(-1.0).setScale(1), rss.getBigDecimal(1));
+        s.close();
+
+        // PS protocol: Fix mysql compatibility getBigDecimal ,  #issue/48112657
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        String sql = "select ? from dual";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setDouble(1, -1.0);
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("DOUBLE", rs.getMetaData().getColumnTypeName(1));
+        assertEquals(-1, rs.getInt(1));
+//        System.out.println("getDouble: " + rs.getDouble(1));
+        assertEquals(-1.0, rs.getDouble(1), 0.01);
+//        System.out.println("getBigDecimal: " + rs.getBigDecimal(1));
+        assertEquals(new BigDecimal(-1.0).setScale(31), rs.getBigDecimal(1));
+        rs.close();
+        pstmt.close();
     }
 
     @Test
