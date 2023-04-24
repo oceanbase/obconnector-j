@@ -55,13 +55,15 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Set;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
+public class DatabaseMetadataOracleTest extends BaseOracleTest {
 
     private static DatabaseMetaData dbmd;
 
@@ -71,6 +73,11 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    @Before
+    public void checkSupported() throws SQLException {
+        requireMinimumVersion(5, 1);
     }
 
     @Test
@@ -961,6 +968,152 @@ public class OracleModeDatabaseMetadataTest extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+
+    @Test
+    public void getIdentifierQuoteStringTest() throws SQLException {
+        Statement stmt = null;
+        ResultSet rs = null;
+        ResultSetMetaData meta = null;
+
+        createTable("quote_test", "\"id\" int primary key , \"create_TIME\" timestamp");
+        stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("insert into quote_test values(1,sysdate)");
+
+//        System.out.println("select * from quote_test");
+        rs = stmt.executeQuery("select * from quote_test");
+        assertTrue(rs.next());
+        assertEquals("\"", sharedConnection.getMetaData().getIdentifierQuoteString());
+        meta = rs.getMetaData();
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));
+        Assert.assertEquals("create_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("TEST", meta.getCatalogName(2));
+        Assert.assertEquals("QUOTE_TEST", meta.getTableName(2));
+
+        try {
+//            System.out.println("select \"id\", create_TIME from quote_test");
+            rs = stmt.executeQuery("select \"id\", create_TIME from quote_test");
+            assertTrue(rs.next());
+            meta = rs.getMetaData();
+            System.out.println("ColumnName: " + meta.getColumnName(2));
+            System.out.println("ColumnLabel: " + meta.getColumnLabel(2));
+            System.out.println("SchemaName: " + meta.getSchemaName(2));
+            System.out.println("CatalogName: " + meta.getCatalogName(2));
+            System.out.println("TableName: " + meta.getTableName(2));
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("ORA-00904: invalid identifier 'CREATE_TIME' in 'field list'"));
+        }
+
+        createTable("quote_test_2", "id int primary key , create_TIME timestamp");
+        stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("insert into quote_test_2 values(1,sysdate)");
+
+//        System.out.println("select * from quote_test_2");
+        rs = stmt.executeQuery("select * from quote_test_2");
+        assertTrue(rs.next());
+        assertEquals("\"", sharedConnection.getMetaData().getIdentifierQuoteString());
+        meta = rs.getMetaData();
+        Assert.assertEquals("CREATE_TIME", meta.getColumnName(2));
+        Assert.assertEquals("CREATE_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("TEST", meta.getCatalogName(2));
+        Assert.assertEquals("QUOTE_TEST_2", meta.getTableName(2));
+
+//        System.out.println("select id, create_TIME from quote_test_2");
+        rs = stmt.executeQuery("select id, create_TIME from quote_test_2");
+        assertTrue(rs.next());
+        meta = rs.getMetaData();
+        Assert.assertEquals("CREATE_TIME", meta.getColumnName(2));
+        Assert.assertEquals("CREATE_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("TEST", meta.getCatalogName(2));
+        Assert.assertEquals("QUOTE_TEST_2", meta.getTableName(2));
+    }
+
+    @Test
+    public void getSQLKeywordsTest() throws SQLException {
+        assertEquals(
+                "ACCESS, ADD, ALTER, AUDIT, CLUSTER, COLUMN, COMMENT, COMPRESS, CONNECT, DATE, DROP, EXCLUSIVE, FILE, IDENTIFIED, IMMEDIATE, INCREMENT, INDEX, INITIAL, INTERSECT, LEVEL, LOCK, LONG, MAXEXTENTS, MINUS, MODE, NOAUDIT, NOCOMPRESS, NOWAIT, NUMBER, OFFLINE, ONLINE, PCTFREE, PRIOR, all_PL_SQL_reserved_ words",
+                sharedConnection.getMetaData().getSQLKeywords());
+    }
+
+    @Test
+    public void getNumericFunctionsTest() throws SQLException {
+        assertEquals(
+                "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE",
+                sharedConnection.getMetaData().getNumericFunctions());
+    }
+
+    @Test
+    public void getStringFunctionsTest() throws SQLException {
+        assertEquals(
+                "ASCII,CHAR,CHAR_LENGTH,CHARACTER_LENGTH,CONCAT,LCASE,LENGTH,LTRIM,OCTET_LENGTH,REPLACE,RTRIM,SOUNDEX,SUBSTRING,UCASE",
+                sharedConnection.getMetaData().getStringFunctions());
+    }
+
+    @Test
+    public void getSystemFunctionsTest() throws SQLException {
+        assertEquals("USER", sharedConnection.getMetaData().getSystemFunctions());
+    }
+
+    @Test
+    public void getTimeDateFunctionsTest() throws SQLException {
+        assertEquals(
+                "CURRENT_DATE,CURRENT_TIMESTAMP,CURDATE,EXTRACT,HOUR,MINUTE,MONTH,SECOND,YEAR",
+                sharedConnection.getMetaData().getTimeDateFunctions());
+    }
+
+    @Test
+    public void getIndexInfoTest() throws SQLException {
+        String tableName2 = "getIndexInfoTest" + getRandomString(10);
+        createTable(tableName2, "no INT NOT NULL ,\n" + "    product_category INT NOT NULL,\n"
+                + "    product_id INT NOT NULL,\n"
+                + "    customer_id INT NOT NULL,\n" + "    PRIMARY KEY(no)\n");
+
+        try {
+            Connection connection = sharedConnection;
+            ResultSet rs = connection.getMetaData().getIndexInfo(null, null,
+                    tableName2.toUpperCase(Locale.ROOT), false, false); // same as oracle driver ,Need to use uppercase table name
+            int columnCount = rs.getMetaData().getColumnCount();
+            Assert.assertEquals(13, columnCount);
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            Assert.assertTrue(rs.next());
+            for (int i = 1; i <= columnCount; i++) {
+                System.out.print("column " + resultSetMetaData.getColumnName(i));
+                System.out.println(" value = " + rs.getString(i));
+            }
+            Assert.assertEquals("TABLE_SCHEM", resultSetMetaData.getColumnName(2));
+            Assert.assertEquals("UNITTESTS", rs.getString(2));
+            Assert.assertEquals("TABLE_NAME", resultSetMetaData.getColumnName(3));
+            Assert.assertEquals(tableName2.toUpperCase(Locale.ROOT), rs.getString(3));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetPLColumns() throws Exception {
+        Connection conn = sharedConnection;
+
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace procedure testGetProcedureColumns (var1 out int, var2 int) is BEGIN var1 := var2; END;");
+        ResultSet rs = conn.getMetaData().getProcedureColumns(null, null,
+                "TESTGETPROCEDURECOLUMNS", "VAR2");
+        assertTrue(rs.next());
+        assertEquals("VAR2", rs.getString("COLUMN_NAME"));
+        assertEquals("VAR2", rs.getObject("COLUMN_NAME"));
+        assertFalse(rs.next());
+
+        stmt.execute("create or replace function testGetFunctionColumns (var1 out int, var2 int) return int is BEGIN var1 := var2; return var1; END;");
+        rs = conn.getMetaData().getFunctionColumns(null, null, "TESTGETFUNCTIONCOLUMNS", "VAR1");
+        assertTrue(rs.next());
+        assertEquals("VAR1", rs.getString("COLUMN_NAME"));
+        assertEquals("VAR1", rs.getObject("COLUMN_NAME"));
+        assertFalse(rs.next());
     }
 
 }
