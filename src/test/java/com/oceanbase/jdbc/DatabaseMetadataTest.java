@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
 import java.util.Locale;
@@ -485,6 +484,30 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("TABLE", tableType);
         // see for possible values
         // https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+    }
+
+    @Test
+    public void testGetTables4() throws SQLException {
+        //Fix mysql compatibility backquotes:  #issue/49071651
+        Statement stmt = sharedConnection.createStatement();
+        String tableNameTest = "table_backquotes_test";
+        stmt.execute("drop table if exists " + tableNameTest);
+
+        stmt.execute("create table " + tableNameTest + " (id int not null primary key, "
+                     + "val varchar(20)) engine=innodb");
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
+        ResultSet tableSet = dbmd.getTables(null, null, "`" + tableNameTest + "`",
+            new String[] { "TABLE" });
+
+        assertEquals(true, tableSet.next());
+
+        String tableName = tableSet.getString("TABLE_NAME");
+        assertEquals(tableNameTest, tableName);
+
+        String tableType = tableSet.getString("TABLE_TYPE");
+        assertEquals("TABLE", tableType);
+        tableSet.close();
     }
 
     @Test

@@ -803,6 +803,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (tableNamePattern == null) {
             getTablesSql.append("%");
         } else {
+            if (!protocol.isOracleMode()) {
+                tableNamePattern = removeQuoted(tableNamePattern);
+            }
             getTablesSql.append(tableNamePattern);
         }
         getTablesSql.append("'");
