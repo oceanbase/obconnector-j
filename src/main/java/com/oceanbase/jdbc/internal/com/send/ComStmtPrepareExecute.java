@@ -138,14 +138,13 @@ public class ComStmtPrepareExecute {
             if (mustSendHeaderType == 1) {
                 // Store types of parameters in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
-                    if (parameterTypeHeader == null) {
-                        pos.writeShort(parameters[i].getColumnType().getType());
-                    } else {
-                        parameterTypeHeader[i] = parameters[i].getColumnType();
-                        pos.writeShort(parameterTypeHeader[i].getType());
+                    ColumnType columnType = parameters[i].getColumnType();
+                    if (parameterTypeHeader != null) {
+                        parameterTypeHeader[i] = columnType;
                     }
+                    pos.writeShort(columnType.getType());
 
-                    if (parameters[i].getColumnType().getType() == ColumnType.COMPLEX.getType()) {
+                    if (columnType.getType() == ColumnType.COMPLEX.getType()) {
                         Object obj = parameters[i];
                         if (obj instanceof OBArrayParameter) {
                             ((OBArrayParameter) obj).storeArrayTypeInfo(pos);
@@ -191,7 +190,7 @@ public class ComStmtPrepareExecute {
                 final int statementId = buffer.readInt();
                 results.setStatementId(statementId);
                 final int numColumns = buffer.readShort() & 0xffff;
-                final int numParams = buffer.readIntV1();
+                final int numParams = buffer.readInt2BytesV1();
                 final byte reserved1 = buffer.readByte();
                 final short warningCount = buffer.readShort();
                 final int extendFlag = buffer.readInt();

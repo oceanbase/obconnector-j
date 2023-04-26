@@ -17,7 +17,7 @@ public class LoadBalanceAddressList {
     public LoadBalanceAddressList() {
         addressList = new ArrayList<>();
         balanceStrategyConfigs = new HashMap<>();
-        balanceStrategyConfigs.put("NAME","RANDOM");
+        balanceStrategyConfigs.put("NAME","DEFAULT");
     }
 
     public LoadBalanceAddressList(BalanceStrategy balanceStrategy, BlackListConfig blackListConfig,

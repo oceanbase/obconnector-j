@@ -53,8 +53,10 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.time.*;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Properties;
 import java.util.TimeZone;
 
 import org.junit.Assert;
@@ -840,6 +842,38 @@ public class DateTest extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testDateConvert() throws Exception {
+        Properties info = new Properties();
+        info.setProperty("serverTimezone","Asia/Shanghai");
+        Statement stmt = setConnection(info).createStatement();
+        try {
+            stmt.execute("drop table test_date");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table test_date (d DATE NULL, t TIME NULL, dt DATETIME NULL, ts TIMESTAMP NULL, ot VARCHAR(100), odt VARCHAR(100))");
+        stmt.execute("INSERT INTO test_date VALUES ('2017-01-01', '10:20:30', '2017-01-01 10:20:30', '2017-01-01 10:20:30', '10:20:30+04:00', '2017-01-01T10:20:30+04:00')");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM test_date");
+
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(LocalDate.of(2017, 1, 1), rs.getObject(1, LocalDate.class));
+        Assert.assertEquals(LocalTime.of(10, 20, 30), rs.getObject(2, LocalTime.class));
+        Assert.assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(3, LocalDateTime.class));
+        Assert.assertEquals(LocalDateTime.of(2017, 1, 1, 10, 20, 30),
+                rs.getObject(4, LocalDateTime.class));
+        Assert.assertEquals(OffsetTime.of(10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(5, OffsetTime.class));
+        Assert.assertEquals(OffsetDateTime.of(2017, 1, 1, 10, 20, 30, 0, ZoneOffset.ofHours(4)),
+                rs.getObject(6, OffsetDateTime.class));
+
+        Assert.assertEquals(LocalDate.class, rs.getObject(1, LocalDate.class).getClass());
+        Assert.assertEquals(LocalTime.class, rs.getObject(2, LocalTime.class).getClass());
+        Assert.assertEquals(LocalDateTime.class, rs.getObject(3, LocalDateTime.class).getClass());
+        Assert.assertEquals(LocalDateTime.class, rs.getObject(4, LocalDateTime.class).getClass());
+        Assert.assertEquals(OffsetTime.class, rs.getObject(5, OffsetTime.class).getClass());
     }
 
 }

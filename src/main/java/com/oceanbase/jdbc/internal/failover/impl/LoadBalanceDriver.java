@@ -120,7 +120,8 @@ public class LoadBalanceDriver {
         loadBalanceInfo.setBalanceStrategy(balanceStrategy);
     }
 
-    public void buildHostListBalanceStrategies() throws SQLException {
+    public void buildHostListBalanceStrategies()
+                                                                                         throws SQLException {
         checker = new BalanceStrategyChecker();
         for (LoadBalanceAddressList loadBalanceAddressList : loadBalanceInfo.groups) {
             String name = loadBalanceAddressList.getBalanceStrategyConfigs().get(Consts.NAME);
@@ -128,18 +129,23 @@ public class LoadBalanceDriver {
             if (!checker.isValid(map)) {
                 throw new SQLException("Host list  balanceStrategy config incorrect：" + map);
             }
-            BalanceStrategy hostListBalanceStrategy = null;
-            switch (name.toUpperCase()) {
-                case Consts.SERVERAFFINITY:
-                    hostListBalanceStrategy = new ServerAffinityStrategy();
-                    break;
-                case Consts.ROTATION:
-                    hostListBalanceStrategy = new RotationStrategy();
-                    break;
-                case Consts.RANDOM:
-                default:
-                    hostListBalanceStrategy = new RandomStrategy();
-                    break;
+            BalanceStrategy hostListBalanceStrategy;
+            if (loadBalanceInfo.getBalanceStrategy() != null && name.equals(Consts.DEFAULT)) {
+                hostListBalanceStrategy = loadBalanceInfo.getBalanceStrategy() ;
+            } else {
+                switch (name.toUpperCase()) {
+                    case Consts.SERVERAFFINITY:
+                        hostListBalanceStrategy = new ServerAffinityStrategy();
+                        break;
+                    case Consts.ROTATION:
+                        hostListBalanceStrategy = new RotationStrategy();
+                        break;
+                    case Consts.RANDOM:
+                    case Consts.DEFAULT:
+                    default:
+                        hostListBalanceStrategy = new RandomStrategy();
+                        break;
+                }
             }
             loadBalanceAddressList.setBalanceStrategy(hostListBalanceStrategy);
         }

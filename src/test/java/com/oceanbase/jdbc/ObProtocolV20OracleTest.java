@@ -532,4 +532,34 @@ public class ObProtocolV20OracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testShowTrace() throws SQLException {
+        Connection conn = setConnection("&enableFullLinkTrace=true");
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("set ob_enable_show_trace = true");
+        try {
+            stmt.execute("drop table test_trace");
+        } catch (SQLException ignored) {
+        }
+        stmt.execute("create table test_trace(c1 int)");
+        stmt.execute("insert into test_trace values (111)");
+        // commit
+        ResultSet rs = stmt.executeQuery("select * from test_trace");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(111, rs.getInt(1));
+        Assert.assertFalse(rs.next());
+        rs = stmt.executeQuery("show trace");
+        Assert.assertTrue(rs.next());
+        while (rs.next()) {
+            System.out.println(rs.getString(1) + "    " + rs.getString(2) + "    " + rs.getString(3));
+        }
+
+        stmt.execute("set ob_enable_show_trace = false");
+        stmt.execute("drop table test_trace");
+        stmt.executeQuery("select 1 from dual");
+        rs = stmt.executeQuery("show trace");
+        Assert.assertFalse(rs.next());
+    }
+
 }

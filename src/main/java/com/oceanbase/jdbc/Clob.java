@@ -56,29 +56,28 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class Clob extends Lob implements ObClob {
+public class Clob extends Lob implements java.sql.Clob {
 
-    private static final long serialVersionUID = -3066501059817815286L;
-    private static int        maxLength        = 1 * 1024 * 1024 * 1024;
-    String                    Clob_0           = "indexToWriteAt must be >= 1";
-    String                    Clob_1           = "indexToWriteAt must be >= 1";
-    String                    Clob_2           = "Starting position can not be < 1";
-    String                    Clob_3           = "String to set can not be NULL";
-    String                    Clob_4           = "Starting position can not be < 1";
-    String                    Clob_5           = "String to set can not be NULL";
-    String                    Clob_6           = "CLOB start position can not be < 1";
-    String                    Clob_7           = "CLOB start position + length can not be > length of CLOB";
-    String                    Clob_8           = "Illegal starting position for search, '";
-    String                    Clob_9           = "'";
-    String                    Clob_10          = "Starting position for search is past end of CLOB";
-    String                    Clob_11          = "Cannot truncate CLOB of length";
-    String                    Clob_12          = "\\\\ to length of";
-    String                    Clob_13          = ".";
+    private static final long   serialVersionUID = -3066501059817815286L;
+    static int                  maxLength        = 1024 * 1024 * 1024;
+    private static final String Clob_0           = "indexToWriteAt must be >= 1";
+    private static final String Clob_1           = "indexToWriteAt must be >= 1";
+    private static final String Clob_2           = "Starting position can not be < 1";
+    private static final String Clob_3           = "String to set can not be NULL";
+    private static final String Clob_4           = "Starting position can not be < 1";
+    private static final String Clob_5           = "String to set can not be NULL";
+    private static final String Clob_6           = "CLOB start position can not be < 1";
+    private static final String Clob_7           = "CLOB start position + length can not be > length of CLOB";
+    private static final String Clob_8           = "Illegal starting position for search, '";
+    private static final String Clob_9           = "'";
+    private static final String Clob_10          = "Starting position for search is past end of CLOB";
+    private static final String Clob_11          = "Cannot truncate CLOB of length";
+    private static final String Clob_12          = "\\\\ to length of";
+    private static final String Clob_13          = ".";
 
     /**
      * Creates a Clob with content.
@@ -98,7 +97,6 @@ public class Clob extends Lob implements ObClob {
         emptyData[3] = 76;
         emptyData[4] = 1;
         return new Clob(true, emptyData, Charset.defaultCharset().name(), null);
-
     }
 
     public Clob(byte[] bytes, ExceptionInterceptor exceptionInterceptor) {
@@ -113,7 +111,6 @@ public class Clob extends Lob implements ObClob {
      * @param offset offset
      * @param length length
      */
-
     public Clob(byte[] bytes, int offset, int length) {
         super(bytes, offset, length);
         this.encoding = Charset.defaultCharset().name();
@@ -136,44 +133,18 @@ public class Clob extends Lob implements ObClob {
             }
         } else {
             if (null != data) {
-                Buffer buffer = new Buffer(data);
                 this.encoding = encoding;
-                if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
-                    locator = new ObLobLocator();
-                    locator.magicCode = buffer.readLongV1();
-                    locator.version = buffer.readLongV1();
-                    locator.snapshotVersion = buffer.readLongLongV1();
-                    locator.tableId = buffer.readBytes(8);
-                    locator.columnId = buffer.readLongV1();
-                    locator.flags = buffer.readIntV1();
-                    locator.option = buffer.readIntV1();
-                    locator.payloadOffset = buffer.readLongV1();
-                    locator.payloadSize = buffer.readLongV1();
-                    locator.binaryData = buffer.getByteBuffer();
-                    if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
-                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER
-                        && conn != null) {
-                        locator.rowId = buffer.readBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
-                        locator.connection = conn;
-                        try {
-                            if ((int) locator.payloadSize <= Clob.maxLength) {
-                                this.charData = new String(
-                                    buffer.getBytes(
-                                        (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset),
-                                        (int) locator.payloadSize), this.encoding);
-                                length = charData.length();
-                            } else {
-                                throw new SQLException("Exceed max length of Clob for support "
-                                                       + Clob.maxLength + " current "
-                                                       + locator.payloadSize);
-                            }
-                        } catch (UnsupportedEncodingException e) {
-                            throw new SQLException("Unsupported character encoding "
-                                                   + this.encoding);
-                        }
-                    }
-                }
+                Buffer buffer = new Buffer(data);
+                long magicCode = buffer.readLong4BytesV1();
+                long version = buffer.readLong4BytesV1();
 
+                if (version == 1) {
+                    buildObLobLocatorV1(false, buffer, magicCode, version, conn);
+                } else if ((version & 0x000000ff) == 2) {
+                    buildObLobLocatorV2(false, buffer, magicCode, version, conn);
+                } else {
+                    throw new SQLException("Unknown version of lob locator!");
+                }
             }
         }
     }
@@ -184,27 +155,6 @@ public class Clob extends Lob implements ObClob {
     public Clob() {
         super();
         this.encoding = Charset.defaultCharset().name();
-    }
-
-    public synchronized ObLobLocator getLocator() {
-        return this.locator;
-    }
-
-    public synchronized void setLocator(ObLobLocator locator) {
-        if (this.locator == null) {
-            this.locator = new ObLobLocator();
-        }
-        this.locator.columnId = locator.columnId;
-        this.locator.flags = locator.flags;
-        this.locator.magicCode = locator.magicCode;
-        this.locator.option = locator.option;
-        this.locator.snapshotVersion = locator.snapshotVersion;
-        this.locator.tableId = locator.tableId;
-        this.locator.rowId = locator.rowId;
-        this.locator.version = locator.version;
-        this.locator.payloadOffset = locator.payloadOffset;
-        this.locator.payloadSize = locator.payloadSize;
-        this.locator.binaryData = locator.binaryData;
     }
 
     /**
@@ -230,14 +180,20 @@ public class Clob extends Lob implements ObClob {
      * @throws SQLException if pos is less than 1 or length is less than 0
      */
     public String getSubString(long pos, int length) throws SQLException {
-
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("position must be >= 1");
         }
-
         if (length < 0) {
             throw ExceptionFactory.INSTANCE.create("length must be > 0");
         }
+
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
+
         int adjustedStartPos = (int) pos - 1;
         int adjustedEndIndex = adjustedStartPos + length;
 
@@ -374,7 +330,7 @@ public class Clob extends Lob implements ObClob {
     public int setString(long pos, String str) throws SQLException {
         if (this.locator != null) {
             try {
-                updateClobToServer(pos, str.getBytes(this.encoding), 0, str.length());
+                updateClobToServer(pos, str, str.length());
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
             }
@@ -412,21 +368,30 @@ public class Clob extends Lob implements ObClob {
      * Return character length of the Clob. Assume UTF8 encoding.
      */
     @Override
-    public long length() {
+    public long length() throws SQLException {
         // The length of a character string is the number of UTF-16 units (not the number of characters)
         if (this.charData != null) {
             return this.charData.length();
+        }
+
+        if ((data == null || data.length == 0) && lengthFromServer == -1) {
+            if (locator != null && locator.payloadSize > 0 && locator instanceof ObLobLocatorV2) {
+                lengthFromServer = 0; // change state
+                // in this case, this is out-row lob which hasn't been read from server, so both charData and data are empty
+                getLengthFromServer();
+                return lengthFromServer;
+            }
         }
 
         Charset charset = Charset.forName(encoding);
         if (!charset.equals(StandardCharsets.UTF_8)) {
             return toString().length();
         }
+
         long len = 0;
         int pos = offset;
-
         // set ASCII (<= 127 chars)
-        for (; len < length && data[pos] >= 0;) {
+        while (len < length && data[pos] >= 0) {
             len++;
             pos++;
         }
@@ -463,6 +428,7 @@ public class Clob extends Lob implements ObClob {
                 len++;
             }
         }
+
         return len;
     }
 
@@ -537,51 +503,56 @@ public class Clob extends Lob implements ObClob {
     }
 
     /**
-     * Update <code>Clob</code> object by the DBMS_LOB.write(?,?,?,?), starting with writeAt and write the bytes to
+     * Update <code>Clob</code> object by the DBMS_LOB.WRITE(lob_loc, amount, offset, buffer), starting with writeAt and write the bytes to
      * database.
      *
+     * DBMS_LOB.WRITE (
+     *    lob_loc  IN OUT  NOCOPY CLOB   CHARACTER SET ANY_CS,
+     *    amount   IN             INTEGER,
+     *    offset   IN             INTEGER,
+     *    buffer   IN             VARCHAR2 CHARACTER SET lob_loc%CHARSET);
+     *
+     * lob_loc: Locator for the internal LOB to be written to. For more information
+     * amount: Number of bytes (for BLOBs) or characters (for CLOBs) to write
+     * offset: Offset in bytes (for BLOBs) or characters (for CLOBs) from the start of the LOB (origin: 1) for the write operation.
+     * buffer: Input buffer for the write
+     *
      * @param writeAt Start position to be write.
-     * @param bytes   byte[] data to be write.
-     * @param offset  first position offset will be write.
+     * @param str   String data to be write.
      * @param length  date length to be write.
      * @throws SQLException if database error occur
      */
-    public synchronized void updateClobToServer(long writeAt, byte[] bytes, int offset, int length)
-                                                                                                   throws SQLException {
+    private synchronized void updateClobToServer(long writeAt, String str, int length)
+                                                                                      throws SQLException,
+                                                                                      UnsupportedEncodingException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
+
+        int writeAmount, writeOffset = (int) writeAt, localOffset = 0, lengthLeft = length;
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        cstmt.setClob(1, this);
-        cstmt.setInt(2, length);
-        cstmt.setInt(3, (int) writeAt);
-        try {
-            //            cstmt.setString(4, StringUtils.toString(bytes, this.encoding)); // todo
-            cstmt.setString(4, new String(bytes, this.encoding));
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException(e.getMessage());
+        while (lengthLeft > 0) {
+            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+
+            cstmt.setClob(1, this);
+            cstmt.setInt(2, writeAmount);
+            cstmt.setInt(3, writeOffset);
+            cstmt.setString(4, str.substring(localOffset, localOffset + writeAmount));
+            cstmt.registerOutParameter(1, Types.CLOB);
+            cstmt.execute();
+
+            writeOffset += writeAmount;
+            localOffset += writeAmount;
+            lengthLeft -= writeAmount;
         }
-        cstmt.registerOutParameter(1, Types.CLOB);
-        cstmt.execute();
 
         Clob r = (Clob) cstmt.getClob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
-            int from = (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset);
-            int to = (int) (from + locator.payloadSize);
-            this.encoding = r.encoding;
-            try {
-                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
-                    this.encoding);
-            } catch (UnsupportedEncodingException e) {
-                throw new SQLException("Unsupported character encoding " + this.encoding);
-            }
+            copy(r);
         }
-
     }
 
     /**
@@ -591,10 +562,11 @@ public class Clob extends Lob implements ObClob {
      * @param len truncate data from len
      * @throws SQLException if database error occur
      */
-    public synchronized void trimClobToServer(int len) throws SQLException {
+    private synchronized void trimClobToServer(int len) throws SQLException {
         if (this.locator == null || this.locator.connection == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         }
+        clearData();
 
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
@@ -607,27 +579,103 @@ public class Clob extends Lob implements ObClob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operation on closed CLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
-            int from = (int) (ObLobLocator.OB_LOG_LOCATOR_HEADER + locator.payloadOffset);
-            int to = (int) (from + locator.payloadSize);
-            this.encoding = r.encoding;
-            try {
-                this.charData = new String(Arrays.copyOfRange(r.locator.binaryData, from, to),
-                    this.encoding);
-            } catch (UnsupportedEncodingException e) {
-                throw new SQLException("Unsupported character encoding " + this.encoding);
+            copy(r);
+        }
+    }
 
+    /**
+     * Read Clob object by the DBMS_LOB.READ(lob_loc, amount, offset, buffer).
+     *
+     * DBMS_LOB.READ (
+     *    lob_loc   IN             CLOB CHARACTER SET ANY_CS,
+     *    amount    IN OUT  NOCOPY INTEGER,
+     *    offset    IN             INTEGER,
+     *    buffer    OUT            VARCHAR2 CHARACTER SET lob_loc%CHARSET);
+     * lob_loc: Locator for the LOB to be read. For more information, see Operational Notes.
+     * file_loc: The file locator for the LOB to be examined.
+     * amount: Number of bytes (for BLOBs) or characters (for CLOBs) to read, or number that were read.
+     * offset: Offset in bytes (for BLOBs) or characters (for CLOBs) from the start of the LOB (origin: 1).
+     * buffer: Output buffer for the read operation.
+     *
+     * @throws SQLException if database READ procedure exceptions occur
+     * INVALID_ARGVAL: amount is less than 1, or amount is larger than 32767 bytes (or the character equivalent)
+     *                 offset is less than 1, or offset is larger than LOBMAXSIZE
+     *                 amount is greater, in bytes or characters, than the capacity of buffer.
+     * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
+     */
+    protected synchronized void readFromServer() throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        }
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
+        SQLException sqlEx = null;
+        int offset = 1;
+        while (sqlEx == null) {
+            try {
+                cstmt.setClob(1, this);
+                cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);
+                cstmt.setInt(3, offset);
+                cstmt.registerOutParameter(2, Types.INTEGER);
+                cstmt.registerOutParameter(4, Types.VARCHAR);
+                cstmt.execute();
+
+                int amount = cstmt.getInt(2);
+                offset += amount;
+
+                try {
+                    if (amount <= Clob.maxLength) {
+                        byte[] bytes = cstmt.getBytes(4);
+                        String str = new String(bytes, this.encoding);
+                        if (charData == null) {
+                            charData = str;
+                        } else {
+                            charData += str;
+                        }
+                    } else {
+                        throw new SQLException("Exceed max length of Clob for support "
+                                               + Clob.maxLength + " current " + amount);
+                    }
+                } catch (UnsupportedEncodingException e) {
+                    throw new SQLException("Unsupported character encoding " + this.encoding);
+                }
+            } catch (SQLException ex) {
+                if (ex.getMessage().contains("no data found")) {
+                    sqlEx = ex;
+                } else {
+                    throw ex;
+                }
             }
         }
+        length = charData.length();
     }
 
-    @Override
-    public boolean isEmptyLob() {
-        if (this.locator != null) {
-            return locator.payloadSize == 0;
-        } else {
-            return ((data == null || data.length == 0) && (charData == null || charData.length() == 0));
+    /**
+     * This function gets the length of the specified LOB. The length in bytes or characters is returned.
+     *
+     * The length returned for a BFILE includes the EOF, if it exists.
+     * Any 0-byte or space filler in the LOB caused by previous ERASE or WRITE operations is also included in the length count.
+     * The length of an empty internal LOB is 0.
+     *
+     * DBMS_LOB.GETLENGTH (
+     *    lob_loc    IN  CLOB   CHARACTER SET ANY_CS)
+     *   RETURN INTEGER;
+     *
+     * @throws SQLException if database error occur
+     */
+    private synchronized void getLengthFromServer() throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
         }
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}");
+        cstmt.setClob(2, this);
+        cstmt.registerOutParameter(1, Types.INTEGER);
+        cstmt.execute();
+
+        lengthFromServer = cstmt.getInt(1);
     }
+
 }

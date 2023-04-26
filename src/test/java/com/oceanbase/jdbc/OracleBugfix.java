@@ -2967,4 +2967,44 @@ public class OracleBugfix extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testClobReaderTwice() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            String clobTest3 = "t_clob" + getRandomString(5);
+
+            createTable(clobTest3, "c1 clob, c2 clob, c3 clob, c4 clob, c5 clob, c6 clob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest3
+                    + " values(?, ?, ?, ?, ?, ?)");
+
+            String str = "1231abcd奥星贝斯";
+            ps.setCharacterStream(1, new StringReader(str));
+            ps.setCharacterStream(2, new StringReader("")); //(CLOB)null
+            ps.setCharacterStream(3, null);
+            ps.setClob(4, (Clob) null);
+            ps.setClob(5, Clob.getEmptyCLOB()); // server hopes to receive empty string
+
+            java.sql.Clob clob = conn.createClob();
+            Writer writer = clob.setCharacterStream(1);
+            writer.write(str);
+            writer.flush();
+            ps.setClob(6, clob); // server hopes to receive empty string
+            ps.execute();
+
+            ps = conn.prepareStatement("select * from " + clobTest3);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(rs.getString(1), "1231abcd奥星贝斯");
+            assertEquals(rs.getString(2), null);
+            assertEquals(rs.getString(3), null);
+            assertEquals(rs.getString(4), null);
+            assertEquals(rs.getString(5), "");
+            assertEquals(rs.getString(6), "1231abcd奥星贝斯");
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }

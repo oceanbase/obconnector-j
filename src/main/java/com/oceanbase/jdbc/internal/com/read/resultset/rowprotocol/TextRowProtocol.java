@@ -1274,20 +1274,24 @@ public class TextRowProtocol extends RowProtocol {
                                            + " using a "
                                            + columnInfo.getColumnType().getSqlTypeName() + " field");
             }
+        }else if (!this.getProtocol().isOracleMode()){
+            String raw = new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType()));
+            return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
         }
 
         if (options.useLegacyDatetimeCode) {
             // system timezone is not an offset
             throw new SQLException(
-                "Cannot return an OffsetTime for a TIME field when default timezone is '"
-                        + zoneId
-                        + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+                    "Cannot return an OffsetTime for a TIME field when default timezone is '"
+                            + zoneId
+                            + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
         }
 
         // server timezone is not an offset
         throw new SQLException(
-            "Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
-                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+                "Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
+                        + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
     }
 
     public OffsetDateTime getInternalOffsetDateTime(ColumnDefinition columnInfo, TimeZone timeZone)

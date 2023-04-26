@@ -85,17 +85,13 @@ public class SendHandshakeResponsePacket {
     private static final String           _THREAD                  = "__thread";
     private static final String           _JAVA_VENDOR             = "__java_vendor";
     private static final String           _JAVA_VERSION            = "__java_version";
+    private static final String           _PROXY_CAPABILITY        = "__proxy_capability_flag";
+    private static final String           _CLIENT_CAPABILITY       = "__ob_client_attribute_capability_flag";
 
     private static final String           OB_PROXY_PARTITION_HIT   = "ob_proxy_partition_hit";
     private static final String           OB_STATEMENT_TRACE_ID    = "ob_statement_trace_id";
     private static final String           OB_CAPABILITY_FLAG       = "ob_capability_flag";                              // tell which features ob supports
     private static final String           OB_CLIENT_FEEDBACK       = "ob_client_feedback";
-
-    private static final long             OB_CAPABILITY_FLAG_VALUE = OceanBaseCapabilityFlag.OB_CAP_CHECKSUM
-                                                                     | OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH
-                                                                     | OceanBaseCapabilityFlag.OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
-                                                                     | OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2
-                                                                     | OceanBaseCapabilityFlag.OB_CAP_ABUNDANT_FEEDBACK;
 
     /**
      * Send handshake response packet.
@@ -304,6 +300,7 @@ public class SendHandshakeResponsePacket {
             banListArray = options.defaultConnectionAttributesBanList.split(",");
         }
         Collections.addAll(banListSet,banListArray);
+
         if (!banListSet.contains(_MYSQL_CLIENT_TYPE)) {
             buffer.writeStringSmallLength(_MYSQL_CLIENT_TYPE.getBytes(pos.getCharset()));
             buffer.writeStringLength(CLIENT_TYPE, pos.getCharset());
@@ -316,7 +313,6 @@ public class SendHandshakeResponsePacket {
             buffer.writeStringSmallLength(_CLIENT_VERSION.getBytes(pos.getCharset()));
             buffer.writeStringLength(Version.version, pos.getCharset());
         }
-
         if (!banListSet.contains(_SERVER_HOST)) {
             buffer.writeStringSmallLength(_SERVER_HOST.getBytes(pos.getCharset()));
             buffer.writeStringLength((host != null) ? host : "", pos.getCharset());
@@ -363,8 +359,12 @@ public class SendHandshakeResponsePacket {
                 }
             }
         }
-        if (!banListSet.contains("__proxy_capability_flag")) {
-            long capFlag = OB_CAPABILITY_FLAG_VALUE;
+        if (!banListSet.contains(_PROXY_CAPABILITY)) {
+            long capFlag = OceanBaseCapabilityFlag.OB_CAP_CHECKSUM
+                            | OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH
+                            | OceanBaseCapabilityFlag.OB_CAP_OCJ_ENABLE_EXTRA_OK_PACKET
+                            | OceanBaseCapabilityFlag.OB_CAP_ABUNDANT_FEEDBACK
+                            | OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2;
             if (!options.useObChecksum) {
                 capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM);
                 capFlag &= (~OceanBaseCapabilityFlag.OB_CAP_CHECKSUM_SWITCH);
@@ -375,10 +375,16 @@ public class SendHandshakeResponsePacket {
             if (options.enableFullLinkTrace) {
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE;
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO;
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE_SHOW_TRACE;
             }
-            // add ob_connector_capability_flag for oceanbase server
 
-            buffer.writeStringSmallLength("__proxy_capability_flag".getBytes(pos.getCharset()));
+            buffer.writeStringSmallLength(_PROXY_CAPABILITY.getBytes(pos.getCharset()));
+            buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
+        }
+        if (!banListSet.contains(_CLIENT_CAPABILITY)) {
+            long capFlag = OceanBaseCapabilityFlag.OB_CLIENT_CAP_LOB_LOCATOR_V2;
+
+            buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }
 

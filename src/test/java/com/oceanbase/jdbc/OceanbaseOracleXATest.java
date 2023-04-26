@@ -43,11 +43,10 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.UUID;
 
+import javax.sql.XAConnection;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -61,12 +60,14 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
     public static String tableName1 = "tablename1";
     public static String tableName2 = "tablename2";
     public static String tableName3 = "tablename3";
+    public static String tableName4 = "tablename4";
 
     @BeforeClass
     public static void initClass() throws SQLException {
         createTable(tableName1, "c1 int,c2 int");
         createTable(tableName2, "c1 int,c2 int");
         createTable(tableName3, "c1 varchar(200)");
+        createTable(tableName4, "c1 int,c2 varchar(200)");
     }
 
     @Test
@@ -279,6 +280,49 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
+    }
+
+    @Test
+    public void obOracleXAStartFlags() throws Exception {
+        XAConnection xaConn = null;
+        Connection conn = null;
+        Xid xid = null;
+        OceanBaseDataSource ds = new OceanBaseDataSource();
+        ds.setUrl(connU + "?useServerPrepStmts=true");
+        try {
+            Assert.assertTrue(ds.getUrlParser().getOptions().useServerPrepStmts);
+            xaConn = ds.getXAConnection(username, password);
+            xid = newXid();
+            XAResource xaRes1 = xaConn.getXAResource();
+            conn = xaConn.getConnection();
+            xaRes1.start(xid, OceanBaseXaResource.ORATRANSLOOSE);
+            conn.createStatement().executeQuery("SELECT 1 FROM DUAL");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xid = newXid();
+            xaRes1.start(xid, OceanBaseXaResource.ORATMSERIALIZABLE);
+            conn.createStatement().executeQuery("SELECT 1 FROM DUAL");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xid = newXid();
+            Statement statement = conn.createStatement();
+            try {
+                xaRes1.start(xid, OceanBaseXaResource.ORATMREADONLY);
+                statement.executeUpdate("insert into tableName4 values(4,'XA')");
+                Assert.fail();
+            } catch (SQLException ex) {
+                xaConn.close();
+            }
+        } catch (XAException xaex) {
+            Assert.fail();
+        } finally {
+            if (xaConn != null) {
+                xaConn.close();
+            }
+        }
+    }
+
+    private Xid newXid() {
+        return new OceanBaseXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID()
+            .toString().getBytes());
     }
 
     // error on observer 3.x

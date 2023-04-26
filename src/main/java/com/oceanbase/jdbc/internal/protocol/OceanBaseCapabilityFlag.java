@@ -86,7 +86,7 @@ public class OceanBaseCapabilityFlag {
     public static final long MARIADB_CLIENT_PROGRESS               = 1L << 32; /* Client support progress indicator (since 10.2) */
     public static final long MARIADB_CLIENT_COM_MULTI              = 1L << 33; /* bundle command during connection */
 
-    /* OceanBase specific capabilities */
+    /* (64 bits) OceanBase specific capabilities used by client, proxy and server */
     public static final long OB_CAP_PARTITION_TABLE                = 1;
     public static final long OB_CAP_CHANGE_USER                    = 1 << 1;
     public static final long OB_CAP_READ_WEAK                      = 1 << 2;
@@ -103,5 +103,11 @@ public class OceanBaseCapabilityFlag {
     public static final long OB_CAP_PROXY_SESSION_SYNC             = 1 << 13;
     public static final long OB_CAP_FULL_LINK_TRACE                = 1 << 14;
     public static final long OB_CAP_NEW_EXTRA_INFO                 = 1 << 15;
+    public static final long OB_CAP_PROXY_SESSION_VAR_SYNC         = 1 << 16;
+    public static final long OB_CAP_PROXY_WEAK_STALE_FEEDBACK      = 1 << 17;
+    public static final long OB_CAP_FULL_LINK_TRACE_SHOW_TRACE     = 1 << 18;
+
+    /* (64 bits) OceanBase specific capabilities used by client and server */
+    public static final long OB_CLIENT_CAP_LOB_LOCATOR_V2 = 1;
 
 }

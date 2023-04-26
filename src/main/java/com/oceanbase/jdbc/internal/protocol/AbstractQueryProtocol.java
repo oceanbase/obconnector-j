@@ -2633,7 +2633,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private void ob20BeginTrace() {
     if (enableFullLinkTrace) {
       try {
-        if (!inTransaction()) {
+        if (fullLinkTrace.isShowTraceEnabled() || !inTransaction()) {
           fullLinkTrace.beginTrace();
         }
       } catch (Exception e) {
@@ -2647,8 +2647,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (enableFullLinkTrace) {
       try {
         spanId = fullLinkTrace.beginSpan(0);
-        fullLinkTrace.setTag(1, FullLinkTrace.TagKey.COMMAND_NAME.getString(), tagStr);
-        fullLinkTrace.setTag(1, FullLinkTrace.TagKey.CLIENT_HOST.getString(), socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort());
+        fullLinkTrace.setSpanTag(1, FullLinkTrace.TagKey.COMMAND_NAME.getString(), tagStr);
+        fullLinkTrace.setSpanTag(1, FullLinkTrace.TagKey.CLIENT_HOST.getString(), socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort());
         fullLinkTrace.buildRequest(ob20);
       } catch (Exception e) {
         logger.warn("Full link trace module failed.", e);
@@ -2662,7 +2662,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       try {
         if (spanId != null) {
           fullLinkTrace.endSpan(spanId);
-          if (!inTransaction()) {
+
+          if (fullLinkTrace.isShowTraceEnabled() || !inTransaction()) {
             fullLinkTrace.endTrace();
           }
         }

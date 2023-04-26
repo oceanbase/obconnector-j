@@ -50,8 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
@@ -181,16 +180,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length)
                                                                                                    throws SQLException {
-        if (reader == null) {
-            setNull(parameterIndex, ColumnType.BLOB);
-            return;
-        }
-        if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBReaderParameter(reader, length, noBackslashEscapes));
-        } else {
-            setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
-        }
-        hasLongData = true;
+        setCharacterStream(parameterIndex, reader, (long) length);
     }
 
     /**
@@ -212,7 +202,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final long length)
                                                                                                     throws SQLException {
-        if (reader == null) {
+        if (reader == null || length == 0 && protocol.isOracleMode()) {
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
@@ -244,19 +234,28 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     statement; if a database access error occurs or this method is called on a closed <code>
      *     PreparedStatement</code>
      */
-    public void setCharacterStream(final int parameterIndex, final Reader reader)
-                                                                                 throws SQLException {
-        if (reader == null) {
-            setNull(parameterIndex, ColumnType.BLOB);
-            return;
+    public void setCharacterStream(final int parameterIndex, Reader reader) throws SQLException {
+        long length = -1;
+
+        if (reader != null) {
+            try {
+                if (!reader.markSupported()) {
+                    reader = new BufferedReader(reader, 5);
+                }
+
+                reader.mark(100);
+                if (reader.read() == -1) {
+                    length = 0;
+                } else {
+                    reader.reset();
+                    length = Long.MAX_VALUE;
+                }
+            } catch (IOException e) {
+                throw new SQLException("Can't calculate whether the reader contains an empty string \"\" or not");
+            }
         }
 
-        if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBReaderParameter(reader, noBackslashEscapes));
-        } else {
-            setParameter(parameterIndex, new ReaderParameter(reader, noBackslashEscapes));
-        }
-        hasLongData = true;
+        setCharacterStream(parameterIndex, reader, length);
     }
 
     /**
@@ -289,8 +288,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (blob instanceof com.oceanbase.jdbc.Blob) {
-            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob()
-                && this.options.useServerPrepStmts == false) {
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts) {
                 if (((Blob) blob).getLocator() != null) {
                     setParameter(parameterIndex, new OBEmptyLobParameter(0));
                     return;
@@ -422,21 +420,19 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setClob(final int parameterIndex, final java.sql.Clob clob) throws SQLException {
         if (clob == null) {
-            setNull(parameterIndex, ColumnType.BLOB);
+            setNull(parameterIndex, ColumnType.ORA_CLOB);
             return;
         }
         if (clob instanceof com.oceanbase.jdbc.Clob) {
-            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob()
-                && options.useServerPrepStmts == false) {
+            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(1));
                 return;
             }
 
             if (this.connection.getProtocol().isOracleMode()) {
-                if ((((Clob) clob).getLocator() != null)
-                    && (this.connection.getProtocol().getOptions().useServerPsStmtChecksum == true)) {
+                if ((((Clob) clob).getLocator() != null) && options.useServerPsStmtChecksum) {
                     byte[] data = ((Clob) clob).getLocator().binaryData;
-                    setParameter(parameterIndex, new OBReaderParameter((Clob) clob, clob.length(),
+                    setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
                         noBackslashEscapes));
                 } else {
                     setParameter(parameterIndex, new OBReaderParameter((Clob) clob, clob.length(),

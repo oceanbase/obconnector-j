@@ -58,7 +58,7 @@ import java.sql.Types;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class Blob extends Lob implements ObBlob {
+public class Blob extends Lob implements java.sql.Blob {
 
     private static final long serialVersionUID = -4736603161284649490L;
 
@@ -120,62 +120,32 @@ public class Blob extends Lob implements ObBlob {
      * Create a BLOB with Locator
      * @param data
      */
-    public Blob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn) {
+    public Blob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
+                                                                                           throws SQLException {
         if (null != conn) {
             this.encoding = "UTF-8";
             /* It only be used by getCharacterStream for Blob, and to decode the byte[] data to char[]
              *  Use the encoding with the Connection's encoding's Name assigned by USER. For that it is
              *  user which encoding byte[] to char[]. */
-            //            this.encoding =
         } else if (null != encoding) {
             this.encoding = encoding; // not to be here
         }
+
         // readLong in 1.x is equivalent to readInt in 2.0,readLongLong in 1.x is equivalent to readLong in 2.0.
-        { /* Has Locator with Blob */
-            if (null != data) {
-                Buffer buffer = new Buffer(data);
-                if (buffer.getLimit() >= ObLobLocator.OB_LOG_LOCATOR_HEADER) {
-                    locator = new ObLobLocator();
-                    locator.magicCode = buffer.readLongV1();
-                    locator.version = buffer.readLongV1();
-                    locator.snapshotVersion = buffer.readLongLongV1();
-                    locator.tableId = buffer.readBytes(8);
-                    locator.columnId = buffer.readLongV1();
-                    locator.flags = buffer.readIntV1();
-                    locator.option = buffer.readIntV1();
-                    locator.payloadOffset = buffer.readLongV1();
-                    locator.payloadSize = buffer.readLongV1();
-                    locator.binaryData = buffer.getByteBuffer();
-                    if (locator.payloadSize + locator.payloadOffset <= buffer.getLimit()
-                                                                       - ObLobLocator.OB_LOG_LOCATOR_HEADER
-                        && conn != null) {
-                        locator.rowId = buffer.readBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
-                        this.data = (buffer.readBytes((int) locator.payloadSize)); // binary data less than MAX_INT
-                        this.length = (int) locator.payloadSize;
-                        locator.connection = conn;
-                    }
-                }
+        /* Has Locator with Blob */
+        if (null != data && null != conn) {
+            Buffer buffer = new Buffer(data);
+            long magicCode = buffer.readLong4BytesV1();
+            long version = buffer.readLong4BytesV1();
+
+            if (version == 1) {
+                buildObLobLocatorV1(true, buffer, magicCode, version, conn);
+            } else if ((version & 0x000000ff) == 2) {
+                buildObLobLocatorV2(true, buffer, magicCode, version, conn);
+            } else {
+                throw new SQLException("Unknown version of lob locator!");
             }
         }
-    }
-
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        //        if (offset != 0 || data.length != length) {
-        //            offset = 0;
-        //            length = 0;
-        //        }
-        // ?
-        out.writeInt(offset);
-        out.writeInt(length);
-        out.defaultWriteObject();
-    }
-
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        offset = in.readInt();
-        length = in.readInt();
-        in.defaultReadObject();
-        //        offset = 0;
-        //        length = data.length;
     }
 
     /**
@@ -185,6 +155,10 @@ public class Blob extends Lob implements ObBlob {
      * @return length of the <code>BLOB</code> in bytes
      */
     public long length() {
+        // locator.payloadSize in JDBC(not in server) always represents the length of lob data, no matter locator is v1 or v2
+        if (locator != null && locator instanceof ObLobLocatorV2) {
+            return locator.payloadSize;
+        }
         return length;
     }
 
@@ -262,7 +236,7 @@ public class Blob extends Lob implements ObBlob {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
         if (this.locator != null) {
-            updateBlobToServer(pos, bytes, offset, bytes.length);
+            updateBlobToServer(pos, bytes, 0, bytes.length);
             return bytes.length;
         }
         final int arrayPos = (int) pos - 1;
@@ -345,39 +319,6 @@ public class Blob extends Lob implements ObBlob {
     }
 
     /**
-     * Retrieves a stream that can be used to write to the <code>BLOB</code> value that this <code>
-     * Blob</code> object represents. The stream begins at position <code>pos</code>. The bytes
-     * written to the stream will overwrite the existing bytes in the <code>Blob</code> object
-     * starting at the position <code>pos</code>. If the end of the <code>Blob</code> value is reached
-     * while writing to the stream, then the length of the <code>Blob</code> value will be increased
-     * to accommodate the extra bytes.
-     *
-     * <p><b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the
-     * <code>BLOB</code> value then the behavior is undefined. Some JDBC drivers may throw a <code>
-     * SQLException</code> while other drivers may support this operation.
-     *
-     * @param pos the position in the <code>BLOB</code> value at which to start writing; the first
-     *     position is 1
-     * @return a <code>java.io.OutputStream</code> object to which data can be written
-     * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if pos is
-     *     less than 1
-     * @see #getBinaryStream
-     * @since 1.4
-     */
-    public OutputStream setBinaryStream(final long pos) throws SQLException {
-        if (pos < 1) {
-            throw ExceptionFactory.INSTANCE.create("Invalid position in blob");
-        }
-        if (offset > 0) {
-            byte[] tmp = new byte[length];
-            System.arraycopy(data, offset, tmp, 0, length);
-            data = tmp;
-            offset = 0;
-        }
-        return new BlobOutputStream(this, (int) (pos - 1) + offset);
-    }
-
-    /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be
      * <code>len</code> bytes in length.
      *
@@ -395,50 +336,25 @@ public class Blob extends Lob implements ObBlob {
     }
 
     /**
-     * 
-     * @return
-     */
-    public synchronized ObLobLocator getLocator() {
-        return this.locator;
-    }
-
-    /**
-     * Update <code>ObLobLocator</code> object which Bbob contains.
-     *
-     * @param locator
-     *              Source <code>ObLobLocator</code> object.
-     */
-    public synchronized void setLocator(ObLobLocator locator) {
-        if (this.locator == null) {
-            this.locator = new ObLobLocator();
-        }
-        this.locator.columnId = locator.columnId;
-        this.locator.flags = locator.flags;
-        this.locator.magicCode = locator.magicCode;
-        this.locator.option = locator.option;
-        this.locator.snapshotVersion = locator.snapshotVersion;
-        this.locator.tableId = locator.tableId;
-        this.locator.rowId = locator.rowId;
-        this.locator.version = locator.version;
-        this.locator.payloadOffset = locator.payloadOffset;
-        this.locator.payloadSize = locator.payloadSize;
-        this.locator.binaryData = locator.binaryData;
-    }
-
-    /**
      * Update <code>Blob</code> object by the DBMS_LOB.write(?,?,?,?), starting with writeAt and write the bytes to
      * database.
      *
-     * @param writeAt
-     *              Start position to be write.
-     * @param bytes
-     *              byte[] data to be write.
-     * @param offset
-     *              first position offset will be write.
-     * @param length
-     *              date length to be write.
-     * @throws SQLException
-     *              if database error occur
+     * DBMS_LOB.WRITE (
+     *    lob_loc  IN OUT NOCOPY  BLOB,
+     *    amount   IN             INTEGER,
+     *    offset   IN             INTEGER,
+     *    buffer   IN             RAW);
+     *
+     * lob_loc: Locator for the internal LOB to be written to. For more information
+     * amount: Number of bytes (for BLOBs) or characters (for CLOBs) to write
+     * offset: Offset in bytes (for BLOBs) or characters (for CLOBs) from the start of the LOB (origin: 1) for the write operation.
+     * buffer: Input buffer for the write
+     *
+     * @param writeAt Start position to be write.
+     * @param bytes   byte[] data to be write.
+     * @param offset  first position offset will be write.
+     * @param length  date length to be write.
+     * @throws SQLException if database error occur
      */
     public synchronized void updateBlobToServer(long writeAt, byte[] bytes, int offset, int length)
                                                                                                    throws SQLException {
@@ -446,23 +362,32 @@ public class Blob extends Lob implements ObBlob {
             throw new SQLException("Invalid operation on closed BLOB");
         }
 
+        int writeAmount, writeOffset = (int) writeAt, localOffset = offset, lengthLeft = length;
         java.sql.CallableStatement cstmt = this.locator.connection
             .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        ((BasePrepareStatement) cstmt).setLobLocator(1, this);
-        cstmt.setInt(2, length);
-        cstmt.setInt(3, (int) writeAt);
-        cstmt.setBytes(4, bytes);
-        cstmt.registerOutParameter(1, Types.BLOB);
-        cstmt.execute();
+        while (lengthLeft > 0) {
+            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+            byte[] writeBuffer = new byte[writeAmount];
+            System.arraycopy(bytes, localOffset, writeBuffer, 0, writeAmount);
+
+            ((BasePrepareStatement) cstmt).setLobLocator(1, this);
+            cstmt.setInt(2, writeAmount);
+            cstmt.setInt(3, writeOffset);
+            cstmt.setBytes(4, writeBuffer);
+            cstmt.registerOutParameter(1, Types.BLOB);
+            cstmt.execute();
+
+            writeOffset += writeAmount;
+            localOffset += writeAmount;
+            lengthLeft -= writeAmount;
+        }
 
         Blob r = (Blob) cstmt.getBlob(1);
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on setBytes for BLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
+            copy(r);
         }
-
     }
 
     /**
@@ -491,9 +416,69 @@ public class Blob extends Lob implements ObBlob {
         if (r == null || r.getLocator() == null) {
             throw new SQLException("Invalid operator on trim() for BLOB");
         } else {
-            setLocator(r.locator);
-            this.data = r.data;
+            copy(r);
         }
+    }
+
+    /**
+     * Read Clob object by the DBMS_LOB.READ(lob_loc, amount, offset, buffer).
+     *
+     * DBMS_LOB.READ (
+     *    lob_loc   IN             BLOB,
+     *    amount    IN OUT  NOCOPY INTEGER,
+     *    offset    IN             INTEGER,
+     *    buffer    OUT            RAW);
+     * lob_loc: Locator for the LOB to be read. For more information, see Operational Notes.
+     * amount: Number of bytes (for BLOBs) or characters (for CLOBs) to read, or number that were read.
+     * offset: Offset in bytes (for BLOBs) or characters (for CLOBs) from the start of the LOB (origin: 1).
+     * buffer: Output buffer for the read operation.
+     *
+     * @throws SQLException if database READ procedure exceptions occur
+     * INVALID_ARGVAL: amount is less than 1, or amount is larger than 32767 bytes (or the character equivalent)
+     *                 offset is less than 1, or offset is larger than LOBMAXSIZE
+     *                 amount is greater, in bytes or characters, than the capacity of buffer.
+     * NO_DATA_FOUND: End of the LOB is reached, and there are no more bytes or characters to read from the LOB: amount has a value of 0.
+     */
+    protected synchronized void readFromServer() throws SQLException {
+        if (this.locator == null || this.locator.connection == null) {
+            throw new SQLException("Invalid operation on closed CLOB");
+        }
+        clearData();
+
+        java.sql.CallableStatement cstmt = this.locator.connection
+            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
+        SQLException sqlEx = null;
+        int offset = 1;
+        while (sqlEx == null) {
+            try {
+                cstmt.setBlob(1, this);
+                cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);
+                cstmt.setInt(3, offset);
+                cstmt.registerOutParameter(2, Types.INTEGER);
+                cstmt.registerOutParameter(4, Types.VARCHAR);
+                cstmt.execute();
+
+                int amount = cstmt.getInt(2);
+                offset += amount;
+
+                byte[] outRaw = cstmt.getBytes(4);
+                if (data == null || data.length == 0) {
+                    data = outRaw;
+                } else {
+                    byte[] newData = new byte[data.length + outRaw.length];
+                    System.arraycopy(data, 0, newData, 0, data.length);
+                    System.arraycopy(outRaw, 0, newData, data.length, outRaw.length);
+                    data = newData;
+                }
+            } catch (SQLException ex) {
+                if (ex.getMessage().contains("no data found")) {
+                    sqlEx = ex;
+                } else {
+                    throw ex;
+                }
+            }
+        }
+        length = data.length;
     }
 
 }

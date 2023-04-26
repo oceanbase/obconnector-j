@@ -68,12 +68,13 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
  */
 public class FullLinkTrace {
 
-    private static final int TYPE_LENGTH        = 2;
-    private static final int LEN_LENGTH         = 4;
-    private static final int TYPE_LEN_LENGTH    = TYPE_LENGTH + LEN_LENGTH;
-    private static final int FLT_SIZE           = 4;
-    private static final int DBL_SIZE           = 8;
-    private static final int MAX_TRACE_LOG_SIZE = 1024 * 8;
+    private static final int  TYPE_LENGTH              = 2;
+    private static final int  LEN_LENGTH               = 4;
+    private static final int  TYPE_LEN_LENGTH          = TYPE_LENGTH + LEN_LENGTH;
+    private static final int  FLT_SIZE                 = 4;
+    private static final int  DBL_SIZE                 = 8;
+    private static final int  MAX_DRIVER_LOG_SIZE      = 1024 * 8;
+    private static final int  MAX_SHOW_TRACE_SPAN_SIZE = 1 << 31 - 1;
 
     /**
      * 0~999      belong to ob client
@@ -91,7 +92,7 @@ public class FullLinkTrace {
         FLT_MODULE(2002), // MYSQL_TYPE_VAR_STRING
         FLT_ACTION(2003), // MYSQL_TYPE_VAR_STRING
         FLT_CLIENT_INFO(2004), // MYSQL_TYPE_VAR_STRING
-        FLT_APPINFO_TYPE(2005), // MYSQL_TYPE_TINY todo: remove
+        FLT_APPINFO_TYPE(2005), // MYSQL_TYPE_TINY
         // QUERY_INFO
         FLT_QUERY_START_TIMESTAMP(2010), // MYSQL_TYPE_LONGLONG
         FLT_QUERY_END_TIMESTAMP(2011), // MYSQL_TYPE_LONGLONG
@@ -101,12 +102,16 @@ public class FullLinkTrace {
         FLT_RECORD_POLICY(2022), // MYSQL_TYPE_TINY
         FLT_PRINT_SAMPLE_PCT(2023), // MYSQL_TYPE_DOUBLE
         FLT_SLOW_QUERY_THRES(2024), // MYSQL_TYPE_LONGLONG
+        FLT_SHOW_TRACE_ENABLE(2025), // MYSQL_TYPE_TINY
         // SPAN_INFO
         FLT_TRACE_ENABLE(2030), // MYSQL_TYPE_TINY
         FLT_FORCE_PRINT(2031), // MYSQL_TYPE_TINY
         FLT_TRACE_ID(2032), // MYSQL_TYPE_VAR_STRING
         FLT_REF_TYPE(2033), // MYSQL_TYPE_TINY
         FLT_SPAN_ID(2034), // MYSQL_TYPE_VAR_STRING
+        // SHOW_TRACE
+        FLT_DRIVER_SHOW_TRACE_SPAN(2050), // MYSQL_TYPE_VAR_STRING
+        FLT_PROXY_SHOW_TRACE_SPAN(2051), // MYSQL_TYPE_VAR_STRING
         FLT_EXTRA_INFO_ID_END(65535);
 
         private final short value;
@@ -128,6 +133,7 @@ public class FullLinkTrace {
         FLT_QUERY_INFO(2002),
         FLT_CONTROL_INFO(2003),
         FLT_SPAN_INFO(2004),
+        FLT_SHOW_TRACE_SPAN(2005),
         FLT_EXTRA_INFO_TYPE_END(65535);
 
         private final short value;
@@ -243,13 +249,13 @@ public class FullLinkTrace {
         }
     }
 
-    // todo: change public class to package-private
     public class ControlInfo extends FullLinkTraceInfoBase {
         byte         level;
         double       samplePercentage;
         RecordPolicy recordPolicy;
         double       printSamplePercentage;
-        long         slowQueryThreshold;   // receive in microseconds
+        long         slowQueryThresholdMs;   // receive in microseconds
+        boolean      showTraceEnabled;
 
         private ControlInfo() {
             type = FullLinkTraceExtraInfoType.FLT_CONTROL_INFO;
@@ -259,11 +265,12 @@ public class FullLinkTrace {
             int localize = 0;
 
             localize += TYPE_LEN_LENGTH;
-            localize += getStoreInt1Size();
-            localize += getStoreDoubleSize();
-            localize += getStoreInt1Size();
-            localize += getStoreDoubleSize();
-            localize += getStoreInt8Size();
+            localize += getStoreInt1Size();   // level
+            localize += getStoreDoubleSize(); // samplePercentage
+            localize += getStoreInt1Size();   // recordPolicy
+            localize += getStoreDoubleSize(); // printSamplePercentage
+            localize += getStoreInt8Size();   // slowQueryThresholdMs
+            localize += getStoreInt1Size();   // showTraceEnabled
 
             return localize;
         }
@@ -282,8 +289,10 @@ public class FullLinkTrace {
                 FullLinkTraceExtraInfoId.FLT_RECORD_POLICY.getValue());
             storeDouble(buf, printSamplePercentage,
                 FullLinkTraceExtraInfoId.FLT_PRINT_SAMPLE_PCT.getValue());
-            storeInt8(buf, slowQueryThreshold,
+            storeInt8(buf, slowQueryThresholdMs,
                 FullLinkTraceExtraInfoId.FLT_SLOW_QUERY_THRES.getValue());
+            storeInt1(buf, showTraceEnabled ? (byte) 1 : (byte) 0,
+                FullLinkTraceExtraInfoId.FLT_SHOW_TRACE_ENABLE.getValue());
 
             // fill type and len in the head
             int totalLen = buf.getPosition() - originalPos - TYPE_LEN_LENGTH;
@@ -307,12 +316,13 @@ public class FullLinkTrace {
                 } else if (extraId == FullLinkTraceExtraInfoId.FLT_PRINT_SAMPLE_PCT.value) {
                     printSamplePercentage = getDouble(buf, valLen);
                 } else if (extraId == FullLinkTraceExtraInfoId.FLT_SLOW_QUERY_THRES.value) {
-                    slowQueryThreshold = getInt8(buf, valLen);
+                    slowQueryThresholdMs = getInt8(buf, valLen);
+                } else if (extraId == FullLinkTraceExtraInfoId.FLT_SHOW_TRACE_ENABLE.value) {
+                    showTraceEnabled = getInt1(buf, valLen) == 1;
                 } else {
                     buf.skipBytes(valLen);
                 }
             }
-
         }
 
         public byte getLevel() {
@@ -332,7 +342,7 @@ public class FullLinkTrace {
         }
 
         public long getSlowQueryThreshold() {
-            return slowQueryThreshold;
+            return slowQueryThresholdMs;
         }
 
         private boolean isValid() {
@@ -607,13 +617,70 @@ public class FullLinkTrace {
         }
     }
 
-    public class TraceInfo {
-        private DriveLog   driverLog   = new DriveLog();
-        public ControlInfo controlInfo = new ControlInfo();
-        public AppInfo     appInfo     = new AppInfo();
-        QueryInfo          queryInfo   = new QueryInfo();
-        SpanInfo           spanInfo    = new SpanInfo();
+    private class ShowTraceSpan extends FullLinkTraceInfoBase {
+        private String trace;
 
+        private ShowTraceSpan() {
+            type = FullLinkTraceExtraInfoType.FLT_SHOW_TRACE_SPAN;
+        }
+
+        @Override
+        protected int getSerializeSize() {
+            int localize = 0;
+
+            if (trace != null && trace.length() != 0) {
+                localize += TYPE_LEN_LENGTH;
+                localize += getStoreStringSize(trace.length());
+            }
+
+            return localize;
+        }
+
+        @Override
+        protected void serialize(Buffer buf) throws IOException {
+            int originalPos = buf.getPosition();
+
+            // reserve for type and len
+            buf.checkRemainder(TYPE_LEN_LENGTH);
+            buf.setPosition(originalPos + TYPE_LEN_LENGTH);
+
+            storeString(buf, trace, trace.length(),
+                FullLinkTraceExtraInfoId.FLT_DRIVER_SHOW_TRACE_SPAN.getValue());
+
+            // fill type and len in the head
+            int totalLen = buf.getPosition() - originalPos - TYPE_LEN_LENGTH;
+            buf.setPosition(originalPos);
+            storeTypeAndLen(buf, type.getValue(), totalLen);
+            buf.setPosition(buf.getPosition() + totalLen);
+        }
+
+        @Override
+        protected void deserialize(Buffer buf, final int infoEndPos) throws IOException {
+            while (buf.getPosition() < infoEndPos) {
+                short extraId = resolveType(buf);
+                int valLen = resolveLength(buf);
+
+                if (extraId == FullLinkTraceExtraInfoId.FLT_DRIVER_SHOW_TRACE_SPAN.value) {
+                    trace = getString(buf, valLen);
+                } else {
+                    buf.skipBytes(valLen);
+                }
+            }
+        }
+
+        private void reset() {
+            trace = null;
+        }
+
+    }
+
+    public class TraceInfo {
+        private DriveLog   driverLog     = new DriveLog();
+        public ControlInfo controlInfo   = new ControlInfo();
+        public AppInfo     appInfo       = new AppInfo();
+        QueryInfo          queryInfo     = new QueryInfo();
+        SpanInfo           spanInfo      = new SpanInfo();
+        ShowTraceSpan      showTraceSpan = new ShowTraceSpan();
         private boolean    useNewExtraInfo;
         // use ObObj
         private ObObj      key;
@@ -687,36 +754,44 @@ public class FullLinkTrace {
                              + (isFollow ? "true" : "false");
 
             StringBuilder sb = new StringBuilder();
-            boolean firstOne = true;
-            for (TagContext tag : tagList) {
-                if (!firstOne) {
-                    sb.append(",");
-                } else {
-                    firstOne = false;
+            sb.append(spanStr);
+
+            if (endTimestamp == 0 && ! tagList.isEmpty()) {
+                sb.append(",\"tags\":[");
+
+                boolean firstOne = true;
+                for (TagContext tag : tagList) {
+                    if (!firstOne) {
+                        sb.append(",");
+                    } else {
+                        firstOne = false;
+                    }
+                    sb.append(tag.getJsonString());
                 }
-                sb.append(tag.getJsonString());
-            }
-            String tagsStr = sb.toString();
-            if (tagsStr.length() > 0) {
-                spanStr += ",\"tags\":[" + tagsStr + "]";
+
+                sb.append(']');
             }
 
-            return spanStr;
+            return sb.toString();
         }
     }
 
     private boolean                              traceEnable;
     private boolean                              forcePrint;
-    public TraceInfo                             traceInfo;
+    private boolean                              autoFlush;
+    private boolean                              showTraceEnable;
 
+    public TraceInfo                             traceInfo;
     private UUID                                 traceId;
     private UUID                                 rootSpanId;
     private ConcurrentHashMap<UUID, SpanContext> activeSpanMap = new ConcurrentHashMap();
     private SpanContext                          lastActiveSpan;
     private byte                                 level;
-    private boolean                              autoFlush;
-    private byte[]                               logBuf        = new byte[MAX_TRACE_LOG_SIZE];
+
+    private byte[]                               logBuf        = new byte[MAX_DRIVER_LOG_SIZE];
     private int                                  logBufOffset;
+    private byte[]                               showTraceBuf  = new byte[MAX_SHOW_TRACE_SPAN_SIZE];
+    private int                                  showTraceBufOffset;
 
     // todo: consider whether threads share one connection
     public FullLinkTrace(boolean useNewExtraInfo) {
@@ -725,25 +800,37 @@ public class FullLinkTrace {
         rootSpanId = new UUID(0, 0);
     }
 
+    public boolean isShowTraceEnabled() {
+        return this.traceInfo.controlInfo.showTraceEnabled;
+    }
+
     public void beginTrace() {
         traceEnable = false;
+        showTraceEnable = false;
         forcePrint = false;
 
-        if (traceInfo.controlInfo.isValid()) {
+        if (isShowTraceEnabled()) {
+            showTraceEnable = true;
+            traceEnable = true;
+        } else if (traceInfo.controlInfo.isValid()) {
             traceEnable = getPercentage() < traceInfo.controlInfo.samplePercentage;
         }
 
         if (traceEnable) {
-            switch (traceInfo.controlInfo.recordPolicy) {
-                case RP_ALL:
-                    forcePrint = true;
-                    break;
-                case RP_SAMPLE_AND_SLOW_QUERY:
-                    forcePrint = getPercentage() < traceInfo.controlInfo.printSamplePercentage;
-                    break;
-                default: // RP_ONLY_SLOW_QUERY, MAX_RECORD_POLICY
-                    forcePrint = false;
-                    break;
+            if (isShowTraceEnabled()) {
+                forcePrint = true;
+            } else {
+                switch (traceInfo.controlInfo.recordPolicy) {
+                    case RP_ALL:
+                        forcePrint = true;
+                        break;
+                    case RP_SAMPLE_AND_SLOW_QUERY:
+                        forcePrint = getPercentage() < traceInfo.controlInfo.printSamplePercentage;
+                        break;
+                    default: // RP_ONLY_SLOW_QUERY, MAX_RECORD_POLICY
+                        forcePrint = false;
+                        break;
+                }
             }
 
             traceId = UUID.randomUUID();
@@ -773,17 +860,22 @@ public class FullLinkTrace {
 
     private void flushTransaction() throws IOException {
         for (SpanContext span : activeSpanMap.values()) {
-            flushQuery(span);
+            String log = flushQuery(span);
 
             if (0 != span.endTimestamp) {
-                activeSpanMap.remove(span.spanId);
+                writeShowTraceIntoBuffer(log);
             }
         }
     }
 
-    private void flushQuery(SpanContext span) throws IOException {
-        writeLogIntoTrace(span.getJsonString());
+    private String flushQuery(SpanContext span) throws IOException {
+        String log = writeLogIntoBuffer(span.getJsonString());
         span.tagList.clear();
+
+        if (0 != span.endTimestamp) {
+            activeSpanMap.remove(span.spanId);
+        }
+        return log;
     }
 
     // todo: add span type and span level mapper
@@ -831,16 +923,17 @@ public class FullLinkTrace {
             span.endTimestamp = System.currentTimeMillis();
 
             if ((traceInfo.controlInfo.recordPolicy == RecordPolicy.RP_ONLY_SLOW_QUERY || traceInfo.controlInfo.recordPolicy == RecordPolicy.RP_SAMPLE_AND_SLOW_QUERY)
-                && traceInfo.controlInfo.slowQueryThreshold > 0
-                && ((span.endNano - span.startNano) / 1000 >= traceInfo.controlInfo.slowQueryThreshold)) {
+                    && traceInfo.controlInfo.slowQueryThresholdMs > 0
+                    && ((span.endNano - span.startNano) / 1000 >= traceInfo.controlInfo.slowQueryThresholdMs)) {
                 // if a slow query is found, send log to server for print
                 slowQueryFound = true;
             }
         }
 
-        if (forcePrint || slowQueryFound) {
+        if (forcePrint) {
+            flushTransaction();
+        } else if (slowQueryFound) {
             flushQuery(span);
-            activeSpanMap.remove(span.spanId);
         }
     }
 
@@ -858,7 +951,7 @@ public class FullLinkTrace {
         return lastActiveSpan;
     }
 
-    public void setTag(int tagType, String tagKey, String tagValue) {
+    public void setSpanTag(int tagType, String tagKey, String tagValue) {
         SpanContext span = getCurrentSpan();
         if (span != null && tagKey != null) {
             TagContext tag = new TagContext(tagType, tagKey, tagValue);
@@ -878,51 +971,68 @@ public class FullLinkTrace {
             traceInfo.spanInfo.forcePrint = forcePrint;
 
             if (forcePrint) {
-                flushQuery(span);
+                flushTransaction();
             }
         }
 
         // prepare log
         if (logBufOffset > 0) {
             traceInfo.driverLog.log = new String(logBuf, 0, logBufOffset) + '\0'; // server needs '\0'
-            logBufOffset = 0;
+        }
+        if (showTraceEnable && showTraceBufOffset > 0) {
+            traceInfo.showTraceSpan.trace = '[' + new String(showTraceBuf, 0, showTraceBufOffset) + ']' + '\0';
         }
 
-        int totalSize = 0;
         // get size of info
-        int appInfoSize = traceInfo.appInfo.getSerializeSize();
         int driverLogSize = traceInfo.driverLog.getSerializeSize();
+        int appInfoSize = traceInfo.appInfo.getSerializeSize();
         int spanInfoSize = traceInfo.spanInfo.getSerializeSize();
-        totalSize += appInfoSize + driverLogSize + spanInfoSize;
+        int showTraceSize = traceInfo.showTraceSpan.getSerializeSize();
+        int totalSize = driverLogSize + appInfoSize + spanInfoSize + showTraceSize;
 
         if (totalSize > 0) {
             traceInfo.valueData = new byte[totalSize + 1];
             Buffer buf = new Buffer(traceInfo.valueData, totalSize);
 
+            // serialize driver log
+            if (driverLogSize != 0) {
+                traceInfo.driverLog.serialize(buf);
+                traceInfo.driverLog.reset();
+                if (buf.getPosition() != driverLogSize) {
+                    throw new IOException("Unexpected end position in EXTRA INFO: actual = " + buf.getPosition()
+                            + ", expected = " + driverLogSize);
+                }
+            }
             // serialize app info
             if (appInfoSize != 0) {
                 traceInfo.appInfo.serialize(buf);
                 traceInfo.appInfo.reset();
-                if (buf.getPosition() != appInfoSize) {
-                    throw new IOException("Full link trace: serialize extra info failed.");
-                }
-            }
-            // serialize driver span
-            if (driverLogSize != 0) {
-                traceInfo.driverLog.serialize(buf);
-                traceInfo.driverLog.reset();
-                if (buf.getPosition() != appInfoSize + driverLogSize) {
-                    throw new IOException("Full link trace: serialize extra info failed.");
+                if (buf.getPosition() != driverLogSize + appInfoSize) {
+                    throw new IOException("Unexpected end position in EXTRA INFO: actual = " + buf.getPosition()
+                            + ", expected = " + (driverLogSize + appInfoSize));
                 }
             }
             // serialize span info
             if (spanInfoSize != 0) {
                 traceInfo.spanInfo.serialize(buf);
                 traceInfo.spanInfo.reset();
-                if (buf.getPosition() != totalSize) {
-                    throw new IOException("Full link trace: serialize extra info failed.");
+                if (buf.getPosition() != driverLogSize + appInfoSize + spanInfoSize) {
+                    throw new IOException("Unexpected end position in EXTRA INFO: actual = " + buf.getPosition()
+                            + ", expected = " + (driverLogSize + appInfoSize + spanInfoSize));
                 }
             }
+            // serialize show trace span
+            if (showTraceSize != 0) {
+                traceInfo.showTraceSpan.serialize(buf);
+                traceInfo.showTraceSpan.reset();
+                if (buf.getPosition() != totalSize) {
+                    throw new IOException("Unexpected end position in EXTRA_INFO: actual = " + buf.getPosition()
+                            + ", expected = " + totalSize);
+                }
+            }
+
+            logBufOffset = 0;
+            showTraceBufOffset = 0;
 
             // fill into ob20 protocol packet
             if (!traceInfo.useNewExtraInfo) {
@@ -933,23 +1043,36 @@ public class FullLinkTrace {
             } else {
                 // use ByteStream(NewExtraInfo)
                 ob20.setExtraInfo(OceanBaseProtocolV20.ExtraInfoKey.FULL_TRC,
-                    Arrays.copyOfRange(traceInfo.valueData, 0, totalSize));
+                        Arrays.copyOfRange(traceInfo.valueData, 0, totalSize));
             }
         }
     }
 
-    private void writeLogIntoTrace(String log) throws IOException {
-        String format = "{\"trace_id\":\"" + toStringUUID(traceId) + "\"," + log + "}";
-        long length = Math.min(MAX_TRACE_LOG_SIZE - logBufOffset, format.length());
-        System.arraycopy(format.getBytes(StandardCharsets.UTF_8), 0, logBuf, logBufOffset,
-            (int) length);
+    private String writeLogIntoBuffer(String spanJson) throws IOException {
+        String log = "{\"trace_id\":\"" + toStringUUID(traceId) + "\"," + spanJson + "}";
 
-        if (logBufOffset + length >= MAX_TRACE_LOG_SIZE) {
-            throw new IOException("Buffer will overflow: need " + length + " bytes, but remain "
-                                  + (MAX_TRACE_LOG_SIZE - logBufOffset) + " bytes.");
-        } else {
-            logBufOffset += length;
+        if (log.length() > MAX_DRIVER_LOG_SIZE - logBufOffset) {
+            throw new IOException("The length of DRIVER_LOG exceeds the buffer: need " + log.length()
+                    + " bytes, but remain " + (MAX_DRIVER_LOG_SIZE - logBufOffset) + " bytes.");
         }
+
+        System.arraycopy(log.getBytes(StandardCharsets.UTF_8), 0, logBuf, logBufOffset, log.length());
+        logBufOffset += log.length();
+        return log;
+    }
+
+    private void writeShowTraceIntoBuffer(String log) throws IOException {
+        if (showTraceBufOffset > 1) {
+            showTraceBuf[showTraceBufOffset++] = ','; // Array out of bounds has the same effect as throwing an exception after active judgment.
+        }
+
+        if (log.length() > MAX_DRIVER_LOG_SIZE - showTraceBufOffset) {
+            throw new IOException("The length of SHOW_TRACE_SPAN exceeds the buffer: need " + log.length()
+                    + " bytes, but remain " + (MAX_DRIVER_LOG_SIZE - showTraceBufOffset) + " bytes.");
+        }
+
+        System.arraycopy(log.getBytes(StandardCharsets.UTF_8), 0, showTraceBuf, showTraceBufOffset, log.length());
+        showTraceBufOffset += log.length();
     }
 
     private static String toStringUUID(UUID uuid) {
@@ -1159,7 +1282,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readInt3();
+        return buf.readInt3Bytes();
     }
 
     private static int getInt4(Buffer buf, long valLen) throws IOException {
@@ -1167,7 +1290,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readInt4();
+        return buf.readInt();
     }
 
     private static long getInt8(Buffer buf, long valLen) throws IOException {
@@ -1175,7 +1298,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return buf.readLong8();
+        return buf.readLong();
     }
 
     private static double getDouble(Buffer buf, long valLen) throws IOException {
@@ -1183,7 +1306,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return Double.longBitsToDouble(buf.readLong8());
+        return Double.longBitsToDouble(buf.readLong());
     }
 
     private static float getFloat(Buffer buf, long valLen) throws IOException {
@@ -1191,7 +1314,7 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        return Float.intBitsToFloat(buf.readInt4());
+        return Float.intBitsToFloat(buf.readInt());
     }
 
     private static UUID getUUID(Buffer buf, long valLen) throws IOException {
@@ -1199,8 +1322,8 @@ public class FullLinkTrace {
             throw new IOException("Wrong length to decode: " + valLen);
         }
         buf.checkRemainder(valLen);
-        long high = buf.readLong8();
-        long low = buf.readLong8();
+        long high = buf.readLong();
+        long low = buf.readLong();
         return new UUID(low, high);
     }
 
@@ -1216,7 +1339,7 @@ public class FullLinkTrace {
 
     static int resolveLength(Buffer buf) throws IOException {
         buf.checkRemainder(LEN_LENGTH);
-        return buf.readInt4();
+        return buf.readInt();
     }
 
 }
