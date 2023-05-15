@@ -197,7 +197,7 @@ public class ComplexUtil {
                 storeComplexStruct(pos, (ComplexData) value, options);
                 return;
             case ComplexDataType.TYPE_NUMBER:
-                String valueStr = String.valueOf((Integer) value);
+                String valueStr = String.valueOf(value);
                 pos.writeFieldLength(valueStr.getBytes().length);
                 pos.write(valueStr.getBytes(StandardCharsets.UTF_8));
                 return;

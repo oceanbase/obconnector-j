@@ -51,7 +51,6 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -1675,4 +1674,37 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertEquals(9f, cs.getInt(1), .001);
     }
 
+    @Test
+    public void testStoreComplexAttrData() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("CREATE OR REPLACE TYPE MY_OBJ_1 AS OBJECT(COL1 INT,COL2 VARCHAR(20),COL3 NUMBER)");
+        createProcedure("MY_PROC_EXTIN", "(X1 IN MY_OBJ_1,X2 OUT INT) IS BEGIN \n" +
+                "                DBMS_OUTPUT.PUT_LINE(X1.COL1); \n" +
+                "                DBMS_OUTPUT.PUT_LINE(X1.COL2); \n" +
+                "                DBMS_OUTPUT.PUT_LINE(X1.COL3); \n" +
+                "                X2 := X1.COL3;\n" +
+                "                END;");
+        try (CallableStatement prepareCall=
+                     sharedConnection.prepareCall("CALL MY_PROC_EXTIN(?,?)");) {
+            Struct struct = sharedConnection.createStruct("MY_OBJ_1", new Object[]{12, "Marry", 12.123});
+            prepareCall.setObject(1, struct);
+            prepareCall.registerOutParameter(2, Types.INTEGER);
+            prepareCall.execute();
+            assertEquals(12,prepareCall.getObject(2));
+
+        }
+        //ps protocol
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        try (CallableStatement prepareCall=
+                     conn.prepareCall("CALL MY_PROC_EXTIN(?,?)");) {
+            Struct struct = conn.createStruct("MY_OBJ_1", new Object[]{12, "Marry", 12.123});
+            prepareCall.setObject(1, struct);
+            prepareCall.registerOutParameter(2, Types.INTEGER);
+            prepareCall.execute();
+            assertEquals(12,prepareCall.getObject(2));
+
+        }
+        stmt.close();
+    }
 }
