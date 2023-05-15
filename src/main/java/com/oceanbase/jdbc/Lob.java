@@ -136,6 +136,31 @@ class ObMemLobCommon {
 
 }
 
+// 4 bytes
+class ObLobCommon {
+
+    protected int flags;       // uint32_t: 24 bits
+
+    ObLobCommon(int flags) {
+        this.flags = flags;
+    }
+
+    public boolean isInit() {
+        return (flags & Flag.isInit) == 1;
+    }
+
+    public boolean inRow() {
+        return (flags & Flag.inRow) == 1 << 2;
+    }
+
+    public static class Flag {
+        public static final int isInit = 1;
+        public static final int isEmpty = 1 << 1;
+        public static final int inRow   = 1 << 2;      // only persistent lob could be open
+    }
+
+}
+
 class ObLobLocatorV2 extends ObLobLocator {
 
     public static int MEM_LOB_COMMON_LENGTH = 8;
@@ -261,17 +286,21 @@ public abstract class Lob implements Serializable {
                 readInRowLobData(isBinary, buffer, locator.payloadSize);
             } else if (!common.hasExtern() && !common.isSimple()) {
                 buffer.skipByte(); // ObLobCommon.version
-                int lobCommonFlag = buffer.readInt3Bytes();
+                ObLobCommon lobCommon = new ObLobCommon(buffer.readInt3Bytes());
 
-                // uint32_t is_init_ : 1
-                if ((lobCommonFlag & 1) == 0) {
+                if (!lobCommon.isInit()) {
                     // [ObMemLobCommon 8 bytes][ObLobCommon 4 bytes : is_init_ == 0][data]
                     locator.payloadSize = buffer.remaining();
                     readInRowLobData(isBinary, buffer, locator.payloadSize);
                 } else {
-                    // [ObMemLobCommon 8 bytes][ObLobCommon 4 bytes : is_init_ == 1][ObLobData 24 bytes][data]
                     buffer.skipBytes(16); // ObLobData.id_
                     locator.payloadSize = buffer.readLong(); // ObLobData.byte_size_
+
+                    if (!lobCommon.inRow()) {
+                        // [ObMemLobCommon 8 bytes][ObLobCommon 4 bytes : is_init_ == 1 && in_row_ == 0][ObLobData 24 bytes]<--- 56 bytes --->[data]
+                        buffer.skipBytes(56);
+                    }
+                    // [ObMemLobCommon 8 bytes][ObLobCommon 4 bytes : is_init_ == 1 && in_row_ == 1][ObLobData 24 bytes][data]
 
                     readInRowLobData(isBinary, buffer, locator.payloadSize);
                 }
@@ -279,7 +308,7 @@ public abstract class Lob implements Serializable {
         } else {
             // out-row data
             if (common.hasExtern()) {
-                // [ObMemLobCommon : has_extern == 1][ObMemLobExternHeader : rowkey_size][uint16 : ex_size]<--- ex_size+rowkey_size --->[ObLobCommon][ObLobData]
+                // [ObMemLobCommon 8 bytes : has_extern == 1][ObMemLobExternHeader 32 bytes : rowkey_size][uint16 : ex_size]<--- ex_size+rowkey_size --->[ObLobCommon 4 bytes][ObLobData 24 bytes]
                 buffer.skipBytes(22); // ObMemLobExternHeader: reserved_, table_id_, column_idx_, flags_
                 int rowkeySize = buffer.readInt2Bytes();
                 buffer.skipBytes(8); // ObMemLobExternHeader: payload_offset_, payload_size_
@@ -292,7 +321,7 @@ public abstract class Lob implements Serializable {
                 buffer.skipBytes(16); // ObLobData.id_
                 locator.payloadSize = buffer.readLong(); // ObLobData.byte_size_
             } else {
-                // [ObMemLobCommon : has_extern == 1][ObLobCommon 4 bytes][ObLobData 24 bytes]
+                // [ObMemLobCommon 8 bytes : has_extern == 1][ObLobCommon 4 bytes][ObLobData 24 bytes]
                 buffer.skipBytes(4); // ObLobCommon
 
                 buffer.skipBytes(16); // ObLobData.id_

@@ -659,4 +659,220 @@ public class ClobOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void aone49521917() throws SQLException {
+        Connection conn = setConnectionOrigin("?useUnicode=true&characterEncoding=utf8&socketTimeout=1800000&connectTimeout=180000" +
+                "&usePipelineAuth=false&verifyServerCertificate=false&useSSL=false&allowMultiQueries=true&rewriteBatchedStatements=true" +
+                "&useLocalSessionState=true&useCompression=true&noDatetimeStringSync=true&zeroDateTimeBehavior=convertToNull" +
+                "&emulateUnsupportedPstmts=true&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        createProcedure("PRO_ZEYANG_220223", "(t in varchar2, v_result out number) is\n" +
+                "\n" +
+                "count_ number := 0; --用于判断是否有模型\n" +
+                "subjectName varchar2(100) := '财务总账余额等于支付未清算报文明细汇总';\n" +
+                "bb_time date;\n" +
+                "subjectNumber varchar2(100); --BEPS对应 40700030025 CBPS对应 40700030032 IBPS对应 40700030037\n" +
+                "branchId varchar2(100);\n" +
+                "current_id varchar2(100);\n" +
+                "orgrank int;\n" +
+                "bbsId varchar2(100);\n" +
+                "err_code varchar2(2000);\n" +
+                "err_msg varchar2(2000);\n" +
+                "brno varchar2(10);\n" +
+                "tyes varchar2(10);\n" +
+                "--r number :=0;\n" +
+                "cursor c_admission is\n" +
+                "select t3.bbs_subjectnumber bbs_subjectnumber,\n" +
+                "t3.bbs_frequency bbs_frequency,\n" +
+                "t4.bbs_orgrank,\n" +
+                "t4.bbs_orgrank_name,\n" +
+                "t4.bbs_currid,\n" +
+                "t4.bbs_currid_name,\n" +
+                "t4.bbs_orgid,\n" +
+                "t4.bbs_id\n" +
+                "from biz_accountcheck_model t1\n" +
+                "left join biz_pattern_glacc t2\n" +
+                "on t1.bacm_model_id = t2.brpg_pattern_id\n" +
+                "inner join biz_base_subject t3\n" +
+                "on t3.bbs_subjectnumber = t2.brpg_glacc_id\n" +
+                "inner join biz_base_subject_item t4\n" +
+                "on t4.bbs_pid = t3.bbs_id\n" +
+                "where t1.bacm_model_name = subjectName\n" +
+                "and t1.bacm_model_isvalid = 1\n" +
+                "and t4.bbs_id in\n" +
+                "(select t.bbs_id\n" +
+                "from biz_base_subject_branch t\n" +
+                "where t.bbs_pid = t3.bbs_id\n" +
+                "and t.bbs_patternid = t1.bacm_model_id);\n" +
+                "r_c_admission c_admission%rowtype;\n" +
+                "begin\n" +
+                "brno := '80002';\n" +
+                "--删除当前日期数据，防止重复\n" +
+                "delete from biz_model_business\n" +
+                "where BIZ_NAME = subjectName\n" +
+                "and TX_DT = t;\n" +
+                "commit;\n" +
+                "open c_admission;\n" +
+                "loop\n" +
+                "fetch c_admission\n" +
+                "into r_c_admission; --循环游标中的数据\n" +
+                "exit when c_admission%notfound;\n" +
+                "subjectNumber := r_c_admission.bbs_subjectnumber;\n" +
+                "branchId := r_c_admission.bbs_orgid;\n" +
+                "current_id := r_c_admission.bbs_currid;\n" +
+                "orgrank := r_c_admission.bbs_orgrank;\n" +
+                "bbsId := r_c_admission.bbs_id;\n" +
+                "if orgrank = 1 then\n" +
+                "--dbms_output.put_line('总行');\n" +
+                "insert into biz_model_business\n" +
+                "(tx_dt, --账务日期\n" +
+                "glacc_id, --账号\n" +
+                "curr_id, --货币代码\n" +
+                "branch_id, --机构\n" +
+                "amount, --交易金额\n" +
+                "biz_name, --账号名称\n" +
+                "D_AMT, --今日额变动-CNY\n" +
+                "D_AMT1, --今日额变动（原币）\n" +
+                "D_AMT2, --今日额变动-USD\n" +
+                "D_AMTDR, --今日借方额变动-CNY\n" +
+                "D_AMTDR1, --今日借方额变动（原币）\n" +
+                "D_AMTDR2, --今日借方额变动-USD\n" +
+                "D_AMTCR, --今日贷方额变动-CNY\n" +
+                "D_AMTCR1, --今日贷方额变动（原币）\n" +
+                "D_AMTCR2, --今日贷方额变动-USD\n" +
+                "DAY1, --今日余额-CNY\n" +
+                "DAY2, --昨天余额-CNY\n" +
+                "DAY1_1, --今日余额（原币）\n" +
+                "DAY2_1 --昨天余额（原币）\n" +
+                ")\n" +
+                "select s.tx_dt as tx_dt,\n" +
+                "subjectNumber, --as 账号\n" +
+                "s.curr_id, --as 币种\n" +
+                "s.branch_id, \n" +
+                "case\n" +
+                "when (b.amount is null or s.DAY1_1 = 0) then\n" +
+                "0\n" +
+                "else\n" +
+                "b.amount\n" +
+                "end amt, --金额\n" +
+                "subjectName as biz_name,\n" +
+                "s.D_AMT, --今日额变动-CNY\n" +
+                "s.D_AMT1, --今日额变动(原币)\n" +
+                "s.D_AMT2, --今日额变动-USD\n" +
+                "s.D_AMTDR, --今日借方额变动-CNY\n" +
+                "s.D_AMTDR1, --今日借方额变动(原币)\n" +
+                "s.D_AMTDR2, --今日借方额变动-USD\n" +
+                "s.D_AMTCR, --今日贷方额变动-CNY\n" +
+                "s.D_AMTCR1, --今日贷方额变动(原币)\n" +
+                "s.D_AMTCR2, --今日贷方额变动-USD\n" +
+                "s.DAY1, --今日余额-CNY\n" +
+                "s.DAY2, --昨天余额-CNY\n" +
+                "s.DAY1_1, --今日余额(原币)\n" +
+                "s.DAY2_1 --昨天余额(原币)\n" +
+                "from (select u.tx_dt tx_dt,\n" +
+                "u.glacc_id,\n" +
+                "u.curr_id,\n" +
+                "u.branch_id,\n" +
+                "sum(d_amt) d_amt,\n" +
+                "sum(D_AMT1) D_AMT1,\n" +
+                "sum(D_AMT2) D_AMT2,\n" +
+                "sum(D_AMTDR) D_AMTDR,\n" +
+                "sum(D_AMTDR1) D_AMTDR1,\n" +
+                "sum(D_AMTDR2) D_AMTDR2,\n" +
+                "sum(D_AMTCR) D_AMTCR,\n" +
+                "sum(D_AMTCR1) D_AMTCR1,\n" +
+                "sum(D_AMTCR2) D_AMTCR2,\n" +
+                "sum(DAY1) DAY1,\n" +
+                "sum(DAY2) DAY2,\n" +
+                "sum(DAY1_1) DAY1_1,\n" +
+                "sum(DAY2_1) DAY2_1\n" +
+                "from ods_ebs_s1gl u\n" +
+                "where u.glacc_id = subjectNumber\n" +
+                "and u.tx_dt = t\n" +
+                "and u.branch_id = brno\n" +
+                "and u.curr_id = current_id\n" +
+                "group by u.tx_dt, u.glacc_id, u.curr_id, u.branch_id) s\n" +
+                "left join (select tb.tx_dt,\n" +
+                "case\n" +
+                "when tb.sys_id = 'BEPS' then\n" +
+                "'40700030025'\n" +
+                "when tb.sys_id = 'IBPS' then\n" +
+                "'40700030037'\n" +
+                "when tb.sys_id = 'CBPS' then\n" +
+                "'40700030032'\n" +
+                "end glacc_id,\n" +
+                "sum(tb.amount) amount\n" +
+                "from (SELECT r.tx_dt,\n" +
+                "r.sys_id,\n" +
+                "r.srcacc_fg,\n" +
+                "case\n" +
+                "when r.srcacc_fg = 'D' then\n" +
+                "sum(-r.actsetl_amt)\n" +
+                "else\n" +
+                "sum(r.actsetl_amt)\n" +
+                "end amount\n" +
+                "FROM ods_rs_tinf r\n" +
+                "WHERE r.clea2_dt = t\n" +
+                "--and r.tx_dt = t\n" +
+                "AND r.pretranssts_id = 'STLL'\n" +
+                "AND r.sys_id IN ('BEPS', 'IBPS', 'CBPS')\n" +
+                "GROUP BY r.tx_dt, r.sys_id, r.srcacc_fg) tb\n" +
+                "group by tb.tx_dt, tb.sys_id) b\n" +
+                "on s.tx_dt = b.tx_dt\n" +
+                "and s.glacc_id = b.glacc_id;\n" +
+                "commit;\n" +
+                "end if;\n" +
+                "\n" +
+                "end loop;\n" +
+                "close c_admission;\n" +
+                "select count(*)\n" +
+                "into count_\n" +
+                "from biz_bridge\n" +
+                "where bb_business_name = subjectName;\n" +
+                "select sysdate into bb_time from dual;\n" +
+                "if (count_ > 0) then\n" +
+                "update biz_bridge\n" +
+                "set bb_flag = 1, bb_modify_time = bb_time, bb_tx_dt = t\n" +
+                "where bb_business_name = subjectName;\n" +
+                "else\n" +
+                "insert into biz_bridge\n" +
+                "(bb_model_name,\n" +
+                "bb_business_name,\n" +
+                "bb_flag,\n" +
+                "bb_create_time,\n" +
+                "bb_modify_time,\n" +
+                "bb_tx_dt)\n" +
+                "values\n" +
+                "(subjectName, subjectName, '1', bb_time, bb_time, t);\n" +
+                "end if;\n" +
+                "commit;\n" +
+                "V_RESULT := 1;\n" +
+                "dbms_output.put_line('proc PRO_ZFWQS exe status:' || V_RESULT);\n" +
+                "\n" +
+                "EXCEPTION\n" +
+                "WHEN OTHERS THEN\n" +
+                "err_code := Sqlcode;\n" +
+                "err_msg := Sqlerrm;\n" +
+                "insert into BASE_PROCEDURE_ERRORLOG\n" +
+                "(procedurename, errmsg, syserrorcode, syserrormsg, createtime)\n" +
+                "values\n" +
+                "('PRO_ZFWQS', '', err_code, err_msg, (select sysdate from dual));\n" +
+                "commit;\n" +
+                "V_RESULT := 0;\n" +
+                "dbms_output.put_line('proc PRO_ZFWQS exe status: ' || V_RESULT);\n" +
+                "dbms_output.put_line('code:' || Sqlcode || ' error:' || Sqlerrm);\n" +
+                "end PRO_ZEYANG_220223");
+
+        ResultSet rs = stmt.executeQuery("SELECT NAME, TEXT\n" +
+                "        FROM ALL_SOURCE S, ALL_OBJECTS O\n" +
+                "        WHERE S.\"OWNER\"=O.\"OWNER\" AND S.\"NAME\"=O.\"OBJECT_NAME\" AND S.\"TYPE\"=O.\"OBJECT_TYPE\"\n" +
+                "        AND O.\"OBJECT_TYPE\"='PROCEDURE' AND S.\"NAME\" = 'PRO_ZEYANG_220223'\n" +
+                "        ORDER BY \"NAME\",\"TYPE\",\"LINE\" ASC");
+        Assert.assertTrue(rs.next());
+        String text = rs.getString("TEXT");
+        Assert.assertTrue(text.startsWith("procedure PRO_ZEYANG_220223(t in varchar2, v_result out number) is"));
+        java.sql.Clob clob = rs.getClob(2);
+        Assert.assertEquals(text.length(), clob.length());
+    }
+
 }
