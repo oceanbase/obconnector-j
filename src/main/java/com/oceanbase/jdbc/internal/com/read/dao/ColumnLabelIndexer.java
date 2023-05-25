@@ -52,8 +52,8 @@ package com.oceanbase.jdbc.internal.com.read.dao;
 
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -79,23 +79,20 @@ public class ColumnLabelIndexer {
     if (name == null) {
       throw new SQLException("Column name cannot be null");
     }
-    String lowerName = name.toLowerCase(Locale.ROOT);
     // The specs in JDBC 4.0 specify that ResultSet.findColumn and
-    // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not
-    // found, we use
-    // original table name.
+    // ResultSet.getXXX(String name) should use column alias (AS in the query).
+    // If label isn't found, we use original table name.
     if (aliasMap == null) {
-      Map<String, Integer> map = new HashMap<>();
+      Map<String, Integer> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
       int counter = 0;
       for (ColumnDefinition ci : columnInfo) {
         String columnAlias = ci.getName();
         if (columnAlias != null) {
-          columnAlias = columnAlias.toLowerCase(Locale.ROOT);
           map.putIfAbsent(columnAlias, counter);
 
           String tableName = ci.getTable();
           if (tableName != null) {
-            map.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnAlias, counter);
+            map.putIfAbsent(tableName + "." + columnAlias, counter);
           }
         }
         counter++;
@@ -103,7 +100,7 @@ public class ColumnLabelIndexer {
       aliasMap = map;
     }
 
-    Integer res = aliasMap.get(lowerName);
+    Integer res = aliasMap.get(name);
     if (res != null) {
       return res;
     }
@@ -114,12 +111,11 @@ public class ColumnLabelIndexer {
       for (ColumnDefinition ci : columnInfo) {
         String columnRealName = ci.getOriginalName();
         if (columnRealName != null) {
-          columnRealName = columnRealName.toLowerCase(Locale.ROOT);
           map.putIfAbsent(columnRealName, counter);
 
           String tableName = ci.getOriginalTable();
           if (tableName != null) {
-            map.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
+            map.putIfAbsent(tableName + "." + columnRealName, counter);
           }
         }
         counter++;
@@ -127,8 +123,7 @@ public class ColumnLabelIndexer {
       originalMap = map;
     }
 
-    res = originalMap.get(lowerName);
-
+    res = originalMap.get(name);
     if (res == null) {
       Map<String, Integer> possible = new HashMap<>();
       possible.putAll(aliasMap);
@@ -136,14 +131,10 @@ public class ColumnLabelIndexer {
       throw ExceptionFactory.INSTANCE.create(
           String.format(
               "No such column: '%s'. '%s' must be in %s",
-              name, lowerName, possible.keySet().toString()),
+              name, name, possible.keySet().toString()),
           "42S22",
           1054);
     }
     return res;
   }
-
-    public void setAliasMap(Map<String, Integer> map) {
-        this.aliasMap = map;
-    }
 }

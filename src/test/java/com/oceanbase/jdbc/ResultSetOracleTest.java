@@ -1566,4 +1566,23 @@ public class ResultSetOracleTest extends BaseOracleTest {
         tables.close();
     }
 
+    @Test
+    public void testFindByName() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = null;
+        ResultSet rs = null;
+        ResultSetMetaData meta = null;
+
+        createTable("quote_test",
+            "\"id\" int primary key , \"create_TIME\" timestamp, \"Name\" varchar(20)");
+        stmt = conn.createStatement();
+        stmt.executeUpdate("insert into quote_test values(1, sysdate, 'yxy')");
+
+        rs = stmt.executeQuery("select * from quote_test");
+        assertTrue(rs.next());
+        assertEquals("\"", conn.getMetaData().getIdentifierQuoteString());
+        Assert.assertEquals("yxy", rs.getString("Name"));
+        Assert.assertEquals("yxy", rs.getString("name"));
+    }
+
 }
