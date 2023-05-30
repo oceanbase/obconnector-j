@@ -68,6 +68,7 @@ public class ServerPrepareResult implements PrepareResult {
     // share indicator
     private volatile int             shareCounter = 1;
     private volatile boolean         isBeingDeallocate;
+    private volatile boolean         returnByPrepareExecute;
 
     /**
      * PrepareStatement Result object.
@@ -192,4 +193,13 @@ public class ServerPrepareResult implements PrepareResult {
     public ColumnType[] getParameterTypeHeader() {
         return parameterTypeHeader;
     }
+
+    public boolean isReturnByPrepareExecute() {
+        return returnByPrepareExecute;
+    }
+
+    public void setReturnByPrepareExecute(boolean returnByPrepareExecute) {
+        this.returnByPrepareExecute = returnByPrepareExecute;
+    }
+
 }

@@ -1072,4 +1072,65 @@ public class ExecuteReturnOracleTest extends BaseOracleTest {
         retrieveInternal(resultSet);
     }
 
+    /********* bugfix *********/
+    @Test
+    public void aone49647453() throws SQLException {
+        createTable("testSeveralParams", "c1 int, c2 int, c3 int, c4 int");
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=true");
+
+        PreparedStatement ps = conn.prepareStatement("insert into testSeveralParams values(?, ?, ?, ?) returning c1, c2 into ?, ?");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        ps.setInt(3, 111);
+        ps.setInt(4, 1111);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(5, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(6, Types.INTEGER);
+        ps.executeUpdate();
+        ResultSet rs = ((JDBC4ServerPreparedStatement) ps).getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getInt(1));
+        System.out.println(rs.getInt(2));
+
+        ps.setInt(1, 2);
+        ps.setInt(2, 22);
+        ps.setInt(3, 222);
+        ps.setInt(4, 2222);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(5, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(6, Types.INTEGER);
+        ps.executeUpdate();
+        rs = ((JDBC4ServerPreparedStatement) ps).getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getInt(1));
+        System.out.println(rs.getInt(2));
+
+        ps = conn.prepareStatement("update testSeveralParams set c1 = ?, c2 = ?, c3 = ?, c4 = ? where c1 = ? and c2 = ? returning c3, c4 into ?, ?");
+        ps.setInt(1, 3);
+        ps.setInt(2, 33);
+        ps.setInt(3, 333);
+        ps.setInt(4, 3333);
+        ps.setInt(5, 1);
+        ps.setInt(6, 11);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(7, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(8, Types.INTEGER);
+        ps.executeUpdate();
+        rs = ((JDBC4ServerPreparedStatement) ps).getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getInt(1));
+        System.out.println(rs.getInt(2));
+
+        ps.setInt(1, 4);
+        ps.setInt(2, 44);
+        ps.setInt(3, 444);
+        ps.setInt(4, 4444);
+        ps.setInt(5, 2);
+        ps.setInt(6, 22);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(7, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(8, Types.INTEGER);
+        ps.executeUpdate();
+        rs = ((JDBC4ServerPreparedStatement) ps).getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getInt(1));
+        System.out.println(rs.getInt(2));
+    }
+
 }

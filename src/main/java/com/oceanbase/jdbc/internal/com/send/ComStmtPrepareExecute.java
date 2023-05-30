@@ -235,6 +235,7 @@ public class ComStmtPrepareExecute {
                 if (serverPrepareResult == null) {
                     serverPrepareResult = new ServerPrepareResult(results.getSql(), statementId,
                         columns, params, protocol);
+                    serverPrepareResult.setReturnByPrepareExecute(true);
                 } else {
                     serverPrepareResult.setStatementId(statementId);
                 }

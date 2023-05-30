@@ -527,18 +527,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (isOracleMode()) {
         // use send piece data
         if (options.useServerPrepStmts && options.usePieceData) {
-          boolean firstPrepared = true;
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
+              if (serverPrepareResult == null) {
+                  // prepare here
+                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+              }
+
               boolean continueWrite = true;
               boolean first = true;
               while (continueWrite) {
-                if (firstPrepared) {
-                  // prepare here
-                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
-                  serverPrepareResult.resetParameterTypeHeader();
-                  firstPrepared = false;
-                }
                 writer.startPacket(0);
                 writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
                 writer.writeInt(serverPrepareResult.getStatementId());
@@ -587,9 +585,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       ComStmtPrepareExecute.send(writer, results, parameterCount, parameters,
-          serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, serverPrepareResult);
+          (serverPrepareResult != null && serverPrepareResult.isReturnByPrepareExecute()) ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, serverPrepareResult);
 
-      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
+      serverPrepareResult = ComStmtPrepareExecute.read(this, reader, (serverPrepareResult != null && serverPrepareResult.isReturnByPrepareExecute()) ? serverPrepareResult : null, results);
       results.setToCursorFetch(false);
       return serverPrepareResult;
     } catch (SQLException qex) {

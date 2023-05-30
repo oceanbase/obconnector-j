@@ -444,7 +444,7 @@ public class ClobOracleTest extends BaseOracleTest {
 
             createTable(clobTest3, "id int, c1 clob, c2 clob, c3 clob, c4 clob, c5 clob, c6 clob");
             PreparedStatement ps = conn.prepareStatement("insert into " + clobTest3
-                                                         + " values(1, ?, ?, ?, ?, ?, ?)");
+                                                         + " values(1, ?, ?, ?, ?, ?, ?) returning c3, c6 into ?, ?");
 
             ps.setCharacterStream(1, null);
             ps.setClob(2, (Clob) null);
@@ -458,6 +458,8 @@ public class ClobOracleTest extends BaseOracleTest {
             }
             writer.flush(); // oracle sends request
             ps.setClob(6, clob);
+            ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(7, Types.CLOB);
+            ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(8, Types.CLOB);
             ps.execute();
 
             ps = conn.prepareStatement("select c1, c2, c3, c4, c5, c6 from " + clobTest3);
