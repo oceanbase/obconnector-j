@@ -1960,6 +1960,25 @@ public class BinaryRowProtocol extends RowProtocol {
             }
         }
 
+        //zoneId instanceof ZoneRegion
+        if (!getProtocol().isOracleMode()) {
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    try {
+                        return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(
+                            raw
+                                    + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                    }
+            }
+        }
+
         if (options.useLegacyDatetimeCode) {
             // system timezone is not an offset
             throw new SQLException(
@@ -2054,6 +2073,25 @@ public class BinaryRowProtocol extends RowProtocol {
                     throw new SQLException("Cannot read " + OffsetTime.class.getName()
                                            + " using a "
                                            + columnInfo.getColumnType().getSqlTypeName() + " field");
+            }
+        }
+
+        //zoneId instanceof ZoneRegion
+        if (!getProtocol().isOracleMode()) {
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    String raw = new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType()));
+                    try {
+                        return OffsetDateTime.parse(raw.replace(" ", "T"));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(
+                            raw
+                                    + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                    }
             }
         }
 
