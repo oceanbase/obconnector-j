@@ -53,7 +53,7 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
-import com.oceanbase.jdbc.internal.com.send.parameters.OBStringParameter;
+import com.oceanbase.jdbc.internal.com.send.parameters.OBVarcharParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
@@ -101,7 +101,7 @@ public class ComStmtPrepareExecute {
         }
         pos.write(cursorFlag); // No acket.ARRAY_BINDIN required with prepareExecute
         pos.writeInt(protocol.getIterationCount());
-        ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement()
+        ParameterHolder lengthEncodedString = new OBVarcharParameter(results.getStatement()
             .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
@@ -284,7 +284,7 @@ public class ComStmtPrepareExecute {
         }
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
-        ParameterHolder lengthEncodedString = new OBStringParameter(results.getStatement()
+        ParameterHolder lengthEncodedString = new OBVarcharParameter(results.getStatement()
             .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);

@@ -43,12 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 public class PreparedStatementOracleTest extends BaseOracleTest {
 
@@ -70,4 +71,50 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testSetFixedCHAR() throws SQLException {
+        Assert.assertFalse(sharedUsePrepare());
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        ObPrepareStatement pstmt = null;
+
+        stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("DROP TABLE TEST_SETFIXEDCHAR");
+        } catch (SQLException ignored) {
+        }
+        stmt.execute("CREATE TABLE TEST_SETFIXEDCHAR(C1 CHAR(10))");
+        stmt.execute("INSERT INTO TEST_SETFIXEDCHAR (C1) VALUES ('ob')");
+        String sql = "SELECT C1 FROM TEST_SETFIXEDCHAR WHERE C1 = ?";
+
+        //TextRowProtocol
+        pstmt = (ObPrepareStatement) sharedConnection.prepareStatement(sql);
+        pstmt.setFixedCHAR(1, "ob");
+        rs = pstmt.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("ob        ", rs.getString(1));
+
+        pstmt.setString(1, "ob");
+        rs = pstmt.executeQuery();
+        Assert.assertTrue(rs.next());   // oracle: Assert.assertFalse(rs.next());
+        Assert.assertEquals("ob        ", rs.getString(1));
+
+        //BinaryRowProtocol
+        conn = setConnection("&useServerPrepStmts=true");
+        pstmt = (ObPrepareStatement) conn.prepareStatement(sql);
+        pstmt.setFixedCHAR(1, "ob");
+        rs = pstmt.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("ob        ", rs.getString(1));
+
+        pstmt.setString(1, "ob");
+        rs = pstmt.executeQuery();
+        Assert.assertTrue(rs.next());   // oracle: Assert.assertFalse(rs.next());
+        Assert.assertEquals("ob        ", rs.getString(1));
+
+        rs.close();
+        pstmt.close();
+        stmt.close();
+    }
 }

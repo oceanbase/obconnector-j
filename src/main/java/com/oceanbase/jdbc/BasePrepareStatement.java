@@ -1697,7 +1697,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
         }
 
         if (this.connection.getProtocol().isOracleMode()) {
-            setParameter(parameterIndex, new OBStringParameter(str, noBackslashEscapes,
+            setParameter(parameterIndex, new OBVarcharParameter(str, noBackslashEscapes,
                 this.connection.getProtocol().getOptions().characterEncoding));
         } else {
             String parameterString = str;
@@ -1786,6 +1786,31 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setLong(final int parameterIndex, final long value) throws SQLException {
         setParameter(parameterIndex, new LongParameter(value));
+    }
+
+    /**
+     * Sets the designated parameter to the given Java <code>string</code> value. The driver converts
+     * this to an SQL <code>CHAR</code> value when it sends it to the database.
+     *
+     * <p>https://docs.oracle.com/cd/E18283_01/appdev.112/e13995/oracle/jdbc/OraclePreparedStatement.html#setFixedCHAR_int__java_lang_String_
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param parameterStr      the parameter value
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL
+     *                      statement; if a database access error occurs or this method is called on a closed <code>
+     *                      PreparedStatement</code>
+     */
+    public void setFixedCHAR(int parameterIndex, String parameterStr) throws SQLException {
+        if (this.connection.getProtocol().isOracleMode()) {
+            if (parameterStr == null) {
+                setNull(parameterIndex, Types.CHAR);
+                return;
+            }
+            setParameter(parameterIndex, new OBStringParameter(parameterStr, noBackslashEscapes,
+                this.connection.getProtocol().getOptions().characterEncoding));
+            return;
+        }
+        throw exceptionFactory.notSupported("Method PrepareStatement.setFixedCHAR() not supported");
     }
 
     /**
