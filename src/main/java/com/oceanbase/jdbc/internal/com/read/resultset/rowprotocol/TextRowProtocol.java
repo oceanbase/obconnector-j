@@ -61,6 +61,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.extend.datatype.*;
@@ -242,10 +243,22 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())));
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return Float.valueOf(getNanAndInfForOracle(columnInfo).floatValue()).toString();
+                    }
+                }
+                Float f = Float.valueOf(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())));
                 return Float.toString(f);
             case BINARY_DOUBLE:
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return Double.toString(d);
+                    }
+                }
                 Double d = Double.valueOf(new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())));
                 return Double.toString(d);
@@ -431,8 +444,13 @@ public class TextRowProtocol extends RowProtocol {
             case NUMBER_FLOAT:
             case BINARY_FLOAT:
                 try {
-                    return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                        .getColumnType())));
+                    if (getProtocol().isOracleMode()) {
+                        Double d = getNanAndInfForOracle(columnInfo);
+                        if (d != null) {
+                            return d.floatValue();
+                        }
+                    }
+                    return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
                     // check
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
@@ -487,11 +505,15 @@ public class TextRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case BIGINT:
-
             case BINARY_DOUBLE:
                 try {
-                    return Double.valueOf(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
+                    if (getProtocol().isOracleMode()) {
+                        Double d = getNanAndInfForOracle(columnInfo);
+                        if (d != null) {
+                            return d;
+                        }
+                    }
+                    return Double.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException(
                         "Incorrect format \""
@@ -505,9 +527,13 @@ public class TextRowProtocol extends RowProtocol {
                 }
             case BINARY_FLOAT:
             case NUMBER_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())));
-                return (double) f;
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return d;
+                    }
+                }
+                return (double) Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
                 String value = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
@@ -978,13 +1004,21 @@ public class TextRowProtocol extends RowProtocol {
             case NUMBER_FLOAT:
                 return getInternalNumber(columnInfo).bigDecimalValue();
             case BINARY_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())));
-                return f;
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return d.floatValue();
+                    }
+                }
+                return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case BINARY_DOUBLE:
-                Double d = Double.valueOf(new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType())));
-                return d;
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return d;
+                    }
+                }
+                return Double.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case NVARCHAR2:
             case NCHAR:
                 return getInternalString(columnInfo, null, timeZone);
@@ -1274,7 +1308,7 @@ public class TextRowProtocol extends RowProtocol {
                                            + " using a "
                                            + columnInfo.getColumnType().getSqlTypeName() + " field");
             }
-        }else if (!this.getProtocol().isOracleMode()){
+        } else if (!this.getProtocol().isOracleMode()) {
             String raw = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
             return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
@@ -1492,5 +1526,19 @@ public class TextRowProtocol extends RowProtocol {
         byte[] b = new byte[length];
         System.arraycopy(buf, pos, b, 0, length);
         return new INTERVALYM(b);
+    }
+
+    private Double getNanAndInfForOracle(ColumnDefinition columnInfo) {
+        String doubleStr = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+        if (doubleStr.toUpperCase(Locale.ROOT).startsWith("NAN")) {
+            return Double.NaN;
+        }
+        if (doubleStr.toUpperCase(Locale.ROOT).startsWith("INF")) {
+            return Double.POSITIVE_INFINITY;
+        }
+        if (doubleStr.toUpperCase(Locale.ROOT).startsWith("-INF")) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        return null;
     }
 }

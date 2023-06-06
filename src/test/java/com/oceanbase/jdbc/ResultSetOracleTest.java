@@ -1617,4 +1617,67 @@ public class ResultSetOracleTest extends BaseOracleTest {
         Assert.assertEquals("yxy", rs.getString("name"));
     }
 
+    @Test
+    public void testNanAndInf() throws SQLException {
+        Assert.assertFalse(sharedUsePrepare());
+        createTable(
+            "TEST_NANANDINF",
+            "tbinaryfloat binary_float, tbinarydouble binary_double");
+
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        //'NaN', 'INF', or '-INF' is invalid number for tnumberfloat number(7,3)
+        stmt.execute("insert into test_nanandinf values ('NaN', 'NaN');");
+        stmt.execute("insert into test_nanandinf values ('INF', 'INF');");
+        stmt.execute("insert into test_nanandinf values ('-INF', '-INF');");
+        String sql = "select * from test_nanandinf";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        ResultSet rs = pstmt.executeQuery();
+
+        Assert.assertTrue(rs.next());
+        // getFloat
+        Assert.assertTrue(Float.isNaN(rs.getFloat(1)));
+        Assert.assertTrue(Float.isNaN(rs.getFloat(2)));
+        // getDouble
+        Assert.assertTrue(Double.isNaN(rs.getDouble(1)));
+        Assert.assertTrue(Double.isNaN(rs.getDouble(2)));
+        // getString
+        Assert.assertEquals(String.valueOf(Float.NaN), rs.getString(1));
+        Assert.assertEquals(String.valueOf(Double.NaN), rs.getString(2));
+        // getObject
+        Assert.assertEquals(Float.NaN, rs.getObject(1));
+        Assert.assertEquals(Double.NaN, rs.getObject(2));
+
+        Assert.assertTrue(rs.next());
+        // getFloat
+        Assert.assertTrue(Float.isInfinite(rs.getFloat(1)));
+        Assert.assertTrue(Float.isInfinite(rs.getFloat(2)));
+        // getDouble
+        Assert.assertTrue(Double.isInfinite(rs.getDouble(1)));
+        Assert.assertTrue(Double.isInfinite(rs.getDouble(2)));
+        // getString
+        Assert.assertEquals(String.valueOf(Float.POSITIVE_INFINITY), rs.getString(1));
+        Assert.assertEquals(String.valueOf(Double.POSITIVE_INFINITY), rs.getString(2));
+        // getObject
+        Assert.assertEquals(Float.POSITIVE_INFINITY, rs.getObject(1));
+        Assert.assertEquals(Double.POSITIVE_INFINITY, rs.getObject(2));
+
+        Assert.assertTrue(rs.next());
+        // getFloat
+        Assert.assertTrue(Float.isInfinite(rs.getFloat(1)));
+        Assert.assertTrue(Float.isInfinite(rs.getFloat(2)));
+        // getDouble
+        Assert.assertTrue(Double.isInfinite(rs.getDouble(1)));
+        Assert.assertTrue(Double.isInfinite(rs.getDouble(2)));
+        // getString
+        Assert.assertEquals(String.valueOf(Float.NEGATIVE_INFINITY), rs.getString(1));
+        Assert.assertEquals(String.valueOf(Double.NEGATIVE_INFINITY), rs.getString(2));
+        // getObject
+        Assert.assertEquals(Float.NEGATIVE_INFINITY, rs.getObject(1));
+        Assert.assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(2));
+
+        rs.close();
+        pstmt.close();
+        stmt.close();
+    }
 }
