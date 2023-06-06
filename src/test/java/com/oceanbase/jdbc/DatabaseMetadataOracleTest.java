@@ -981,7 +981,6 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into quote_test values(1,sysdate)");
 
-//        System.out.println("select * from quote_test");
         rs = stmt.executeQuery("select * from quote_test");
         assertTrue(rs.next());
         assertEquals("\"", sharedConnection.getMetaData().getIdentifierQuoteString());
@@ -993,7 +992,6 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         Assert.assertEquals("QUOTE_TEST", meta.getTableName(2));
 
         try {
-//            System.out.println("select \"id\", create_TIME from quote_test");
             rs = stmt.executeQuery("select \"id\", create_TIME from quote_test");
             assertTrue(rs.next());
             meta = rs.getMetaData();
@@ -1006,11 +1004,19 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
             Assert.assertTrue(e.getMessage().contains("ORA-00904: invalid identifier 'CREATE_TIME' in 'field list'"));
         }
 
+        rs = stmt.executeQuery("select \"id\", \"create_TIME\" as create_time from quote_test");
+        assertTrue(rs.next());
+        meta = rs.getMetaData();
+        Assert.assertEquals("CREATE_TIME", meta.getColumnName(2));
+        Assert.assertEquals("CREATE_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("TEST", meta.getCatalogName(2));
+        Assert.assertEquals("QUOTE_TEST", meta.getTableName(2));
+
         createTable("quote_test_2", "id int primary key , create_TIME timestamp");
         stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into quote_test_2 values(1,sysdate)");
 
-//        System.out.println("select * from quote_test_2");
         rs = stmt.executeQuery("select * from quote_test_2");
         assertTrue(rs.next());
         assertEquals("\"", sharedConnection.getMetaData().getIdentifierQuoteString());
@@ -1021,8 +1027,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         Assert.assertEquals("TEST", meta.getCatalogName(2));
         Assert.assertEquals("QUOTE_TEST_2", meta.getTableName(2));
 
-//        System.out.println("select id, create_TIME from quote_test_2");
-        rs = stmt.executeQuery("select id, create_TIME from quote_test_2");
+        rs = stmt.executeQuery("select id, create_TIME as create_time from quote_test_2");
         assertTrue(rs.next());
         meta = rs.getMetaData();
         Assert.assertEquals("CREATE_TIME", meta.getColumnName(2));

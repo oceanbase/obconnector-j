@@ -76,7 +76,7 @@ public class DatabaseMetadataTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable(dbpkTest,
             "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
@@ -1508,6 +1508,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getIdentifierQuoteStringTest() throws Exception {
+        Assume.assumeFalse(sharedOptions().useOldAliasMetadataBehavior);
         Statement stmt = null;
         ResultSet rs = null;
         ResultSetMetaData meta = null;
@@ -1516,7 +1517,6 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into quote_test values(1,now())");
 
-//        System.out.println("select * from quote_test");
         rs = stmt.executeQuery("select * from quote_test");
         assertTrue(rs.next());
         assertEquals("`", sharedConnection.getMetaData().getIdentifierQuoteString());
@@ -1527,12 +1527,29 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("test", meta.getCatalogName(2));
         Assert.assertEquals("quote_test", meta.getTableName(2));
 
-//        System.out.println("select ID, CREATE_TIME from quote_test");
-        rs = stmt.executeQuery("select ID, CREATE_TIME from quote_test");
+        rs = stmt.executeQuery("select `id`, CREATE_TIME from quote_test");
         assertTrue(rs.next());
         meta = rs.getMetaData();
-        Assert.assertEquals("create_TIME", meta.getColumnName(2));
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));//CREATE_TIME
         Assert.assertEquals("CREATE_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("test", meta.getCatalogName(2));
+        Assert.assertEquals("quote_test", meta.getTableName(2));
+
+        rs = stmt.executeQuery("select `id`, CREATE_TIME as create_time from quote_test");
+        assertTrue(rs.next());
+        meta = rs.getMetaData();
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));//create_time
+        Assert.assertEquals("create_time", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("test", meta.getCatalogName(2));
+        Assert.assertEquals("quote_test", meta.getTableName(2));
+
+        rs = stmt.executeQuery("select `id`, `create_TIME` as create_time from quote_test");
+        assertTrue(rs.next());
+        meta = rs.getMetaData();
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));//create_time
+        Assert.assertEquals("create_time", meta.getColumnLabel(2));
         Assert.assertEquals("", meta.getSchemaName(2));
         Assert.assertEquals("test", meta.getCatalogName(2));
         Assert.assertEquals("quote_test", meta.getTableName(2));
@@ -1541,7 +1558,6 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into quote_test_2 values(1,now())");
 
-//        System.out.println("select * from quote_test_2");
         rs = stmt.executeQuery("select * from quote_test_2");
         assertTrue(rs.next());
         assertEquals("`", sharedConnection.getMetaData().getIdentifierQuoteString());
@@ -1552,12 +1568,20 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("test", meta.getCatalogName(2));
         Assert.assertEquals("quote_test_2", meta.getTableName(2));
 
-//        System.out.println("select ID, CREATE_TIME from quote_test_2");
         rs = stmt.executeQuery("select ID, CREATE_TIME from quote_test_2");
         assertTrue(rs.next());
         meta = rs.getMetaData();
-        Assert.assertEquals("create_TIME", meta.getColumnName(2));
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));//CREATE_TIME
         Assert.assertEquals("CREATE_TIME", meta.getColumnLabel(2));
+        Assert.assertEquals("", meta.getSchemaName(2));
+        Assert.assertEquals("test", meta.getCatalogName(2));
+        Assert.assertEquals("quote_test_2", meta.getTableName(2));
+
+        rs = stmt.executeQuery("select id, CREATE_TIME as create_time from quote_test_2");
+        assertTrue(rs.next());
+        meta = rs.getMetaData();
+        Assert.assertEquals("create_TIME", meta.getColumnName(2));//create_time
+        Assert.assertEquals("create_time", meta.getColumnLabel(2));
         Assert.assertEquals("", meta.getSchemaName(2));
         Assert.assertEquals("test", meta.getCatalogName(2));
         Assert.assertEquals("quote_test_2", meta.getTableName(2));
