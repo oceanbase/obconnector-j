@@ -193,7 +193,7 @@ public class ColumnDefinition {
         longColFlag = buffer.readShort();
         type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
 
-        decimals = buffer.readByte() & 0xff;
+        decimals = (byte) (buffer.readByte() & 0xff);
         precision = buffer.readByte() & 0xff;
         inoutType = buffer.readByte() & 0xff;
 
@@ -407,15 +407,17 @@ public class ColumnDefinition {
      * @return size
      */
     public int getDisplaySize() {
-        int vtype = type.getSqlType();
-        if (vtype == Types.VARCHAR || vtype == Types.CHAR || vtype == Types.NVARCHAR
-            || vtype == Types.NCHAR || vtype == Types.CLOB) {
-            int maxWidth = maxCharlen[charsetNumber & 0xff];
-            if (maxWidth == 0) {
-                maxWidth = 1;
-            }
+        if (!isOracleMode) {
+            int vtype = type.getSqlType();
+            if (vtype == Types.VARCHAR || vtype == Types.CHAR || vtype == Types.NVARCHAR
+                    || vtype == Types.NCHAR || vtype == Types.CLOB) {
+                int maxWidth = maxCharlen[charsetNumber & 0xff];
+                if (maxWidth == 0) {
+                    maxWidth = 1;
+                }
 
-            return (int) length / maxWidth;
+                return (int) length / maxWidth;
+            }
         }
         return (int) length;
     }

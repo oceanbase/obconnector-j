@@ -1567,6 +1567,38 @@ public class ResultSetOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void aone49617505() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table test_scale");
+        } catch (SQLException e) {
+//            e.printStackTrace();
+        }
+        stmt.execute("create table test_scale(v0 number(10, -5))");
+
+        ResultSet rs = stmt.executeQuery("select v0, v0+1, max(v0), sum(v0), cast(v0+to_number(5) as number) from test_scale group by v0");
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        Assert.assertEquals(-5, rsmd.getScale(1));
+        Assert.assertEquals(0, rsmd.getScale(2));
+        Assert.assertEquals(0, rsmd.getScale(3));
+        Assert.assertEquals(0, rsmd.getScale(4));
+        Assert.assertEquals(-127, rsmd.getScale(5));
+
+        Assert.assertEquals(10, rsmd.getPrecision(1));
+        Assert.assertEquals(0, rsmd.getPrecision(2));
+        Assert.assertEquals(0, rsmd.getPrecision(3));
+        Assert.assertEquals(0, rsmd.getPrecision(4));
+        Assert.assertEquals(0, rsmd.getPrecision(5));
+
+        Assert.assertEquals(12, rsmd.getColumnDisplaySize(1));
+        Assert.assertEquals(39, rsmd.getColumnDisplaySize(2));
+        Assert.assertEquals(39, rsmd.getColumnDisplaySize(3));
+        Assert.assertEquals(39, rsmd.getColumnDisplaySize(4));
+        Assert.assertEquals(39, rsmd.getColumnDisplaySize(5));
+    }
+    
     public void testFindByName() throws SQLException {
         Connection conn = sharedConnection;
         Statement stmt = null;
