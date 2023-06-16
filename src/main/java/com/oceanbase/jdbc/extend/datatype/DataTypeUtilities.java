@@ -341,7 +341,12 @@ public class DataTypeUtilities {
     public static String formatIntervalDsString(int day, int hour, int minute, int second,
                                                 int fractional_second, int fractional_second_scale,
                                                 int is_negative) {
-        String format = String.format("%%d %%d:%%d:%%d.%%0%dd", fractional_second_scale);
+        String format = "";
+        if (fractional_second_scale == 0) {
+            format = String.format("%%d %%d:%%d:%%d.0");
+        } else {
+            format = String.format("%%d %%d:%%d:%%d.%%0%dd", fractional_second_scale);
+        }
         String result = String.format(format, day, hour, minute, second, fractional_second);
         int endIndex = result.length() - 1;
         for (int i = result.length() - 1; result.charAt(i) != '.'; i--) {
@@ -351,6 +356,9 @@ public class DataTypeUtilities {
             }
         }
         result = result.substring(0, endIndex + 1);
+        if (result.split("\\.")[1].matches("^0{2,}$")) {
+            result = result.split("\\.")[0] + ".0";
+        }
         return is_negative == 0 ? result : "-" + result;
     }
 

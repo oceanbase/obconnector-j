@@ -74,7 +74,6 @@ public class INTERVALOracleTest extends BaseOracleTest {
         createTable(tableNameYM, " c1 int primary key,c2 interval year(4) to month");
         createTable(tableNameYMDS,
             "c1 int primary key,c3 interval day(6) to second(5),c2 interval year(4) to month");
-
     }
 
     @Test
@@ -632,6 +631,32 @@ public class INTERVALOracleTest extends BaseOracleTest {
             assertEquals("invalid month 13 in 10-13", e.getMessage());
         }
 
+    }
+
+    @Test
+    public void testIntervalDsSecondByZero() throws SQLException {
+        String tableNameDSSecondByZero = "test_intervalds_sec0";
+        createTable(tableNameDSSecondByZero,"c1 INTERVAL DAY (2) TO SECOND (6),c2 INTERVAL DAY (2) TO SECOND (3),c3 INTERVAL DAY (2) TO SECOND (0)");
+        Statement stmt = sharedConnection.createStatement();
+
+        stmt.execute("INSERT INTO " + tableNameDSSecondByZero + " (c1,c2,c3) VALUES (" +
+                " INTERVAL '0 00:01:00.000000000' DAY TO SECOND ," +
+                " INTERVAL '0 00:01:00.000000000' DAY TO SECOND ," +
+                " INTERVAL '0 00:01:00.000000000' DAY TO SECOND)");
+        stmt.execute("INSERT INTO " + tableNameDSSecondByZero + " (c1,c2,c3) VALUES (" +
+                " INTERVAL '0 00:01:00.000123456' DAY TO SECOND ," +
+                " INTERVAL '0 00:01:00.0123' DAY TO SECOND," +
+                " INTERVAL '0 00:01:00.111' DAY TO SECOND)");
+
+        ResultSet rs = stmt.executeQuery("select * from  " + tableNameDSSecondByZero);
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0 0:1:0.0",rs.getString(1));
+        Assert.assertEquals("0 0:1:0.0",rs.getString(2));
+        Assert.assertEquals("0 0:1:0.0",rs.getString(3));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0 0:1:0.000123",rs.getString(1));
+        Assert.assertEquals("0 0:1:0.012",rs.getString(2));
+        Assert.assertEquals("0 0:1:0.0",rs.getString(3));
     }
 
     /**
