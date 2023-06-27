@@ -56,6 +56,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -186,5 +187,28 @@ public class ParserTest extends BaseTest {
                         + "'2.someOtherHex.us-east-1.rds.amazonaws.com' doesn't correspond to DNS prefix "
                         + "'somehex.us-east-1.rds.amazonaws.com'", e.getMessage());
         }
+    }
+
+    @Test
+    public void testOnDuplicateKeyUpdateIndex() throws ClassNotFoundException, SQLException {
+        Assert.assertFalse(sharedOptions().useServerPrepStmts);
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("test_onduplicatekeyupdateindex", "a int not null,b int, primary key (a)");
+        String sql = "insert into test_onduplicatekeyupdateindex(a) with r as (select 1 as a union all select 2 as a union all select 3 as a)"
+                + " select a from r on duplicate key update b = values(a) ;";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.execute();
+        ResultSet rs = pstmt.executeQuery("select * from test_onduplicatekeyupdateindex");
+        rs.next();
+        assertEquals(1, rs.getInt(1));
+        assertNull(rs.getObject(2));
+        rs.next();
+        assertEquals(2, rs.getInt(1));
+        assertNull(rs.getObject(2));
+        rs.next();
+        assertEquals(3, rs.getInt(1));
+        assertNull(rs.getObject(2));
+        rs.close();
+        pstmt.close();
     }
 }

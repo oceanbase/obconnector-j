@@ -616,7 +616,7 @@ public class ClientPrepareResult implements PrepareResult {
           break;
         case 'v':
         case 'V':
-          if (state == LexState.Normal
+          if (state == LexState.Normal && keyState == KeyState.Normal
               && preValuePart1 == null
               && (lastChar == ')' || ((byte) lastChar <= 40))
               && queryLength > i + 6
@@ -983,7 +983,7 @@ public class ClientPrepareResult implements PrepareResult {
                     break;
                 case 'v':
                 case 'V':
-                    if (state == LexState.Normal
+                    if (state == LexState.Normal && keyState == KeyState.Normal
                             && preValuePart1 == null
                             && (lastChar == ')' || ((byte) lastChar <= 40))
                             && queryLength > i + 6
