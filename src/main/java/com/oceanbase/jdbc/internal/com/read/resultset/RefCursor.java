@@ -55,6 +55,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProto
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class RefCursor extends CursorResultSet {
+
     private RowObCursorData rowObCursorData;
 
     public RefCursor(ColumnDefinition[] columnsInformation, Results results, Protocol protocol,
@@ -83,6 +84,7 @@ public class RefCursor extends CursorResultSet {
             isLastRowSent = true;
             return false;
         }
+        protocol.startCallInterface();
 
         try {
             ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement())
@@ -95,15 +97,17 @@ public class RefCursor extends CursorResultSet {
                 this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
                 this.row.setProtocol(this.getProtocol());
             }
+
+            getCursorFetchData(tmpFetchSize);
+            return true;
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRowSent = true;
             }
             throw e;
+        } finally {
+            protocol.endCallInterface("RefCursor.cursorFetch");
         }
-
-        getCursorFetchData(tmpFetchSize);
-        return true;
     }
 
     @Override

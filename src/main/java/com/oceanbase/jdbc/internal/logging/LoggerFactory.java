@@ -92,6 +92,14 @@ public class LoggerFactory {
         }
     }
 
+    public static Logger getLogger(String name) {
+        if (hasToLog != null && hasToLog) {
+            return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(name));
+        } else {
+            return NO_LOGGER;
+        }
+    }
+
     public static void initProxyVc(boolean mustLog) {
         proxyVcToLog = mustLog;
     }

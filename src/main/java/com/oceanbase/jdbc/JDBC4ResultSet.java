@@ -153,6 +153,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
     private boolean                         isPsOutParameter;
     private ResultSetMetaData               metaData;
     private ResultSetClass                  rsClass;
+    private long createTime;
+    private long closeTime;
 
     public enum ResultSetClass {
         COMPLETE,
@@ -204,6 +206,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
                           boolean isPsOutParameter) throws IOException, SQLException {
+        if (protocol.getTimeTrace() != null) {
+            createTime = System.nanoTime();
+        }
+
         commonConstruct(columnDefinition, results, protocol, callableResult, eofDeprecated,
             isPsOutParameter);
         this.reader = reader;
@@ -276,6 +282,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
                                                                                                   throws IOException,
                                                                                                   SQLException {
+        if (protocol.getTimeTrace() != null) {
+            createTime = System.nanoTime();
+        }
+
         commonConstruct(columnDefinition, results, protocol, callableResult, eofDeprecated,
             isPsOutParameter);
         this.reader = protocol.getReader();
@@ -341,6 +351,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
      */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, List<byte[]> resultSet,
                           Protocol protocol, int resultSetScrollType) {
+        if (protocol.getTimeTrace() != null) {
+            createTime = System.nanoTime();
+        }
+
         this.statement = null;
         if (protocol != null) {
             this.options = protocol.getOptions();
@@ -764,53 +778,61 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (status == ResourceStatus.CLOSING) {
             return;
         }
-        status = ResourceStatus.CLOSING;
-        SQLException exceptionDuringClose = null;
+        protocol.startCallInterface();
 
         try {
-            closeUpdatable();
-        } catch (SQLException sqlEx) {
-            exceptionDuringClose = sqlEx;
-        }
-
-        if (rsClass == ResultSetClass.STREAMING && !isEof) {
-            lock.lock();
+            status = ResourceStatus.CLOSING;
+            SQLException exceptionDuringClose = null;
             try {
-                while (!isEof) {
-                    dataSize = 0; // to avoid storing data
-                    getNextRow();
-                }
-                processedRows = 0;
-            } catch (SQLException queryException) {
-                throw ExceptionFactory.INSTANCE.create(queryException);
-            } catch (IOException ioe) {
-                throw handleIoException(ioe);
-            } finally {
-                isEof = true;
-                lock.unlock();
-            }
-        }
-
-        // keep garbage easy
-        Arrays.fill(data, null);
-
-        if (statement != null) {
-            try {
-                statement.checkCloseOnCompletion(this);
+                closeUpdatable();
             } catch (SQLException sqlEx) {
                 exceptionDuringClose = sqlEx;
             }
-            statement = null;
-        }
 
-        row = null;
-        columnsInformation = null;
-        complexData = null;
-        complexEndPos = null;
-        status = ResourceStatus.CLOSED;
+            if (rsClass == ResultSetClass.STREAMING && !isEof) {
+                lock.lock();
+                try {
+                    while (!isEof) {
+                        dataSize = 0; // to avoid storing data
+                        getNextRow();
+                    }
+                    processedRows = 0;
+                } catch (SQLException queryException) {
+                    throw ExceptionFactory.INSTANCE.create(queryException);
+                } catch (IOException ioe) {
+                    throw handleIoException(ioe);
+                } finally {
+                    isEof = true;
+                    lock.unlock();
+                }
+            }
 
-        if (exceptionDuringClose != null) {
-            throw exceptionDuringClose;
+            // keep garbage easy
+            Arrays.fill(data, null);
+
+            if (statement != null) {
+                try {
+                    statement.checkCloseOnCompletion(this);
+                } catch (SQLException sqlEx) {
+                    exceptionDuringClose = sqlEx;
+                }
+                statement = null;
+            }
+
+            row = null;
+            columnsInformation = null;
+            complexData = null;
+            complexEndPos = null;
+            status = ResourceStatus.CLOSED;
+
+            if (exceptionDuringClose != null) {
+                throw exceptionDuringClose;
+            }
+        } finally {
+            if (protocol.getTimeTrace() != null) {
+                closeTime = System.nanoTime();
+            }
+            protocol.endCallInterface("JDBC4ResultSet.realClose(live for " + ((closeTime - createTime) / 100) + "us)");
         }
     }
 
@@ -2725,6 +2747,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 .notSupported("insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
         }
 
+        protocol.startCallInterface();
+
         if (state == STATE_INSERT) {
             if (insertPreparedStatement == null) {
                 // Create query will all field with WHERE clause contain primary field.
@@ -2793,6 +2817,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
             Arrays.fill(updatableParameterHolders, null);
         }
+
+        protocol.endCallInterface("JDBC4ResultSet.insertRow");
     }
 
     public void updateRow() throws SQLException {
@@ -2804,6 +2830,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (state == STATE_INSERT) {
             throw new SQLException("Cannot call updateRow() when inserting a new row");
         }
+
+        protocol.startCallInterface();
 
         if (state == STATE_UPDATE) {
             // state is STATE_UPDATE, meaning that at least one field is modified, update query can be run.
@@ -2880,6 +2908,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
             Arrays.fill(updatableParameterHolders, null);
             state = STATE_STANDARD;
         }
+
+        protocol.endCallInterface("JDBC4ResultSet.updateRow");
     }
 
     public void deleteRow() throws SQLException {
@@ -2903,6 +2933,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (rowPointer >= dataSize) {
             throw new SQLDataException("Current position is after the last row", "22023");
         }
+
+        protocol.startCallInterface();
 
         if (deletePreparedStatement == null) {
             // Create query with WHERE clause contain primary field.
@@ -2938,6 +2970,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (!protocol.isOracleMode() || resultSetScrollType != ResultSet.TYPE_FORWARD_ONLY) {
             deleteCurrentRowData();
         }
+
+        protocol.endCallInterface("JDBC4ResultSet.deleteRow");
     }
 
     /**
@@ -2960,16 +2994,19 @@ public class JDBC4ResultSet implements ResultSetImpl {
                                                          + resultSetScrollType + " and "
                                                          + resultSetConcurType);
         }
-
         if (!checkRefreshable()) {
             return;
         }
+
+        protocol.startCallInterface();
 
         if (protocol.isOracleMode()) {
             refreshRowInternalOracle(fetchSize);
         } else {
             updateRowData(refreshRowInternalMysql());
         }
+
+        protocol.endCallInterface("JDBC4ResultSet.refreshRow");
     }
 
     private void prepareRefreshStmt() throws SQLException {

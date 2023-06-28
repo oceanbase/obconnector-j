@@ -180,73 +180,79 @@ public class ComStmtPrepareExecute {
                                            ServerPrepareResult serverPrepareResult, Results results)
                                                                                                     throws IOException,
                                                                                                     SQLException {
-        boolean eofDeprecated = protocol.isEofDeprecated();
-        Buffer buffer = reader.getPacket(true);
-        byte firstByte = buffer.getByteAt(0);
+        reader.startReceiveResponse();
 
-        switch (firstByte) {
-            case Packet.OK:
-                buffer.skipByte();
-                final int statementId = buffer.readInt();
-                results.setStatementId(statementId);
-                final int numColumns = buffer.readShort() & 0xffff;
-                final int numParams = buffer.readInt2BytesV1();
-                final byte reserved1 = buffer.readByte();
-                final short warningCount = buffer.readShort();
-                final int extendFlag = buffer.readInt();
-                final byte hasResultSet = buffer.readByte();
+        try {
+            boolean eofDeprecated = protocol.isEofDeprecated();
+            Buffer buffer = reader.getPacket(true);
+            byte firstByte = buffer.getByteAt(0);
 
-                ColumnDefinition[] params = new ColumnDefinition[numParams];
-                if (numParams > 0) {
-                    for (int i = 0; i < numParams; i++) {
-                        params[i] = new ColumnDefinition(reader.getPacket(false), true,
-                            protocol.getOptions().characterEncoding);
+            switch (firstByte) {
+                case Packet.OK:
+                    buffer.skipByte();
+                    final int statementId = buffer.readInt();
+                    results.setStatementId(statementId);
+                    final int numColumns = buffer.readShort() & 0xffff;
+                    final int numParams = buffer.readInt2BytesV1();
+                    final byte reserved1 = buffer.readByte();
+                    final short warningCount = buffer.readShort();
+                    final int extendFlag = buffer.readInt();
+                    final byte hasResultSet = buffer.readByte();
+
+                    ColumnDefinition[] params = new ColumnDefinition[numParams];
+                    if (numParams > 0) {
+                        for (int i = 0; i < numParams; i++) {
+                            params[i] = new ColumnDefinition(reader.getPacket(false), true,
+                                    protocol.getOptions().characterEncoding);
+                        }
+                        if (!eofDeprecated) {
+                            protocol.skipEofPacket();
+                        }
                     }
-                    if (!eofDeprecated) {
-                        protocol.skipEofPacket();
+
+                    ColumnDefinition[] columns = new ColumnDefinition[numColumns];
+                    if (hasResultSet == 1) {
+                        if ((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0
+                                || (extendFlag & ARRAY_BINDING_FIELD) != 0
+                                || (extendFlag & PL_OUT_PARAMETER) != 0) {
+                            results.setInternalResult(true);
+                        }
+                        results.setToPrepareExecute(true);
+                        results.setReturning((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0);
+
+                        protocol.readResultSet(columns, results);
+
+                        results.setToPrepareExecute(false);
+                        results.setInternalResult(false);
                     }
-                }
 
-                ColumnDefinition[] columns = new ColumnDefinition[numColumns];
-                if (hasResultSet == 1) {
-                    if ((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0
-                        || (extendFlag & ARRAY_BINDING_FIELD) != 0
-                        || (extendFlag & PL_OUT_PARAMETER) != 0) {
-                        results.setInternalResult(true);
+                    buffer = reader.getPacket(false);
+                    switch (buffer.getByteAt(0)) {
+                        case Packet.OK:
+                            protocol.readOkPacket(buffer, results);
+                            break;
+                        case Packet.ERROR:
+                            throw protocol.readErrorPacket(buffer, results);
                     }
-                    results.setToPrepareExecute(true);
-                    results.setReturning((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0);
 
-                    protocol.readResultSet(columns, results);
+                    if (serverPrepareResult == null) {
+                        serverPrepareResult = new ServerPrepareResult(results.getSql(), statementId,
+                                columns, params, protocol);
+                        serverPrepareResult.setReturnByPrepareExecute(true);
+                    } else {
+                        serverPrepareResult.setStatementId(statementId);
+                    }
+                    return serverPrepareResult;
 
-                    results.setToPrepareExecute(false);
-                    results.setInternalResult(false);
-                }
+                case Packet.ERROR:
+                    throw protocol.readErrorPacket(buffer, results);
 
-                buffer = reader.getPacket(false);
-                switch (buffer.getByteAt(0)) {
-                    case Packet.OK:
-                        protocol.readOkPacket(buffer, results);
-                        break;
-                    case Packet.ERROR:
-                        throw protocol.readErrorPacket(buffer, results);
-                }
-
-                if (serverPrepareResult == null) {
-                    serverPrepareResult = new ServerPrepareResult(results.getSql(), statementId,
-                        columns, params, protocol);
-                    serverPrepareResult.setReturnByPrepareExecute(true);
-                } else {
-                    serverPrepareResult.setStatementId(statementId);
-                }
-                return serverPrepareResult;
-
-            case Packet.ERROR:
-                throw protocol.readErrorPacket(buffer, results);
-
-            default:
-                throw new SQLException("Unexpected packet returned by server, first byte "
-                                       + firstByte);
+                default:
+                    throw new SQLException("Unexpected packet returned by server, first byte "
+                            + firstByte);
+            }
+        } finally {
+            reader.endReceiveResponse(results.getSql());
         }
     }
 

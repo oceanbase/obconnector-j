@@ -89,73 +89,78 @@ public class ComStmtPrepare {
     public static ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated,
                                            Protocol protocol, String sql) throws IOException,
                                                                          SQLException {
-        Buffer buffer = reader.getPacket(true);
-        byte firstByte = buffer.getByteAt(buffer.position);
+        reader.startReceiveResponse();
 
-        if (firstByte == Packet.ERROR) {
-            throw buildErrorException(buffer);
-        }
+        try {
+            Buffer buffer = reader.getPacket(true);
+            byte firstByte = buffer.getByteAt(buffer.position);
 
-        if (firstByte == Packet.OK) {
+            if (firstByte == Packet.ERROR) {
+                throw buildErrorException(buffer);
+            }
 
-            /* Prepared Statement OK */
-            buffer.readByte(); /* skip field count */
-            final int statementId = buffer.readInt();
-            final int numColumns = buffer.readShort() & 0xffff;
-            final int numParams = buffer.readShort() & 0xffff;
+            if (firstByte == Packet.OK) {
 
-            ColumnDefinition[] params = new ColumnDefinition[numParams];
-            ColumnDefinition[] columns = new ColumnDefinition[numColumns];
+                /* Prepared Statement OK */
+                buffer.readByte(); /* skip field count */
+                final int statementId = buffer.readInt();
+                final int numColumns = buffer.readShort() & 0xffff;
+                final int numParams = buffer.readShort() & 0xffff;
 
-            if (numParams > 0) {
-                for (int i = 0; i < numParams; i++) {
-                    params[i] = new ColumnDefinition(reader.getPacket(false),
-                        protocol.isOracleMode(), protocol.getOptions().characterEncoding);
-                }
+                ColumnDefinition[] params = new ColumnDefinition[numParams];
+                ColumnDefinition[] columns = new ColumnDefinition[numColumns];
 
-                if (numColumns > 0) {
-                    if (!eofDeprecated) {
-                        protocol.skipEofPacket();
+                if (numParams > 0) {
+                    for (int i = 0; i < numParams; i++) {
+                        params[i] = new ColumnDefinition(reader.getPacket(false),
+                                protocol.isOracleMode(), protocol.getOptions().characterEncoding);
                     }
-                    for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            protocol.isOracleMode(), protocol.getOptions().characterEncoding);
-                    }
-                }
-                if (!eofDeprecated) {
-                    protocol.readEofPacket();
-                }
-            } else {
-                if (numColumns > 0) {
-                    for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnDefinition(reader.getPacket(false),
-                            protocol.isOracleMode(), protocol.getOptions().characterEncoding);
+
+                    if (numColumns > 0) {
+                        if (!eofDeprecated) {
+                            protocol.skipEofPacket();
+                        }
+                        for (int i = 0; i < numColumns; i++) {
+                            columns[i] = new ColumnDefinition(reader.getPacket(false),
+                                    protocol.isOracleMode(), protocol.getOptions().characterEncoding);
+                        }
                     }
                     if (!eofDeprecated) {
                         protocol.readEofPacket();
                     }
                 } else {
-                    // read warning only if no param / columns, because will be overwritten by EOF warning
-                    // data
-                    buffer.readByte(); // reserved
-                    protocol.setHasWarnings(buffer.readShort() > 0);
+                    if (numColumns > 0) {
+                        for (int i = 0; i < numColumns; i++) {
+                            columns[i] = new ColumnDefinition(reader.getPacket(false),
+                                    protocol.isOracleMode(), protocol.getOptions().characterEncoding);
+                        }
+                        if (!eofDeprecated) {
+                            protocol.readEofPacket();
+                        }
+                    } else {
+                        // read warning only if no param / columns, because will be overwritten by EOF warning
+                        // data
+                        buffer.readByte(); // reserved
+                        protocol.setHasWarnings(buffer.readShort() > 0);
+                    }
                 }
-            }
 
-            ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId,
-                columns, params, protocol);
-            if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts
-                && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
-                String key = protocol.getDatabase() + "-" + sql;
-                ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
-                    serverPrepareResult);
-                return cachedServerPrepareResult != null ? cachedServerPrepareResult
-                    : serverPrepareResult;
+                ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId,
+                        columns, params, protocol);
+                if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts
+                        && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
+                    String key = protocol.getDatabase() + "-" + sql;
+                    ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
+                            serverPrepareResult);
+                    return cachedServerPrepareResult != null ? cachedServerPrepareResult
+                            : serverPrepareResult;
+                }
+                return serverPrepareResult;
+            } else {
+                throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
             }
-            return serverPrepareResult;
-
-        } else {
-            throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
+        } finally {
+            reader.endReceiveResponse(sql);
         }
     }
 

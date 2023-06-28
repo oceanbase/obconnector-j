@@ -5,6 +5,7 @@ import java.io.InputStream;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 
 public abstract class AbstractPacketInputStream implements PacketInputStream {
 
@@ -21,6 +22,7 @@ public abstract class AbstractPacketInputStream implements PacketInputStream {
     protected static final int MAX_PACKET_SIZE         = 0xffffff;
 
     protected final byte[]     reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
+    protected TimeTrace        timeTrace;
 
     @Override
     public abstract Buffer getPacket(boolean reUsable) throws IOException;
@@ -75,6 +77,26 @@ public abstract class AbstractPacketInputStream implements PacketInputStream {
     @Override
     public void clearNetworkStatistics() {
         timestampAfterRead = 0;
+    }
+
+    public void startReceiveResponse() {
+        if (timeTrace != null) {
+            timeTrace.startReceiveResponse();
+        }
+    }
+
+    public void endReceiveResponse(String sql) {
+        if (timeTrace != null) {
+            String protocol = null;
+            if (this instanceof Ob20PacketInputStream) {
+                protocol = "ob20";
+            } else if (this instanceof StandardPacketInputStream) {
+                protocol = "mysql";
+            } else if (this instanceof DecompressPacketInputStream) {
+                protocol = "compress";
+            }
+            timeTrace.endReceiveResponse(protocol, sql);
+        }
     }
 
 }

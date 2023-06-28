@@ -396,4 +396,11 @@ public interface Protocol {
     PacketOutputStream getWriter();
 
     HostAddress getCurrentHost();
+
+    TimeTrace getTimeTrace();
+
+    void startCallInterface();
+
+    void endCallInterface(String message);
+
 }

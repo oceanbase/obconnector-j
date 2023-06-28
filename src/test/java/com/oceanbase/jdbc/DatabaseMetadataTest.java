@@ -76,7 +76,7 @@ public class DatabaseMetadataTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    //@BeforeClass()
+    @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(dbpkTest,
             "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",

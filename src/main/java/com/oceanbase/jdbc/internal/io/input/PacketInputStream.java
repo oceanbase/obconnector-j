@@ -76,4 +76,9 @@ public interface PacketInputStream {
     long getTimestampAfterRead();
 
     void clearNetworkStatistics();
+
+    void startReceiveResponse();
+
+    void endReceiveResponse(String sql);
+
 }

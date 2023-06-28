@@ -61,6 +61,7 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
@@ -76,10 +77,12 @@ public class DecompressPacketInputStream extends AbstractPacketInputStream {
     private int                 cacheEnd;
     private int                 compressPacketSeq;
 
-    public DecompressPacketInputStream(InputStream in, long threadId, Options options) {
+    public DecompressPacketInputStream(InputStream in, long threadId, Options options,
+                                       TimeTrace timeTrace) {
         inputStream = in;
         maxQuerySizeToLog = options.maxQuerySizeToLog;
         this.threadId = threadId;
+        this.timeTrace = timeTrace;
     }
 
     @Override

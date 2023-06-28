@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
@@ -92,6 +93,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private boolean           bufferContainDataAfterMark = false;
     private TimeZone          tm                         = null;
     protected Charset         charset                    = null;
+    private TimeTrace         timeTrace;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
@@ -101,13 +103,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      * @param threadId thread id
      */
     public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
-                                      String encoding) {
+                                      String encoding, TimeTrace timeTrace) {
         super(out);
         buf = new byte[SMALL_BUFFER_SIZE];
         this.maxQuerySizeToLog = maxQuerySizeToLog;
         cmdLength = 0;
         this.threadId = threadId;
         this.charset = Charset.forName(encoding);
+        this.timeTrace = timeTrace;
     }
 
     public void setTimeZone(TimeZone tm) {
@@ -232,6 +235,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             buf = new byte[SMALL_BUFFER_SIZE];
         }
 
+        endSendRequest();
         if (cmdLength >= maxAllowedPacket) {
             throw new MaxAllowedPacketException("query size (" + cmdLength
                                                 + ") is >= to max_allowed_packet ("
@@ -1130,6 +1134,18 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      */
     public void setPosition(int val) {
         pos = val;
+    }
+
+    public void startSendRequest() {
+        if (timeTrace != null) {
+            timeTrace.startSendRequest();
+        }
+    }
+
+    public void endSendRequest() {
+        if (timeTrace != null) {
+            timeTrace.endSendRequest();
+        }
     }
 
 }

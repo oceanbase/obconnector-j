@@ -57,6 +57,7 @@ import java.util.Arrays;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
@@ -67,8 +68,9 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     private static final int    MAX_PACKET_LENGTH = 0x00ffffff + 4;
 
-    public StandardPacketOutputStream(OutputStream out, long threadId, Options options) {
-        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
+    public StandardPacketOutputStream(OutputStream out, long threadId, Options options,
+                                      TimeTrace timeTrace) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding, timeTrace);
         maxPacketLength = MAX_PACKET_LENGTH;
     }
 
@@ -77,6 +79,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         mysqlSeqNo = seqNo;
         pos = 4;
         cmdLength = 0;
+        startSendRequest();
     }
 
     @Override
@@ -105,6 +108,11 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[2] = (byte) ((pos - 4) >>> 16);
             buf[3] = (byte) mysqlSeqNo++;
             checkMaxAllowedLength(pos - 4);
+
+            logger.debug("prepare to send: {}, packetLength = {}, packetNumber = {}",
+                serverThreadLog,
+                ((buf[0] & 0xff) + ((buf[1] & 0xff) << 8) + ((buf[2] & 0xff) << 16)),
+                (buf[3] & 0xff));
             out.write(buf, 0, pos);
             cmdLength += pos - 4;
 
@@ -132,8 +140,10 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;
         buf[3] = (byte) mysqlSeqNo++;
-        out.write(buf, 0, 4);
 
+        logger.debug("prepare to send: {}, packetLength = {}, packetNumber = {}", serverThreadLog,
+            ((buf[0] & 0xff) + ((buf[1] & 0xff) << 8) + ((buf[2] & 0xff) << 16)), (buf[3] & 0xff));
+        out.write(buf, 0, 4);
         doTrace(4);
     }
 

@@ -191,6 +191,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean                     useNewExtraInfo;
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
+    TimeTrace                             timeTrace;
 
     /**
      * Get a protocol instance.
@@ -406,6 +407,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             this.connected = false;
+            whyConnectedIsFalse();
+
             try {
                 /* If a streaming result set is open, close it.*/
                 skip();
@@ -416,7 +419,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             SendClosePacket.send(writer);
             closeSocket(reader, writer, socket);
             cleanMemory();
-
         } finally {
             if (locked) {
                 lock.unlock();
@@ -434,6 +436,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             this.connected = false;
+            whyConnectedIsFalse();
 
             abortActiveStream();
 
@@ -537,6 +540,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void createConnection(HostAddress hostAddress, String username) throws SQLException,
                                                                            IOException {
+        if (options.log) {
+            timeTrace = new TimeTrace();
+        }
 
         String host = hostAddress != null ? hostAddress.host : null;
         int port = hostAddress != null ? hostAddress.port : 3306;
@@ -884,13 +890,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void compressionHandler(Options options) throws IOException {
         if (useOceanBaseProtocolV20) {
-            boolean enableDebug = Boolean.parseBoolean(System.getProperty(
-                "debugOceanBaseProtocolV20", "false"));
-            ob20 = new OceanBaseProtocolV20(useNewExtraInfo, enableDebug);
+            ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
             writer = new Ob20PacketOutputStream(writer.getOutputStream(), serverThreadId, options,
-                ob20);
+                ob20, timeTrace);
             reader = new Ob20PacketInputStream(socket.getInputStream(), serverThreadId, options,
-                ob20);
+                ob20, timeTrace);
 
             if (enableFullLinkTrace) {
                 fullLinkTrace = new FullLinkTrace(useNewExtraInfo);
@@ -898,9 +902,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
         } else if (options.useCompression) {
             writer = new CompressPacketOutputStream(writer.getOutputStream(), serverThreadId,
-                options);
+                options, timeTrace);
             reader = new DecompressPacketInputStream(
-                ((StandardPacketInputStream) reader).getInputStream(), serverThreadId, options);
+                ((StandardPacketInputStream) reader).getInputStream(), serverThreadId, options,
+                timeTrace);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
@@ -912,8 +917,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void assignStream(Socket socket, Options options) throws SQLException {
         try {
             writer = new StandardPacketOutputStream(socket.getOutputStream(), serverThreadId,
-                options);
-            reader = new StandardPacketInputStream(socket.getInputStream(), serverThreadId, options);
+                options, timeTrace);
+            reader = new StandardPacketInputStream(socket.getInputStream(), serverThreadId,
+                options, timeTrace);
 
             if (options.enablePacketDebug) {
                 writer.setTraceCache(traceCache);
@@ -2072,6 +2078,40 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public HostAddress getCurrentHost() {
         return currentHost;
+    }
+
+    public void startCallInterface() {
+        if (timeTrace != null) {
+            timeTrace.startCallInterface();
+        }
+    }
+
+    public void endCallInterface(String message) {
+        if (timeTrace != null) {
+            timeTrace.endCallInterface(message);
+        }
+    }
+
+    public TimeTrace getTimeTrace() {
+        return timeTrace;
+    }
+
+    protected void whyConnectedIsFalse() {
+        if (options.log) {
+            StringBuilder sb = new StringBuilder();
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            boolean first = true;
+            for (StackTraceElement stackTraceElement : stackTrace) {
+                if (first) {
+                    first = false;
+                    continue;
+                }
+
+                String str = stackTraceElement.toString();
+                sb.append("    at ").append(str).append('\n');
+            }
+            logger.debug("set protocol.connected to false\n" + sb);
+        }
     }
 
 }

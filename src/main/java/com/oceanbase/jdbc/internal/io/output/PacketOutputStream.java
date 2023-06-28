@@ -169,4 +169,5 @@ public interface PacketOutputStream {
     void clearNetworkStatistics();
 
     Charset getCharset();
+
 }

@@ -58,6 +58,7 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
@@ -83,8 +84,8 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     private int                  totalPacketLength;
 
     public Ob20PacketOutputStream(OutputStream out, long threadId, Options options,
-                                  OceanBaseProtocolV20 ob20) {
-        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
+                                  OceanBaseProtocolV20 ob20, TimeTrace timeTrace) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding, timeTrace);
         maxPacketLength = MAX_PACKET_LENGTH;
         this.ob20 = ob20;
         this.enableOb20Checksum = options.enableOb20Checksum;
@@ -101,6 +102,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         mysqlSeqNo = 0;
         pos = 0;
         cmdLength = 0;
+        startSendRequest();
     }
 
     @Override
@@ -187,6 +189,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
                 writeOb20TailChecksum(outBuffer, totalPayload, totalPayloadPos - uncompressSize,
                     uncompressSize);
 
+                logger.debug("prepare to send: {}", headerToString());
                 out.write(outBytes, 0, totalPacketLength);
                 doTrace();
             }
@@ -242,6 +245,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
         writeOb20TailChecksum(outBuffer, totalPayload, 0, OceanBaseProtocolV20.MYSQL_PACKET_HEADER);
 
+        logger.debug("prepare to send: {}", headerToString());
         out.write(outBytes, 0, totalPacketLength);
         doTrace();
     }
@@ -253,15 +257,14 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
                                                       + OceanBaseProtocolV20.MYSQL_PACKET_HEADER);
     }
 
-    private void writeOb20Header(Buffer outBuffer) {
-        if (ob20.enableDebug) {
-            System.out.println("\n[Request] connectionId = " + ob20.header.connectionId
-                               + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
-                               + ob20.header.obSeqNo + ", payloadLength = "
-                               + ob20.header.payloadLength + ", headerChecksum = "
-                               + ob20.header.headerChecksum);
-        }
+    private String headerToString() {
+        return "connectionId = " + ob20.header.connectionId + ", requestId = "
+               + ob20.header.requestId + ", obSeqNo = " + ob20.header.obSeqNo
+               + ", payloadLength = " + ob20.header.payloadLength + ", headerChecksum = "
+               + ob20.header.headerChecksum;
+    }
 
+    private void writeOb20Header(Buffer outBuffer) {
         outBuffer.writeLongInt(ob20.header.compressLength);
         outBuffer.writeByte((byte) ob20.header.compressSeqNo);
         outBuffer.writeLongInt(ob20.header.uncompressLength);

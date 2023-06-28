@@ -84,7 +84,9 @@ public class CursorResultSet extends Cursor {
         // ref cursor cannot read data in constructor
         if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
             // for new PS protocol, ResultSet reads data from socket while constructing
+            protocol.startCallInterface();
             getCursorFetchData(fetchSize);
+            protocol.endCallInterface("CursorResultSet");
         }
 
         if (protocol.supportFetchWithOffset()) {
@@ -109,19 +111,22 @@ public class CursorResultSet extends Cursor {
             isLastRowSent = true;
             return false;
         }
+        protocol.startCallInterface();
 
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
                 this.getFetchSize());
+
+            getCursorFetchData(fetchSize);
+            return true;
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRowSent = true;
             }
             throw e;
+        } finally {
+            protocol.endCallInterface("CursorResultSet.cursorFetch");
         }
-
-        getCursorFetchData(fetchSize);
-        return true;
     }
 
     private boolean cursorFetchForOracle(byte offsetType, int offset) throws SQLException {
@@ -130,10 +135,19 @@ public class CursorResultSet extends Cursor {
             isLastRowSent = true;
             return false;
         }
+        protocol.startCallInterface();
 
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetchForOracle(
                 this.statementId, this.getFetchSize(), offsetType, offset);
+
+            if (offsetType == Packet.OCI_FETCH_LAST) {
+                endIndexInEntireResult = 0;
+            } else if (offsetType == Packet.OCI_FETCH_ABSOLUTE) {
+                endIndexInEntireResult = offset - 1;
+            }
+            getCursorFetchData(fetchSize);
+            return true;
         } catch (SQLException e) {
             if ("ORA-01002: fetch out of sequence".equals(e.getMessage())) {
                 isLastRowSent = true;
@@ -141,15 +155,9 @@ public class CursorResultSet extends Cursor {
             } else {
                 throw e;
             }
+        } finally {
+            protocol.endCallInterface("CursorResultSet.cursorFetchForOracle");
         }
-
-        if (offsetType == Packet.OCI_FETCH_LAST) {
-            endIndexInEntireResult = 0;
-        } else if (offsetType == Packet.OCI_FETCH_ABSOLUTE) {
-            endIndexInEntireResult = offset - 1;
-        }
-        getCursorFetchData(fetchSize);
-        return true;
     }
 
     private void resetState() {

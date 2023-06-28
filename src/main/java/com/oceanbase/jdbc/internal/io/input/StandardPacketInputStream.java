@@ -61,6 +61,7 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
@@ -79,11 +80,13 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
      * @param options connection options
      * @param threadId thread id
      */
-    public StandardPacketInputStream(InputStream in, long threadId, Options options) {
+    public StandardPacketInputStream(InputStream in, long threadId, Options options,
+                                     TimeTrace timeTrace) {
         inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)
             : new BufferedInputStream(in, 16384);
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
         this.threadId = threadId;
+        this.timeTrace = timeTrace;
     }
 
     @Override
@@ -109,11 +112,8 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         lastPacketLength = (mysqlHeader[0] & 0xff) + ((mysqlHeader[1] & 0xff) << 8)
                            + ((mysqlHeader[2] & 0xff) << 16);
         mysqlSeqNo = mysqlHeader[3] & 0xff;
-        if (this instanceof Ob20PacketInputStream
-            && ((Ob20PacketInputStream) this).ob20.enableDebug) {
-            System.out.println(" ---------[mysql] packetLength = " + lastPacketLength
-                               + ", packetNumber = " + mysqlSeqNo);
-        }
+        logger.debug("read: {}, packetLength = {}, packetNumber = {}", serverThreadLog,
+            lastPacketLength, mysqlSeqNo);
 
         // prepare array
         byte[] mysqlBody;
@@ -303,4 +303,5 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
     public InputStream getInputStream() {
         return inputStream;
     }
+
 }

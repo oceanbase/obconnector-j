@@ -59,6 +59,7 @@ import java.util.zip.DeflaterOutputStream;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.Options;
 
@@ -77,8 +78,9 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private byte[]              remainingData                  = new byte[0];
     private boolean             lastPacketExactMaxPacketLength = false;
 
-    public CompressPacketOutputStream(OutputStream out, long threadId, Options options) {
-        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding);
+    public CompressPacketOutputStream(OutputStream out, long threadId, Options options,
+                                      TimeTrace timeTrace) {
+        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding, timeTrace);
         maxPacketLength = MAX_PACKET_LENGTH;
     }
 
@@ -96,6 +98,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         cmdLength = 0;
         remainingData = EMPTY_ARRAY;
         lastPacketExactMaxPacketLength = false;
+        startSendRequest();
     }
 
     public int initialPacketPos() {
@@ -471,4 +474,5 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
         }
     }
+
 }

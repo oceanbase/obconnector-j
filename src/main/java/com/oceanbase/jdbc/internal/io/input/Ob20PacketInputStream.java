@@ -59,6 +59,7 @@ import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
+import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.util.OceanBaseCRC16;
@@ -78,8 +79,8 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
     private long                basicRemainder;
 
     public Ob20PacketInputStream(InputStream in, long threadId, Options options,
-                                 OceanBaseProtocolV20 ob20) {
-        super(in, threadId, options);
+                                 OceanBaseProtocolV20 ob20, TimeTrace timeTrace) {
+        super(in, threadId, options, timeTrace);
         this.ob20 = ob20;
     }
 
@@ -114,9 +115,7 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
                 remaining -= lengthToRead;
                 off += lengthToRead;
                 basicRemainder -= lengthToRead;
-                if (ob20.enableDebug) {
-                    System.out.println(" ------basicRemainder = " + basicRemainder);
-                }
+                logger.trace(" ------basicRemainder = {}", basicRemainder);
 
                 // read ob20 tail, if all payloads have been read from socket
                 if (basicRemainder == 0) {
@@ -164,10 +163,7 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
             ob20.extraInfo.reset();
         }
 
-        if (ob20.enableDebug) {
-            System.out.println(" ------basicRemainder = " + basicRemainder);
-        }
-
+        logger.trace(" ------basicRemainder = {}", basicRemainder);
         isTailRead = false;
     }
 
@@ -198,74 +194,64 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
         ob20.header.flag = headerBuffer.readInt();
         ob20.header.reserved = headerBuffer.readShort();
         ob20.header.headerChecksum = headerBuffer.readInt2BytesV1();
-        if (ob20.enableDebug) {
-            printHeader();
-        }
+        logger.debug("read: {}", headerToString());
 
-        try {
-            if (0 != ob20.header.headerChecksum) {
-                int localHeaderChecksum = OceanBaseCRC16.calculate(headerBytes,
-                    OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
+        if (0 != ob20.header.headerChecksum) {
+            int localHeaderChecksum = OceanBaseCRC16.calculate(headerBytes,
+                OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
 
-                if (localHeaderChecksum != ob20.header.headerChecksum) {
-                    throw new IOException(
-                        String
-                            .format(
-                                "header checksum mismatch, expected HeaderChecksum=%d, but received headerChecksum=%d",
-                                localHeaderChecksum, ob20.header.headerChecksum));
-                }
-            }
-
-            if (ob20.header.compressLength != (OceanBaseProtocolV20.OB20_HEADER_LENGTH
-                                               + ob20.header.payloadLength + OceanBaseProtocolV20.OB20_TAIL_LENGTH)) {
-                throw new IOException(String.format(
-                    "packet length mismatch, received compressLength=%d, payloadLength=%d",
-                    ob20.header.compressLength, ob20.header.payloadLength));
-            }
-
-            if (ob20.header.uncompressLength != 0) {
+            if (localHeaderChecksum != ob20.header.headerChecksum) {
                 throw new IOException(
                     String
                         .format(
-                            "invalid uncompress length, expected uncompressedLen=0, but received uncompressLength=%d",
-                            ob20.header.uncompressLength));
+                            "header checksum mismatch, expected HeaderChecksum=%d, but received headerChecksum=%d",
+                            localHeaderChecksum, ob20.header.headerChecksum));
             }
+        }
 
-            if (ob20.header.magicNum != OceanBaseProtocolV20.OB20_MAGIC_NUM) {
-                throw new IOException(String.format(
-                    "invalid magic num, expected magicNum=%d, but received magicNum=%d",
-                    OceanBaseProtocolV20.OB20_MAGIC_NUM, ob20.header.magicNum));
-            }
+        if (ob20.header.compressLength != (OceanBaseProtocolV20.OB20_HEADER_LENGTH
+                                           + ob20.header.payloadLength + OceanBaseProtocolV20.OB20_TAIL_LENGTH)) {
+            throw new IOException(String.format(
+                "packet length mismatch, received compressLength=%d, payloadLength=%d",
+                ob20.header.compressLength, ob20.header.payloadLength));
+        }
 
-            if (ob20.header.version != OceanBaseProtocolV20.OB20_VERSION) {
-                throw new IOException(String.format(
-                    "invalid version, expected version=%d, but received version=%d",
-                    OceanBaseProtocolV20.OB20_VERSION, ob20.header.version));
-            }
+        if (ob20.header.uncompressLength != 0) {
+            throw new IOException(
+                String
+                    .format(
+                        "invalid uncompress length, expected uncompressedLen=0, but received uncompressLength=%d",
+                        ob20.header.uncompressLength));
+        }
 
-            if (ob20.header.connectionId != threadId) {
-                throw new IOException(String.format(
-                    "connection Id mismatch, currConnectionId=%d, connId=%d", threadId,
-                    ob20.header.connectionId));
-            }
+        if (ob20.header.magicNum != OceanBaseProtocolV20.OB20_MAGIC_NUM) {
+            throw new IOException(String.format(
+                "invalid magic num, expected magicNum=%d, but received magicNum=%d",
+                OceanBaseProtocolV20.OB20_MAGIC_NUM, ob20.header.magicNum));
+        }
 
-            if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff
-                : ob20.curRequestId - 1)) {
-                throw new IOException(String.format(
-                    "request Id mismatch, currRequestId=%d, but received requestId=%d",
-                    ob20.curRequestId, ob20.header.requestId));
-            }
+        if (ob20.header.version != OceanBaseProtocolV20.OB20_VERSION) {
+            throw new IOException(String.format(
+                "invalid version, expected version=%d, but received version=%d",
+                OceanBaseProtocolV20.OB20_VERSION, ob20.header.version));
+        }
 
-            if (ob20.header.obSeqNo != ob20.getObSeqNo()) {
-                throw new IOException(String.format(
-                    "packet sequence mismatch, expected obSeqNo=%d, but received obSeqNo=%d",
-                    ob20.curObSeqNo, ob20.header.obSeqNo));
-            }
-        } catch (IOException e) {
-            if (!ob20.enableDebug) {
-                printHeader();
-            }
-            throw e;
+        if (ob20.header.connectionId != threadId) {
+            throw new IOException(String.format(
+                "connection Id mismatch, currConnectionId=%d, connId=%d", threadId,
+                ob20.header.connectionId));
+        }
+
+        if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff : ob20.curRequestId - 1)) {
+            throw new IOException(String.format(
+                "request Id mismatch, currRequestId=%d, but received requestId=%d",
+                ob20.curRequestId, ob20.header.requestId));
+        }
+
+        if (ob20.header.obSeqNo != ob20.getObSeqNo()) {
+            throw new IOException(String.format(
+                "packet sequence mismatch, expected obSeqNo=%d, but received obSeqNo=%d",
+                ob20.curObSeqNo, ob20.header.obSeqNo));
         }
     }
 
@@ -275,16 +261,11 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
 
         ob20.tailChecksum = (tailBytes[0] & 0xff) + ((tailBytes[1] & 0xff) << 8)
                             + ((tailBytes[2] & 0xff) << 16) + ((long) (tailBytes[3] & 0xff) << 24);
-        if (ob20.enableDebug) {
-            System.out.println(" ---[Response] tailChecksum = " + ob20.tailChecksum);
-        }
+        logger.debug("read: tailChecksum = {}", ob20.tailChecksum);
 
         if (0 != ob20.tailChecksum) {
             long localTailChecksum = crc32.getValue();
             if (localTailChecksum != ob20.tailChecksum) {
-                if (!ob20.enableDebug) {
-                    printHeaderAndTail();
-                }
                 throw new IOException(
                     String
                         .format(
@@ -298,19 +279,11 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
         crc32.reset();
     }
 
-    private void printHeader() {
-        System.out.println(" ---[Response] connectionId = " + ob20.header.connectionId
-                           + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
-                           + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
-                           + ", headerChecksum = " + ob20.header.headerChecksum);
-    }
-
-    private void printHeaderAndTail() {
-        System.out.println(" ---[Response] connectionId = " + ob20.header.connectionId
-                           + ", requestId = " + ob20.header.requestId + ", obSeqNo = "
-                           + ob20.header.obSeqNo + ", payloadLength = " + ob20.header.payloadLength
-                           + ", headerChecksum = " + ob20.header.headerChecksum
-                           + ", tailChecksum = " + ob20.tailChecksum);
+    private String headerToString() {
+        return "connectionId = " + ob20.header.connectionId + ", requestId = "
+               + ob20.header.requestId + ", obSeqNo = " + ob20.header.obSeqNo
+               + ", payloadLength = " + ob20.header.payloadLength + ", headerChecksum = "
+               + ob20.header.headerChecksum;
     }
 
 }
