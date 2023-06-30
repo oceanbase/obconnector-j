@@ -56,7 +56,7 @@ public class NewFeatureTest extends BaseTest {
     public static String batchTable2 = "batch2" + getRandomString(10);
     public static String testDouble  = "testDouble" + getRandomString(10);
 
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable(batchTable, "c1  int, c2 int , c3 int  ,test varchar(10)");
         createTable(batchTable2, "c1  int, c2 int , c3 int  ,test varchar(10)");
@@ -346,4 +346,26 @@ public class NewFeatureTest extends BaseTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void aone50629254() throws Exception {
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("t_json", "c JSON, g INT GENERATED ALWAYS AS (c->\"$.id\"), INDEX i (g)");
+        PreparedStatement ps = conn.prepareStatement("insert into t_json (c) values (?)");
+        ps.setString(1, "{\"id\": \"1\", \"name\": \"AAA\"}");
+        ps.addBatch();
+        ps.setString(1, "{\"id\": \"2\", \"name\": \"BBB\"}");
+        ps.addBatch();
+        ps.setString(1, "{\"id\": \"3\", \"name\": \"CCC\"}");
+        ps.addBatch();
+        ps.executeBatch();
+
+        ps = conn.prepareStatement("select c->>\"$.name\" from t_json where g>1");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("BBB", rs.getString(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("CCC", rs.getString(1));
+    }
+
 }

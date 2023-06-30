@@ -616,7 +616,7 @@ public class ClientPrepareResult implements PrepareResult {
           break;
         case 'v':
         case 'V':
-          if (state == LexState.Normal && keyState == KeyState.Normal
+          if (state == LexState.Normal
               && preValuePart1 == null
               && (lastChar == ')' || ((byte) lastChar <= 40))
               && queryLength > i + 6
@@ -628,7 +628,7 @@ public class ClientPrepareResult implements PrepareResult {
               boolean flagValue = false;
               flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
               flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
-              if((isOracleMode && flagValues )|| (!isOracleMode && (flagValues || flagValue)) ){
+              if(( (isOracleMode && flagValues) || (!isOracleMode && (flagValues || flagValue)) ) && keyState != KeyState.Update) {
                   sb.append(car);
                   sb.append(query[i + 1]);
                   sb.append(query[i + 2]);
@@ -983,7 +983,7 @@ public class ClientPrepareResult implements PrepareResult {
                     break;
                 case 'v':
                 case 'V':
-                    if (state == LexState.Normal && keyState == KeyState.Normal
+                    if (state == LexState.Normal
                             && preValuePart1 == null
                             && (lastChar == ')' || ((byte) lastChar <= 40))
                             && queryLength > i + 6
@@ -995,7 +995,7 @@ public class ClientPrepareResult implements PrepareResult {
                         boolean flagValue = false;
                         flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
                         flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
-                        if((isOracleMode && flagValues )|| (!isOracleMode && (flagValues || flagValue)) ) {
+                        if(( (isOracleMode && flagValues) || (!isOracleMode && (flagValues || flagValue)) ) && keyState != KeyState.Update) {
                             sb.append(car);
                             sb.append(query[i + 1]);
                             sb.append(query[i + 2]);
