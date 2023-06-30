@@ -882,4 +882,11 @@ public class StatementTest extends BaseTest {
         assertTrue(rs3.isAfterLast());
     }
 
+    @Test
+    public void aone50635076() throws Exception {
+        Statement closeMe = sharedConnection.createStatement();
+        closeMe.close();
+        closeMe.close();
+    }
+
 }

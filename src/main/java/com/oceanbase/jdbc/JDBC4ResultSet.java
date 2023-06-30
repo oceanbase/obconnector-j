@@ -775,7 +775,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     public void realClose(boolean calledExplicitly) throws SQLException {
-        if (status == ResourceStatus.CLOSING) {
+        if (status == ResourceStatus.CLOSING || status == ResourceStatus.CLOSED) {
             return;
         }
         protocol.startCallInterface();

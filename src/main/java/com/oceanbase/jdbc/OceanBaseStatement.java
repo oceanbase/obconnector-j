@@ -946,7 +946,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
-    if (status == ResourceStatus.CLOSING) {
+    if (status == ResourceStatus.CLOSING || status == ResourceStatus.CLOSED) {
         return;
     }
     protocol.startCallInterface();
