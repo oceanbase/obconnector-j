@@ -158,7 +158,9 @@ public class OceanBaseXaResource implements XAResource {
      * @throws XAException exception
      */
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        connection.getProtocol().startCallInterface();
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().startCallInterface();
+        }
 
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
@@ -177,7 +179,9 @@ public class OceanBaseXaResource implements XAResource {
             execute(command);
         }
 
-        connection.getProtocol().endCallInterface("OceanBaseXaResource.commit");
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().endCallInterface("OceanBaseXaResource.commit");
+        }
     }
 
     /**
@@ -200,7 +204,9 @@ public class OceanBaseXaResource implements XAResource {
      *     XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
      */
     public void end(Xid xid, int flags) throws XAException {
-        connection.getProtocol().startCallInterface();
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().startCallInterface();
+        }
 
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
@@ -229,7 +235,9 @@ public class OceanBaseXaResource implements XAResource {
             execute("XA END " + xidToString(xid) + " " + flagsToString(flags));
         }
 
-        connection.getProtocol().endCallInterface("OceanBaseXaResource.end");
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().endCallInterface("OceanBaseXaResource.end");
+        }
     }
 
     /**
@@ -279,7 +287,9 @@ public class OceanBaseXaResource implements XAResource {
      *     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
      */
     public int prepare(Xid xid) throws XAException {
-        connection.getProtocol().startCallInterface();
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().startCallInterface();
+        }
 
         int xaRet;
         if (this.connection.getProtocol().isOracleMode()) {
@@ -292,7 +302,9 @@ public class OceanBaseXaResource implements XAResource {
             xaRet = XA_OK;
         }
 
-        connection.getProtocol().endCallInterface("OceanBaseXaResource.prepare");
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().endCallInterface("OceanBaseXaResource.prepare");
+        }
         return xaRet;
     }
 
@@ -316,7 +328,9 @@ public class OceanBaseXaResource implements XAResource {
     if ((flags & TMSTARTRSCAN) == 0) {
       return new OceanBaseXid[0];
     }
-    connection.getProtocol().startCallInterface();
+    if (connection != null && connection.getProtocol() != null) {
+        connection.getProtocol().startCallInterface();
+    }
 
     try {
         if (this.connection.getProtocol().isOracleMode()) {
@@ -389,7 +403,9 @@ public class OceanBaseXaResource implements XAResource {
             }
         }
     } finally {
-        connection.getProtocol().endCallInterface("OceanBaseConnection.recover");
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().endCallInterface("OceanBaseConnection.recover");
+        }
     }
   }
 
@@ -400,7 +416,9 @@ public class OceanBaseXaResource implements XAResource {
      * @throws XAException An error has occurred.
      */
     public void rollback(Xid xid) throws XAException {
-        connection.getProtocol().startCallInterface();
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().startCallInterface();
+        }
 
         if (this.connection.getProtocol().isOracleMode()) {
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
@@ -415,7 +433,9 @@ public class OceanBaseXaResource implements XAResource {
             execute("XA ROLLBACK " + xidToString(xid));
         }
 
-        connection.getProtocol().endCallInterface("OceanBaseXaResource.rollback");
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().endCallInterface("OceanBaseXaResource.rollback");
+        }
     }
 
     /**
@@ -450,7 +470,9 @@ public class OceanBaseXaResource implements XAResource {
             && flags != ORATMSERIALIZABLE && flags != ORATRANSLOOSE && flags != ORATMREADONLY) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        connection.getProtocol().startCallInterface();
+        if (connection != null && connection.getProtocol() != null) {
+            connection.getProtocol().startCallInterface();
+        }
 
         try {
             if (this.connection.getProtocol().isOracleMode()) {
@@ -493,7 +515,9 @@ public class OceanBaseXaResource implements XAResource {
                             : flags));
             }
         } finally {
-            connection.getProtocol().endCallInterface("OceanBaseXaResource.start");
+            if (connection != null && connection.getProtocol() != null) {
+                connection.getProtocol().endCallInterface("OceanBaseXaResource.start");
+            }
         }
     }
 

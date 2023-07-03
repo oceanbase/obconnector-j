@@ -84,7 +84,9 @@ public class RefCursor extends CursorResultSet {
             isLastRowSent = true;
             return false;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement())
@@ -106,7 +108,9 @@ public class RefCursor extends CursorResultSet {
             }
             throw e;
         } finally {
-            protocol.endCallInterface("RefCursor.cursorFetch");
+            if (protocol != null) {
+                protocol.endCallInterface("RefCursor.cursorFetch");
+            }
         }
     }
 

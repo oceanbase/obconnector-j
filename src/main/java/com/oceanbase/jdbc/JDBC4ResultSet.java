@@ -206,7 +206,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, Results results, Protocol protocol,
                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated,
                           boolean isPsOutParameter) throws IOException, SQLException {
-        if (protocol.getTimeTrace() != null) {
+        if (protocol != null && protocol.getTimeTrace() != null) {
             createTime = System.nanoTime();
         }
 
@@ -282,7 +282,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                           boolean callableResult, boolean eofDeprecated, boolean isPsOutParameter)
                                                                                                   throws IOException,
                                                                                                   SQLException {
-        if (protocol.getTimeTrace() != null) {
+        if (protocol != null && protocol.getTimeTrace() != null) {
             createTime = System.nanoTime();
         }
 
@@ -351,7 +351,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
      */
     public JDBC4ResultSet(ColumnDefinition[] columnDefinition, List<byte[]> resultSet,
                           Protocol protocol, int resultSetScrollType) {
-        if (protocol.getTimeTrace() != null) {
+        if (protocol != null && protocol.getTimeTrace() != null) {
             createTime = System.nanoTime();
         }
 
@@ -778,7 +778,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (status == ResourceStatus.CLOSING || status == ResourceStatus.CLOSED) {
             return;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             status = ResourceStatus.CLOSING;
@@ -829,10 +831,12 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 throw exceptionDuringClose;
             }
         } finally {
-            if (protocol.getTimeTrace() != null) {
-                closeTime = System.nanoTime();
+            if (protocol != null) {
+                if (protocol.getTimeTrace() != null) {
+                    closeTime = System.nanoTime();
+                }
+                protocol.endCallInterface("JDBC4ResultSet.realClose(live for " + ((closeTime - createTime) / 100) + "us)");
             }
-            protocol.endCallInterface("JDBC4ResultSet.realClose(live for " + ((closeTime - createTime) / 100) + "us)");
         }
     }
 
@@ -2747,7 +2751,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 .notSupported("insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
         }
 
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if (state == STATE_INSERT) {
             if (insertPreparedStatement == null) {
@@ -2818,7 +2824,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             Arrays.fill(updatableParameterHolders, null);
         }
 
-        protocol.endCallInterface("JDBC4ResultSet.insertRow");
+        if (protocol != null) {
+            protocol.endCallInterface("JDBC4ResultSet.insertRow");
+        }
     }
 
     public void updateRow() throws SQLException {
@@ -2831,7 +2839,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             throw new SQLException("Cannot call updateRow() when inserting a new row");
         }
 
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if (state == STATE_UPDATE) {
             // state is STATE_UPDATE, meaning that at least one field is modified, update query can be run.
@@ -2909,7 +2919,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             state = STATE_STANDARD;
         }
 
-        protocol.endCallInterface("JDBC4ResultSet.updateRow");
+        if (protocol != null) {
+            protocol.endCallInterface("JDBC4ResultSet.updateRow");
+        }
     }
 
     public void deleteRow() throws SQLException {
@@ -2934,7 +2946,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             throw new SQLDataException("Current position is after the last row", "22023");
         }
 
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if (deletePreparedStatement == null) {
             // Create query with WHERE clause contain primary field.
@@ -2971,7 +2985,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             deleteCurrentRowData();
         }
 
-        protocol.endCallInterface("JDBC4ResultSet.deleteRow");
+        if (protocol != null) {
+            protocol.endCallInterface("JDBC4ResultSet.deleteRow");
+        }
     }
 
     /**
@@ -2998,7 +3014,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return;
         }
 
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if (protocol.isOracleMode()) {
             refreshRowInternalOracle(fetchSize);
@@ -3006,7 +3024,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
             updateRowData(refreshRowInternalMysql());
         }
 
-        protocol.endCallInterface("JDBC4ResultSet.refreshRow");
+        if (protocol != null) {
+            protocol.endCallInterface("JDBC4ResultSet.refreshRow");
+        }
     }
 
     private void prepareRefreshStmt() throws SQLException {

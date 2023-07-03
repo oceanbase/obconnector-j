@@ -230,7 +230,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
     }
 
     private int setInOutParamsOnServer() throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         this.parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments, this.isObFunction);
         this.params = parameterMetadata.params;
@@ -301,7 +303,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             outputResultSet.next();
         }
 
-        protocol.endCallInterface("JDBC4ServerCallableStatement.setInOutParamsOnServer");
+        if (protocol != null) {
+            protocol.endCallInterface("JDBC4ServerCallableStatement.setInOutParamsOnServer");
+        }
         return r;
     }
 

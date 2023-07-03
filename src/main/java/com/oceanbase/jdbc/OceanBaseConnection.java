@@ -868,9 +868,13 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
         this.protocol.setAutoCommit(autoCommit);
-        protocol.endCallInterface("OceanBaseConnection.setAutoCommit");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.setAutoCommit");
+        }
     }
 
     /**
@@ -879,8 +883,10 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        protocol.startCallInterface();
         lock.lock();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
         try {
             if (protocol.inTransaction()) {
                 try (Statement st = createStatement()) {
@@ -888,8 +894,10 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             }
         } finally {
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.commit");
+            }
             lock.unlock();
-            protocol.endCallInterface("OceanBaseConnection.commit");
         }
     }
 
@@ -902,9 +910,11 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getAutoCommit()) {
             throw new SQLException("Can't call rollback when autocommit enable");
         }
-        protocol.endCallInterface("OceanBaseConnection.rollback");
-
         lock.lock();
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.rollback");
+        }
+
         try {
             if (protocol.inTransaction()) {
                 try (Statement st = createStatement()) {
@@ -912,8 +922,10 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             }
         } finally {
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.rollback");
+            }
             lock.unlock();
-            protocol.endCallInterface("OceanBaseConnection.rollback");
         }
     }
 
@@ -934,7 +946,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getAutoCommit()) {
             throw new SQLException("Can't call rollback when autocommit enable");
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try (Statement st = createStatement()) {
             if (!this.protocol.isOracleMode()) {
@@ -943,7 +957,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 st.execute("ROLLBACK TO " + savepoint.getSavepointName());
             }
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.rollback");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.rollback");
+            }
         }
     }
 
@@ -953,7 +969,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is a problem talking to the server.
      */
     public void close() throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if (pooledConnection != null) {
             if (!getAutoCommit()) {
@@ -964,7 +982,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
         protocol.closeExplicit();
 
-        protocol.endCallInterface("OceanBaseConnection.close");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.close");
+        }
     }
 
     /**
@@ -1004,7 +1024,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is a problem
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
         try {
             logger.debug("conn={}({}) - set read-only to value {} {}",
                 protocol.getServerThreadId(), protocol.isMasterConnection() ? "M" : "S", readOnly);
@@ -1013,7 +1035,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         } catch (SQLException e) {
             throw exceptionFactory.create(e);
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.setReadOnly");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.setReadOnly");
+            }
         }
     }
 
@@ -1056,7 +1080,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (catalog.equals(this.protocol.getCatalog())) {
             return;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             stateFlag |= ConnectionState.STATE_DATABASE;
@@ -1064,7 +1090,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         } catch (SQLException e) {
             throw exceptionFactory.create(e);
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.setCatalog");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.setCatalog");
+            }
         }
     }
 
@@ -1115,7 +1143,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             && (level != TRANSACTION_READ_COMMITTED && level != TRANSACTION_SERIALIZABLE)) {
             throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
@@ -1123,7 +1153,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         } catch (SQLException e) {
             throw exceptionFactory.create(e);
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.setTransactionIsolation");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.setTransactionIsolation");
+            }
         }
     }
 
@@ -1152,7 +1184,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (protocol.isOracleMode()) {
             return new SQLWarning("The execution is complete, but with warnings");
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         SQLWarning last = null;
         SQLWarning first = null;
@@ -1174,7 +1208,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             }
         }
 
-        protocol.endCallInterface("OceanBaseConnection.getWarnings");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.getWarnings");
+        }
         return first;
     }
 
@@ -1310,7 +1346,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @since 1.4
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         Savepoint savepoint = new OceanBaseSavepoint(name);
         try (Statement st = createStatement()) {
@@ -1322,7 +1360,9 @@ public class OceanBaseConnection implements ConnectionImpl {
 //            st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
         }
 
-        protocol.endCallInterface("OceanBaseConnection.setSavepoint");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.setSavepoint");
+        }
         return savepoint;
     }
 
@@ -1337,11 +1377,15 @@ public class OceanBaseConnection implements ConnectionImpl {
      *                      current transaction
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
         try (Statement st = createStatement()) {
             st.execute("RELEASE SAVEPOINT `" + savepoint.getSavepointName() + "`");
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.releaseSavepoint");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.releaseSavepoint");
+            }
         }
     }
 
@@ -1420,7 +1464,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (isClosed()) {
             return false;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             return protocol.isValid(timeout * 1000);
@@ -1428,7 +1474,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             // eat
             return false;
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.isValid");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.isValid");
+            }
         }
     }
 
@@ -1550,7 +1598,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         checkClientClose(name);
         checkClientReconnect(name);
         checkClientValidProperty(name);
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             Statement statement = createStatement();
@@ -1560,7 +1610,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.setClientInfo");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.setClientInfo");
+            }
         }
     }
 
@@ -1576,7 +1628,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public Properties getClientInfo() throws SQLException {
         checkConnection();
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         String sql;
         if(this.protocol.isOracleMode()) {
@@ -1605,7 +1659,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         properties.setProperty("ClientUser", null);
         properties.setProperty("ClientHostname", null);
 
-        protocol.endCallInterface("OceanBaseConnection.getClientInfo");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.getClientInfo");
+        }
         return properties;
     }
 
@@ -1673,7 +1729,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                             + name
                             + "\"");
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         String sql;
         if(this.protocol.isOracleMode()) {
@@ -1688,7 +1746,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             }
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.getClientInfo");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.getClientInfo");
+            }
         }
         return null;
     }
@@ -2115,7 +2175,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.isClosed()) {
             return;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         SQLPermission sqlPermission = new SQLPermission("callAbort");
         SecurityManager securityManager = System.getSecurityManager();
@@ -2127,7 +2189,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
         executor.execute(protocol::abort);
 
-        protocol.endCallInterface("OceanBaseConnection.abort");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.abort");
+        }
     }
 
     /**
@@ -2176,7 +2240,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             throw exceptionFactory
                 .create("Connection.setNetworkTimeout cannot be called with a negative timeout");
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
         SecurityManager securityManager = System.getSecurityManager();
@@ -2189,7 +2255,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         } catch (SocketException se) {
             throw exceptionFactory.create("Cannot set the network timeout", se);
         } finally {
-            protocol.endCallInterface("OceanBaseConnection.setNetworkTimeout");
+            if (protocol != null) {
+                protocol.endCallInterface("OceanBaseConnection.setNetworkTimeout");
+            }
         }
     }
 
@@ -2318,7 +2386,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             }
             if (needSetSessionTimeZone) {
-                protocol.startCallInterface();
+                if (protocol != null) {
+                    protocol.startCallInterface();
+                }
 
                 java.sql.Statement stmt = getMetadataSafeStatement();
                 try {
@@ -2331,7 +2401,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                     if (stmt != null) {
                         stmt.close();
                     }
-                    protocol.endCallInterface("OceanBaseConnection.setSessionTimeZone");
+                    if (protocol != null) {
+                        protocol.endCallInterface("OceanBaseConnection.setSessionTimeZone");
+                    }
                 }
             }
         } else {
@@ -2388,7 +2460,9 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     @Override
     public void changeUser(String userName, String newPassword) throws SQLException {
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         if ((userName == null) || userName.equals("")) {
             userName = "";
@@ -2398,7 +2472,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
         protocol.changeUser(userName, newPassword);
 
-        protocol.endCallInterface("OceanBaseConnection.changeUser");
+        if (protocol != null) {
+            protocol.endCallInterface("OceanBaseConnection.changeUser");
+        }
     }
 
     @Override

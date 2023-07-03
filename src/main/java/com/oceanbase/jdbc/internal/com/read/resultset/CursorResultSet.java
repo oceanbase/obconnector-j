@@ -84,9 +84,13 @@ public class CursorResultSet extends Cursor {
         // ref cursor cannot read data in constructor
         if (protocol.supportStmtPrepareExecute() && !(this instanceof RefCursor)) {
             // for new PS protocol, ResultSet reads data from socket while constructing
-            protocol.startCallInterface();
+            if (protocol != null) {
+                protocol.startCallInterface();
+            }
             getCursorFetchData(fetchSize);
-            protocol.endCallInterface("CursorResultSet");
+            if (protocol != null) {
+                protocol.endCallInterface("CursorResultSet");
+            }
         }
 
         if (protocol.supportFetchWithOffset()) {
@@ -111,7 +115,9 @@ public class CursorResultSet extends Cursor {
             isLastRowSent = true;
             return false;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
@@ -125,7 +131,9 @@ public class CursorResultSet extends Cursor {
             }
             throw e;
         } finally {
-            protocol.endCallInterface("CursorResultSet.cursorFetch");
+            if (protocol != null) {
+                protocol.endCallInterface("CursorResultSet.cursorFetch");
+            }
         }
     }
 
@@ -135,7 +143,9 @@ public class CursorResultSet extends Cursor {
             isLastRowSent = true;
             return false;
         }
-        protocol.startCallInterface();
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
 
         try {
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetchForOracle(
@@ -156,7 +166,9 @@ public class CursorResultSet extends Cursor {
                 throw e;
             }
         } finally {
-            protocol.endCallInterface("CursorResultSet.cursorFetchForOracle");
+            if (protocol != null) {
+                protocol.endCallInterface("CursorResultSet.cursorFetchForOracle");
+            }
         }
     }
 
