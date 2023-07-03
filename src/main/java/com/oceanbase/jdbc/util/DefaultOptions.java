@@ -59,8 +59,8 @@ import com.oceanbase.jdbc.internal.util.OptionUtils;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 
 public enum DefaultOptions {
-  USER("user", "1.0.0", "Database user name", false),
-  PASSWORD("password", "1.0.0", "Password of database user", false),
+  USER("user", "2.0.1", "Database user name", false),
+  PASSWORD("password", "2.0.1", "Password of database user", false),
 
   /**
    * The connect timeout value, in milliseconds, or zero for no timeout. Default: 30000 (30 seconds)
@@ -70,24 +70,24 @@ public enum DefaultOptions {
       "connectTimeout",
       30_000,
       0,
-      "1.1.8",
+      "2.0.1",
       "The connect timeout value, in milliseconds, or zero for no timeout.",
       false),
   PIPE(
       "pipe",
-      "1.1.3",
+      "2.0.1",
       "On Windows, specify named pipe name to connect.",
       false),
   LOCAL_SOCKET(
       "localSocket",
-      "1.1.4",
+      "2.0.1",
       "Permits connecting to the database via Unix domain socket, if the server allows it."
           + " \nThe value is the path of Unix domain socket (i.e \"socket\" database parameter : "
           + "select @@socket).",
       false),
   SHARED_MEMORY(
       "sharedMemory",
-      "1.1.4",
+      "2.0.1",
       "Permits connecting to the database via shared memory, if the server allows "
           + "it. \nThe value is the base name of the shared memory.",
       false),
@@ -100,25 +100,25 @@ public enum DefaultOptions {
   TCP_NO_DELAY(
       "tcpNoDelay",
       Boolean.TRUE,
-      "1.0.0",
+      "2.0.1",
       "Sets corresponding option on the connection socket.",
       false),
   TCP_ABORTIVE_CLOSE(
       "tcpAbortiveClose",
       Boolean.FALSE,
-      "1.1.1",
+      "2.0.1",
       "Sets corresponding option on the connection " + "socket.",
       false),
   LOCAL_SOCKET_ADDRESS(
       "localSocketAddress",
-      "1.1.8",
+      "2.0.1",
       "Hostname or IP address to bind the connection socket to a " + "local (UNIX domain) socket.",
       false),
   SOCKET_TIMEOUT(
       "socketTimeout",
       new Integer[] {10000, null, null, null, null, null},
       0,
-      "1.1.8",
+      "2.0.1",
       "Defined the "
           + "network socket timeout (SO_TIMEOUT) in milliseconds. Value of 0 disables this timeout. \n"
           + "If the goal is to set a timeout for all queries, since MariaDB 10.1.1, the server has permitted a "
@@ -129,7 +129,7 @@ public enum DefaultOptions {
   INTERACTIVE_CLIENT(
       "interactiveClient",
       Boolean.FALSE,
-      "1.1.8",
+      "2.0.1",
       "Session timeout is defined by the wait_timeout "
           + "server variable. Setting interactiveClient to true will tell the server to use the interactive_timeout "
           + "server variable.",
@@ -137,14 +137,14 @@ public enum DefaultOptions {
   DUMP_QUERY_ON_EXCEPTION(
       "dumpQueriesOnException",
       Boolean.FALSE,
-      "1.1.0",
+      "2.0.1",
       "If set to 'true', an exception is thrown "
           + "during query execution containing a query string.",
       false),
   USE_OLD_ALIAS_METADATA_BEHAVIOR(
       "useOldAliasMetadataBehavior",
       Boolean.FALSE,
-      "1.1.9",
+      "2.0.1",
       "Metadata ResultSetMetaData.getTableName() returns the physical table name. \"useOldAliasMetadataBehavior\""
           + " permits activating the legacy code that sends the table alias if set.",
       false),
@@ -153,19 +153,19 @@ public enum DefaultOptions {
   //      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
   SESSION_VARIABLES(
       "sessionVariables",
-      "1.1.0",
+      "2.0.1",
       "<var>=<value> pairs separated by comma, mysql session variables, "
           + "set upon establishing successful connection.",
       false),
   CREATE_DATABASE_IF_NOT_EXISTS(
       "createDatabaseIfNotExist",
       Boolean.FALSE,
-      "1.1.8",
+      "2.0.1",
       "the specified database in the url will be created if non-existent.It will not take effect in oracle mode.",
       false),
   SERVER_TIMEZONE(
       "serverTimezone",
-      "1.1.8",
+      "2.0.1",
       "Defines the server time zone.\n"
           + "to use only if the jre server has a different time implementation of the server.\n"
           + "(best to have the same server time zone when possible).",
@@ -173,45 +173,45 @@ public enum DefaultOptions {
   NULL_CATALOG_MEANS_CURRENT(
       "nullCatalogMeansCurrent",
       Boolean.TRUE,
-      "1.1.8",
+      "2.0.1",
       "DatabaseMetaData use current catalog" + " if null.",
       false),
   TINY_INT_IS_BIT(
       "tinyInt1isBit",
       Boolean.TRUE,
-      "1.0.0",
+      "2.0.1",
       "Datatype mapping flag, handle Tiny as BIT(boolean).",
       false),
   YEAR_IS_DATE_TYPE(
       "yearIsDateType",
       Boolean.TRUE,
-      "1.0.0",
+      "2.0.1",
       "Year is date type, rather than numerical.",
       false),
   USE_SSL(
       "useSsl",
       Boolean.FALSE,
-      "1.1.0",
+      "2.0.1",
       "Force SSL on connection. (legacy alias \"useSSL\")",
       false),
   USER_COMPRESSION(
       "useCompression",
       Boolean.FALSE,
-      "1.0.0",
+      "2.0.1",
       "Compresses the exchange with the database through gzip."
           + " This permits better performance when the database is not in the same location.",
       false),
   ALLOW_MULTI_QUERIES(
       "allowMultiQueries",
       Boolean.FALSE,
-      "1.0.0",
+      "2.0.1",
       "permit multi-queries like insert into ab (i) "
           + "values (1); insert into ab (i) values (2).",
       false),
   REWRITE_BATCHED_STATEMENTS(
       "rewriteBatchedStatements",
       Boolean.FALSE,
-      "1.1.8",
+      "2.0.1",
       "For insert queries, rewrite "
           + "batchedStatement to execute in a single executeQuery.\n"
           + "example:\n"
@@ -228,43 +228,43 @@ public enum DefaultOptions {
   TCP_KEEP_ALIVE(
       "tcpKeepAlive",
       Boolean.TRUE,
-      "1.0.0",
+      "2.0.1",
       "Sets corresponding option on the connection socket.",
       false),
   TCP_RCV_BUF(
       "tcpRcvBuf",
       (Integer) null,
       0,
-      "1.0.0",
+      "2.0.1",
       "set buffer size for TCP buffer (SO_RCVBUF).",
       false),
   TCP_SND_BUF(
       "tcpSndBuf",
       (Integer) null,
       0,
-      "1.0.0",
+      "2.0.1",
       "set buffer size for TCP buffer (SO_SNDBUF).",
       false),
   SOCKET_FACTORY(
       "socketFactory",
-      "1.0.0",
+      "2.0.1",
       "to use a custom socket factory, set it to the full name of the class that"
           + " implements javax.net.SocketFactory.",
       false),
   PIN_GLOBAL_TX_TO_PHYSICAL_CONNECTION(
       "pinGlobalTxToPhysicalConnection",
-      Boolean.FALSE, "1.1.8",
+      Boolean.FALSE, "2.0.1",
       "",
       false),
   TRUST_SERVER_CERTIFICATE(
       "trustServerCertificate",
       Boolean.FALSE,
-      "1.1.1",
+      "2.0.1",
       "When using SSL, do not check server's" + " certificate.",
       false),
   SERVER_SSL_CERT(
       "serverSslCert",
-      "1.1.3",
+      "2.0.1",
       "Permits providing server's certificate in DER form, or server's CA"
           + " certificate. The server will be added to trustStor. This permits a self-signed certificate to be trusted.\n"
           + "Can be used in one of 3 forms : \n"
@@ -275,7 +275,7 @@ public enum DefaultOptions {
   USE_FRACTIONAL_SECONDS(
       "useFractionalSeconds",
       Boolean.TRUE,
-      "1.0.0",
+      "2.0.1",
       "Correctly handle subsecond precision in"
           + " timestamps (feature available with MariaDB 5.3 and later).\n"
           + "May confuse 3rd party components (Hibernate).",
@@ -283,13 +283,13 @@ public enum DefaultOptions {
   AUTO_RECONNECT(
       "autoReconnect",
       Boolean.FALSE,
-      "1.2.0",
+      "2.0.1",
       "Driver must recreateConnection after a failover.",
       false),
   FAIL_ON_READ_ONLY(
       "failOnReadOnly",
       Boolean.FALSE,
-      "1.2.0",
+      "2.0.1",
       "After a master failover and no other master found,"
           + " back on a read-only host ( throw exception if not).",
       false),
@@ -297,7 +297,7 @@ public enum DefaultOptions {
       "retriesAllDown",
       120,
       0,
-      "1.2.0",
+      "2.0.1",
       "When using loadbalancing, the number of times the driver should"
           + " cycle through available hosts, attempting to connect.\n"
           + "     * Between cycles, the driver will pause for 250ms if no servers are available.",
@@ -306,7 +306,7 @@ public enum DefaultOptions {
       "failoverLoopRetries",
       120,
       0,
-      "1.2.0",
+      "2.0.1",
       "When using failover, the number of times the driver"
           + " should cycle silently through available hosts, attempting to connect.\n"
           + "     * Between cycles, the driver will pause for 250ms if no servers are available.\n"
@@ -316,7 +316,7 @@ public enum DefaultOptions {
       "validConnectionTimeout",
       0,
       0,
-      "1.2.0",
+      "2.0.1",
       "When in multiple hosts, after this time in"
           + " second without used, verification that the connections haven't been lost.\n"
           + "     * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)",
@@ -325,20 +325,20 @@ public enum DefaultOptions {
       "loadBalanceBlacklistTimeout",
       50,
       0,
-      "1.2.0",
+      "2.0.1",
       "time in second a server is" + " blacklisted after a connection failure.",
       false),
   CACHE_PREP_STMTS(
       "cachePrepStmts",
       Boolean.FALSE,
-      "1.3.0",
+      "2.0.1",
       "enable/disable prepare Statement cache, default false.",
       false),
   PREP_STMT_CACHE_SIZE(
       "prepStmtCacheSize",
       250,
       0,
-      "1.3.0",
+      "2.0.1",
       "This sets the number of prepared statements that the "
           + "driver will cache per connection if \"cachePrepStmts\" is enabled.",
       false),
@@ -346,21 +346,21 @@ public enum DefaultOptions {
       "prepStmtCacheSqlLimit",
       2048,
       0,
-      "1.3.0",
+      "2.0.1",
       "This is the maximum length of a prepared SQL"
           + " statement that the driver will cache  if \"cachePrepStmts\" is enabled.",
       false),
   ASSURE_READONLY(
       "assureReadOnly",
       Boolean.TRUE,
-      "1.3.0",
+      "2.0.1",
       "Ensure that when Connection.setReadOnly(true) is called, host is in read-only mode by "
           + "setting the session transaction to read-only.",
       false),
   USE_LEGACY_DATETIME_CODE(
       "useLegacyDatetimeCode",
       Boolean.TRUE,
-      "1.3.0",
+      "2.0.1",
       "if true (default) store date/timestamps "
           + "according to client time zone.\n"
           + "if false, store all date/timestamps in DB according to server time zone, and time information (that is a"
@@ -370,7 +370,7 @@ public enum DefaultOptions {
   MAXIMIZE_MYSQL_COMPATIBILITY(
       "maximizeMysqlCompatibility",
       Boolean.FALSE,
-      "1.3.0",
+      "2.0.1",
       "maximize MySQL compatibility.\n"
           + "when using jdbc setDate(), will store date in client timezone, not in server timezone when "
           + "useLegacyDatetimeCode = false.\n"
@@ -379,14 +379,14 @@ public enum DefaultOptions {
   USE_SERVER_PREP_STMTS(
       "useServerPrepStmts",
       Boolean.FALSE,
-      "1.3.0",
+      "2.0.1",
       "useServerPrepStmts must prepared statements be"
           + " prepared on server side, or just faked on client side.\n"
           + "     * if rewriteBatchedStatements is set to true, this options will be set to false.",
       false),
   TRUSTSTORE(
       "trustStore",
-      "1.3.0",
+      "2.0.1",
       "File path of the trustStore file (similar to java System property "
           + "\"javax.net.ssl.trustStore\"). (legacy alias trustCertificateKeyStoreUrl)\n"
           + "Use the specified file for trusted root certificates.\n"
@@ -394,33 +394,33 @@ public enum DefaultOptions {
       false),
   TRUST_CERTIFICATE_KEYSTORE_PASSWORD(
       "trustStorePassword",
-      "1.3.0",
+      "2.0.1",
       "Password for the trusted root certificate file"
           + " (similar to java System property \"javax.net.ssl.trustStorePassword\").\n"
           + "(legacy alias trustCertificateKeyStorePassword).",
       false),
   KEYSTORE(
       "keyStore",
-      "1.3.0",
+      "2.0.1",
       "File path of the keyStore file that contain client private key store and associate "
           + "certificates (similar to java System property \"javax.net.ssl.keyStore\", but ensure that only the "
           + "private key's entries are used).(legacy alias clientCertificateKeyStoreUrl).",
       false),
   KEYSTORE_PASSWORD(
       "keyStorePassword",
-      "1.3.0",
+      "2.0.1",
       "Password for the client certificate keyStore (similar to java "
           + "System property \"javax.net.ssl.keyStorePassword\").(legacy alias clientCertificateKeyStorePassword)",
       false),
   PRIVATE_KEYS_PASSWORD(
       "keyPassword",
-      "1.5.3",
+      "2.0.1",
       "Password for the private key in client certificate keyStore. (only "
           + "needed if private key password differ from keyStore password).",
       false),
   ENABLED_SSL_PROTOCOL_SUITES(
       "enabledSslProtocolSuites",
-      "1.5.0",
+      "2.0.1",
       "Force TLS/SSL protocol to a specific set of TLS "
           + "versions (comma separated list). \n"
           + "Example : \"TLSv1, TLSv1.1, TLSv1.2\"\n"
@@ -428,40 +428,40 @@ public enum DefaultOptions {
       false),
   ENABLED_SSL_CIPHER_SUITES(
       "enabledSslCipherSuites",
-      "1.5.0",
+      "2.0.1",
       "Force TLS/SSL cipher (comma separated list).\n"
           + "Example : \"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384\"",
       false),
   CONTINUE_BATCH_ON_ERROR(
       "continueBatchOnError",
       Boolean.TRUE,
-      "1.4.0",
+      "2.0.1",
       "When executing batch queries, must batch " + "continue on error.",
       false),
   JDBC_COMPLIANT_TRUNCATION(
       "jdbcCompliantTruncation",
       Boolean.TRUE,
-      "1.4.0",
+      "2.0.1",
       "Truncation error (\"Data truncated for"
           + " column '%' at row %\", \"Out of range value for column '%' at row %\") will be thrown as error, and not as warning.",
       false),
   CACHE_CALLABLE_STMTS(
       "cacheCallableStmts",
       Boolean.TRUE,
-      "1.4.0",
+      "2.0.1",
       "enable/disable callable Statement cache, default" + " true.",
       false),
   CALLABLE_STMT_CACHE_SIZE(
       "callableStmtCacheSize",
       150,
       0,
-      "1.4.0",
+      "2.0.1",
       "This sets the number of callable statements "
           + "that the driver will cache per VM if \"cacheCallableStmts\" is enabled.",
       false),
   CONNECTION_ATTRIBUTES(
       "connectionAttributes",
-      "1.4.0",
+      "2.0.1",
       "When performance_schema is active, permit to send server "
           + "some client information in a key;value pair format "
           + "(example: connectionAttributes=key1:value1,key2,value2).\n"
@@ -472,7 +472,7 @@ public enum DefaultOptions {
   USE_BATCH_MULTI_SEND(
       "useBatchMultiSend",
       (Boolean) null,
-      "1.5.0",
+      "2.0.1",
       "*Not compatible with aurora*\n"
           + "Driver will can send queries by batch. \n"
           + "If set to false, queries are sent one by one, waiting for the result before sending the next one. \n"
@@ -487,14 +487,14 @@ public enum DefaultOptions {
       "useBatchMultiSendNumber",
       100,
       1,
-      "1.5.0",
+      "2.0.1",
       "When option useBatchMultiSend is active,"
           + " indicate the maximum query send in a row before reading results.",
       false),
   LOGGING(
       "log",
       Boolean.FALSE,
-      "1.5.0",
+      "2.0.1",
       "Enable log information. \n"
           + "require Slf4j version > 1.4 dependency.\n"
           + "Log level correspond to Slf4j logging implementation",
@@ -502,32 +502,32 @@ public enum DefaultOptions {
   PROFILE_SQL(
       "profileSql",
       Boolean.FALSE,
-      "1.5.0",
+      "2.0.1",
       "log query execution time.",
       false),
   MAX_QUERY_LOG_SIZE(
       "maxQuerySizeToLog",
       1024,
       0,
-      "1.5.0",
+      "2.0.1",
       "Max query log size.",
       false),
   SLOW_QUERY_TIME(
       "slowQueryThresholdNanos",
       null,
       0L,
-      "1.5.0",
+      "2.0.1",
       "Will log query with execution time superior" + " to this value (if defined )",
       false),
   PASSWORD_CHARACTER_ENCODING(
       "passwordCharacterEncoding",
-      "1.5.9",
+      "2.0.1",
       "Indicate password encoding charset. If not set," + " driver use platform's default charset.",
       false),
   PIPELINE_AUTH(
       "usePipelineAuth",
       (Boolean) null,
-      "1.6.0",
+      "2.0.1",
       "*Not compatible with aurora*\n"
           + "During connection, different queries are executed. When option is active those queries are send using"
           + " pipeline (all queries are send, then only all results are reads), permitting faster connection "
@@ -536,7 +536,7 @@ public enum DefaultOptions {
   ENABLE_PACKET_DEBUG(
       "enablePacketDebug",
       Boolean.FALSE,
-      "1.6.0",
+      "2.0.1",
       "Driver will save the last 16 MariaDB packet "
           + "exchanges (limited to first 1000 bytes). Hexadecimal value of those packets will be added to stacktrace"
           + " when an IOException occur.\n"
@@ -545,7 +545,7 @@ public enum DefaultOptions {
   SSL_HOSTNAME_VERIFICATION(
       "disableSslHostnameVerification",
       Boolean.FALSE,
-      "2.1.0",
+      "2.0.1",
       "When using ssl, the driver "
           + "checks the hostname against the server's identity as presented in the server's certificate (checking "
           + "alternative names or the certificate CN) to prevent man-in-the-middle attacks. This option permits "
@@ -555,7 +555,7 @@ public enum DefaultOptions {
   USE_BULK_PROTOCOL(
       "useBulkStmts",
       Boolean.FALSE,
-      "2.1.0",
+      "2.0.1",
       "Use dedicated COM_STMT_BULK_EXECUTE protocol for batch "
           + "insert when possible. (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch. "
           + "(significant only if server MariaDB >= 10.2.7)",
@@ -563,19 +563,19 @@ public enum DefaultOptions {
   AUTOCOMMIT(
       "autocommit",
       Boolean.TRUE,
-      "2.2.0",
+      "2.0.1",
       "Set default autocommit value on connection initialization",
       false),
   POOL(
       "pool",
       Boolean.FALSE,
-      "2.2.0",
+      "2.0.1",
       "Use pool. This option is useful only if not using a DataSource object, but "
           + "only a connection object.",
       false),
   POOL_NAME(
       "poolName",
-      "2.2.0",
+      "2.0.1",
       "Pool name that permits identifying threads. default: auto-generated as "
           + "MariaDb-pool-<pool-index>",
       false),
@@ -583,14 +583,14 @@ public enum DefaultOptions {
       "maxPoolSize",
       8,
       1,
-      "2.2.0",
+      "2.0.1",
       "The maximum number of physical connections that the pool should " + "contain.",
       false),
   MIN_POOL_SIZE(
       "minPoolSize",
       (Integer) null,
       0,
-      "2.2.0",
+      "2.0.1",
       "When connections are removed due to not being used for "
           + "longer than than \"maxIdleTime\", connections are closed and removed from the pool. \"minPoolSize\" "
           + "indicates the number of physical connections the pool should keep available at all times. Should be less"
@@ -600,7 +600,7 @@ public enum DefaultOptions {
       "maxIdleTime",
       600,
       Options.MIN_VALUE__MAX_IDLE_TIME,
-      "2.2.0",
+      "2.0.1",
       "The maximum amount of time in seconds"
           + " that a connection can stay in the pool when not used. This value must always be below @wait_timeout"
           + " value - 45s \n"
@@ -610,7 +610,7 @@ public enum DefaultOptions {
       "poolValidMinDelay",
       1000,
       0,
-      "2.2.0",
+      "2.0.1",
       "When asking a connection to pool, the pool will "
           + "validate the connection state. \"poolValidMinDelay\" permits disabling this validation if the connection"
           + " has been borrowed recently avoiding useless verifications in case of frequent reuse of connections. "
@@ -619,7 +619,7 @@ public enum DefaultOptions {
   STATIC_GLOBAL(
       "staticGlobal",
       Boolean.FALSE,
-      "2.2.0",
+      "2.0.1",
       "Indicates the values of the global variables "
           + "max_allowed_packet, wait_timeout, autocommit, auto_increment_increment, time_zone, system_time_zone and"
           + " tx_isolation) won't be changed, permitting the pool to create new connections faster.",
@@ -627,13 +627,13 @@ public enum DefaultOptions {
   REGISTER_POOL_JMX(
       "registerJmxPool",
       Boolean.TRUE,
-      "2.2.0",
+      "2.0.1",
       "Register JMX monitoring pools.",
       false),
   USE_RESET_CONNECTION(
       "useResetConnection",
       Boolean.FALSE,
-      "2.2.0",
+      "2.0.1",
       "When a connection is closed() "
           + "(given back to pool), the pool resets the connection state. Setting this option, the prepare command "
           + "will be deleted, session variables changed will be reset, and user variables will be destroyed when the"
@@ -643,14 +643,14 @@ public enum DefaultOptions {
   ALLOW_MASTER_DOWN(
       "allowMasterDownConnection",
       Boolean.FALSE,
-      "2.2.0",
+      "2.0.1",
       "When using master/slave configuration, "
           + "permit to create connection when master is down. If no master is up, default connection is then a slave "
           + "and Connection.isReadOnly() will then return true.",
       false),
   GALERA_ALLOWED_STATE(
       "galeraAllowedState",
-      "2.2.5",
+      "2.0.1",
       "Usually, Connection.isValid just send an empty packet to "
           + "server, and server send a small response to ensure connectivity. When this option is set, connector will"
           + " ensure Galera server state \"wsrep_local_state\" correspond to allowed values (separated by comma). "
@@ -659,44 +659,44 @@ public enum DefaultOptions {
   USE_AFFECTED_ROWS(
       "useAffectedRows",
       Boolean.FALSE,
-      "2.3.0",
+      "2.0.1",
       "If false (default), use \"found rows\" for the row count of statements. This corresponds to the JDBC standard.\n"
           + "If true, use \"affected rows\" for the row count. This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.",
       false),
   INCLUDE_STATUS(
       "includeInnodbStatusInDeadlockExceptions",
       Boolean.FALSE,
-      "2.3.0",
+      "2.0.1",
       "add \"SHOW ENGINE INNODB STATUS\" result to exception trace when having a deadlock exception",
       false),
   INCLUDE_THREAD_DUMP(
       "includeThreadDumpInDeadlockExceptions",
       Boolean.FALSE,
-      "2.3.0",
+      "2.0.1",
       "add thread dump to exception trace when having a deadlock exception",
       false),
   READ_AHEAD(
       "useReadAheadInput",
       Boolean.TRUE,
-      "2.4.0",
+      "2.0.1",
       "use a buffered inputSteam that read socket available data",
       false),
   KEY_STORE_TYPE(
       "keyStoreType",
       (String) null,
-      "2.4.0",
+      "2.0.1",
       "indicate key store type (JKS/PKCS12). default is null, then using java default type",
       false),
   TRUST_STORE_TYPE(
       "trustStoreType",
       (String) null,
-      "2.4.0",
+      "2.0.1",
       "indicate trust store type (JKS/PKCS12). default is null, then using java default type",
       false),
   SERVICE_PRINCIPAL_NAME(
       "servicePrincipalName",
       (String) null,
-      "2.4.0",
+      "2.0.1",
       "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
           + "connector will use this value, ignoring server information",
       false),
@@ -704,51 +704,51 @@ public enum DefaultOptions {
       "defaultFetchSize",
       0,
       0,
-      "2.4.2",
+      "2.0.1",
       "The driver will call setFetchSize(n) with this value on all newly-created Statements",
       false),
   USE_MYSQL_AS_DATABASE(
       "useMysqlMetadata",
       Boolean.FALSE,
-      "2.4.1",
+      "2.0.1",
       "force DatabaseMetadata.getDatabaseProductName() "
           + "to return \"MySQL\" as database, not real database type",
       false),
   BLANK_TABLE_NAME_META(
       "blankTableNameMeta",
       Boolean.FALSE,
-      "2.4.3",
+      "2.0.1",
       "Resultset metadata getTableName always return blank. "
           + "This option is mainly for ORACLE db compatibility",
       false),
   CREDENTIAL_TYPE(
       "credentialType",
       (String) null,
-      "2.5.0",
+      "2.0.1",
       "Indicate the credential plugin type to use. Plugin must be present in classpath",
       false),
   SERVER_KEY_FILE(
       "serverRsaPublicKeyFile",
       (String) null,
-      "2.5.0",
+      "2.0.1",
       "Indicate path to MySQL server public key file",
       false),
   ALLOW_SERVER_KEY_RETRIEVAL(
       "allowPublicKeyRetrieval",
       Boolean.FALSE,
-      "2.5.0",
+      "2.0.1",
       "Permit to get MySQL server key retrieval",
       false),
   TLS_SOCKET_TYPE(
       "tlsSocketType",
       (String) null,
-      "2.5.0",
+      "2.0.1",
       "Indicate TLS socket type implementation",
       false),
   TRACK_SCHEMA(
       "trackSchema",
       Boolean.TRUE,
-      "2.6.0",
+      "2.0.1",
       "manage session_track_schema setting when server has CLIENT_SESSION_TRACK capability",
       false),
   // Oceanbase extended options
@@ -811,7 +811,7 @@ public enum DefaultOptions {
   USE_CURSOR_FETCH(
       "useCursorFetch",
       Boolean.FALSE,
-      "NA",
+      "2.1.0",
       "Indicate driver to fetch data from server by bunch of fetchSize rows. This permit to avoid having to fetch all results from server.",
       false),
   SOCKS_PROXY_HOST(
@@ -868,7 +868,7 @@ public enum DefaultOptions {
       "maxBatchTotalParamsNum",
       30000,
       0,
-      "2.2.6",
+      "2.2.7",
       "When using executeBatch, the maximum number of spliced parameters",
       false),
   EMULATE_UNSUPPORTED_PSTMTS(
@@ -899,26 +899,26 @@ public enum DefaultOptions {
   TNSNAMES_PATH(
       "tnsnamesPath",
       (String) null,
-      "NA",
+      "2.0.1",
       "NA",
       false),
   TNSNAMES_DETECTION_PERIOD(
       "tnsnamesDetectionPeriod",
       10,
       0,
-      "NA",
+      "2.2.9",
       "NA",
       false),
   LOAD_BALANCE_STRATEGY(
       "loadBalanceStrategy",
       (String) "random",
-      "NA",
+      "2.2.9",
       "NA",
       false),
   SERVER_AFFINITY_ORDER (
       "serverAffinityOrder",
       (String) null,
-      "NA",
+      "2.2.9",
       "NA",
       false),
   TRANSFORMED_BIT_BOOLEAN(
@@ -936,13 +936,13 @@ public enum DefaultOptions {
   USE_ARRAY_BINDING(
       "useArrayBinding",
       Boolean.FALSE,
-      "2.3.0",
+      "2.2.10",
       "Oracle mode Use array binding to reduce network round-trips and increase performance.",
       false),
     SEND_CONNECTION_ATTRIBUTES(
         "sendConnectionAttributes",
         Boolean.TRUE,
-        "2.3.0",
+        "2.2.10",
         "Used to determine whether to send connection extended attributes.",
         false),
     REWRITE_INSERT_BY_MULTI_QUERIES (
@@ -960,7 +960,7 @@ public enum DefaultOptions {
     USE_OCEANBASE_PROTOCOLV20(
         "useOceanBaseProtocolV20",
         Boolean.TRUE,
-        "2.4.0",
+        "2.0.1",
         "Use v20 protocol to transmit data",
         false),
     ENABLE_FULL_LINK_TRACE(
@@ -979,7 +979,7 @@ public enum DefaultOptions {
         "maxRows",
         0,
         0,
-        "2.4.1",
+        "2.0.1",
         "The maximum number of rows to return. The default \"0\" means return all rows.",
         false),
     ZERO_DATE_TIME_BEHAVIOR(
