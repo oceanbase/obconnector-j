@@ -150,6 +150,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected int       whereEndPos = -1;
   PreparedStatement   cursorFetchPstmt = null;
   private    boolean  isPoolable = true;
+  private    boolean  isInternal;
+
 
     /**
    * Creates a new Statement.
@@ -741,9 +743,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
           .raiseStatementError(connection, this)
           .create("execute() is called on closed statement");
     } else {
-      return this.options.useServerPrepStmts && (protocol.isOracleMode() || (this.options.useCursorFetch
-          && this.resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && this.resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY
-          && this.getFetchSize() > 0));
+      return !isInternal && options.useServerPrepStmts && getFetchSize() > 0 && (protocol.isOracleMode() || (options.useCursorFetch
+              && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY && resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) );
     }
   }
 
@@ -761,6 +762,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       cursorFetchPstmt = pstmt;
       pstmt.setFetchSize(this.fetchSize);
+      if (isCloseOnCompletion()) {
+        pstmt.closeOnCompletion();
+      }
       ResultSet rs = pstmt.executeQuery();
       this.results =((OceanBaseStatement)pstmt).results;
       return rs;
@@ -1840,6 +1844,10 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   public int getWhereEndPos() {
     return whereEndPos;
+  }
+
+  public void setInternal() {
+    isInternal = true;
   }
 
 }

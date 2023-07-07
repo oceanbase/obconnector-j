@@ -355,6 +355,7 @@ public class OceanBaseXaResource implements XAResource {
                         recoveredXidList.add(new OceanBaseXid(((String) objArr[1]).getBytes(),
                                 ((String) objArr[2]).getBytes(), ((BigDecimal) objArr[0]).intValue()));
                     }
+                    array.free();
                 }
             } catch (SQLException sqlEx) {
                 throw new XAException(XAException.XAER_RMFAIL);
@@ -381,8 +382,7 @@ public class OceanBaseXaResource implements XAResource {
             }
             return asXids;
         } else {
-            try {
-                ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
+            try (ResultSet rs = connection.createStatement().executeQuery("XA RECOVER")) {
                 ArrayList<OceanBaseXid> xidList = new ArrayList<>();
                 while (rs.next()) {
                     int formatId = rs.getInt(1);

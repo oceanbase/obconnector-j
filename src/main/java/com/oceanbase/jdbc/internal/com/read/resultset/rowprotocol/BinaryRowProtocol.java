@@ -2387,6 +2387,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     Clob c = new com.oceanbase.jdbc.Clob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
                     value = c.toString();
+                    c.free();
                 } else {
                     return new String(buf, pos, length, charset);
                 }
@@ -2397,6 +2398,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     Blob blob = new com.oceanbase.jdbc.Blob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
                     value = blob.getBytes(1, (int) blob.length());
+                    blob.free();
                 } else {
                     value = b;
                 }

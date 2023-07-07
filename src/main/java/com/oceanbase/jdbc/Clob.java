@@ -530,28 +530,28 @@ public class Clob extends Lob implements java.sql.Clob {
         }
 
         int writeAmount, writeOffset = (int) writeAt, localOffset = 0, lengthLeft = length;
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        while (lengthLeft > 0) {
-            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}")) {
+            while (lengthLeft > 0) {
+                writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
 
-            cstmt.setClob(1, this);
-            cstmt.setInt(2, writeAmount);
-            cstmt.setInt(3, writeOffset);
-            cstmt.setString(4, str.substring(localOffset, localOffset + writeAmount));
-            cstmt.registerOutParameter(1, Types.CLOB);
-            cstmt.execute();
+                cstmt.setClob(1, this);
+                cstmt.setInt(2, writeAmount);
+                cstmt.setInt(3, writeOffset);
+                cstmt.setString(4, str.substring(localOffset, localOffset + writeAmount));
+                cstmt.registerOutParameter(1, Types.CLOB);
+                cstmt.execute();
 
-            writeOffset += writeAmount;
-            localOffset += writeAmount;
-            lengthLeft -= writeAmount;
-        }
+                writeOffset += writeAmount;
+                localOffset += writeAmount;
+                lengthLeft -= writeAmount;
+            }
 
-        Clob r = (Clob) cstmt.getClob(1);
-        if (r == null || r.getLocator() == null) {
-            throw new SQLException("Invalid operation on closed CLOB");
-        } else {
-            copy(r);
+            Clob r = (Clob) cstmt.getClob(1);
+            if (r == null || r.getLocator() == null) {
+                throw new SQLException("Invalid operation on closed CLOB");
+            } else {
+                copy(r);
+            }
         }
     }
 
@@ -568,18 +568,18 @@ public class Clob extends Lob implements java.sql.Clob {
         }
         clearData();
 
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
-        cstmt.setClob(1, this);
-        cstmt.setInt(2, len);
-        cstmt.registerOutParameter(1, Types.CLOB);
-        cstmt.execute();
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.trim( ?, ?)}")) {
+            cstmt.setClob(1, this);
+            cstmt.setInt(2, len);
+            cstmt.registerOutParameter(1, Types.CLOB);
+            cstmt.execute();
 
-        Clob r = (Clob) cstmt.getClob(1);
-        if (r == null || r.getLocator() == null) {
-            throw new SQLException("Invalid operation on closed CLOB");
-        } else {
-            copy(r);
+            Clob r = (Clob) cstmt.getClob(1);
+            if (r == null || r.getLocator() == null) {
+                throw new SQLException("Invalid operation on closed CLOB");
+            } else {
+                copy(r);
+            }
         }
     }
 
@@ -608,12 +608,9 @@ public class Clob extends Lob implements java.sql.Clob {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
-        SQLException sqlEx = null;
         int offset = 1;
-        while (sqlEx == null) {
-            try {
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+            while (true) {
                 cstmt.setClob(1, this);
                 cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);
                 cstmt.setInt(3, offset);
@@ -640,12 +637,10 @@ public class Clob extends Lob implements java.sql.Clob {
                 } catch (UnsupportedEncodingException e) {
                     throw new SQLException("Unsupported character encoding " + this.encoding);
                 }
-            } catch (SQLException ex) {
-                if (ex.getMessage().contains("no data found")) {
-                    sqlEx = ex;
-                } else {
-                    throw ex;
-                }
+            }
+        } catch (SQLException ex) {
+            if (!ex.getMessage().contains("no data found")) {
+                throw ex;
             }
         }
         length = charData.length();
@@ -669,13 +664,12 @@ public class Clob extends Lob implements java.sql.Clob {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}");
-        cstmt.setClob(2, this);
-        cstmt.registerOutParameter(1, Types.INTEGER);
-        cstmt.execute();
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}")) {
+            cstmt.setClob(2, this);
+            cstmt.registerOutParameter(1, Types.INTEGER);
+            cstmt.execute();
 
-        lengthFromServer = cstmt.getInt(1);
+            lengthFromServer = cstmt.getInt(1);
+        }
     }
-
 }

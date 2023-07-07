@@ -1602,8 +1602,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             protocol.startCallInterface();
         }
 
-        try {
-            Statement statement = createStatement();
+        try (Statement statement = createStatement()) {
             statement.execute(buildClientQuery(name, value));
         } catch (SQLException sqle) {
             Map<String, ClientInfoStatus> failures = new HashMap<>();
@@ -2365,6 +2364,9 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (stmt.getFetchSize() != 0) {
             stmt.setFetchSize(0);
         }
+
+        stmt.closeOnCompletion();
+        ((OceanBaseStatement) stmt).setInternal();
 
         return stmt;
     }

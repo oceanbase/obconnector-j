@@ -63,7 +63,7 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public ResultSet executeQuery(String sql) throws SQLException {
-        Statement stmt = connection.createStatement();
+        Statement stmt = connection.getMetadataSafeStatement();
         SelectResultSet rs = (SelectResultSet) stmt.executeQuery(sql);
         if (!rs.getStatement().isCursorResultSet()) {
             rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
@@ -166,67 +166,65 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
-        Statement stmt = this.connection.getMetadataSafeStatement();
         String querySql = String
             .format(OB_ORA_GET_COLUMNS,connection.getRemarksReporting() ?  "c.comments ":"NULL ",connection.getRemarksReporting() ? ",all_col_comments c " : "",
                 schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
                     : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern,connection.getRemarksReporting() ?  "  AND t.owner = c.owner (+)\n" +
                             "  AND t.table_name = c.table_name (+)\n" +
                             "  AND t.column_name = c.column_name (+)":"");
-        stmt.closeOnCompletion();
-        ResultSet results = stmt.executeQuery(querySql);
 //        int count = results.getFetchSize();
         String[] data = new String[24];
         List<String[]> list = new ArrayList<> ();
-        int i = 0;
-        while (results.next()) {
-            data[0] = null;
-            data[1] = results.getString("TABLE_SCHEM");
-            data[2] = results.getString("TABLE_NAME");
-            data[3] = results.getString("COLUMN_NAME");
-            data[4] = results.getString("DATA_TYPE");
-            data[5] = results.getString("TYPE_NAME");
-            data[6] = results.getString("COLUMN_SIZE");
-            data[7] = results.getString("BUFFER_LENGTH");
-            data[8] = results.getString("DECIMAL_DIGITS");
-            data[9] = results.getString("NUM_PREC_RADIX");
-            String nullabilityInfo = results.getString("IS_NULLABLE");
-            String isNullable = null;
-            int  nullability = 0;
-            if (nullabilityInfo != null) {
-                if (nullabilityInfo.equals("YES")) {
-                    nullability = java.sql.DatabaseMetaData.columnNullable;
-                    isNullable = "YES";
-                } else if (nullabilityInfo.equals("UNKNOWN")) {
-                    nullability = java.sql.DatabaseMetaData.columnNullableUnknown;
-                    isNullable = "";
+        try (ResultSet results = executeQuery(querySql)) {
+            while (results.next()) {
+                data[0] = null;
+                data[1] = results.getString("TABLE_SCHEM");
+                data[2] = results.getString("TABLE_NAME");
+                data[3] = results.getString("COLUMN_NAME");
+                data[4] = results.getString("DATA_TYPE");
+                data[5] = results.getString("TYPE_NAME");
+                data[6] = results.getString("COLUMN_SIZE");
+                data[7] = results.getString("BUFFER_LENGTH");
+                data[8] = results.getString("DECIMAL_DIGITS");
+                data[9] = results.getString("NUM_PREC_RADIX");
+                String nullabilityInfo = results.getString("IS_NULLABLE");
+                String isNullable = null;
+                int nullability = 0;
+                if (nullabilityInfo != null) {
+                    if (nullabilityInfo.equals("YES")) {
+                        nullability = java.sql.DatabaseMetaData.columnNullable;
+                        isNullable = "YES";
+                    } else if (nullabilityInfo.equals("UNKNOWN")) {
+                        nullability = java.sql.DatabaseMetaData.columnNullableUnknown;
+                        isNullable = "";
+                    } else {
+                        nullability = java.sql.DatabaseMetaData.columnNoNulls;
+                        isNullable = "NO";
+                    }
                 } else {
                     nullability = java.sql.DatabaseMetaData.columnNoNulls;
                     isNullable = "NO";
                 }
-            } else {
-                nullability = java.sql.DatabaseMetaData.columnNoNulls;
-                isNullable = "NO";
+                data[10] = Integer.toString(nullability);
+                data[11] = results.getString("REMARKS");
+                data[12] = results.getString("COLUMN_DEF");
+                data[13] = results.getString("SQL_DATA_TYPE");
+                data[14] = results.getString("SQL_DATETIME_SUB");
+                data[15] = results.getString("CHAR_OCTET_LENGTH");
+                data[16] = Integer.toString(results.getInt("ORDINAL_POSITION") - 15);
+                data[17] = isNullable;
+                data[18] = null;
+                data[19] = null;
+                data[20] = null;
+                data[21] = null;
+                data[22] = "NO";
+                data[23] = null;
+                String[] tmp = new String[24];
+                System.arraycopy(data, 0, tmp, 0, data.length);
+                list.add(tmp);
             }
-            data[10] = Integer.toString(nullability);
-            data[11] = results.getString("REMARKS");
-            data[12] = results.getString("COLUMN_DEF");
-            data[13] = results.getString("SQL_DATA_TYPE");
-            data[14] = results.getString("SQL_DATETIME_SUB");
-            data[15] = results.getString("CHAR_OCTET_LENGTH");
-            data[16] = Integer.toString(results.getInt("ORDINAL_POSITION") -15);
-            data[17] = isNullable;
-            data[18] = null;
-            data[19] = null;
-            data[20] = null;
-            data[21] = null;
-            data[22] = "NO";
-            data[23] = null;
-            i ++ ;
-            String[] tmp = new String[24];
-            System.arraycopy(data,0,tmp,0,data.length);
-            list.add(tmp);
         }
+
         String[][] val = new String[list.size()][];
         for(int j=0; j<list.size(); j++)  {
             val[j] = list.get(j);
@@ -343,10 +341,11 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public String getUserName() throws SQLException {
-        ResultSet rs = executeQuery(OB_ORA_GET_USER_NAME);
-        rs.next();
-        String userName = rs.getString(1);
-        return userName;
+        try (ResultSet rs = executeQuery(OB_ORA_GET_USER_NAME)) {
+            rs.next();
+            String userName = rs.getString(1);
+            return userName;
+        }
     }
 
     public ResultSet getTableTypes() throws SQLException {

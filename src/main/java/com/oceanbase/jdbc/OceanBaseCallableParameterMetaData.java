@@ -99,7 +99,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         if (name == null || name.trim().length() <= 0) {
             return;
         }
-        try (Statement stmt = con.createStatement()) {
+        ResultSet rs = null;
+        try (Statement stmt = con.getMetadataSafeStatement()) {
             String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
                     + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
@@ -132,13 +133,17 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 paramMetaSql.append(" order by POSITION");
             }
 
-            ResultSet rs = stmt.executeQuery(paramMetaSql.toString());
+            rs = stmt.executeQuery(paramMetaSql.toString());
             addParametersFromDBOD(rs);
         } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
             throw new SQLException(
                     "Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
                             + " or avoid using parameter by name",
                     sqlSyntaxErrorException);
+        }finally {
+            if (rs != null){
+                rs.close();
+            }
         }
     }
 

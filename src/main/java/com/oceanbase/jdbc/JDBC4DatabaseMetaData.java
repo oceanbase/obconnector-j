@@ -434,9 +434,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
 
         ArrayList<String> tableNameList = new ArrayList<>();
-        try {
-            tableNameList.add(table);
-            ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog);
+        tableNameList.add(table);
+        try (ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog)) {
             ArrayList<String[]> list = new ArrayList<>();
             while (allTableRS.next()) {
                 String[] data = new String[14];
@@ -809,88 +808,92 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             getTablesSql.append(tableNamePattern);
         }
         getTablesSql.append("'");
-        ResultSet rs = executeQuery(getTablesSql.toString());
-        boolean isTables = false;
-        boolean isViews = false;
-        boolean isSystemTables = false;
-        boolean isSystemViews = false;
-        boolean isLocalTemporaries = false;
-        if (types == null || types.length == 0) {
-            isTables = true;
-            isViews = true;
-            isSystemTables = true;
-            isSystemViews = true;
-            isLocalTemporaries = true;
-        } else {
-            for (int i = 0; i < types.length; i++) {
-                if ("TABLE".equals(types[i]) || "BASE TABLE".equals(types[i])) {
-                    isTables = true;
-                } else if ("VIEW".equals(types[i])) {
-                    isViews = true;
-                } else if ("SYSTEM TABLE".equals(types[i])) {
-                    isSystemTables = true;
-                } else if ("SYSTEM VIEW".equals(types[i])) {
-                    isSystemViews = true;
-                } else if ("LOCAL TEMPORARY".equals(types[i])) {
-                    isLocalTemporaries = true;
+        try (ResultSet rs = executeQuery(getTablesSql.toString())) {
+            boolean isTables = false;
+            boolean isViews = false;
+            boolean isSystemTables = false;
+            boolean isSystemViews = false;
+            boolean isLocalTemporaries = false;
+            if (types == null || types.length == 0) {
+                isTables = true;
+                isViews = true;
+                isSystemTables = true;
+                isSystemViews = true;
+                isLocalTemporaries = true;
+            } else {
+                for (int i = 0; i < types.length; i++) {
+                    if ("TABLE".equals(types[i]) || "BASE TABLE".equals(types[i])) {
+                        isTables = true;
+                    } else if ("VIEW".equals(types[i])) {
+                        isViews = true;
+                    } else if ("SYSTEM TABLE".equals(types[i])) {
+                        isSystemTables = true;
+                    } else if ("SYSTEM VIEW".equals(types[i])) {
+                        isSystemViews = true;
+                    } else if ("LOCAL TEMPORARY".equals(types[i])) {
+                        isLocalTemporaries = true;
+                    }
                 }
             }
-        }
-        int columnIndex = 1;
-        boolean hasTableType = true;
-        columnIndex = rs.findColumn("table_type");
-        SortedMap<TableMetaData, String[]> map = new TreeMap<TableMetaData, String[]>();
-        while (rs.next()) {
-            String[] data = new String[10];
-            boolean shouldPut = false;
-            data[0] = catalog;
-            data[1] = null;
-            data[2] = rs.getString(1);
-            data[4] = new byte[0].toString();
-            data[5] = null;
-            data[6] = null;
-            data[7] = null;
-            data[8] = null;
-            data[9] = null;
-            TableMetaData key = null;
-            if (hasTableType) {
-                String tableType = rs.getString(columnIndex);
-                String typeName = null;
-                if ("TABLE".equals(tableType) || "BASE TABLE".equals(tableType)) {
+            int columnIndex = 1;
+            boolean hasTableType = true;
+            columnIndex = rs.findColumn("table_type");
+            SortedMap<TableMetaData, String[]> map = new TreeMap<TableMetaData, String[]>();
+            while (rs.next()) {
+                String[] data = new String[10];
+                boolean shouldPut = false;
+                data[0] = catalog;
+                data[1] = null;
+                data[2] = rs.getString(1);
+                data[4] = new byte[0].toString();
+                data[5] = null;
+                data[6] = null;
+                data[7] = null;
+                data[8] = null;
+                data[9] = null;
+                TableMetaData key = null;
+                if (hasTableType) {
+                    String tableType = rs.getString(columnIndex);
+                    if ("TABLE".equals(tableType) || "BASE TABLE".equals(tableType)) {
 
-                    if (isSystemDb && isSystemTables) {
-                        shouldPut = true;
-                        key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
-                    } else if (!isSystemDb && isTables) {
-                        shouldPut = true;
+                        if (isSystemDb && isSystemTables) {
+                            shouldPut = true;
+                            key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
+                        } else if (!isSystemDb && isTables) {
+                            shouldPut = true;
+                            key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
+                        }
+                        if (shouldPut) {
+                            data[3] = "TABLE";
+                            map.put(key, data);
+                        }
+                    } else if ("VIEW".equals(tableType)) {
+                        if (isViews) {
+                            key = new TableMetaData("VIEW", catalog, null, rs.getString(1));
+                            data[3] = "VIEW";
+                            map.put(key, data);
+                        }
+                    } else if ("SYSTEM VIEW".equals(tableType)) {
+                        if (isSystemViews) {
+                            key = new TableMetaData("SYSTEM VIEW", catalog, null, rs.getString(1));
+                            data[3] = "SYSTEM VIEW";
+                            map.put(key, data);
+                        }
+                    } else if ("SYSTEM TABLE".equals(tableType)) {
+                        if (isSystemTables) {
+                            key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
+                            data[3] = "SYSTEM TABLE";
+                            map.put(key, data);
+                        }
+                    } else if ("LOCAL TEMPORARY".equals(tableType)) {
+                        if (isLocalTemporaries) {
+                            key = new TableMetaData("LOCAL TEMPORARY", catalog, null, rs.getString(1));
+                            data[3] = "LOCAL TEMPORARY";
+                            map.put(key, data);
+                        }
+                    } else {
                         key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
-                    }
-                    if (shouldPut) {
                         data[3] = "TABLE";
-                        map.put(key, data);
-                    }
-                } else if ("VIEW".equals(tableType)) {
-                    if (isViews) {
-                        key = new TableMetaData("VIEW", catalog, null, rs.getString(1));
-                        data[3] = "VIEW";
-                        map.put(key, data);
-                    }
-                } else if ("SYSTEM VIEW".equals(tableType)) {
-                    if (isSystemViews) {
-                        key = new TableMetaData("SYSTEM VIEW", catalog, null, rs.getString(1));
-                        data[3] = "SYSTEM VIEW";
-                        map.put(key, data);
-                    }
-                } else if ("SYSTEM TABLE".equals(tableType)) {
-                    if (isSystemTables) {
-                        key = new TableMetaData("SYSTEM TABLE", catalog, null, rs.getString(1));
-                        data[3] = "SYSTEM TABLE";
-                        map.put(key, data);
-                    }
-                } else if ("LOCAL TEMPORARY".equals(tableType)) {
-                    if (isLocalTemporaries) {
-                        key = new TableMetaData("LOCAL TEMPORARY", catalog, null, rs.getString(1));
-                        data[3] = "LOCAL TEMPORARY";
                         map.put(key, data);
                     }
                 } else {
@@ -898,19 +901,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     data[3] = "TABLE";
                     map.put(key, data);
                 }
-            } else {
-                key = new TableMetaData("TABLE", catalog, null, rs.getString(1));
-                data[3] = "TABLE";
-                map.put(key, data);
             }
-        }
-        Object[] a = map.values().toArray();
-        String[][] val = new String[map.size()][];
 
-        for (int j = 0; j < a.length; j++) {
-            val[j] = (String[]) a[j];
+            Object[] a = map.values().toArray();
+            String[][] val = new String[map.size()][];
+            for (int j = 0; j < a.length; j++) {
+                val[j] = (String[]) a[j];
+            }
+            return JDBC4ResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
         }
-        return JDBC4ResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
     }
 
     protected class TableMetaData implements Comparable<TableMetaData> {
@@ -1211,9 +1210,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
         // not suppport multi catalogs
-        try {
-            tableNameList= getALlTableNames(catalog);
-            ResultSet allTableRS = getAllTablesResultSet(tableNameList,catalog);
+        tableNameList= getALlTableNames(catalog);
+        try (ResultSet allTableRS = getAllTablesResultSet(tableNameList,catalog)) {
             ArrayList<String[]> list = new ArrayList<>();
             while(allTableRS.next()) {
                 String tableType = allTableRS.getString("Type");
@@ -1344,12 +1342,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     ArrayList<String>   getALlTableNames(String catalog) throws SQLException {
-        ResultSet rs = getTables(catalog, "", "%", new String[] { "TABLE" });
-        ArrayList<String> tableNameList = new ArrayList<>();
-        while (rs.next()) {
-            tableNameList.add(rs.getString("TABLE_NAME"));
+        try (ResultSet rs = getTables(catalog, "", "%", new String[]{"TABLE"})) {
+            ArrayList<String> tableNameList = new ArrayList<>();
+            while (rs.next()) {
+                tableNameList.add(rs.getString("TABLE_NAME"));
+            }
+            return tableNameList;
         }
-        return tableNameList;
     }
 
     ResultSet getAllTablesResultSet(ArrayList<String> tableNameList,String catalog) throws SQLException {
@@ -1359,114 +1358,122 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (catalog == null || catalog.length() == 0) {
             catalog = this.connection.getCatalog();
         }
-        for(int i = 0 ;i <tableNameList.size() ; i++) {
-            StringBuilder query = new StringBuilder();
-            query.append("SHOW CREATE TABLE ");
-            query.append("`");
-            query.append(catalog);
-            query.append("`.");
-            String name = OceanBaseConnection.quoteIdentifier(tableNameList.get(i));
-            query.append(name);
-            ResultSet rs = executeQuery(query.toString());
-            String[] data = new String[3];
-            StringBuilder sb  = new StringBuilder("comment; ");
-            while(rs.next()) {
-                String constraintName = null;
-                String columnName = null;
-                String refColumnName = null;
-                String refTableName;
-                String referencedCatalog = null;
-                String referencedTable = null;
-                data[0] = rs.getString(1);
-                data[1] = "SUPPORTS_FK";
-                String createTableString  = rs.getString(2);
-                StringTokenizer stringTokenizer = new StringTokenizer(createTableString, "\n");
-                boolean firstTime = true;
-                while(stringTokenizer.hasMoreTokens()) {
-                    String str = stringTokenizer.nextToken().trim();
-                    if(str.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")) {
-                        int beginIndex = str.indexOf("`");
-                        int endIndex = 0;
+        ResultSet rs = null;
+        try {
+            for (int i = 0; i < tableNameList.size(); i++) {
+                StringBuilder query = new StringBuilder();
+                query.append("SHOW CREATE TABLE ");
+                query.append("`");
+                query.append(catalog);
+                query.append("`.");
+                String name = OceanBaseConnection.quoteIdentifier(tableNameList.get(i));
+                query.append(name);
+                rs = executeQuery(query.toString());
+                String[] data = new String[3];
+                StringBuilder sb = new StringBuilder("comment; ");
+                while (rs.next()) {
+                    String constraintName = null;
+                    String columnName = null;
+                    String refColumnName = null;
+                    String refTableName;
+                    String referencedCatalog = null;
+                    String referencedTable = null;
+                    data[0] = rs.getString(1);
+                    data[1] = "SUPPORTS_FK";
+                    String createTableString = rs.getString(2);
+                    StringTokenizer stringTokenizer = new StringTokenizer(createTableString, "\n");
+                    boolean firstTime = true;
+                    while (stringTokenizer.hasMoreTokens()) {
+                        String str = stringTokenizer.nextToken().trim();
+                        if (str.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")) {
+                            int beginIndex = str.indexOf("`");
+                            int endIndex = 0;
 
-                        boolean useBackTicks = false;
-                        if(beginIndex == -1) {
-                            beginIndex = str.indexOf("\"");
-                            useBackTicks = true;
-                        }
-                        if (beginIndex != -1) {
-                            if (!useBackTicks) {
-                                endIndex = str.indexOf("`", beginIndex + 1);
-                            } else {
-                                endIndex = str.indexOf("\"", beginIndex + 1);
+                            boolean useBackTicks = false;
+                            if (beginIndex == -1) {
+                                beginIndex = str.indexOf("\"");
+                                useBackTicks = true;
                             }
-                            if (endIndex != -1) {
-                                constraintName = str.substring(beginIndex+1,endIndex);
-                                str =  str.substring(endIndex+1 ,str.length()).trim();
-                            }
-                        }
-                    }
-                    if(str.toUpperCase(Locale.ROOT).startsWith("FOREIGN KEY")) {
-                        if(str.endsWith(",")) {
-                            str = str.substring(0,str.length()-1);
-                        }
-                        int fkIndex = str.indexOf("FOREIGN KEY");
-                        if(fkIndex !=  -1 ) {
-                            int startIndex = fkIndex + "FOREIGN KEY".length();
-                            int refIndex = str.toUpperCase(Locale.ROOT).indexOf("REFERENCES",startIndex);
-                            if (refIndex != -1 ) {
-                                int paramOpenIndex = str.indexOf("(",startIndex);
-                                int paramCloseIndex = str.indexOf(")",paramOpenIndex);
-                                if (paramCloseIndex ==-1 || paramOpenIndex == -1)  {
-                                    throw new SQLException("Parsing REFERENCES failed !");
+                            if (beginIndex != -1) {
+                                if (!useBackTicks) {
+                                    endIndex = str.indexOf("`", beginIndex + 1);
+                                } else {
+                                    endIndex = str.indexOf("\"", beginIndex + 1);
                                 }
-                                columnName = str.substring(paramOpenIndex+1,paramCloseIndex);
-                                int afterRefIndex = refIndex+"REFERENCES".length();
-                                int referenceParamOpenIndex = str.indexOf("(",afterRefIndex);
-                                if (referenceParamOpenIndex != -1 ) {
-                                    refTableName = str.substring(afterRefIndex,referenceParamOpenIndex);
-                                    int referenceParamCloseIndex = str.indexOf(")",referenceParamOpenIndex);
-                                    refColumnName = str.substring(referenceParamOpenIndex+1,referenceParamCloseIndex);
-                                    int catalogEndIndex = refTableName.indexOf(".");
-                                    if (catalogEndIndex != -1) {
-                                         referencedCatalog = refTableName.substring(0,catalogEndIndex);
-                                         referencedTable  = refTableName.substring(catalogEndIndex+1);
+                                if (endIndex != -1) {
+                                    constraintName = str.substring(beginIndex + 1, endIndex);
+                                    str = str.substring(endIndex + 1, str.length()).trim();
+                                }
+                            }
+                        }
+                        if (str.toUpperCase(Locale.ROOT).startsWith("FOREIGN KEY")) {
+                            if (str.endsWith(",")) {
+                                str = str.substring(0, str.length() - 1);
+                            }
+                            int fkIndex = str.indexOf("FOREIGN KEY");
+                            if (fkIndex != -1) {
+                                int startIndex = fkIndex + "FOREIGN KEY".length();
+                                int refIndex = str.toUpperCase(Locale.ROOT).indexOf("REFERENCES", startIndex);
+                                if (refIndex != -1) {
+                                    int paramOpenIndex = str.indexOf("(", startIndex);
+                                    int paramCloseIndex = str.indexOf(")", paramOpenIndex);
+                                    if (paramCloseIndex == -1 || paramOpenIndex == -1) {
+                                        throw new SQLException("Parsing REFERENCES failed !");
+                                    }
+                                    columnName = str.substring(paramOpenIndex + 1, paramCloseIndex);
+                                    int afterRefIndex = refIndex + "REFERENCES".length();
+                                    int referenceParamOpenIndex = str.indexOf("(", afterRefIndex);
+                                    if (referenceParamOpenIndex != -1) {
+                                        refTableName = str.substring(afterRefIndex, referenceParamOpenIndex);
+                                        int referenceParamCloseIndex = str.indexOf(")", referenceParamOpenIndex);
+                                        refColumnName = str.substring(referenceParamOpenIndex + 1, referenceParamCloseIndex);
+                                        int catalogEndIndex = refTableName.indexOf(".");
+                                        if (catalogEndIndex != -1) {
+                                            referencedCatalog = refTableName.substring(0, catalogEndIndex);
+                                            referencedTable = refTableName.substring(catalogEndIndex + 1);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        if (!firstTime) {
-                            sb.append("comment; ");
-                        } else {
-                            firstTime = false;
-                        }
-                        if(constraintName != null){
-                            sb.append(constraintName);
-                        } else {
-                            sb.append("not_availabl");
-                        }
-                        sb.append("(");
-                        sb.append(columnName);
-                        sb.append(") REFER");
-                        sb.append(referencedCatalog);
-                        sb.append("/");
-                        sb.append(referencedTable);
-                        sb.append("(");
-                        sb.append(refColumnName);
-                        sb.append(")");
-                        int lastParenIndex = str.lastIndexOf(")");
+                            if (!firstTime) {
+                                sb.append("comment; ");
+                            } else {
+                                firstTime = false;
+                            }
+                            if (constraintName != null) {
+                                sb.append(constraintName);
+                            } else {
+                                sb.append("not_availabl");
+                            }
+                            sb.append("(");
+                            sb.append(columnName);
+                            sb.append(") REFER");
+                            sb.append(referencedCatalog);
+                            sb.append("/");
+                            sb.append(referencedTable);
+                            sb.append("(");
+                            sb.append(refColumnName);
+                            sb.append(")");
+                            int lastParenIndex = str.lastIndexOf(")");
 
-                        if (lastParenIndex != (str.length() - 1)) {
-                            String cascadeOptions = str.substring(lastParenIndex + 1);
-                            sb.append(" ");
-                            sb.append(cascadeOptions);
+                            if (lastParenIndex != (str.length() - 1)) {
+                                String cascadeOptions = str.substring(lastParenIndex + 1);
+                                sb.append(" ");
+                                sb.append(cascadeOptions);
+                            }
                         }
+
                     }
-
+                    data[2] = sb.toString();
                 }
-                data[2] = sb.toString();
+                list.add(data);
             }
-            list.add(data);
+        } finally {
+            if (rs != null){
+                rs.close();
+            }
         }
+
         String[][] val = new String[list.size()][];
         for (int j = 0; j < list.size(); j++) {
             val[j] = list.get(j);
@@ -1541,14 +1548,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             throw new IllegalArgumentException("table");
         }
 
-        ResultSet rs = connection.createStatement().executeQuery(
-            "SHOW CREATE TABLE " + OceanBaseConnection.quoteIdentifier(catalog) + "."
-                    + OceanBaseConnection.quoteIdentifier(table));
-        if (rs.next()) {
-            String tableDef = rs.getString(2);
-            return JDBC4DatabaseMetaData.getImportedKeys(tableDef, table, catalog, connection);
+        try (ResultSet rs = executeQuery("SHOW CREATE TABLE " + OceanBaseConnection.quoteIdentifier(catalog) + "." + OceanBaseConnection.quoteIdentifier(table))) {
+            if (rs.next()) {
+                String tableDef = rs.getString(2);
+                return JDBC4DatabaseMetaData.getImportedKeys(tableDef, table, catalog, connection);
+            }
+            throw new SQLException("Fail to retrieve table information using SHOW CREATE TABLE");
         }
-        throw new SQLException("Fail to retrieve table information using SHOW CREATE TABLE");
     }
 
     /**
@@ -2825,9 +2831,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             procSql.append("name LIKE ? AND db <=> ? ORDER BY name, type");
         }
 
+        PreparedStatement proceduresStmt = null;
         try {
-            PreparedStatement proceduresStmt = this.connection.clientPrepareStatement(procSql
-                .toString());
+            proceduresStmt = this.connection.clientPrepareStatement(procSql.toString());
             if (procedureNamePattern == null || procedureNamePattern.length() == 0) {
                 procedureNamePattern = "%";
             }
@@ -2846,9 +2852,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             } else {
                 proceduresStmt.setNull(2, Types.VARCHAR);
             }
-            results = proceduresStmt.executeQuery();
         } catch (SQLException e) {
-            PreparedStatement proceduresStmt = null;
             if (isFunction) {
                 proceduresStmt = this.connection
                     .clientPrepareStatement("SHOW FUNCTION STATUS LIKE ?");
@@ -2860,8 +2864,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 procedureNamePattern = "%";
             }
             proceduresStmt.setString(1, procedureNamePattern);
-            results = proceduresStmt.executeQuery();
         }
+
+        proceduresStmt.closeOnCompletion();
+        ((OceanBaseStatement) proceduresStmt).setInternal();
+        results = proceduresStmt.executeQuery();
         return getCallStmtParameterTypes(catalog, results, columnNames, columnTypes,
             forGetFunctionColumns, columnPattern);
     }

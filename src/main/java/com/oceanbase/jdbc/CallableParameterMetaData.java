@@ -50,12 +50,10 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -403,25 +401,30 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
 
         String procedureDDl;
-        ResultSet resultSet;
-        if (isFunction) {
-            if (database != null) {
-                resultSet = con.createStatement().executeQuery(
-                    "SHOW CREATE FUNCTION " + database + "." + name);
+        ResultSet resultSet = null;
+        Statement stmt = con.getMetadataSafeStatement();
+        try {
+            if (isFunction) {
+                if (database != null) {
+                    resultSet = stmt.executeQuery("SHOW CREATE FUNCTION " + database + "." + name);
+                } else {
+                    resultSet = stmt.executeQuery("SHOW CREATE FUNCTION " + name);
+                }
+                resultSet.next();
+                procedureDDl = resultSet.getString("Create Function");
             } else {
-                resultSet = con.createStatement().executeQuery("SHOW CREATE FUNCTION " + name);
+                if (database != null) {
+                    resultSet = stmt.executeQuery("SHOW CREATE PROCEDURE " + database + "." + name);
+                } else {
+                    resultSet = stmt.executeQuery("SHOW CREATE PROCEDURE " + name);
+                }
+                resultSet.next();
+                procedureDDl = resultSet.getString("Create Procedure");
             }
-            resultSet.next();
-            procedureDDl = resultSet.getString("Create Function");
-        } else {
-            if (database != null) {
-                resultSet = con.createStatement().executeQuery(
-                    "SHOW CREATE PROCEDURE " + database + "." + name);
-            } else {
-                resultSet = con.createStatement().executeQuery("SHOW CREATE PROCEDURE " + name);
+        } finally {
+            if (resultSet != null) {
+                resultSet.close();
             }
-            resultSet.next();
-            procedureDDl = resultSet.getString("Create Procedure");
         }
 
         String paramList = procedureDDl.substring(procedureDDl.indexOf("(") - 1);

@@ -363,30 +363,30 @@ public class Blob extends Lob implements java.sql.Blob {
         }
 
         int writeAmount, writeOffset = (int) writeAt, localOffset = offset, lengthLeft = length;
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}");
-        while (lengthLeft > 0) {
-            writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
-            byte[] writeBuffer = new byte[writeAmount];
-            System.arraycopy(bytes, localOffset, writeBuffer, 0, writeAmount);
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}")) {
+            while (lengthLeft > 0) {
+                writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
+                byte[] writeBuffer = new byte[writeAmount];
+                System.arraycopy(bytes, localOffset, writeBuffer, 0, writeAmount);
 
-            ((BasePrepareStatement) cstmt).setLobLocator(1, this);
-            cstmt.setInt(2, writeAmount);
-            cstmt.setInt(3, writeOffset);
-            cstmt.setBytes(4, writeBuffer);
-            cstmt.registerOutParameter(1, Types.BLOB);
-            cstmt.execute();
+                ((BasePrepareStatement) cstmt).setLobLocator(1, this);
+                cstmt.setInt(2, writeAmount);
+                cstmt.setInt(3, writeOffset);
+                cstmt.setBytes(4, writeBuffer);
+                cstmt.registerOutParameter(1, Types.BLOB);
+                cstmt.execute();
 
-            writeOffset += writeAmount;
-            localOffset += writeAmount;
-            lengthLeft -= writeAmount;
-        }
+                writeOffset += writeAmount;
+                localOffset += writeAmount;
+                lengthLeft -= writeAmount;
+            }
 
-        Blob r = (Blob) cstmt.getBlob(1);
-        if (r == null || r.getLocator() == null) {
-            throw new SQLException("Invalid operator on setBytes for BLOB");
-        } else {
-            copy(r);
+            Blob r = (Blob) cstmt.getBlob(1);
+            if (r == null || r.getLocator() == null) {
+                throw new SQLException("Invalid operator on setBytes for BLOB");
+            } else {
+                copy(r);
+            }
         }
     }
 
@@ -405,18 +405,18 @@ public class Blob extends Lob implements java.sql.Blob {
             throw new SQLException("Invalid operation on closed BLOB");
         }
 
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.trim( ?, ?)}");
-        ((BasePrepareStatement) cstmt).setLobLocator(1, this);
-        cstmt.setInt(2, len);
-        cstmt.registerOutParameter(1, Types.BLOB);
-        cstmt.execute();
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.trim( ?, ?)}")) {
+            ((BasePrepareStatement) cstmt).setLobLocator(1, this);
+            cstmt.setInt(2, len);
+            cstmt.registerOutParameter(1, Types.BLOB);
+            cstmt.execute();
 
-        Blob r = (Blob) cstmt.getBlob(1);
-        if (r == null || r.getLocator() == null) {
-            throw new SQLException("Invalid operator on trim() for BLOB");
-        } else {
-            copy(r);
+            Blob r = (Blob) cstmt.getBlob(1);
+            if (r == null || r.getLocator() == null) {
+                throw new SQLException("Invalid operator on trim() for BLOB");
+            } else {
+                copy(r);
+            }
         }
     }
 
@@ -445,12 +445,9 @@ public class Blob extends Lob implements java.sql.Blob {
         }
         clearData();
 
-        java.sql.CallableStatement cstmt = this.locator.connection
-            .prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}");
-        SQLException sqlEx = null;
         int offset = 1;
-        while (sqlEx == null) {
-            try {
+        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+            while (true) {
                 cstmt.setBlob(1, this);
                 cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);
                 cstmt.setInt(3, offset);
@@ -470,15 +467,12 @@ public class Blob extends Lob implements java.sql.Blob {
                     System.arraycopy(outRaw, 0, newData, data.length, outRaw.length);
                     data = newData;
                 }
-            } catch (SQLException ex) {
-                if (ex.getMessage().contains("no data found")) {
-                    sqlEx = ex;
-                } else {
-                    throw ex;
-                }
+            }
+        } catch (SQLException ex) {
+            if (!ex.getMessage().contains("no data found")) {
+                throw ex;
             }
         }
         length = data.length;
     }
-
 }
