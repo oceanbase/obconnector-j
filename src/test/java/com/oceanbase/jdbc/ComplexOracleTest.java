@@ -72,7 +72,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     public static String refcursor1      = "test_ref";
     public static String struct4         = "test_struct4";
 
-    //@BeforeClass()
+    @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tablenameArray, "c1 int primary key,c2 interval day(6) to second(5)");
         createTable(tablenameStruct, " c1 int primary key,c2 interval year(4) to month");
@@ -878,6 +878,48 @@ public class ComplexOracleTest extends BaseOracleTest {
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+
+    @Test
+    public void testSdoGeometry() {
+        String host = "11.158.31.35";
+        int port = 46003;//proxy
+        String username = "test@oracle";
+        String password = "test";
+        //host="100.83.231.1";
+        //port=2828;
+
+        String url = String.format("jdbc:oceanbase://%s:%d/%s?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=true",
+                host, port, "test");
+
+        try {
+            Connection conn = DriverManager.getConnection(url, username, password);
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table my_tt1");
+            } catch (Exception ignore) {}
+            stmt.execute("create table my_tt1(c1 number, c2 SDO_GEOMETRY)");
+            stmt.execute("insert into my_tt1 values(1, SDO_GEOMETRY(2003, 4000, SDO_POINT_TYPE(1,1,1), SDO_ELEM_INFO_ARRAY(1,1003,3), SDO_ORDINATE_ARRAY(1,1, 5,7)))");
+            String createPlSql = "select g.c2.sdo_point from my_tt1 g";
+            //String createPlSql = "select c1 from my_tt1";
+            System.out.println("=========callable stmt test==========");
+            try (ResultSet rs = stmt.executeQuery(createPlSql)) {
+                while (rs.next()) {
+                    //System.out.println(rs.getNString(1));
+                    System.out.println(rs.getObject(1));
+                }
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+            stmt.execute("drop table my_tt1;");
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
