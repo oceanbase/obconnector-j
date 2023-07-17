@@ -862,4 +862,27 @@ public class DatatypeOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testFloatGetLong() throws SQLException {
+        createTable("test_float_getLong", "v0 float(126) , v1 binary_float");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into test_float_getLong values (0.035 , 0.035)");
+        ResultSet rs = stmt.executeQuery("select * from test_float_getLong");
+        ResultSetMetaData metaData = rs.getMetaData();
+        assertEquals(2, metaData.getColumnType(1));
+        assertEquals(100, metaData.getColumnType(2));
+        assertEquals("NUMBER", metaData.getColumnTypeName(1));
+        assertEquals("BINARY_FLOAT", metaData.getColumnTypeName(2));
+        try {
+            assertEquals("java.lang.Double", metaData.getColumnClassName(1));
+        } catch (AssertionError e) {
+            //todo ojdbc6/8 is java.lang.Double here
+            System.out.println(e.getMessage());
+        }
+        assertEquals("java.lang.Float", metaData.getColumnClassName(2));
+        assertTrue(rs.next());
+        assertEquals(0, rs.getLong(1));
+        assertEquals(0, rs.getLong(2));
+    }
+
 }

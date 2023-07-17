@@ -601,6 +601,8 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                     return unsignedValue.longValue();
                 case FLOAT:
+                case NUMBER_FLOAT:
+                case BINARY_FLOAT:
                     Float floatValue = getInternalFloat(columnInfo);
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '"

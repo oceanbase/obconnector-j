@@ -317,6 +317,8 @@ public class TextRowProtocol extends RowProtocol {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
+                case NUMBER_FLOAT:
+                case BINARY_FLOAT:
                     Float floatValue = Float.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
                     // check
