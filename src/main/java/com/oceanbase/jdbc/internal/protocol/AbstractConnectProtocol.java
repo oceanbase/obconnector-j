@@ -1117,7 +1117,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         */
 
         if (options.jdbcCompliantTruncation) {
-            sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
+            String currentSqlMode = this.getSqlMode();
+            if (currentSqlMode == null || currentSqlMode.length() == 0
+                || !currentSqlMode.toUpperCase().contains("STRICT_TRANS_TABLES")) {
+                sessionOption.append(", sql_mode = concat(@@sql_mode, ',STRICT_TRANS_TABLES')");
+            }
+            options.jdbcCompliantTruncation = false;
         }
 
         if (options.sessionVariables != null && !options.sessionVariables.isEmpty()) {
@@ -1355,6 +1360,29 @@ public abstract class AbstractConnectProtocol implements Protocol {
             ResultSet resultSet = results.getResultSet();
             resultSet.next();
             String ret = resultSet.getString(3);// ob_version()
+            resultSet.close();
+            return ret;
+        } catch (SQLException e) {
+            return "";
+        }
+    }
+
+    private String getSqlMode() throws IOException {
+        try {
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            if (isOracleMode) {
+                writer.write("select @@sql_mode from dual".getBytes());
+            } else {
+                writer.write("select @@sql_mode".getBytes());
+            }
+            writer.flush();
+            Results results = new Results();
+            getResult(results);
+            results.commandEnd();
+            ResultSet resultSet = results.getResultSet();
+            resultSet.next();
+            String ret = resultSet.getString(1);
             resultSet.close();
             return ret;
         } catch (SQLException e) {
