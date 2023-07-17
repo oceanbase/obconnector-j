@@ -310,7 +310,6 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   public void clearBatch() {
     parametersList.clear();
     hasLongData = false;
-    this.parameters = new ParameterHolder[parameterCount];
   }
 
   public int[] executeBatch() throws SQLException {

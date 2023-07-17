@@ -697,4 +697,25 @@ public class PreparedStatementTest extends BaseTest {
         conn2.createStatement().executeQuery("SELECT 3");
     }
 
+    @Test
+    public void testClearParam() throws SQLException {
+        createTable("test_clear_param","v0 int");
+        PreparedStatement pstmt = sharedConnection.prepareStatement("insert into test_clear_param values (?)");
+        pstmt.setInt(1,1);
+        pstmt.addBatch();
+        pstmt.setInt(1,2);
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_clear_param");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
+    }
+
 }
