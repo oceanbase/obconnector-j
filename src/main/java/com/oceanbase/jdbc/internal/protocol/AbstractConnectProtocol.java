@@ -893,7 +893,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             ob20 = new OceanBaseProtocolV20(useNewExtraInfo);
             writer = new Ob20PacketOutputStream(writer.getOutputStream(), serverThreadId, options,
                 ob20, timeTrace);
-            reader = new Ob20PacketInputStream(socket.getInputStream(), serverThreadId, options,
+            reader = new Ob20PacketInputStream(
+                ((StandardPacketInputStream) reader).getInputStream(), serverThreadId, options,
                 ob20, timeTrace);
 
             if (enableFullLinkTrace) {

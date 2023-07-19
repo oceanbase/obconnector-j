@@ -89,6 +89,12 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         this.timeTrace = timeTrace;
     }
 
+    public StandardPacketInputStream(long threadId, Options options, TimeTrace timeTrace) {
+        this.maxQuerySizeToLog = options.maxQuerySizeToLog;
+        this.threadId = threadId;
+        this.timeTrace = timeTrace;
+    }
+
     @Override
     public Buffer getPacket(boolean reUsable) throws IOException {
         return new Buffer(getPacketArray(reUsable), lastPacketLength);

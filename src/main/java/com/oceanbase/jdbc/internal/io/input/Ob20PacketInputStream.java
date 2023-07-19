@@ -80,7 +80,8 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
 
     public Ob20PacketInputStream(InputStream in, long threadId, Options options,
                                  OceanBaseProtocolV20 ob20, TimeTrace timeTrace) {
-        super(in, threadId, options, timeTrace);
+        super(threadId, options, timeTrace);
+        this.inputStream = in;
         this.ob20 = ob20;
     }
 
@@ -201,6 +202,11 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
                 OceanBaseProtocolV20.TOTAL_HEADER_LENGTH - 2);
 
             if (localHeaderChecksum != ob20.header.headerChecksum) {
+                logger
+                    .error(String
+                        .format(
+                            "header checksum mismatch, expected HeaderChecksum=%d, but received headerChecksum=%d",
+                            localHeaderChecksum, ob20.header.headerChecksum));
                 throw new IOException(
                     String
                         .format(
@@ -211,12 +217,20 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
 
         if (ob20.header.compressLength != (OceanBaseProtocolV20.OB20_HEADER_LENGTH
                                            + ob20.header.payloadLength + OceanBaseProtocolV20.OB20_TAIL_LENGTH)) {
+            logger.error(String.format(
+                "packet length mismatch, received compressLength=%d, payloadLength=%d",
+                ob20.header.compressLength, ob20.header.payloadLength));
             throw new IOException(String.format(
                 "packet length mismatch, received compressLength=%d, payloadLength=%d",
                 ob20.header.compressLength, ob20.header.payloadLength));
         }
 
         if (ob20.header.uncompressLength != 0) {
+            logger
+                .error(String
+                    .format(
+                        "invalid uncompress length, expected uncompressedLen=0, but received uncompressLength=%d",
+                        ob20.header.uncompressLength));
             throw new IOException(
                 String
                     .format(
@@ -225,30 +239,44 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
         }
 
         if (ob20.header.magicNum != OceanBaseProtocolV20.OB20_MAGIC_NUM) {
+            logger.error(String.format(
+                "invalid magic num, expected magicNum=%d, but received magicNum=%d",
+                OceanBaseProtocolV20.OB20_MAGIC_NUM, ob20.header.magicNum));
             throw new IOException(String.format(
                 "invalid magic num, expected magicNum=%d, but received magicNum=%d",
                 OceanBaseProtocolV20.OB20_MAGIC_NUM, ob20.header.magicNum));
         }
 
         if (ob20.header.version != OceanBaseProtocolV20.OB20_VERSION) {
+            logger.error(String.format(
+                "invalid version, expected version=%d, but received version=%d",
+                OceanBaseProtocolV20.OB20_VERSION, ob20.header.version));
             throw new IOException(String.format(
                 "invalid version, expected version=%d, but received version=%d",
                 OceanBaseProtocolV20.OB20_VERSION, ob20.header.version));
         }
 
         if (ob20.header.connectionId != threadId) {
+            logger.error(String.format("connection Id mismatch, currConnectionId=%d, connId=%d",
+                threadId, ob20.header.connectionId));
             throw new IOException(String.format(
                 "connection Id mismatch, currConnectionId=%d, connId=%d", threadId,
                 ob20.header.connectionId));
         }
 
         if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff : ob20.curRequestId - 1)) {
+            logger.error(String.format(
+                "request Id mismatch, currRequestId=%d, but received requestId=%d",
+                ob20.curRequestId, ob20.header.requestId));
             throw new IOException(String.format(
                 "request Id mismatch, currRequestId=%d, but received requestId=%d",
                 ob20.curRequestId, ob20.header.requestId));
         }
 
         if (ob20.header.obSeqNo != ob20.getObSeqNo()) {
+            logger.error(String.format(
+                "packet sequence mismatch, expected obSeqNo=%d, but received obSeqNo=%d",
+                ob20.curObSeqNo, ob20.header.obSeqNo));
             throw new IOException(String.format(
                 "packet sequence mismatch, expected obSeqNo=%d, but received obSeqNo=%d",
                 ob20.curObSeqNo, ob20.header.obSeqNo));
@@ -266,6 +294,11 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
         if (0 != ob20.tailChecksum) {
             long localTailChecksum = crc32.getValue();
             if (localTailChecksum != ob20.tailChecksum) {
+                logger
+                    .error(String
+                        .format(
+                            "tail checksum mismatch, expected tailChecksum=%d, but received tailChecksum=%d",
+                            localTailChecksum, ob20.tailChecksum));
                 throw new IOException(
                     String
                         .format(
