@@ -52,6 +52,8 @@ package com.oceanbase.jdbc;
 
 import static com.oceanbase.jdbc.OceanBaseConnection.CALLABLE_STATEMENT_PATTERN;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.*;
@@ -842,7 +844,22 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         results.commandEnd();
       }
     } catch (SQLException initialSqlEx) {
-      throw executeBatchExceptionEpilogue(initialSqlEx, queryParameterSize,executeBatchByArrayBinding);
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        initialSqlEx.printStackTrace(pw);
+        String exceptionAsString = sw.toString();
+
+        logger.error("--------------------------------------------------------------------------\n"
+                + actualSql + "\n"
+                + exceptionAsString + "\n"
+                + "--------------------------------------------------------------------------\n");
+
+        try {
+            throw executeBatchExceptionEpilogue(initialSqlEx, queryParameterSize, executeBatchByArrayBinding);
+        } catch (NullPointerException e) {
+            e.initCause(initialSqlEx); //print sqle when meet NPE
+            throw e;
+        }
     } finally {
       executeBatchEpilogue();
       if (protocol != null) {

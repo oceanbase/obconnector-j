@@ -52,6 +52,8 @@ package com.oceanbase.jdbc;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -324,7 +326,22 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
           results.commandEnd();
           retBatch = results.getCmdInformation().getUpdateCounts();
         } catch (SQLException sqle) {
-          throw executeBatchExceptionEpilogue(sqle, size);
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            sqle.printStackTrace(pw);
+            String exceptionAsString = sw.toString();
+
+            logger.error("--------------------------------------------------------------------------\n"
+                    + actualSql + "\n"
+                    + exceptionAsString + "\n"
+                    + "--------------------------------------------------------------------------\n");
+
+            try {
+              throw executeBatchExceptionEpilogue(sqle, size);
+            } catch (NullPointerException e) {
+              e.initCause(sqle); //print sqle when meet NPE
+              throw e;
+            }
         } finally {
           executeBatchEpilogue();
         }
