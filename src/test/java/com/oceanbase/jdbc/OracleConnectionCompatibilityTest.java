@@ -51,11 +51,13 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -184,5 +186,102 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
         //In Oracle,This is not implemented
         sharedConnection.setCatalog("test");
         assertEquals(null, sharedConnection.getCatalog());
+    }
+
+    @Test
+    public void testCatalogCompatibleOjdbc6And8() throws SQLException {
+        Connection conn = setConnection("&compatibleOjdbcVersion=6");
+
+        //In Oracle, return null here
+        assertEquals(null, conn.getCatalog());
+
+        //In Oracle,This is not implemented
+        conn.setCatalog("test");
+        assertEquals(null, conn.getCatalog());
+
+        conn.close();
+        conn.setCatalog("test");
+        assertEquals(null, conn.getCatalog());
+
+        conn = setConnection("&compatibleOjdbcVersion=8");
+
+        //In Oracle, return null here
+        assertEquals(null, conn.getCatalog());
+
+        //In Oracle,This is not implemented
+        conn.setCatalog("test");
+        assertEquals(null, conn.getCatalog());
+
+        conn.close();
+        try {
+            conn.setCatalog("test");
+        } catch (SQLException e) {
+            assertEquals("No operations allowed after connection closed.",e.getMessage());
+        }
+        try {
+            conn.getCatalog();
+        } catch (SQLException e) {
+            assertEquals("No operations allowed after connection closed.",e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSchemaCompatibleOjdbc6And8() throws SQLException {
+        Connection conn = setConnection("&compatibleOjdbcVersion=6");
+
+        try {
+            conn.getSchema();
+        } catch (AbstractMethodError e) {
+            assertEquals("Unimplemented method: getSchema()",e.getMessage());
+        }
+
+        try {
+            conn.setSchema("name1");
+        } catch (AbstractMethodError e) {
+            assertEquals("Unimplemented method: getSchema()",e.getMessage());
+        }
+
+        conn.close();
+        try {
+            conn.getSchema();
+        } catch (AbstractMethodError e) {
+            assertEquals("Unimplemented method: getSchema()",e.getMessage());
+        }
+
+        try {
+            conn.setSchema("name1");
+        } catch (AbstractMethodError e) {
+            assertEquals("Unimplemented method: getSchema()",e.getMessage());
+        }
+
+        conn = setConnection("&compatibleOjdbcVersion=8");
+
+        String oldSchema = conn.getSchema();
+
+        Assert.assertTrue(sharedConnection.getMetaData().getURL().split("//")[1].split("/")[1].toUpperCase().endsWith(oldSchema));
+
+        try {
+            conn.setSchema("name1");
+        } catch (SQLException e) {
+            assertTrue(e instanceof SQLSyntaxErrorException);
+            assertTrue(e.getMessage().contains("ORA-00600: internal error code, arguments: -5154, Unknown database "));
+        }
+
+        conn.setSchema(oldSchema.toLowerCase());
+        String newSchema = conn.getSchema();
+        Assert.assertTrue(sharedConnection.getMetaData().getURL().split("//")[1].split("/")[1]
+            .toUpperCase().endsWith(newSchema));
+
+        conn.close();
+        try {
+            conn.setSchema("test");
+        } catch (SQLException e) {
+            assertEquals("No operations allowed after connection closed.",e.getMessage());
+        }
+        try {
+            conn.getSchema();
+        } catch (SQLException e) {
+            assertEquals("No operations allowed after connection closed.",e.getMessage());
+        }
     }
 }

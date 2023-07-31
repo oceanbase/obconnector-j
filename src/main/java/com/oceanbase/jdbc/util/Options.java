@@ -224,6 +224,7 @@ public class Options implements Cloneable {
     public int     httpConnectTimeout;
     public int     httpReadTimeout;
     public boolean loadBalanceHandleFailover = true;
+    public int     compatibleOjdbcVersion = 6;
 
     @Override
     public String toString() {
@@ -673,6 +674,9 @@ public class Options implements Cloneable {
         if(loadBalanceHandleFailover != opt.loadBalanceHandleFailover) {
             return false;
         }
+        if(compatibleOjdbcVersion != opt.compatibleOjdbcVersion) {
+            return false;
+        }
         if(useInformationSchema != opt.useInformationSchema) {
             return false;
         }
@@ -822,6 +826,7 @@ public class Options implements Cloneable {
         result = 31 * result + httpConnectTimeout;
         result = 31 * result + httpReadTimeout;
         result = 31 * result + (loadBalanceHandleFailover ? 1 : 0);
+        result = 31 * result + compatibleOjdbcVersion;
         result = 31 * result + (useInformationSchema ? 1 : 0);
         return result;
     }

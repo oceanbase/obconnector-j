@@ -1051,9 +1051,13 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public String getCatalog() throws SQLException {
         if (this.getProtocol().isOracleMode()) {
+            if (options.compatibleOjdbcVersion == 8) {
+                checkClosed();
+            }
             return null;
+        } else {
+            return protocol.getCatalog();
         }
-        return protocol.getCatalog();
     }
 
     /**
@@ -1071,27 +1075,30 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setCatalog(final String catalog) throws SQLException {
         if (this.getProtocol().isOracleMode()) {
-            return;
-        }
-        checkClosed();
-        if (catalog == null) {
-            throw new SQLException("The catalog name may not be null", "XAE05");
-        }
-        if (catalog.equals(this.protocol.getCatalog())) {
-            return;
-        }
-        if (protocol != null) {
-            protocol.startCallInterface();
-        }
-
-        try {
-            stateFlag |= ConnectionState.STATE_DATABASE;
-            protocol.setCatalog(catalog);
-        } catch (SQLException e) {
-            throw exceptionFactory.create(e);
-        } finally {
+            if (options.compatibleOjdbcVersion == 8) {
+                checkClosed();
+            }
+        } else {
+            checkClosed();
+            if (catalog == null) {
+                throw new SQLException("The catalog name may not be null", "XAE05");
+            }
+            if (catalog.equals(this.protocol.getCatalog())) {
+                return;
+            }
             if (protocol != null) {
-                protocol.endCallInterface("OceanBaseConnection.setCatalog");
+                protocol.startCallInterface();
+            }
+
+            try {
+                stateFlag |= ConnectionState.STATE_DATABASE;
+                protocol.setCatalog(catalog);
+            } catch (SQLException e) {
+                throw exceptionFactory.create(e);
+            } finally {
+                if (protocol != null) {
+                    protocol.endCallInterface("OceanBaseConnection.setCatalog");
+                }
             }
         }
     }
@@ -1788,7 +1795,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                            && ComplexDataType.isBaseDataType(ComplexDataType
                                .getObComplexType(typeName))) {
                     fetchTypeFromRemote = false;
-                    attrType = new ComplexDataType(typeName, this.getSchema(),
+                    attrType = new ComplexDataType(typeName, this.getOracleSchemaInternal(),
                         ComplexDataType.getObComplexType(typeName));
                 }
             }
@@ -1800,7 +1807,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             // array element is still array is not supported
             throw exceptionFactory.notSupported("array element is still array is not supported");
         }
-        ComplexDataType parentType = new ComplexDataType("", this.getSchema(),
+        ComplexDataType parentType = new ComplexDataType("", this.getOracleSchemaInternal(),
             ComplexDataType.TYPE_COLLECTION);
         parentType.setAttrCount(1);
         parentType.setAttrType(0, attrType);
@@ -2204,22 +2211,74 @@ public class OceanBaseConnection implements ConnectionImpl {
     }
 
     public String getSchema() throws SQLException {
-        // We support only catalog
         if (!this.protocol.isOracleMode()) {
             checkClosed();
+            return null;
+        } else {
+            if (options.compatibleOjdbcVersion == 8) {
+                checkClosed();
+                return getOracleSchemaInternal();
+            } else {
+                throw new AbstractMethodError("Unimplemented method: getSchema()");
+            }
         }
-        return null;
+    }
+
+    private String getOracleSchemaInternal() throws SQLException {
+        String schema = null;
+        Statement stmt = null;
+        ResultSet rs;
+
+        try {
+            stmt = this.createStatement();
+            stmt.setFetchSize(1);
+            rs = stmt
+                    .executeQuery("SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL");
+            if (rs.next()) {
+                schema = rs.getString(1);
+            }
+        } finally {
+            if (stmt != null) {
+                stmt.close();
+            }
+        }
+        return schema;
     }
 
     public String getDatabase() {
         return this.urlParser.getDatabase();
     }
 
-    public void setSchema(String arg0) throws SQLException {
-        // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will
-        // silently ignore this request."
+    public void setSchema(String schema) throws SQLException {
         if (!this.getProtocol().isOracleMode()) {
             checkClosed();
+        } else {
+            if (options.compatibleOjdbcVersion == 8) {
+                checkClosed();
+                if (schema == null) {
+                    throw new SQLException("invalid parameter, schema must not be null");
+                }
+                String regex = "("
+                               + "\"[^\u0000\"]{0,28}\""
+                               + ")|("
+                               + "(\\p{javaLowerCase}|\\p{javaUpperCase})(\\p{javaLowerCase}|\\p{javaUpperCase}|\\d|_|\\$|#){0,29}"
+                               + ")";
+                if (!schema.matches(regex)) {
+                    throw new SQLException("invalid parameter");
+                }
+
+                Statement stmt = null;
+                try {
+                    stmt = this.createStatement();
+                    stmt.execute("alter session set current_schema = " + schema);
+                } finally {
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                }
+            } else {
+                throw new AbstractMethodError("Unimplemented method: getSchema()");
+            }
         }
     }
 
