@@ -971,7 +971,16 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         return results.getResultSet() != null;
       }
     } catch (SQLException exception) {
-      throw executeExceptionEpilogue(exception);
+        if (addRowid) {
+            degradeResultSetType();
+            addRowid = false;
+            actualSql = originalSql;
+            serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+            prepare(actualSql);
+            return executeInternal(fetchSize);
+        } else {
+            throw executeExceptionEpilogue(exception);
+        }
     } finally {
       executeEpilogue();
       if (protocol != null) {

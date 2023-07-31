@@ -1298,4 +1298,21 @@ public class CursorFetchOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testAddRowidExceptionOccurWhenExecute() throws Exception {
+        Assume.assumeFalse(sharedOptions().useOraclePrepareExecute);
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("t1", "c1 int, c2 varchar(30)");
+        createTable("t2", "c1 int, c2 varchar(30)");
+        stmt.execute("insert into t1 values(1, 'aaa')");
+        stmt.execute("insert into t2 values(2, 'bbb')");
+
+        PreparedStatement ps  = conn.prepareStatement("select c1, c2 from(select * from t1 union all select * from t2)", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ps.setFetchSize(10);
+        ResultSet rs1 = ps.executeQuery();
+        rs1.absolute(1);
+
+    }
+
 }
