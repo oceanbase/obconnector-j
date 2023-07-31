@@ -1032,6 +1032,12 @@ public enum DefaultOptions {
             Boolean.TRUE,
             "2.4.2",
             "This parameter is used to control whether a new connection is created to replace the old one when an exception occurs when using loadbalance.",
+            false),
+    USE_INFORMATION_SCHEMA(
+            "useInformationSchema",
+            Boolean.FALSE,
+            "2.4.5",
+            "Should the driver use the INFORMATION_SCHEMA to derive information used by 'DatabaseMetaData'? Default is \"true\" when connecting to MySQL 8.0.3+, otherwise default is \"false\".",
             false);
 
   private final String optionName;

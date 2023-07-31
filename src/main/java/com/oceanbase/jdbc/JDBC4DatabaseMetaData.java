@@ -769,11 +769,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
                                String[] types) throws SQLException {
-
         if (connection.getProtocol().isOracleMode()) {
             return super.getTables(catalog, schemaPattern, tableNamePattern, types);
         }
 
+        Protocol protocol = connection.getProtocol();
+        Options options = protocol.getOptions();
         String[] columnNames = { "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS",
                 "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME",
                 "REF_GENERATION" };
@@ -781,8 +782,163 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
                 ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR,
                 ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, };
+        if (options.useInformationSchema) {
+            return this.getTablesUsingInfoSchema(columnTypes, columnNames, tableNamePattern, types,
+                catalog);
+        }
+
         ResultSet rs = getTablesImpl(columnTypes, columnNames, tableNamePattern, types, catalog);
         return rs;
+    }
+
+    ResultSet getTablesUsingInfoSchema(ColumnType[] columnTypes, String[] columnNames,
+                                       String tableNamePattern, String[] types, String catalog)
+                                                                                               throws SQLException {
+        StringBuilder sqlBuf = new StringBuilder(
+            "SELECT TABLE_SCHEMA AS TABLE_CAT, NULL AS TABLE_SCHEM,");
+        sqlBuf
+            .append(" TABLE_NAME, CASE WHEN TABLE_TYPE='BASE TABLE' THEN CASE WHEN TABLE_SCHEMA = 'mysql' OR TABLE_SCHEMA = 'performance_schema' THEN 'SYSTEM TABLE' ");
+        sqlBuf
+            .append("ELSE 'TABLE' END WHEN TABLE_TYPE='TEMPORARY' THEN 'LOCAL_TEMPORARY' ELSE TABLE_TYPE END AS TABLE_TYPE, ");
+        sqlBuf
+            .append("TABLE_COMMENT AS REMARKS, NULL AS TYPE_CAT, NULL AS TYPE_SCHEM, NULL AS TYPE_NAME, NULL AS SELF_REFERENCING_COL_NAME, ");
+        sqlBuf.append("NULL AS REF_GENERATION FROM INFORMATION_SCHEMA.TABLES");
+
+        if (catalog != null || tableNamePattern != null) {
+            sqlBuf.append(" WHERE");
+        }
+
+        if (catalog != null) {
+            sqlBuf.append(" TABLE_SCHEMA = ?");
+        }
+
+        if (tableNamePattern != null) {
+            if (catalog != null) {
+                sqlBuf.append(" AND");
+            }
+            sqlBuf.append((tableNamePattern.indexOf('%') > -1 || tableNamePattern.indexOf('_') > -1) ? " TABLE_NAME LIKE ?" : " TABLE_NAME = ?");
+        }
+
+        if (types != null && types.length > 0) {
+            sqlBuf.append(" HAVING TABLE_TYPE IN (?,?,?,?,?)");
+        }
+        sqlBuf.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
+
+        try (PreparedStatement pStmt = this.connection.clientPrepareStatement(sqlBuf.toString())) {
+            int nextId = 1;
+            if (catalog != null) {
+                pStmt.setString(nextId++, catalog);
+            }
+            if (tableNamePattern != null) {
+                pStmt.setString(nextId++, tableNamePattern);
+            }
+
+            if (types != null && types.length > 0) {
+                for (int i = 0; i < 5; i++) {
+                    pStmt.setNull(nextId + i, Types.VARCHAR);
+                }
+                for (int i = 0; i < types.length; i++) {
+                    TableType tableType = TableType.getTableTypeEqualTo(types[i]);
+                    if (tableType != TableType.UNKNOWN) {
+                        pStmt.setString(nextId++, tableType.getName());
+                    }
+                }
+            }
+
+            ResultSet rs = pStmt.executeQuery();
+            rs.last();
+            int totalRows = rs.getRow();
+            String[][] val = new String[totalRows][];
+            rs.first();
+            int resultIndex = 0;
+            do {
+                if (totalRows == 0) {
+                    break;
+                }
+                String[] data = new String[10];
+                data[0] = rs.getString(1);
+                data[1] = rs.getString(2);
+                data[2] = rs.getString(3);
+                data[3] = rs.getString(4);
+                data[4] = rs.getString(5);
+                data[5] = rs.getString(6);
+                data[6] = rs.getString(7);
+                data[7] = rs.getString(8);
+                data[8] = rs.getString(9);
+                data[9] = rs.getString(10);
+                val[resultIndex] = data;
+                resultIndex++;
+            } while (rs.next());
+
+            return JDBC4ResultSet.createResultSet(columnNames, columnTypes, val, this.protocol);
+        }
+    }
+
+    protected enum TableType {
+        LOCAL_TEMPORARY("LOCAL TEMPORARY"),
+        SYSTEM_TABLE("SYSTEM TABLE"),
+        SYSTEM_VIEW("SYSTEM VIEW"),
+        TABLE("TABLE", new String[] { "BASE TABLE" }),
+        VIEW("VIEW"),
+        UNKNOWN("UNKNOWN");
+
+        private String   name;
+        private byte[]   nameAsBytes;
+        private String[] synonyms;
+
+        TableType(String tableTypeName) {
+            this(tableTypeName, null);
+        }
+
+        TableType(String tableTypeName, String[] tableTypeSynonyms) {
+            this.name = tableTypeName;
+            this.nameAsBytes = tableTypeName.getBytes();
+            this.synonyms = tableTypeSynonyms;
+        }
+
+        String getName() {
+            return this.name;
+        }
+
+        byte[] asBytes() {
+            return this.nameAsBytes;
+        }
+
+        boolean equalsTo(String tableTypeName) {
+            return this.name.equalsIgnoreCase(tableTypeName);
+        }
+
+        static TableType getTableTypeEqualTo(String tableTypeName) {
+            for (TableType tableType : TableType.values()) {
+                if (tableType.equalsTo(tableTypeName)) {
+                    return tableType;
+                }
+            }
+            return UNKNOWN;
+        }
+
+        boolean compliesWith(String tableTypeName) {
+            if (equalsTo(tableTypeName)) {
+                return true;
+            }
+            if (this.synonyms != null) {
+                for (String synonym : this.synonyms) {
+                    if (synonym.equalsIgnoreCase(tableTypeName)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        static TableType getTableTypeCompliantWith(String tableTypeName) {
+            for (TableType tableType : TableType.values()) {
+                if (tableType.compliesWith(tableTypeName)) {
+                    return tableType;
+                }
+            }
+            return UNKNOWN;
+        }
     }
 
     ResultSet getTablesImpl(ColumnType[] columnTypes, String[] columnNames,

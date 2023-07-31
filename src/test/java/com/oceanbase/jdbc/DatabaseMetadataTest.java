@@ -1698,4 +1698,37 @@ public class DatabaseMetadataTest extends BaseTest {
 
     }
 
+    @Test
+    public void getTablesCommentTest() {
+        try {
+            Connection conn = setConnection("&useInformationSchema=true");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table yxy_t11");
+            } catch (Exception ignore) {
+
+            } finally {
+                stmt.execute("create table yxy_t11(c1 int)COMMENT 'test表'");
+            }
+
+            ResultSet tables = conn.getMetaData().getTables(null, "test", "yxy_t11", null);
+
+            Assert.assertTrue(tables.next());
+            Assert.assertEquals("test", tables.getString(1));//TABLE_CAT
+            Assert.assertEquals(null, tables.getString(2));//TABLE_SCHEM
+            Assert.assertEquals("yxy_t11", tables.getString(3));//TABLE_NAME
+            Assert.assertEquals("TABLE", tables.getString(4));//TABLE_TYPE
+            Assert.assertEquals("test表", tables.getString(5));//REMARKS
+            Assert.assertEquals(null, tables.getString(6));//TYPE_CAT
+            Assert.assertEquals(null, tables.getString(7));//TYPE_SCHEM
+            Assert.assertEquals(null, tables.getString(8));//TYPE_NAME
+            Assert.assertEquals(null, tables.getString(9));//SELF_REFERENCING_COL_NAME
+            Assert.assertEquals(null, tables.getString(10));//REF_GENERATION
+            Assert.assertFalse(tables.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }

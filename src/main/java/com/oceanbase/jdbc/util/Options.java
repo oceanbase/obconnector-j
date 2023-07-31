@@ -147,6 +147,7 @@ public class Options implements Cloneable {
     public String tlsSocketType;
     public boolean clobberStreamingResults;
     public int maxRows;
+    public boolean useInformationSchema;
 
     // logging options
     public boolean log;
@@ -607,10 +608,10 @@ public class Options implements Cloneable {
             return false;
         }
         if(tnsnamesPath != opt.tnsnamesPath) {
-          return  false;
+          return false;
         }
         if(tnsnamesDetectionPeriod != opt.tnsnamesDetectionPeriod) {
-          return  false;
+          return false;
         }
         if(loadBalanceStrategy != opt.loadBalanceStrategy) {
           return false;
@@ -661,16 +662,19 @@ public class Options implements Cloneable {
             return false;
         }
         if(ocpAccessInterval != opt.ocpAccessInterval) {
-            return  false;
+            return false;
         }
         if(httpConnectTimeout != opt.httpConnectTimeout) {
-            return  false;
+            return false;
         }
         if(httpReadTimeout != opt.httpReadTimeout) {
-            return  false;
+            return false;
         }
         if(loadBalanceHandleFailover != opt.loadBalanceHandleFailover) {
-            return  false;
+            return false;
+        }
+        if(useInformationSchema != opt.useInformationSchema) {
+            return false;
         }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
@@ -818,6 +822,7 @@ public class Options implements Cloneable {
         result = 31 * result + httpConnectTimeout;
         result = 31 * result + httpReadTimeout;
         result = 31 * result + (loadBalanceHandleFailover ? 1 : 0);
+        result = 31 * result + (useInformationSchema ? 1 : 0);
         return result;
     }
 
