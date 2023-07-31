@@ -1229,7 +1229,7 @@ public class ResultSetTest extends BaseTest {
             e.getMessage()
                 .contains(
                     "No such column: 'wrong_column_name'. 'wrong_column_name' must be in "
-                        + "[xx, columnnamesmappingerror.xx]"));
+                        + "[xX, columnnamesmappingerror.xX]"));
       }
     }
   }

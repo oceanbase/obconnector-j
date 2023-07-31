@@ -147,13 +147,13 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void primaryKeysTest() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("unittests", null, dbpkTest);
+        ResultSet rs = dbmd.getPrimaryKeys("test", null, dbpkTest);
         int counter = 0;
         while (rs.next()) {
             counter++;
-            assertEquals("unittests", rs.getString("table_cat"));
+            assertEquals("test", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
-            assertEquals(dbpkTest, rs.getString("table_name"));
+            assertEquals(dbpkTest.toLowerCase(), rs.getString("table_name"));
             assertEquals("id" + counter, rs.getString("column_name"));
             assertEquals("id" + counter, rs.getString("column_name"));
             assertEquals("PRIMARY", rs.getString("PK_NAME"));
@@ -172,11 +172,11 @@ public class DatabaseMetadataTest extends BaseTest {
                      + "references t1(id1))");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("unittests", null, "t2");
+        ResultSet rs = dbmd.getPrimaryKeys("test", null, "t2");
         int counter = 0;
         while (rs.next()) {
             counter++;
-            assertEquals("unittests", rs.getString("table_cat"));
+            assertEquals("test", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("t2", rs.getString("table_name"));
             assertEquals(counter, rs.getShort("key_seq"));
@@ -270,9 +270,9 @@ public class DatabaseMetadataTest extends BaseTest {
          Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
         */
         ResultSet rs1 = ((OceanBaseDatabaseMetaData) sharedConnection.getMetaData())
-            .getImportedKeysUsingShowCreateTable("unittests", "product_order");
+            .getImportedKeysUsingShowCreateTable("test", "product_order");
         ResultSet rs2 = ((OceanBaseDatabaseMetaData) sharedConnection.getMetaData())
-            .getImportedKeysUsingInformationSchema("unittests", "product_order");
+            .getImportedKeysUsingInformationSchema("test", "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
         while (rs1.next()) {
@@ -322,7 +322,7 @@ public class DatabaseMetadataTest extends BaseTest {
                      + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getExportedKeys("unittests", null, "prim_key");
+        ResultSet rs = dbmd.getExportedKeys("test", null, "prim_key");
         int count = rs.getMetaData().getColumnCount();
         int counter = 0;
         while (rs.next()) {
@@ -335,7 +335,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(2, counter);
         // Fuzzy query is not supported temporarily. Table must now be specified.The following test code needs to be retained.
         /*
-        rs = dbmd.getExportedKeys("unittests", null, "prim_k%");
+        rs = dbmd.getExportedKeys("test", null, "prim_k%");
         counter = 0;
         while (rs.next()) {
             assertEquals("id", rs.getString("pkcolumn_name"));
@@ -346,7 +346,7 @@ public class DatabaseMetadataTest extends BaseTest {
         }
         assertEquals(2, counter);
 
-        rs = dbmd.getExportedKeys("unittests", null, null);
+        rs = dbmd.getExportedKeys("test", null, null);
         counter = 0;
         int totalCounter = 0;
         while (rs.next()) {
@@ -827,7 +827,7 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
                      + "constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) "
                      + "references t1(id1))");
-        ResultSet rs = sharedConnection.getMetaData().getColumns("unittests", null, "t2", null);
+        ResultSet rs = sharedConnection.getMetaData().getColumns("test", null, "t2", null);
         int count = rs.getMetaData().getColumnCount();
         testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
             "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
@@ -1339,9 +1339,9 @@ public class DatabaseMetadataTest extends BaseTest {
                 System.out.println(" value = " + rs.getString(i));
             }
             Assert.assertEquals("TABLE_CAT", resultSetMetaData.getColumnName(1));
-            Assert.assertEquals("unittests", rs.getString(1));
+            Assert.assertEquals("test", rs.getString(1));
             Assert.assertEquals("TABLE_NAME", resultSetMetaData.getColumnName(3));
-            Assert.assertEquals(tableName2, rs.getString(3));
+            Assert.assertEquals(tableName2.toLowerCase(), rs.getString(3));
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

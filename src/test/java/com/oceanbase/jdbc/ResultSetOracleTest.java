@@ -1619,7 +1619,6 @@ public class ResultSetOracleTest extends BaseOracleTest {
 
     @Test
     public void testNanAndInf() throws SQLException {
-        Assert.assertFalse(sharedUsePrepare());
         createTable(
             "TEST_NANANDINF",
             "tbinaryfloat binary_float, tbinarydouble binary_double");

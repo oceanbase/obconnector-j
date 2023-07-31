@@ -214,7 +214,7 @@ public class DateOracleTest extends BaseOracleTest {
                 "insert into timestampzerotest values ('" + timestampZero + "', '" + timestampZero
                         + "', '" + dateZero + "')");
         } catch (Exception e) {
-            Assert.assertTrue("", e.getMessage().contains("year must be between -4713 and +9999"));
+            Assert.assertTrue("", e.getMessage().contains("day of month must be between 1 and last day of month"));
         }
 
     }

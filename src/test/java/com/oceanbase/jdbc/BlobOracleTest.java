@@ -1332,8 +1332,8 @@ public class BlobOracleTest extends BaseOracleTest {
             assertArrayEquals(sb.toString().getBytes(), bytes3);
 
             byte[] b4 = blob4.getBytes(1, 102400);
-            //assertArrayEquals(b4, bytes3);
-            assertEquals(size2, b4.length);
+            assertArrayEquals(b4, bytes3);
+            assertEquals(102400, b4.length);
         } catch (Exception e) {
             e.printStackTrace();
             fail();

@@ -419,7 +419,7 @@ public class BaseOracleTest {
 //              "    select count(*)\n" +
 //              "    into v_count\n" +
 //              "    from all_objects\n" +
-//              "    where object_name = upper(p_table) and owner = 'UNITTESTS';\n" +
+//              "    where object_name = upper(p_table) and owner = 'TEST';\n" +
 //              "    if v_count > 0 then\n" +
 //              "        execute immediate 'drop table ' || p_table ||' purge';\n" +
 //              "    end if;\n" +

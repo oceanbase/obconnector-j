@@ -200,7 +200,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                              + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call \"UNITTESTS\".\"proc_example\"(?)");
+                .prepareCall("call \"TEST\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -221,7 +221,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                              + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.\"proc_example\"(?)");
+                .prepareCall("call TEST.\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -242,7 +242,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                              + " p1 := p1 * 2; END;";
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.proc_example(?)");
+                .prepareCall("call TEST.proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -271,7 +271,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call \"UNITTESTS\".\"test_pkg\".\"proc_example\"(?)");
+                .prepareCall("call \"TEST\".\"test_pkg\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -300,7 +300,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.\"test_pkg\".\"proc_example\"(?)");
+                .prepareCall("call TEST.\"test_pkg\".\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -329,7 +329,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.test_pkg.\"proc_example\"(?)");
+                .prepareCall("call TEST.test_pkg.\"proc_example\"(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -357,7 +357,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.test_pkg.proc_example(?)");
+                .prepareCall("call TEST.test_pkg.proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -385,7 +385,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             stmt.execute(pkgHead);
             stmt.execute(pkgBody);
             CallableStatement callableStatement = conn
-                .prepareCall("call UNITTESTS.\"test_pkg\".proc_example(?)");
+                .prepareCall("call TEST.\"test_pkg\".proc_example(?)");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.setInt(1, 10);
             ResultSet rs = callableStatement.executeQuery();
@@ -558,7 +558,6 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
                     "create or replace function func_test3\n(p1 int, p2 int, total out int) return int as v_result int; begin\n"
                             + " total := p1+p2; return total; end;");
 
-            System.out.println("index binding");
             CallableStatement callableStatement = conn
                 .prepareCall("{? = call \nfunc_test3\n(?,?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
@@ -568,8 +567,7 @@ public class StoredProcedureOracleBasicTest extends BaseOracleTest {
             callableStatement.execute();
             Assert.assertEquals(20, callableStatement.getInt(1));
 
-            System.out.println("name binding");
-            callableStatement = conn.prepareCall("{? = call func_test2(?,?,?)}");
+            callableStatement = conn.prepareCall("{? = call func_test3(?,?,?)}");
             callableStatement.registerOutParameter(1, Types.INTEGER);
             callableStatement.registerOutParameter(4, Types.INTEGER);
             callableStatement.setInt("p1", 10);

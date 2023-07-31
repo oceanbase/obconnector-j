@@ -56,7 +56,7 @@ public class NewFeatureTest extends BaseTest {
     public static String batchTable2 = "batch2" + getRandomString(10);
     public static String testDouble  = "testDouble" + getRandomString(10);
 
-    //@BeforeClass()
+    @BeforeClass()
     public static void initClass() throws SQLException {
         createTable(batchTable, "c1  int, c2 int , c3 int  ,test varchar(10)");
         createTable(batchTable2, "c1  int, c2 int , c3 int  ,test varchar(10)");
@@ -128,7 +128,7 @@ public class NewFeatureTest extends BaseTest {
             sharedConnection.setCatalog("sys");
             sharedConnection.setCatalog("sys");
             catalog = sharedConnection.getCatalog();
-            System.out.println("catalog = " + catalog);
+            Assert.assertEquals("sys", catalog);
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

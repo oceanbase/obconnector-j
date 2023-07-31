@@ -561,6 +561,7 @@ public class DataTypeUnsignedTest extends BaseTest {
     @Test
   public void unsignedDoubleTest() throws SQLException {
     try (Statement statement = sharedConnection.createStatement()) {
+      createTable("unsignedDoubleTest", "id DOUBLE UNSIGNED");
       statement.execute(
           "insert into unsignedDoubleTest values (123456789012345678901234567890.12345678901234567890)");
       statement.execute("insert into unsignedDoubleTest values (9223372036854775806)");
@@ -586,7 +587,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             longMustFail(rs);
             assertEquals(1.2345678901234568e29F, rs.getFloat(1), 1);
             assertEquals(1.2345678901234568e29D, rs.getDouble(1), 1);
-            assertEquals(new BigDecimal("1.2345678901234568e29"), rs.getBigDecimal(1));
+            assertEquals(new BigDecimal("1.2345678901234568e29"), rs.getBigDecimal(1));//ps:123456789012345680000000000000.0000000000000000000000000000000
             assertEquals("1.2345678901234568e29", rs.getString(1).toLowerCase());
             if (rs.next()) {
                 byteMustFail(rs);

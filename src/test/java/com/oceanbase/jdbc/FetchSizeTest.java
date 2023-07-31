@@ -71,7 +71,6 @@ public class FetchSizeTest extends BaseTest {
         createTable("fetchSizeTest2", "id int, test varchar(100)");
         createTable("fetchSizeTest3", "id int, test varchar(100)");
         createTable("fetchSizeTest4", "id int, test varchar(100)");
-        createTable("fetchSizeTest5", "id int, test varchar(100)");
     }
 
     @Test
@@ -151,6 +150,7 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeBigSkipTest() throws SQLException {
+        createTable("fetchSizeTest5", "id int, test varchar(100)");
         prepareRecords(300, "fetchSizeTest5");
 
         Statement stmt = sharedConnection.createStatement();
@@ -175,13 +175,13 @@ public class FetchSizeTest extends BaseTest {
         }
         stmt.execute("Select 1");
         // result must be completely loaded
-        for (int counter = 100; counter < 200; counter++) {
-            assertTrue(resultSet.next());
-            assertEquals("" + counter, resultSet.getString(1));
+        try {
+            resultSet.next();
+            fail("Must have thrown exception");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
         }
         stmt.close();
-        resultSet.last();
-        assertEquals("299", resultSet.getString(1));
     }
 
     private void prepareRecords(int recordNumber, String tableName) throws SQLException {

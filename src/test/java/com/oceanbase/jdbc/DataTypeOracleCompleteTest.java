@@ -513,7 +513,7 @@ public class DataTypeOracleCompleteTest extends BaseOracleTest {
         ResultSet resultSet = preparedStatement
             .executeQuery("select id, utl_raw.cast_to_varchar2(strm) strm from " + tableName);
         if (resultSet.next()) {
-            System.out.println("raw:" + resultSet.getString(2));
+            Assert.assertEquals(testStr, resultSet.getString(2));
             Assert.assertTrue("", resultSet.getString(2).equals(testStr));
             Assert.assertTrue("", resultSet.getString("strm").equals(testStr));
             testRefTypeMethod(testStr, resultSet, RAW);

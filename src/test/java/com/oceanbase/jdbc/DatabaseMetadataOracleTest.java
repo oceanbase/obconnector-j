@@ -100,7 +100,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         {
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
+            assertEquals("TEST", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("A", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
@@ -125,7 +125,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
+            assertEquals("TEST", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("B", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
@@ -150,7 +150,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
+            assertEquals("TEST", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("C", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.DECIMAL, rs.getInt(5)); // DATA_TYPE
@@ -173,7 +173,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
 
             assertTrue(rs.next());
             assertEquals(null, rs.getString(1)); // TABLE_CAT
-            assertEquals("UNITTESTS", rs.getString(2)); // OWNER
+            assertEquals("TEST", rs.getString(2)); // OWNER
             assertEquals("GETCOLUMNS_TEST", rs.getString(3)); // TABLE_NAME
             assertEquals("D", rs.getString(4)); // COLUMN_NAME
             assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
@@ -353,7 +353,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
             sharedConnection.getSchema(), "TEST_GETTABLES", null);
         rs.next();
 
-        assertEquals("UNITTESTS", rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST", rs.getString("TABLE_SCHEM"));
         assertEquals("TEST_GETTABLES", rs.getString("TABLE_NAME"));
         assertEquals("TABLE", rs.getString("TABLE_TYPE"));
     }
@@ -1090,7 +1090,7 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
                 System.out.println(" value = " + rs.getString(i));
             }
             Assert.assertEquals("TABLE_SCHEM", resultSetMetaData.getColumnName(2));
-            Assert.assertEquals("UNITTESTS", rs.getString(2));
+            Assert.assertEquals("TEST", rs.getString(2));
             Assert.assertEquals("TABLE_NAME", resultSetMetaData.getColumnName(3));
             Assert.assertEquals(tableName2.toUpperCase(Locale.ROOT), rs.getString(3));
         } catch (SQLException e) {

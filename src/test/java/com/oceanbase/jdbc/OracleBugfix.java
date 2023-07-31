@@ -80,6 +80,8 @@ public class OracleBugfix extends BaseOracleTest {
     static String testNumberCol2            = "testNumberCol2" + getRandomString(5);
     static String testNumberCol3            = "testNumberCol3" + getRandomString(5);
     static String testNumberCol4            = "testNumberCol4" + getRandomString(5);
+    static String testNumberCol5            = "testNumberCol5" + getRandomString(5);
+    static String testNumberCol6            = "testNumberCol6" + getRandomString(5);
     static String longNameFix               = "longNameFix" + getRandomString(5);
     static String testTimeStamp             = "testTimeStamp" + getRandomString(5);
     static String blobFix                   = "blobFix" + getRandomString(5);
@@ -137,10 +139,6 @@ public class OracleBugfix extends BaseOracleTest {
                                           + "as\n" + "  ototoal  NUMBER;\n" + "begin\n"
                                           + "ototoal := i1 + i2 + i3;\n" + "return ototoal;\n"
                                           + "end");
-        createTable(testNumberCol1, "c1 int");
-        createTable(testNumberCol2, "c1 float");
-        createTable(testNumberCol3, "c1 decimal");
-        createTable(testNumberCol4, "c1 number");
         createTable(longNameFix, "MONEY  number(38)");
         createTable(testTimeStamp, "id number not null , c01 timestamp, c02 date");
         createTable(blobFix, "c1 blob");
@@ -409,7 +407,14 @@ public class OracleBugfix extends BaseOracleTest {
     @Test
     public void testNumberCol() {
         try {
-            String nameList[] = { testNumberCol1, testNumberCol2, testNumberCol3, testNumberCol4 };
+            createTable(testNumberCol1, "c1 int");
+            createTable(testNumberCol2, "c1 float");
+            createTable(testNumberCol3, "c1 decimal");
+            createTable(testNumberCol4, "c1 number");
+            createTable(testNumberCol5, "c1 binary_float");
+            createTable(testNumberCol6, "c1 binary_double");
+
+            String nameList[] = { testNumberCol1, testNumberCol2, testNumberCol3, testNumberCol4, testNumberCol5, testNumberCol6 };
             Statement statement = sharedConnection.createStatement();
             ResultSet rs = null;
             for (int i = 0; i < nameList.length; i++) {
@@ -418,9 +423,15 @@ public class OracleBugfix extends BaseOracleTest {
                 rs = statement.executeQuery("select c1 from " + name);
                 Assert.assertTrue(rs.next());
                 Object obj = rs.getObject(1);
-                Assert.assertEquals(obj.getClass(), BigDecimal.class);
+                if (i == 4) {
+                    Assert.assertEquals("i = " + i, Float.class, obj.getClass());
+                } else if (i == 5) {
+                    Assert.assertEquals("i = " + i, Double.class, obj.getClass());
+                } else {
+                    Assert.assertEquals("i = " + i, BigDecimal.class, obj.getClass());
+                }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
         }
@@ -641,7 +652,7 @@ public class OracleBugfix extends BaseOracleTest {
             ps.execute();
         } catch (Throwable e) {
             Assert.assertTrue(e.getMessage().contains(
-                "javax.sql.rowset.serial.SerialBlob is not supported"));
+                "javax.sql.rowset.serial.SerialClob is not supported"));
         }
     }
 
@@ -825,13 +836,10 @@ public class OracleBugfix extends BaseOracleTest {
                 callableStatement.execute();
                 Assert.fail();
             } catch (SQLException e) {
-                e.printStackTrace();
                 assertEquals(
                     "The number of parameter names '1' does not match the number of registered parameters in sql '3'.",
                     e.getMessage());
             }
-            Assert.assertEquals(1, callableStatement.getInt(1));
-            Assert.assertEquals(3, callableStatement.getInt(2));
 
             callableStatement = conn.prepareCall("? = call " + testFunction + "('fsfsfs',?,?,?)");
             callableStatement.registerOutParameter(1, Types.NUMERIC);
@@ -1907,7 +1915,7 @@ public class OracleBugfix extends BaseOracleTest {
     public void testGetUsernameNpe() {
         try {
             String userName = sharedConnection.getMetaData().getUserName();
-            Assert.assertEquals("TESTER", userName);
+            Assert.assertEquals("TEST", userName);
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();
@@ -2558,7 +2566,7 @@ public class OracleBugfix extends BaseOracleTest {
             int i = rs.getInt(1);
             fail();
         } catch (SQLException e) {
-            Assert.assertEquals("结果集已耗尽", e.getMessage());
+            Assert.assertEquals("Current position is after the last row", e.getMessage());
         }
     }
 

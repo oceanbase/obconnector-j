@@ -140,7 +140,6 @@ public class CallStatementTest extends BaseTest {
 
     @Test
     public void prepareStmtWithOutParameter() throws SQLException {
-        //        Assume.assumeTrue(sharedUsePrepare());
         createProcedure("prepareStmtWithOutParameter", "(IN x int, INOUT y int)\n" + "BEGIN\n"
                                                        + "SELECT 1;select 10000 into y;end\n");
         CallableStatement callableStatement = sharedConnection
@@ -149,7 +148,7 @@ public class CallStatementTest extends BaseTest {
         callableStatement.registerOutParameter(2, Types.INTEGER);
         callableStatement.setInt(2, 3);
         assertTrue(callableStatement.execute());
-        System.out.println("callableStatement.getInt(2) = " + callableStatement.getInt(2));
+        Assert.assertEquals(10000, callableStatement.getInt(2));
     }
 
     @Test

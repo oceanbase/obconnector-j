@@ -911,6 +911,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
             case OBDECIMAL:
+            case NUMBER_FLOAT:
                 String strValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())).trim();
                 try {
@@ -1383,6 +1384,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
             case OBDECIMAL:
+            case NUMBER_FLOAT:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:
@@ -1403,13 +1405,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case NUMBER:
                 return getInternalInt(columnInfo);
             case FLOAT:
-                return getInternalFloat(columnInfo);
-            case NUMBER_FLOAT:
             case BINARY_FLOAT:
-                byte[] b = new byte[length];
-                System.arraycopy(buf, pos, b, 0, length);
-                NUMBER number = new NUMBER(b);
-                return number.bigDecimalValue();
+                return getInternalFloat(columnInfo);
             case TIME:
                 return getInternalTime(columnInfo, null, timeZone);
             case OLDDECIMAL:
