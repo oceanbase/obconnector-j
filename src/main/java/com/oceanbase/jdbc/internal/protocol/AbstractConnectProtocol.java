@@ -861,7 +861,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                         // TODO: process nls_format
 
                                         // process ob_capability_flag
-                                        if (name.equals("ob_capability_flag")) {
+                                        if (name.equals(SendHandshakeResponsePacket.OB_CAPABILITY_FLAG)) {
                                             useOceanBaseProtocolV20 = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_OB_PROTOCOL_V2) != 0);
                                             enableFullLinkTrace = useOceanBaseProtocolV20
                                                                   && ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE) != 0); // full link trace require for OB2.0 protocol

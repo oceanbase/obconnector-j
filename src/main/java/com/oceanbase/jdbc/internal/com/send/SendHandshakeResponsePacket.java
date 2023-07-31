@@ -73,25 +73,21 @@ import com.oceanbase.jdbc.util.Options;
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
-    private static final Supplier<String> pidRequest               = PidFactory.getInstance();
-    private static final String           _MYSQL_CLIENT_TYPE       = "__mysql_client_type";
-    private static final String           CLIENT_TYPE              = "__ob_jdbc_client";
-    private static final String           _CLIENT_NAME             = "__client_name";
-    private static final String           _CLIENT_VERSION          = "__client_version";
-    private static final String           _SERVER_HOST             = "__server_host";
-    private static final String           _CLIENT_IP               = "__client_ip";
-    private static final String           _OS                      = "__os";
-    private static final String           _PID                     = "__pid";
-    private static final String           _THREAD                  = "__thread";
-    private static final String           _JAVA_VENDOR             = "__java_vendor";
-    private static final String           _JAVA_VERSION            = "__java_version";
-    private static final String           _PROXY_CAPABILITY        = "__proxy_capability_flag";
-    private static final String           _CLIENT_CAPABILITY       = "__ob_client_attribute_capability_flag";
-
-    private static final String           OB_PROXY_PARTITION_HIT   = "ob_proxy_partition_hit";
-    private static final String           OB_STATEMENT_TRACE_ID    = "ob_statement_trace_id";
-    private static final String           OB_CAPABILITY_FLAG       = "ob_capability_flag";                              // tell which features ob supports
-    private static final String           OB_CLIENT_FEEDBACK       = "ob_client_feedback";
+    private static final Supplier<String> pidRequest         = PidFactory.getInstance();
+    private static final String           _MYSQL_CLIENT_TYPE = "__mysql_client_type";
+    private static final String           CLIENT_TYPE        = "__ob_jdbc_client";
+    private static final String           _CLIENT_NAME       = "__ob_client_name";
+    private static final String           _CLIENT_VERSION    = "__ob_client_version";
+    private static final String           _SERVER_HOST       = "__server_host";
+    private static final String           _CLIENT_IP         = "__client_ip";
+    private static final String           _OS                = "__os";
+    private static final String           _PID               = "__pid";
+    private static final String           _THREAD            = "__thread";
+    private static final String           _JAVA_VENDOR       = "__java_vendor";
+    private static final String           _JAVA_VERSION      = "__java_version";
+    private static final String           _PROXY_CAPABILITY  = "__proxy_capability_flag";
+    private static final String           _CLIENT_CAPABILITY = "__ob_client_attribute_capability_flag";
+    public static final String            OB_CAPABILITY_FLAG = "ob_capability_flag";                   // tell which features ob supports
 
     /**
      * Send handshake response packet.
