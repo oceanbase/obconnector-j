@@ -1202,8 +1202,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
         if (connection.getProtocol().isOracleMode()) {
-            return super.getColumns(catalog, schemaPattern, tableNamePattern == null ? null
-                : tableNamePattern, columnNamePattern == null ? null : columnNamePattern);
+            return super.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern);
         }
         Options options = urlParser.getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"

@@ -61,7 +61,7 @@ public class DefaultSQLs {
     public static final String OB_ORA_GET_COLUMN_PRIVILEGES                   = "SELECT NULL AS table_cat,OWNER AS table_schem,table_name,column_name,grantor,grantee,privilege,grantable AS is_grantable FROM all_col_privs WHERE OWNER LIKE ? ESCAPE '/' AND table_name LIKE ? ESCAPE '/' AND column_name LIKE ? ESCAPE '/' ORDER BY column_name, privilege";
     public static final String OB_ORA_GET_PRIMARY_KEYS                        = "SELECT NULL AS table_cat,c.owner AS table_schem,c.table_name, c.column_name, c.position AS key_seq, c.constraint_name AS pk_name FROM all_cons_columns c, all_constraints k WHERE k.constraint_type = 'P'  AND k.table_name = ?  AND k.owner like ? escape '/'  AND k.constraint_name = c.constraint_name  AND k.table_name = c.table_name   AND k.owner = c.owner ORDER BY column_name ";
     public static final String OB_ORA_GET_TABLES                              = "SELECT NULL AS table_cat,o.owner AS table_schem,o.object_name AS table_name,o.object_type AS table_type,c.comments AS remarks FROM all_objects o, all_tab_comments c WHERE o.owner LIKE ? ESCAPE '/' AND o.object_name LIKE ? ESCAPE '/' AND o.owner = c.owner (+)  AND o.object_name = c.table_name (+)  AND o.owner != '__recyclebin' ";
-    public static final String OB_ORA_GET_COLUMNS_DATA_TYPE                   = "DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NUMBER', 3,\n"
+    public static final String OB_ORA_GET_COLUMNS_DATA_TYPE                   = "DECODE (t.data_type, 'CHAR', 1, 'VARCHAR2', 12, 'NVARCHAR2', -9, 'NUMBER', %s,\n"
                                                                                 + "      'LONG', -1, 'DATE', 93, 'RAW', -3, 'LONG RAW', -4,  \n"
                                                                                 + "               'BLOB', 2004, 'CLOB', 2005, 'BFILE', -13, 'FLOAT', 6, \n"
                                                                                 + "               'TIMESTAMP(6)', 93, 'TIMESTAMP(6) WITH TIME ZONE', -101, \n"
@@ -71,8 +71,8 @@ public class DefaultSQLs {
                                                                                 + "               'BINARY_FLOAT', 100, 'BINARY_DOUBLE', 101, \n"
                                                                                 + "               'XMLTYPE', 2009, \n"
                                                                                 + "               1111)\n";
-    public static final String OB_ORA_GET_COLUMNS_COLUMN_SIZE                 = "DECODE (t.data_precision, null,DECODE (t.data_type, 'CHAR', t.char_length,'VARCHAR', t.char_length, 'VARCHAR2', t.char_length,'NVARCHAR2', t.char_length,'NCHAR', t.char_length,'NUMBER', 0,t.data_length),t.data_precision)\n";
-    public static final String OB_ORA_GET_COLUMNS_DECIMAL_DIGITS              = "DECODE (t.data_type,'NUMBER', DECODE (t.data_precision,null, -127,t.data_scale),t.data_scale) ";
+    public static final String OB_ORA_GET_COLUMNS_COLUMN_SIZE                 = "DECODE (t.data_precision, null, DECODE (t.data_type, 'CHAR', t.char_length, 'VARCHAR', t.char_length, 'VARCHAR2', t.char_length, 'NVARCHAR2', t.char_length, 'NCHAR', t.char_length, 'NUMBER', 0, t.data_length), t.data_precision)\n";
+    public static final String OB_ORA_GET_COLUMNS_DECIMAL_DIGITS              = "DECODE (t.data_type, 'NUMBER', DECODE (t.data_precision, null, -127, t.data_scale), t.data_scale)\n";
     public static final String OB_ORA_GET_COLUMNS_NULLABLE                    = "DECODE (t.nullable, 'N', 0, 1)";
     public static final String OB_ORA_GET_COLUMNS_IS_NULLABLE                 = "DECODE (t.nullable, 'N', 'NO', 'YES')";
     public static final String OB_ORA_GET_COLUMNS                             = "SELECT  NULL AS table_cat,\n"
@@ -102,7 +102,8 @@ public class DefaultSQLs {
                                                                                 + "WHERE t.owner LIKE '%s' ESCAPE '/'\n"
                                                                                 + "  AND t.table_name LIKE '%s' ESCAPE '/'\n"
                                                                                 + "  AND t.column_name LIKE '%s' ESCAPE '/'\n"
-                                                                                + " %s AND t.owner != '__recyclebin' ORDER BY table_schem, table_name, ordinal_position";
+                                                                                + " %s AND t.owner != '__recyclebin'\n"
+                                                                                + "ORDER BY table_schem, table_name, ordinal_position";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE = "DECODE (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1)";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL               = "SELECT NULL   AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  UNION ALL SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,"
                                                                                 + OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE

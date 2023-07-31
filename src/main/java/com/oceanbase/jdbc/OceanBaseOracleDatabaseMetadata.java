@@ -167,11 +167,14 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
         String querySql = String
-            .format(OB_ORA_GET_COLUMNS,connection.getRemarksReporting() ?  "c.comments ":"NULL ",connection.getRemarksReporting() ? ",all_col_comments c " : "",
-                schemaPattern == null ? "%" : schemaPattern, tableNamePattern == null ? "%"
-                    : tableNamePattern, columnNamePattern == null ? '%' : columnNamePattern,connection.getRemarksReporting() ?  "  AND t.owner = c.owner (+)\n" +
-                            "  AND t.table_name = c.table_name (+)\n" +
-                            "  AND t.column_name = c.column_name (+)":"");
+            .format(OB_ORA_GET_COLUMNS,
+                    connection.getProtocol().getOptions().compatibleOjdbcVersion == 8 ? 2 : 3,
+                    connection.getRemarksReporting() ? "c.comments" : "NULL",
+                    connection.getRemarksReporting() ? ",all_col_comments c " : "",
+                    schemaPattern == null ? "%" : schemaPattern,
+                    tableNamePattern == null ? "%" : tableNamePattern,
+                    columnNamePattern == null ? '%' : columnNamePattern,
+                    connection.getRemarksReporting() ? "    AND t.owner = c.owner (+)\n    AND t.table_name = c.table_name (+)\n    AND t.column_name = c.column_name (+)" : "");
 //        int count = results.getFetchSize();
         String[] data = new String[24];
         List<String[]> list = new ArrayList<> ();

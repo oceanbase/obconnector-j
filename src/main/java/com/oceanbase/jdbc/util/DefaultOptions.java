@@ -1034,18 +1034,18 @@ public enum DefaultOptions {
             "This parameter is used to control whether a new connection is created to replace the old one when an exception occurs when using loadbalance.",
             false),
     COMPATIBLE_OJDBC_VERSION(
-          "compatibleOjdbcVersion",
-          6,
-          0,
-          "2.4.2.1",
-          "compatible ojdbc version 6/8/10",
-            false),
+        "compatibleOjdbcVersion",
+        6,
+        0,
+        "2.4.5",
+        "compatible ojdbc version 6/8",
+        false),
     USE_INFORMATION_SCHEMA(
-            "useInformationSchema",
-            Boolean.FALSE,
-            "2.4.5",
-            "Should the driver use the INFORMATION_SCHEMA to derive information used by 'DatabaseMetaData'? Default is \"true\" when connecting to MySQL 8.0.3+, otherwise default is \"false\".",
-            false);
+        "useInformationSchema",
+        Boolean.FALSE,
+        "2.4.5",
+        "Should the driver use the INFORMATION_SCHEMA to derive information used by 'DatabaseMetaData'? Default is \"true\" when connecting to MySQL 8.0.3+, otherwise default is \"false\".",
+        false);
 
   private final String optionName;
   private final String description;

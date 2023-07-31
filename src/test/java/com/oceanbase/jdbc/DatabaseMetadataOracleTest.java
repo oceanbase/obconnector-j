@@ -1121,4 +1121,22 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void testNumberAndNvarchar2() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table test_1111111111");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE test_1111111111(FPROCDEFNAME_L1 NVARCHAR2(80), FPROCDEFVER NUMBER(10));");
+        ResultSet rs = sharedConnection.getMetaData().getColumns("test", null, "test_1111111111".toUpperCase(), null);
+        assertTrue(rs.next());
+        assertEquals("NVARCHAR2", rs.getString("TYPE_NAME"));
+        assertEquals(-9, rs.getInt("DATA_TYPE"));
+        assertTrue(rs.next());
+        assertEquals("NUMBER", rs.getString("TYPE_NAME"));
+        assertEquals(3, rs.getInt("DATA_TYPE"));
+        assertFalse(rs.next());
+    }
+
 }
