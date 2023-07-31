@@ -179,6 +179,35 @@ public class TextRowProtocol extends RowProtocol {
             case FLOAT:
                 return zeroFillingIfNeeded(new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())), columnInfo);
+                //case NUMBER_FLOAT:
+            case DECIMAL:
+            case OLDDECIMAL:
+                //case OBDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
+                    columnInfo);
+            case BINARY_FLOAT:
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return Float.valueOf(getNanAndInfForOracle(columnInfo).floatValue())
+                            .toString();
+                    }
+                }
+                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
+                    .getColumnType())));
+                return Float.toString(f);
+            case BINARY_DOUBLE:
+                if (getProtocol().isOracleMode()) {
+                    Double d = getNanAndInfForOracle(columnInfo);
+                    if (d != null) {
+                        return Double.toString(d);
+                    }
+                }
+                Double d = Double.valueOf(new String(buf, pos, length,
+                    getCurrentEncoding(columnInfo.getColumnType())));
+                return Double.toString(d);
+
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
@@ -225,11 +254,10 @@ public class TextRowProtocol extends RowProtocol {
             case INTERVALYM:
                 INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
                 return intervalym.toString();
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
-                    columnInfo);
+
+            case NULL:
+                return null;
+
             case RAW: {
                 byte[] data = new byte[length];
                 System.arraycopy(buf, pos, data, 0, length);
@@ -242,28 +270,7 @@ public class TextRowProtocol extends RowProtocol {
                     return null;
                 }
             }
-            case BINARY_FLOAT:
-                if (getProtocol().isOracleMode()) {
-                    Double d = getNanAndInfForOracle(columnInfo);
-                    if (d != null) {
-                        return Float.valueOf(getNanAndInfForOracle(columnInfo).floatValue()).toString();
-                    }
-                }
-                Float f = Float.valueOf(new String(buf, pos, length,
-                        getCurrentEncoding(columnInfo.getColumnType())));
-                return Float.toString(f);
-            case BINARY_DOUBLE:
-                if (getProtocol().isOracleMode()) {
-                    Double d = getNanAndInfForOracle(columnInfo);
-                    if (d != null) {
-                        return Double.toString(d);
-                    }
-                }
-                Double d = Double.valueOf(new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType())));
-                return Double.toString(d);
-            case NULL:
-                return null;
+
             default:
                 break;
         }
@@ -273,7 +280,6 @@ public class TextRowProtocol extends RowProtocol {
                 getCurrentEncoding(columnInfo.getColumnType())).substring(0,
                 Math.min(maxFieldSize, length));
         }
-
         return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
     }
 

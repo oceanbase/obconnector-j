@@ -907,4 +907,17 @@ public class DateTest extends BaseTest {
         Assert.assertEquals(OffsetTime.class, rs.getObject(5, OffsetTime.class).getClass());
     }
 
+    @Test
+    public void testTime() throws SQLException {
+        createTable("t_time", "t time");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into t_time values (?)");
+        Time time = Time.valueOf("21:03:15");
+        ps.setTime(1, time);
+        //            ps.setString(1, "21:03:15");
+        assertEquals(1, ps.executeUpdate());
+        ResultSet rs = sharedConnection.prepareStatement("select * from t_time").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("21:03:15", rs.getString(1));
+    }
+
 }

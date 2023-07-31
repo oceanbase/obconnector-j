@@ -1262,4 +1262,43 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testIntNumberFloatGetString() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table t_20221123");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table t_20221123 ("
+                    + "    tinyint_col TINYINT,\n"
+                    + "    smallint_col SMALLINT,\n"
+                    + "    mediumint_col MEDIUMINT,\n"
+                    + "    int_col INT,\n"
+                    + "    bigint_col BIGINT,\n"
+                    + "    decimal_col DECIMAL(10,2),\n"
+                    + "    float_col FLOAT(7,4),\n"
+                    + "    double_col DOUBLE(15,10) )");
+        stmt.execute("insert into t_20221123 values(1.1,2.2,3.3,4.4,5.5,6.6,7.7,8.8)");
+        stmt.execute("insert into t_20221123 values(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8)");
+
+        ResultSet rs = stmt.executeQuery("select * from t_20221123");
+        assertTrue(rs.next());
+        assertEquals("1", rs.getString(1));
+        assertEquals("2", rs.getString(2));
+        assertEquals("3", rs.getString(3));
+        assertEquals("4", rs.getString(4));
+        assertEquals("6", rs.getString(5));
+        assertEquals("6.60", rs.getString(6));
+        assertEquals("7.7000", rs.getString(7));
+        assertEquals("8.8000000000", rs.getString(8));
+        assertTrue(rs.next());
+        assertEquals("0", rs.getString(1));
+        assertEquals("0", rs.getString(2));
+        assertEquals("0", rs.getString(3));
+        assertEquals("0", rs.getString(4));
+        assertEquals("1", rs.getString(5));
+        assertEquals("0.60", rs.getString(6));
+        assertEquals("0.7000", rs.getString(7));
+        assertEquals("0.8000000000", rs.getString(8));
+    }
 }

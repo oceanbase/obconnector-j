@@ -423,4 +423,29 @@ public class DateOracleTest extends BaseOracleTest {
             }
         }
     }
+
+    @Test
+    public void testTimeTypeToStringPs() {
+        try {
+            ResultSet rs = sharedConnection.prepareStatement(
+                "select to_date('2022-02-02 15:30:20','yyyy-MM-DD hh24:MI:SS') from dual")
+                .executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));//2022-02-02 15:30:20.0
+            rs = sharedConnection
+                .prepareStatement(
+                    "select to_timestamp('2022-02-02 15:30:20.000000','yyyy-MM-DD hh24:MI:SS.FF') from dual")
+                .executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));
+            rs = sharedConnection
+                .prepareStatement(
+                    "select to_timestamp('2022-02-02 15:30:20.123000','yyyy-MM-DD hh24:MI:SS.FF') from dual")
+                .executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("2022-02-02 15:30:20.123", rs.getString(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

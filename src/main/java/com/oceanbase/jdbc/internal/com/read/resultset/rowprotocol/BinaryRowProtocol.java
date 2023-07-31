@@ -50,17 +50,8 @@
  */
 package com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol;
 
-import com.oceanbase.jdbc.Clob;
-import com.oceanbase.jdbc.ObArray;
-import com.oceanbase.jdbc.ObStruct;
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.extend.datatype.*;
-import com.oceanbase.jdbc.internal.ColumnType;
-import com.oceanbase.jdbc.internal.com.read.Buffer;
-import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
-import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
-import com.oceanbase.jdbc.util.Options;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -76,8 +67,17 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_CONVERT_TO_NULL;
-import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
+import com.oceanbase.jdbc.Clob;
+import com.oceanbase.jdbc.ObArray;
+import com.oceanbase.jdbc.ObStruct;
+import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.extend.datatype.*;
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.Buffer;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+import com.oceanbase.jdbc.util.Options;
 
 public class BinaryRowProtocol extends RowProtocol {
 
@@ -331,7 +331,7 @@ public class BinaryRowProtocol extends RowProtocol {
     public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                                  throws SQLException {
         Charset charset = Charset.forName(this.options.characterEncoding);
-        if ((lastValueNull & BIT_LAST_FIELD_NULL) != 0) {
+        if (lastValueWasNull()) {
             switch (columnInfo.getColumnType()) {
                 case BINARY_DOUBLE:
                     return Double.toString(0);
@@ -342,14 +342,6 @@ public class BinaryRowProtocol extends RowProtocol {
             }
         }
         switch (columnInfo.getColumnType()) {
-            case STRING:
-                if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
-                        getCurrentEncoding(columnInfo.getColumnType())).substring(0,
-                        Math.min(getMaxFieldSize(), length));
-                }
-                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
-
             case BIT:
                 return String.valueOf(parseBit());
             case NUMBER:
@@ -370,11 +362,24 @@ public class BinaryRowProtocol extends RowProtocol {
                         columnInfo);
                 }
                 return zeroFillingIfNeeded(String.valueOf(getInternalLong(columnInfo)), columnInfo);
+            case FLOAT:
+                //case NUMBER_FLOAT:
+                return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
+            case DECIMAL:
+            case OLDDECIMAL:
+                //case OBDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
+                    columnInfo);
+            case BINARY_FLOAT:
+                Float f = getInternalFloat(columnInfo);
+                return Float.toString(f);
             case DOUBLE:
                 return zeroFillingIfNeeded(String.valueOf(getInternalDouble(columnInfo)),
                     columnInfo);
-            case FLOAT:
-                return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
+            case BINARY_DOUBLE:
+                Double d = getInternalDouble(columnInfo);
+                return Double.toString(d);
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
@@ -412,27 +417,23 @@ public class BinaryRowProtocol extends RowProtocol {
             case INTERVALYM:
                 INTERVALYM intervalym = getInternalINTERVALYM(columnInfo);
                 return intervalym.toString();
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
-                    columnInfo);
-            case GEOMETRY:
-                return new String(buf, pos, length);
+
             case NULL:
                 return null;
+
+            case VARSTRING:
+                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+            case STRING:
+                if (getMaxFieldSize() > 0) {
+                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length),
+                        getCurrentEncoding(columnInfo.getColumnType())).substring(0,
+                        Math.min(getMaxFieldSize(), length));
+                }
+                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
             case RAW:
                 byte[] returnBytes = new byte[length];
                 System.arraycopy(buf, pos, returnBytes, 0, length);
                 return Utils.toHexString(returnBytes);
-            case VARSTRING:
-                return new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
-            case BINARY_DOUBLE:
-                Double d = getInternalDouble(columnInfo);
-                return Double.toString(d);
-            case BINARY_FLOAT:
-                Float f = getInternalFloat(columnInfo);
-                return Float.toString(f);
             case ORA_CLOB:
                 if (options.supportLobLocator) {
                     String encoding = this.options.characterEncoding;
@@ -444,6 +445,10 @@ public class BinaryRowProtocol extends RowProtocol {
                     return new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                 }
+
+            case GEOMETRY:
+                return new String(buf, pos, length);
+
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)
@@ -1728,7 +1733,9 @@ public class BinaryRowProtocol extends RowProtocol {
         }
         boolean negative = (buf[pos] == 0x01);
         return (negative ? "-" : "")
-               + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
+               + (hourString + ":" + minuteString + ":" + secondString + ((microsecondString
+                   .toString().matches("[0]+") && !this.getProtocol().isOracleMode()) ? ""
+                   : "." + microsecondString));
     }
 
     /**

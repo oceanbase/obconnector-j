@@ -583,4 +583,30 @@ public class OracleDataTypeTest extends BaseOracleTest {
         //        assertNotNull(cs.getArray(2).getArray());
     }
 
+    @Test
+    public void testIntNumberFloatGetString() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table t_20221123");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table t_20221123 (c1 int, c2 number, c3 FLOAT )");
+        stmt.execute("create table t_20221123 ("
+                    + "    c1 int,\n"
+                    + "    c2 number,\n"
+                    + "    c3 FLOAT )");
+        stmt.execute("insert into t_20221123 values(1.1, 2.2, 3.3)");
+        stmt.execute("insert into t_20221123 values(0.1, 0.2, 0.3)");
+
+        ResultSet rs = stmt.executeQuery("select * from t_20221123");
+        assertTrue(rs.next());
+        assertEquals("1", rs.getString(1));
+        assertEquals("2.2", rs.getString(2));
+        assertEquals("3.3", rs.getString(3));
+        assertTrue(rs.next());
+        assertEquals("0", rs.getString(1));
+        assertEquals(".2", rs.getString(2));
+        assertEquals(".3", rs.getString(3));
+    }
+
 }
