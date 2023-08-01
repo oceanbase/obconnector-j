@@ -179,10 +179,10 @@ public class TextRowProtocol extends RowProtocol {
             case FLOAT:
                 return zeroFillingIfNeeded(new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())), columnInfo);
-                //case NUMBER_FLOAT:
+            case NUMBER_FLOAT:
             case DECIMAL:
             case OLDDECIMAL:
-                //case OBDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
                     columnInfo);

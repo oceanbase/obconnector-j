@@ -590,7 +590,6 @@ public class OracleDataTypeTest extends BaseOracleTest {
             stmt.execute("drop table t_20221123");
         } catch (SQLException e) {
         }
-        stmt.execute("create table t_20221123 (c1 int, c2 number, c3 FLOAT )");
         stmt.execute("create table t_20221123 ("
                     + "    c1 int,\n"
                     + "    c2 number,\n"
@@ -605,8 +604,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertEquals("3.3", rs.getString(3));
         assertTrue(rs.next());
         assertEquals("0", rs.getString(1));
-        assertEquals(".2", rs.getString(2));
-        assertEquals(".3", rs.getString(3));
+        assertEquals("0.2", rs.getString(2));
+        assertEquals("0.3", rs.getString(3));
     }
 
 }

@@ -363,11 +363,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 return zeroFillingIfNeeded(String.valueOf(getInternalLong(columnInfo)), columnInfo);
             case FLOAT:
-                //case NUMBER_FLOAT:
+            case NUMBER_FLOAT:
                 return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
             case DECIMAL:
             case OLDDECIMAL:
-                //case OBDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
                     columnInfo);
