@@ -52,11 +52,12 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;

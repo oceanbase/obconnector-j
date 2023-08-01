@@ -1368,6 +1368,13 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return (results != null && !results.isReturning()) ? results.getResultSet() : null;
   }
 
+    public String getServerInfo(){
+        if (results != null && results.getCmdInformation() != null) {
+            return results.getCmdInformation().getServerInfo();
+        }
+        return null;
+    }
+
   /**
    * Retrieves the current result as an update count; if the result is a ResultSet object or there
    * are no more results, -1 is returned. This method should be called only once per result.

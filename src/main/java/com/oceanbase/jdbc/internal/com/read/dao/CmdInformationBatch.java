@@ -69,6 +69,7 @@ public class CmdInformationBatch implements CmdInformation {
   private int insertIdNumber = 0;
   private boolean hasException;
   private boolean rewritten;
+  private String serverInfo;
 
   /**
    * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch, doesn't
@@ -114,11 +115,12 @@ public class CmdInformationBatch implements CmdInformation {
     updateCounts.add(updateCount);
   }
 
-    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey, String serverInfo) {
         if (containOnDuplicateKey && updateCount == 0) {
             updateCount = 1;
         }
         addSuccessStat(updateCount, insertId);
+        this.serverInfo = serverInfo;
     }
 
 
@@ -220,6 +222,11 @@ public class CmdInformationBatch implements CmdInformation {
   public long getLargeUpdateCount() {
     Long updateCount = updateCounts.peek();
     return (updateCount == null) ? -1 : updateCount;
+  }
+
+  @Override
+  public String getServerInfo() {
+    return serverInfo;
   }
 
   @Override

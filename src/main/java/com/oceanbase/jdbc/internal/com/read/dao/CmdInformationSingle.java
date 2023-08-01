@@ -61,6 +61,7 @@ public class CmdInformationSingle implements CmdInformation {
     private final long insertId;
     private final int  autoIncrement;
     private long       updateCount;
+    private String     serverInfo;
 
     /**
      * Object containing update / insert ids, optimized for only one result.
@@ -73,6 +74,14 @@ public class CmdInformationSingle implements CmdInformation {
         this.insertId = insertId;
         this.updateCount = updateCount;
         this.autoIncrement = autoIncrement;
+    }
+
+    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement,
+                                String serverInfo) {
+        this.insertId = insertId;
+        this.updateCount = updateCount;
+        this.autoIncrement = autoIncrement;
+        this.serverInfo = serverInfo;
     }
 
     public long getInsertId() {
@@ -102,6 +111,11 @@ public class CmdInformationSingle implements CmdInformation {
     @Override
     public long getLargeUpdateCount() {
         return updateCount;
+    }
+
+    @Override
+    public String getServerInfo() {
+        return serverInfo;
     }
 
     @Override
@@ -174,7 +188,8 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
-    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey,
+                               String serverInfo) {
         // cannot occur
     }
 

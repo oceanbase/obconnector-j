@@ -69,6 +69,7 @@ public class CmdInformationMultiple implements CmdInformation {
     private int                   moreResults;
     private boolean               hasException;
     private boolean               rewritten;
+    private String                serverInfo;
 
     /**
      * Object containing update / insert ids, optimized for only multiple result.
@@ -115,13 +116,15 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
-    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey) {
+    public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey,
+                               String serverInfo) {
         if (containOnDuplicateKey && updateCount == 0) {
             updateCount = 1;
         }
         insertIds.add(insertId);
         insertIdNumber += updateCount;
         updateCounts.add(updateCount);
+        this.serverInfo = serverInfo;
     }
 
     @Override
@@ -198,6 +201,11 @@ public class CmdInformationMultiple implements CmdInformation {
             return -1;
         }
         return updateCounts.get(moreResults);
+    }
+
+    @Override
+    public String getServerInfo() {
+        return serverInfo;
     }
 
     @Override

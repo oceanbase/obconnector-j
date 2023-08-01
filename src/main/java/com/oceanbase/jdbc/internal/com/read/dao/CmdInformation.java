@@ -68,9 +68,12 @@ public interface CmdInformation {
 
     long getLargeUpdateCount();
 
+    String getServerInfo();
+
     void addSuccessStat(long updateCount, long insertId);
 
-    void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey);
+    void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey,
+                        String serverInfo);
 
     void addErrorStat();
 

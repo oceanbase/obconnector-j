@@ -2212,12 +2212,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     serverStatus = buffer.readShort();
     hasWarnings = (buffer.readShort() > 0);
+    String serverInfo = buffer.readStringLengthEncoded(this.getWriter().getCharset());
 
     if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
       handleStateChange(buffer, results);
     }
 
-    results.addStats(updateCount, insertId, hasMoreResults());
+    results.addStats(updateCount, insertId, hasMoreResults(), serverInfo);
   }
 
   /**

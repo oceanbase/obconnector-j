@@ -183,14 +183,15 @@ public class Results {
      * @param insertId primary key
      * @param moreResultAvailable is there additional packet
      */
-    public void addStats(long updateCount, long insertId, boolean moreResultAvailable) {
+    public void addStats(long updateCount, long insertId, boolean moreResultAvailable,
+                         String serverInfo) {
         if (cmdInformation == null) {
             if (batch) {
                 cmdInformation = new CmdInformationBatch(expectedSize, autoIncrement);
             } else if (moreResultAvailable) {
                 cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
-                cmdInformation = new CmdInformationSingle(insertId, updateCount, autoIncrement);
+                cmdInformation = new CmdInformationSingle(insertId, updateCount, autoIncrement, serverInfo);
                 return;
             }
         }
@@ -198,8 +199,8 @@ public class Results {
             .addSuccessStat(
                 updateCount,
                 insertId,
-                containOnDuplicateKey(statement.getActualSql(), statement.getConnection()
-                    .getProtocol()));
+                containOnDuplicateKey(statement.getActualSql(), statement.getConnection().getProtocol()),
+                serverInfo);
     }
 
     /**
