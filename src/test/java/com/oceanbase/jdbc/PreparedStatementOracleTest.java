@@ -43,13 +43,10 @@
  */
 package com.oceanbase.jdbc;
 
+import java.sql.*;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 public class PreparedStatementOracleTest extends BaseOracleTest {
 
@@ -97,7 +94,7 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
 
         pstmt.setString(1, "ob");
         rs = pstmt.executeQuery();
-        Assert.assertTrue(rs.next());   // oracle: Assert.assertFalse(rs.next());
+        Assert.assertTrue(rs.next()); // oracle: Assert.assertFalse(rs.next());
         Assert.assertEquals("ob        ", rs.getString(1));
 
         //BinaryRowProtocol
@@ -110,11 +107,120 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
 
         pstmt.setString(1, "ob");
         rs = pstmt.executeQuery();
-        Assert.assertTrue(rs.next());   // oracle: Assert.assertFalse(rs.next());
+        Assert.assertTrue(rs.next()); // oracle: Assert.assertFalse(rs.next());
         Assert.assertEquals("ob        ", rs.getString(1));
 
         rs.close();
         pstmt.close();
         stmt.close();
     }
+
+    @Test
+    public void testGeneratedKeysByColumnIndexes() throws Exception {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+
+        Statement stmt = conn.createStatement();
+        // create sequence
+        try {
+            stmt.execute("DROP SEQUENCE S1;");
+        } catch (Exception ignored) {
+
+        } finally {
+            stmt.execute("CREATE SEQUENCE S1 START WITH 1 INCREMENT BY 1");
+        }
+        // create table
+        try {
+            stmt.execute("DROP TABLE T1;");
+        } catch (Exception ignored) {
+
+        } finally {
+            stmt.execute("CREATE TABLE T1 (C1 NUMBER(10) PRIMARY KEY, C2 VARCHAR(20));");
+        }
+        // create trigger
+        stmt.execute("CREATE OR REPLACE TRIGGER TRI1\n" + "BEFORE INSERT ON T1\n"
+                     + "FOR EACH ROW\n" + "BEGIN\n" + "  SELECT S1.NEXTVAL\n" + "  INTO :new.C1\n"
+                     + "  FROM dual;\n" + "END;");
+
+        PreparedStatement pstmt = conn.prepareStatement("insert into t1(c2) values ('test1')",
+            new int[] { 1, 2 });
+        pstmt.executeUpdate();
+        ResultSet rs = pstmt.getGeneratedKeys();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("\"TEST\".\"T1\".\"C1\"", rs.getMetaData().getColumnName(1));
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("\"TEST\".\"T1\".\"C2\"", rs.getMetaData().getColumnName(2));
+        Assert.assertEquals("test1", rs.getString(2));
+        Assert.assertFalse(rs.next());
+
+        try {
+            pstmt = conn.prepareStatement("insert into t1(c2) values ('test2')",
+                new int[] { 1, 3 });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("index 2 must be in [0, 1]"));
+        }
+
+        try {
+            pstmt = conn.prepareStatement("insert into t1(c2) values ('test3')",
+                new int[] { 1, 2, 3 });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("index 2 must be in [0, 1]"));
+        }
+    }
+
+    @Test
+    public void testGeneratedKeysByColumnNames() throws Exception {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+
+        Statement stmt = conn.createStatement();
+        // create sequence
+        try {
+            stmt.execute("DROP SEQUENCE S1;");
+        } catch (Exception ignored) {
+
+        } finally {
+            stmt.execute("CREATE SEQUENCE S1 START WITH 1 INCREMENT BY 1");
+        }
+        // create table
+        try {
+            stmt.execute("DROP TABLE T1;");
+        } catch (Exception ignored) {
+
+        } finally {
+            stmt.execute("CREATE TABLE T1 (C1 NUMBER(10) PRIMARY KEY, C2 VARCHAR(20));");
+        }
+        // create trigger
+        stmt.execute("CREATE OR REPLACE TRIGGER TRI1\n" + "BEFORE INSERT ON T1\n"
+                     + "FOR EACH ROW\n" + "BEGIN\n" + "  SELECT S1.NEXTVAL\n" + "  INTO :new.C1\n"
+                     + "  FROM dual;\n" + "END;");
+
+        PreparedStatement pstmt = conn.prepareStatement("insert into t1(c2) values ('test1')",
+            new String[] { "C1", "C2" });
+        pstmt.executeUpdate();
+        ResultSet rs = pstmt.getGeneratedKeys();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("\"TEST\".\"T1\".\"C1\"", rs.getMetaData().getColumnName(1));
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("\"TEST\".\"T1\".\"C2\"", rs.getMetaData().getColumnName(2));
+        Assert.assertEquals("test1", rs.getString(2));
+        Assert.assertFalse(rs.next());
+
+        try {
+            pstmt = conn.prepareStatement("insert into t1(c2) values ('test2')",
+                new String[] {"C1", "C3" });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Invalid parameter \"C3\""));
+        }
+
+        try {
+            pstmt = conn.prepareStatement("insert into t1(c2) values ('test3')",
+                new String[] {"C1", "C2", "C3" });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Invalid parameter \"C3\""));
+        }
+    }
+
 }

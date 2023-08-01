@@ -182,6 +182,18 @@ public class Options implements Cloneable {
     public String serverRsaPublicKeyFile;
     public boolean allowPublicKeyRetrieval;
 
+    public String characterEncoding = "utf8";
+    public boolean useCursorFetch = false;
+    public String socksProxyHost;
+    public int socksProxyPort = 1080;
+    public boolean autoDeserialize = false;
+    public boolean enableQueryTimeouts = true;
+    public String  loadBalanceStrategy = "random";
+    public int     blobSendChunkSize = 1048576;
+    public String  connectionCollation = null;
+    public boolean allowNanAndInf = false;
+    public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
+
     // OceanBase extended options
     public boolean supportLobLocator = true;
     public boolean useObChecksum = true;
@@ -191,34 +203,23 @@ public class Options implements Cloneable {
     public boolean cacheComplexData = true;
     public boolean useSqlStringCache = false;
     public boolean useServerPsStmtChecksum = true;
-    public String characterEncoding = "utf8";
-    public boolean useCursorFetch = false;
     public boolean supportNameBinding = true;
-    public String socksProxyHost;
-    public int socksProxyPort = 1080;
     public boolean connectProxy = false;
     public boolean usePieceData = false;
     public int  pieceLength = 1048576;
     public boolean useOraclePrepareExecute = false;
-    public boolean autoDeserialize = false;
-    public boolean enableQueryTimeouts = true;
     public int     maxBatchTotalParamsNum = 30000;
     public boolean useCursorOffset = false;
     public String  tnsnamesPath;
     public int     tnsnamesDetectionPeriod = 10;
-    public String  loadBalanceStrategy = "random";
     public String  serverAffinityOrder;
-    public int     blobSendChunkSize = 1048576;
-    public String  connectionCollation = null;
     public boolean useArrayBinding   = false;
     public boolean sendConnectionAttributes   = true;
     public boolean rewriteInsertByMultiQueries = false;
     public boolean useLocalXID = true;
     public boolean useOceanBaseProtocolV20 = true;
     public boolean enableFullLinkTrace = false;
-    public boolean allowNanAndInf = false;
     public String  defaultConnectionAttributesBanList = null;
-    public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
     public boolean enableOb20Checksum = true;
     public int     ocpAccessInterval = 5;
     public int     httpConnectTimeout;

@@ -77,6 +77,7 @@ import com.oceanbase.jdbc.util.Options;
 public class OceanBaseStatement implements Statement, Cloneable {
 
   // Statement Types
+  public static final int STMT_UNINITIALIZED = -1;
   public static final int STMT_UNKNOWN = 0;
   public static final int STMT_SELECT = 1;
   public static final int STMT_UPDATE = 2;
@@ -88,13 +89,11 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public static final int STMT_BEGIN = 8;
   public static final int STMT_DECLARE = 9;
   public static final int STMT_CALL = 10;
-  //
 
   private static final Pattern identifierPattern =
       Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
   private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
   private static final Map<String, String> mapper = new HashMap<>();
-  // timeout scheduler
   private static final Logger logger = LoggerFactory.getLogger(OceanBaseStatement.class);
 
   static {
@@ -110,48 +109,48 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   protected final ReentrantLock lock;
-  protected int resultSetScrollType;
-  protected int resultSetConcurrency;
   protected final Options options;
-  protected final boolean canUseServerTimeout;
-  /** the protocol used to talk to the server. */
   protected Protocol protocol;
-  /** the Connection object. */
   protected OceanBaseConnection connection;
 
   protected volatile ResourceStatus status = ResourceStatus.OPEN;
-  protected int queryTimeout;
-  protected long maxRows;
   protected Results results;
-  protected int fetchSize;
-  protected boolean isFetchSizeSet = false;
+  PreparedStatement   cursorFetchPstmt;
+  private    boolean  isPoolable = true;
+  private    boolean  isInternal;
+
+  // execute
   protected volatile boolean executing;
   protected ExceptionFactory exceptionFactory;
-  private ScheduledExecutorService timeoutScheduler;
-  // are warnings cleared?
   private boolean warningsCleared;
-  private boolean mustCloseOnCompletion = false;
+  private boolean mustCloseOnCompletion;
   protected List<String> batchQueries;
-  private Future<?> timerTaskFuture;
-  private boolean isTimedout;
-  private int maxFieldSize;
-  private boolean escape = true;
 
+  // timeout
+  protected int queryTimeout;
+  private Future<?> timerTaskFuture;
+  private ScheduledExecutorService timeoutScheduler;
+  private boolean isTimeout;
+  protected final boolean canUseServerTimeout;
+
+  // Result Set
+  protected int resultSetScrollType;
+  protected int resultSetConcurrency;
+  private int maxFieldSize;
+  protected long maxRows;
+  protected int fetchSize;
+  protected boolean isFetchSizeSet;
+
+  // sql parse
+  private boolean escape = true;
   protected String    originalSql;
-  protected String    parameterSql;
-  protected String    utickSql;
-  protected String    processedSql;
-  protected String    rowidSql;
   protected String    actualSql;
   protected String    simpleSql;
+  protected String    tableName;
   protected int       sqlType;
   protected boolean   addRowid;
   protected int       selectEndPos = -1;
   protected int       whereEndPos = -1;
-  PreparedStatement   cursorFetchPstmt = null;
-  private    boolean  isPoolable = true;
-  private    boolean  isInternal;
-
 
     /**
    * Creates a new Statement.
@@ -184,6 +183,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
         this.fetchSize = this.options.defaultFetchSize;
     }
     this.maxRows = options.maxRows;
+    sqlType = STMT_UNINITIALIZED;
   }
 
   /**
@@ -224,7 +224,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
         timeoutScheduler.schedule(
             () -> {
               try {
-                isTimedout = true;
+                isTimeout = true;
                 if (!isBatch) {
                   protocol.cancelCurrentQuery();
                 }
@@ -308,7 +308,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
               sqle);
     }
 
-    if (isTimedout) {
+    if (isTimeout) {
       return exceptionFactory
           .raiseStatementError(connection, this)
           .create("Query timed out", "70100", 1317, sqle);
@@ -321,14 +321,14 @@ public class OceanBaseStatement implements Statement, Cloneable {
 
   protected void executeEpilogue() {
     stopTimeoutTask();
-    isTimedout = false;
+    isTimeout = false;
     executing = false;
   }
 
   protected void executeBatchEpilogue() {
     executing = false;
     stopTimeoutTask();
-    isTimedout = false;
+    isTimeout = false;
     clearBatch();
   }
 
@@ -343,7 +343,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
     }
 
-    if (isTimedout) {
+    if (isTimeout) {
       return exceptionFactory
           .raiseStatementError(connection, this)
           .create("Query timed out", "70100", 1317, sqle);

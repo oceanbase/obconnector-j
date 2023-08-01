@@ -1415,7 +1415,7 @@ public enum DefaultOptions {
     }
 
     // cursor functionality is available only for server-side prepared statements
-    if (options.useCursorFetch) {
+    if (options.useCursorFetch || options.useOraclePrepareExecute) {
       options.useServerPrepStmts = true;
     }
 
