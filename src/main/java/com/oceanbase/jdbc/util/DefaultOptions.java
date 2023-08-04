@@ -1040,6 +1040,13 @@ public enum DefaultOptions {
         "2.4.5",
         "compatible ojdbc version 6/8",
         false),
+    COMPATIBLE_MYSQL_VERSION(
+        "compatibleMysqlVersion",
+        5,
+        0,
+        "2.4.5",
+        "compatible mysql-jdbc version 5/8",
+        false),
     USE_INFORMATION_SCHEMA(
         "useInformationSchema",
         Boolean.FALSE,

@@ -226,6 +226,7 @@ public class Options implements Cloneable {
     public int     httpReadTimeout;
     public boolean loadBalanceHandleFailover = true;
     public int     compatibleOjdbcVersion = 6;
+    public int     compatibleMysqlVersion = 5;
 
     @Override
     public String toString() {
@@ -678,6 +679,9 @@ public class Options implements Cloneable {
         if(compatibleOjdbcVersion != opt.compatibleOjdbcVersion) {
             return false;
         }
+        if(compatibleMysqlVersion != opt.compatibleMysqlVersion) {
+            return false;
+        }
         if(useInformationSchema != opt.useInformationSchema) {
             return false;
         }
@@ -828,6 +832,7 @@ public class Options implements Cloneable {
         result = 31 * result + httpReadTimeout;
         result = 31 * result + (loadBalanceHandleFailover ? 1 : 0);
         result = 31 * result + compatibleOjdbcVersion;
+        result = 31 * result + compatibleMysqlVersion;
         result = 31 * result + (useInformationSchema ? 1 : 0);
         return result;
     }

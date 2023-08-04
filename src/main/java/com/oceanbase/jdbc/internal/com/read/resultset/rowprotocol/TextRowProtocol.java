@@ -231,8 +231,20 @@ public class TextRowProtocol extends RowProtocol {
             case TIMESTAMP_NANO:
             case DATETIME:
                 // use local time zone
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                Timestamp timestamp = null;
+                try {
+                    timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                } catch (SQLException sqlex) {
+                    if (sqlex.getMessage().equals("Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp")
+                            && !getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        return "0000-00-00 00:00:00";
+                    }
+                    throw sqlex;
+                }
                 if (timestamp == null) {
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        return "0000-00-00 00:00:00";
+                    }
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
                     }

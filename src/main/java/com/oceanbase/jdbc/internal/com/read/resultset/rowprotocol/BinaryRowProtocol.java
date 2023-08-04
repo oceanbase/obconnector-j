@@ -397,10 +397,15 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+                if (length == 0 && !getProtocol().isOracleMode()
+                    && options.compatibleMysqlVersion == 8) {
+                    return "0000-00-00 00:00:00";
+                }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     return null;
                 }
+
                 if (getProtocol().isOracleMode()) {
                     LocalDateTime localDateTime = timestamp.toLocalDateTime();
                     String str = DataTypeUtilities.TIMESTAMPTZToString(localDateTime.getYear(),
@@ -1174,10 +1179,7 @@ public class BinaryRowProtocol extends RowProtocol {
             if (lastValueWasNull()) {
                 return null;
             }
-            if (length == 0) {
-                lastValueNull |= BIT_LAST_FIELD_NULL;
-                return null;
-            }
+
             if (this.getProtocol().isOracleMode()) {
                 Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
                 TIMESTAMP timestamp = null;
@@ -1194,12 +1196,11 @@ public class BinaryRowProtocol extends RowProtocol {
                         timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),
                             oracleTimestampLTZ.getBytes());
                         return timestamp.timestampValue(cal);
+                    case TIMESTAMP_NANO:
+                        Calendar calWithoutTZ = getCalendarInstance(userCalendar);
+                        return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
+                            .timestampValue(calWithoutTZ);
                 }
-            }
-            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO) {
-                Calendar cal = getCalendarInstance(userCalendar);
-                return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
-                    .timestampValue(cal);
             }
 
             int year = 1970;
@@ -1213,7 +1214,6 @@ public class BinaryRowProtocol extends RowProtocol {
 
             switch (columnInfo.getColumnType()) {
                 case TIME:
-
                     boolean negate = false;
                     if (length > 0) {
                         negate = (buf[pos] & 0xff) == 0x01;
@@ -1227,7 +1227,6 @@ public class BinaryRowProtocol extends RowProtocol {
                         minutes = buf[pos + 6];
                         seconds = buf[pos + 7];
                     }
-
                     if (length > 8) {
                         microseconds = ((buf[pos + 8] & 0xff) + ((buf[pos + 9] & 0xff) << 8)
                                         + ((buf[pos + 10] & 0xff) << 16) + ((buf[pos + 11] & 0xff) << 24));
@@ -1238,6 +1237,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     day = ((negate ? -1 : 1) * day) + 1;
                     hour = (negate ? -1 : 1) * hour;
                     break;
+
                 case STRING:
                 case VARSTRING:
                 case NVARCHAR2:
@@ -1252,7 +1252,6 @@ public class BinaryRowProtocol extends RowProtocol {
                         lastValueNull |= BIT_LAST_ZERO_DATE;
                         return null;
                     }
-
                     if (rawValue.length() >= 4) {
                         year = Integer.parseInt(rawValue.substring(0, 4));
                         if (rawValue.length() >= 7) {
@@ -1268,47 +1267,44 @@ public class BinaryRowProtocol extends RowProtocol {
                             }
                         }
                     }
-
                     break;
+
                 default:
-                    year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                    month = buf[pos + 2];
-                    day = buf[pos + 3];
-                    if (length > 4) {
-                        hour = buf[pos + 4];
-                        minutes = buf[pos + 5];
-                        seconds = buf[pos + 6];
+                    if (length > 0) {
+                        year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                        month = buf[pos + 2];
+                        day = buf[pos + 3];
 
-                        if (length > 7) {
-                            microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
-                                            + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
-                            nanos = microseconds * 1000;
-                        }
-                    }
-                    if (length == 0 || ((year == 0) && (month == 0) && (day == 0))) {
+                        if (length > 4) {
+                            hour = buf[pos + 4];
+                            minutes = buf[pos + 5];
+                            seconds = buf[pos + 6];
 
-                        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
-                            throw new SQLException(
-                                "Value '"
-                                        + new String(buf, pos, length,
-                                            getCurrentEncoding(columnInfo.getColumnType()))
-                                        + "' can not be represented as java.sql.Timestamp");
+                            if (length > 7) {
+                                microseconds = ((buf[pos + 7] & 0xff) + ((buf[pos + 8] & 0xff) << 8)
+                                        + ((buf[pos + 9] & 0xff) << 16) + ((buf[pos + 10] & 0xff) << 24));
+                                nanos = microseconds * 1000;
+                            }
                         }
-                        if (options.zeroDateTimeBehavior
-                            .equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
-                            return null;
-                        } else {
-                            // round
-                            year = 1;
-                            month = 1;
-                            day = 1;
-                        }
-
                     }
             }
 
-            Calendar calendar = getCalendarInstance(userCalendar);
+            if (length == 0 || ((year == 0) && (month == 0) && (day == 0))) {
+                if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                    throw new SQLException(
+                            "Value '0000-00-00' can not be represented as java.sql.Timestamp");
+                }
+                if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+                    return null;
+                } else {
+                    // round
+                    year = 1;
+                    month = 1;
+                    day = 1;
+                }
+            }
 
+            Calendar calendar = getCalendarInstance(userCalendar);
             Timestamp tt;
             synchronized (calendar) {
                 calendar.clear();
@@ -1317,8 +1313,6 @@ public class BinaryRowProtocol extends RowProtocol {
             }
             tt.setNanos(nanos);
             return tt;
-        } catch (SQLException e) {
-            throw e; // don't re-wrap
         } catch (NumberFormatException e) {
             SQLException sqlException = new SQLException("Cannot convert value "
                                                          + new String(buf, pos, length,

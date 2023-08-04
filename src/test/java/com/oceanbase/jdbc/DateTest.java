@@ -920,4 +920,106 @@ public class DateTest extends BaseTest {
         assertEquals("21:03:15", rs.getString(1));
     }
 
+    @Test
+    public void zeroDateMysql5() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+
+        Connection conn = setConnection("&zeroDateTimeBehavior=exception");
+        createTable("t1", "c1 datetime");
+        conn.createStatement().execute("set @@sql_mode=\"\";");
+        conn.createStatement().execute("insert into t1 values ('000-00-00 00:00:00')");
+        PreparedStatement ps = conn.prepareStatement("select * from t1");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        try {
+            rs.getString(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+        try {
+            rs.getTimestamp(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+
+        conn = setConnection("&zeroDateTimeBehavior=exception&useServerPrepStmts=true");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        try {
+            rs.getString(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+        try {
+            rs.getTimestamp(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+
+        conn = setConnection("&zeroDateTimeBehavior=convertToNull");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertNull(rs.getString(1));
+        Assert.assertNull(rs.getTimestamp(1));
+
+        conn = setConnection("&zeroDateTimeBehavior=convertToNull&useServerPrepStmts=true");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertNull(rs.getString(1));
+        Assert.assertNull(rs.getTimestamp(1));
+    }
+
+    @Test
+    public void zeroDateMysql8() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+
+        Connection conn = setConnection("&compatibleMysqlVersion=8&zeroDateTimeBehavior=exception");
+        createTable("t1", "c1 datetime");
+        conn.createStatement().execute("set @@sql_mode=\"\";");
+        conn.createStatement().execute("insert into t1 values ('000-00-00 00:00:00')");
+        PreparedStatement ps = conn.prepareStatement("select * from t1");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0000-00-00 00:00:00", rs.getString(1));
+        try {
+            rs.getTimestamp(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+
+        conn = setConnection("&compatibleMysqlVersion=8&zeroDateTimeBehavior=exception&useServerPrepStmts=true");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0000-00-00 00:00:00", rs.getString(1));
+        try {
+            rs.getTimestamp(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Value '0000-00-00' can not be represented as java.sql.Timestamp", e.getMessage());
+        }
+
+        conn = setConnection("&compatibleMysqlVersion=8&zeroDateTimeBehavior=convertToNull");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0000-00-00 00:00:00", rs.getString(1));
+        Assert.assertNull(rs.getTimestamp(1));
+
+        conn = setConnection("&compatibleMysqlVersion=8&zeroDateTimeBehavior=convertToNull&useServerPrepStmts=true");
+        ps = conn.prepareStatement("select * from t1");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("0000-00-00 00:00:00", rs.getString(1));
+        Assert.assertNull(rs.getTimestamp(1));
+    }
+
 }

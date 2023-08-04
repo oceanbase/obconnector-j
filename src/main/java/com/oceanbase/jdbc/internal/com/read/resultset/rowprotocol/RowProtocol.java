@@ -880,8 +880,6 @@ public abstract class RowProtocol {
               }
               return  buildTimestmap(year,month,day,hour,minutes,seconds,nanos,calendar,timezone);
           }
-      } catch (SQLException e) {
-          throw e; // don't re-wrap
       } catch (NumberFormatException e) {
           SQLException sqlException = new SQLException("Cannot convert value " +new String(buf, pos, length,
                   getCurrentEncoding(columnInfo.getColumnType()))+ " to TIMESTAMP.");
