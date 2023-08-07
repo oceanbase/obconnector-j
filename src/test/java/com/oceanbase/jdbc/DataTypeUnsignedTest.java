@@ -88,11 +88,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000001')");
     sharedConnection.createStatement().execute("insert into unsignedBitTest values (b'00000000')");
     sharedConnection.createStatement().execute("insert into unsignedBitTest values (null)");
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedBitTest", false)) {
       unsignedBitTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBitTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedBitTest", true)) {
       unsignedBitTestResult(rs);
     }
   }
@@ -129,11 +129,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (120)");
     sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedTinyIntTest values (null)");
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedTinyIntTest", false)) {
       unsignedTinyIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedTinyIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedTinyIntTest", true)) {
       unsignedTinyIntTestResult(rs);
     }
   }
@@ -177,11 +177,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedSmallIntTest values (null)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedSmallIntTest", false)) {
       unsignedSmallIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedSmallIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedSmallIntTest", true)) {
       unsignedSmallIntTestResult(rs);
     }
   }
@@ -225,11 +225,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into yearTest values (null)");
 
     try (Connection connection = setConnection("&yearIsDateType=false")) {
-      try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", false, connection)) {
+      try (ResultSet rs = DataTypeTest.getResultSet("select * from yearTest", false, connection)) {
         yearTestResult(rs, false);
       }
 
-      try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", true, connection)) {
+      try (ResultSet rs = DataTypeTest.getResultSet("select * from yearTest", true, connection)) {
         yearTestResult(rs, sharedOptions().useServerPrepStmts);
       }
     }
@@ -278,11 +278,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (null)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedMediumIntTest", false)) {
       unsignedMediumIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedMediumIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedMediumIntTest", true)) {
       unsignedMediumIntTestResult(rs);
     }
   }
@@ -325,11 +325,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedIntTest values (2147483647)");
     sharedConnection.createStatement().execute("insert into unsignedIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedIntTest values (null)");
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedIntTest", false)) {
       unsignedIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedIntTest", true)) {
       unsignedIntTestResult(rs);
     }
   }
@@ -377,11 +377,11 @@ public class DataTypeUnsignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (null)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedBigIntTest", false)) {
       unsignedBigIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedBigIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedBigIntTest", true)) {
       unsignedBigIntTestResult(rs);
     }
   }
@@ -429,11 +429,11 @@ public class DataTypeUnsignedTest extends BaseTest {
       statement.execute("insert into unsignedDecimalTest values (null)");
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedDecimalTest", false)) {
       unsignedDecimalTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDecimalTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedDecimalTest", true)) {
       unsignedDecimalTestResult(rs);
     }
   }
@@ -500,11 +500,11 @@ public class DataTypeUnsignedTest extends BaseTest {
       statement.execute("insert into unsignedFloatTest values (null)");
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedFloatTest", false)) {
       unsignedFloatTestResult(rs, false);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedFloatTest", true)) {
       unsignedFloatTestResult(rs, sharedUsePrepare());
     }
   }
@@ -570,11 +570,11 @@ public class DataTypeUnsignedTest extends BaseTest {
       statement.execute("insert into unsignedDoubleTest values (null)");
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedDoubleTest", false)) {
       unsignedDoubleTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedDoubleTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from unsignedDoubleTest", true)) {
       unsignedDoubleTestResult(rs);
     }
   }

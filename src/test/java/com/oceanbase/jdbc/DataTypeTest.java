@@ -62,7 +62,7 @@ import java.util.Calendar;
 
 import org.junit.*;
 
-public class DatatypeTest extends BaseTest {
+public class DataTypeTest extends BaseTest {
 
     private ResultSet resultSet;
 
@@ -1301,4 +1301,30 @@ public class DatatypeTest extends BaseTest {
         assertEquals("0.7000", rs.getString(7));
         assertEquals("0.8000000000", rs.getString(8));
     }
+
+    @Test
+    public void testRangeCheckOnIntAndLong() throws SQLException {
+        PreparedStatement ps = sharedConnection.prepareStatement("select '" + Double.MAX_VALUE + "'");
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+
+        try {
+            rs.getInt(1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals(
+                "Out of range value for column '1.7976931348623157E308' : value 1.7976931348623157E308 is not in class java.lang.Integer range",
+                e.getMessage());
+        }
+
+        try {
+            rs.getLong(1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals(
+                "Out of range value for column '1.7976931348623157E308' : value 1.7976931348623157E308 is not in class java.lang.Long range",
+                e.getMessage());
+        }
+    }
+
 }

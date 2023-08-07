@@ -113,7 +113,7 @@ import org.junit.Test;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPLTZ;
 import com.oceanbase.jdbc.extend.datatype.TIMESTAMPTZ;
 
-public class DatatypeOracleTest extends BaseOracleTest {
+public class DataTypeOracleTest extends BaseOracleTest {
 
     /**
      * Tables initialisation.

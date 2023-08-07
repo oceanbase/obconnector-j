@@ -1123,7 +1123,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 || !currentSqlMode.toUpperCase().contains("STRICT_TRANS_TABLES")) {
                 sessionOption.append(", sql_mode = concat(@@sql_mode, ',STRICT_TRANS_TABLES')");
             }
-            options.jdbcCompliantTruncation = false;
         }
 
         if (options.sessionVariables != null && !options.sessionVariables.isEmpty()) {

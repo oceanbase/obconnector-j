@@ -83,11 +83,11 @@ public class DataTypeSignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into signedTinyIntTest values (1)");
     sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
     sharedConnection.createStatement().execute("insert into signedTinyIntTest values (-1)");
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedTinyIntTest", false)) {
       assertTrue(signedTinyIntTestResult(rs));
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedTinyIntTest", true)) {
       assertTrue(signedTinyIntTestResult(rs));
     }
   }
@@ -121,11 +121,11 @@ public class DataTypeSignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into signedSmallIntTest values (null)");
     sharedConnection.createStatement().execute("insert into signedSmallIntTest values (-1)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedSmallIntTest", false)) {
       signedSmallIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedSmallIntTest", true)) {
       signedSmallIntTestResult(rs);
     }
   }
@@ -157,11 +157,11 @@ public class DataTypeSignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into signedMediumIntTest values (null)");
     sharedConnection.createStatement().execute("insert into signedMediumIntTest values (-1)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedMediumIntTest", false)) {
       signedMediumIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedMediumIntTest", true)) {
       signedMediumIntTestResult(rs);
     }
   }
@@ -192,11 +192,11 @@ public class DataTypeSignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into signedIntTest values (1)");
     sharedConnection.createStatement().execute("insert into signedIntTest values (null)");
     sharedConnection.createStatement().execute("insert into signedIntTest values (-1)");
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedIntTest", false)) {
       signedIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedIntTest", true)) {
       signedIntTestResult(rs);
     }
   }
@@ -230,11 +230,11 @@ public class DataTypeSignedTest extends BaseTest {
     sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
     sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedBigIntTest", false)) {
       signedBigIntTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedBigIntTest", true)) {
       signedBigIntTestResult(rs);
     }
   }
@@ -271,11 +271,11 @@ public class DataTypeSignedTest extends BaseTest {
       statement.execute("insert into signedDecimalTest values (-1)");
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", false)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedDecimalTest", false)) {
       signedDecimalTestResult(rs);
     }
 
-    try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", true)) {
+    try (ResultSet rs = DataTypeTest.getResultSet("select * from signedDecimalTest", true)) {
       signedDecimalTestResult(rs);
     }
   }
