@@ -79,8 +79,7 @@ class CallParameter {
     }
 
     public CallParameter(String name, int index, boolean isInput, boolean isOutput, int sqlType,
-                         String typeName, int precision, int scale, int canBeNull,
-                         int outputSqlType, int inOutModifier) {
+                         String typeName, int precision, int scale, int outputSqlType, int inOutModifier) {
         this.name = name;
         this.index = index;
         this.isInput = isInput;
@@ -89,7 +88,6 @@ class CallParameter {
         this.typeName = typeName;
         this.precision = precision;
         this.scale = scale;
-        this.canBeNull = canBeNull;
         this.outputSqlType = outputSqlType;
         this.inOutModifier = inOutModifier;
     }

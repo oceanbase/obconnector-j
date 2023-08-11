@@ -2751,10 +2751,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         return executeQuery(sql);
     }
 
-    /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
     private boolean haveInformationSchemaParameters() {
-        //        return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
-        return false;
+        return connection.getProtocol().haveInformationSchemaParameters();
     }
 
     /**

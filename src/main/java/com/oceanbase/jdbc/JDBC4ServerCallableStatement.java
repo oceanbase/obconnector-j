@@ -67,7 +67,8 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class JDBC4ServerCallableStatement extends CallableProcedureStatement implements
                                                                             CloneableCallableStatement {
 
-    private SelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet;
+    private final String    PARAMETER_NAMESPACE_PREFIX = "@com_mysql_jdbc_outparam_";
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -104,6 +105,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         setParamsAccordingToSetArguments();
     }
 
+    // only for oracle mode
     public JDBC4ServerCallableStatement(boolean isObFunction, String query,
                                         OceanBaseConnection connection, String procedureName,
                                         String database, String arguments, int resultSetType,
@@ -206,8 +208,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
-
-    private final String PARAMETER_NAMESPACE_PREFIX = "@com_mysql_jdbc_outparam_";
 
     private String mangleParameterName(String origParameterName) {
         //Fixed for 5.5+ in callers

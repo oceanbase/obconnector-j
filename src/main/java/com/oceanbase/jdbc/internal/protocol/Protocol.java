@@ -125,11 +125,11 @@ public interface Protocol {
 
     String getObServerVersion();
 
+    boolean haveInformationSchemaParameters();
+
     boolean supportStmtPrepareExecute();
 
     boolean supportFetchWithOffset();
-
-    boolean useOceanBaseProtocolV20();
 
     void setFullLinkTraceModule(String module, String action);
 

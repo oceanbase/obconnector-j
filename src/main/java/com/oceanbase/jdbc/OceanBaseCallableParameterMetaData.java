@@ -247,10 +247,6 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         }
     }
 
-    public CallParameter getParamByName(String name) {
-        return mapNameToParameter.getOrDefault(name, null);
-    }
-
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
         this.params = new ArrayList<CallParameter>();
         if (isFunction) {
@@ -291,11 +287,9 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             int jdbcType = ColumnType.convertDbTypeToSqlType(typeName);//ColumnType.convertSqlTypeToClass(1);
             int precision = paramTypesRs.getInt("DATA_PRECISION");
             int scale = paramTypesRs.getInt("DATA_SCALE");
-            short nullability = DatabaseMetaData.procedureNullable;
 
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
-                isOutParameter, jdbcType, typeName, precision, scale, nullability, jdbcType,
-                inOutModifier);
+                isOutParameter, jdbcType, typeName, precision, scale, jdbcType, inOutModifier);
 
             this.params.add(paramInfoToAdd);
             this.mapNameToParameter.put(paramName, paramInfoToAdd);

@@ -1711,30 +1711,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public void setObServerVersion(String version) {
         this.obServerVersion = version;
-        if (isOracleMode && options.useServerPrepStmts) {
-            if (options.useOraclePrepareExecute && Version.compare(obServerVersion, "2.2.76") >= 0) {
-                supportStmtPrepareExecute = true;
-            }
-            if (options.useCursorOffset && Version.compare(obServerVersion, "2.2.5") >= 0) {
-                supportFetchWithOffset = true;
-            }
-        }
     }
 
     public String getObServerVersion() {
         return obServerVersion;
     }
 
+    /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
+    public boolean haveInformationSchemaParameters() {
+        return Version.compare(obServerVersion, "4.1") >= 0;
+    }
+
     public boolean supportStmtPrepareExecute() {
-        return supportStmtPrepareExecute;
+        return isOracleMode && options.useOraclePrepareExecute
+               && Version.compare(obServerVersion, "2.2.76") >= 0;
     }
 
     public boolean supportFetchWithOffset() {
-        return supportFetchWithOffset;
-    }
-
-    public boolean useOceanBaseProtocolV20() {
-        return useOceanBaseProtocolV20;
+        return isOracleMode && options.useServerPrepStmts && options.useCursorOffset
+               && Version.compare(obServerVersion, "2.2.5") >= 0;
     }
 
     public void setFullLinkTraceModule(String module, String action) {
