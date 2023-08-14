@@ -43,6 +43,8 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.*;
+
 import java.sql.*;
 
 import org.junit.Assert;
@@ -221,6 +223,101 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("Invalid parameter \"C3\""));
         }
+    }
+
+    @Test
+    public void fix51317355() throws Exception {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+        createTable("t0", "id number primary key, c1 INT");
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO t0 VALUES (1,1)",
+            Statement.RETURN_GENERATED_KEYS);
+        ps.execute();
+
+        // ob 2.4.4
+        ResultSet rs = ps.getGeneratedKeys();
+        assertFalse(rs.next());
+        // oracle 返回rowSpaceByte: AAKKeQAAVAAAGRVAAA
+        //        System.out.println(rs.getString(1));
+    }
+
+    @Test
+    public void fix51565869() throws Exception {
+        Connection conn = setConnectionOrigin("?&useOraclePrepareExecute=true");
+        createTable("t5", "c1 number primary key, c2 varchar2(20)");
+
+        PreparedStatement ps = conn
+            .prepareStatement("insert into t5 values (1, 'aaa') returning c1,c2 into ?,?");
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(1, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(2, Types.VARCHAR);
+        ps.execute();
+        // ob 2.4.4
+        try {
+            ResultSet rs = ps.getGeneratedKeys();
+            fail();
+        } catch (SQLException e) {
+            Assert
+                .assertEquals(
+                    "Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS",
+                    e.getMessage());
+        }
+        // oracle
+        //        ResultSet rs = ps.getGeneratedKeys();
+        //        try {
+        //            ResultSetMetaData metaData = rs.getMetaData();
+        //            fail();
+        //        } catch (SQLException e) {
+        //            Assert.assertEquals("不支持的特性: getMetaData", e.getMessage());
+        //        }
+        //        assertFalse(rs.next());
+
+        ps = conn.prepareStatement("insert into t5 values (2, 'bbb') returning c1,c2 into ?,?",
+            Statement.RETURN_GENERATED_KEYS);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(1, Types.INTEGER);
+        ((JDBC4ServerPreparedStatement) ps).registerReturnParameter(2, Types.VARCHAR);
+        // ob 2.4.4
+        ps.execute();
+        ResultSet rs = ps.getGeneratedKeys();
+        ResultSetMetaData metaData = rs.getMetaData();
+        assertEquals(1, metaData.getColumnCount());
+        assertFalse(rs.next());
+        // oracle
+        //        try {
+        //            ps.execute();
+        //            fail();
+        //        } catch (SQLException e) {
+        //            Assert.assertEquals("ORA-00933: SQL 命令未正确结束\n", e.getMessage());
+        //        }
+    }
+
+    @Test
+    public void fix51585473() throws Exception {
+        Connection conn = setConnectionOrigin("?useOraclePrepareExecute=true");
+        createTable("test_returning_into", "id number, c1 varchar2(20)");
+        PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO test_returning_into VALUES (1,'aaa')", new String[] { "id", "c1" });
+        ps.execute();
+        ResultSet rs = null;
+        rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals("1", rs.getString(1));
+        assertEquals("aaa", rs.getString(2));
+
+        createTable("test_1", "id number, c1 varchar2(200)");
+        ps = conn.prepareStatement("INSERT INTO test_1 VALUES (1,'returning ... into ?,?')",
+            new String[] { "id", "c1" });
+        ps.execute();
+        rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals("1", rs.getString(1));
+        assertEquals("returning ... into ?,?", rs.getString(2));
+
+        ps = conn.prepareStatement("INSERT INTO test_1 VALUES (2,' returning ... into ?,?')",
+                new String[] { "id", "c1" });
+        ps.execute();
+        rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals("2", rs.getString(1));
+        assertEquals(" returning ... into ?,?", rs.getString(2));
     }
 
 }

@@ -718,4 +718,65 @@ public class PreparedStatementTest extends BaseTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void fix51317355() throws Exception {
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("drop table if exists testPrepStmtGeneratedKeys");
+        stmt.execute("create table testPrepStmtGeneratedKeys(id int AUTO_INCREMENT PRIMARY KEY, n INT)");
+        PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO testPrepStmtGeneratedKeys (n) VALUES (?), (?), (?), (?), (?)",
+            Statement.RETURN_GENERATED_KEYS);
+        ps.setInt(1, 1);
+        ps.setInt(2, 2);
+        ps.setInt(3, 3);
+        ps.setInt(4, 4);
+        ps.setInt(5, 5);
+
+        long count = ps.executeLargeUpdate();
+        assertEquals(5, count);
+        assertEquals(5, ps.getLargeUpdateCount());
+
+        ResultSet rs = ps.getGeneratedKeys();
+
+        long num = 0;
+        while (rs.next()) {
+            assertEquals(++num, rs.getLong(1));
+        }
+        assertEquals(5, num);
+    }
+
+    @Test
+    public void fix51567691() throws Exception {
+        createTable("test", "pk INT PRIMARY KEY AUTO_INCREMENT, field1 VARCHAR(4)");
+        Connection conn = setConnection("&useServerPrepStmts=true");
+
+        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO test (field1) VALUES (?)",
+            Statement.RETURN_GENERATED_KEYS);
+        pstmt.setString(1, "abc");
+        pstmt.execute();
+        pstmt.getGeneratedKeys();
+
+        pstmt = conn.prepareStatement("INSERT INTO test (field1) VALUES (?)", new int[] { 1 });
+        pstmt.setString(1, "abc");
+        pstmt.execute();
+        pstmt.getGeneratedKeys();
+
+        pstmt = conn.prepareStatement("INSERT INTO test (field1) VALUES (?)", new String[] { "pk" });
+        pstmt.setString(1, "abc");
+        pstmt.execute();
+        pstmt.getGeneratedKeys();
+
+        pstmt = conn.prepareStatement("INSERT INTO test (field1) VALUES (?)");
+        pstmt.setString(1, "abc");
+        pstmt.execute();
+
+        try {
+            pstmt.getGeneratedKeys();
+            fail("Expected a SQLException here");
+        } catch (SQLException sqlEx) {
+            // expected
+        }
+    }
+
 }
