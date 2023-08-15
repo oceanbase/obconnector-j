@@ -2137,4 +2137,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
+    public int getServerStatus() {
+        return serverStatus;
+    }
+
 }

@@ -1731,4 +1731,33 @@ public class DatabaseMetadataTest extends BaseTest {
         }
     }
 
+    @Test
+    public void fix51587128() throws Exception {
+        createProcedure("testPro0", "(x int, out y int)\nBEGIN\nSELECT 1;end\n");
+
+        ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(null, null, "testPro0%", "%");
+
+        assertTrue(rs.next());
+        assertEquals("testPro0", rs.getString(3));
+        assertEquals("x", rs.getString(4));
+
+        assertTrue(rs.next());
+        assertEquals("testPro0", rs.getString(3));
+        assertEquals("y", rs.getString(4));
+
+        assertTrue(!rs.next());
+    }
+    @Test
+    public void fix51587437() throws Exception {
+        createProcedure("testPro1", "()\nBEGIN\nSELECT 1;\nEND");
+        Connection conn = sharedConnection;
+        StringBuilder queryBuf = new StringBuilder("{call ");
+        String quotedId = conn.getMetaData().getIdentifierQuoteString();
+        queryBuf.append(quotedId);
+        queryBuf.append(conn.getCatalog());
+        queryBuf.append(quotedId);
+        queryBuf.append(".testPro1()}");
+        Assert.assertEquals("{call `test`.testPro1()}", queryBuf.toString());
+        conn.prepareCall(queryBuf.toString()).execute();
+    }
 }

@@ -438,62 +438,54 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     private void readMetadataUsingInformationSchema() throws SQLException {
         PreparedStatement cps;
-        ResultSet rs;
         if (database != null && !database.equals("")) {
             cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND SPECIFIC_NAME = ? AND SPECIFIC_SCHEMA = ? ORDER BY ORDINAL_POSITION",
                     Statement.NO_GENERATED_KEYS);
-            cps.setString(1, isFunction ? "FUNCTION" : "PROCEDURE");
-            cps.setString(2, this.name);
-            cps.setString(3, this.database);
-            rs = cps.executeQuery();
-            if (!rs.next()) {
-                throw new SQLException("Couldn't get parameter metadata of " + database + "." + name);
-            }
+            cps.setString(3, this.database.replace("`", "").toUpperCase(Locale.ROOT));
         } else {
             cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND SPECIFIC_NAME = ? ORDER BY ORDINAL_POSITION",
                     Statement.NO_GENERATED_KEYS);
-            cps.setString(1, isFunction ? "FUNCTION" : "PROCEDURE");
-            cps.setString(2, this.name);
-            rs = cps.executeQuery();
-            if (!rs.next()) {
-                throw new SQLException("Couldn't get parameter metadata of " + name);
-            }
         }
+        cps.setString(1, isFunction ? "FUNCTION" : "PROCEDURE");
+        cps.setString(2, this.name.replace("`", "").toUpperCase(Locale.ROOT));
+        ResultSet rs = cps.executeQuery();
 
-        String specificSchema = rs.getString("SPECIFIC_SCHEMA");
-        int count = 0;
         params = new ArrayList<>();
-        do {
-            CallParameter callParameter = new CallParameter();
-            callParameter.setName(rs.getString("PARAMETER_NAME"));
-            callParameter.setSigned(!rs.getString("DTD_IDENTIFIER").contains(" unsigned"));
+        if (rs.next()) {
+            String specificSchema = rs.getString("SPECIFIC_SCHEMA");
+            int count = 0;
+            do {
+                CallParameter callParameter = new CallParameter();
+                callParameter.setName(rs.getString("PARAMETER_NAME"));
+                callParameter.setSigned(!rs.getString("DTD_IDENTIFIER").contains(" unsigned"));
 
-            String direction = rs.getString("PARAMETER_MODE");
-            if (direction != null) {
-                if (direction.equalsIgnoreCase("IN")) {
-                    callParameter.setInput(true);
-                } else if (direction.equalsIgnoreCase("OUT")) {
-                    callParameter.setOutput(true);
-                } else if (direction.equalsIgnoreCase("INOUT")) {
-                    callParameter.setInput(true);
-                    callParameter.setOutput(true);
+                String direction = rs.getString("PARAMETER_MODE");
+                if (direction != null) {
+                    if (direction.equalsIgnoreCase("IN")) {
+                        callParameter.setInput(true);
+                    } else if (direction.equalsIgnoreCase("OUT")) {
+                        callParameter.setOutput(true);
+                    } else if (direction.equalsIgnoreCase("INOUT")) {
+                        callParameter.setInput(true);
+                        callParameter.setOutput(true);
+                    }
                 }
-            }
 
-            String typeName = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
-            callParameter.setTypeName(typeName);
-            int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
-            callParameter.setSqlType(sqlType);
-            callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
+                String typeName = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+                callParameter.setTypeName(typeName);
+                int sqlType = ColumnType.convertDbTypeToSqlType(typeName);
+                callParameter.setSqlType(sqlType);
+                callParameter.setClassName(ColumnType.convertSqlTypeToClass(sqlType).getName());
 
-            int characterMaxLength = rs.getInt("CHARACTER_MAXIMUM_LENGTH");
-            int numericPrecision = rs.getInt("NUMERIC_PRECISION");
-            callParameter.setPrecision(numericPrecision > 0 ? numericPrecision : characterMaxLength);
-            callParameter.setScale(rs.getInt("NUMERIC_SCALE"));
+                int characterMaxLength = rs.getInt("CHARACTER_MAXIMUM_LENGTH");
+                int numericPrecision = rs.getInt("NUMERIC_PRECISION");
+                callParameter.setPrecision(numericPrecision > 0 ? numericPrecision : characterMaxLength);
+                callParameter.setScale(rs.getInt("NUMERIC_SCALE"));
 
-            callParameter.setIndex(++count);
-            params.add(callParameter);
-        } while (rs.next() && rs.getString("SPECIFIC_SCHEMA").equals(specificSchema));
+                callParameter.setIndex(++count);
+                params.add(callParameter);
+            } while (rs.next() && rs.getString("SPECIFIC_SCHEMA").equals(specificSchema));
+        }
         cps.close();
         rs.close();
     }

@@ -1923,6 +1923,7 @@ public class Bugfix extends BaseTest {
             CallableStatement cs = sharedConnection.prepareCall("call `test-pro`(?)");
             cs.setInt(1, 1);
             cs.execute();
+            Assert.assertEquals("java.lang.Integer", cs.getParameterMetaData().getParameterClassName(1));;
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail();

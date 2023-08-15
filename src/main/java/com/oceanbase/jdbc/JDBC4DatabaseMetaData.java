@@ -2851,79 +2851,17 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getProcedureColumns(String catalog, String schemaPattern,
                                          String procedureNamePattern, String columnNamePattern)
                                                                                                throws SQLException {
-        String sql;
-
-        if (haveInformationSchemaParameters()) {
+        if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
             /*
              *  Get info from information_schema.parameters
              */
-            sql = "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-                  + " PARAMETER_NAME COLUMN_NAME, " + " CASE PARAMETER_MODE " + "  WHEN 'IN' THEN "
-                  + procedureColumnIn
-                  + "  WHEN 'OUT' THEN "
-                  + procedureColumnOut
-                  + "  WHEN 'INOUT' THEN "
-                  + procedureColumnInOut
-                  + "  ELSE IF(PARAMETER_MODE IS NULL,"
-                  + procedureColumnReturn
-                  + ","
-                  + procedureColumnUnknown
-                  + ")"
-                  + " END COLUMN_TYPE,"
-                  + dataTypeClause("DTD_IDENTIFIER")
-                  + " DATA_TYPE,"
-                  + "DATA_TYPE TYPE_NAME,"
-                  + " CASE DATA_TYPE"
-                  + "  WHEN 'time' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                      : "10")
-                  + "  WHEN 'date' THEN 10"
-                  + "  WHEN 'datetime' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                      : "19")
-                  + "  WHEN 'timestamp' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                      : "19")
-                  + "  ELSE "
-                  + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                  + Integer.MAX_VALUE
-                  + "), NUMERIC_PRECISION) "
-                  + " END `PRECISION`,"
-                  + " CASE DATA_TYPE"
-                  + "  WHEN 'time' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                      : "10")
-                  + "  WHEN 'date' THEN 10"
-                  + "  WHEN 'datetime' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                      : "19")
-                  + "  WHEN 'timestamp' THEN "
-                  + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                      : "19")
-                  + "  ELSE "
-                  + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                  + Integer.MAX_VALUE
-                  + "), NUMERIC_PRECISION) "
-                  + " END `LENGTH`,"
-                  + (datePrecisionColumnExist ? " CASE DATA_TYPE"
-                                                + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-                                                + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-                                                + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-                                                + "  ELSE NUMERIC_SCALE " + " END `SCALE`,"
-                      : " NUMERIC_SCALE `SCALE`,")
-                  + "10 RADIX,"
-                  + procedureNullableUnknown
-                  + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-                  + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                  + " FROM INFORMATION_SCHEMA.PARAMETERS "
-                  + " WHERE "
-                  + catalogCond("SPECIFIC_SCHEMA", catalog)
-                  + patternCond("SPECIFIC_NAME", procedureNamePattern)
-                  + patternCond("PARAMETER_NAME", columnNamePattern)
-                  + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
-                  + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
+            StringBuilder sb = new StringBuilder("SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN' THEN 1  WHEN 'OUT' THEN 4  WHEN 'INOUT' THEN 2  ELSE IF(PARAMETER_MODE IS NULL,5,0) END COLUMN_TYPE," + this.dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,DATA_TYPE TYPE_NAME, CASE DATA_TYPE  WHEN 'time' THEN IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))  WHEN 'date' THEN 10  WHEN 'datetime' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  WHEN 'timestamp' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  ELSE   IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + 2147483647 + "), NUMERIC_PRECISION)  END `PRECISION`, CASE DATA_TYPE  WHEN 'time' THEN IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))  WHEN 'date' THEN 10  WHEN 'datetime' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  WHEN 'timestamp' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  ELSE   IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + 2147483647 + "), NUMERIC_PRECISION)  END `LENGTH`, CASE DATA_TYPE  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)  ELSE NUMERIC_SCALE  END `SCALE`,10 RADIX," + 2 + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME  FROM INFORMATION_SCHEMA.PARAMETERS");
+            boolean firstCondition = this.catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
+            firstCondition = this.patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
+            this.patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
+            sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
+            return this.executeQuery(sb.toString());
         } else {
-
             /* No information_schema.parameters
              * TODO : figure out what to do with older versions (get info via mysql.proc)
              * For now, just a dummy result set is returned.
@@ -2951,7 +2889,31 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 throw throwables;
             }
         }
-        return null;
+    }
+
+    private boolean catalogCond(boolean firstCondition, StringBuilder sb, String columnName, String catalog) {
+        if (catalog == null) {
+            return firstCondition;
+        } else if (catalog.isEmpty()) {
+            sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append(" = database()");
+            return false;
+        } else {
+            sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append("=").append(this.escapeQuote(catalog));
+            return false;
+        }
+    }
+
+    private boolean patternCond(boolean firstCondition, StringBuilder sb, String columnName, String tableName) {
+        if (tableName != null && !"%".equals(tableName)) {
+            sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append(tableName.indexOf(37) == -1 && tableName.indexOf(95) == -1 ? "=" : " LIKE ").append("'").append(escapeString(tableName, (this.connection.getProtocol().getServerStatus() & 512) != 0)).append("'");
+            return false;
+        } else {
+            return firstCondition;
+        }
+    }
+
+    public static String escapeString(String value, boolean noBackslashEscapes) {
+        return noBackslashEscapes ? value.replace("'", "''") : value.replace("\\", "\\\\").replace("'", "\\'").replace("\u0000", "\\0").replace("\"", "\\\"");
     }
 
     ResultSet getProcAndFuncs(String catalog, String procedureNamePattern, boolean isProcedure,
@@ -3587,34 +3549,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         //        if (this.connection.getProtocol().isOracleMode()){
         //            super.getFunctionColumns(catalog,schemaPattern,functionNamePattern,columnNamePattern);
         //        }
-        String sql;
-        if (haveInformationSchemaParameters()) {
-
-            sql = "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
-                  + " PARAMETER_NAME COLUMN_NAME, "
-                  + " CASE PARAMETER_MODE "
-                  + "  WHEN 'IN' THEN "
-                  + functionColumnIn
-                  + "  WHEN 'OUT' THEN "
-                  + functionColumnOut
-                  + "  WHEN 'INOUT' THEN "
-                  + functionColumnInOut
-                  + "  ELSE "
-                  + functionReturn
-                  + " END COLUMN_TYPE,"
-                  + dataTypeClause("DTD_IDENTIFIER")
-                  + " DATA_TYPE,"
-                  + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
-                  + procedureNullableUnknown
-                  + " NULLABLE,NULL REMARKS,"
-                  + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                  + " FROM INFORMATION_SCHEMA.PARAMETERS "
-                  + " WHERE "
-                  + catalogCond("SPECIFIC_SCHEMA", catalog)
-                  + patternCond("SPECIFIC_NAME", functionNamePattern)
-                  + patternCond("PARAMETER_NAME", columnNamePattern)
-                  + " AND ROUTINE_TYPE='FUNCTION'"
-                  + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
+        if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
+            StringBuilder sb = new StringBuilder("SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN' THEN 1  WHEN 'OUT' THEN 3  WHEN 'INOUT' THEN 2  ELSE 4 END COLUMN_TYPE," + this.dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," + 2 + " NULLABLE,NULL REMARKS,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME  FROM INFORMATION_SCHEMA.PARAMETERS");
+            boolean firstCondition = this.catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
+            firstCondition = this.patternCond(firstCondition, sb, "SPECIFIC_NAME", functionNamePattern);
+            firstCondition = this.patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
+            sb.append(firstCondition ? " WHERE " : " AND ").append(" ROUTINE_TYPE='FUNCTION' ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION");
+            return this.executeQuery(sb.toString());
         } else {
             /*
              * No information_schema.parameters
