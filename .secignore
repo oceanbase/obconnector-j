@@ -7,63 +7,74 @@
 # Under the segmentation lines there are the folders which you need to ignore #
 ##########################################################
 **
-  https://www.oceanbase.com/)
-  https://github.com/str4d/ed25519-java).
-  http://www.gnu.org/licenses/
-  http://oceanbase.com/
+
   https://gw.alipayobjects.com/zos/bmw-prod/d6c1a0b7-c714-4429-8a33-2b394a5c1bf1.svg
-  https://www.oceanbase.com/docs)
-  http://maven.apache.org/POM/4.0.0
-  http://www.w3.org/2001/XMLSchema-instance
-  http://maven.apache.org/maven-v4_0_0.xsd
-  https://www.oceanbase.com/
+
+  http://oceanbase.com
   https://oceanbase.com
+  https://www.oceanbase.com
+  https://www.oceanbase.com/docs
+
   https://github.com/oceanbase/obconnector-j.git
   https://github.com/oceanbase/obconnector-j
-  https://mariadb.org/auto-increments-in-galera/
-  juliusdavies@gmail.com
-  www.mariadbtest.org
+  https://github.com/str4d/ed25519-java
+  https://github.com/floodyberry/supercop/blob/master/crypto_sign/ed25519/ref10/fe_cmov.c
+
+  http://www.gnu.org/licenses/
+  http://maven.apache.org/POM/4.0.0
+  http://maven.apache.org/maven-v4_0_0.xsd
+  http://www.w3.org/2001/XMLSchema-instance
+  https://en.wikipedia.org/wiki/UTF-16
+  https://facebook.github.io/watchman/)
+
   www.other.org
   www.foo.com
   www.other2.org
-  https://jira.mariadb.org/browse/MDEV-15133
+
+  juliusdavies@gmail.com
   email@xxxxx.com.cn
+  nemproject@gmx.de
+
+  www.mariadbtest.org
   http://mariadb.org
-  https://jira.mariadb.org/browse/MDEV-11761
-  https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+  https://mariadb.org/auto-increments-in-galera/
   https://mariadb.com/kb/en/library/authentication-plugin-pam/
   https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
   https://mariadb.com/kb/en/library/connection/#client-handshake-response
   https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet
   https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
-  nemproject@gmx.de
   https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
   https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
   https://mariadb.com/kb/en/library/connection/#sslrequest-packet
-  https://github.com/floodyberry/supercop/blob/master/crypto_sign/ed25519/ref10/fe_cmov.c
   https://mariadb.com/kb/en/err_packet/
   https://mariadb.com/kb/en/resultset/#column-definition-packet
   https://mariadb.com/kb/en/library/data-types/
   https://mariadb.com/kb/en/mariadb/resultset-row/
-  https://dev.mysql.com/doc/internals/en/null-bitmap.html
-  https://en.wikipedia.org/wiki/UTF-16
   https://mariadb.com/kb/en/mariadb/4-server-response-packets/
   https://mariadb.com/kb/en/mariadb/ok_packet/
   https://mariadb.com/kb/en/mariadb/err_packet/
   https://mariadb.com/kb/en/mariadb/local_infile-packet/
   https://mariadb.com/kb/en/mariadb/resultset/
-  https://jira.mariadb.org/browse/CONJ-384
   https://mariadb.com/kb/en/library/connection/#authentication-switch-request
   https://mariadb.com/kb/en/library/err_packet/
   https://mariadb.com/kb/en/library/ok_packet/
+  https://mariadb.com/kb/en/library/identifier-names/
+
+  https://jira.mariadb.org/browse/MDEV-15133
+  https://jira.mariadb.org/browse/MDEV-11761
+  https://jira.mariadb.org/browse/CONJ-384
   https://jira.mariadb.org/browse/CONJ-568
   https://jira.mariadb.org/browse/MDEV-15031
-  https://mariadb.com/kb/en/library/identifier-names/
-  https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
-  https://bugs.mysql.com/bug.php?id=97633
   https://jira.mariadb.org/browse/MDEV-18281
   https://jira.mariadb.org/browse/CONJ-812
-  https://facebook.github.io/watchman/)
+
+  https://docs.oracle.com/cd/B19306_01/server.102/b14225/ch4datetime.htm#i1006050
+  https://docs.oracle.com/cd/E18283_01/appdev.112/e13995/oracle/jdbc/OraclePreparedStatement.html#setFixedCHAR_int__java_lang_String_
+  https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+
+  https://dev.mysql.com/doc/internals/en/null-bitmap.html
+  https://bugs.mysql.com/bug.php?id=97633
+
 --------------------------------------------------------
 # Should use GLOB wildcard to config and analysis the ignored folder
 # The root patch should start with '/'
