@@ -375,6 +375,23 @@ public class Buffer {
     }
 
     /**
+     * If a string is the last component of a packet,
+     * its length can be calculated from the overall packet length minus the current position.
+     *
+     * @param charset the charset to use, for example ASCII
+     * @return the read string
+     */
+    public String readStringRestOfPacket(final Charset charset) {
+        String string = new String(buf, position, remaining(), charset);
+        position = limit;
+        return string;
+    }
+
+    public void skipRestOfPacket() {
+        position = limit;
+    }
+
+    /**
      * Reads length-encoded string.
      *
      * @param charset the charset to use, for example ASCII

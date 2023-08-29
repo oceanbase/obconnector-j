@@ -363,4 +363,11 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void fix51803150() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        stmt.executeQuery("select 1 from dual");
+    }
+
 }

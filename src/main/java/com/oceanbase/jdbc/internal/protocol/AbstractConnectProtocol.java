@@ -107,10 +107,7 @@ import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
 import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
 import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
 import com.oceanbase.jdbc.internal.util.Utils;
-import com.oceanbase.jdbc.internal.util.constant.HaMode;
-import com.oceanbase.jdbc.internal.util.constant.ParameterConstant;
-import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
-import com.oceanbase.jdbc.internal.util.constant.Version;
+import com.oceanbase.jdbc.internal.util.constant.*;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.tls.TlsSocketPlugin;
@@ -814,9 +811,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     if (buffer.remaining() <= 0) {
                         break authentication_loop;
                     }
-                    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
+                    if (sessionStateAware()) {
                         buffer.skipLengthEncodedBytes(); // human readable status information
-                        if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
+                        if (buffer.remaining() > 0 && (serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
                             // session state changes
                             int totalLength = (int) buffer.getLengthEncodedNumeric();
                             int readLength = 0;
@@ -825,7 +822,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                 // read type of data
                                 switch (buffer.readByte()) {
                                 // read data of the changed session info
-                                    case 0x00: // SESSION_TRACK_SYSTEM_VARIABLES
+                                    case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
                                         // read length
                                         int type = buffer.readByte();
                                         readLength++;
@@ -868,15 +865,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                             useNewExtraInfo = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO) != 0);
                                         }
                                         break;
-                                    case 0x01: // SESSION_TRACK_SCHEMA
-                                    case 0x02: // SESSION_TRACK_STATE_CHANGE
-                                    case 0x03: // SESSION_TRACK_GTIDS
+                                    default:
                                         break;
                                 }
                             }
                         }
                     } else {
-                        buffer.skipLengthEncodedBytes(); // human readable status information
+                        buffer.skipRestOfPacket(); // human readable status information
                     }
                     break authentication_loop;
 

@@ -1762,8 +1762,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public String getCatalog() throws SQLException {
-
-    if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_SESSION_TRACK) != 0) {
+    if (sessionStateAware()) {
       // client session track return empty value, not null value. Java require sending null if empty
       if (database != null && database.isEmpty()) {
         return "";
@@ -2135,10 +2134,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   private void handleStateChange(Buffer buf, Results results) {
-    buf.skipLengthEncodedBytes(); // info
-    while (buf.remaining() > 0) {
       Buffer stateInfo = buf.getLengthEncodedBuffer();
-      if (stateInfo.remaining() > 0) {
+      while (stateInfo.remaining() > 0) {
         switch (stateInfo.readByte()) {
           case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
             Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
@@ -2168,7 +2165,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             stateInfo.skipLengthEncodedBytes();
         }
       }
-    }
   }
 
   /**
@@ -2212,10 +2208,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     serverStatus = buffer.readShort();
     hasWarnings = (buffer.readShort() > 0);
-    String serverInfo = buffer.readStringLengthEncoded(this.getWriter().getCharset());
 
-    if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
-      handleStateChange(buffer, results);
+    String serverInfo = null;
+    if (buffer.remaining() > 0) {
+        if (sessionStateAware()) {
+            serverInfo = buffer.readStringLengthEncoded(this.getWriter().getCharset());
+            if (buffer.remaining() > 0 && (serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
+                handleStateChange(buffer, results);
+            }
+        } else {
+            serverInfo = buffer.readStringRestOfPacket(this.getWriter().getCharset());
+        }
     }
 
     results.addStats(updateCount, insertId, hasMoreResults(), serverInfo);
