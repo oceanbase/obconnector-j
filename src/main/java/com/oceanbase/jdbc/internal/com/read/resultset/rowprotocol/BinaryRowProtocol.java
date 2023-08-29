@@ -659,23 +659,18 @@ public class BinaryRowProtocol extends RowProtocol {
                     // eat exception
                 }
             }
-            if (!getProtocol().isOracleMode()) {
-                try {
-                    double doubleVal = Double.parseDouble(stringVal);
-                    // check
-                    if (options.jdbcCompliantTruncation) {
-                        rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal,
-                            columnInfo);
-                    }
-                    return (long) doubleVal;
-                } catch (NumberFormatException e) {
-                    throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                           + "' : value " + stringVal, "22003", 1264);
+            try {
+                double doubleVal = Double.parseDouble(stringVal);
+                // check
+                if (!getProtocol().isOracleMode() && options.jdbcCompliantTruncation) {
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal,
+                        columnInfo);
                 }
+                return (long) doubleVal;
+            } catch (NumberFormatException e) {
+                throw new SQLException("Out of range value for column '" + columnInfo.getName()
+                                       + "' : value " + stringVal, "22003", 1264);
             }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName()
-                                   + "' : value " + stringVal, "22003", 1264);
-
         }
     }
 

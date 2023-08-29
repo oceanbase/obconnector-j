@@ -864,9 +864,9 @@ public class DataTypeOracleTest extends BaseOracleTest {
 
     @Test
     public void testFloatGetLong() throws SQLException {
-        createTable("test_float_getLong", "v0 float(126) , v1 binary_float");
+        createTable("test_float_getLong", "v0 float(126) , v1 binary_float , v2 number");
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("insert into test_float_getLong values (0.035 , 0.035)");
+        stmt.execute("insert into test_float_getLong values (0.035 , 0.035 , 0.035)");
         ResultSet rs = stmt.executeQuery("select * from test_float_getLong");
         ResultSetMetaData metaData = rs.getMetaData();
         assertEquals(2, metaData.getColumnType(1));
@@ -883,6 +883,7 @@ public class DataTypeOracleTest extends BaseOracleTest {
         assertTrue(rs.next());
         assertEquals(0, rs.getLong(1));
         assertEquals(0, rs.getLong(2));
+        assertEquals(0, rs.getLong(3));
     }
 
 }
