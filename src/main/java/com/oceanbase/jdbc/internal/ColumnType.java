@@ -83,7 +83,7 @@ public enum ColumnType {
     VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE),
     BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE),
     JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE),
+    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.MYSQL_TYPE),
     OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.ORACLE_TYPE),
     ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
@@ -109,7 +109,7 @@ public enum ColumnType {
     RAW(203, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.ORACLE_TYPE),
     CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE),
     NUMBER(3, Types.INTEGER, "Types.INTEGER", com.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE),
-    NUMBER_FLOAT(206, Types.VARCHAR, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
+    NUMBER_FLOAT(206, Types.DOUBLE, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
     BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(), ColumnType.ORACLE_TYPE),
     NCHAR(208, Types.NCHAR, "Types.NCHAR", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
     NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),

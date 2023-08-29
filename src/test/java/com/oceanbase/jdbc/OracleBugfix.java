@@ -3015,4 +3015,111 @@ public class OracleBugfix extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testNumber() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table test");
+        } catch (SQLException ignore) {} finally {
+            stmt.execute("create table test(no_ps number, p_star number(*), p number(30),p_s number(10,5), no_p number(*,3))");
+        }
+
+        ResultSet rs = stmt.executeQuery("select no_ps, p_star, p, p_s, no_p, (no_p+1), (no_ps+1), (p_s+1) from test");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnCount = rsmd.getColumnCount();
+        int i = 1;
+        Assert.assertEquals("NO_PS", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));// oracle: -127
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("P_STAR", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));// oracle: -127
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("P", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(30, rsmd.getPrecision(i++));
+        Assert.assertEquals("P_S", rsmd.getColumnName(i));
+        Assert.assertEquals(5, rsmd.getScale(i));
+        Assert.assertEquals(10, rsmd.getPrecision(i++));
+        Assert.assertEquals("NO_P", rsmd.getColumnName(i));
+        Assert.assertEquals(3, rsmd.getScale(i));
+        Assert.assertEquals(38, rsmd.getPrecision(i++));
+        Assert.assertEquals("(NO_P+1)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("(NO_PS+1)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("(P_S+1)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i));
+        Assert.assertEquals(i, columnCount);
+        conn.close();
+    }
+
+    @Ignore
+    public void testBinaryFloatBinaryDoubleFloatVarchar() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t1");
+        } catch (SQLException ignore) {} finally {
+            stmt.execute("create table t1(bf_c binary_float, bd_c binary_double, float_c float, var_c varchar(10));");
+        }
+
+        ResultSet rs = stmt.executeQuery("select bf_c, bd_c, float_c, var_c from t1");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnCount = rsmd.getColumnCount();
+        int i = 1;
+        Assert.assertEquals("BF_C", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("BD_C", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("FLOAT_C", rsmd.getColumnName(i));
+        Assert.assertEquals(-127, rsmd.getScale(i));
+        Assert.assertEquals(126, rsmd.getPrecision(i++));
+        Assert.assertEquals("VAR_C", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(10, rsmd.getPrecision(i));
+        Assert.assertEquals(i, columnCount);
+        conn.close();
+    }
+
+    @Test
+    public void test2() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t0");
+        } catch (SQLException ignore) {
+        }
+//        stmt.execute("create table t0(v0 number)");
+//        stmt.execute("create table t0(v0 number(*))");
+//        stmt.execute("create table t0(v0 number(5))");
+        stmt.execute("create table t0(v0 number(*, 0))");
+
+        ResultSet rs = stmt.executeQuery("select v0, v0+1, max(v0), sum(v0), cast(v0+to_number(5) as number) from t0 group by v0");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnCount = rsmd.getColumnCount();
+        int i = 1;
+        Assert.assertEquals("V0", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("V0+1", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("MAX(V0)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("SUM(V0)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i++));
+        Assert.assertEquals("CAST(V0+TO_NUMBER(5)ASNUMBER)", rsmd.getColumnName(i));
+        Assert.assertEquals(0, rsmd.getScale(i));
+        Assert.assertEquals(0, rsmd.getPrecision(i));
+        Assert.assertEquals(i, columnCount);
+    }
+
 }

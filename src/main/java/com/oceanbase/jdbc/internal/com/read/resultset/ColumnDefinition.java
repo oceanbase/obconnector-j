@@ -81,8 +81,8 @@ public class ColumnDefinition {
     private final short        charsetNumber;
     private final long         length;
     private final ColumnType   type;
-    private final int          decimals;
-    private final int          precision;
+    private int                decimals;
+    private int                precision;
     private final int          inoutType;
 
     private final int          sqltype;
@@ -145,6 +145,8 @@ public class ColumnDefinition {
      * @param buffer buffer
      */
     public ColumnDefinition(Buffer buffer, boolean OracleMode, String encoding) {
+        isOracleMode = OracleMode;
+        this.encoding = encoding;
         this.buffer = buffer;
         // has41NewNewProt fixme :Value should be based on connection properties
 
@@ -194,8 +196,17 @@ public class ColumnDefinition {
         type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
 
         decimals = (byte) (buffer.readByte() & 0xff);
-        precision = buffer.readByte() & 0xff;
-        inoutType = buffer.readByte() & 0xff;
+        precision = (byte) (buffer.readByte() & 0xff);
+        inoutType = (byte) (buffer.readByte() & 0xff);
+
+        if (isOracleMode && Types.DECIMAL == type.getSqlType()) {
+            if (precision == -1) {
+                precision = 0;
+            }
+            if (decimals == -85) {
+                decimals = 0;
+            }
+        }
 
         if (ColumnType.COMPLEX.getType() == type.getType()) {
             buffer.setPosition(buffer.getPosition());
@@ -211,7 +222,7 @@ public class ColumnDefinition {
 
             complexVersion = (int) buffer.readFieldLength();
         }
-        isOracleMode = OracleMode;
+
         if (isSigned()) {
             switch (type) {
                 case DECIMAL:
@@ -235,7 +246,6 @@ public class ColumnDefinition {
                     break;
             }
         }
-        this.encoding = encoding;
     }
 
     /**
@@ -357,6 +367,18 @@ public class ColumnDefinition {
      */
     public long getPrecision() {
         switch (type.getSqlType()) {
+            case Types.DECIMAL:
+                if (isOracleMode) {
+                    if (precision == 0) {
+                        if (decimals != 0 && decimals >= -84 && decimals <= 127) {
+                            return 38;
+                        }
+                        if (decimals == 0) {
+                            return 0;
+                        }
+                    }
+                    return precision;
+                }
             case Types.BIT:
             case Types.TINYINT:
             case Types.SMALLINT:
@@ -366,7 +388,6 @@ public class ColumnDefinition {
             case Types.REAL:
             case Types.DOUBLE:
             case Types.NUMERIC:
-            case Types.DECIMAL:
                 if (decimals > 0) {
                     return length - 1 + precisionAdjustFactor;
                 } else {
