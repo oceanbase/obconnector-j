@@ -227,6 +227,7 @@ public class Options implements Cloneable {
     public boolean loadBalanceHandleFailover = true;
     public int     compatibleOjdbcVersion = 6;
     public int     compatibleMysqlVersion = 5;
+    public String  nCharacterEncoding;
 
     @Override
     public String toString() {

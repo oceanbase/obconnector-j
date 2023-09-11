@@ -330,7 +330,7 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
                                                                                                  throws SQLException {
-        Charset charset = Charset.forName(this.options.characterEncoding);
+        Charset charset = getCurrentEncoding(columnInfo.getColumnType());
         if (lastValueWasNull()) {
             switch (columnInfo.getColumnType()) {
                 case BINARY_DOUBLE:
@@ -450,17 +450,17 @@ public class BinaryRowProtocol extends RowProtocol {
                     return new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                 }
-
             case GEOMETRY:
                 return new String(buf, pos, length);
 
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)
-                        .substring(0, Math.min(getMaxFieldSize(), length));
+                            .substring(0, Math.min(getMaxFieldSize(), length));
                 }
                 return new String(buf, pos, length, charset);
         }
+
     }
 
     /**

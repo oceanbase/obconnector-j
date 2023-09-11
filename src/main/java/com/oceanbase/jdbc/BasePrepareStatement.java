@@ -907,7 +907,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
 
         if (this.connection.getProtocol().isOracleMode()) {
             setParameter(parameterIndex, new OBNStringParameter(value, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().characterEncoding,
+                this.protocol.getOptions().nCharacterEncoding));
         } else {
             setParameter(parameterIndex, new StringParameter(value, noBackslashEscapes,
                 this.connection.getProtocol().getOptions().characterEncoding));

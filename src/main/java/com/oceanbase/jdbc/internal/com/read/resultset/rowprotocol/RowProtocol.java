@@ -135,10 +135,13 @@ public abstract class RowProtocol {
   }
   Charset getCurrentEncoding(ColumnType columnType) {
     switch (columnType) {
+      case NVARCHAR2:
+        if (this.options.nCharacterEncoding != null && !this.options.nCharacterEncoding.isEmpty()) {
+          return Charset.forName(this.options.nCharacterEncoding);
+        }
       case VARCHAR:
       case VARCHAR2:
       case VARSTRING:
-      case NVARCHAR2:
       case NCHAR:
       case RAW:
       case STRING:

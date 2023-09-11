@@ -1052,6 +1052,12 @@ public enum DefaultOptions {
         Boolean.FALSE,
         "2.4.5",
         "Should the driver use the INFORMATION_SCHEMA to derive information used by 'DatabaseMetaData'? Default is \"true\" when connecting to MySQL 8.0.3+, otherwise default is \"false\".",
+        false),
+    N_CHARACTER_ENCODING(
+        "nCharacterEncoding",
+        (String) null,
+        "2.4.6",
+        "The National character set used by OceanBase, which determines how server and client encode and decode the NCHAR and NVARCHAR2 data types on the connection, can be set to utf16, or utf8.",
         false);
 
   private final String optionName;

@@ -43,24 +43,17 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class OracleNcharNvarcharTest extends BaseOracleTest {
-    static String dateTest = "dateTest" + getRandomString(10);
-
-    @BeforeClass
-    public static void initClass() throws SQLException {
-        createTable(dateTest, "c1 nchar(200),c2 nvarchar2(200)");
-    }
 
     @Test
-    public void test1() {
+    public void test1() throws SQLException {
+        String dateTest = "dateTest" + getRandomString(10);
+        createTable(dateTest, "c1 nchar(200),c2 nvarchar2(200)");
         try {
             Statement stmt = sharedConnection.createStatement();
             stmt.execute("insert into " + dateTest + " values('我是123abc','我是abc123')");
@@ -77,5 +70,119 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    @Test
+    public void fix49372928() throws Exception {
+        createTable("test_nv", "c_value varchar2(128), n_value nvarchar2(128)");
+
+        //        setNStringGBKFunction(setConnection("&characterEncoding=gbk"));
+        //        setNStringGBKFunction(setConnection("&characterEncoding=gbk&nCharacterEncoding=utf8"));
+        //        setNStringGBKFunction(setConnection("&characterEncoding=gbk&nCharacterEncoding=utf16"));
+
+        testCore(setConnection("&characterEncoding=gbk"));
+        testCore(setConnection("&characterEncoding=gbk&nCharacterEncoding=utf8"));
+        testCore(setConnection("&characterEncoding=gbk&nCharacterEncoding=utf16"));
+    }
+
+    private void setNStringGBKFunction(Connection conn) throws Exception {
+        createTable("test_nv", "c_value varchar2(128), n_value nvarchar2(128)");
+        Statement stmt = conn.createStatement();
+
+        //        ResultSet rs = stmt.executeQuery("SELECT * FROM nls_database_parameters WHERE parameter IN ('NLS_CHARACTERSET', 'NLS_NCHAR_CHARACTERSET', 'NLS_LANG', 'NLS_LANGUAGE')");
+        //        while (rs.next()) {
+        //            System.out.println(rs.getString(1) + " = " + rs.getString(2));
+        //        }
+        //        rs = stmt.executeQuery("select userenv('language') from dual");
+        //        while (rs.next()) {
+        //            System.out.println("userenv('language') = " + rs.getString(1));
+        //        }
+
+        //        stmt.execute("insert into test_nv values (utl_raw.CAST_TO_NVARCHAR2('3400'), '北')");
+        //        printRsAndResSting(stmt);
+        //        stmt.execute("select utl_raw.CAST_TO_NVARCHAR2('3400') from dual");
+
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_nv values (?, ?)");
+        pstmt.setNString(1, "㐀");
+        pstmt.setNString(2, "㐀");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        pstmt.setString(1, "㐀");
+        pstmt.setString(2, "㐀");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        stmt.execute("insert into test_nv values ('㐀', '㐀')");
+        printRsAndResSting(stmt);
+        stmt.execute("insert into test_nv values (N'㐀', N'㐀')");
+        printRsAndResSting(stmt);
+
+        pstmt.setNString(1, "丂");
+        pstmt.setNString(2, "丂");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        pstmt.setString(1, "丂");
+        pstmt.setString(2, "丂");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        stmt.execute("insert into test_nv values ('丂', '丂')");
+        printRsAndResSting(stmt);
+        stmt.execute("insert into test_nv values (N'丂', N'丂')");
+        printRsAndResSting(stmt);
+
+        pstmt.setNString(1, "㐀丂");
+        pstmt.setNString(2, "㐀丂");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        pstmt.setString(1, "㐀丂");
+        pstmt.setString(2, "㐀丂");
+        pstmt.execute();
+        printRsAndResSting(stmt);
+
+        stmt.execute("insert into test_nv values ('㐀丂', '㐀丂')");
+        printRsAndResSting(stmt);
+        stmt.execute("insert into test_nv values (N'㐀丂', N'㐀丂')");
+        printRsAndResSting(stmt);
+    }
+
+    private void printRsAndResSting(Statement stmt) throws SQLException {
+        ResultSet rs = stmt.executeQuery("select * from test_nv");
+        rs.next();
+        System.out.println("varchar2---" + rs.getNString(1) + ", nvarchar2---" + rs.getNString(2));
+        stmt.execute("delete from test_nv");
+    }
+
+    private void testCore(Connection conn) throws SQLException {
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_nv values (?, ?)");
+        pstmt.setNString(1, "㐀");
+        pstmt.setNString(2, "㐀");
+        pstmt.execute();
+
+        pstmt.setNString(1, "丂");
+        pstmt.setNString(2, "丂");
+        pstmt.execute();
+
+        pstmt.setNString(1, "㐀丂");
+        pstmt.setNString(2, "㐀丂");
+        pstmt.execute();
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from test_nv");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("?", rs.getNString(1));
+        Assert.assertEquals("㐀", rs.getNString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("丂", rs.getNString(1));
+        Assert.assertEquals("丂", rs.getNString(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("?丂", rs.getNString(1));
+        Assert.assertEquals("㐀丂", rs.getNString(2));
+        Assert.assertFalse(rs.next());
+
+        stmt.execute("delete from test_nv");
     }
 }

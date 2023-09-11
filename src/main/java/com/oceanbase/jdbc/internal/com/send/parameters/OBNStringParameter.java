@@ -52,14 +52,19 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class OBNStringParameter implements Cloneable, ParameterHolder {
     private final String  stringValue;
     private final boolean noBackslashEscapes;
-    private final String  characterEncoding;
     private final Charset charset;
+    private final Charset nCharset;
 
-    public OBNStringParameter(String str, boolean noBackslashEscapes, String characterEncoding) {
+    public OBNStringParameter(String str, boolean noBackslashEscapes, String characterEncoding,
+                              String nCharacterEncoding) {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
-        this.characterEncoding = characterEncoding;
         this.charset = Charset.forName(characterEncoding);
+        if (nCharacterEncoding != null && !nCharacterEncoding.isEmpty()) {
+            this.nCharset = Charset.forName(nCharacterEncoding);
+        } else {
+            this.nCharset = null;
+        }
     }
 
     /**
@@ -68,10 +73,21 @@ public class OBNStringParameter implements Cloneable, ParameterHolder {
      * @param pos outpustream.
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write('n'); // text protocol fix for OceanBase
-        pos.write(QUOTE);
-        pos.writeBytesEscapedQuote(stringValue.getBytes(charset),
-            stringValue.getBytes(charset).length, noBackslashEscapes);
+        if (nCharset == null) {
+            pos.write('n'); // text protocol fix for OceanBase
+            pos.write(QUOTE);
+            pos.writeBytesEscapedQuote(stringValue.getBytes(charset),
+                stringValue.getBytes(charset).length, noBackslashEscapes);
+        } else {
+            pos.write("u");
+            pos.write(QUOTE);
+            StringBuilder unicode = new StringBuilder();
+            for (int i = 0; i < stringValue.length(); i++) {
+                int code = stringValue.charAt(i);
+                unicode.append("\\").append(Integer.toHexString(code));
+            }
+            pos.write(unicode.toString());
+        }
         pos.write(QUOTE);
     }
 
@@ -86,8 +102,12 @@ public class OBNStringParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-
-        byte[] bytes = stringValue.getBytes(charset);
+        byte[] bytes;
+        if (nCharset == null) {
+            bytes = stringValue.getBytes(charset);
+        } else {
+            bytes = stringValue.getBytes(nCharset);
+        }
         pos.writeFieldLength(bytes.length);
         pos.write(bytes);
     }

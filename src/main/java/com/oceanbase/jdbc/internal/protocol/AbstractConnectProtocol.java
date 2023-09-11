@@ -1146,7 +1146,45 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void sendCharsetVariables() throws IOException {
+    private void sendCharsetVariables() throws IOException, SQLException {
+        if (isOracleMode) {
+            if (options.nCharacterEncoding == null || options.nCharacterEncoding.isEmpty()) {
+                writer.startPacket(0);
+                writer.write(Packet.COM_QUERY);
+                writer.write("select @@NLS_NCHAR_CHARACTERSET from dual");
+                writer.flush();
+                Results results = new Results();
+                getResult(results);
+                results.commandEnd();
+
+                ResultSet resultSet = results.getResultSet();
+                resultSet.next();
+                String NLS_NCHAR_CHARACTERSET = resultSet.getString(1);
+                resultSet.close();
+
+                if (NLS_NCHAR_CHARACTERSET.toUpperCase().contains("UTF8")) {
+                    options.nCharacterEncoding = "UTF8";
+                } else if (NLS_NCHAR_CHARACTERSET.toUpperCase().contains("UTF16")) {
+                    options.nCharacterEncoding = "UTF16";
+                } else {
+                    options.nCharacterEncoding = NLS_NCHAR_CHARACTERSET;
+                }
+            }
+
+            try {
+                writer.startPacket(0);
+                writer.write(Packet.COM_QUERY);
+                writer.write("set NCHARACTER_SET_CONNECTION = '" + options.nCharacterEncoding + "'");
+                writer.flush();
+                getResult(new Results());
+                if (options.nCharacterEncoding.toUpperCase().contains("UTF16")) {
+                    options.nCharacterEncoding = "UTF-16BE"; // to avoid a BOM in the output
+                }
+            } catch (SQLException sqlEx) {
+                options.nCharacterEncoding = null;
+            }
+        }
+
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         String str;
