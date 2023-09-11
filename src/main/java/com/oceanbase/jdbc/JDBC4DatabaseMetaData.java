@@ -4616,10 +4616,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getClientInfoProperties() {
         ColumnDefinition[] columns = new ColumnDefinition[4];
         boolean isOracleMode = this.protocol.isOracleMode();
-        columns[0] = ColumnDefinition.create("NAME", ColumnType.STRING, isOracleMode,this.protocol.getOptions().characterEncoding);
-        columns[1] = ColumnDefinition.create("MAX_LEN", ColumnType.INTEGER, isOracleMode,this.protocol.getOptions().characterEncoding);
-        columns[2] = ColumnDefinition.create("DEFAULT_VALUE", ColumnType.STRING, isOracleMode,this.protocol.getOptions().characterEncoding);
-        columns[3] = ColumnDefinition.create("DESCRIPTION", ColumnType.STRING, isOracleMode,this.protocol.getOptions().characterEncoding);
+        columns[0] = ColumnDefinition.create("NAME", ColumnType.STRING, isOracleMode,this.protocol.getOptions().getCharacterEncoding());
+        columns[1] = ColumnDefinition.create("MAX_LEN", ColumnType.INTEGER, isOracleMode,this.protocol.getOptions().getCharacterEncoding());
+        columns[2] = ColumnDefinition.create("DEFAULT_VALUE", ColumnType.STRING, isOracleMode,this.protocol.getOptions().getCharacterEncoding());
+        columns[3] = ColumnDefinition.create("DESCRIPTION", ColumnType.STRING, isOracleMode,this.protocol.getOptions().getCharacterEncoding());
 
         byte[] sixteenMb =
                 new byte[]{

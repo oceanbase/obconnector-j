@@ -401,7 +401,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public static ResultSet createGeneratedData(
             long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnDefinition[] columns = new ColumnDefinition[1];
-        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(), protocol.getOptions().characterEncoding);
+        columns[0] = ColumnDefinition.create("GENERATED_KEY", ColumnType.BIGINT, protocol.isOracleMode(), protocol.getOptions().getCharacterEncoding());
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -454,7 +454,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         //boolean isOracleMode = this.protocol.isOracleMode();
         for (int i = 0; i < columnNameLength; i++) {
-            columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode(),protocol.getOptions().characterEncoding);
+            columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i], protocol.isOracleMode(),protocol.getOptions().getCharacterEncoding());
         }
 
         List<byte[]> rows = new ArrayList<>();
@@ -1820,7 +1820,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (type.equals(String.class)) {
             if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_CLOB
                 .getType()) {
-                String encoding = this.options.characterEncoding;
+                String encoding = this.options.getCharacterEncoding();
                 byte[] data = new byte[row.length];
                 System.arraycopy(row.buf, row.pos, data, 0, row.length);
                 com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(true, data, encoding,
@@ -1849,7 +1849,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         } else if (type.equals(byte[].class)) {
             if (col.getColumnType() == ColumnType.ORA_BLOB) {
-                String encoding = this.options.characterEncoding;
+                String encoding = this.options.getCharacterEncoding();
                 if (encoding == null) {
                     encoding = "UTF8";
                 }
@@ -2094,7 +2094,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        String encoding = this.options.characterEncoding;
+        String encoding = this.options.getCharacterEncoding();
         if (encoding == null) {
             encoding = "UTF8";
         }
@@ -2125,7 +2125,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        String encoding = this.options.characterEncoding;
+        String encoding = this.options.getCharacterEncoding();
         byte[] data = new byte[row.length];
         System.arraycopy(row.buf, row.pos, data, 0, row.length);
         if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_CLOB) {
@@ -3327,7 +3327,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return;
         }
         updatableParameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes,
-            protocol.getOptions().characterEncoding);
+            protocol.getOptions().getCharacterEncoding());
     }
 
     public void updateString(String columnLabel, String value) throws SQLException {

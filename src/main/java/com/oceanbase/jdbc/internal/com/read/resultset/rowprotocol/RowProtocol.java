@@ -145,7 +145,7 @@ public abstract class RowProtocol {
       case NCHAR:
       case RAW:
       case STRING:
-        return Charset.forName(this.options.characterEncoding);
+        return Charset.forName(this.options.getCharacterEncoding());
       default:
         break;
     }
@@ -193,7 +193,7 @@ public abstract class RowProtocol {
   public abstract Struct getInternalStruct(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
   public abstract ComplexData getInternalComplexCursor(ColumnDefinition columnInfo,ComplexDataType complexDataType,Connection connection) throws  SQLException;
   public String getEncoding() {
-    return options.characterEncoding;
+    return options.getCharacterEncoding();
   }
   public TIMESTAMP getInternalTIMESTAMP(
       ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {

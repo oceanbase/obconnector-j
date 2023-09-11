@@ -196,7 +196,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
         writer.writeShort(paramIndex);
         while ((len = reader.read(buffer)) != -1) {
             isEmpty = false;
-            byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
+            byte[] data = new String(buffer, 0, len).getBytes(options.getCharacterEncoding());
             writer.write(data, 0, data.length);
             totoalReadLen += len;
             currentPacketLen += len;

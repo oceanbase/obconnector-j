@@ -2130,7 +2130,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     @Override
     public String getEncoding() {
-        return this.options.characterEncoding;
+        return this.options.getCharacterEncoding();
     }
 
     public PacketOutputStream getWriter() {

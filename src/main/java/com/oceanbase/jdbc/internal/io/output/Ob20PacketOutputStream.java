@@ -85,7 +85,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
     public Ob20PacketOutputStream(OutputStream out, long threadId, Options options,
                                   OceanBaseProtocolV20 ob20, TimeTrace timeTrace) {
-        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding, timeTrace);
+        super(out, options.maxQuerySizeToLog, threadId, options.getCharacterEncoding(), timeTrace);
         maxPacketLength = MAX_PACKET_LENGTH;
         this.ob20 = ob20;
         this.enableOb20Checksum = options.enableOb20Checksum;

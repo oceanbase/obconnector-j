@@ -441,7 +441,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return Utils.toHexString(returnBytes);
             case ORA_CLOB:
                 if (options.supportLobLocator) {
-                    String encoding = this.options.characterEncoding;
+                    String encoding = this.options.getCharacterEncoding();
                     byte[] data = new byte[buf.length];
                     System.arraycopy(buf, pos, data, 0, length);
                     Clob c = new com.oceanbase.jdbc.Clob(true, data, encoding, null);
@@ -450,17 +450,17 @@ public class BinaryRowProtocol extends RowProtocol {
                     return new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                 }
+
             case GEOMETRY:
                 return new String(buf, pos, length);
 
             default:
                 if (getMaxFieldSize() > 0) {
                     return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), charset)
-                            .substring(0, Math.min(getMaxFieldSize(), length));
+                        .substring(0, Math.min(getMaxFieldSize(), length));
                 }
                 return new String(buf, pos, length, charset);
         }
-
     }
 
     /**

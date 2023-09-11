@@ -187,7 +187,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
             writer.flush();
             return false;
         }
-        byte[] data = new String(buffer, 0, len).getBytes(options.characterEncoding);
+        byte[] data = new String(buffer, 0, len).getBytes(options.getCharacterEncoding());
         if (first && reader.ready()) {
             piece = Packet.OCI_FIRST_PIECE;
             ret = true;

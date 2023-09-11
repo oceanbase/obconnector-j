@@ -417,7 +417,7 @@ public class JDBC4UpdatableResultSet extends SelectResultSet {
             return;
         }
         parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes, this
-            .getProtocol().getOptions().characterEncoding);
+            .getProtocol().getOptions().getCharacterEncoding());
     }
 
     /** {inheritDoc}. */

@@ -847,7 +847,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         setParameter(parameterIndex, new StringParameter(url.toString(), noBackslashEscapes,
-            this.connection.getProtocol().getOptions().characterEncoding));
+            this.connection.getProtocol().getOptions().getCharacterEncoding()));
     }
 
     /**
@@ -880,7 +880,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 return;
             }
             setParameter(parameterIndex, new StringParameter(rowid.toString(), noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().getCharacterEncoding()));
         } else {
             throw exceptionFactory.notSupported("RowIDs not supported");
         }
@@ -907,11 +907,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
 
         if (this.connection.getProtocol().isOracleMode()) {
             setParameter(parameterIndex, new OBNStringParameter(value, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding,
+                this.connection.getProtocol().getOptions().getCharacterEncoding(),
                 this.protocol.getOptions().nCharacterEncoding));
         } else {
             setParameter(parameterIndex, new StringParameter(value, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().getCharacterEncoding()));
         }
     }
 
@@ -1703,11 +1703,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
 
         if (this.connection.getProtocol().isOracleMode()) {
             setParameter(parameterIndex, new OBVarcharParameter(str, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().getCharacterEncoding()));
         } else {
             String parameterString = str;
             setParameter(parameterIndex, new StringParameter(parameterString, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().getCharacterEncoding()));
         }
     }
 
@@ -1812,7 +1812,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 return;
             }
             setParameter(parameterIndex, new OBStringParameter(parameterStr, noBackslashEscapes,
-                this.connection.getProtocol().getOptions().characterEncoding));
+                this.connection.getProtocol().getOptions().getCharacterEncoding()));
             return;
         }
         throw exceptionFactory.notSupported("Method PrepareStatement.setFixedCHAR() not supported");

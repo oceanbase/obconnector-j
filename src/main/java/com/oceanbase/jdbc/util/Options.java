@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.util;
 
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -836,6 +837,10 @@ public class Options implements Cloneable {
         result = 31 * result + compatibleMysqlVersion;
         result = 31 * result + (useInformationSchema ? 1 : 0);
         return result;
+    }
+
+    public String getCharacterEncoding(){
+        return "GB18030_2022".equals(characterEncoding.toUpperCase(Locale.ROOT)) ? "gb18030" : characterEncoding;
     }
 
     @Override

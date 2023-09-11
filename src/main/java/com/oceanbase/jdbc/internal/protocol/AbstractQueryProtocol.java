@@ -262,7 +262,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_PREPARE);
-      writer.write(sql.getBytes(options.characterEncoding));
+      writer.write(sql.getBytes(options.getCharacterEncoding()));
       writer.flush();
 
       return ComStmtPrepare.read(reader, eofDeprecated, this, sql);
@@ -303,7 +303,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
-      writer.write(sql.getBytes(options.characterEncoding));
+      writer.write(sql.getBytes(options.getCharacterEncoding()));
       writer.flush();
 
       getResult(results);
@@ -2064,7 +2064,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
       for (int i = 0; i < fieldCount; i++) {
-        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.characterEncoding);
+        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.getCharacterEncoding());
       }
 
       if (!eofDeprecated) {
@@ -2367,7 +2367,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       // read columns information's
       for (int i = 0; i < ci.length; i++) {
-        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.characterEncoding);
+        ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.getCharacterEncoding());
       }
 
       boolean callableResult = false;

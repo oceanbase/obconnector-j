@@ -70,7 +70,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     public StandardPacketOutputStream(OutputStream out, long threadId, Options options,
                                       TimeTrace timeTrace) {
-        super(out, options.maxQuerySizeToLog, threadId, options.characterEncoding, timeTrace);
+        super(out, options.maxQuerySizeToLog, threadId, options.getCharacterEncoding(), timeTrace);
         maxPacketLength = MAX_PACKET_LENGTH;
     }
 

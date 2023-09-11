@@ -102,7 +102,7 @@ public class ComStmtPrepareExecute {
         pos.write(cursorFlag); // No acket.ARRAY_BINDIN required with prepareExecute
         pos.writeInt(protocol.getIterationCount());
         ParameterHolder lengthEncodedString = new OBVarcharParameter(results.getStatement()
-            .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
+            .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().getCharacterEncoding());
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
 
@@ -203,7 +203,7 @@ public class ComStmtPrepareExecute {
                     if (numParams > 0) {
                         for (int i = 0; i < numParams; i++) {
                             params[i] = new ColumnDefinition(reader.getPacket(false), true,
-                                    protocol.getOptions().characterEncoding);
+                                    protocol.getOptions().getCharacterEncoding());
                         }
                         if (!eofDeprecated) {
                             protocol.skipEofPacket();
@@ -291,7 +291,7 @@ public class ComStmtPrepareExecute {
         pos.write(cursorFlag);
         pos.writeInt(protocol.getIterationCount());
         ParameterHolder lengthEncodedString = new OBVarcharParameter(results.getStatement()
-            .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().characterEncoding);
+            .getActualSql(), protocol.noBackslashEscapes(), protocol.getOptions().getCharacterEncoding());
         lengthEncodedString.writeBinary(pos);
         pos.writeInt(parameterCount);
         if (parameterCount > 0) {

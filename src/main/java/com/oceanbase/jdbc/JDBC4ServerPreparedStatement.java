@@ -267,7 +267,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       try {
           crc32C.reset();
           byte[] b; //  Consider the case of multiple character set
-          b = sql.getBytes(options.characterEncoding);
+          b = sql.getBytes(options.getCharacterEncoding());
           crc32C.update(b, 0, b.length);
           this.checksum = crc32C.getValue();
       } catch (UnsupportedEncodingException e) {
@@ -686,7 +686,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           if (protocol.isOracleMode() && options.supportNameBinding) {
             sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
           }
-          List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.characterEncoding);
+          List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.getCharacterEncoding());
           if (list != null) {
             StringBuilder sb = new StringBuilder();
             sb.append(list.get(0));
