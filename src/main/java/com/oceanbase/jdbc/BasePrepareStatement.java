@@ -674,7 +674,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                                                                                  throws SQLException {
 
         if (connection.getProtocol().isOracleMode()) {
-            setTIMESTAMP(parameterIndex, timestamp);
+            if (timestamp.getNanos() == 0) {
+                setDate(parameterIndex, new Date(timestamp.getTime()));
+            } else {
+                setTIMESTAMP(parameterIndex, timestamp);
+            }
         } else {
             if (timestamp == null) {
                 setNull(parameterIndex, ColumnType.DATETIME);

@@ -448,4 +448,58 @@ public class DateOracleTest extends BaseOracleTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testTimestampParamOnDateIndex() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("test_date_index","v0 date");
+        Date d = new Date(System.currentTimeMillis());
+        Timestamp t = new Timestamp(d.getTime());
+        t.setNanos(0);
+        try {
+            stmt.execute("create index test_timestamp_to_date_index on test_date_index(v0)");
+        } catch (SQLException e) {
+        }
+        PreparedStatement pstmt = sharedConnection.prepareStatement("insert into test_date_index values (?)");
+        pstmt.setDate(1,d);
+        pstmt.execute();
+        pstmt = sharedConnection.prepareStatement("select * from test_date_index where v0 = ?");
+        pstmt.setTimestamp(1,t);
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(t,rs.getTimestamp(1));
+        assertEquals(d.toString(),rs.getDate(1).toString());
+        pstmt = sharedConnection.prepareStatement("explain select * from test_date_index where v0 = ?");
+        pstmt.setTimestamp(1,t);
+        rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertTrue(rs.getString("Query Plan").contains("TEST_DATE_INDEX(TEST_TIMESTAMP_TO_DATE_INDEX)"));
+    }
+
+    @Test
+    public void testTimestampParamCaseToDateParamOnTimestampIndex() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("test_timestamp_index","v0 timestamp");
+        Date d = new Date(System.currentTimeMillis());
+        Timestamp t = new Timestamp(d.getTime());
+        t.setNanos(0);
+        try {
+            stmt.execute("create index test_timestamp_on_timestamp_index on test_timestamp_index(v0)");
+        } catch (SQLException e) {
+        }
+        PreparedStatement pstmt = sharedConnection.prepareStatement("insert into test_timestamp_index values (?)");
+        pstmt.setDate(1,d);
+        pstmt.execute();
+        pstmt = sharedConnection.prepareStatement("select * from test_timestamp_index where v0 = ?");
+        pstmt.setTimestamp(1,t);
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(t,rs.getTimestamp(1));
+        assertEquals(d.toString(),rs.getDate(1).toString());
+        pstmt = sharedConnection.prepareStatement("explain select * from test_timestamp_index where v0 = ?");
+        pstmt.setTimestamp(1,t);
+        rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertTrue(rs.getString("Query Plan").contains("TEST_TIMESTAMP_INDEX(TEST_TIMESTAMP_ON_TIMESTAMP_INDEX)"));
+    }
 }
