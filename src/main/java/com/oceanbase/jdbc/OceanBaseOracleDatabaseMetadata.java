@@ -367,7 +367,14 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
 
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique,
                                   boolean approximate) throws SQLException {
-        String prepare = String.format(OB_ORA_GET_INDEX, table, table, table,
+        String schemaFilter = "";
+        String schemaTableAliasFilter = "";
+        if (schema != null && !schema.isEmpty()) {
+            schemaFilter = " owner = '" + schema + "' and ";
+            schemaTableAliasFilter = " i.owner = '" + schema + "' and ";
+        }
+        String prepare = String.format(OB_ORA_GET_INDEX, schemaFilter, table,
+            schemaTableAliasFilter, table, schemaTableAliasFilter, table,
             unique ? "  and i.uniqueness = 'UNIQUE'" : "");
         return executeQuery(prepare);
     }

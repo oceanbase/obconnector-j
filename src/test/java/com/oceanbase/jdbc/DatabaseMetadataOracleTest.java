@@ -970,7 +970,6 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         }
     }
 
-
     @Test
     public void getIdentifierQuoteStringTest() throws SQLException {
         Statement stmt = null;
@@ -1137,6 +1136,81 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         assertEquals("NUMBER", rs.getString("TYPE_NAME"));
         assertEquals(3, rs.getInt("DATA_TYPE"));
         assertFalse(rs.next());
+    }
+
+    @Test
+    public void testGetIndexInfo() throws SQLException {
+        Connection conn = sharedConnection;
+        createTable("test_get_indexinfo", "v0 number , v1 varchar2(32) , v2 varchar2(1)");
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST", "test_get_indexinfo",
+                false, false);
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST", "test_get_indexinfo",
+                false, true);
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST", "test_get_indexinfo",
+                true, false);
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST", "test_get_indexinfo",
+                true, true);
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST",
+                "test_get_indexinfo".toUpperCase(), false, false);
+            assertTrue(rs.next());
+            assertEquals("TEST", rs.getString("TABLE_SCHEM"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST",
+                "test_get_indexinfo".toUpperCase(), false, true);
+            assertTrue(rs.next());
+            assertEquals("TEST", rs.getString("TABLE_SCHEM"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST",
+                "test_get_indexinfo".toUpperCase(), true, false);
+            assertTrue(rs.next());
+            assertEquals("TEST", rs.getString("TABLE_SCHEM"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        try {
+            ResultSet rs = conn.getMetaData().getIndexInfo(null, "TEST",
+                "test_get_indexinfo".toUpperCase(), true, true);
+            assertTrue(rs.next());
+            assertEquals("TEST", rs.getString("TABLE_SCHEM"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 
 }
