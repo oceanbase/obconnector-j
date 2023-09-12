@@ -1729,4 +1729,22 @@ public class ResultSetTest extends BaseTest {
         Assert.assertEquals("yxy", rs.getString("name"));
     }
 
+    @Test
+    public void testGetObject() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = null;
+        createTable("t1","GROUP_SEND_TYPE INT");
+        stmt = conn.createStatement();
+        stmt.execute("insert into t1 value (1)");
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        assertTrue(rs.next());
+        Integer result = 0;
+        result = rs.getObject(1, Integer.class);
+        assertEquals(1, (int) result);
+        result = rs.getObject(1, int.class);
+        assertEquals(1, (int) result);
+        result = rs.getObject(1, Integer.TYPE);
+        assertEquals(1, (int) result);
+    }
+
 }

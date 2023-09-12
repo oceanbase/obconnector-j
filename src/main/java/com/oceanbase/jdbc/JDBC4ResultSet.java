@@ -1829,7 +1829,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return (T) row.getInternalString(col, null, timeZone);
 
-        } else if (type.equals(Integer.class)) {
+        } else if (type.equals(Integer.class) || type.equals(Integer.TYPE)) {
             return (T) (Integer) row.getInternalInt(col);
 
         } else if (type.equals(Long.class)) {
