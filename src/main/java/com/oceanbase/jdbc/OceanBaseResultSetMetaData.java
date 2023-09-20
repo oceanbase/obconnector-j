@@ -377,6 +377,9 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 return Types.SMALLINT;
             case BLOB:
                 if (!this.isOracleMode) {
+                    if (ci.getLength() <= 255){
+                        return Types.VARBINARY;
+                    }
                     return Types.LONGVARBINARY;
                 } else {
                     if (ci.getLength() < 0 || ci.getLength() > 16777215) {

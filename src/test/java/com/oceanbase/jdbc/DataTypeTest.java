@@ -98,6 +98,7 @@ public class DataTypeTest extends BaseTest {
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
         createTable("testRanges", "c1 VARCHAR(32)");
         createTable("testBooleans", "c1 BINARY(3), c2 VARBINARY(3), c3 BLOB");
+        createTable("test_TextAndBlob","c1 TINYText, c2 Text, c3 MEDIUMText, c4 LONGText, c5 TINYBLOB, c6 BLOB, c7 MEDIUMBLOB, c8 LONGBLOB");
 
     }
 
@@ -1325,6 +1326,40 @@ public class DataTypeTest extends BaseTest {
                 "Out of range value for column '1.7976931348623157E308' : value 1.7976931348623157E308 is not in class java.lang.Long range",
                 e.getMessage());
         }
+    }
+
+    @Test
+    public void testTEXTAndBlob() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from test_TextAndBlob");
+        ResultSetMetaData metaData = rs.getMetaData();
+
+        assertEquals("VARCHAR",metaData.getColumnTypeName(1));
+        assertEquals("VARCHAR",metaData.getColumnTypeName(2));
+        assertEquals("VARCHAR",metaData.getColumnTypeName(3));
+        assertEquals("VARCHAR",metaData.getColumnTypeName(4));
+        assertEquals("TINYBLOB",metaData.getColumnTypeName(5));
+        assertEquals("BLOB",metaData.getColumnTypeName(6));
+        assertEquals("MEDIUMBLOB",metaData.getColumnTypeName(7));
+        assertEquals("LONGBLOB",metaData.getColumnTypeName(8));
+
+        assertEquals(-1,metaData.getColumnType(1));
+        assertEquals(-1,metaData.getColumnType(2));
+        assertEquals(-1,metaData.getColumnType(3));
+        assertEquals(-1,metaData.getColumnType(4));
+        assertEquals(-3,metaData.getColumnType(5));
+        assertEquals(-4,metaData.getColumnType(6));
+        assertEquals(-4,metaData.getColumnType(7));
+        assertEquals(-4,metaData.getColumnType(8));
+
+        assertEquals("java.lang.String",metaData.getColumnClassName(1));
+        assertEquals("java.lang.String",metaData.getColumnClassName(2));
+        assertEquals("java.lang.String",metaData.getColumnClassName(3));
+        assertEquals("java.lang.String",metaData.getColumnClassName(4));
+        assertEquals("[B",metaData.getColumnClassName(5));
+        assertEquals("[B",metaData.getColumnClassName(6));
+        assertEquals("[B",metaData.getColumnClassName(7));
+        assertEquals("[B",metaData.getColumnClassName(8));
     }
 
 }
