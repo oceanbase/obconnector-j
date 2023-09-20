@@ -1760,4 +1760,95 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("{call `test`.testPro1()}", queryBuf.toString());
         conn.prepareCall(queryBuf.toString()).execute();
     }
+
+    @Test
+    public void testGetFunctionColumns() throws Exception {
+        Connection conn = sharedConnection;
+        DatabaseMetaData metaData = conn.getMetaData();
+        createProcedure("testGetProcedure", "(c1 INT, Out c2 varchar(255), INOUT c3 decimal(9,2))" +
+                " COMMENT 'comment1' BEGIN SELECT 1;end");
+        ResultSet rs = null;
+        try {
+            rs = metaData.getProcedureColumns(null, null, "`testGetProcedure`", "%");
+            assertTrue(rs.next());
+            assertEquals("testGetProcedure", rs.getString("PROCEDURE_NAME"));
+            assertEquals("c1", rs.getString("COLUMN_NAME"));
+            assertEquals(DatabaseMetaData.procedureColumnIn, rs.getShort("COLUMN_TYPE"));
+        } catch (AssertionError e) {
+            e.printStackTrace();
+        }
+
+        createFunction("testGetFunction", "(d INT) RETURNS INT DETERMINISTIC COMMENT 'comment1' BEGIN RETURN d; END");
+        try {
+            rs = metaData.getFunctionColumns(null, null, "`testGetFunction`", "%");
+            assertTrue(rs.next());
+            assertEquals("testGetFunction", rs.getString("FUNCTION_NAME"));
+            assertEquals(null, rs.getString("COLUMN_NAME"));
+            assertEquals(DatabaseMetaData.functionReturn, rs.getShort("COLUMN_TYPE"));
+        } catch (AssertionError e) {
+            e.printStackTrace();
+        }
+
+        rs = conn.getMetaData().getProcedures(null, null, "`testGetProcedure`");
+        assertFalse(rs.next());
+        rs = conn.getMetaData().getFunctions(null, null, "`testGetFunction`");
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void getImportedKeysTest() throws Exception {
+        Connection conn = sharedConnection;
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Statement stmt = conn.createStatement();
+            stmt.execute("drop table if exists test2");
+            stmt.execute("drop table if exists test1");
+            stmt.execute("create table test1(id1 int primary key)");
+            stmt.execute("create table test2(id2 int not null,"
+                    + " foreign key(id2) references test1(id1))");
+            ResultSet rs = null;
+            try {
+                rs = metaData.getImportedKeys(null, null, "`test2`");
+                Assert.assertTrue(rs.next());
+                assertEquals("id2", rs.getString("FKCOLUMN_NAME"));
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                rs = metaData.getPrimaryKeys(null, null, "`test1`");
+                assertTrue(rs.next());
+                assertEquals("id1", rs.getString("COLUMN_NAME"));
+            } catch (AssertionError e) {
+                e.printStackTrace();
+            }
+
+            try {
+                stmt.execute("CREATE INDEX index1 ON test2 (id2)");
+                rs = metaData.getIndexInfo(conn.getCatalog(), null, "`test2`", false, true);
+                assertTrue(rs.next());
+                assertEquals("id2", rs.getString("COLUMN_NAME"));
+                assertEquals("index1", rs.getString("INDEX_NAME"));
+            } catch (AssertionError e) {
+                e.printStackTrace();
+            }
+
+            try {
+                rs = metaData.getBestRowIdentifier(null, null, "`test1`", 1, false);
+                assertTrue(rs.next());
+                assertEquals(metaData.bestRowSession, rs.getInt("SCOPE"));
+                assertEquals("id1", rs.getString("COLUMN_NAME"));
+            } catch (AssertionError e) {
+                e.printStackTrace();
+            }
+
+            rs = metaData.getExportedKeys(null, null, "`test1`");
+            Assert.assertFalse(rs.next());
+            rs = metaData.getCrossReference(null, null, "`test1`", null, null, "`test2`");
+            Assert.assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }

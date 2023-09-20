@@ -421,18 +421,20 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table)
                                                                                  throws SQLException {
-        String database = catalog;
         // We avoid using information schema queries by default, because this appears to be an expensive
         // query (CONJ-41).
-
         if (this.connection.getProtocol().isOracleMode()) {
             return this.keysQuery((String) null, (String) null, schema, table,
                 "ORDER BY pktable_schem, pktable_name, key_seq");
         }
+
         if (table == null) {
             throw new SQLException("Table not specified.");
         }
-
+        if (table.contains("`")) {
+            table = table.replace("`", "");
+        }
+        // compatible with mysql 5.x
         ArrayList<String> tableNameList = new ArrayList<>();
         tableNameList.add(table);
         try (ResultSet allTableRS = getAllTablesResultSet(tableNameList, catalog)) {
@@ -713,7 +715,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (this.connection.getProtocol().isOracleMode()) {
             return super.getPrimaryKeys(catalog, schema, table);
         }
-        // MySQL 8 now use 'PRI' in place of 'pri'
+
+        if (table != null && table.contains("`")) {
+            table = table.replace("`", "");
+        }
+        // not completely compatible with mysql 8.x(now use 'PRI' in place of 'pri')
         String sql = "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                      + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
                      + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
@@ -1334,37 +1340,37 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (table == null) {
             throw  new SQLException("Table not specified.");
         }
-        String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                     + " CASE update_rule "
-                     + "   WHEN 'RESTRICT' THEN 1"
-                     + "   WHEN 'NO ACTION' THEN 3"
-                     + "   WHEN 'CASCADE' THEN 0"
-                     + "   WHEN 'SET NULL' THEN 2"
-                     + "   WHEN 'SET DEFAULT' THEN 4"
-                     + " END UPDATE_RULE,"
-                     + " CASE DELETE_RULE"
-                     + "  WHEN 'RESTRICT' THEN 1"
-                     + "  WHEN 'NO ACTION' THEN 3"
-                     + "  WHEN 'CASCADE' THEN 0"
-                     + "  WHEN 'SET NULL' THEN 2"
-                     + "  WHEN 'SET DEFAULT' THEN 4"
-                     + " END DELETE_RULE,"
-                     + " RC.CONSTRAINT_NAME FK_NAME,"
-                     + " 'PRIMARY' PK_NAME,"
-                     + importedKeyNotDeferrable
-                     + " DEFERRABILITY"
-                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-                     + " WHERE "
-                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
-                     + patternCond("KCU.REFERENCED_TABLE_NAME", table)
-                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+//        String mariaSql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
+//                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+//                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+//                     + " CASE update_rule "
+//                     + "   WHEN 'RESTRICT' THEN 1"
+//                     + "   WHEN 'NO ACTION' THEN 3"
+//                     + "   WHEN 'CASCADE' THEN 0"
+//                     + "   WHEN 'SET NULL' THEN 2"
+//                     + "   WHEN 'SET DEFAULT' THEN 4"
+//                     + " END UPDATE_RULE,"
+//                     + " CASE DELETE_RULE"
+//                     + "  WHEN 'RESTRICT' THEN 1"
+//                     + "  WHEN 'NO ACTION' THEN 3"
+//                     + "  WHEN 'CASCADE' THEN 0"
+//                     + "  WHEN 'SET NULL' THEN 2"
+//                     + "  WHEN 'SET DEFAULT' THEN 4"
+//                     + " END DELETE_RULE,"
+//                     + " RC.CONSTRAINT_NAME FK_NAME,"
+//                     + " 'PRIMARY' PK_NAME,"
+//                     + importedKeyNotDeferrable
+//                     + " DEFERRABILITY"
+//                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+//                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+//                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+//                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+//                     + " WHERE "
+//                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
+//                     + patternCond("KCU.REFERENCED_TABLE_NAME", table)
+//                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
-        // not suppport multi catalogs
+        // partly compatible with mysql 5.x, not support multi catalogs
         tableNameList= getALlTableNames(catalog);
         try (ResultSet allTableRS = getAllTablesResultSet(tableNameList,catalog)) {
             ArrayList<String[]> list = new ArrayList<>();
@@ -1766,10 +1772,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (table == null) {
             throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
         }
+
         if (this.connection.getProtocol().isOracleMode()) {
             return super.getBestRowIdentifier(catalog, schema, table, scope, nullable);
         }
-        //Refer to https://jira.mariadb.org/browse/CONJ-812 for modification
+
+        if (table.contains("`")) {
+            table = table.replace("`", "");
+        }
+        // Almost compatible with maria 3.x. Refer to https://jira.mariadb.org/browse/CONJ-812 for modification
         catalog = catalog == null ? this.connection.getProtocol().getCatalog() : catalog;
         String sql = "SELECT "
                      + bestRowSession
@@ -2732,6 +2743,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return super.getProcedures(catalog, schemaPattern, procedureNamePattern);
         }
+        // compatible with maria 2.x, almost mysql 8.x
         String sql = "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
                      + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
                      + " CASE ROUTINE_TYPE "
@@ -2851,9 +2863,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getProcedureColumns(String catalog, String schemaPattern,
                                          String procedureNamePattern, String columnNamePattern)
                                                                                                throws SQLException {
+        if (!connection.getProtocol().isOracleMode() && procedureNamePattern != null && procedureNamePattern.contains("`")) {
+            procedureNamePattern = procedureNamePattern.replace("`", "");
+        }
         if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
             /*
-             *  Get info from information_schema.parameters
+             *  Get info from information_schema.parameters. Compatible with maria, almost mysql 8.x
              */
             StringBuilder sb = new StringBuilder("SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN' THEN 1  WHEN 'OUT' THEN 4  WHEN 'INOUT' THEN 2  ELSE IF(PARAMETER_MODE IS NULL,5,0) END COLUMN_TYPE," + this.dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,DATA_TYPE TYPE_NAME, CASE DATA_TYPE  WHEN 'time' THEN IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))  WHEN 'date' THEN 10  WHEN 'datetime' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  WHEN 'timestamp' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  ELSE   IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + 2147483647 + "), NUMERIC_PRECISION)  END `PRECISION`, CASE DATA_TYPE  WHEN 'time' THEN IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))  WHEN 'date' THEN 10  WHEN 'datetime' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  WHEN 'timestamp' THEN IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))  ELSE   IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + 2147483647 + "), NUMERIC_PRECISION)  END `LENGTH`, CASE DATA_TYPE  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)  ELSE NUMERIC_SCALE  END `SCALE`,10 RADIX," + 2 + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME  FROM INFORMATION_SCHEMA.PARAMETERS");
             boolean firstCondition = this.catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
@@ -2862,7 +2877,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
             return this.executeQuery(sb.toString());
         } else {
-            /* No information_schema.parameters
+            /* No information_schema.parameters. Compatible with mysql 5.x
              * TODO : figure out what to do with older versions (get info via mysql.proc)
              * For now, just a dummy result set is returned.
              */
@@ -3545,25 +3560,29 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getFunctionColumns(String catalog, String schemaPattern,
                                         String functionNamePattern, String columnNamePattern)
                                                                                              throws SQLException {
+        if (!connection.getProtocol().isOracleMode() && functionNamePattern != null && functionNamePattern.contains("`")) {
+            functionNamePattern = functionNamePattern.replace("`", "");
+        }
+
         //todo unfinished
         //        if (this.connection.getProtocol().isOracleMode()){
         //            super.getFunctionColumns(catalog,schemaPattern,functionNamePattern,columnNamePattern);
         //        }
         if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
+            // compatible with maria, almost mysql 8.x
             StringBuilder sb = new StringBuilder("SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN' THEN 1  WHEN 'OUT' THEN 3  WHEN 'INOUT' THEN 2  ELSE 4 END COLUMN_TYPE," + this.dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," + 2 + " NULLABLE,NULL REMARKS,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME  FROM INFORMATION_SCHEMA.PARAMETERS");
             boolean firstCondition = this.catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
             firstCondition = this.patternCond(firstCondition, sb, "SPECIFIC_NAME", functionNamePattern);
             firstCondition = this.patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
             sb.append(firstCondition ? " WHERE " : " AND ").append(" ROUTINE_TYPE='FUNCTION' ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION");
             return this.executeQuery(sb.toString());
-        } else {
-            /*
-             * No information_schema.parameters
-             * TODO : figure out what to do with older versions (get info via mysql.proc)
-             * For now, just a dummy result set is returned.
-             */
-
         }
+
+        /*
+         * No information_schema.parameters. Compatible with mysql 5.x
+         * TODO : figure out what to do with older versions (get info via mysql.proc)
+         * For now, just a dummy result set is returned.
+         */
         String[] columnNames = { "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "COLUMN_NAME",
                 "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX",
                 "NULLABLE", "REMARKS", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
@@ -3844,42 +3863,44 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return this.keysQuery(parentSchema, parentTable, foreignSchema, foreignTable,
                 "ORDER BY fktable_schem, fktable_name, key_seq");
         }
-        String sql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                     + " CASE update_rule "
-                     + "   WHEN 'RESTRICT' THEN 1"
-                     + "   WHEN 'NO ACTION' THEN 3"
-                     + "   WHEN 'CASCADE' THEN 0"
-                     + "   WHEN 'SET NULL' THEN 2"
-                     + "   WHEN 'SET DEFAULT' THEN 4"
-                     + " END UPDATE_RULE,"
-                     + " CASE DELETE_RULE"
-                     + "  WHEN 'RESTRICT' THEN 1"
-                     + "  WHEN 'NO ACTION' THEN 3"
-                     + "  WHEN 'CASCADE' THEN 0"
-                     + "  WHEN 'SET NULL' THEN 2"
-                     + "  WHEN 'SET DEFAULT' THEN 4"
-                     + " END DELETE_RULE,"
-                     + " RC.CONSTRAINT_NAME FK_NAME,"
-                     + " NULL PK_NAME,"
-                     + importedKeyNotDeferrable
-                     + " DEFERRABILITY"
-                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-                     + " WHERE "
-                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
-                     + " AND "
-                     + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
-                     + " AND "
-                     + " KCU.REFERENCED_TABLE_NAME = "
-                     + escapeQuote(parentTable)
-                     + " AND "
-                     + " KCU.TABLE_NAME = "
-                     + escapeQuote(foreignTable)
-                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+//        String mariaSql = "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
+//                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+//                     + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+//                     + " CASE update_rule "
+//                     + "   WHEN 'RESTRICT' THEN 1"
+//                     + "   WHEN 'NO ACTION' THEN 3"
+//                     + "   WHEN 'CASCADE' THEN 0"
+//                     + "   WHEN 'SET NULL' THEN 2"
+//                     + "   WHEN 'SET DEFAULT' THEN 4"
+//                     + " END UPDATE_RULE,"
+//                     + " CASE DELETE_RULE"
+//                     + "  WHEN 'RESTRICT' THEN 1"
+//                     + "  WHEN 'NO ACTION' THEN 3"
+//                     + "  WHEN 'CASCADE' THEN 0"
+//                     + "  WHEN 'SET NULL' THEN 2"
+//                     + "  WHEN 'SET DEFAULT' THEN 4"
+//                     + " END DELETE_RULE,"
+//                     + " RC.CONSTRAINT_NAME FK_NAME,"
+//                     + " NULL PK_NAME,"
+//                     + importedKeyNotDeferrable
+//                     + " DEFERRABILITY"
+//                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+//                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+//                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+//                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+//                     + " WHERE "
+//                     + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
+//                     + " AND "
+//                     + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
+//                     + " AND "
+//                     + " KCU.REFERENCED_TABLE_NAME = "
+//                     + escapeQuote(parentTable)
+//                     + " AND "
+//                     + " KCU.TABLE_NAME = "
+//                     + escapeQuote(foreignTable)
+//                     + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+
+        // partly compatible with mysql 5.x
         ArrayList<String> tableNameList;
         try {
             tableNameList = getALlTableNames(parentCatalog);
@@ -4226,6 +4247,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             return super.getIndexInfo(catalog, schema, table, unique, approximate);
         }
 
+        if (table.contains("`")) {
+            table = table.replace("`", "");
+        }
+        // not completely compatible with mysql 8.x
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, if(i.NON_UNIQUE != 0,'true','false') as NON_UNIQUE, "
                      + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
                      + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
@@ -4717,6 +4742,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return super.getFunctions(catalog, schemaPattern, functionNamePattern);
         }
+
+        // compatible with maria 2.x
         String sql = "SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"
                      + " ROUTINE_COMMENT REMARKS,"
                      + functionNoTable
@@ -4726,7 +4753,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + catalogCond("ROUTINE_SCHEMA", catalog)
                      + patternCond("ROUTINE_NAME", functionNamePattern)
                      + " AND ROUTINE_TYPE='FUNCTION'";
-
         return executeQuery(sql);
     }
 
