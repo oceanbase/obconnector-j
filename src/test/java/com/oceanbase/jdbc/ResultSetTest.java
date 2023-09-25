@@ -1733,18 +1733,31 @@ public class ResultSetTest extends BaseTest {
     public void testGetObject() throws SQLException {
         Connection conn = sharedConnection;
         Statement stmt = null;
-        createTable("t1","GROUP_SEND_TYPE INT");
+        createTable("t1", "GROUP_SEND_TYPE INT");
         stmt = conn.createStatement();
         stmt.execute("insert into t1 value (1)");
         ResultSet rs = stmt.executeQuery("select * from t1");
         assertTrue(rs.next());
-        Integer result = 0;
-        result = rs.getObject(1, Integer.class);
-        assertEquals(1, (int) result);
-        result = rs.getObject(1, int.class);
-        assertEquals(1, (int) result);
-        result = rs.getObject(1, Integer.TYPE);
-        assertEquals(1, (int) result);
+        assertEquals(1, (int)rs.getObject(1, Integer.class));
+        assertEquals(1, (int)rs.getObject(1, int.class));
+        assertEquals(1, (int)rs.getObject(1, Integer.TYPE));
+
+        assertEquals(true,rs.getObject(1, Boolean.class));
+        assertEquals(true,rs.getObject(1, boolean.class));
+        assertEquals(true,rs.getObject(1, Boolean.TYPE));
+
+
+        assertEquals(1, rs.getObject(1, Long.class).longValue());
+        assertEquals(1, rs.getObject(1, long.class).longValue());
+        assertEquals(1, rs.getObject(1, Long.TYPE).longValue());
+
+        assertEquals(1, rs.getObject(1, Float.class).floatValue(), 0.0001);
+        assertEquals(1, rs.getObject(1, float.class).floatValue(), 0.0001);
+        assertEquals(1, rs.getObject(1, Float.TYPE).floatValue(), 0.0001);
+
+        assertEquals(1, rs.getObject(1, Double.class).doubleValue(), 0.0001);
+        assertEquals(1, rs.getObject(1, double.class).doubleValue(), 0.0001);
+        assertEquals(1, rs.getObject(1, Double.TYPE).doubleValue(), 0.0001);
     }
 
 }

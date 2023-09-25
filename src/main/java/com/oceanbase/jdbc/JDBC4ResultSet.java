@@ -1829,22 +1829,24 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
             return (T) row.getInternalString(col, null, timeZone);
 
-        } else if (type.equals(Integer.class) || type.equals(Integer.TYPE)) {
+        } else if (type.equals(Integer.class) || (!protocol.isOracleMode() && type.equals(Integer.TYPE))) {
             return (T) (Integer) row.getInternalInt(col);
 
-        } else if (type.equals(Long.class)) {
+        } else if (type.equals(Long.class) || (!protocol.isOracleMode() && type.equals(Long.TYPE))) {
             return (T) (Long) row.getInternalLong(col);
 
-        } else if (type.equals(Short.class)) {
+        } else if (type.equals(Short.class) || (!protocol.isOracleMode() && type.equals(Short.TYPE))) {
+            // mysql-jdbc 5.x doesn't support, but 8.x supports.
             return (T) (Short) row.getInternalShort(col);
 
-        } else if (type.equals(Double.class)) {
+        } else if (type.equals(Double.class) || (!protocol.isOracleMode() && type.equals(Double.TYPE))) {
             return (T) (Double) row.getInternalDouble(col);
 
-        } else if (type.equals(Float.class)) {
+        } else if (type.equals(Float.class) || (!protocol.isOracleMode() && type.equals(Float.TYPE))) {
             return (T) (Float) row.getInternalFloat(col);
 
-        } else if (type.equals(Byte.class)) {
+        } else if (type.equals(Byte.class) || (!protocol.isOracleMode() && type.equals(Byte.TYPE))) {
+            // mysql-jdbc 5.x doesn't support, but 8.x supports.
             return (T) (Byte) row.getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
@@ -1872,7 +1874,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         } else if (type.equals(Timestamp.class) || type.equals(java.util.Date.class)) {
             return (T) row.getInternalTimestamp(col, null, timeZone);
 
-        } else if (type.equals(Boolean.class)) {
+        } else if (type.equals(Boolean.class) || (!protocol.isOracleMode() && type.equals(Boolean.TYPE))) {
             return (T) (Boolean) row.getInternalBoolean(col);
 
         } else if (type.equals(Calendar.class)) {

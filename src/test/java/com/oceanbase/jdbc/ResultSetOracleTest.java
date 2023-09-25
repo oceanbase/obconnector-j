@@ -1679,4 +1679,81 @@ public class ResultSetOracleTest extends BaseOracleTest {
         pstmt.close();
         stmt.close();
     }
+
+    @Test
+    public void testGetObject() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = null;
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select 1 from dual");
+            assertTrue(rs.next());
+            try {
+                assertEquals(1, (int) rs.getObject(1, Integer.class));
+                assertEquals(1, (int) rs.getObject(1, int.class));
+                assertEquals(1, (int) rs.getObject(1, Integer.TYPE));
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'int' is not supported"));
+            }
+            try {
+                assertEquals(true, rs.getObject(1, Boolean.class));
+                assertEquals(true, rs.getObject(1, boolean.class));
+                assertEquals(true, rs.getObject(1, Boolean.TYPE));
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'boolean' is not supported"));
+            }
+            try {
+                assertEquals(1, rs.getObject(1, Long.class).longValue());
+                assertEquals(1, rs.getObject(1, long.class).longValue());
+                assertEquals(1, rs.getObject(1, Long.TYPE).longValue());
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'long' is not supported"));
+            }
+            try {
+                assertEquals(1, rs.getObject(1, Float.class).floatValue(), 0.0001);
+                assertEquals(1, rs.getObject(1, float.class).floatValue(), 0.0001);
+                assertEquals(1, rs.getObject(1, Float.TYPE).floatValue(), 0.0001);
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'float' is not supported"));
+            }
+            try {
+                assertEquals(1, rs.getObject(1, Double.class).doubleValue(), 0.0001);
+                assertEquals(1, rs.getObject(1, double.class).doubleValue(), 0.0001);
+                assertEquals(1, rs.getObject(1, Double.TYPE).doubleValue(), 0.0001);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'double' is not supported"));
+            }
+            try {
+                assertEquals(1, rs.getObject(1, Byte.class).byteValue());
+                assertEquals(1, rs.getObject(1, byte.class).byteValue());
+                assertEquals(1, rs.getObject(1, Byte.TYPE).byteValue());
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'byte' is not supported"));
+            }
+            try {
+                assertEquals(1, rs.getObject(1, Short.class).shortValue());
+                assertEquals(1, rs.getObject(1, short.class).shortValue());
+                assertEquals(1, rs.getObject(1, Short.TYPE).shortValue());
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertTrue(e.getMessage().contains(
+                        "Type class 'short' is not supported"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
