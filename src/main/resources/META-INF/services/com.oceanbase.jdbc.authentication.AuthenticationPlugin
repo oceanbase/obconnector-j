@@ -1,0 +1,8 @@
+com.oceanbase.jdbc.internal.com.send.authentication.ClearPasswordPlugin
+com.oceanbase.jdbc.internal.com.send.authentication.SendGssApiAuthPacket
+com.oceanbase.jdbc.internal.com.send.authentication.Ed25519PasswordPlugin
+com.oceanbase.jdbc.internal.com.send.authentication.NativePasswordPlugin
+com.oceanbase.jdbc.internal.com.send.authentication.OldPasswordPlugin
+com.oceanbase.jdbc.internal.com.send.authentication.SendPamAuthPacket
+com.oceanbase.jdbc.internal.com.send.authentication.Sha256PasswordPlugin
+com.oceanbase.jdbc.internal.com.send.authentication.CachingSha2PasswordPlugin
