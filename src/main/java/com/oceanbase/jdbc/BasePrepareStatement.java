@@ -145,6 +145,9 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     @Override
     public long executeLargeUpdate() throws SQLException {
         if (executeInternal(getFetchSize())) {
+            if (protocol.isOracleMode() && results.getResultSet() != null) {
+                return results.getResultSet().getProcessedRows();
+            }
             return 0;
         }
 

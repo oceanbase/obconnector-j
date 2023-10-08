@@ -931,6 +931,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public long executeLargeUpdate() throws SQLException {
       if (execute()) {
+          if (protocol.isOracleMode() && results.getResultSet() != null) {
+              return results.getResultSet().getProcessedRows();
+          }
           return 0;
       }
 
@@ -954,6 +957,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   @Override
   public int executeUpdate() throws SQLException {
     if (execute()) {
+      if (protocol.isOracleMode() && results.getResultSet() != null) {
+        return (int) results.getResultSet().getProcessedRows();
+      }
       return 0;
     }
 

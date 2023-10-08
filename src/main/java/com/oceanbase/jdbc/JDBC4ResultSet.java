@@ -131,6 +131,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
      * 1~n: the number of rows cached in "data[][]"
      */
     protected int                           dataSize              = -1;
+    /**
+     * reset before fetch, used for oracle mode
+     */
     protected long                          processedRows;
     protected int                           discardedRows;
     protected int                           rowPointer            = -1;
@@ -503,7 +506,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     private void fetchAllResults() throws IOException, SQLException {
         dataSize = 0;
-        processedRows = 0;
         while (!isEof) {
             addStreamingValue();
         }
@@ -563,7 +565,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (dataSize == -1) {
             dataSize = 0;
         }
-        processedRows = 0;
+
         // read only one row once
         byte[] buf = getNextRow();
         if (statement == null || statement.getMaxRows() <= 0

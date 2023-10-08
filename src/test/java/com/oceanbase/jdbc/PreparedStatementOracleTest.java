@@ -320,4 +320,55 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         assertEquals(" returning ... into ?,?", rs.getString(2));
     }
 
+    @Test
+    public void testReturnOfExecuteUpdateOnSelect() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+
+        String tableName = "yxy_20211108";
+        createTable(tableName, "c1 int, c2 varchar(30), constraint pk primary key(c1)");
+        String query1 = "insert all";
+        for (int i = 1; i <= 21; i++) {
+            query1 += " into " + tableName + " values(" + i + ",'" + i + "+string')";
+        }
+        query1 += "select * from dual";
+        Statement s = conn.createStatement();
+        s.execute(query1);
+
+        // use PreparedStatement
+        PreparedStatement ps = conn.prepareStatement("select * from " + tableName);
+        // default fetch size 10 < total rows 21
+        int i = ps.executeUpdate();
+        Assert.assertEquals(10, i);
+        // fetch size 8 < total rows 21
+        ps.setFetchSize(8);
+        i = ps.executeUpdate();
+        Assert.assertEquals(8, i);
+        // fetch size 30 > total rows 21
+        ps.setFetchSize(30);
+        i = ps.executeUpdate();
+        Assert.assertEquals(21, i);
+
+        // use Statement
+        Statement stmt = conn.createStatement();
+        // default fetch size 10 < total rows 21
+        i = stmt.executeUpdate("select * from " + tableName);
+        try {
+            Assert.assertEquals(10, i);
+        } catch (AssertionError ae) {
+            Assert.assertEquals(21, i);
+        }
+        // fetch size 8 < total rows 21
+        stmt.setFetchSize(8);
+        i = stmt.executeUpdate("select * from " + tableName);
+        try {
+            Assert.assertEquals(8, i);
+        } catch (AssertionError ae) {
+            Assert.assertEquals(21, i);
+        }
+        // fetch size 30 > total rows 21
+        stmt.setFetchSize(30);
+        i = stmt.executeUpdate("select * from " + tableName);
+        Assert.assertEquals(21, i);
+    }
+
 }

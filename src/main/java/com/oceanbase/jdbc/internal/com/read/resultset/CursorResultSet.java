@@ -180,6 +180,9 @@ public class CursorResultSet extends Cursor {
 
     protected void getCursorFetchData(int tmpFetchSize) throws SQLException {
         try {
+            if (protocol.isOracleMode()) {
+                processedRows = 0;
+            }
             // reset dataSize, rowPointer and lastRowPointer if necessary
             if (dataSize > 0) {
                 if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
