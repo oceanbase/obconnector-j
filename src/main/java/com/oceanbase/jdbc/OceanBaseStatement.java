@@ -977,9 +977,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
               }
 
               // close open current result set
-              try {
+              if (results.getResultSet() != null) {
                   results.getResultSet().close();
-              } catch (Exception ex) {
               }
 
               // MySQL close all open results
