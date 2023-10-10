@@ -74,7 +74,7 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
 
     @Test
     public void fix49372928() throws Exception {
-        createTable("test_nv", "c_value varchar2(128), n_value nvarchar2(128)");
+        createTable("test_nv", "c_var varchar2(128), n_var nvarchar2(128), n_char nchar(20)");
 
         //        setNStringGBKFunction(setConnection("&characterEncoding=gbk"));
         //        setNStringGBKFunction(setConnection("&characterEncoding=gbk&nCharacterEncoding=utf8"));
@@ -157,17 +157,20 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
     }
 
     private void testCore(Connection conn) throws SQLException {
-        PreparedStatement pstmt = conn.prepareStatement("insert into test_nv values (?, ?)");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_nv values (?, ?, ?)");
         pstmt.setNString(1, "㐀");
         pstmt.setNString(2, "㐀");
+        pstmt.setNString(3, "㐀");
         pstmt.execute();
 
         pstmt.setNString(1, "丂");
         pstmt.setNString(2, "丂");
+        pstmt.setNString(3, "丂");
         pstmt.execute();
 
         pstmt.setNString(1, "㐀丂");
         pstmt.setNString(2, "㐀丂");
+        pstmt.setNString(3, "㐀丂");
         pstmt.execute();
 
         Statement stmt = conn.createStatement();
@@ -175,12 +178,15 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
         Assert.assertTrue(rs.next());
         Assert.assertEquals("?", rs.getNString(1));
         Assert.assertEquals("㐀", rs.getNString(2));
+        Assert.assertEquals("㐀                   ", rs.getNString(3));
         Assert.assertTrue(rs.next());
         Assert.assertEquals("丂", rs.getNString(1));
         Assert.assertEquals("丂", rs.getNString(2));
+        Assert.assertEquals("丂                   ", rs.getNString(3));
         Assert.assertTrue(rs.next());
         Assert.assertEquals("?丂", rs.getNString(1));
         Assert.assertEquals("㐀丂", rs.getNString(2));
+        Assert.assertEquals("㐀丂                  ", rs.getNString(3));
         Assert.assertFalse(rs.next());
 
         stmt.execute("delete from test_nv");
