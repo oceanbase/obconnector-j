@@ -229,6 +229,7 @@ public class Options implements Cloneable {
     public int     compatibleOjdbcVersion = 6;
     public int     compatibleMysqlVersion = 5;
     public String  nCharacterEncoding;
+    public boolean emptyStringsConvertToZero = true;
 
     @Override
     public String toString() {

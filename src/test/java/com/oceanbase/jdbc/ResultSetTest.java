@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -1758,6 +1759,30 @@ public class ResultSetTest extends BaseTest {
         assertEquals(1, rs.getObject(1, Double.class).doubleValue(), 0.0001);
         assertEquals(1, rs.getObject(1, double.class).doubleValue(), 0.0001);
         assertEquals(1, rs.getObject(1, Double.TYPE).doubleValue(), 0.0001);
+    }
+
+    @Test
+    public void testGetIntForEmptyString() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = null;
+        createTable("c", "a int(11) DEFAULT NULL,b char(20) DEFAULT NULL");
+        stmt = conn.createStatement();
+        stmt.execute("INSERT INTO c(a, b) VALUES(1, '')");
+        ResultSet resultSet = stmt.executeQuery("select a,b from c");
+        resultSet.next();
+        assertEquals(0, resultSet.getInt(2));
+
+        conn = setConnection("&emptyStringsConvertToZero=false");
+        stmt = conn.createStatement();
+        resultSet = stmt.executeQuery("select a,b from c");
+        resultSet.next();
+        try {
+            resultSet.getInt(2);
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertTrue(e.getMessage().contains(
+                    "Can't convert empty string ('') to numeric"));
+        }
     }
 
 }

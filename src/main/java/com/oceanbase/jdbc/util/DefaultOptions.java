@@ -1059,6 +1059,12 @@ public enum DefaultOptions {
             (String) null,
             "2.4.6",
             "The National character set used by OceanBase, which determines how server and client encode and decode the NCHAR and NVARCHAR2 data types on the connection, can be set to utf16, or utf8.",
+            false),
+    EmptyStrings_ConvertTo_Zero(
+            "emptyStringsConvertToZero",
+            Boolean.TRUE,
+            "2.4.7",
+            "Should the driver allow conversions from empty string fields to numeric values of 0?",
             false);
 
   private final String optionName;

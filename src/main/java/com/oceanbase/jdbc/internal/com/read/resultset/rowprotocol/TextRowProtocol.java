@@ -64,6 +64,7 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import com.mysql.jdbc.SQLError;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -401,6 +402,10 @@ public class TextRowProtocol extends RowProtocol {
             }
 
         } catch (NumberFormatException nfe) {
+            if(length==0){
+                return convertToZeroWithEmptyCheck();
+            }
+
             NumberFormatException exceptionTmp = null;
             // parse error.
             // if its a decimal retry without the decimal part.
@@ -425,6 +430,19 @@ public class TextRowProtocol extends RowProtocol {
                                        + "' : value " + value, "22003", 1264);
             }
         }
+    }
+
+    /**
+     * convertToZeroWithEmptyCheck
+     * @return
+     * @throws SQLException
+     */
+    private int convertToZeroWithEmptyCheck() throws SQLException {
+        if (options.emptyStringsConvertToZero) {
+            return 0;
+        }
+
+        throw new SQLException("Can't convert empty string ('') to numeric");
     }
 
     /**
