@@ -45,6 +45,7 @@
 package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.util.Options;
@@ -53,8 +54,8 @@ public interface LongDataParameterHolder extends ParameterHolder {
     public static final int BLOB_STREAM_READ_BUF_SIZE = 8192; // Transplant this one from objdbc 1.x
 
     public boolean writePieceData(final PacketOutputStream pos, boolean first, Options options)
-                                                                                               throws IOException;
+            throws IOException, SQLException;
 
     public boolean writeLongData(final PacketOutputStream pos, Options options, int statementId,
-                                 short paramIndex) throws IOException;
+                                 short paramIndex) throws IOException, SQLException;
 }

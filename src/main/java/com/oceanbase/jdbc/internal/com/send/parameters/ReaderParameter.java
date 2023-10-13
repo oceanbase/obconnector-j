@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.send.parameters;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.SQLException;
 
 import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -91,7 +92,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
 
-    private void setReader() {
+    private void setReader() throws SQLException {
         if (clob != null) {
             reader = clob.getCharacterStream();
         }
@@ -103,7 +104,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @param pos database outputStream
      * @throws IOException if any error occur when reading reader
      */
-    public void writeTo(PacketOutputStream pos) throws IOException {
+    public void writeTo(PacketOutputStream pos) throws IOException, SQLException {
         setReader();
         pos.write(QUOTE);
         if (length == Long.MAX_VALUE) {
@@ -129,7 +130,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      * @param pos socket output stream
      * @throws IOException if socket error occur
      */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
+    public void writeBinary(final PacketOutputStream pos) throws IOException, SQLException {
         setReader();
         if (length == Long.MAX_VALUE) {
             pos.write(reader, false, noBackslashEscapes);
@@ -181,7 +182,7 @@ public class ReaderParameter implements Cloneable, LongDataParameterHolder {
      */
     @Override
     public boolean writeLongData(PacketOutputStream writer, Options options, int statementId,
-                                 short paramIndex) throws IOException {
+                                 short paramIndex) throws IOException, SQLException {
         setReader();
         char[] buffer = new char[BLOB_STREAM_READ_BUF_SIZE];
         int len;

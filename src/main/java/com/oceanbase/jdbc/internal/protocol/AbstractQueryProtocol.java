@@ -469,7 +469,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } else {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
-              throw new SQLException("Not supported send long data on ob oracle");
+              throw new SQLException("Not supported send long data on ob oracle. Recommended URL options: useServerPrepStmts=true&usePieceData=true");
             }
           }
         }
@@ -561,7 +561,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } else {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
-              throw new SQLException("Not supported send long data on ob oracle");
+              throw new SQLException("Not supported send long data on ob oracle. Recommended URL options: useServerPrepStmts=true&usePieceData=true");
             }
           }
         }
@@ -910,7 +910,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     int paramCount,
                     BulkStatus status,
                     PrepareResult prepareResult)
-                    throws IOException {
+                    throws IOException, SQLException {
 
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
@@ -1267,7 +1267,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           } else {
             for (int i = 0; i < paramCount; i++) {
               if (parameters[i].isLongData()) {
-                throw new SQLException("Not supported send long data on ob oracle");
+                throw new SQLException("Not supported send long data on ob oracle. Recommended URL options: useServerPrepStmts=true&usePieceData=true");
               }
             }
           }
@@ -1501,7 +1501,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           ParameterHolder[] parameters = queryParameters.get(j);
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
-              throw new SQLException("Not supported send long data on ob oracle");
+              throw new SQLException("Not supported send long data on ob oracle. Recommended URL options: usePieceData=true");
             }
           }
         }

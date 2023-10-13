@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.io.*;
 import java.math.BigDecimal;
 import java.sql.*;
 
@@ -1754,6 +1755,78 @@ public class ResultSetOracleTest extends BaseOracleTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
+        }
+    }
+
+
+    @Test
+    public void testGetCharacterStream() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            createTable("t_lob", "c1 clob, c2 blob");
+            PreparedStatement ps = conn.prepareStatement("insert into  t_lob values (?,?)");
+            int size = 1024 * 4 + 1;
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (int i = 0; i < size; i++) {
+                stringBuilder.append('a');
+            }
+            String str = stringBuilder.toString();
+            byte[] bytes = str.getBytes();
+            ps.setClob(1, new StringReader(str));
+            ps.setBlob(2, new ByteArrayInputStream(bytes));
+            ps.execute();
+            ResultSet rs = conn.prepareStatement("select * from t_lob").executeQuery();
+            assertTrue(rs.next());
+
+            Reader reader = rs.getCharacterStream(1);
+            StringBuilder sb = new StringBuilder();
+            int ch;
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            assertTrue(sb.toString().contains("aaaa"));
+            assertEquals(size, sb.toString().length());
+
+            InputStream is = rs.getBinaryStream(1);
+            int pos = 0;
+            while ((ch = is.read()) != -1) {
+                assertEquals(bytes[pos++], ch);
+            }
+            Assert.assertEquals(bytes.length, pos);
+
+            is = rs.getAsciiStream(1);
+            pos = 0;
+            while ((ch = is.read()) != -1) {
+                assertEquals(bytes[pos++], ch);
+            }
+            Assert.assertEquals(bytes.length, pos);
+
+            //blob
+            reader = rs.getCharacterStream(2);
+            sb = new StringBuilder();
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            assertTrue(sb.toString().contains("aaaa"));
+            assertEquals(size, sb.toString().length());
+
+            is = rs.getBinaryStream(2);
+            pos = 0;
+            while ((ch = is.read()) != -1) {
+                assertEquals(bytes[pos++], ch);
+            }
+            Assert.assertEquals(bytes.length, pos);
+
+            is = rs.getAsciiStream(2);
+            pos = 0;
+            while ((ch = is.read()) != -1) {
+                assertEquals(bytes[pos++], ch);
+            }
+            Assert.assertEquals(bytes.length, pos);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         }
     }
 }

@@ -163,6 +163,12 @@ public class Blob extends Lob implements java.sql.Blob {
     }
 
     public Reader getCharacterStream() throws SQLException {
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
         if (this.data != null) {
             return new StringReader(new String(this.data, Charset.forName(this.encoding)));
         }

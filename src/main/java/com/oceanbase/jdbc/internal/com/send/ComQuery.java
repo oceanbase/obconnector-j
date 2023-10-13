@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -72,7 +73,7 @@ public class ComQuery {
     public static void sendSubCmd(final PacketOutputStream out,
                                   final ClientPrepareResult clientPrepareResult,
                                   ParameterHolder[] parameters, int queryTimeout)
-                                                                                 throws IOException {
+            throws IOException, SQLException {
         out.startPacket(0);
         out.write(Packet.COM_QUERY);
         if (queryTimeout > 0) {
@@ -117,7 +118,7 @@ public class ComQuery {
     public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts,
                                      int currentIndex, int paramCount,
                                      List<ParameterHolder[]> parameterList, boolean rewriteValues)
-                                                                                                  throws IOException {
+            throws IOException, SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         int index = currentIndex;

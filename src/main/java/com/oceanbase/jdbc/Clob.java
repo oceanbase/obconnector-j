@@ -217,7 +217,13 @@ public class Clob extends Lob implements java.sql.Clob {
         }
     }
 
-    public Reader getCharacterStream() {
+    public Reader getCharacterStream() throws SQLException {
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
         if (this.charData != null) {
             return new StringReader(this.charData);
         }
@@ -263,6 +269,12 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     public InputStream getAsciiStream() throws SQLException {
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
         if (this.charData != null) {
             try {
                 if (this.encoding != null) {

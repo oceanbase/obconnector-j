@@ -387,6 +387,12 @@ public abstract class Lob implements Serializable {
     }
 
     public InputStream getBinaryStream() throws SQLException {
+        // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
+        if (this.length == 0 && !isEmptyLob()) {
+            if (locator != null && locator instanceof ObLobLocatorV2) {
+                readFromServer();
+            }
+        }
         return getBinaryStream(1, length);
     }
 
