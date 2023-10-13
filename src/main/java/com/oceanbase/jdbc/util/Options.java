@@ -60,11 +60,8 @@ import java.util.Properties;
 public class Options implements Cloneable {
 
     public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
-
     public static final String                           ZERO_DATETIME_CONVERT_TO_NULL = "convertToNull";
-
     public static final String                           ZERO_DATETIME_EXCEPTION       = "exception";
-
     public static final String                           ZERO_DATETIME_ROUND           = "round";
 
     // standard options
@@ -85,7 +82,6 @@ public class Options implements Cloneable {
     public boolean useFractionalSeconds = true;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
-
     public int connectTimeout =
             DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
     public String pipe;
@@ -149,6 +145,7 @@ public class Options implements Cloneable {
     public boolean clobberStreamingResults;
     public int maxRows;
     public boolean useInformationSchema;
+    public boolean emptyStringsConvertToZero = true;
 
     // logging options
     public boolean log;
@@ -229,7 +226,7 @@ public class Options implements Cloneable {
     public int     compatibleOjdbcVersion = 6;
     public int     compatibleMysqlVersion = 5;
     public String  nCharacterEncoding;
-    public boolean emptyStringsConvertToZero = true;
+    public boolean useLobLocatorV2 = true;
 
     @Override
     public String toString() {
@@ -688,6 +685,12 @@ public class Options implements Cloneable {
         if(useInformationSchema != opt.useInformationSchema) {
             return false;
         }
+        if(emptyStringsConvertToZero != opt.emptyStringsConvertToZero){
+            return false;
+        }
+        if(useLobLocatorV2 != opt.useLobLocatorV2){
+            return false;
+        }
 
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
@@ -837,6 +840,8 @@ public class Options implements Cloneable {
         result = 31 * result + compatibleOjdbcVersion;
         result = 31 * result + compatibleMysqlVersion;
         result = 31 * result + (useInformationSchema ? 1 : 0);
+        result = 31 * result + (emptyStringsConvertToZero ? 1 : 0);
+        result = 31 * result + (useLobLocatorV2 ? 1 : 0);
         return result;
     }
 

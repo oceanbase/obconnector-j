@@ -377,7 +377,7 @@ public class SendHandshakeResponsePacket {
             buffer.writeStringSmallLength(_PROXY_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }
-        if (!banListSet.contains(_CLIENT_CAPABILITY)) {
+        if (!banListSet.contains(_CLIENT_CAPABILITY) && options.useLobLocatorV2) {
             long capFlag = OceanBaseCapabilityFlag.OB_CLIENT_CAP_LOB_LOCATOR_V2;
 
             buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
