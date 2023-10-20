@@ -1541,7 +1541,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public void setFetchSize(final int rows) throws SQLException {
     if (this.maxRows > 0 && rows > this.maxRows
-        || this.protocol.isOracleMode() && rows < 0
+        || this.protocol.isOracleMode() && rows < 0 && (!options.extendOracleResultSetClass || rows != Integer.MIN_VALUE)
         || !this.protocol.isOracleMode() && rows < 0 && rows != Integer.MIN_VALUE) {
         throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
     }

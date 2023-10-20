@@ -1071,6 +1071,12 @@ public enum DefaultOptions {
             Boolean.TRUE,
             "2.4.7",
             "Set to true to use lob v2, false to use the original lob",
+            false),
+    EXTEND_ORACLE_RESULTSET_CLASS(
+            "extendOracleResultSetClass",
+            Boolean.FALSE,
+            "2.4.7",
+            "Provides how to use streaming result set and complete result sets under the ps protocol",
             false);
 
   private final String optionName;

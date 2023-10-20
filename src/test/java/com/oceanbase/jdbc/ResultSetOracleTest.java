@@ -52,10 +52,12 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.Field;
 import java.io.*;
 import java.math.BigDecimal;
 import java.sql.*;
 
+import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import org.junit.*;
 
 public class ResultSetOracleTest extends BaseOracleTest {
@@ -1828,5 +1830,24 @@ public class ResultSetOracleTest extends BaseOracleTest {
             e.printStackTrace();
             fail();
         }
+    }
+
+    @Test
+    public void testOracleModeStreamResulSet() throws SQLException, NoSuchFieldException, IllegalAccessException {
+        Connection conn = setConnection("&extendOracleResultSetClass=true");
+        // complete rs without a cursor for ps
+        PreparedStatement pstmt = conn.prepareStatement("select 1 from dual");
+        ResultSet rs = pstmt.executeQuery();
+        OceanBaseStatement oceanBaseStatement = (OceanBaseStatement)(rs.getStatement());
+        Field field = OceanBaseStatement.class.getDeclaredField("results");
+        field.setAccessible(true);
+        Results results = (Results) field.get(oceanBaseStatement);
+        assertFalse(results.isToCursorFetch());
+
+        // streaming rs
+        pstmt.setFetchSize(Integer.MIN_VALUE);
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(1, rs.getFetchSize());
+        Assert.assertEquals(-2147483648, pstmt.getFetchSize());
     }
 }

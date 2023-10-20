@@ -227,6 +227,7 @@ public class Options implements Cloneable {
     public int     compatibleMysqlVersion = 5;
     public String  nCharacterEncoding;
     public boolean useLobLocatorV2 = true;
+    public boolean extendOracleResultSetClass;
 
     @Override
     public String toString() {
@@ -664,34 +665,36 @@ public class Options implements Cloneable {
         if (enableOb20Checksum != opt.enableOb20Checksum) {
             return false;
         }
-        if(ocpAccessInterval != opt.ocpAccessInterval) {
+        if (ocpAccessInterval != opt.ocpAccessInterval) {
             return false;
         }
-        if(httpConnectTimeout != opt.httpConnectTimeout) {
+        if (httpConnectTimeout != opt.httpConnectTimeout) {
             return false;
         }
-        if(httpReadTimeout != opt.httpReadTimeout) {
+        if (httpReadTimeout != opt.httpReadTimeout) {
             return false;
         }
-        if(loadBalanceHandleFailover != opt.loadBalanceHandleFailover) {
+        if (loadBalanceHandleFailover != opt.loadBalanceHandleFailover) {
             return false;
         }
-        if(compatibleOjdbcVersion != opt.compatibleOjdbcVersion) {
+        if (compatibleOjdbcVersion != opt.compatibleOjdbcVersion) {
             return false;
         }
-        if(compatibleMysqlVersion != opt.compatibleMysqlVersion) {
+        if (compatibleMysqlVersion != opt.compatibleMysqlVersion) {
             return false;
         }
-        if(useInformationSchema != opt.useInformationSchema) {
+        if (useInformationSchema != opt.useInformationSchema) {
             return false;
         }
-        if(emptyStringsConvertToZero != opt.emptyStringsConvertToZero){
+        if (emptyStringsConvertToZero != opt.emptyStringsConvertToZero){
             return false;
         }
-        if(useLobLocatorV2 != opt.useLobLocatorV2){
+        if (useLobLocatorV2 != opt.useLobLocatorV2){
             return false;
         }
-
+        if (extendOracleResultSetClass != opt.extendOracleResultSetClass) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -842,6 +845,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useInformationSchema ? 1 : 0);
         result = 31 * result + (emptyStringsConvertToZero ? 1 : 0);
         result = 31 * result + (useLobLocatorV2 ? 1 : 0);
+        result = 31 * result + (extendOracleResultSetClass ? 1 : 0);
         return result;
     }
 

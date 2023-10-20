@@ -494,10 +494,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       byte cursorFlag = 0;
       if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
-          && (isOracleMode()
-          || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
-          && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
-          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+          && ( (isOracleMode() && !options.extendOracleResultSetClass)
+               || (!isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
+                  && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+                  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) )) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
         results.setStatementId(serverPrepareResult.getStatementId());
@@ -588,7 +588,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode()) {
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode() && !options.extendOracleResultSetClass) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
       } else {
@@ -1416,10 +1416,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       byte cursorFlag = 0;
       if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT
-          && (isOracleMode()
-          || !isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
-          && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
-          && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY)) {
+          && ( (isOracleMode() && !options.extendOracleResultSetClass)
+               || (!isOracleMode() && options.useCursorFetch && results.getFetchSize() > 0
+                  && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY
+                  && results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) )) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
         results.setStatementId(serverPrepareResult.getStatementId());
@@ -1520,7 +1520,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode()) {
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode() && !options.extendOracleResultSetClass) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
       } else {
@@ -2403,6 +2403,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       SelectResultSet selectResultSet;
+      // RS must have used a cursor with ComStmtPrepareExecute, except internal RS.
       if (results.isToCursorFetch() || (results.isToPrepareExecute() && !results.isInternalResult() && !callableResult)) {
         // cursor result set
         if (!this.isOracleMode()
