@@ -1077,6 +1077,13 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.7",
             "Provides how to use streaming result set and complete result sets under the ps protocol",
+            false),
+    LOG_TRACE_TIME(
+            "logTraceTime",
+            1000,
+            0,
+            "2.4.7",
+            "If option 'log' is true, CallInterface or SendRequest and ReceiveResponse which take longer than 'logTraceTime'(in milliseconds) will be logged.",
             false);
 
   private final String optionName;

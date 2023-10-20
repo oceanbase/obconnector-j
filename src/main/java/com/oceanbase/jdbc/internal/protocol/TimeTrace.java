@@ -49,6 +49,7 @@ import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 public class TimeTrace {
 
     private static final Logger logger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+    private int                 logTraceTimeMs;
 
     private long                startCallInterface;
     private long                endCallInterface;
@@ -59,14 +60,22 @@ public class TimeTrace {
     private long                startReceiveResponse;
     private long                endReceiveResponse;
 
+    public TimeTrace(int logTraceTime) {
+        this.logTraceTimeMs = logTraceTime;
+    }
+
     public void startCallInterface() {
         startCallInterface = System.nanoTime();
     }
 
     public void endCallInterface(String interfaceName) {
         endCallInterface = System.nanoTime();
-        logger
-            .info("{}: CallInterface costs {}us.", interfaceName, getCallInterfaceElapsedTimeUs());
+        long timeUs = getCallInterfaceElapsedTimeUs();
+        if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs / 1000)) {
+            return;
+        }
+
+        logger.info("{}: CallInterface costs {}us.", interfaceName, timeUs);
     }
 
     public long getCallInterfaceElapsedTimeUs() {
@@ -91,6 +100,12 @@ public class TimeTrace {
 
     public void endReceiveResponse(String protocol, String sql) {
         endReceiveResponse = System.nanoTime();
+        long timeUs1 = getSendRequestElapsedTimeUs();
+        long timeUs2 = getReceiveResponseElapsedTimeUs();
+        if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs1 / 1000) && logTraceTimeMs > (timeUs2 / 1000)) {
+            return;
+        }
+
         if (sql == null) {
             sql = "";
         } else if (sql.length() > 100) {

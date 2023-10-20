@@ -228,6 +228,7 @@ public class Options implements Cloneable {
     public String  nCharacterEncoding;
     public boolean useLobLocatorV2 = true;
     public boolean extendOracleResultSetClass;
+    public int     logTraceTime;
 
     @Override
     public String toString() {
@@ -695,6 +696,10 @@ public class Options implements Cloneable {
         if (extendOracleResultSetClass != opt.extendOracleResultSetClass) {
             return false;
         }
+        if (logTraceTime != opt.logTraceTime) {
+            return false;
+        }
+
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -846,6 +851,7 @@ public class Options implements Cloneable {
         result = 31 * result + (emptyStringsConvertToZero ? 1 : 0);
         result = 31 * result + (useLobLocatorV2 ? 1 : 0);
         result = 31 * result + (extendOracleResultSetClass ? 1 : 0);
+        result = 31 * result + logTraceTime;
         return result;
     }
 

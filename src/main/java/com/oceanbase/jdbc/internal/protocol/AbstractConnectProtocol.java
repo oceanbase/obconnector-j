@@ -538,7 +538,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void createConnection(HostAddress hostAddress, String username) throws SQLException,
                                                                            IOException {
         if (options.log) {
-            timeTrace = new TimeTrace();
+            timeTrace = new TimeTrace(options.logTraceTime);
         }
 
         String host = hostAddress != null ? hostAddress.host : null;
