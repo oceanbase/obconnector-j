@@ -973,4 +973,36 @@ public class CallStatementOracleTest extends BaseOracleTest {
         assertEquals(10f, cs.getInt(4), .001);
     }
 
+    @Test
+    public void callWenhaoDengyu() throws Exception {
+        createFunction("testFunctionCall", "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+
+        CallableStatement cs = sharedConnection.prepareCall("{? = call test.testFunctionCall(10, 20 ,?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.setInt(2, 30);
+        cs.setQueryTimeout(120);
+        cs.executeUpdate();
+        Assert.assertEquals(60, cs.getInt(1));
+//        Assert.assertEquals(10, cs.getInt("c"));
+
+        cs = sharedConnection.prepareCall("{call ?:= test.testFunctionCall(10, 20 ,?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.setInt(2, 30);
+        cs.setQueryTimeout(120);
+        cs.executeUpdate();
+        Assert.assertEquals(60, cs.getInt(1));
+//        Assert.assertEquals(10, cs.getInt("c"));
+
+        cs = sharedConnection.prepareCall("{call ?  :=   \ntestFunctionCall(10, 20 ,?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.setInt(2, 30);
+        cs.setQueryTimeout(120);
+        cs.executeUpdate();
+        Assert.assertEquals(60, cs.getInt(1));
+//        Assert.assertEquals(10, cs.getInt("c"));
+    }
+
 }

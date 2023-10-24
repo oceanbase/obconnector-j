@@ -773,6 +773,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             querySetToServer = matcher.group(2);
             boolean isFunction = (matcher.group(3) != null);
             String databaseAndProcedure = matcher.group(8) == null ? null : matcher.group(8).trim();
+            if (databaseAndProcedure != null && databaseAndProcedure.startsWith("?")) {
+                isFunction = true;
+            }
             String database = matcher.group(10) == null ? null : matcher.group(10).trim();
             String procedureName = matcher.group(13) == null ? null : matcher.group(13).trim();
             String arguments = matcher.group(16) == null ? null : matcher.group(16).trim();
@@ -854,10 +857,18 @@ public class OceanBaseConnection implements ConnectionImpl {
                     databaseAndProcedure, (arguments == null) ? "()" : arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             } else {
-                return new OceanBaseProcedureStatement(true, "BEGIN ?:="
-                                                             + databaseAndProcedure
-                                                             + ((arguments == null) ? "()"
-                                                                 : arguments) + ";END;",
+                String actualQuery;
+                if (databaseAndProcedure.startsWith("?")) {
+                    if (database.startsWith("?")){
+                        database = correctDatabaseAndProcedureName(database);
+                    } else if (procedureName.startsWith("?")){
+                        procedureName = correctDatabaseAndProcedureName(procedureName);
+                    }
+                    actualQuery = "BEGIN " + databaseAndProcedure + ((arguments == null) ? "()" : arguments) + ";END;";
+                } else {
+                    actualQuery = "BEGIN ?:=" + databaseAndProcedure + ((arguments == null) ? "()" : arguments) + ";END;";
+                }
+                return new OceanBaseProcedureStatement(true, actualQuery,
                     (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
                     resultSetConcurrency, exceptionFactory);
             }
@@ -873,6 +884,30 @@ public class OceanBaseConnection implements ConnectionImpl {
                     exceptionFactory);
             }
         }
+    }
+
+    private String correctDatabaseAndProcedureName(String name) throws SQLException {
+        boolean isColonFound = false;
+        int index = 1;
+        // skip '?', skip n ' ', skip ":= ", then append
+        while (index < name.length()) {
+            char currentChar = name.charAt(index);
+            if (!isColonFound) {
+                if (Character.isWhitespace(currentChar)) {
+                    index++;
+                } else if (currentChar == ':' && name.charAt(index + 1) == '=' && name.charAt(index + 2) == ' ') {
+                    isColonFound = true;
+                    index += 3;
+                } else {
+                    throw new SQLException("invalid syntax");
+                }
+            } else if (Character.isWhitespace(currentChar)) {
+                index++;
+            } else {
+                break;
+            }
+        }
+        return name.substring(index);
     }
 
     @Override
