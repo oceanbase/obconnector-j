@@ -60,6 +60,8 @@ import com.oceanbase.jdbc.internal.util.Utils;
 public class OceanBaseXaResource implements XAResource {
 
     private static final int          MAX_COMMAND_LENGTH = 300;
+    public static final int           TMMIGRATE          = 1048576;
+
     private final OceanBaseConnection connection;
     private boolean                   isChangedCommit;
     public static final int           ORATMSERIALIZABLE  = 1024;
@@ -209,6 +211,14 @@ public class OceanBaseXaResource implements XAResource {
         }
 
         if (this.connection.getProtocol().isOracleMode()) {
+            if ((flags & TMSUCCESS) == 0 && (flags & TMSUSPEND) == 0 && (flags & TMFAIL) == 0
+                && (flags & TMMIGRATE) == 0) {
+                throw new XAException(XAException.XAER_INVAL);
+            }
+            if (flags == TMFAIL) {
+                flags = TMSUCCESS;
+            }
+
             StringBuilder commandBuf = new StringBuilder(MAX_COMMAND_LENGTH);
             commandBuf.append("select DBMS_XA.XA_END(?, ?) from dual");
             ObStruct xidObj = genOracleXid(xid);
