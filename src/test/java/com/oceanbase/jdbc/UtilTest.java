@@ -100,6 +100,10 @@ public class UtilTest extends BaseTest {
     public void testString() throws SQLException {
         String tableName = "test";
         String sql1 = "insert /* woshilize */ into t values( 'wo',?,:name) /* c43 */ -- sfs \n";
+        Assert.assertEquals("insert  into t values( 'wo',?,?)  ", Utils.trimSQLString(sql1, false, true));
+        String sql = "select * from testMaxRows where c2 like '%%'||:zytxtype||'%%'";
+        Assert.assertEquals("select * from testMaxRows where c2 like '%%'||?||'%%'", Utils.trimSQLString(sql, false, true));
+
         String sql2 = "{:ret = call /* sfs */testproc(?,'test',:name1,:name2)};";
         String sql3 = "insert /* c1  */ /* c2 */ into t values( 'wo','111') /* c43 */ -- sfs \n ";
         String sql4 = "select * from test where c1 = ? and c2 = :name and c3 = 10 and c4 = :name2;";
@@ -167,8 +171,7 @@ public class UtilTest extends BaseTest {
                        + "\n"
                        + "  sync_subs_present(V_FREEVOL,V_USAGEVOL,V_OVERVOL,V_TARIFFPLAN,V_ENDTIME,V_ATTRADD     ,V_PRODUCTOID,V_KEYID,V_PRESENTID,V_ATTRID,V_SUBSID,V_MINCYCLE,V_MAXCYCLE,V_ORIGINSOURCE);\n"
                        + "\n" + "end ;\n";
-        Assert.assertEquals("insert  into t values( 'wo',?,?)  ",
-            Utils.trimSQLString(sql1, false, true));
+
         Assert.assertEquals("{? = call testproc(?,'test',?,?)};",
             Utils.trimSQLString(sql2, false, true));
         Assert.assertEquals("insert   into t values( 'wo','111')   ",

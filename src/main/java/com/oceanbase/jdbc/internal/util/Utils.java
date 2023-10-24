@@ -1098,10 +1098,14 @@ public class Utils {
 
       if (state == LexState.NameBinding && isOracleMode) {
         if (!nameBindingEnd) {
-          if ((int) car >= 40) {
+          if (Character.isLetter(car) || Character.isDigit(car) || car == '_' || car == ':') {
             paramSb.append(car);
+          } else {
+            nameBindingEnd = true;
+            includeCurChar = false;
           }
-        } else {
+        }
+        if (nameBindingEnd) {
           if (!includeCurChar) {
             String tmp = paramSb.toString();
             if(tmp != null) {
