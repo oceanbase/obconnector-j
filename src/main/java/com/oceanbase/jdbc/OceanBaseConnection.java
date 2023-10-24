@@ -1059,8 +1059,12 @@ public class OceanBaseConnection implements ConnectionImpl {
         try {
             logger.debug("conn={}({}) - set read-only to value {} {}",
                 protocol.getServerThreadId(), protocol.isMasterConnection() ? "M" : "S", readOnly);
-            stateFlag |= ConnectionState.STATE_READ_ONLY;
-            protocol.setReadonly(readOnly);
+            if (protocol.isOracleMode() && options.oracleChangeReadOnlyToRepeatableRead) {
+                setTransactionIsolation(readOnly ? TRANSACTION_REPEATABLE_READ : TRANSACTION_READ_COMMITTED);
+            } else {
+                stateFlag |= ConnectionState.STATE_READ_ONLY;
+                protocol.setReadonly(readOnly);
+            }
         } catch (SQLException e) {
             throw exceptionFactory.create(e);
         } finally {
@@ -1176,7 +1180,7 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public void setTransactionIsolation(final int level) throws SQLException {
         if (this.protocol.isOracleMode()
-            && (level != TRANSACTION_READ_COMMITTED && level != TRANSACTION_SERIALIZABLE)) {
+            && (level != TRANSACTION_READ_COMMITTED && level != TRANSACTION_REPEATABLE_READ && level != TRANSACTION_SERIALIZABLE)) {
             throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
         }
         if (protocol != null) {

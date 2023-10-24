@@ -1084,6 +1084,12 @@ public enum DefaultOptions {
             0,
             "2.4.7",
             "If option 'log' is true, CallInterface or SendRequest and ReceiveResponse which take longer than 'logTraceTime'(in milliseconds) will be logged.",
+            false),
+    ORACLE_CHANGE_READ_ONLY(
+            "oracleChangeReadOnlyToRepeatableRead",
+            Boolean.FALSE,
+            "2.4.7",
+            "Used in Connection.setReadOnly(boolean readOnly) to put this connection in repeatable-read mode when readOnly is true.",
             false);
 
   private final String optionName;

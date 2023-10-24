@@ -75,6 +75,27 @@ public class OracleConnectionCompatibilityTest extends BaseOracleTest {
     }
 
     @Test
+    public void testReadOnly() throws SQLException {
+        Connection connection = setConnection();
+        connection.setReadOnly(true);
+        boolean readOnly = connection.isReadOnly();
+        int isolation = connection.getTransactionIsolation();
+        try {
+            connection.createStatement().executeUpdate("delete from oracle_conn__test;");
+        } catch (SQLInvalidAuthorizationSpecException ex) {
+            assertTrue(ex.getMessage().contains("ORA-01456: may not perform insert/delete/update operation inside a READ ONLY transaction"));
+        }
+        connection.close();
+
+        connection = setConnection("&oracleChangeReadOnlyToRepeatableRead=true");
+        connection.setReadOnly(true);
+        readOnly = connection.isReadOnly();
+        isolation = connection.getTransactionIsolation();
+        connection.createStatement().executeUpdate("delete from oracle_conn__test;");
+        connection.close();
+    }
+
+    @Test
     public void testAutoCommitAndRollback() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         sharedConnection.setAutoCommit(true);
