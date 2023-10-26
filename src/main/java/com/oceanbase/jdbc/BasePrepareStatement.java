@@ -541,14 +541,20 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        if (connection.getProtocol().isOracleMode()) {
+        if (protocol.isOracleMode()) {
+            Timestamp timestamp = new Timestamp(date.getTime());
+            if (options.compatibleOjdbcVersion == 6) {
+                timestamp = Timestamp.valueOf(timestamp.toLocalDateTime()
+                        .withHour(0).withMinute(0).withSecond(0));
+            }
+            timestamp.setNanos(0);
             setParameter(
                 parameterIndex,
-                new DateTimeParameter(new Timestamp(date.getTime()), cal != null ? cal
-                    .getTimeZone() : TimeZone.getDefault(), useFractionalSeconds, true));
+                new DateTimeParameter(timestamp, cal != null ? cal.getTimeZone() : TimeZone
+                    .getDefault(), useFractionalSeconds, true));
         } else {
             setParameter(parameterIndex, new DateParameter(date, cal != null ? cal.getTimeZone()
-                : TimeZone.getDefault(), protocol.getOptions()));
+                : TimeZone.getDefault(), options));
         }
     }
 
@@ -564,22 +570,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setDate(int parameterIndex, Date date) throws SQLException {
-        if (date == null) {
-            setNull(parameterIndex, Types.DATE);
-            return;
-        }
-        if (connection.getProtocol().isOracleMode()) {
-            Timestamp timestamp = new Timestamp(date.getTime());
-            if (timestamp == null) {
-                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
-                return;
-            }
-            setParameter(parameterIndex, new DateTimeParameter(timestamp, protocol.getTimeZone(),
-                useFractionalSeconds, true));
-        } else {
-            setParameter(parameterIndex,
-                new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
-        }
+        setDate(parameterIndex, date, null);
     }
 
     /**
@@ -624,18 +615,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setTime(final int parameterIndex, final Time time) throws SQLException {
-        if (time == null) {
-            setNull(parameterIndex, ColumnType.TIME);
-            return;
-        }
-        if (this.protocol.isOracleMode()) {
-            Timestamp ts = new Timestamp(time.getTime());
-            TimeZone tz = protocol.getTimeZone();
-            setParameter(parameterIndex, new OBTIMESTAMPParameter(ts, tz, useFractionalSeconds));
-        } else {
-            setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(),
-                useFractionalSeconds));
-        }
+        setTime(parameterIndex, time, null);
     }
 
     /**
@@ -655,12 +635,20 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp, final Calendar cal)
                                                                                                      throws SQLException {
-        if (timestamp == null) {
-            setNull(parameterIndex, ColumnType.DATETIME);
-            return;
+        if (protocol.isOracleMode()) {
+            if (timestamp != null && timestamp.getNanos() == 0) {
+                setTimestampToDate(parameterIndex, new Date(timestamp.getTime()));
+            } else {
+                setTIMESTAMP(parameterIndex, timestamp);
+            }
+        } else {
+            if (timestamp == null) {
+                setNull(parameterIndex, ColumnType.DATETIME);
+                return;
+            }
+            TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZone();
+            setParameter(parameterIndex, new TimestampParameter(timestamp, tz, useFractionalSeconds));
         }
-        TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZone();
-        setParameter(parameterIndex, new TimestampParameter(timestamp, tz, useFractionalSeconds));
     }
 
     /**
@@ -675,20 +663,25 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp)
                                                                                  throws SQLException {
+        setTimestamp(parameterIndex, timestamp, null);
+    }
 
-        if (connection.getProtocol().isOracleMode()) {
-            if (timestamp.getNanos() == 0) {
-                setDate(parameterIndex, new Date(timestamp.getTime()));
-            } else {
-                setTIMESTAMP(parameterIndex, timestamp);
-            }
-        } else {
+    private void setTimestampToDate(int parameterIndex, Date date) throws SQLException {
+        if (date == null) {
+            setNull(parameterIndex, Types.DATE);
+            return;
+        }
+        if (protocol.isOracleMode()) {
+            Timestamp timestamp = new Timestamp(date.getTime());
             if (timestamp == null) {
-                setNull(parameterIndex, ColumnType.DATETIME);
+                setNull(parameterIndex, ColumnType.TIMESTAMP_NANO);
                 return;
             }
-            setParameter(parameterIndex, new TimestampParameter(timestamp, protocol.getTimeZone(),
-                useFractionalSeconds));
+
+            setParameter(parameterIndex, new DateTimeParameter(timestamp, protocol.getTimeZone(),
+                useFractionalSeconds, true));
+        } else {
+            setParameter(parameterIndex, new DateParameter(date, TimeZone.getDefault(), options));
         }
     }
 

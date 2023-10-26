@@ -479,7 +479,7 @@ public class DateOracleTest extends BaseOracleTest {
     @Test
     public void testTimestampParamCaseToDateParamOnTimestampIndex() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        createTable("test_timestamp_index","v0 timestamp");
+        createTable("test_timestamp_index", "v0 timestamp");
         Date d = new Date(System.currentTimeMillis());
         Timestamp t = new Timestamp(d.getTime());
         t.setNanos(0);
@@ -501,5 +501,76 @@ public class DateOracleTest extends BaseOracleTest {
         rs = pstmt.executeQuery();
         assertTrue(rs.next());
         assertTrue(rs.getString("Query Plan").contains("TEST_TIMESTAMP_INDEX(TEST_TIMESTAMP_ON_TIMESTAMP_INDEX)"));
+    }
+
+    @Test
+    public void testIgnoreHourMinuteSecond() throws SQLException {
+        Timestamp timestamp = Timestamp.valueOf("2023-10-10 11:11:11.111111111");
+        Date date = new Date(timestamp.getTime());
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+
+        Connection conn = sharedConnection;
+        createTable("dtest5", "d date, t timestamp");
+        Statement stmt = conn.createStatement();
+
+        PreparedStatement pstmt = conn.prepareStatement("insert into dtest5 (d, t) values (?, ?)");
+        pstmt.setDate(1, date);
+        pstmt.setTimestamp(2, timestamp);
+        pstmt.execute();
+        pstmt.setTimestamp(1, timestamp);
+        pstmt.setDate(2, date);
+        pstmt.execute();
+        ResultSet rs = null;
+
+        rs = stmt.executeQuery("select d, t from dtest5");
+        assertTrue(rs.next());
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 00:00:00.0").getTime()), rs.getDate(1));
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 00:00:00.0").getTime()), rs.getDate(2));
+        assertEquals(Timestamp.valueOf("2023-10-10 00:00:00.0"), rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.111111"), rs.getTimestamp(2));
+        assertEquals("2023-10-10 00:00:00.0", rs.getString(1));
+        assertEquals("2023-10-10 11:11:11.111111", rs.getString(2));
+
+        assertTrue(rs.next());
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 00:00:00.0").getTime()), rs.getDate(1));
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 00:00:00.0").getTime()), rs.getDate(2));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.0"), rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2023-10-10 00:00:00.0"), rs.getTimestamp(2));
+        assertEquals("2023-10-10 11:11:11.0", rs.getString(1));
+        assertEquals("2023-10-10 00:00:00", rs.getString(2));
+        rs.close();
+        pstmt.close();
+
+        conn = setConnection("&compatibleOjdbcVersion=8");
+        stmt = conn.createStatement();
+        stmt.execute("delete from dtest5");
+
+        pstmt = conn.prepareStatement("insert into dtest5 (d, t) values (?, ?)");
+        pstmt.setDate(1, date);
+        pstmt.setTimestamp(2, timestamp);
+        pstmt.execute();
+        pstmt.setTimestamp(1, timestamp);
+        pstmt.setDate(2, date);
+        pstmt.execute();
+
+        rs = stmt.executeQuery("select d, t from dtest5");
+        assertTrue(rs.next());
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 11:11:11.0").getTime()), rs.getDate(1));
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 11:11:11.0").getTime()), rs.getDate(2));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.0"), rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.111111"), rs.getTimestamp(2));
+        assertEquals("2023-10-10 11:11:11", rs.getString(1));
+        assertEquals("2023-10-10 11:11:11.111111", rs.getString(2));
+
+        assertTrue(rs.next());
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 11:11:11.0").getTime()), rs.getDate(1));
+        assertEquals(new Date(Timestamp.valueOf("2023-10-10 11:11:11.0").getTime()), rs.getDate(2));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.0"), rs.getTimestamp(1));
+        assertEquals(Timestamp.valueOf("2023-10-10 11:11:11.0"), rs.getTimestamp(2));
+        assertEquals("2023-10-10 11:11:11", rs.getString(1));
+        assertEquals("2023-10-10 11:11:11", rs.getString(2));
+        rs.close();
+        pstmt.close();
     }
 }

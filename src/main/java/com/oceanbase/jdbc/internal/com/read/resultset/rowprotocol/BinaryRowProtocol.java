@@ -408,10 +408,15 @@ public class BinaryRowProtocol extends RowProtocol {
 
                 if (getProtocol().isOracleMode()) {
                     LocalDateTime localDateTime = timestamp.toLocalDateTime();
+                    int nano = localDateTime.getNano();
+                    if (nano == 0
+                        && (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO || options.compatibleOjdbcVersion == 8)) {
+                        nano = -1;
+                    }
                     String str = DataTypeUtilities.TIMESTAMPTZToString(localDateTime.getYear(),
-                        localDateTime.getMonthValue(), localDateTime.getDayOfMonth(), localDateTime
-                            .getHour(), localDateTime.getMinute(), localDateTime.getSecond(),
-                        localDateTime.getNano() == 0 ? -1 : localDateTime.getNano(), 0, null);
+                        localDateTime.getMonthValue(), localDateTime.getDayOfMonth(),
+                        localDateTime.getHour(), localDateTime.getMinute(),
+                        localDateTime.getSecond(), nano, 0, null);
                     return str;
                 } else {
                     return timestamp.toString();
@@ -954,6 +959,14 @@ public class BinaryRowProtocol extends RowProtocol {
                 case TIMESTAMP_TZ:
                 case TIMESTAMP_LTZ:
                     Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
+                    if (timestamp != null && getProtocol().isOracleMode()) {
+                        timestamp.setNanos(0);
+                        if (options.compatibleOjdbcVersion == 6) {
+                            timestamp.setHours(0);
+                            timestamp.setMinutes(0);
+                            timestamp.setSeconds(0);
+                        }
+                    }
                     return (timestamp == null) ? null : new Date(timestamp.getTime());
                 case TIME:
                     if (length != 0) {
