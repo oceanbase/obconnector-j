@@ -1885,6 +1885,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     // deallocate from server if not cached
     if (serverPrepareResult.canBeDeallocate()) {
       forceReleasePrepareStatement(serverPrepareResult.getStatementId());
+      if (options.cachePrepStmts && options.useServerPrepStmts) {
+        serverPrepareStatementCache.remove(database + "-" + serverPrepareResult.getSql());
+      }
       serverPrepareResult.release();
     }
   }
