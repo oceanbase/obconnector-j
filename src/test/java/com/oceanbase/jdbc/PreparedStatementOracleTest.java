@@ -294,13 +294,18 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         Connection conn = setConnectionOrigin("?useOraclePrepareExecute=true");
         createTable("test_returning_into", "id number, c1 varchar2(20)");
         PreparedStatement ps = conn.prepareStatement(
-            "INSERT INTO test_returning_into VALUES (1,'aaa')", new String[] { "id", "c1" });
+            "INSERT INTO test_returning_into VALUES (?,'aaa')", new String[] { "id", "c1" });
+        ps.setInt(1, 1);
         ps.execute();
         ResultSet rs = null;
         rs = ps.getGeneratedKeys();
         assertTrue(rs.next());
         assertEquals("1", rs.getString(1));
         assertEquals("aaa", rs.getString(2));
+
+        ps.clearParameters();
+        ps.setInt(1, 2);
+        ps.execute();
 
         createTable("test_1", "id number, c1 varchar2(200)");
         ps = conn.prepareStatement("INSERT INTO test_1 VALUES (1,'returning ... into ?,?')",

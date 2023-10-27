@@ -406,7 +406,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         int[] rows = new int[querySize];
         for (int i = 0; i < querySize; i++) {
             ParameterHolder[] parameterHolder = parametersList.get(i);
-            currentParameterHolder.clear();
+            clearParameters();
             for (int j = 0; j < parameterHolder.length; j++) {
                 currentParameterHolder.put(j, parameterHolder[j]);
             }
@@ -465,7 +465,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         long[] rows = new long[querySize];
         for (int i = 0; i < querySize; i++) {
             ParameterHolder[] parameterHolder = parametersList.get(i);
-            currentParameterHolder.clear();
+            clearParameters();
             for (int j = 0; j < parameterHolder.length; j++) {
                 currentParameterHolder.put(j, parameterHolder[j]);
             }
