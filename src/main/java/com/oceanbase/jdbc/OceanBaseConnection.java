@@ -1872,8 +1872,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             attrType = getComplexDataTypeFromRemote(typeName);
         }
         if (attrType.getType() == ComplexDataType.TYPE_COLLECTION) {
-            // array element is still array is not supported
-            throw exceptionFactory.notSupported("array element is still array is not supported");
+            ObArray array = new ArrayImpl(attrType);
+            array.setAttrData(elements);
+            return array;
         }
         ComplexDataType parentType = new ComplexDataType("", this.getOracleSchemaInternal(),
             ComplexDataType.TYPE_COLLECTION);

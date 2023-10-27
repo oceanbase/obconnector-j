@@ -72,7 +72,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     public static String refcursor1      = "test_ref";
     public static String struct4         = "test_struct4";
 
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tablenameArray, "c1 int primary key,c2 interval day(6) to second(5)");
         createTable(tablenameStruct, " c1 int primary key,c2 interval year(4) to month");
@@ -850,4 +850,35 @@ public class ComplexOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testCreateArrayOf(){
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("create or replace type a_type is table of varchar2(4000 byte)");
+            stmt.execute("create or replace procedure my_proc_objarr (X IN a_type) is begin "
+                    + "for idx in 1..x.count loop "
+                    + "dbms_output.put_line(idx); "
+                    + "END LOOP; end");
+            CallableStatement cs = conn.prepareCall("{call my_proc_objarr(?)}");
+
+            char[] varArray = new char[10];
+            for (int i = 0; i < 10; ++i) {
+                varArray[i] = 'A';
+            }
+            Object[] structArray = new Object[10];
+            for (int i = 0; i < 10; ++i) {
+                structArray[i] = conn.createStruct("a_type", new Object[] { varArray[i] });
+            }
+            Array array = conn.createArrayOf("a_type", structArray);
+
+            cs.setArray(1, array);
+            cs.execute();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }
