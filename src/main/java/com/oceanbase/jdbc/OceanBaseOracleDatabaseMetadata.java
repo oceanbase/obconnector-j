@@ -73,6 +73,82 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     @Override
+    public ResultSet getTypeInfo() {
+        String[] columnNames = { "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX",
+                "LITERAL_SUFFIX", "CREATE_PARAMS", "NULLABLE", "CASE_SENSITIVE", "SEARCHABLE",
+                "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE", "AUTO_INCREMENT", "LOCAL_TYPE_NAME",
+                "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
+                "NUM_PREC_RADIX" };
+        ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.INTEGER,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.INTEGER,
+                ColumnType.BIT, ColumnType.SMALLINT, ColumnType.BIT, ColumnType.BIT,
+                ColumnType.BIT, ColumnType.VARCHAR, ColumnType.SMALLINT, ColumnType.SMALLINT,
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER };
+
+        String[][] data = {
+                { "INTERVALDS", "-104", "4", "INTERVAL '", "'", null, "1", "0", "3", "0", "0", "0",
+                        "INTERVALDS", "0", "0", null, null, "10" },
+                { "INTERVALYM", "-103", "5", "INTERVAL '", "'", null, "1", "0", "3", "0", "0", "0",
+                        "INTERVALYM", "0", "0", null, null, "10" },
+                { "TIMESTAMP WITH LOCAL TIME ZONE", "-102", "11", "TIMESTAMP '", "'", null, "1",
+                        "0", "3", "0", "0", "0", "TIMESTAMP WITH LOCAL TIME ZONE", "0", "0", null,
+                        null, "10" },
+                { "TIMESTAMP WITH TIME ZONE", "-101", "13", "TIMESTAMP '", "'", null, "1", "0",
+                        "3", "0", "0", "0", "TIMESTAMP WITH TIME ZONE", "0", "0", null, null, "10" },
+                { "NCHAR", "-5", "2000", "'", "'", null, "1", "1", "3", "0", "0", "0", "NCHAR",
+                        "0", "0", null, null, "10" },
+                { "NVARCHAR2", "-9", "32766", "'", "'", null, "1", "1", "3", "0", "0", "0",
+                        "nVARCHAR2", "0", "0", null, null, "10" },
+                { "NUMBER", "-7", "1", null, null, "(1)", "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "NUMBER", "-6", "3", null, null, "(3)", "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "NUMBER", "-5", "38", null, null, null, "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "LONG RAW", "-4", "2147483647", "'", "'", null, "1", "0", "0", "0", "0", "0",
+                        "LONG RAW", "0", "0", null, null, "10" },
+                { "RAW", "-3", "32767", "'", "'", null, "1", "0", "3", "0", "0", "0", "RAW", "0",
+                        "0", null, null, "10" },
+                { "LONG", "-1", "2147483647", "'", "'", null, "1", "1", "0", "0", "0", "0", "LONG",
+                        "0", "0", null, null, "10" },
+                { "CHAR", "1", "2000", "'", "'", null, "1", "1", "3", "0", "0", "0", "CHAR", "0",
+                        "0", null, null, "10" },
+                { "NUMBER", "2", "38", null, null, null, "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "NUMBER", "4", "10", null, null, "(10)", "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "NUMBER", "5", "5", null, null, "(5)", "1", "0", "3", "0", "1", "0", "NUMBER",
+                        "-84", "127", null, null, "10" },
+                { "FLOAT", "6", "63", null, null, null, "1", "0", "3", "0", "1", "0", "FLOAT",
+                        "-84", "127", null, null, "10" },
+                { "REAL", "7", "63", null, null, null, "1", "0", "3", "0", "1", "0", "REAL", "-84",
+                        "127", null, null, "10" },
+                { "VARCHAR2", "12", "32767", "'", "'", null, "1", "1", "3", "0", "0", "0",
+                        "VARCHAR2", "0", "0", null, null, "10" },
+                { "DATE", "92", "7", "DATE '", "'", null, "1", "0", "3", "0", "0", "0", "DATE",
+                        "0", "0", null, null, "10" },
+                { "DATE", "93", "7", "DATE '", "'", null, "1", "0", "3", "0", "0", "0", "DATE",
+                        "0", "0", null, null, "10" },
+                { "TIMESTAMP", "93", "11", "TIMESTAMP '", "'", null, "1", "0", "3", "0", "0", "0",
+                        "TIMESTAMP", "0", "0", null, null, "10" },
+                { "STRUCT", "2002", "0", "'", "'", null, "1", "1", "0", "0", "0", "0", "STRUCT",
+                        "0", "0", null, null, "10" },
+                { "ARRAY", "2003", "0", "'", "'", null, "1", "1", "0", "0", "0", "0", "ARRAY", "0",
+                        "0", null, null, "10" },
+                { "BLOB", "2004", "-1", null, null, null, "1", "0", "0", "0", "0", "0", "BLOB",
+                        "0", "0", null, null, "10" },
+                { "CLOB", "2005", "-1", "'", "'", null, "1", "1", "0", "0", "0", "0", "CLOB", "0",
+                        "0", null, null, "10" },
+                { "REF", "2005", "-1", "'", "'", null, "1", "1", "0", "0", "0", "0", "REF", "0",
+                        "0", null, null, "10" },
+                { "NCLOB", "2011", "-1", "'", "'", null, "1", "1", "0", "0", "0", "0", "NCLOB",
+                        "0", "0", null, null, "10" } };
+
+        return SelectResultSet.createResultSet(columnNames, columnTypes, data,
+            connection.getProtocol());
+    }
+
+    @Override
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
                                                                                                      throws SQLException {
         PreparedStatement stmt;

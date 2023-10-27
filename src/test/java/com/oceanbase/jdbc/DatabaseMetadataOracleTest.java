@@ -1213,4 +1213,23 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testGetTypeInfo() {
+        Connection conn = sharedConnection;
+        try {
+            ResultSet rs = conn.getMetaData().getTypeInfo();
+            assertTrue(rs.next());
+            boolean isExists = false;
+            do {
+                if ("NVARCHAR2".equals(rs.getString("TYPE_NAME"))) {
+                    isExists = true;
+                }
+            } while (rs.next() && !isExists);
+            assertTrue(isExists);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }
