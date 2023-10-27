@@ -54,6 +54,7 @@ import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 
@@ -542,7 +543,8 @@ public class Clob extends Lob implements java.sql.Clob {
         }
 
         int writeAmount, writeOffset = (int) writeAt, localOffset = 0, lengthLeft = length;
-        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}")) {
+        try (CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             while (lengthLeft > 0) {
                 writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
 
@@ -581,6 +583,7 @@ public class Clob extends Lob implements java.sql.Clob {
         clearData();
 
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.trim( ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             cstmt.setClob(1, this);
             cstmt.setInt(2, len);
             cstmt.registerOutParameter(1, Types.CLOB);
@@ -622,6 +625,7 @@ public class Clob extends Lob implements java.sql.Clob {
 
         int offset = 1;
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             while (true) {
                 cstmt.setClob(1, this);
                 cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);
@@ -677,6 +681,7 @@ public class Clob extends Lob implements java.sql.Clob {
         }
 
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             cstmt.setClob(2, this);
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.execute();

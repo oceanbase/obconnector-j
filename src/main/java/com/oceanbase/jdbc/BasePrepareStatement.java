@@ -291,16 +291,17 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (blob instanceof com.oceanbase.jdbc.Blob) {
-            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts) {
-                if (((Blob) blob).getLocator() != null) {
-                    setParameter(parameterIndex, new OBEmptyLobParameter(0));
-                    return;
-                }
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts && ((Blob) blob).getLocator() == null) {
+                setParameter(parameterIndex, new OBEmptyLobParameter(0));
+                return;
             }
+
             if (this.connection.getProtocol().isOracleMode()) {
                 if (((Blob) blob).getLocator() != null) {
-                    if (this.connection.getProtocol().getOptions().useServerPrepStmts == true) {
-                        setLobLocator(parameterIndex, blob);
+                    if (options.useServerPrepStmts || isInternal) {
+                        byte[] data = ((Blob) blob).getLocator().binaryData;
+                        setParameter(parameterIndex,
+                            new OBStreamParameter(true, data, blob.length(), noBackslashEscapes));
                     } else {
                         setParameter(parameterIndex,
                             new OBStreamParameter(true, blob.getBinaryStream(), blob.length(),
@@ -308,7 +309,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                     }
                 } else {
                     setParameter(parameterIndex,
-                        new OBStreamParameter(false, blob.getBinaryStream(), blob.length(),
+                        new OBStreamParameter(false, (Lob) blob, blob.length(),
                             noBackslashEscapes));
                 }
             } else {
@@ -427,19 +428,27 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (clob instanceof com.oceanbase.jdbc.Clob) {
-            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts) {
+            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts
+                && ((com.oceanbase.jdbc.Clob) clob).getLocator() == null) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(1));
                 return;
             }
 
             if (this.connection.getProtocol().isOracleMode()) {
-                if ((((Clob) clob).getLocator() != null) && options.useServerPsStmtChecksum) {
-                    byte[] data = ((Clob) clob).getLocator().binaryData;
-                    setParameter(parameterIndex, new OBReaderParameter(true, data, clob.length(),
-                        noBackslashEscapes));
+                if ((((Clob) clob).getLocator() != null)) {
+                    if (options.useServerPrepStmts || isInternal) {
+                        byte[] data = ((Clob) clob).getLocator().binaryData;
+                        setParameter(parameterIndex,
+                            new OBReaderParameter(true, data, clob.length(), noBackslashEscapes));
+                    } else {
+                        setParameter(parameterIndex,
+                            new OBReaderParameter(true, (Clob) clob, clob.length(),
+                                noBackslashEscapes));
+                    }
                 } else {
-                    setParameter(parameterIndex, new OBReaderParameter((Clob) clob, clob.length(),
-                        noBackslashEscapes));
+                    setParameter(
+                        parameterIndex,
+                        new OBReaderParameter(false, (Clob) clob, clob.length(), noBackslashEscapes));
                 }
             } else {
                 if (options.useServerPrepStmts) {

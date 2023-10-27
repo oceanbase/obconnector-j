@@ -2107,7 +2107,6 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.ORA_BLOB
             .getType()) {
             return new com.oceanbase.jdbc.Blob(true, data, encoding, this.statement.getConnection());
-
         } else {
             return new com.oceanbase.jdbc.Blob(row.buf, row.pos, row.length);
         }

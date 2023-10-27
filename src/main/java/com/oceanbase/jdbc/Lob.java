@@ -45,7 +45,6 @@ package com.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -435,8 +434,8 @@ public abstract class Lob implements Serializable {
             length = arrayPos + bytes.length;
             offset = 0;
         }
-        charData = new String(data,
-            Charset.forName(this.encoding == null ? "UTF-8" : this.encoding));
+        charData = new String(data, offset, length, Charset.forName(this.encoding == null ? "UTF-8"
+            : this.encoding));
         return bytes.length;
     }
 

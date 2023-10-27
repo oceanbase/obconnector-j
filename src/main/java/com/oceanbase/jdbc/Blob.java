@@ -370,6 +370,7 @@ public class Blob extends Lob implements java.sql.Blob {
 
         int writeAmount, writeOffset = (int) writeAt, localOffset = offset, lengthLeft = length;
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.write( ?, ?, ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             while (lengthLeft > 0) {
                 writeAmount = Math.min(lengthLeft, DBMS_LOB_MAX_AMOUNT);
                 byte[] writeBuffer = new byte[writeAmount];
@@ -412,6 +413,7 @@ public class Blob extends Lob implements java.sql.Blob {
         }
 
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.trim( ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             ((BasePrepareStatement) cstmt).setLobLocator(1, this);
             cstmt.setInt(2, len);
             cstmt.registerOutParameter(1, Types.BLOB);
@@ -453,6 +455,7 @@ public class Blob extends Lob implements java.sql.Blob {
 
         int offset = 1;
         try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+            ((OceanBaseStatement) cstmt).setInternal();
             while (true) {
                 cstmt.setBlob(1, this);
                 cstmt.setInt(2, DBMS_LOB_MAX_AMOUNT);

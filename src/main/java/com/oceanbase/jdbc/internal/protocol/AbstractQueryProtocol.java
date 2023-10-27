@@ -450,7 +450,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       int parameterCount = serverPrepareResult.getParameters().length;
       if (isOracleMode()) {
         // send binary data in a separate stream
-        if (options.useServerPrepStmts && options.usePieceData) {
+        if (options.useServerPrepStmts && options.usePieceData
+                || results != null && results.getStatement() != null && results.getStatement().isInternal()) {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
               boolean continueWrite = true;
@@ -537,7 +538,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       if (isOracleMode()) {
         // use send piece data
-        if (options.useServerPrepStmts && options.usePieceData) {
+        if (options.useServerPrepStmts && options.usePieceData
+                  || results != null && results.getStatement() != null && results.getStatement().isInternal()) {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
               if (serverPrepareResult == null) {

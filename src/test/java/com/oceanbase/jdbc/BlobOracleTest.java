@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -1269,7 +1270,7 @@ public class BlobOracleTest extends BaseOracleTest {
             }
             os.flush();
             ps.setBlob(1, blob1);
-            
+
             int size2 = 1024 * 65;
             java.sql.Blob blob2 = conn.createBlob();
             byte[] bytes = new byte[size2];
@@ -1338,6 +1339,87 @@ public class BlobOracleTest extends BaseOracleTest {
             e.printStackTrace();
             fail();
         }
+    }
+
+
+    @Test
+    public void testBlob2() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            String blobTest = "t_blob";
+
+            createTable(blobTest, "c1 blob, c2 blob, c3 blob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + blobTest + " values(?,?,?)");
+
+            java.sql.Blob blob = conn.createBlob();
+            OutputStream outputStream = blob.setBinaryStream(1);
+            outputStream.write("aaaaa".getBytes());
+            outputStream.flush();
+            outputStream.close();
+            ps.setBlob(1, blob);
+            blob.setBytes(1, "bbb".getBytes());
+            ps.setBlob(2, blob);
+            blob.setBytes(1, "ccccccc".getBytes());
+            ps.setBlob(3, blob);
+            ps.execute();
+
+            ps = conn.prepareStatement("select * from " + blobTest);
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+            byte[] bytes = rs.getBytes(1);
+            assertTrue(7==bytes.length);
+            for (int i = 0; i < bytes.length; i++) {
+                assertTrue(99==bytes[i]);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void aone52589180() {
+        Assume.assumeFalse(sharedUsePrepare());
+        try {
+            Connection conn = sharedConnection;//setConnection("&useServerPrepStmts=false");
+            createTable("t_blob", "c1 blob");
+            String sql = "insert into t_blob values (?)";
+
+            PreparedStatement ps = conn.prepareStatement(sql);
+            int size = 1024 * 32;
+            byte[] bytes = new byte[size];
+            ps.setBytes(1, bytes);
+
+            assertEquals(1, ps.executeUpdate());
+
+            ResultSet rs = conn.prepareStatement("select * from t_blob").executeQuery();
+            assertTrue(rs.next());
+            assertEquals(size, rs.getBytes(1).length);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testFunction() throws SQLException, FileNotFoundException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table test_version");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table test_version (v0 number , v1 blob)");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_version values(0,?)");
+        pstmt.setBlob(1, new FileInputStream(new File(
+            "src/test/resources/VacationRequest.bpmn20.xml")));
+        pstmt.execute();
+        ResultSet rs = stmt.executeQuery("select * from test_version where v0 = 0");
+        rs.next();
+        java.sql.Blob b1 = rs.getBlob("v1");
+        System.out.println(b1.length());
+        System.out.println(b1.getBytes(1, 5).length);
     }
 
 }

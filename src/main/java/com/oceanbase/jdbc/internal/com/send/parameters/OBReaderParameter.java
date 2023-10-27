@@ -78,9 +78,10 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public OBReaderParameter(Clob clob, long length, boolean noBackslashEscapes) {
+    public OBReaderParameter(boolean hasLobLocator, Clob clob, long length,
+                             boolean noBackslashEscapes) {
         this.reader = null;
-        this.hasLobLocator = false;
+        this.hasLobLocator = hasLobLocator;
         this.clob = clob;
         this.length = length;
         this.bytes = null;
@@ -167,7 +168,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
     }
 
     public boolean isLongData() {
-        return this.hasLobLocator ? false : true;
+        return !this.hasLobLocator;
     }
 
     @Override

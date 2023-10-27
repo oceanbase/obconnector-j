@@ -877,4 +877,126 @@ public class ClobOracleTest extends BaseOracleTest {
         Assert.assertEquals(text.length(), clob.length());
     }
 
+    @Test
+    public void aone50824294() {
+        try {
+            Connection conn = setConnection("&useServerPrepStmts=true&usePieceData=true&useServerPsStmtChecksum=false");
+            createTable("clobTest1", "c1 varchar2(20), c2 clob");
+            String sql = "insert into  clobTest1 values ('abcString123', ?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            int clobSize = 1024 * 5;
+//            int clobSize = 1024 * 4;
+            StringBuilder stringBuilder = new StringBuilder();
+            for (int i = 0; i < clobSize; i++) {
+                stringBuilder.append('a');
+            }
+            String str = stringBuilder.toString();
+
+            ps.setClob(1, new StringReader(str));
+            ps.execute();
+            ResultSet rs = conn.prepareStatement("select c2 from clobTest1").executeQuery();
+            assertTrue(rs.next());
+            assertEquals(clobSize, rs.getString(1).length());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testInvalidHexNumber() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=TRUE&allowMultiQueries=TRUE&useLocalSessionState=TRUE" +
+                    "&useUnicode=TRUE&socketTimeout=3000000&connectTimeout=60000");
+            createTable("CLOB_TEST", "ID VARCHAR2(10), MESSAGE CLOB");
+
+            ResultSet rs = null;
+            String insertSql = "insert into CLOB_TEST(ID, MESSAGE) values ('TEST', empty_clob())";
+            String querySql = "select ID, MESSAGE from CLOB_TEST s where s.ID=? for update";
+            PreparedStatement insert = conn.prepareStatement(insertSql);
+            PreparedStatement query = conn.prepareStatement(querySql);
+            insert.executeUpdate();
+            query.setString(1, "TEST");
+            conn.setAutoCommit(false);
+            rs = query.executeQuery();
+            if (rs.next()) {
+                java.sql.Clob clob = rs.getClob("MESSAGE");
+                clob.setString(1L, "aaaaaa"); // aone 50972954: -9747, malformed ps packet
+                assertEquals("aaaaaa", clob.getSubString(1L, (int) clob.length()));
+            }
+            conn.commit();
+            conn.setAutoCommit(true);
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void dadibaoxian() throws SQLException, IOException {
+        Connection conn = sharedConnection;
+        createTable("clobTest1", "c1 int, c2 clob");
+        String sql = "insert into  clobTest1 values (1, ?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        int clobSize = 9*1024;
+        char[] data = new char[clobSize];
+        for (int i = 0; i < clobSize; i++) {
+            data[i]='a';
+        }
+        String str = String.valueOf(data);
+        ps.setString(1, str);
+        ps.execute();
+        ResultSet rs = conn.prepareStatement("select c2 from clobTest1").executeQuery();
+        assertTrue(rs.next());
+        java.sql.Clob clob2 = rs.getClob(1);
+        char [] res_data = new char[clobSize];
+        clob2.getCharacterStream().read(res_data);
+        for (int i = 0; i < clobSize; i++) {
+            assertEquals(data[i], res_data[i]);
+        }
+        assertEquals(clobSize, rs.getString(1).length());
+    }
+
+    @Test
+    public void aone51963233() throws Exception {
+        createTable("t1", "c1 clob");
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t1 values ('aaa')");
+
+        ResultSet rs = conn.prepareStatement("select c1 from t1").executeQuery();
+        assertTrue(rs.next());
+        try {
+            java.sql.Clob clob = rs.getClob(1);
+            clob.setString(1, "bbbb");// server 4.3，ps 协议，ORA-00600: internal error code, arguments: -6256, Row has not been locked
+            fail();
+        } catch (SQLException e) {
+            //oracle-jdbc  ORA-22920: 未锁定含有 LOB 值的行
+        }
+
+        conn.setAutoCommit(false);
+        rs = conn.prepareStatement("select c1 from t1 for update").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("aaa", rs.getString(1));
+        java.sql.Clob clob = rs.getClob(1);
+        clob.setString(1, "bbbb");
+        assertEquals("bbbb", clob.getSubString(1, (int) clob.length()));
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        rs = conn.prepareStatement("select c1 from t1 for update").executeQuery(); // server 4.3，ps 二合一协议，ORA-01002: fetch out of sequence
+        assertTrue(rs.next()); // server 4.3，ps 协议，ORA-01002: fetch out of sequence
+        assertEquals("bbbb", rs.getString(1));
+        clob = rs.getClob(1);
+        clob.setString(1, "bbbb"); // server 4.3，文本协议，ORA-22990: LOB locators cannot span transactions；
+                                            // server 3.2.3，所有协议，ORA-00600: internal error code, arguments: -6256, Row has not been locked
+        assertEquals("bbbb", clob.getSubString(1, (int) clob.length()));
+
+        rs = conn.prepareStatement("select c1 from t1").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("bbbb", rs.getString(1));
+    }
+
 }

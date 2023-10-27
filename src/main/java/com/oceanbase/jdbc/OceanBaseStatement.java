@@ -117,7 +117,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected Results results;
   PreparedStatement   cursorFetchPstmt;
   private    boolean  isPoolable = true;
-  private    boolean  isInternal;
+  protected  boolean  isInternal;
 
   // execute
   protected volatile boolean executing;
@@ -1861,5 +1861,10 @@ public class OceanBaseStatement implements Statement, Cloneable {
   public void setInternal() {
     isInternal = true;
   }
+
+  public boolean isInternal() {
+    return isInternal;
+  }
+
 
 }
