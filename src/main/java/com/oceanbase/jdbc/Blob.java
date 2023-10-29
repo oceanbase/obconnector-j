@@ -133,7 +133,7 @@ public class Blob extends Lob implements java.sql.Blob {
 
         // readLong in 1.x is equivalent to readInt in 2.0,readLongLong in 1.x is equivalent to readLong in 2.0.
         /* Has Locator with Blob */
-        if (null != data && null != conn) {
+        if (null != data) {
             Buffer buffer = new Buffer(data);
             long magicCode = buffer.readLong4BytesV1();
             long version = buffer.readLong4BytesV1();

@@ -291,7 +291,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (blob instanceof com.oceanbase.jdbc.Blob) {
-            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts && ((Blob) blob).getLocator() == null) {
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(0));
                 return;
             }
@@ -304,24 +304,19 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                             new OBStreamParameter(true, data, blob.length(), noBackslashEscapes));
                     } else {
                         setParameter(parameterIndex,
-                            new OBStreamParameter(true, blob.getBinaryStream(), blob.length(),
-                                noBackslashEscapes));
+                            new OBStreamParameter(true, blob.getBinaryStream(), blob.length(), noBackslashEscapes));
                     }
                 } else {
                     setParameter(parameterIndex,
-                        new OBStreamParameter(false, (Lob) blob, blob.length(),
-                            noBackslashEscapes));
+                        new OBStreamParameter(false, (Lob) blob, blob.length(), noBackslashEscapes));
                 }
             } else {
                 if (options.useServerPrepStmts) {
-                    setParameter(parameterIndex, new StreamParameter((Lob) blob, blob.length(),
-                        noBackslashEscapes));
+                    setParameter(parameterIndex, new StreamParameter((Lob) blob, blob.length(), noBackslashEscapes));
                 } else {
                     setParameter(parameterIndex,
-                        new ByteArrayParameter(blob.getBytes(1, (int) blob.length()),
-                            noBackslashEscapes));
+                        new ByteArrayParameter(blob.getBytes(1, (int) blob.length()), noBackslashEscapes));
                 }
-
             }
             hasLongData = true;
         } else {
@@ -428,8 +423,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (clob instanceof com.oceanbase.jdbc.Clob) {
-            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts
-                && ((com.oceanbase.jdbc.Clob) clob).getLocator() == null) {
+            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(1));
                 return;
             }
@@ -442,22 +436,20 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                             new OBReaderParameter(true, data, clob.length(), noBackslashEscapes));
                     } else {
                         setParameter(parameterIndex,
-                            new OBReaderParameter(true, (Clob) clob, clob.length(),
-                                noBackslashEscapes));
+                            new OBReaderParameter(true, (Clob) clob, clob.length(), noBackslashEscapes));
                     }
                 } else {
-                    setParameter(
-                        parameterIndex,
+                    setParameter(parameterIndex,
                         new OBReaderParameter(false, (Clob) clob, clob.length(), noBackslashEscapes));
                 }
             } else {
                 if (options.useServerPrepStmts) {
-                    setParameter(parameterIndex, new ReaderParameter((Clob) clob, clob.length(),
-                        noBackslashEscapes));
+                    setParameter(parameterIndex,
+                        new ReaderParameter((Clob) clob, clob.length(), noBackslashEscapes));
                 } else {
                     setParameter(parameterIndex,
-                        new StringParameter(clob.getSubString(1, (int) clob.length()),
-                            noBackslashEscapes, protocol.getEncoding()));
+                        new StringParameter(clob.getSubString(1, (int) clob.length()), noBackslashEscapes
+                                , protocol.getEncoding()));
                 }
             }
             hasLongData = true;

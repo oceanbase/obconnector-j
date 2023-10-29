@@ -125,27 +125,34 @@ public class Clob extends Lob implements java.sql.Clob {
 
     public Clob(boolean hasLocator, byte[] data, String encoding, OceanBaseConnection conn)
                                                                                            throws SQLException {
+        if (null != conn) {
+            this.encoding = conn.getProtocol().getEncoding();
+            /* It only be used by getCharacterStream for Blob, and to decode the byte[] data to char[]
+             *  Use the encoding with the Connection's encoding's Name assigned by USER. For that it is
+             *  user which encoding byte[] to char[]. */
+        } else if (null != encoding) {
+            this.encoding = encoding; // not to be here
+        } else {
+            this.encoding = "UTF-8";
+        }
+
         if (!hasLocator) {
-            this.encoding = encoding;
             try {
                 this.charData = new String(data, this.encoding);
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding");
             }
-        } else {
-            if (null != data) {
-                this.encoding = encoding;
-                Buffer buffer = new Buffer(data);
-                long magicCode = buffer.readLong4BytesV1();
-                long version = buffer.readLong4BytesV1();
+        } else if (null != data) {
+            Buffer buffer = new Buffer(data);
+            long magicCode = buffer.readLong4BytesV1();
+            long version = buffer.readLong4BytesV1();
 
-                if (version == 1) {
-                    buildObLobLocatorV1(false, buffer, magicCode, version, conn);
-                } else if ((version & 0x000000ff) == 2) {
-                    buildObLobLocatorV2(false, buffer, magicCode, version, conn);
-                } else {
-                    throw new SQLException("Unknown version of lob locator!");
-                }
+            if (version == 1) {
+                buildObLobLocatorV1(false, buffer, magicCode, version, conn);
+            } else if ((version & 0x000000ff) == 2) {
+                buildObLobLocatorV2(false, buffer, magicCode, version, conn);
+            } else {
+                throw new SQLException("Unknown version of lob locator!");
             }
         }
     }

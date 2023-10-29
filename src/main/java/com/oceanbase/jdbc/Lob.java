@@ -254,6 +254,7 @@ public abstract class Lob implements Serializable {
         locator.payloadOffset = buffer.readLong4BytesV1();
         locator.payloadSize = buffer.readLong4BytesV1();
 
+        // locator.payloadSize + locator.payloadOffset <= buffer.getLimit() - ObLobLocator.OB_LOG_LOCATOR_HEADER(40)
         if (locator.payloadSize + locator.payloadOffset <= buffer.remaining()) {
             locator.rowId = buffer.readBytes((int) locator.payloadOffset); // row_id must be less than MAX_INT
             readInRowLobData(isBinary, buffer, locator.payloadSize);

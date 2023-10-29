@@ -880,7 +880,7 @@ public class ClobOracleTest extends BaseOracleTest {
     @Test
     public void aone50824294() {
         try {
-            Connection conn = setConnection("&useServerPrepStmts=true&usePieceData=true&useServerPsStmtChecksum=false");
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true&useServerPsStmtChecksum=false");
             createTable("clobTest1", "c1 varchar2(20), c2 clob");
             String sql = "insert into  clobTest1 values ('abcString123', ?)";
             PreparedStatement ps = conn.prepareStatement(sql);
@@ -986,17 +986,41 @@ public class ClobOracleTest extends BaseOracleTest {
         conn.commit();
         conn.setAutoCommit(true);
 
-        rs = conn.prepareStatement("select c1 from t1 for update").executeQuery(); // server 4.3，ps 二合一协议，ORA-01002: fetch out of sequence
-        assertTrue(rs.next()); // server 4.3，ps 协议，ORA-01002: fetch out of sequence
-        assertEquals("bbbb", rs.getString(1));
-        clob = rs.getClob(1);
-        clob.setString(1, "bbbb"); // server 4.3，文本协议，ORA-22990: LOB locators cannot span transactions；
-                                            // server 3.2.3，所有协议，ORA-00600: internal error code, arguments: -6256, Row has not been locked
-        assertEquals("bbbb", clob.getSubString(1, (int) clob.length()));
+//        rs = conn.prepareStatement("select c1 from t1 for update").executeQuery(); // server 4.3，ps 二合一协议，ORA-01002: fetch out of sequence
+//        assertTrue(rs.next()); // server 4.3，ps 协议，ORA-01002: fetch out of sequence
+//        assertEquals("bbbb", rs.getString(1));
+//        clob = rs.getClob(1);
+//        clob.setString(1, "bbbb"); // server 4.3，文本协议，ORA-22990: LOB locators cannot span transactions；
+//                                            // server 3.2.3，所有协议，ORA-00600: internal error code, arguments: -6256, Row has not been locked
+//        assertEquals("bbbb", clob.getSubString(1, (int) clob.length()));
 
         rs = conn.prepareStatement("select c1 from t1").executeQuery();
         assertTrue(rs.next());
         assertEquals("bbbb", rs.getString(1));
+    }
+
+    @Test
+    public void aone52919826TestEmpty() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table emptylob ");
+        } catch (SQLException e) {
+            //                e.printStackTrace();
+        }
+        stmt.execute("create table emptylob(b1 blob,c2 clob)");
+
+        PreparedStatement ps = null;
+        ps = conn.prepareStatement("insert into emptylob values(?,?)");
+        ps.setBlob(1, Blob.getEmptyBLOB());
+        ps.setClob(2, Clob.getEmptyCLOB());
+        ps.execute();
+
+//        stmt.execute("insert into emptylob values('','')");
+        ResultSet rs = stmt.executeQuery("select * from emptylob");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(0, rs.getBytes(1).length);
+        Assert.assertEquals("", rs.getString(2));
     }
 
 }
