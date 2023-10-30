@@ -1030,7 +1030,7 @@ public class BlobOracleTest extends BaseOracleTest {
             assertEquals(null, rs.getBytes(1));
             assertEquals(null, rs.getBytes(2));
             assertEquals(null, rs.getBytes(3));
-            assertEquals(null, rs.getBytes(4));
+            assertEquals(0, rs.getBytes(4).length);
             assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(5)));
             String str = new String(rs.getBytes(6));
             assertEquals(str.length(), 5120);
@@ -1053,7 +1053,7 @@ public class BlobOracleTest extends BaseOracleTest {
             assertEquals(5120, str.length());
             assertTrue(str.startsWith("abcde"));
             assertEquals(null, rs.getBytes(3));
-            assertEquals(null, rs.getBytes(4));
+            assertEquals(0, rs.getBytes(4).length);
             assertEquals("1234abcd奥星贝斯", new String(rs.getBytes(5)));
             str = new String(rs.getBytes(6));
             assertEquals(str.length(), 5120);
@@ -1078,7 +1078,7 @@ public class BlobOracleTest extends BaseOracleTest {
             assertEquals(str.length(), 5120);
             assertTrue(str.startsWith("abcde"));
             assertEquals(null, rs.getBytes(3));
-            assertEquals(null, rs.getBytes(4));
+            assertEquals(0, rs.getBytes(4).length);
             assertEquals("认真工作，live happily!", new String(rs.getBytes(5)));
             str = new String(rs.getBytes(6));
             assertEquals(sb.toString(), str);

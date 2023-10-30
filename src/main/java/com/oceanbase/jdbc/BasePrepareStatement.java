@@ -291,7 +291,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (blob instanceof com.oceanbase.jdbc.Blob) {
-            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts) {
+            if (((com.oceanbase.jdbc.Blob) blob).isEmptyLob() && !options.useServerPrepStmts && !isInternal) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(0));
                 return;
             }
@@ -423,7 +423,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
             return;
         }
         if (clob instanceof com.oceanbase.jdbc.Clob) {
-            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts) {
+            if (((com.oceanbase.jdbc.Clob) clob).isEmptyLob() && !options.useServerPrepStmts && !isInternal) {
                 setParameter(parameterIndex, new OBEmptyLobParameter(1));
                 return;
             }
