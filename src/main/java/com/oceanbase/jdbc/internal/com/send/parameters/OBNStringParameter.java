@@ -81,12 +81,13 @@ public class OBNStringParameter implements Cloneable, ParameterHolder {
         } else {
             pos.write("u");
             pos.write(QUOTE);
-            StringBuilder unicode = new StringBuilder();
-            for (int i = 0; i < stringValue.length(); i++) {
-                int code = stringValue.charAt(i);
-                unicode.append("\\").append(Integer.toHexString(code));
+            StringBuilder unicodeBuilder = new StringBuilder("");
+            for (char c : stringValue.toCharArray()) {
+                unicodeBuilder.append(String.format("\\%04x", (int) c));
             }
-            pos.write(unicode.toString());
+            String unicodeStr = unicodeBuilder.toString();
+            pos.writeBytesEscapedQuote(unicodeStr.getBytes(charset),
+                    unicodeStr.getBytes(charset).length, noBackslashEscapes);
         }
         pos.write(QUOTE);
     }

@@ -191,4 +191,49 @@ public class OracleNcharNvarcharTest extends BaseOracleTest {
 
         stmt.execute("delete from test_nv");
     }
+
+    @Test
+    public void fix52808791() throws SQLException {
+        try {
+            Connection conn = setConnection("&characterEncoding=gbk&nCharacterEncoding=utf8");
+            createTable("t_nchar", "id number, c1 nchar(200), c2 nvarchar2(200), c3 char(200), c4 varchar2(200)");
+
+            String str = "123中文abc㐀~";
+            PreparedStatement ps = conn.prepareStatement("insert into t_nchar values (1, ?, ?, ?, ?)");
+            ps.setNString(1, str);
+            ps.setNString(2, str);
+            ps.setString(3, str);
+            ps.setString(4, str);
+            Assert.assertEquals(1, ps.executeUpdate());
+            ps.setString(1, str);
+            ps.setString(2, str);
+            ps.setNString(3, str);
+            ps.setNString(4, str);
+            Assert.assertEquals(1, ps.executeUpdate());
+
+            ResultSet rs = conn.prepareStatement("select * from t_nchar").executeQuery();
+            Assert.assertTrue(rs.next());
+//            System.out.println(rs.getString(2));
+//            System.out.println(rs.getString(3));
+//            System.out.println(rs.getString(4));
+//            System.out.println(rs.getString(5));
+            Assert.assertTrue(rs.getString(2).startsWith("123中文abc㐀~"));
+            Assert.assertTrue(rs.getString(3).startsWith("123中文abc㐀~"));
+            Assert.assertTrue(rs.getString(4).startsWith("123中文abc?~"));
+            Assert.assertTrue(rs.getString(5).startsWith("123中文abc?~"));
+            Assert.assertTrue(rs.next());
+//            System.out.println(rs.getString(2));
+//            System.out.println(rs.getString(3));
+//            System.out.println(rs.getString(4));
+//            System.out.println(rs.getString(5));
+            Assert.assertTrue(rs.getString(2).startsWith("123中文abc?~"));
+            Assert.assertTrue(rs.getString(3).startsWith("123中文abc?~"));
+            Assert.assertTrue(rs.getString(4).startsWith("123中文abc?~"));
+            Assert.assertTrue(rs.getString(5).startsWith("123中文abc?~"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
 }
