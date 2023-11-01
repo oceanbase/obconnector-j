@@ -6,14 +6,21 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 
 public class OBEmptyLobParameter implements Cloneable, ParameterHolder {
-    int                         lobType    = 0; // 0 blob / 1 clob
-    private static final byte[] EMPTY_CLOB = { 'E', 'M', 'P', 'T', 'Y', '_', 'C', 'L', 'O', 'B',
-            '(', ')'                      };
-    private static final byte[] EMPTY_BLOB = { 'E', 'M', 'P', 'T', 'Y', '_', 'B', 'L', 'O', 'B',
-            '(', ')'                      };
+
+    int                         lobType          = 0;   // 0 blob / 1 clob
+    private byte[]              lobLocatorBinary = null;
+    private static final byte[] EMPTY_CLOB       = { 'E', 'M', 'P', 'T', 'Y', '_', 'C', 'L', 'O',
+            'B', '(', ')'                       };
+    private static final byte[] EMPTY_BLOB       = { 'E', 'M', 'P', 'T', 'Y', '_', 'B', 'L', 'O',
+            'B', '(', ')'                       };
 
     public OBEmptyLobParameter(int lobType) {
         this.lobType = lobType;
+    }
+
+    public OBEmptyLobParameter(int lobType, byte[] lobLocatorBinary) {
+        this.lobType = lobType;
+        this.lobLocatorBinary = lobLocatorBinary;
     }
 
     @Override
@@ -27,7 +34,11 @@ public class OBEmptyLobParameter implements Cloneable, ParameterHolder {
 
     @Override
     public void writeBinary(PacketOutputStream pos) throws IOException {
-        // never used
+        if (lobLocatorBinary != null) {
+            pos.writeFieldLength(lobLocatorBinary.length);
+            pos.write(lobLocatorBinary, 0, lobLocatorBinary.length);
+        }
+        // writing through reader is equivalent to writing nothing
     }
 
     @Override
@@ -40,9 +51,14 @@ public class OBEmptyLobParameter implements Cloneable, ParameterHolder {
         return false;
     }
 
+    /**
+     *
+     * @return ColumnType.ORA_CLOB/ORA_CLOB write through locator, and ColumnType.STRING write through reader
+     */
     @Override
     public ColumnType getColumnType() {
-        return ColumnType.STRING;
+        return lobLocatorBinary != null ? (lobType == 0 ? ColumnType.ORA_BLOB : ColumnType.ORA_CLOB)
+            : ColumnType.STRING;
     }
 
     @Override

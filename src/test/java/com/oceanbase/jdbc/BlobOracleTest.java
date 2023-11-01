@@ -1008,7 +1008,7 @@ public class BlobOracleTest extends BaseOracleTest {
 
             createTable(blobTest3, "id int, c1 blob, c2 blob, c3 blob, c4 blob, c5 blob, c6 blob");
             PreparedStatement ps = conn.prepareStatement("insert into " + blobTest3
-                    + " values(1, ?, ?, ?, ?, ?, ?)");
+                                                         + " values(1, ?, ?, ?, ?, ?, ?)");
 
             ps.setBinaryStream(1, null);
             ps.setBlob(2, (Blob) null);
@@ -1125,15 +1125,15 @@ public class BlobOracleTest extends BaseOracleTest {
         assertArrayEquals(bytes, bytes1);
         assertEquals(size2, new String(bytes1).length());
         assertEquals(size2, rs.getBlob(2).length());
-        assertEquals(size2, ((java.sql.Blob)rs.getObject(2)).length());
-//        assertEquals(size2, rs.getObject(2, Blob.class).length()); //oracle not supported
+        assertEquals(size2, ((java.sql.Blob) rs.getObject(2)).length());
+        //        assertEquals(size2, rs.getObject(2, Blob.class).length()); //oracle not supported
     }
 
     @Test
     public void fix48575083() {
         try {
             Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
-//            Connection conn = setConnectionOrigin("?useServerPrepStmts=false");
+            //            Connection conn = setConnectionOrigin("?useServerPrepStmts=false");
             String blobTest3 = "t_blob" + getRandomString(5);
 
             createTable(blobTest3, "b1 blob");
@@ -1155,49 +1155,50 @@ public class BlobOracleTest extends BaseOracleTest {
             java.sql.Blob var1 = rs.getBlob(1);
             long len1 = var1.length();
             String str1 = var1.toString();
-//                System.out.println("var1.length: " + len1);
-//                System.out.println("var1.toString: " + str1);
+            //                System.out.println("var1.length: " + len1);
+            //                System.out.println("var1.toString: " + str1);
             Assert.assertEquals(size, len1);
 
             byte[] var2 = rs.getBytes(1);
             long len2 = var2.length;
             String str2 = var2.toString();
-//                System.out.println("var2.length: " + len2);
-//                System.out.println("var2.toString: " + str2);
+            //                System.out.println("var2.length: " + len2);
+            //                System.out.println("var2.toString: " + str2);
             Assert.assertEquals(size, len2);
 
             try {
                 java.sql.Blob var3 = rs.getObject(1, java.sql.Blob.class);
                 long len3 = var3.length();
                 String str3 = var3.toString();
-//                System.out.println("var3.length: " + len3);
-//                System.out.println("var3.toString: " + str3);
+                //                System.out.println("var3.length: " + len3);
+                //                System.out.println("var3.toString: " + str3);
                 Assert.assertEquals(size, len3);
             } catch (Exception e) {
                 e.printStackTrace();
-                Assert.assertTrue(e.getMessage().contains("Type class 'java.sql.Blob' is not supported"));
+                Assert.assertTrue(e.getMessage().contains(
+                    "Type class 'java.sql.Blob' is not supported"));
             }
 
             byte[] var4 = rs.getObject(1, byte[].class);
             long len4 = var4.length;
             String str4 = var4.toString();
-//                System.out.println("var4.length: " + len4);
-//                System.out.println("var4.toString: " + str4);
+            //                System.out.println("var4.length: " + len4);
+            //                System.out.println("var4.toString: " + str4);
             Assert.assertEquals(size, len4);
 
             java.sql.Blob var5 = (java.sql.Blob) rs.getObject(1);
             long len5 = var5.length();
             String str5 = var5.toString();
-//                System.out.println("var5.length: " + len5);
-//                System.out.println("var5.toString: " + str5);
+            //                System.out.println("var5.length: " + len5);
+            //                System.out.println("var5.toString: " + str5);
             Assert.assertEquals(size, len5);
 
             try {
                 byte[] var6 = (byte[]) rs.getObject(1);
                 long len6 = var6.length;
                 String str6 = var6.toString();
-//                System.out.println("var6.length: " + len6);
-//                System.out.println("var6.toString: " + str6);
+                //                System.out.println("var6.length: " + len6);
+                //                System.out.println("var6.toString: " + str6);
                 Assert.assertEquals(size, len6);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1216,7 +1217,8 @@ public class BlobOracleTest extends BaseOracleTest {
             String blobTest = "t_blob";
 
             createTable(blobTest, "c1 blob, c2 blob");
-            PreparedStatement ps = conn.prepareStatement("insert into " + blobTest + " values(?,?)");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into " + blobTest + " values(?,?)");
             int size1 = 1024 * 64;
             int size2 = 1024 * 65;
             java.sql.Blob blob = conn.createBlob();
@@ -1246,8 +1248,8 @@ public class BlobOracleTest extends BaseOracleTest {
             assertArrayEquals(bytes, bytes1);
             assertEquals(size2, new String(bytes1).length());
             assertEquals(size2, rs.getBlob(2).length());
-            assertEquals(size2, ((java.sql.Blob)rs.getObject(2)).length());
-//        assertEquals(size2, rs.getObject(2, Blob.class).length()); //oracle not supported
+            assertEquals(size2, ((java.sql.Blob) rs.getObject(2)).length());
+            //        assertEquals(size2, rs.getObject(2, Blob.class).length()); //oracle not supported
         } catch (Exception e) {
             e.printStackTrace();
             fail();
@@ -1261,7 +1263,8 @@ public class BlobOracleTest extends BaseOracleTest {
             String blobTest = "t_blob" + getRandomString(5);
             createTable(blobTest, "c1 blob, c2 blob");
 
-            PreparedStatement ps = conn.prepareStatement("insert into " + blobTest + " values(?,?)");
+            PreparedStatement ps = conn
+                .prepareStatement("insert into " + blobTest + " values(?,?)");
             int size1 = 1024 * 64;
             java.sql.Blob blob1 = conn.createBlob();
             OutputStream os = blob1.setBinaryStream(1);
@@ -1301,7 +1304,7 @@ public class BlobOracleTest extends BaseOracleTest {
             assertEquals(size2, new String(bytes2).length());
             assertArrayEquals(bytes, rs.getBlob(2).getBytes(1, size2)); //read
             assertEquals(size2, rs.getBlob(2).length());
-            assertEquals(size2, ((java.sql.Blob)rs.getObject(2)).length());
+            assertEquals(size2, ((java.sql.Blob) rs.getObject(2)).length());
             assertEquals(size2, rs.getObject(2, Blob.class).length()); //oracle not supported
 
             conn.setAutoCommit(false);
@@ -1311,7 +1314,7 @@ public class BlobOracleTest extends BaseOracleTest {
             java.sql.Blob blob3 = rs.getBlob(1);
             java.sql.Blob blob4 = rs.getBlob(2);
 
-            blob3.setBytes(1, "abc中文ABC".getBytes(), 0,10);
+            blob3.setBytes(1, "abc中文ABC".getBytes(), 0, 10);
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 1024 * 10; i++) {
                 sb.append("abc中文A");
@@ -1341,7 +1344,6 @@ public class BlobOracleTest extends BaseOracleTest {
         }
     }
 
-
     @Test
     public void testBlob2() {
         try {
@@ -1349,7 +1351,8 @@ public class BlobOracleTest extends BaseOracleTest {
             String blobTest = "t_blob";
 
             createTable(blobTest, "c1 blob, c2 blob, c3 blob");
-            PreparedStatement ps = conn.prepareStatement("insert into " + blobTest + " values(?,?,?)");
+            PreparedStatement ps = conn.prepareStatement("insert into " + blobTest
+                                                         + " values(?,?,?)");
 
             java.sql.Blob blob = conn.createBlob();
             OutputStream outputStream = blob.setBinaryStream(1);
@@ -1367,9 +1370,19 @@ public class BlobOracleTest extends BaseOracleTest {
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             byte[] bytes = rs.getBytes(1);
-            assertTrue(7==bytes.length);
+            assertEquals(7, bytes.length);
             for (int i = 0; i < bytes.length; i++) {
-                assertTrue(99==bytes[i]);
+                assertEquals(99, bytes[i]);
+            }
+            bytes = rs.getBytes(2);
+            assertEquals(7, bytes.length);
+            for (int i = 0; i < bytes.length; i++) {
+                assertEquals(99, bytes[i]);
+            }
+            bytes = rs.getBytes(3);
+            assertEquals(7, bytes.length);
+            for (int i = 0; i < bytes.length; i++) {
+                assertEquals(99, bytes[i]);
             }
         } catch (Exception e) {
             e.printStackTrace();

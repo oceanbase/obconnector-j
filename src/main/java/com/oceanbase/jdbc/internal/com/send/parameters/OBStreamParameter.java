@@ -47,7 +47,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 
-import com.oceanbase.jdbc.Lob;
+import com.oceanbase.jdbc.Blob;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -56,12 +56,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
 
-    private InputStream   is;
-    private final Lob     lob;
-    private final long    length;
-    private final boolean noBackslashEscapes;
+    private final Blob    blob;
     private final boolean hasLobLocator;
-    private final byte[]  bytes;
+    private final byte[]  lobLocatorBinary;
+    private InputStream   is;
+    private long          length;
+    private final boolean noBackslashEscapes;
 
     /**
      * Constructor.
@@ -70,47 +70,42 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      * @param length max length to write (if null the whole stream will be send)
      * @param noBackslashEscapes must backslash be escape
      */
-    public OBStreamParameter(boolean hasLobLocator, InputStream is, long length,
-                             boolean noBackslashEscapes) {
+    public OBStreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
+        this.blob = null;
+        this.hasLobLocator = false;
+        this.lobLocatorBinary = null;
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
-        this.hasLobLocator = hasLobLocator;
-        this.bytes = null;
-        this.lob = null;
-    }
-
-    public OBStreamParameter(boolean hasLobLocator, byte[] bytes, long length,
-                             boolean noBackslashEscapes) {
-        this.is = null;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
-        this.hasLobLocator = hasLobLocator;
-        this.bytes = bytes;
-        this.lob = null;
-    }
-
-    public OBStreamParameter(boolean hasLobLocator, Lob lob, long length, boolean noBackslashEscapes) {
-        this.is = null;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
-        this.hasLobLocator = hasLobLocator;
-        this.bytes = null;
-        this.lob = lob;
-    }
-
-    public OBStreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
-        this(false, is, length, noBackslashEscapes);
     }
 
     public OBStreamParameter(InputStream is, boolean noBackSlashEscapes) {
-        this(false, is, Long.MAX_VALUE, noBackSlashEscapes);
+        this(is, Long.MAX_VALUE, noBackSlashEscapes);
+    }
+
+    public OBStreamParameter(byte[] lobLocatorBinary, boolean noBackslashEscapes) {
+        this.blob = null;
+        this.hasLobLocator = true;
+        this.lobLocatorBinary = lobLocatorBinary;
+        this.is = null;
+        this.length = 0;
+        this.noBackslashEscapes = noBackslashEscapes;
+    }
+
+    public OBStreamParameter(Blob blob, boolean noBackslashEscapes) {
+        this.blob = blob;
+        this.hasLobLocator = false;
+        this.lobLocatorBinary = null;
+        this.is = null; // lob.data might be changed, blob.getBinaryStream() shouldn't be used until execution
+        this.length = 0;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
 
     private void setInputStream() throws IOException {
-        if (lob != null) {
+        if (blob != null) {
             try {
-                is = lob.getBinaryStream();
+                is = blob.getBinaryStream();
+                length = blob.length();
             } catch (SQLException throwables) {
                 IOException ioException = new IOException();
                 ioException.initCause(throwables);
@@ -155,9 +150,9 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         setInputStream();
-        if (hasLobLocator && bytes != null) {
-            pos.writeFieldLength(bytes.length);
-            pos.write(bytes);
+        if (hasLobLocator && lobLocatorBinary != null) {
+            pos.writeFieldLength(lobLocatorBinary.length);
+            pos.write(lobLocatorBinary);
         } else if (is != null) {
             if (length == Long.MAX_VALUE) {
                 pos.write(is, false, noBackslashEscapes);
@@ -172,6 +167,10 @@ public class OBStreamParameter implements Cloneable, LongDataParameterHolder {
         return "<Stream>";
     }
 
+    /**
+     *
+     * @return ColumnType.ORA_BLOB write through locator, and ColumnType.STRING write through reader
+     */
     public ColumnType getColumnType() {
         return this.hasLobLocator ? ColumnType.ORA_BLOB : ColumnType.STRING;
     }

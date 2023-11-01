@@ -55,12 +55,12 @@ import com.oceanbase.jdbc.util.Options;
 
 public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
 
-    private Reader        reader;
     private final Clob    clob;
-    private final long    length;
-    private final boolean noBackslashEscapes;
     private final boolean hasLobLocator;
-    private final byte[]  bytes;
+    private final byte[]  lobLocatorBinary;
+    private Reader        reader;
+    private long          length;
+    private final boolean noBackslashEscapes;
 
     /**
      * Constructor.
@@ -70,41 +70,36 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      * @param noBackslashEscapes must backslash be escape
      */
     public OBReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
-        this.reader = reader;
+        this.clob = null;
         this.hasLobLocator = false;
-        this.clob = null;
+        this.lobLocatorBinary = null;
+        this.reader = reader;
         this.length = length;
-        this.bytes = null;
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public OBReaderParameter(boolean hasLobLocator, Clob clob, long length,
-                             boolean noBackslashEscapes) {
+    public OBReaderParameter(byte[] lobLocatorBinary, boolean noBackslashEscapes) {
+        this.clob = null;
+        this.hasLobLocator = true;
+        this.lobLocatorBinary = lobLocatorBinary;
         this.reader = null;
-        this.hasLobLocator = hasLobLocator;
+        this.length = 0;
+        this.noBackslashEscapes = noBackslashEscapes;
+    }
+
+    public OBReaderParameter(Clob clob, boolean noBackslashEscapes) {
         this.clob = clob;
-        this.length = length;
-        this.bytes = null;
+        this.hasLobLocator = false;
+        this.lobLocatorBinary = null;
+        this.reader = null; // lob.data might be changed, clob.getCharacterStream() shouldn't be used until execution
+        this.length = 0;
         this.noBackslashEscapes = noBackslashEscapes;
-    }
-
-    public OBReaderParameter(boolean hasLobLocator, byte[] bytes, long length,
-                             boolean noBackslashEscapes) {
-        this.reader = null;
-        this.hasLobLocator = hasLobLocator;
-        this.clob = null;
-        this.length = length;
-        this.bytes = bytes;
-        this.noBackslashEscapes = noBackslashEscapes;
-    }
-
-    public OBReaderParameter(Reader reader, boolean noBackslashEscapes) {
-        this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
 
     private void setReader() throws SQLException {
         if (clob != null) {
             reader = clob.getCharacterStream();
+            length = clob.length();
         }
     }
 
@@ -116,7 +111,7 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      */
     public void writeTo(PacketOutputStream pos) throws IOException, SQLException {
         setReader();
-        if (!hasLobLocator && reader != null) {
+        if (reader != null) {
             pos.write(QUOTE);
             if (length == Long.MAX_VALUE) {
                 pos.writeEscapeQuote(reader, noBackslashEscapes);
@@ -144,9 +139,9 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException, SQLException {
         setReader();
-        if (hasLobLocator && bytes != null) {
-            pos.writeFieldLength(bytes.length);
-            pos.write(bytes, 0, bytes.length);
+        if (hasLobLocator && lobLocatorBinary != null) {
+            pos.writeFieldLength(lobLocatorBinary.length);
+            pos.write(lobLocatorBinary, 0, lobLocatorBinary.length);
         } else if (reader != null && length == Long.MAX_VALUE) {
             pos.write(reader, false, noBackslashEscapes);
         } else {
@@ -154,8 +149,12 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
         }
     }
 
+    /**
+     *
+     * @return ColumnType.ORA_CLOB write through locator, and ColumnType.STRING write through reader
+     */
     public ColumnType getColumnType() {
-        return this.hasLobLocator ? ColumnType.ORA_CLOB : ColumnType.BLOB;
+        return this.hasLobLocator ? ColumnType.ORA_CLOB : ColumnType.STRING;
     }
 
     @Override
@@ -173,7 +172,8 @@ public class OBReaderParameter implements Cloneable, LongDataParameterHolder {
 
     @Override
     public boolean writePieceData(PacketOutputStream writer, boolean first, Options options)
-            throws IOException, SQLException {
+                                                                                            throws IOException,
+                                                                                            SQLException {
         if (first) {
             setReader();
         }

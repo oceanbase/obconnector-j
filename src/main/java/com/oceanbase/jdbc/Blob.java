@@ -241,6 +241,10 @@ public class Blob extends Lob implements java.sql.Blob {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
+        if (bytes == null || bytes.length == 0) {
+            return 0;
+        }
+
         if (this.locator != null) {
             updateBlobToServer(pos, bytes, 0, bytes.length);
             return bytes.length;

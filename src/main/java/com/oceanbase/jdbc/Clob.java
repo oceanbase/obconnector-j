@@ -348,6 +348,10 @@ public class Clob extends Lob implements java.sql.Clob {
      * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
+        if (str == null || str.length() == 0) {
+            return 0;
+        }
+
         if (this.locator != null) {
             try {
                 updateClobToServer(pos, str, str.length());
@@ -361,9 +365,8 @@ public class Clob extends Lob implements java.sql.Clob {
             } catch (UnsupportedEncodingException e) {
                 throw new SQLException("Unsupported character encoding " + this.encoding);
             }
-            return str.length();
         }
-        return 0;
+        return str.length();
     }
 
     public int setString(long pos, String str, int offset, int len) throws SQLException {
