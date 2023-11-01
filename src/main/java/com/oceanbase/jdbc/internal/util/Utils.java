@@ -1098,7 +1098,7 @@ public class Utils {
 
       if (state == LexState.NameBinding && isOracleMode) {
         if (!nameBindingEnd) {
-          if (Character.isLetter(car) || Character.isDigit(car) || car == '_' || car == ':') {
+          if (Character.isLetter(car) || Character.isDigit(car) || car == '_' || car == ':' || car == '.') {
             paramSb.append(car);
           } else {
             nameBindingEnd = true;
