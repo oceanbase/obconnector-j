@@ -213,6 +213,7 @@ public class CursorResultSet extends Cursor {
                 //            final long lastInsertId = buffer.getLengthEncodedNumeric();
                 //            short serverStatus = buffer.readShort();
                 //            short warnings = buffer.readShort();
+                reader.getLogger().trace("Got tail OK packet in FETCH.");
 
                 endIndexInEntireResult = (int) rowCount;
                 if (statement != null && statement.getMaxRows() > 0

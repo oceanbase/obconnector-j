@@ -310,4 +310,8 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         return inputStream;
     }
 
+    public Logger getLogger() {
+        return logger;
+    }
+
 }

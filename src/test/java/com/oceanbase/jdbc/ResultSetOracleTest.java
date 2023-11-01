@@ -52,12 +52,10 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.lang.reflect.Field;
 import java.io.*;
 import java.math.BigDecimal;
 import java.sql.*;
 
-import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import org.junit.*;
 
 public class ResultSetOracleTest extends BaseOracleTest {
@@ -1833,20 +1831,85 @@ public class ResultSetOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void testOracleModeStreamResulSet() throws SQLException, NoSuchFieldException, IllegalAccessException {
-        Connection conn = setConnection("&extendOracleResultSetClass=true");
+    public void testOracleModeExtendResulSet() throws SQLException {
+        /******************** prepare_execute protocol ********************/
+        Connection conn = setConnectionOrigin("?useOraclePrepareExecute=true&extendOracleResultSetClass=false");
         // complete rs without a cursor for ps
         PreparedStatement pstmt = conn.prepareStatement("select 1 from dual");
         ResultSet rs = pstmt.executeQuery();
-        OceanBaseStatement oceanBaseStatement = (OceanBaseStatement)(rs.getStatement());
-        Field field = OceanBaseStatement.class.getDeclaredField("results");
-        field.setAccessible(true);
-        Results results = (Results) field.get(oceanBaseStatement);
-        assertFalse(results.isToCursorFetch());
+        Assert.assertEquals(2, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        // streaming rs
+        try {
+            pstmt.setFetchSize(Integer.MIN_VALUE);
+            fail();
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue(e.getMessage().contains("invalid fetch size"));
+        }
 
+        // prepare_execute protocol extend class
+        conn = setConnectionOrigin("?useOraclePrepareExecute=true&extendOracleResultSetClass=true");
+        // complete rs without a cursor for ps
+        pstmt = conn.prepareStatement("select 1 from dual");
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(0, ((JDBC4ResultSet) rs).getRsClass().ordinal());
         // streaming rs
         pstmt.setFetchSize(Integer.MIN_VALUE);
         rs = pstmt.executeQuery();
+        Assert.assertEquals(1, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        Assert.assertEquals(1, rs.getFetchSize());
+        Assert.assertEquals(-2147483648, pstmt.getFetchSize());
+
+        /******************** ps protocol ********************/
+        conn = setConnectionOrigin("?useServerPrepStmts=true&extendOracleResultSetClass=false");
+        // complete rs without a cursor for ps
+        pstmt = conn.prepareStatement("select 1 from dual");
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(2, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        // streaming rs
+        try {
+            pstmt.setFetchSize(Integer.MIN_VALUE);
+            fail();
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue(e.getMessage().contains("invalid fetch size"));
+        }
+
+        // ps protocol extend class
+        conn = setConnectionOrigin("?useServerPrepStmts=true&extendOracleResultSetClass=true");
+        // complete rs without a cursor for ps
+        pstmt = conn.prepareStatement("select 1 from dual");
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(0, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        // streaming rs
+        pstmt.setFetchSize(Integer.MIN_VALUE);
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(1, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        Assert.assertEquals(1, rs.getFetchSize());
+        Assert.assertEquals(-2147483648, pstmt.getFetchSize());
+
+        /******************** text protocol ********************/
+        conn = setConnectionOrigin("?extendOracleResultSetClass=false");
+        // complete rs without a cursor for ps
+        pstmt = conn.prepareStatement("select 1 from dual");
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(0, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        // streaming rs
+        try {
+            pstmt.setFetchSize(Integer.MIN_VALUE);
+            fail();
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue(e.getMessage().contains("invalid fetch size"));
+        }
+
+        // text protocol extend class
+        conn = setConnectionOrigin("?extendOracleResultSetClass=true");
+        // complete rs without a cursor for ps
+        pstmt = conn.prepareStatement("select 1 from dual");
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(0, ((JDBC4ResultSet) rs).getRsClass().ordinal());
+        // streaming rs
+        pstmt.setFetchSize(Integer.MIN_VALUE);
+        rs = pstmt.executeQuery();
+        Assert.assertEquals(1, ((JDBC4ResultSet) rs).getRsClass().ordinal());
         Assert.assertEquals(1, rs.getFetchSize());
         Assert.assertEquals(-2147483648, pstmt.getFetchSize());
     }

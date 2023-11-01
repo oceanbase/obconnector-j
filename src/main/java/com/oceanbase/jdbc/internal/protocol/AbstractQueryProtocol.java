@@ -590,7 +590,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       byte cursorFlag = 0;
-      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT && isOracleMode() && !options.extendOracleResultSetClass) {
+      if (!withRefCursor && results.getStatement().getSqlType() == OceanBaseStatement.STMT_SELECT) {
         cursorFlag = Packet.CURSOR_TYPE_READ_ONLY;
         results.setToCursorFetch(true);
       } else {
@@ -2406,6 +2406,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
          */
         callableResult = (currentStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
       }
+      reader.getLogger().trace("Got column definition.");
 
       SelectResultSet selectResultSet;
       // RS must have used a cursor with ComStmtPrepareExecute, except internal RS.

@@ -683,9 +683,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 sqlQuery = getCachedSql(sqlQuery);
             }
             // Oracle mode don't determine sql string, so that anonymous blocks can be executed through PS . Maybe ORACLE_PREPARABLE_STATEMENT_PATTERN  should be added (todo).
-            if ((options.useServerPrepStmts
-                 && PREPARABLE_STATEMENT_PATTERN_MYSQL.matcher(sqlQuery).find() && !this.protocol
-                .isOracleMode()) || (options.useServerPrepStmts && this.protocol.isOracleMode())) {
+            if (options.useServerPrepStmts && (this.protocol.isOracleMode() || PREPARABLE_STATEMENT_PATTERN_MYSQL.matcher(sqlQuery).find())) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {

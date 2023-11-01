@@ -171,6 +171,11 @@ public class DecompressPacketInputStream extends AbstractPacketInputStream {
         return compressPacketSeq;
     }
 
+    @Override
+    public Logger getLogger() {
+        return logger;
+    }
+
     private void readCompressBlocking(byte[] arr, int compressedLength, int decompressedLength)
                                                                                                throws IOException {
         if (decompressedLength != 0) {

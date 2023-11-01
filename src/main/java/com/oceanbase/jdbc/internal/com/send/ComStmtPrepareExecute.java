@@ -198,6 +198,7 @@ public class ComStmtPrepareExecute {
                     final short warningCount = buffer.readShort();
                     final int extendFlag = buffer.readInt();
                     final byte hasResultSet = buffer.readByte();
+                    reader.getLogger().trace("Got header OK packet.");
 
                     ColumnDefinition[] params = new ColumnDefinition[numParams];
                     if (numParams > 0) {
@@ -208,6 +209,7 @@ public class ComStmtPrepareExecute {
                         if (!eofDeprecated) {
                             protocol.skipEofPacket();
                         }
+                        reader.getLogger().trace("Got param definition.");
                     }
 
                     ColumnDefinition[] columns = new ColumnDefinition[numColumns];
@@ -230,9 +232,18 @@ public class ComStmtPrepareExecute {
                     switch (buffer.getByteAt(0)) {
                         case Packet.OK:
                             protocol.readOkPacket(buffer, results);
+                            reader.getLogger().trace("Got tail OK packet.");
                             break;
                         case Packet.ERROR:
+                            reader.getLogger().trace("Got tail ERROR packet.");
                             throw protocol.readErrorPacket(buffer, results);
+                        default:
+                            reader.getLogger().error(
+                                "Got unexpected tail packet returned by server, first byte "
+                                        + firstByte);
+                            throw new SQLException(
+                                "Unexpected tail packet returned by server, first byte "
+                                        + firstByte);
                     }
 
                     if (serverPrepareResult == null) {
@@ -245,11 +256,14 @@ public class ComStmtPrepareExecute {
                     return serverPrepareResult;
 
                 case Packet.ERROR:
+                    reader.getLogger().trace("Got header ERROR packet.");
                     throw protocol.readErrorPacket(buffer, results);
 
                 default:
-                    throw new SQLException("Unexpected packet returned by server, first byte "
-                            + firstByte);
+                    reader.getLogger().error(
+                        "Got unexpected header packet returned by server, first byte " + firstByte);
+                    throw new SQLException(
+                        "Unexpected header packet returned by server, first byte " + firstByte);
             }
         } finally {
             reader.endReceiveResponse(results.getSql());

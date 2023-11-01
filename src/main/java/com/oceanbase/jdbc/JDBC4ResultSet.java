@@ -644,6 +644,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 warnings = (buf[pos++] & 0xff) + ((buf[pos] & 0xff) << 8);
                 callableResult = (serverStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
             }
+            reader.getLogger().trace("Got result set.");
             protocol.setServerStatus((short) serverStatus);
             protocol.setHasWarnings(warnings > 0);
             if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) {

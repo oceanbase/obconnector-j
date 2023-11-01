@@ -156,7 +156,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         prepare(actualSql);
       }
     } else {
-      if (!protocol.supportStmtPrepareExecute()) {
+      if (!usePrepareExecute()) {
         prepare(actualSql);
       } else {
         parameterCount = tmp.getParamCount();
@@ -168,6 +168,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     }
   }
 
+  private boolean usePrepareExecute() {
+      return protocol.supportStmtPrepareExecute() && !(sqlType == OceanBaseStatement.STMT_SELECT && options.extendOracleResultSetClass);
+  }
   /**
    * Clone statement.
    *
@@ -286,7 +289,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     calculateCheckSum(sql);
 
     try {
-      if (!protocol.supportStmtPrepareExecute()) {
+      if (!usePrepareExecute()) {
         serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
         setMetaFromResult(); // Get result for prepare, but the type not precision.
       }
@@ -982,7 +985,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public boolean execute() throws SQLException {
-    if (protocol.supportStmtPrepareExecute()) {
+    if (usePrepareExecute()) {
       return prepareExecuteInternal(getFetchSize());
     } else {
       return executeInternal(getFetchSize());

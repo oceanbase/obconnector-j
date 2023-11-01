@@ -121,7 +121,7 @@
         <appender-ref ref="FILE-AUDIT"/>
     </root>
 
-    <logger name="com.oceanbase.jdbc.internal.io" level="debug" additivity="false">
+    <logger name="com.oceanbase.jdbc.internal.io" level="trace" additivity="false">
         <!-- additivity must be set to false, so that only the FILE appender will handle the log information in com.oceanbase.jdbc.internal.io.
              Otherwise, other appenders will also print the log information -->
         <!-- level can be set as "info", "debug" or "trace" -->

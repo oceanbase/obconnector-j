@@ -54,6 +54,7 @@ import java.io.IOException;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.logging.Logger;
 
 public interface PacketInputStream {
 
@@ -81,4 +82,5 @@ public interface PacketInputStream {
 
     void endReceiveResponse(String sql);
 
+    Logger getLogger();
 }
