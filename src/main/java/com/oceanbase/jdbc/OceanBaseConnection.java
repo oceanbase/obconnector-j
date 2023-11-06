@@ -236,6 +236,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     private static ReentrantLock     threadLock                          = new ReentrantLock();
     private static Thread            lbThread                            = null;
     private boolean                  remarksReporting                    = false;
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -264,8 +265,10 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
                                                                                              throws SQLException {
+        threadLock.lock();
         try {
-            threadLock.lock();
+            lockLogger.debug("OceanBaseConnection.OceanBaseConnection locked");
+
             Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
             this.urlParser = urlParser;
             this.globalStateInfo = globalInfo;
@@ -287,6 +290,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             this.complexDataCache = new LRUCache(50);
         } finally {
             threadLock.unlock();
+            lockLogger.debug("OceanBaseConnection.OceanBaseConnection to unlock");
         }
     }
 
@@ -393,9 +397,11 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (protocol.isClosed() && protocol.getProxy() != null) {
             lock.lock();
             try {
+                lockLogger.debug("OceanBaseConnection.checkConnection locked");
                 protocol.getProxy().reconnect();
             } finally {
                 lock.unlock();
+                lockLogger.debug("OceanBaseConnection.checkConnection to unlock");
             }
         }
     }
@@ -956,21 +962,24 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        lock.lock();
         if (protocol != null) {
             protocol.startCallInterface();
         }
+        lock.lock();
         try {
+            lockLogger.debug("OceanBaseConnection.commit locked");
+
             if (protocol.inTransaction()) {
                 try (Statement st = createStatement()) {
                     st.execute("COMMIT");
                 }
             }
         } finally {
+            lock.unlock();
+            lockLogger.debug("OceanBaseConnection.commit to unlock");
             if (protocol != null) {
                 protocol.endCallInterface("OceanBaseConnection.commit");
             }
-            lock.unlock();
         }
     }
 
@@ -983,22 +992,24 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (this.getAutoCommit()) {
             throw new SQLException("Can't call rollback when autocommit enable");
         }
-        lock.lock();
         if (protocol != null) {
             protocol.endCallInterface("OceanBaseConnection.rollback");
         }
-
+        lock.lock();
         try {
+            lockLogger.debug("OceanBaseConnection.rollback locked");
+
             if (protocol.inTransaction()) {
                 try (Statement st = createStatement()) {
                     st.execute("ROLLBACK");
                 }
             }
         } finally {
+            lock.unlock();
+            lockLogger.debug("OceanBaseConnection.rollback to unlock");
             if (protocol != null) {
                 protocol.endCallInterface("OceanBaseConnection.rollback");
             }
-            lock.unlock();
         }
     }
 
@@ -1576,6 +1587,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (protocol.isClosed() && protocol.getProxy() != null) {
             lock.lock();
             try {
+                lockLogger.debug("OceanBaseConnection.checkClientReconnect locked");
                 protocol.getProxy().reconnect();
             } catch (SQLException sqle) {
                 Map<String, ClientInfoStatus> failures = new HashMap<>();
@@ -1583,6 +1595,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 throw new SQLClientInfoException("Connection closed", failures, sqle);
             } finally {
                 lock.unlock();
+                lockLogger.debug("OceanBaseConnection.checkClientReconnect to unlock");
             }
         }
     }

@@ -79,6 +79,7 @@ public class ConfigParser {
     // LoadBalanceInfo represents the configuration information of the current net_service_name
     static ConcurrentHashMap<String, LoadBalanceInfo> loadBalanceInfos = new ConcurrentHashMap<>();
     static ConcurrentHashMap<String, Long>            ocpAccessTimes = new ConcurrentHashMap<>();
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     // TNS file on disk, or extend description in URL
     public static void readLoadBalanceInfosFromTns(Reader reader) throws IOException {
@@ -391,15 +392,20 @@ public class ConfigParser {
                     // Refreshing the json file must apply for a lock
                     lock.lock();
                     try {
-                        readLoadBalanceInfosFromJsonFile();
-                    } catch (Exception e) {
-                        // Reading files can fail, but writing files must be executed
-                        logger.warn("Failed to read json file on disk");
+                        lockLogger.debug("ConfigParser.getLoadBalanceInfoFromOcpApi locked");
+                        try {
+                            readLoadBalanceInfosFromJsonFile();
+                        } catch (Exception e) {
+                            // Reading files can fail, but writing files must be executed
+                            logger.warn("Failed to read json file on disk");
+                        }
+                        logger.debug("loadBalanceInfos.put({}, balanceInfo)", ocpApi.appName);
+                        loadBalanceInfos.put(netServiceName, balanceInfo); // add to cache
+                        writeLoadBalanceInfosIntoJsonFile(); // save to file
+                    } finally {
+                        lock.unlock();
+                        lockLogger.debug("ConfigParser.getLoadBalanceInfoFromOcpApi to un lock");
                     }
-                    logger.debug("loadBalanceInfos.put({}, balanceInfo)", ocpApi.appName);
-                    loadBalanceInfos.put(netServiceName, balanceInfo); // add to cache
-                    writeLoadBalanceInfosIntoJsonFile(); // save to file
-                    lock.unlock();
                 }
 
                 logger.debug("synchronized end {}", ocpApi.appName);

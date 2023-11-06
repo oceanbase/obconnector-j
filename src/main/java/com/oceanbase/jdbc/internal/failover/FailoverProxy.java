@@ -102,6 +102,7 @@ public class FailoverProxy implements InvocationHandler {
     public final LruTraceCache  traceCache;
 
     private final Listener      listener;
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     /**
      * Proxy constructor.
@@ -341,10 +342,12 @@ public class FailoverProxy implements InvocationHandler {
                         // reconnection
                         lock.lock();
                         try {
+                            lockLogger.debug("FailoverProxy.executeInvocation locked");
                             protocol.close();
                             isReconnected = listener.primaryFail(null, null, false, isClosed).isReconnected;
                         } finally {
                             lock.unlock();
+                            lockLogger.debug("FailoverProxy.executeInvocation to unlock");
                         }
 
                         // relaunch command

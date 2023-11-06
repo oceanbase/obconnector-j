@@ -122,10 +122,12 @@ public class MastersFailoverListener extends AbstractMastersListener {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
+                lockLogger.debug("MastersFailoverListener.preClose locked");
                 removeListenerFromSchedulers();
                 closeConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
+                lockLogger.debug("MastersFailoverListener.preClose to unlock");
             }
         }
     }
@@ -139,10 +141,12 @@ public class MastersFailoverListener extends AbstractMastersListener {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
+                lockLogger.debug("MastersFailoverListener.preAbort locked");
                 removeListenerFromSchedulers();
                 abortConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
+                lockLogger.debug("MastersFailoverListener.preAbort to unlock");
             }
         }
     }
@@ -194,6 +198,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
   public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
     proxy.lock.lock();
     try {
+      lockLogger.debug("MastersFailoverListener.reconnectFailedConnection locked");
+
       if (!searchFilter.isInitialConnection() && (isExplicitClosed() || !isMasterHostFail())) {
         return;
       }
@@ -258,6 +264,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
       resetMasterFailoverData();
     } finally {
       proxy.lock.unlock();
+      lockLogger.debug("MastersFailoverListener.reconnectFailedConnection to unlock");
     }
   }
 
@@ -291,6 +298,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked != mustBeReadOnly) {
             proxy.lock.lock();
             try {
+                lockLogger.debug("MastersFailoverListener.switchReadOnlyConnection locked");
                 // verify not updated now that hold lock, double check safe due to volatile
                 if (currentReadOnlyAsked != mustBeReadOnly) {
                     currentReadOnlyAsked = mustBeReadOnly;
@@ -298,6 +306,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 }
             } finally {
                 proxy.lock.unlock();
+                lockLogger.debug("MastersFailoverListener.switchReadOnlyConnection to unlock");
             }
         }
     }
@@ -312,21 +321,25 @@ public class MastersFailoverListener extends AbstractMastersListener {
         if (isExplicitClosed()) {
             proxy.lock.lock();
             try {
+                lockLogger.debug("MastersFailoverListener.foundActiveMaster isExplicitClosed locked");
                 protocol.close();
             } finally {
                 proxy.lock.unlock();
+                lockLogger.debug("MastersFailoverListener.foundActiveMaster isExplicitClosed to unlock");
             }
             return;
         }
         syncConnection(this.currentProtocol, protocol);
         proxy.lock.lock();
         try {
+            lockLogger.debug("MastersFailoverListener.foundActiveMaster !isExplicitClosed locked");
             if (currentProtocol != null && !currentProtocol.isClosed()) {
                 currentProtocol.close();
             }
             currentProtocol = protocol;
         } finally {
             proxy.lock.unlock();
+            lockLogger.debug("MastersFailoverListener.foundActiveMaster !isExplicitClosed to unlock");
         }
 
         resetMasterFailoverData();

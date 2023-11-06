@@ -64,11 +64,15 @@ import com.oceanbase.jdbc.internal.failover.FailoverProxy;
 import com.oceanbase.jdbc.internal.failover.impl.AuroraListener;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.logging.Logger;
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
+
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     public AuroraProtocol(final UrlParser url, final GlobalStateInfo globalInfo,
                           final ReentrantLock lock, LruTraceCache traceCache) {
@@ -406,6 +410,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         ReentrantLock curLock = proxy.lock;
         curLock.lock();
         try {
+            lockLogger.debug("AuroraProtocol.checkIfMaster locked");
+
             Results results = new Results();
             executeQuery(this.isMasterConnection(), results, "select @@innodb_read_only");
             results.commandEnd();
@@ -428,6 +434,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
             curLock.unlock();
+            lockLogger.debug("AuroraProtocol.checkIfMaster to unlock");
         }
     }
 }

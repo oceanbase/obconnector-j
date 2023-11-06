@@ -125,6 +125,8 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
         ReentrantLock curLock = connection.lock;
         curLock.lock();
         try {
+            lockLogger.debug("JDBC4CallableStatement.executeUpdate locked");
+
             super.execute();
             retrieveOutputResult();
             if (results != null && results.getResultSet() == null) {
@@ -133,6 +135,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             return getUpdateCount();
         } finally {
             curLock.unlock();
+            lockLogger.debug("JDBC4CallableStatement.executeUpdate to unlock");
         }
     }
 
@@ -153,6 +156,8 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
         ReentrantLock curLock = connection.lock;
         curLock.lock();
         try {
+            lockLogger.debug("JDBC4CallableStatement.executeQuery locked");
+
             super.execute();
             retrieveOutputResult();
             if (results != null && results.getResultSet() != null) {
@@ -161,6 +166,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             return SelectResultSet.createEmptyResultSet();
         } finally {
             curLock.unlock();
+            lockLogger.debug("JDBC4CallableStatement.executeQuery to unlock");
         }
     }
 
@@ -169,11 +175,14 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
         ReentrantLock curLock = connection.lock;
         curLock.lock();
         try {
+            lockLogger.debug("JDBC4CallableStatement.execute locked");
+
             super.execute();
             retrieveOutputResult();
             return results != null && results.getResultSet() == null;
         } finally {
             curLock.unlock();
+            lockLogger.debug("JDBC4CallableStatement.execute to unlock");
         }
     }
 }

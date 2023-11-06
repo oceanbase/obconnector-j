@@ -65,57 +65,99 @@ public class TimeTrace {
     }
 
     public void startCallInterface() {
-        startCallInterface = System.nanoTime();
+        try {
+            startCallInterface = System.nanoTime();
+        } catch (Exception e) {
+            try {
+                logger.warn("startCallInterface failed.", e);
+            } catch (Exception ignore) {
+            }
+        }
     }
 
     public void endCallInterface(String interfaceName) {
-        endCallInterface = System.nanoTime();
-        long timeUs = getCallInterfaceElapsedTimeUs();
-        if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs / 1000)) {
-            return;
-        }
+        try {
+            endCallInterface = System.nanoTime();
+            long timeUs = getCallInterfaceElapsedTimeUs();
+            if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs / 1000)) {
+                return;
+            }
 
-        logger.info("{}: CallInterface costs {}us.", interfaceName, timeUs);
+            logger.info("{}: CallInterface costs {}us.", interfaceName, timeUs);
+        } catch (Exception e) {
+            try {
+                logger.warn("endCallInterface failed.", e);
+            } catch (Exception ignore) {
+            }
+        }
     }
 
-    public long getCallInterfaceElapsedTimeUs() {
+    private long getCallInterfaceElapsedTimeUs() {
         return (endCallInterface - startCallInterface) / 1000;
     }
 
     public void startSendRequest() {
-        startSendRequest = System.nanoTime();
+        try {
+            startSendRequest = System.nanoTime();
+        } catch (Exception e) {
+            try {
+                logger.warn("startSendRequest failed.", e);
+            } catch (Exception ignore) {
+            }
+        }
     }
 
     public void endSendRequest() {
-        endSendRequest = System.nanoTime();
+        try {
+            endSendRequest = System.nanoTime();
+        } catch (Exception e) {
+            try {
+                logger.warn("endSendRequest failed.", e);
+            } catch (Exception ignore) {
+            }
+        }
     }
 
-    public long getSendRequestElapsedTimeUs() {
+    private long getSendRequestElapsedTimeUs() {
         return (endSendRequest - startSendRequest) / 1000;
     }
 
     public void startReceiveResponse() {
-        startReceiveResponse = System.nanoTime();
+        try {
+            startReceiveResponse = System.nanoTime();
+        } catch (Exception e) {
+            try {
+                logger.warn("startReceiveResponse failed.", e);
+            } catch (Exception ignore) {
+            }
+        }
     }
 
     public void endReceiveResponse(String protocol, String sql) {
-        endReceiveResponse = System.nanoTime();
-        long timeUs1 = getSendRequestElapsedTimeUs();
-        long timeUs2 = getReceiveResponseElapsedTimeUs();
-        if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs1 / 1000) && logTraceTimeMs > (timeUs2 / 1000)) {
-            return;
-        }
+        try {
+            endReceiveResponse = System.nanoTime();
+            long timeUs1 = getSendRequestElapsedTimeUs();
+            long timeUs2 = getReceiveResponseElapsedTimeUs();
+            if (logTraceTimeMs > 0 && logTraceTimeMs > (timeUs1 / 1000) && logTraceTimeMs > (timeUs2 / 1000)) {
+                return;
+            }
 
-        if (sql == null) {
-            sql = "";
-        } else if (sql.length() > 100) {
-            sql = sql.substring(0, 100) + "...";
+            if (sql == null) {
+                sql = "";
+            } else if (sql.length() > 100) {
+                sql = sql.substring(0, 100) + "...";
+            }
+            logger.info("{}: SendRequest costs {}us, ReceiveResponse costs {}us. {}", protocol,
+                    getSendRequestElapsedTimeUs(), getReceiveResponseElapsedTimeUs(), sql);
+        } catch (Exception e) {
+            try {
+                logger.warn("endReceiveResponse failed.", e);
+            } catch (Exception ignore) {
+            }
         }
-        logger.info("{}: SendRequest costs {}us, ReceiveResponse costs {}us. {}", protocol,
-            getSendRequestElapsedTimeUs(), getReceiveResponseElapsedTimeUs(), sql);
     }
 
-    public long getReceiveResponseElapsedTimeUs() {
+    private long getReceiveResponseElapsedTimeUs() {
         return (endReceiveResponse - startReceiveResponse) / 1000;
     }
 

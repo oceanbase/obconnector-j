@@ -314,6 +314,8 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         ReentrantLock curLock = connection.lock;
         curLock.lock();
         try {
+            lockLogger.debug("JDBC4ServerCallableStatement.execute locked");
+
             if (!protocol.isOracleMode()) {
                 setInOutParamsOnServer();
                 return true;
@@ -325,6 +327,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             return results != null && results.getResultSet() != null;
         } finally {
             curLock.unlock();
+            lockLogger.debug("JDBC4ServerCallableStatement.execute to unlock");
         }
     }
 

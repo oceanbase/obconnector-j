@@ -61,6 +61,8 @@ import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.logging.Logger;
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -93,6 +95,7 @@ public class Results {
     private boolean                rewritten;
     private CmdInformation         cmdInformation;
     private boolean                batchSucceed = false;
+    protected static final Logger  lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     public boolean isExecuteBatchStmt() {
         return executeBatchStmt;
@@ -398,6 +401,8 @@ public class Results {
             ReentrantLock curLock = protocol.getLock();
             curLock.lock();
             try {
+                lockLogger.debug("Results.getMoreResults locked");
+
                 // load current resultSet
                 if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) {
                     resultSet.close();
@@ -414,6 +419,7 @@ public class Results {
                 throw ExceptionFactory.INSTANCE.create(e);
             } finally {
                 curLock.unlock();
+                lockLogger.debug("Results.getMoreResults unlocked");
             }
         }
         if (cmdInformation != null && cmdInformation.moreResults() && !batch) {

@@ -118,6 +118,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private int iterationCount;
   private int executeMode;
   private boolean enableNetworkStatistics = false;
+  protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
   /**
    * Get a protocol instance.
@@ -149,10 +150,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void reset() throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("reset connection");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.reset locked");
+      spanId = ob20BeginTraceAndSpan("reset connection");
+
       writer.startPacket(0);
       writer.write(Packet.COM_RESET_CONNECTION);
       writer.flush();
@@ -171,6 +175,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.reset to unlock");
     }
   }
 
@@ -210,8 +215,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (options.includeInnodbStatusInDeadlockExceptions
         && sqlException.getSQLState() != null
         && LOCK_DEADLOCK_ERROR_CODES.contains(sqlException.getErrorCode())) {
+      lock.lock();
       try {
-        lock.lock();
+        lockLogger.debug("AbstractQueryProtocol.exceptionWithQuery locked");
+
         cmdPrologue();
         Results results = new Results();
         executeQuery(isMasterConnection(), results, "SHOW ENGINE INNODB STATUS");
@@ -224,6 +231,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // eat
       } finally {
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.exceptionWithQuery to unlock");
       }
     }
     return ex;
@@ -248,10 +256,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("prepare");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.prepare locked");
+      spanId = ob20BeginTraceAndSpan("prepare");
+
       // search in cache first
       if (options.cachePrepStmts && options.useServerPrepStmts) {
         ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
@@ -271,6 +282,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.prepare to unlock");
     }
   }
 
@@ -297,10 +309,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeQuery locked");
+      spanId = ob20BeginTraceAndSpan("execute query");
+
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
       writer.write(sql.getBytes(options.getCharacterEncoding()));
@@ -317,16 +332,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
     }
   }
 
   @Override
   public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeQuery locked");
+      spanId = ob20BeginTraceAndSpan("execute query");
+
       writer.startPacket(0);
       writer.write(Packet.COM_QUERY);
       writer.write(sql.getBytes(charset));
@@ -340,6 +359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
     }
   }
 
@@ -358,10 +378,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ClientPrepareResult clientPrepareResult,
       ParameterHolder[] parameters) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeQuery locked");
+      spanId = ob20BeginTraceAndSpan("execute query");
+
       if (clientPrepareResult.getParamCount() == 0
           && !clientPrepareResult.isQueryMultiValuesRewritable()) {
         if (clientPrepareResult.getQueryParts().size() == 1) {
@@ -381,6 +404,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
     }
   }
 
@@ -401,10 +425,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ParameterHolder[] parameters,
       int queryTimeout) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeQuery locked");
+      spanId = ob20BeginTraceAndSpan("execute query");
+
       if (clientPrepareResult.getParamCount() == 0
           && !clientPrepareResult.isQueryMultiValuesRewritable()) {
         if (clientPrepareResult.getQueryParts().size() == 1) {
@@ -424,6 +451,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
     }
   }
 
@@ -443,10 +471,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       Results results,
       ParameterHolder[] parameters) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute prepared query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery locked");
+      spanId = ob20BeginTraceAndSpan("execute prepared query");
+
       int parameterCount = serverPrepareResult.getParameters().length;
       if (isOracleMode()) {
         // send binary data in a separate stream
@@ -517,6 +548,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery to unlock");
     }
   }
 
@@ -532,10 +564,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ServerPrepareResult serverPrepareResult,
       Results results) throws SQLException{
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("prepare and execute query");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery locked");
+      spanId = ob20BeginTraceAndSpan("prepare and execute query");
+
       if (isOracleMode()) {
         // use send piece data
         if (options.useServerPrepStmts && options.usePieceData
@@ -610,6 +645,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery to unlock");
     }
   }
 
@@ -734,12 +770,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     cmdPrologue();
-    lock.lock();
     UUID spanId = null;
-
     ParameterHolder[] parameters = null;
     ServerPrepareResult tmpServerPrepareResult = serverPrepareResult;
+
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeBulkBatch locked");
       SQLException exception = null;
 
       // send PREPARE if needed
@@ -866,13 +903,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw exceptionWithQuery(
           parameters, tmpServerPrepareResult, handleIoException(e), explicitClosed);
     } finally {
-      if (serverPrepareResult == null && tmpServerPrepareResult != null) {
-        releasePrepareStatement(tmpServerPrepareResult);
+      try {
+        if (serverPrepareResult == null && tmpServerPrepareResult != null) {
+          releasePrepareStatement(tmpServerPrepareResult);
+        }
+        writer.resetMark();
+      } catch (Exception e) {
+        //throw e;
+      } finally {
+        ob20EndSpanAndTrace(spanId);
+        lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.executeBulkBatch to unlock");
       }
-      writer.resetMark();
-
-      ob20EndSpanAndTrace(spanId);
-      lock.unlock();
     }
   }
 
@@ -895,10 +937,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ClientPrepareResult clientPrepareResult,
       final List<ParameterHolder[]> parametersList) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute batch multi");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+        lockLogger.debug("AbstractQueryProtocol.executeBatchMulti locked");
+        spanId = ob20BeginTraceAndSpan("execute batch multi");
+
         initializeBatchReader();
         new AbstractMultiSend(
                 this, writer, results, clientPrepareResult, parametersList, readScheduler) {
@@ -954,6 +999,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.executeBatchMulti to unlock");
     }
   }
 
@@ -1006,10 +1052,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatch(Results results, final List<String> queries) throws SQLException {
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute batch");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+        lockLogger.debug("AbstractQueryProtocol.executeBatch locked");
+        spanId = ob20BeginTraceAndSpan("execute batch");
+
         if (!options.useBatchMultiSend) {
             String sql = null;
             SQLException exception = null;
@@ -1095,6 +1144,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.executeBatch to unlock");
     }
   }
 
@@ -1108,10 +1158,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatchAggregateSemiColon(Results results, final List<String> queries) throws SQLException {
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute batch aggregate semicolon");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+        lockLogger.debug("AbstractQueryProtocol.executeBatchAggregateSemiColon locked");
+        spanId = ob20BeginTraceAndSpan("execute batch aggregate semicolon");
+
         String firstSql = null;
         int currentIndex = 0;
         int totalQueries = queries.size();
@@ -1151,6 +1204,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.executeBatchAggregateSemiColon to unlock");
     }
   }
 
@@ -1169,13 +1223,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       List<ParameterHolder[]> parameterList,
       boolean rewriteValues) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute batch rewrite");
-
+    UUID spanId = null;
     int currentIndex = 0;
     int totalParameterList = parameterList.size();
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executeBatchRewrite locked");
+      spanId = ob20BeginTraceAndSpan("execute batch rewrite");
+
       do {
         currentIndex =
             ComQuery.sendRewriteCmd(
@@ -1201,6 +1257,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       results.setRewritten(rewriteValues);
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeBatchRewrite to unlock");
     }
   }
 
@@ -1233,10 +1290,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return serverPrepareResult;
     }
 
+    UUID spanId = null;
     lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute batch on server");
-
     try {
+        lockLogger.debug("AbstractQueryProtocol.executeBatchServer locked");
+        spanId = ob20BeginTraceAndSpan("execute batch on server");
+
         initializeBatchReader();
         ServerPrepareResult tempServerPrepareResult = null;
         serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
@@ -1315,15 +1374,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.executeBatchServer to unlock");
     }
   }
 
   public ColumnDefinition[] fetchRowViaCursor(int cursorId, int fetchSize, Results results) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("fetch row");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursor locked");
+      spanId = ob20BeginTraceAndSpan("fetch row");
+
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_FETCH);
       writer.writeInt(cursorId);
@@ -1341,15 +1404,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursor to unlock");
     }
   }
 
   public ColumnDefinition[] fetchRowViaCursorForOracle(int cursorId, int numRows, byte offsetType, int offset, Results results) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("fetch row for oracle");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursorForOracle locked");
+      spanId = ob20BeginTraceAndSpan("fetch row for oracle");
+
       writer.startPacket(0);
       writer.write(Packet.COM_STMT_FETCH);
       writer.writeInt(cursorId);
@@ -1370,6 +1437,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursorForOracle to unlock");
     }
   }
 
@@ -1392,10 +1460,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       int queryParameterSize)
       throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute prepared query by array binding");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQueryArrayBinding locked");
+      spanId = ob20BeginTraceAndSpan("execute prepared query by array binding");
+
       int paramCount = serverPrepareResult.getParameters().length;// send binary data in a separate stream without send piece
       for (int j = 0; j < queryParameterSize; j++) {
         ParameterHolder[] parameters = queryParameters.get(j);
@@ -1449,6 +1520,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQueryArrayBinding to unlock");
     }
   }
 
@@ -1467,10 +1539,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public ServerPrepareResult executePreparedQueryArrayBinding(int parameterCount, boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult, Results results, List<ParameterHolder[]> queryParameters, int queryParamtersSize) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("execute query to be prepared by array binding");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.prepare executePreparedQueryArrayBinding");
+      spanId = ob20BeginTraceAndSpan("execute query to be prepared by array binding");
+
       if (options.usePieceData) {
         boolean firstPrepared = true;
         for (int i = 0; i < parameterCount; i++) {
@@ -1542,6 +1617,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.prepare executePreparedQueryArrayBinding");
     }
   }
 
@@ -1585,10 +1661,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void changeUser(String user, String pwd) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("change user");
+    UUID spanId = null;
 
-    try {
+    lock.lock();
+    try{
+      lockLogger.debug("AbstractQueryProtocol.changeUser locked");
+      spanId = ob20BeginTraceAndSpan("change user");
+
       Credential credential = new Credential(user, pwd);
       String clientIp = this.socket.getLocalAddress().getHostAddress();
       SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
@@ -1603,6 +1682,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
+        lockLogger.debug("AbstractQueryProtocol.changeUser to unlock");
     }
   }
 
@@ -1612,21 +1692,28 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   public void rollback() throws SQLException {
     cmdPrologue();
+
     lock.lock();
+    try {
+      lockLogger.debug("AbstractQueryProtocol.rollback locked");
 
-    if (inTransaction()) {
-      UUID spanId = ob20BeginTraceAndSpan("rollback");
+      if (inTransaction()) {
+        UUID spanId = ob20BeginTraceAndSpan("rollback");
 
-      try {
-          executeQuery("ROLLBACK");
-      } catch (Exception e) {
-          /* eat exception */
-      } finally {
-          ob20EndSpanAndTrace(spanId);
+        try {
+            executeQuery("ROLLBACK");
+        } catch (Exception e) {
+            /* eat exception */
+        } finally {
+            ob20EndSpanAndTrace(spanId);
+        }
       }
+    } catch (Exception e) {
+      throw e;
+    } finally {
+      lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.rollback to unlock");
     }
-
-    lock.unlock();
   }
 
   @Override
@@ -1646,9 +1733,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (lock.tryLock()) {
         UUID spanId = null;
         try {
-          checkClose();
+          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement locked");
           spanId = ob20BeginTraceAndSpan("close prepared statement");
-          
+
+          checkClose();
+
           writer.startPacket(0);
           writer.write(Packet.COM_STMT_CLOSE);
           writer.writeInt(statementId);
@@ -1664,6 +1753,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } finally {
           ob20EndSpanAndTrace(spanId);
           lock.unlock();
+          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement to unlock");
         }
     } else {
       // lock is used by another thread (bulk reading)
@@ -1688,10 +1778,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public boolean ping() throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("ping");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.ping locked");
+      spanId = ob20BeginTraceAndSpan("ping");
+
       writer.startPacket(0);
       writer.write(Packet.COM_PING);
       writer.flush();
@@ -1706,6 +1799,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.ping to unlock");
     }
   }
 
@@ -1775,6 +1869,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     cmdPrologue();
     lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.getCatalog locked");
+
       Results results = new Results();
       executeQuery(isMasterConnection(), results, "select database()");
       results.commandEnd();
@@ -1786,16 +1882,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return null;
     } finally {
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.getCatalog to unlock");
     }
   }
 
   @Override
   public void setCatalog(final String database) throws SQLException {
     cmdPrologue();
-    lock.lock();
-    UUID spanId = ob20BeginTraceAndSpan("set database");
+    UUID spanId = null;
 
+    lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.setCatalog locked");
+      spanId = ob20BeginTraceAndSpan("set setCatalog");
+
       SendChangeDbPacket.send(writer, database);
       final Buffer buffer = reader.getPacket(true);
 
@@ -1812,6 +1912,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.setCatalog to unlock");
     }
   }
 
@@ -1935,9 +2036,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTimeout(int timeout) throws SocketException {
     lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.setTimeout locked");
       this.changeSocketSoTimeout(timeout);
     } finally {
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.setTimeout to unlock");
     }
   }
 
@@ -1964,6 +2067,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     cmdPrologue();
     lock.lock();
     try {
+      lockLogger.debug("AbstractQueryProtocol.setTransactionIsolation locked");
+
       if (transactionIsolationLevel == level) {
         return;
       }
@@ -1988,6 +2093,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       transactionIsolationLevel = level;
     } finally {
       lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.setTransactionIsolation to unlock");
     }
   }
 
@@ -2709,7 +2815,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           fullLinkTrace.beginTrace();
         }
       } catch (Exception e) {
-        logger.warn("Full link trace module failed.", e);
+        try {
+          logger.warn("ob20BeginTrace failed.", e);
+        } catch (Exception ignore) {
+        }
       }
     }
   }
@@ -2723,7 +2832,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         fullLinkTrace.setSpanTag(1, FullLinkTrace.TagKey.CLIENT_HOST.getString(), socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort());
         fullLinkTrace.buildRequest(ob20);
       } catch (Exception e) {
-        logger.warn("Full link trace module failed.", e);
+        try {
+          logger.warn("ob20BeginSpan failed.", e);
+        } catch (Exception ignore) {
+        }
       }
     }
     return spanId;
@@ -2740,7 +2852,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           }
         }
       } catch (Exception e) {
-        logger.warn("Full link trace module failed.", e);
+        try {
+          logger.warn("ob20EndSpanAndTrace failed.", e);
+        } catch (Exception ignore) {
+        }
       }
     }
   }

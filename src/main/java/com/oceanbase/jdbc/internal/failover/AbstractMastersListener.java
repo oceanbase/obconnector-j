@@ -109,6 +109,7 @@ public abstract class AbstractMastersListener implements Listener {
   private LoadBalanceInfo currentLBinfo;
 
   private int retryAllDowns;
+  protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
 
   @Override
@@ -497,6 +498,7 @@ public abstract class AbstractMastersListener implements Listener {
       ReentrantLock curLock = proxy.lock;
       curLock.lock();
       try {
+        lockLogger.debug("AbstractMastersListener.syncConnection locked");
         to.resetStateAfterFailover(
             from.getMaxRows(),
             from.getTransactionIsolationLevel(),
@@ -504,6 +506,7 @@ public abstract class AbstractMastersListener implements Listener {
             from.getAutocommit());
       } finally {
         curLock.unlock();
+        lockLogger.debug("AbstractMastersListener.syncConnection to unlock");
       }
     }
   }

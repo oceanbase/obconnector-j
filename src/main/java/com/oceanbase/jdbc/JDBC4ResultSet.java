@@ -86,6 +86,8 @@ import com.oceanbase.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtoco
 import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
+import com.oceanbase.jdbc.internal.logging.Logger;
+import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.ResourceStatus;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
@@ -94,6 +96,7 @@ import com.oceanbase.jdbc.util.Options;
 
 public class JDBC4ResultSet implements ResultSetImpl {
 
+    protected static final Logger           lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
     public static final int                 TINYINT1_IS_BIT       = 1;
     public static final int                 YEAR_IS_DATE_TYPE     = 2;
     private static final String             NOT_UPDATABLE_ERROR   = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
@@ -521,6 +524,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (!isEof) {
             lock.lock();
             try {
+                lockLogger.debug("JDBC4ResultSet.fetchRemaining locked");
+
                 lastRowPointer = -1;
                 while (!isEof) {
                     addStreamingValue();
@@ -532,6 +537,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 throw handleIoException(ioe);
             } finally {
                 lock.unlock();
+                lockLogger.debug("JDBC4ResultSet.fetchRemaining to lock");
             }
         }
     }
@@ -797,6 +803,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (rsClass == ResultSetClass.STREAMING && !isEof) {
                 lock.lock();
                 try {
+                    lockLogger.debug("JDBC4ResultSet.realClose locked");
                     while (!isEof) {
                         dataSize = 0; // to avoid storing data
                         getNextRow();
@@ -809,6 +816,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 } finally {
                     isEof = true;
                     lock.unlock();
+                    lockLogger.debug("JDBC4ResultSet.realClose to lock");
                 }
             }
 
@@ -914,12 +922,14 @@ public class JDBC4ResultSet implements ResultSetImpl {
                     // (next packet may be new data or an EOF packet indicating that there is no more data)
                     lock.lock();
                     try {
+                        lockLogger.debug("JDBC4ResultSet.isAfterLast locked");
                         // this time, fetch is added even for streaming forward type only to keep current pointer row.
                         addStreamingValue();
                     } catch (IOException ioe) {
                         throw handleIoException(ioe);
                     } finally {
                         lock.unlock();
+                        lockLogger.debug("JDBC4ResultSet.isAfterLast to lock");
                     }
                 }
                 return dataSize == rowPointer && isEof;
@@ -1136,11 +1146,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (rsClass == ResultSetClass.STREAMING && !isEof) {
             lock.lock();
             try {
+                lockLogger.debug("JDBC4ResultSet.next locked");
                 nextStreamingValue();
             } catch (IOException ioe) {
                 throw handleIoException(ioe);
             } finally {
                 lock.unlock();
+                lockLogger.debug("JDBC4ResultSet.next to lock");
             }
 
             rowPointer = 0;

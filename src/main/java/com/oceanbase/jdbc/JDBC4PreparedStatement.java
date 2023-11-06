@@ -218,12 +218,12 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       }
     }
 
-    lock.lock();
     if (protocol != null) {
       protocol.startCallInterface();
     }
-
+    lock.lock();
     try {
+      lockLogger.debug("JDBC4PreparedStatement.executeInternal locked");
       try {
         executeQueryPrologue(false);
         results =
@@ -258,10 +258,11 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         executeEpilogue();
       }
     } finally {
+      lock.unlock();
+      lockLogger.debug("JDBC4PreparedStatement.executeInternal to lock");
       if (protocol != null) {
         protocol.endCallInterface("JDBC4PreparedStatement.executeInternal");
       }
-      lock.unlock();
     }
   }
 
@@ -320,6 +321,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
     if (size != 0) {
       lock.lock();
       try {
+        lockLogger.debug("JDBC4PreparedStatement.executeBatch locked");
         try {
           executeInternalBatch(size);
           results.commandEnd();
@@ -346,6 +348,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         }
       } finally {
         lock.unlock();
+        lockLogger.debug("JDBC4PreparedStatement.executeBatch to lock");
       }
     }
     if (batchQueries != null && (batchQueries.size()) >  0) {
@@ -395,6 +398,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
 
       lock.lock();
       try {
+        lockLogger.debug("JDBC4PreparedStatement.executeLargeBatch locked");
         try {
           executeInternalBatch(size);
           results.commandEnd();
@@ -406,6 +410,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         }
       } finally {
         lock.unlock();
+        lockLogger.debug("JDBC4PreparedStatement.executeLargeBatch to lock");
       }
     }
     if (batchQueries != null  && batchQueries.size() >  0) {

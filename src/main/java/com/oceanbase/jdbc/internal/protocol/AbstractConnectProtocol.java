@@ -189,6 +189,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
     TimeTrace                             timeTrace;
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     /**
      * Get a protocol instance.
@@ -403,6 +404,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             locked = lock.tryLock();
         }
         try {
+            if (locked) {
+                lockLogger.debug("AbstractConnectProtocol.close locked");
+            }
             this.connected = false;
             whyConnectedIsFalse();
 
@@ -419,6 +423,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } finally {
             if (locked) {
                 lock.unlock();
+                lockLogger.debug("AbstractConnectProtocol.close to unlock");
             }
         }
     }
@@ -432,6 +437,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             lockStatus = lock.tryLock();
         }
         try {
+            if (lockStatus) {
+                lockLogger.debug("AbstractConnectProtocol.abort locked");
+            }
             this.connected = false;
             whyConnectedIsFalse();
 
@@ -456,6 +464,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } finally {
             if (lockStatus) {
                 lock.unlock();
+                lockLogger.debug("AbstractConnectProtocol.abort to unlock");
             }
         }
     }
@@ -1982,9 +1991,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean hasWarnings() {
         lock.lock();
         try {
+            lockLogger.debug("AbstractConnectProtocol.hasWarnings locked");
             return hasWarnings;
         } finally {
             lock.unlock();
+            lockLogger.debug("AbstractConnectProtocol.hasWarnings to unlock");
         }
     }
 
@@ -1996,9 +2007,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isConnected() {
         lock.lock();
         try {
+            lockLogger.debug("AbstractConnectProtocol.isConnected locked");
             return connected;
         } finally {
             lock.unlock();
+            lockLogger.debug("AbstractConnectProtocol.isConnected to unlock");
         }
     }
 

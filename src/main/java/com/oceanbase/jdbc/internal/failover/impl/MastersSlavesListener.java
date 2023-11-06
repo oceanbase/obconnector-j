@@ -94,6 +94,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     protected Protocol                            masterProtocol;
     protected Protocol                            secondaryProtocol;
     protected List<HostAddress>                   hostAddresses;
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     /**
      * Initialisation.
@@ -362,6 +363,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.preClose locked");
                 removeListenerFromSchedulers();
 
                 // closing connections
@@ -371,6 +373,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 closeConnection(secondaryProtocol);
             } finally {
                 curLock.unlock();
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
     }
@@ -381,6 +384,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.preAbort locked");
                 removeListenerFromSchedulers();
 
                 // closing connections
@@ -390,7 +394,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 abortConnection(secondaryProtocol);
             } finally {
                 curLock.unlock();
-
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
     }
@@ -453,12 +457,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.checkWaitingConnection locked");
                 Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
                 if (waitingProtocol != null && pingSecondaryProtocol(waitingProtocol)) {
                     lockAndSwitchSecondary(waitingProtocol);
                 }
             } finally {
                 curLock.unlock();
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
 
@@ -466,12 +472,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.checkWaitingConnection locked");
                 Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
                 if (waitingProtocol != null && pingMasterProtocol(waitingProtocol)) {
                     lockAndSwitchMaster(waitingProtocol);
                 }
             } finally {
                 curLock.unlock();
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
     }
@@ -626,9 +634,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             if (curLock.tryLock()) {
                 try {
+                    lockLogger.debug("MastersSlavesListener.foundActiveSecondary locked");
                     lockAndSwitchSecondary(newSecondaryProtocol);
                 } finally {
                     curLock.unlock();
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
                 }
             } else {
                 if (!waitNewSecondaryProtocol.compareAndSet(null, newSecondaryProtocol)) {
@@ -686,6 +696,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.foundActiveSecondary locked");
                 // another thread updated state
                 if (currentReadOnlyAsked == mustBeReadOnly) {
                     return;
@@ -775,6 +786,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             } finally {
                 curLock.unlock();
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
     }
@@ -807,12 +819,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     ReentrantLock curLock = proxy.lock;
                     curLock.lock();
                     try {
+                        lockLogger.debug("MastersSlavesListener.primaryFail locked");
                         if (masterProtocol != null) {
                             syncConnection(masterProtocol, this.secondaryProtocol);
                         }
                         currentProtocol = this.secondaryProtocol;
                     } finally {
                         curLock.unlock();
+                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
                     }
                     FailoverLoop.addListener(this);
                     try {
@@ -874,10 +888,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             ReentrantLock curLock = proxy.lock;
             curLock.lock();
             try {
+                lockLogger.debug("MastersSlavesListener.blackListAndCloseConnection locked");
                 protocol.close();
             } finally {
                 curLock.unlock();
-
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
             }
         }
     }
@@ -940,11 +955,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         ReentrantLock curLock = proxy.lock;
         curLock.lock();
         try {
+            lockLogger.debug("MastersSlavesListener.secondaryFail locked");
             if (pingSecondaryProtocol(this.secondaryProtocol)) {
                 return relaunchOperation(method, args);
             }
         } finally {
             curLock.unlock();
+            lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
         }
 
         if (!isMasterHostFail()) {
@@ -956,9 +973,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     ReentrantLock curLock2 = proxy.lock;
                     curLock2.lock();
                     try {
+                        lockLogger.debug("MastersSlavesListener.secondaryFail locked");
                         currentProtocol = masterProtocol;
                     } finally {
                         curLock2.unlock();
+                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
                     }
                     FailoverLoop.addListener(this);
                     logger
@@ -982,9 +1001,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 ReentrantLock curLock3 = proxy.lock;
                 curLock3.lock();
                 try {
+                    lockLogger.debug("MastersSlavesListener.secondaryFail locked");
                     currentProtocol = this.masterProtocol;
                 } finally {
                     curLock3.unlock();
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
                 }
             }
 
@@ -1055,11 +1076,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 ReentrantLock curLock = proxy.lock;
                 curLock.lock();
                 try {
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave locked");
                     if (pingSecondaryProtocol(waitingProtocol)) {
                         lockAndSwitchSecondary(waitingProtocol);
                     }
                 } finally {
                     curLock.unlock();
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
                 }
             }
         }

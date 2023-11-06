@@ -57,7 +57,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -885,9 +884,52 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void aone50635076() throws Exception {
-        Statement closeMe = sharedConnection.createStatement();
-        closeMe.close();
-        closeMe.close();
+        Thread thread1 = new Thread(() -> {
+            System.out.println("Thread 1 run");
+            try {
+                Statement closeMe = sharedConnection.createStatement();
+                closeMe.close();
+                closeMe.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+            System.out.println("Thread 1 sleep....");
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("Thread 1 exit");
+        });
+
+        Thread thread2 = new Thread(() -> {
+//            System.out.println("Thread 2 sleep...");
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+
+            System.out.println("Thread 2 run");
+            try {
+                Statement closeMe = sharedConnection.createStatement();
+                closeMe.execute("select 1 from dual");
+                ResultSet rs = closeMe.getResultSet();
+                rs.next();
+                System.out.println(rs.getInt(1));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+            System.out.println("Thread 2 exit");
+        });
+
+        thread1.start();
+        thread2.start();
+        thread1.join();
+        thread2.join();
     }
 
 }

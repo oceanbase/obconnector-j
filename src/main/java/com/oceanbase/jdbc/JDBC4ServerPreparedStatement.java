@@ -664,14 +664,17 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   }
 
   private void executeBatchInternal(int queryParameterSize) throws SQLException {
-    lock.lock();
     if (protocol != null) {
       protocol.startCallInterface();
     }
 
     executing = true;
     boolean executeBatchByArrayBinding=false; // just use for prepareExecute
+
+    lock.lock();
     try {
+      lockLogger.debug("JDBC4ServerPreparedStatement.executeBatchInternal locked");
+
       executeQueryPrologue(serverPrepareResult);
       if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(true);
@@ -906,11 +909,15 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             throw e;
         }
     } finally {
-      executeBatchEpilogue();
-      if (protocol != null) {
-          protocol.endCallInterface("JDBC4ServerPreparedStatement.executeBatchInternal");
-      }
-      lock.unlock();
+        try {
+            executeBatchEpilogue();
+        } finally {
+            lock.unlock();
+            lockLogger.debug("JDBC4ServerPreparedStatement.executeBatchInternal to unlock");
+            if (protocol != null) {
+                protocol.endCallInterface("JDBC4ServerPreparedStatement.executeBatchInternal");
+            }
+        }
     }
   }
 
@@ -994,11 +1001,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   protected boolean executeInternal(int fetchSize) throws SQLException {
     validParameters();
-    lock.lock();
     if (protocol != null) {
       protocol.startCallInterface();
     }
 
+    lock.lock();
     try {
       executeQueryPrologue(serverPrepareResult);
       if (queryTimeout != 0 && options.enableQueryTimeouts) {
@@ -1033,22 +1040,28 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             throw executeExceptionEpilogue(exception);
         }
     } finally {
-      executeEpilogue();
-      if (protocol != null) {
-          protocol.endCallInterface("JDBC4ServerPreparedStatement.executeInternal");
-      }
-      lock.unlock();
+        try {
+            executeEpilogue();
+        } finally {
+            lock.unlock();
+            lockLogger.debug("JDBC4ServerPreparedStatement.executeInternal to unlock");
+            if (protocol != null) {
+                protocol.endCallInterface("JDBC4ServerPreparedStatement.executeInternal");
+            }
+        }
     }
   }
 
   protected boolean prepareExecuteInternal(int fetchSize) throws SQLException {
     validParameters();
-    lock.lock();
     if (protocol != null) {
       protocol.startCallInterface();
     }
 
+    lock.lock();
     try {
+      lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal locked");
+
       if (sqlType == OceanBaseStatement.STMT_SELECT) {
         iterationCount = isFetchSizeSet ? fetchSize : 10; // in Oracle-JDBC default fetch size is 10
         // TODO: more execute-mode
@@ -1104,50 +1117,62 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             throw executeExceptionEpilogue(exception);
         }
     } finally {
-      executeEpilogue();
-      if (protocol != null) {
-          protocol.endCallInterface("JDBC4ServerPreparedStatement.prepareExecuteInternal");
-      }
-      lock.unlock();
+        try {
+            executeEpilogue();
+        } finally {
+            lock.unlock();
+            lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal to unlock");
+            if (protocol != null) {
+                protocol.endCallInterface("JDBC4ServerPreparedStatement.prepareExecuteInternal");
+            }
+        }
     }
   }
 
   public ColumnDefinition[] cursorFetch(int cursorId, int fetchSize) throws SQLException {
       lock.lock();
       try {
+          lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal locked");
+
           ColumnDefinition[] ci = this.protocol.fetchRowViaCursor(cursorId, fetchSize, results);
           results.commandEnd();
           return ci;
       } finally {
           lock.unlock();
+          lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal to unlock");
       }
   }
 
   public void closeCursor(int cursorId) throws SQLException {
       lock.lock();
-      if (protocol != null) {
-          protocol.startCallInterface();
-      }
-
       try {
+          lockLogger.debug("JDBC4ServerPreparedStatement.closeCursor locked");
+
+          if (protocol != null) {
+              protocol.startCallInterface();
+          }
           this.protocol.forceReleasePrepareStatement(cursorId);
           results.commandEnd();
       } finally {
+          lock.unlock();
+          lockLogger.debug("JDBC4ServerPreparedStatement.closeCursor to unlock");
           if (protocol != null) {
               protocol.endCallInterface("JDBC4ServerPreparedStatement.closeCursor");
           }
-          lock.unlock();
       }
   }
 
   public ColumnDefinition[] cursorFetchForOracle(int cursorId, int numRows, byte offsetType, int offset) throws SQLException {
       lock.lock();
       try {
+          lockLogger.debug("JDBC4ServerPreparedStatement.cursorFetchForOracle locked");
+
           ColumnDefinition[] ci = this.protocol.fetchRowViaCursorForOracle(cursorId, numRows, offsetType, offset, results);
           results.commandEnd();
           return ci;
       } finally {
           lock.unlock();
+          lockLogger.debug("JDBC4ServerPreparedStatement.cursorFetchForOracle to unlock");
       }
   }
 

@@ -257,6 +257,7 @@ public class AuroraListener extends MastersSlavesListener {
     List<String> endpoints = new ArrayList<>();
     try {
       proxy.lock.lock();
+      lockLogger.debug("AuroraListener.getCurrentEndpointIdentifiers locked");
       try {
         // Deleted instance may remain in db for 24 hours so ignoring instances that have had no
         // change
@@ -279,6 +280,7 @@ public class AuroraListener extends MastersSlavesListener {
 
       } finally {
         proxy.lock.unlock();
+        lockLogger.debug("AuroraListener.getCurrentEndpointIdentifiers to unlock");
       }
     } catch (SQLException qe) {
       logger.warning("SQL exception occurred: " + qe.getMessage());
@@ -386,6 +388,8 @@ public class AuroraListener extends MastersSlavesListener {
         String masterHostName;
         proxy.lock.lock();
         try {
+            lockLogger.debug("AuroraListener.searchForMasterHostAddress locked");
+
             Results results = new Results();
             protocol.executeQuery(false, results,
                 "select server_id from information_schema.replica_host_status "
@@ -403,6 +407,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
         } finally {
             proxy.lock.unlock();
+            lockLogger.debug("AuroraListener.searchForMasterHostAddress to unlock");
         }
 
         Matcher matcher;
@@ -452,9 +457,11 @@ public class AuroraListener extends MastersSlavesListener {
                 } catch (SQLException ee) {
                     proxy.lock.lock();
                     try {
+                        lockLogger.debug("AuroraListener.checkMasterStatus !isMasterHostFail locked");
                         masterProtocol.close();
                     } finally {
                         proxy.lock.unlock();
+                        lockLogger.debug("AuroraListener.checkMasterStatus !isMasterHostFail to unlock");
                     }
                     if (setMasterHostFail()) {
                         addToBlacklist(masterProtocol.getHostAddress());
@@ -480,9 +487,11 @@ public class AuroraListener extends MastersSlavesListener {
                 } catch (Exception ee) {
                     proxy.lock.lock();
                     try {
+                        lockLogger.debug("AuroraListener.checkMasterStatus isMasterHostFail locked");
                         secondaryProtocol.close();
                     } finally {
                         proxy.lock.unlock();
+                        lockLogger.debug("AuroraListener.checkMasterStatus isMasterHostFail to unlock");
                     }
                     if (setSecondaryHostFail()) {
                         addToBlacklist(this.secondaryProtocol.getHostAddress());
