@@ -1,0 +1,46 @@
+##########################################################
+#            OBFlow Secret Scan Ignore List              #
+##########################################################
+# Above the segmentation lines there are suspected privacy information #
+# Please use the file name as the first line and the igored information #
+# should be started with tab. #
+# Under the segmentation lines there are the folders which you need to ignore #
+##########################################################
+**
+  https://gw.alipayobjects.com/zos/bmw-prod/d6c1a0b7-c714-4429-8a33-2b394a5c1bf1.svg
+  http://oceanbase.com*
+  https://oceanbase.com*
+  https://www.oceanbase.com*
+  https://github.com/*
+  http://www.gnu.org/licenses/
+  http://maven.apache.org/*
+  http://www.w3.org/2001/XMLSchema-instance
+  https://en.wikipedia.org/wiki/UTF-16
+  https://facebook.github.io/watchman/)
+  www.other.org
+  www.foo.com
+  www.other2.org
+  juliusdavies@gmail.com
+  email@xxxxx.com.cn
+  nemproject@gmx.de
+  www.mariadbtest.org
+  http://mariadb.org*
+  https://mariadb.org*
+  https://mariadb.com*
+  https://jira.mariadb.org*
+  https://docs.oracle.com*
+  https://dev.mysql.com*
+  https://bugs.mysql.com*
+--------------------------------------------------------
+# Should use GLOB wildcard to config and analysis the ignored folder
+# The root patch should start with '/'
+/src/test/java/com/oceanbase/jdbc/internal/protocol/tls/HostnameVerifierImplTest.java
+/src/test/java/com/oceanbase/jdbc/JdbcParserTest.java
+/src/test/resources/ssl/wrong-server.crt
+--------------------------------------------------------
+# Config the ignored fold to escape the Chinese scan by GLOB wildcard
+--------------------------------------------------------
+# Set md5 of pemFile string to filter
+# This section must be end up with '--------------------------------------------------------'!!!
+**/test/*.pem
+--------------------------------------------------------
