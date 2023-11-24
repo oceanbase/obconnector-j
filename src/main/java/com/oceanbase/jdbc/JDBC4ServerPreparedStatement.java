@@ -913,7 +913,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             executeBatchEpilogue();
         } finally {
             lock.unlock();
-            lockLogger.debug("JDBC4ServerPreparedStatement.executeBatchInternal to unlock");
+            lockLogger.debug("JDBC4ServerPreparedStatement.executeBatchInternal unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("JDBC4ServerPreparedStatement.executeBatchInternal");
             }
@@ -1007,6 +1007,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
     lock.lock();
     try {
+      lockLogger.debug("JDBC4ServerPreparedStatement.executeInternal locked");
+
       executeQueryPrologue(serverPrepareResult);
       if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(false);
@@ -1044,7 +1046,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             executeEpilogue();
         } finally {
             lock.unlock();
-            lockLogger.debug("JDBC4ServerPreparedStatement.executeInternal to unlock");
+            lockLogger.debug("JDBC4ServerPreparedStatement.executeInternal unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("JDBC4ServerPreparedStatement.executeInternal");
             }
@@ -1121,7 +1123,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             executeEpilogue();
         } finally {
             lock.unlock();
-            lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal to unlock");
+            lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("JDBC4ServerPreparedStatement.prepareExecuteInternal");
             }
@@ -1139,7 +1141,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           return ci;
       } finally {
           lock.unlock();
-          lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal to unlock");
+          lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal unlocked");
       }
   }
 
@@ -1155,7 +1157,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           results.commandEnd();
       } finally {
           lock.unlock();
-          lockLogger.debug("JDBC4ServerPreparedStatement.closeCursor to unlock");
+          lockLogger.debug("JDBC4ServerPreparedStatement.closeCursor unlocked");
           if (protocol != null) {
               protocol.endCallInterface("JDBC4ServerPreparedStatement.closeCursor");
           }
@@ -1172,7 +1174,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           return ci;
       } finally {
           lock.unlock();
-          lockLogger.debug("JDBC4ServerPreparedStatement.cursorFetchForOracle to unlock");
+          lockLogger.debug("JDBC4ServerPreparedStatement.cursorFetchForOracle unlocked");
       }
   }
 

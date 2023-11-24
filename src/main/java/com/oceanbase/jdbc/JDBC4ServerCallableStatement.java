@@ -327,7 +327,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             return results != null && results.getResultSet() != null;
         } finally {
             curLock.unlock();
-            lockLogger.debug("JDBC4ServerCallableStatement.execute to unlock");
+            lockLogger.debug("JDBC4ServerCallableStatement.execute unlocked");
         }
     }
 

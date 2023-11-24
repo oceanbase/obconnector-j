@@ -537,7 +537,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 throw handleIoException(ioe);
             } finally {
                 lock.unlock();
-                lockLogger.debug("JDBC4ResultSet.fetchRemaining to lock");
+                lockLogger.debug("JDBC4ResultSet.fetchRemaining unlocked");
             }
         }
     }
@@ -816,7 +816,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 } finally {
                     isEof = true;
                     lock.unlock();
-                    lockLogger.debug("JDBC4ResultSet.realClose to lock");
+                    lockLogger.debug("JDBC4ResultSet.realClose unlocked");
                 }
             }
 
@@ -929,7 +929,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                         throw handleIoException(ioe);
                     } finally {
                         lock.unlock();
-                        lockLogger.debug("JDBC4ResultSet.isAfterLast to lock");
+                        lockLogger.debug("JDBC4ResultSet.isAfterLast unlocked");
                     }
                 }
                 return dataSize == rowPointer && isEof;
@@ -1152,7 +1152,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 throw handleIoException(ioe);
             } finally {
                 lock.unlock();
-                lockLogger.debug("JDBC4ResultSet.next to lock");
+                lockLogger.debug("JDBC4ResultSet.next unlocked");
             }
 
             rowPointer = 0;

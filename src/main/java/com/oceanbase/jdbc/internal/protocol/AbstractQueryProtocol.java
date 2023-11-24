@@ -175,7 +175,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.reset to unlock");
+      lockLogger.debug("AbstractQueryProtocol.reset unlocked");
     }
   }
 
@@ -231,7 +231,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // eat
       } finally {
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.exceptionWithQuery to unlock");
+        lockLogger.debug("AbstractQueryProtocol.exceptionWithQuery unlocked");
       }
     }
     return ex;
@@ -282,7 +282,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.prepare to unlock");
+      lockLogger.debug("AbstractQueryProtocol.prepare unlocked");
     }
   }
 
@@ -332,7 +332,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executeQuery unlocked");
     }
   }
 
@@ -359,7 +359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executeQuery unlocked");
     }
   }
 
@@ -404,7 +404,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executeQuery unlocked");
     }
   }
 
@@ -451,7 +451,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executeQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executeQuery unlocked");
     }
   }
 
@@ -548,7 +548,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery unlocked");
     }
   }
 
@@ -645,7 +645,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQuery unlocked");
     }
   }
 
@@ -913,7 +913,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.executeBulkBatch to unlock");
+        lockLogger.debug("AbstractQueryProtocol.executeBulkBatch unlocked");
       }
     }
   }
@@ -999,7 +999,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.executeBatchMulti to unlock");
+        lockLogger.debug("AbstractQueryProtocol.executeBatchMulti unlocked");
     }
   }
 
@@ -1144,7 +1144,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.executeBatch to unlock");
+        lockLogger.debug("AbstractQueryProtocol.executeBatch unlocked");
     }
   }
 
@@ -1204,7 +1204,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.executeBatchAggregateSemiColon to unlock");
+        lockLogger.debug("AbstractQueryProtocol.executeBatchAggregateSemiColon unlocked");
     }
   }
 
@@ -1257,7 +1257,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       results.setRewritten(rewriteValues);
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executeBatchRewrite to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executeBatchRewrite unlocked");
     }
   }
 
@@ -1374,7 +1374,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.executeBatchServer to unlock");
+        lockLogger.debug("AbstractQueryProtocol.executeBatchServer unlocked");
     }
   }
 
@@ -1404,7 +1404,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursor to unlock");
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursor unlocked");
     }
   }
 
@@ -1437,7 +1437,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursorForOracle to unlock");
+      lockLogger.debug("AbstractQueryProtocol.fetchRowViaCursorForOracle unlocked");
     }
   }
 
@@ -1520,7 +1520,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.executePreparedQueryArrayBinding to unlock");
+      lockLogger.debug("AbstractQueryProtocol.executePreparedQueryArrayBinding unlocked");
     }
   }
 
@@ -1682,7 +1682,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
         ob20EndSpanAndTrace(spanId);
         lock.unlock();
-        lockLogger.debug("AbstractQueryProtocol.changeUser to unlock");
+        lockLogger.debug("AbstractQueryProtocol.changeUser unlocked");
     }
   }
 
@@ -1712,7 +1712,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw e;
     } finally {
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.rollback to unlock");
+      lockLogger.debug("AbstractQueryProtocol.rollback unlocked");
     }
   }
 
@@ -1753,7 +1753,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } finally {
           ob20EndSpanAndTrace(spanId);
           lock.unlock();
-          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement to unlock");
+          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement unlocked");
         }
     } else {
       // lock is used by another thread (bulk reading)
@@ -1799,7 +1799,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.ping to unlock");
+      lockLogger.debug("AbstractQueryProtocol.ping unlocked");
     }
   }
 
@@ -1882,7 +1882,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return null;
     } finally {
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.getCatalog to unlock");
+      lockLogger.debug("AbstractQueryProtocol.getCatalog unlocked");
     }
   }
 
@@ -1912,7 +1912,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       ob20EndSpanAndTrace(spanId);
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.setCatalog to unlock");
+      lockLogger.debug("AbstractQueryProtocol.setCatalog unlocked");
     }
   }
 
@@ -2040,7 +2040,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       this.changeSocketSoTimeout(timeout);
     } finally {
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.setTimeout to unlock");
+      lockLogger.debug("AbstractQueryProtocol.setTimeout unlocked");
     }
   }
 
@@ -2093,7 +2093,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       transactionIsolationLevel = level;
     } finally {
       lock.unlock();
-      lockLogger.debug("AbstractQueryProtocol.setTransactionIsolation to unlock");
+      lockLogger.debug("AbstractQueryProtocol.setTransactionIsolation unlocked");
     }
   }
 

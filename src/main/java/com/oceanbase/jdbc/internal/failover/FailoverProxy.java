@@ -347,7 +347,7 @@ public class FailoverProxy implements InvocationHandler {
                             isReconnected = listener.primaryFail(null, null, false, isClosed).isReconnected;
                         } finally {
                             lock.unlock();
-                            lockLogger.debug("FailoverProxy.executeInvocation to unlock");
+                            lockLogger.debug("FailoverProxy.executeInvocation unlocked");
                         }
 
                         // relaunch command

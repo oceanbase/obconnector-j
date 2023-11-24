@@ -290,7 +290,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             this.complexDataCache = new LRUCache(50);
         } finally {
             threadLock.unlock();
-            lockLogger.debug("OceanBaseConnection.OceanBaseConnection to unlock");
+            lockLogger.debug("OceanBaseConnection.OceanBaseConnection unlocked");
         }
     }
 
@@ -401,7 +401,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 protocol.getProxy().reconnect();
             } finally {
                 lock.unlock();
-                lockLogger.debug("OceanBaseConnection.checkConnection to unlock");
+                lockLogger.debug("OceanBaseConnection.checkConnection unlocked");
             }
         }
     }
@@ -976,7 +976,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             }
         } finally {
             lock.unlock();
-            lockLogger.debug("OceanBaseConnection.commit to unlock");
+            lockLogger.debug("OceanBaseConnection.commit unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("OceanBaseConnection.commit");
             }
@@ -1006,7 +1006,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             }
         } finally {
             lock.unlock();
-            lockLogger.debug("OceanBaseConnection.rollback to unlock");
+            lockLogger.debug("OceanBaseConnection.rollback unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("OceanBaseConnection.rollback");
             }
@@ -1595,7 +1595,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 throw new SQLClientInfoException("Connection closed", failures, sqle);
             } finally {
                 lock.unlock();
-                lockLogger.debug("OceanBaseConnection.checkClientReconnect to unlock");
+                lockLogger.debug("OceanBaseConnection.checkClientReconnect unlocked");
             }
         }
     }

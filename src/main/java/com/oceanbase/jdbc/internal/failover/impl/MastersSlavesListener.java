@@ -373,7 +373,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 closeConnection(secondaryProtocol);
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
     }
@@ -394,7 +394,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 abortConnection(secondaryProtocol);
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
     }
@@ -464,7 +464,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
 
@@ -479,7 +479,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
     }
@@ -638,7 +638,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     lockAndSwitchSecondary(newSecondaryProtocol);
                 } finally {
                     curLock.unlock();
-                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
                 }
             } else {
                 if (!waitNewSecondaryProtocol.compareAndSet(null, newSecondaryProtocol)) {
@@ -786,7 +786,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
     }
@@ -826,7 +826,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         currentProtocol = this.secondaryProtocol;
                     } finally {
                         curLock.unlock();
-                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
                     }
                     FailoverLoop.addListener(this);
                     try {
@@ -892,7 +892,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 protocol.close();
             } finally {
                 curLock.unlock();
-                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
             }
         }
     }
@@ -961,7 +961,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             }
         } finally {
             curLock.unlock();
-            lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+            lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
         }
 
         if (!isMasterHostFail()) {
@@ -977,7 +977,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         currentProtocol = masterProtocol;
                     } finally {
                         curLock2.unlock();
-                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                        lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
                     }
                     FailoverLoop.addListener(this);
                     logger
@@ -1005,7 +1005,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     currentProtocol = this.masterProtocol;
                 } finally {
                     curLock3.unlock();
-                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
                 }
             }
 
@@ -1082,7 +1082,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     }
                 } finally {
                     curLock.unlock();
-                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave to unlock");
+                    lockLogger.debug("MastersSlavesListener.rePrepareOnSlave unlocked");
                 }
             }
         }

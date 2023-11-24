@@ -259,7 +259,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       }
     } finally {
       lock.unlock();
-      lockLogger.debug("JDBC4PreparedStatement.executeInternal to lock");
+      lockLogger.debug("JDBC4PreparedStatement.executeInternal unlocked");
       if (protocol != null) {
         protocol.endCallInterface("JDBC4PreparedStatement.executeInternal");
       }
@@ -348,7 +348,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         }
       } finally {
         lock.unlock();
-        lockLogger.debug("JDBC4PreparedStatement.executeBatch to lock");
+        lockLogger.debug("JDBC4PreparedStatement.executeBatch unlocked");
       }
     }
     if (batchQueries != null && (batchQueries.size()) >  0) {
@@ -410,7 +410,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
         }
       } finally {
         lock.unlock();
-        lockLogger.debug("JDBC4PreparedStatement.executeLargeBatch to lock");
+        lockLogger.debug("JDBC4PreparedStatement.executeLargeBatch unlocked");
       }
     }
     if (batchQueries != null  && batchQueries.size() >  0) {

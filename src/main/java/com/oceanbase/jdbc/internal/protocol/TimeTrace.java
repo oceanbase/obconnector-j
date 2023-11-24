@@ -49,6 +49,8 @@ import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 public class TimeTrace {
 
     private static final Logger logger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+
+    private long                serverThreadId;
     private int                 logTraceTimeMs;
 
     private long                startCallInterface;
@@ -60,7 +62,8 @@ public class TimeTrace {
     private long                startReceiveResponse;
     private long                endReceiveResponse;
 
-    public TimeTrace(int logTraceTime) {
+    public TimeTrace(long serverThreadId, int logTraceTime) {
+        this.serverThreadId = serverThreadId;
         this.logTraceTimeMs = logTraceTime;
     }
 
@@ -83,7 +86,7 @@ public class TimeTrace {
                 return;
             }
 
-            logger.info("{}: CallInterface costs {}us.", interfaceName, timeUs);
+            logger.info("[connectionId={}] {}: CallInterface costs {}us.", serverThreadId, interfaceName, timeUs);
         } catch (Exception e) {
             try {
                 logger.warn("endCallInterface failed.", e);
@@ -147,7 +150,7 @@ public class TimeTrace {
             } else if (sql.length() > 100) {
                 sql = sql.substring(0, 100) + "...";
             }
-            logger.info("{}: SendRequest costs {}us, ReceiveResponse costs {}us. {}", protocol,
+            logger.info("[connectionId={}] {}: SendRequest costs {}us, ReceiveResponse costs {}us. {}", serverThreadId, protocol,
                     getSendRequestElapsedTimeUs(), getReceiveResponseElapsedTimeUs(), sql);
         } catch (Exception e) {
             try {

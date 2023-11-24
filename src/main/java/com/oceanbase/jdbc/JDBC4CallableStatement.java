@@ -135,7 +135,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             return getUpdateCount();
         } finally {
             curLock.unlock();
-            lockLogger.debug("JDBC4CallableStatement.executeUpdate to unlock");
+            lockLogger.debug("JDBC4CallableStatement.executeUpdate unlocked");
         }
     }
 
@@ -166,7 +166,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             return SelectResultSet.createEmptyResultSet();
         } finally {
             curLock.unlock();
-            lockLogger.debug("JDBC4CallableStatement.executeQuery to unlock");
+            lockLogger.debug("JDBC4CallableStatement.executeQuery unlocked");
         }
     }
 
@@ -182,7 +182,7 @@ public class JDBC4CallableStatement extends CallableFunctionStatement implements
             return results != null && results.getResultSet() == null;
         } finally {
             curLock.unlock();
-            lockLogger.debug("JDBC4CallableStatement.execute to unlock");
+            lockLogger.debug("JDBC4CallableStatement.execute unlocked");
         }
     }
 }

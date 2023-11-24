@@ -280,7 +280,7 @@ public class AuroraListener extends MastersSlavesListener {
 
       } finally {
         proxy.lock.unlock();
-        lockLogger.debug("AuroraListener.getCurrentEndpointIdentifiers to unlock");
+        lockLogger.debug("AuroraListener.getCurrentEndpointIdentifiers unlocked");
       }
     } catch (SQLException qe) {
       logger.warning("SQL exception occurred: " + qe.getMessage());
@@ -407,7 +407,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
         } finally {
             proxy.lock.unlock();
-            lockLogger.debug("AuroraListener.searchForMasterHostAddress to unlock");
+            lockLogger.debug("AuroraListener.searchForMasterHostAddress unlocked");
         }
 
         Matcher matcher;
@@ -461,7 +461,7 @@ public class AuroraListener extends MastersSlavesListener {
                         masterProtocol.close();
                     } finally {
                         proxy.lock.unlock();
-                        lockLogger.debug("AuroraListener.checkMasterStatus !isMasterHostFail to unlock");
+                        lockLogger.debug("AuroraListener.checkMasterStatus !isMasterHostFail unlocked");
                     }
                     if (setMasterHostFail()) {
                         addToBlacklist(masterProtocol.getHostAddress());
@@ -491,7 +491,7 @@ public class AuroraListener extends MastersSlavesListener {
                         secondaryProtocol.close();
                     } finally {
                         proxy.lock.unlock();
-                        lockLogger.debug("AuroraListener.checkMasterStatus isMasterHostFail to unlock");
+                        lockLogger.debug("AuroraListener.checkMasterStatus isMasterHostFail unlocked");
                     }
                     if (setSecondaryHostFail()) {
                         addToBlacklist(this.secondaryProtocol.getHostAddress());

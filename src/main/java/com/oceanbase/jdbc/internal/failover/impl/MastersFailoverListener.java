@@ -127,7 +127,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 closeConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
-                lockLogger.debug("MastersFailoverListener.preClose to unlock");
+                lockLogger.debug("MastersFailoverListener.preClose unlocked");
             }
         }
     }
@@ -146,7 +146,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 abortConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
-                lockLogger.debug("MastersFailoverListener.preAbort to unlock");
+                lockLogger.debug("MastersFailoverListener.preAbort unlocked");
             }
         }
     }
@@ -264,7 +264,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
       resetMasterFailoverData();
     } finally {
       proxy.lock.unlock();
-      lockLogger.debug("MastersFailoverListener.reconnectFailedConnection to unlock");
+      lockLogger.debug("MastersFailoverListener.reconnectFailedConnection unlocked");
     }
   }
 
@@ -306,7 +306,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 }
             } finally {
                 proxy.lock.unlock();
-                lockLogger.debug("MastersFailoverListener.switchReadOnlyConnection to unlock");
+                lockLogger.debug("MastersFailoverListener.switchReadOnlyConnection unlocked");
             }
         }
     }
@@ -325,7 +325,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 protocol.close();
             } finally {
                 proxy.lock.unlock();
-                lockLogger.debug("MastersFailoverListener.foundActiveMaster isExplicitClosed to unlock");
+                lockLogger.debug("MastersFailoverListener.foundActiveMaster isExplicitClosed unlocked");
             }
             return;
         }
@@ -339,7 +339,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             currentProtocol = protocol;
         } finally {
             proxy.lock.unlock();
-            lockLogger.debug("MastersFailoverListener.foundActiveMaster !isExplicitClosed to unlock");
+            lockLogger.debug("MastersFailoverListener.foundActiveMaster !isExplicitClosed unlocked");
         }
 
         resetMasterFailoverData();

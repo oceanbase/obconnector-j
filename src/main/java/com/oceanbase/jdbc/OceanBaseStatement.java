@@ -495,7 +495,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
     } finally {
       lock.unlock();
-      lockLogger.debug("OceanBaseStatement.executeInternal to unlock");
+      lockLogger.debug("OceanBaseStatement.executeInternal unlocked");
       if (protocol != null) {
         protocol.endCallInterface("OceanBaseStatement.executeInternal");
       }
@@ -626,7 +626,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
     }finally {
       lock.unlock();
-      lockLogger.debug("OceanBaseStatement.testExecute to unlock");
+      lockLogger.debug("OceanBaseStatement.testExecute unlocked");
     }
   }
 
@@ -1016,7 +1016,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           //throw e;
       } finally {
           lock.unlock();
-          lockLogger.debug("OceanBaseStatement.realClose to unlock");
+          lockLogger.debug("OceanBaseStatement.realClose unlocked");
       }
     }
   }
@@ -1219,7 +1219,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     } finally {
       if (locked) {
         lock.unlock();
-        lockLogger.debug("OceanBaseStatement.cancel to unlock");
+        lockLogger.debug("OceanBaseStatement.cancel unlocked");
       }
       if (protocol != null) {
         protocol.endCallInterface("OceanBaseStatement.cancel");
@@ -1669,7 +1669,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
     }finally {
       lock.unlock();
-      lockLogger.debug("OceanBaseStatement.executeBatch to unlock");
+      lockLogger.debug("OceanBaseStatement.executeBatch unlocked");
     }
   }
 
@@ -1702,7 +1702,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       }
     }finally {
       lock.unlock();
-      lockLogger.debug("OceanBaseStatement.executeLargeBatch to unlock");
+      lockLogger.debug("OceanBaseStatement.executeLargeBatch unlocked");
     }
   }
 

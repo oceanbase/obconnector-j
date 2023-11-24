@@ -434,7 +434,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
             curLock.unlock();
-            lockLogger.debug("AuroraProtocol.checkIfMaster to unlock");
+            lockLogger.debug("AuroraProtocol.checkIfMaster unlocked");
         }
     }
 }

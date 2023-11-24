@@ -55,7 +55,7 @@ public abstract class AbstractPacketInputStream implements PacketInputStream {
      * @param isMaster is server master
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = "conn=" + serverThreadId
+        this.serverThreadLog = "connectionId=" + serverThreadId
                                + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 

@@ -116,6 +116,8 @@ import com.oceanbase.jdbc.util.Options;
 
 public abstract class AbstractConnectProtocol implements Protocol {
 
+    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+
     private static final String           SESSION_QUERY                = ("SELECT @@max_allowed_packet,"
                                                                           + "@@system_time_zone,"
                                                                           + "@@time_zone,"
@@ -142,21 +144,21 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected final LruTraceCache         traceCache;
     protected String                      username;
     private final GlobalStateInfo         globalInfo;
-    public boolean                        hasWarnings                  = false;
-    public Results                        activeStreamingResult        = null;
+    public boolean                        hasWarnings;
+    public Results                        activeStreamingResult = null;
     public short                          serverStatus;
     protected int                         autoIncrementIncrement;
     protected Socket                      socket;
     protected PacketOutputStream          writer;
-    protected boolean                     readOnly                     = false;
+    protected boolean                     readOnly;
     protected PacketInputStream           reader;
     protected FailoverProxy               proxy;
-    protected volatile boolean            connected                    = false;
-    protected boolean                     explicitClosed               = false;
+    protected volatile boolean            connected;
+    protected boolean                     explicitClosed;
     protected String                      database;
     protected long                        serverThreadId;
     protected ServerPrepareStatementCache serverPrepareStatementCache;
-    protected boolean                     eofDeprecated                = false;
+    protected boolean                     eofDeprecated;
     protected long                        serverCapabilities;
     protected int                         socketTimeout;
     protected ExceptionFactory            exceptionFactory;
@@ -169,16 +171,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int                           minorVersion;
     private int                           patchVersion;
     private String                        obServerVersion;
-    protected boolean                     supportStmtPrepareExecute;
-    private boolean                       supportFetchWithOffset;
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
-    private boolean                       isOracleMode;                                                                                                    // is server in oracle mode
-    private boolean                       importedTimeZoneTables;                                                                                          // is server time zone impoted
+    private boolean                       isOracleMode; // is server in oracle mode
+    private boolean                       importedTimeZoneTables; // is server time zone impoted
     public boolean                        autoCommit;
-    public int                            transactionIsolationLevel    = 0;
+    public int                            transactionIsolationLevel;
     protected byte[]                      seed;
-    long                                  clientCapabilities           = 0;
+    long                                  clientCapabilities;
     String                                authenticationPluginType;
     byte                                  exchangeCharset;
     String                                host;
@@ -189,7 +189,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
     TimeTrace                             timeTrace;
-    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     /**
      * Get a protocol instance.
@@ -423,7 +422,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } finally {
             if (locked) {
                 lock.unlock();
-                lockLogger.debug("AbstractConnectProtocol.close to unlock");
+                lockLogger.debug("AbstractConnectProtocol.close unlocked");
             }
         }
     }
@@ -464,7 +463,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } finally {
             if (lockStatus) {
                 lock.unlock();
-                lockLogger.debug("AbstractConnectProtocol.abort to unlock");
+                lockLogger.debug("AbstractConnectProtocol.abort unlocked");
             }
         }
     }
@@ -546,10 +545,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void createConnection(HostAddress hostAddress, String username) throws SQLException,
                                                                            IOException {
-        if (options.log) {
-            timeTrace = new TimeTrace(options.logTraceTime);
-        }
-
         String host = hostAddress != null ? hostAddress.host : null;
         int port = hostAddress != null ? hostAddress.port : 3306;
 
@@ -575,6 +570,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.writer.setServerThreadId(serverThreadId, null);
 
             parseVersion(greetingPacket.getServerVersion());
+            if (options.log) {
+                timeTrace = new TimeTrace(serverThreadId, options.logTraceTime);
+            }
 
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
             long clientCapabilities = initializeClientCapabilities(options, serverCapabilities,
@@ -1995,7 +1993,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             return hasWarnings;
         } finally {
             lock.unlock();
-            lockLogger.debug("AbstractConnectProtocol.hasWarnings to unlock");
+            lockLogger.debug("AbstractConnectProtocol.hasWarnings unlocked");
         }
     }
 
@@ -2011,7 +2009,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             return connected;
         } finally {
             lock.unlock();
-            lockLogger.debug("AbstractConnectProtocol.isConnected to unlock");
+            lockLogger.debug("AbstractConnectProtocol.isConnected unlocked");
         }
     }
 

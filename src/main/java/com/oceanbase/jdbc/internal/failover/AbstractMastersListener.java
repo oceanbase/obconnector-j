@@ -506,7 +506,7 @@ public abstract class AbstractMastersListener implements Listener {
             from.getAutocommit());
       } finally {
         curLock.unlock();
-        lockLogger.debug("AbstractMastersListener.syncConnection to unlock");
+        lockLogger.debug("AbstractMastersListener.syncConnection unlocked");
       }
     }
   }
