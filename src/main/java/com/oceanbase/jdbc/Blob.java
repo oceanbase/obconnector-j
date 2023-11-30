@@ -336,6 +336,17 @@ public class Blob extends Lob implements java.sql.Blob {
      *     </code> object represents should be truncated
      */
     public void truncate(final long len) throws SQLException {
+        if (len < 0) {
+            if (isOracleMode) {
+                throw new SQLException("'len' should be >= 0");
+            }
+            throw new SQLException("\"len\" argument can not be < 1");
+        }
+
+        if (len > this.length) {
+            throw new SQLException("\"len\" argument can not be larger than the BLOB's length");
+        }
+
         if (locator != null) {
             trimBlobToServer((int) len);
         } else {

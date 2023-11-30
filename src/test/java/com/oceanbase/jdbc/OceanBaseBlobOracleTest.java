@@ -55,11 +55,14 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.Test;
 
-public class OceanBaseBlobOracleTest {
+public class OceanBaseBlobOracleTest extends BaseOracleTest{
 
     private final byte[] bytes = new byte[] { 0, 1, 2, 3, 4, 5 };
 
@@ -306,5 +309,28 @@ public class OceanBaseBlobOracleTest {
         Blob blob = new Blob(bytes);
         blob.free();
         assertEquals(0, blob.length);
+    }
+
+    @Test
+    public void testOracleBlobTruncate() throws SQLException {
+        Connection conn = sharedConnection;
+        createTable("t_lob", "c1 blob");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_lob values ('616161')");
+        ResultSet rs = conn.prepareStatement("select * from t_lob for update").executeQuery();
+        assertTrue(rs.next());
+        java.sql.Blob blob = rs.getBlob(1);
+        blob.truncate(3);
+        assertArrayEquals("aaa".getBytes(), blob.getBytes(1L, (int) blob.length()));
+        try {
+            blob.truncate(-1);
+        } catch (SQLException e) {
+            assertEquals("'len' should be >= 0",e.getMessage());
+        }
+        try {
+            blob.truncate(4);
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Invalid argument"));
+        }
     }
 }

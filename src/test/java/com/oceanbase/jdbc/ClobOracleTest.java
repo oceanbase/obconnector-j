@@ -977,4 +977,30 @@ public class ClobOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testOracleClobTruncate() throws SQLException {
+        Connection conn = sharedConnection;
+        createTable("t_clob", "c1 clob");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_clob values ('aaa')");
+        conn.setAutoCommit(false);
+        ResultSet rs = conn.prepareStatement("select * from t_clob for update").executeQuery();
+        assertTrue(rs.next());
+        java.sql.Clob clob = rs.getClob(1);
+        clob.truncate(3);
+        assertEquals("aaa",clob.getSubString(1, 3));
+        try {
+            clob.truncate(-1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid argument: 'len' should not be < 0",e.getMessage());
+        }
+        try {
+            clob.truncate(4);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Cannot truncate CLOB of length"));
+        }
+        conn.setAutoCommit(true);
+    }
 }

@@ -55,11 +55,13 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.Test;
 
-public class OceanBaseBlobTest {
+public class OceanBaseBlobTest extends BaseTest{
 
     private final byte[] bytes = new byte[] { 0, 1, 2, 3, 4, 5 };
 
@@ -305,5 +307,34 @@ public class OceanBaseBlobTest {
         Blob blob = new Blob(bytes);
         blob.free();
         assertEquals(0, blob.length);
+    }
+
+    @Test
+    public void testBlobTruncate() throws Exception {
+        createTable("testBlobTruncate", "field1 blob");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into testBlobTruncate values (_binary 'aaabbb')");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testBlobTruncate");
+        rs.next();
+        java.sql.Blob blob = rs.getBlob(1);
+        assertArrayEquals("aaabbb".getBytes(), blob.getBytes(1L, (int) blob.length()));
+        try {
+            blob.truncate(-1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("\"len\" argument can not be < 1.",e.getMessage());
+        }
+        try {
+            blob.truncate(blob.length() + 1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("\"len\" argument can not be larger than the BLOB's length.",e.getMessage());
+        }
+        blob.truncate(blob.length());
+        assertArrayEquals("aaabbb".getBytes(), blob.getBytes(1L, (int) blob.length()));
+        blob.truncate(3);
+        assertArrayEquals("aaa".getBytes(), blob.getBytes(1L, (int) blob.length()));
+        blob.truncate(0);
+        assertArrayEquals("".getBytes(), blob.getBytes(1L, (int) blob.length()));
     }
 }

@@ -366,4 +366,33 @@ public class ClobTest extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testClobTruncate() throws Exception {
+        createTable("testClobTruncate", "field1 TEXT");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO testClobTruncate VALUES ('abcdefgh')");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testClobTruncate");
+        rs.next();
+        java.sql.Clob clob = rs.getClob(1);
+        assertEquals("abcdefgh", clob.getSubString(1L, (int) clob.length()));
+        try {
+            clob.truncate(-1);
+            fail();
+        } catch (StringIndexOutOfBoundsException e) {
+            assertEquals("String index out of range: -1",e.getMessage());
+        }
+        try {
+            clob.truncate(clob.length() + 1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Cannot truncate CLOB of length 8 to length of 9.",e.getMessage());
+        }
+        clob.truncate(clob.length());
+        assertEquals("abcdefgh", clob.getSubString(1L, (int) clob.length()));
+        clob.truncate(5);
+        assertEquals("abcde", clob.getSubString(1L, (int) clob.length()));
+        clob.truncate(0);
+        assertEquals("", clob.getSubString(1L, (int) clob.length()));
+    }
 }

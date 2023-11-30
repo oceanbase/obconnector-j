@@ -348,6 +348,9 @@ public class Clob extends Lob implements java.sql.Clob {
      * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
+        if (pos < 1L) {
+            throw new SQLException(Clob_4);
+        }
         if (str == null || str.length() == 0) {
             return 0;
         }
@@ -370,9 +373,6 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     public int setString(long pos, String str, int offset, int len) throws SQLException {
-        if (pos < 1) {
-            throw new SQLException(Clob_4);
-        }
         if (str == null) {
             throw new SQLException(Clob_5);
         }
@@ -457,22 +457,27 @@ public class Clob extends Lob implements java.sql.Clob {
 
     @Override
     public void truncate(final long truncateLen) throws SQLException {
-        if (locator != null) {
-            if (length > this.charData.length()) {
-                throw new SQLException("Clob length is more than charData length");
+        if (truncateLen < 0) {
+            if (this.isOracleMode) {
+                throw new SQLException("Invalid argument: 'len' should not be < 0");
             }
-
-            if (this.locator == null) {
-                this.charData = this.charData.substring(0, (int) truncateLen);
-            } else {
-                trimClobToServer((int) truncateLen);
-            }
-            return;
+            throw new StringIndexOutOfBoundsException("String index out of range: " + truncateLen);
         }
-        if (charData != null && charData.length() > 0 && truncateLen < charData.length()) {
+
+        // charData either hasn't been obtained or is complete.
+        if (this.charData != null && truncateLen > this.charData.length()) {
+            throw new SQLException("Cannot truncate CLOB of length " + this.charData.length()
+                                   + " to length of " + truncateLen);
+        }
+
+        if (locator != null) {
+            trimClobToServer((int) truncateLen);
+            return;
+        } else if (this.charData != null) {
             this.charData = this.charData.substring(0, (int) truncateLen);
             return;
         }
+
         // truncate the number of UTF-16 characters
         // this can result in a bad UTF-8 string if string finish with a
         // character represented in 2 UTF-16

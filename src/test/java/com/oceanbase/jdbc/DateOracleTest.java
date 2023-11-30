@@ -78,7 +78,7 @@ public class DateOracleTest extends BaseOracleTest {
             "date_test2",
             "id int not null primary key , d_from timestamp ,d_to timestamp ,timestamp_local TIMESTAMP WITH LOCAL TIME ZONE ,timestamp_timezone TIMESTAMP WITH TIME ZONE");
         createTable("timestampzerotest", "ts timestamp, dt timestamp, dd date");
-        createTable("dtest", "d timestamp");
+//        createTable("dtest", "d timestamp");
         createTable("dtest2", "d date");
         createTable("dtest3", "d date");
         //        createTable("dtest4", "d  time");
@@ -301,6 +301,7 @@ public class DateOracleTest extends BaseOracleTest {
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest");
         assertTrue(rs.next());
+        System.out.println(rs.getString(1));
         /* Check that time is correct, up to seconds precision */
         assertTrue(Math.abs((currentDate.getTime() - rs.getTimestamp(1).getTime())) <= 1000);
     }
