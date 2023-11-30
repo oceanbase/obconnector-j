@@ -1605,15 +1605,20 @@ public class OceanBaseStatement implements Statement, Cloneable {
    * @see DatabaseMetaData#supportsBatchUpdates
    */
   public void addBatch(final String sql) throws SQLException {
-    if (batchQueries == null) {
-      batchQueries = new ArrayList<>();
-    }
-    if (sql == null) {
-      throw exceptionFactory
-          .raiseStatementError(connection, this)
-          .create("null cannot be set to addBatch( String sql)");
-    }
-    batchQueries.add(sql);
+      lock.lock();
+      try {
+          if (batchQueries == null) {
+              batchQueries = new ArrayList<>();
+          }
+          if (sql == null) {
+              throw exceptionFactory
+                      .raiseStatementError(connection, this)
+                      .create("null cannot be set to addBatch( String sql)");
+          }
+          batchQueries.add(sql);
+      } finally {
+          lock.unlock();
+      }
   }
 
   /**

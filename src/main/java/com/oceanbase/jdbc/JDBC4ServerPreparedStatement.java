@@ -457,12 +457,17 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public void addBatch() throws SQLException {
-    if (returnParamCount > 0) {
-        throw new SQLFeatureNotSupportedException("not support batch operation for DML_Returning_Into feature.");
-    }
+      lock.lock();
+      try {
+          if (returnParamCount > 0) {
+              throw new SQLFeatureNotSupportedException("not support batch operation for DML_Returning_Into feature.");
+          }
 
-    validParameters();
-    parametersList.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
+          validParameters();
+          parametersList.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
+      } finally {
+          lock.unlock();
+      }
   }
 
   @Override

@@ -276,23 +276,28 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    * @since 1.2
    */
   public void addBatch() throws SQLException {
-    ParameterHolder[] holder = new ParameterHolder[parameterCount];
-    for (int i = 0; i < holder.length; i++) {
-      holder[i] = parameters[i];
-      if (holder[i] == null) {
-        logger.error(
-            "You need to set exactly "
-                + parameterCount
-                + " parameters on the prepared statement");
-        throw exceptionFactory
-            .raiseStatementError(connection, this)
-            .create(
-                "You need to set exactly "
-                    + parameterCount
-                    + " parameters on the prepared statement");
+    lock.lock();
+    try {
+      ParameterHolder[] holder = new ParameterHolder[parameterCount];
+      for (int i = 0; i < holder.length; i++) {
+        holder[i] = parameters[i];
+        if (holder[i] == null) {
+          logger.error(
+                  "You need to set exactly "
+                          + parameterCount
+                          + " parameters on the prepared statement");
+          throw exceptionFactory
+                  .raiseStatementError(connection, this)
+                  .create(
+                          "You need to set exactly "
+                                  + parameterCount
+                                  + " parameters on the prepared statement");
+        }
       }
+      parametersList.add(holder);
+    } finally {
+      lock.unlock();
     }
-    parametersList.add(holder);
   }
 
   /**
