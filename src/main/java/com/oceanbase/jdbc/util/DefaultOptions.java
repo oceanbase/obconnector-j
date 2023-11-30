@@ -148,9 +148,6 @@ public enum DefaultOptions {
             "Metadata ResultSetMetaData.getTableName() returns the physical table name. \"useOldAliasMetadataBehavior\""
                     + " permits activating the legacy code that sends the table alias if set.",
             false),
-    // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
-    //  ALLOW_LOCAL_INFILE(
-    //      "allowLocalInfile", Boolean.FALSE, "1.2.1", "Permit loading data from file", false),
     SESSION_VARIABLES(
             "sessionVariables",
             "2.0.1",
@@ -1090,6 +1087,12 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.7",
             "Used in Connection.setReadOnly(boolean readOnly) to put this connection in repeatable-read mode when readOnly is true.",
+            false),
+    ALLOW_LOAD_LOCAL_INFILE(
+            "allowLoadLocalInfile",
+            Boolean.FALSE,
+            "2.4.8",
+            "Permit loading data from file",
             false);
 
   private final String optionName;

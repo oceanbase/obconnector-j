@@ -84,6 +84,7 @@ import com.oceanbase.jdbc.internal.com.send.*;
 import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -2387,11 +2388,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       InputStream is;
       writer.startPacket(seq);
       if (localInfileInputStream == null) {
-        if (!getUrlParser().getOptions().allowLocalInfile) {
+        if (!getUrlParser().getOptions().allowLoadLocalInfile) {
           writer.writeEmptyPacket();
           reader.getPacket(true);
           throw new SQLException(
-              "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+              "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLoadLocalInfile=true",
               SqlStates.FEATURE_NOT_SUPPORTED.getSqlState(),
               -1);
         }
@@ -2454,7 +2455,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         while ((len = is.read(buf)) > 0) {
           writer.startPacket(seq++);
           writer.write(buf, 0, len);
-          writer.flush();
+          writer.flushLoadDataLocalFile();
         }
         writer.writeEmptyPacket();
       } catch (IOException ioe) {

@@ -43,8 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.*;
 
 import org.junit.*;
@@ -366,6 +371,44 @@ public class NewFeatureTest extends BaseTest {
         Assert.assertEquals("BBB", rs.getString(1));
         Assert.assertTrue(rs.next());
         Assert.assertEquals("CCC", rs.getString(1));
+    }
+
+    @Test
+    public void testLoadDataLocalFile() throws SQLException, IOException {
+        File file = new File("./validateInfile_data.txt");
+        if (!file.exists()){
+            assertTrue(file.createNewFile());
+        }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))){
+            bw.write("1,John,25,123 Main St");
+            bw.newLine();
+            bw.write("2,Jane,30,456 Elm St");
+            bw.newLine();
+            bw.write("3,Michael,35,789 Oak St");
+            bw.newLine();
+        }
+        createTable("my_table", "id INT, name VARCHAR(50), age INT, salary DECIMAL(10,2)");
+        doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=false"));
+        doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=true"));
+        file.delete();
+    }
+    public void doTestLoadDataLocalFile(Connection conn) throws SQLException {
+        String tableName = "my_table";
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("delete from " + tableName);
+        stmt.execute("LOAD DATA LOCAL INFILE './validateInfile_data.txt' INTO TABLE " + tableName
+                + " FIELDS TERMINATED BY ','" + " LINES TERMINATED BY '\\n'");
+        Assert.assertEquals("Records: 3  Deleted: 0  Skipped: 0  Warnings: 0",
+                ((OceanBaseStatement) stmt).getServerInfo());
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
+        assertTrue(rs.next());
+        Assert.assertEquals("1 John 25",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+        assertTrue(rs.next());
+        Assert.assertEquals("2 Jane 30",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+        assertTrue(rs.next());
+        Assert.assertEquals("3 Michael 35",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+        stmt.close();
+        conn.close();
     }
 
 }

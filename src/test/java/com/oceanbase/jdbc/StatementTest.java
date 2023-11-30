@@ -261,7 +261,7 @@ public class StatementTest extends BaseTest {
   public void testLoadDataInvalidColumn() throws SQLException {
     Assume.assumeFalse(
         (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       Statement statement = connection.createStatement();
       try {
         statement.execute("drop view if exists v2");

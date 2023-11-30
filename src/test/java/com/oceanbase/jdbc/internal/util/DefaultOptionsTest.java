@@ -147,7 +147,7 @@ public class DefaultOptionsTest {
             Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
             for (Field field : Options.class.getFields()) {
                 // Because of security vulnerabilities now mandatory cannot be set, but may be supported in the future
-                if (field.getName().equals("allowLocalInfile")) {
+                if (field.getName().equals("allowLoadLocalInfile")) {
                     continue;
                 }
                 if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())

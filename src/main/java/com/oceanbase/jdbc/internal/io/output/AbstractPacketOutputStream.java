@@ -227,6 +227,15 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      */
     public void flush() throws IOException {
         flushBuffer(true);
+        doFlush();
+    }
+
+    public void flushLoadDataLocalFile() throws IOException {
+        flushBuffer(false);
+        doFlush();
+    }
+
+    public void doFlush() throws IOException {
         out.flush();
 
         // if buffer is big, and last query doesn't use at least half of it, resize buffer to default

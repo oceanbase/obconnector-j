@@ -373,7 +373,9 @@ public class SendHandshakeResponsePacket {
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO;
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE_SHOW_TRACE;
             }
-
+            if (options.allowLoadLocalInfile) {
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_LOCAL_FILES;
+            }
             buffer.writeStringSmallLength(_PROXY_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }

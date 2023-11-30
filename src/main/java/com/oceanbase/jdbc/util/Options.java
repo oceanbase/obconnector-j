@@ -145,6 +145,7 @@ public class Options implements Cloneable {
     public boolean clobberStreamingResults;
     public int maxRows;
     public boolean useInformationSchema;
+    public boolean allowLoadLocalInfile;
     public boolean emptyStringsConvertToZero = true;
 
     // logging options
@@ -688,6 +689,9 @@ public class Options implements Cloneable {
         if (useInformationSchema != opt.useInformationSchema) {
             return false;
         }
+        if (allowLoadLocalInfile != opt.allowLoadLocalInfile) {
+            return false;
+        }
         if (emptyStringsConvertToZero != opt.emptyStringsConvertToZero){
             return false;
         }
@@ -851,6 +855,7 @@ public class Options implements Cloneable {
         result = 31 * result + compatibleOjdbcVersion;
         result = 31 * result + compatibleMysqlVersion;
         result = 31 * result + (useInformationSchema ? 1 : 0);
+        result = 31 * result + (allowLoadLocalInfile ? 1 : 0);
         result = 31 * result + (emptyStringsConvertToZero ? 1 : 0);
         result = 31 * result + (useLobLocatorV2 ? 1 : 0);
         result = 31 * result + (extendOracleResultSetClass ? 1 : 0);

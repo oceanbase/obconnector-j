@@ -106,6 +106,8 @@ public interface PacketOutputStream {
 
     void flush() throws IOException;
 
+    void flushLoadDataLocalFile() throws IOException;
+
     void close() throws IOException;
 
     boolean checkRemainingSize(int len);

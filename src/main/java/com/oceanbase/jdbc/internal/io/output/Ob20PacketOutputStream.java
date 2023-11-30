@@ -324,4 +324,8 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         }
     }
 
+    public OceanBaseProtocolV20 getOb20() {
+        return ob20;
+    }
+
 }

@@ -79,7 +79,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   public void testLocalInfileInputStream() throws SQLException {
     Assume.assumeFalse(
         (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
         String builder = "1\thello\n" + "2\tworld\n";
@@ -115,7 +115,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write(builder.toString());
     }
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       testLocalInfile(connection, temp.getAbsolutePath().replace("\\", "/"));
     }
   }
@@ -131,7 +131,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write(builder.toString());
     }
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       try {
         testLocalInfile(connection, temp.getAbsolutePath().replace("\\", "/"));
         fail("Must have been intercepted");
@@ -177,7 +177,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       Statement st = connection.createStatement();
       st.execute(
           "LOAD DATA LOCAL INFILE '"
@@ -195,7 +195,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
     Assume.assumeFalse(
         (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       try {
         PreparedStatement st =
             connection.prepareStatement(
@@ -243,7 +243,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     private void checkBigLocalInfile(long fileSize) throws Exception {
     long recordNumber = fileSize / 8;
-    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+    try (Connection connection = setConnection("&allowLoadLocalInfile=true")) {
       try (Statement statement = connection.createStatement()) {
         statement.execute("truncate `infile`");
         File file = createTmpData(recordNumber);

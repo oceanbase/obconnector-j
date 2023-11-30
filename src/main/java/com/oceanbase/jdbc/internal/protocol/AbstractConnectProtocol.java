@@ -720,6 +720,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         // send Client Handshake Response
         String clientIp = this.socket.getLocalAddress().getHostAddress();
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_LOCAL_FILES) != 0) {
+            clientCapabilities |=  (OceanBaseCapabilityFlag.CLIENT_LOCAL_FILES);
+        }
         SendHandshakeResponsePacket.send(writer, credential, host, database, clientCapabilities,
             serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
                 : 0x01), options, authenticationPluginType, seed, clientIp);
