@@ -51,6 +51,8 @@
 package com.oceanbase.jdbc;
 
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -1668,7 +1670,21 @@ public class OceanBaseStatement implements Statement, Cloneable {
         internalBatchExecution(size);
         return results.getCmdInformation().getUpdateCounts();
       } catch (SQLException initialSqlEx) {
-        throw executeBatchExceptionEpilogue(initialSqlEx, size);
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          initialSqlEx.printStackTrace(pw);
+
+          logger.error("--------------------------------------------------------------------------\n"
+                  + actualSql + "\n"
+                  + sw + "\n"
+                  + "--------------------------------------------------------------------------\n");
+
+          try {
+              throw executeBatchExceptionEpilogue(initialSqlEx, size);
+          } catch (NullPointerException e) {
+              e.initCause(initialSqlEx); //print sqle when meet NPE
+              throw e;
+          }
       } finally {
         executeBatchEpilogue();
       }

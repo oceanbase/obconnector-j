@@ -335,11 +335,10 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             sqle.printStackTrace(pw);
-            String exceptionAsString = sw.toString();
 
             logger.error("--------------------------------------------------------------------------\n"
                     + actualSql + "\n"
-                    + exceptionAsString + "\n"
+                    + sw + "\n"
                     + "--------------------------------------------------------------------------\n");
 
             try {
