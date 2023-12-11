@@ -145,7 +145,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected String                      username;
     private final GlobalStateInfo         globalInfo;
     public boolean                        hasWarnings;
-    public Results                        activeStreamingResult = null;
+    public Results                        activeStreamingResult        = null;
     public short                          serverStatus;
     protected int                         autoIncrementIncrement;
     protected Socket                      socket;
@@ -174,7 +174,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private TimeZone                      timeZone;
     private TimeZone                      serverTimeZone;
     private boolean                       isOracleMode; // is server in oracle mode
-    private boolean                       importedTimeZoneTables; // is server time zone impoted
+    private boolean                       importedTimeZoneTables; // is server time zone imported
     public boolean                        autoCommit;
     public int                            transactionIsolationLevel;
     protected byte[]                      seed;
@@ -1210,15 +1210,23 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void sendAlterSessionTimezone(String zoneId) throws IOException {
+    private void sendAlterSessionTimezone() throws IOException, SQLException {
+        this.importedTimeZoneTables = getServerTZTablesImported();
+        String zoneId = this.importedTimeZoneTables ? TimeZone.getDefault().getID()
+            : TimeZone.getDefault().toZoneId().getRules().getStandardOffset(Instant.now()).getId();
+        // when importedTimeZoneTables is
+        //   false: the TIME_ZONE cannot be set to any values that start with "GMT"
+        //   true: only GMT, GMT+0, GMT-0, GMT0 can be accepted
+        if (zoneId.startsWith("GMT") && (!this.importedTimeZoneTables
+                || !zoneId.equalsIgnoreCase("GMT")|| !zoneId.equalsIgnoreCase("GMT+0")
+                || !zoneId.equalsIgnoreCase("GMT-0") || !zoneId.equalsIgnoreCase("GMT0"))) {
+            zoneId = zoneId.substring("GMT".length());
+        }
+
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         writer.write(ALTER_SESSION_TIMEZONE_QUERY);
-        if (!this.importedTimeZoneTables && zoneId.startsWith("GMT")) {
-            writer.write(zoneId.substring("GMT".length()).getBytes());
-        } else {
-            writer.write(zoneId.getBytes());
-        }
+        writer.write(zoneId.getBytes());
         writer.write('\'');
         writer.flush();
     }
@@ -1446,7 +1454,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         tz = srvSystemTimeZone;
                     }
                 }
-                this.importedTimeZoneTables = getServerTZTablesImported();
                 // handle custom timezone id
                 if (tz != null && tz.length() >= 2 && (tz.startsWith("+") || tz.startsWith("-"))
                     && Character.isDigit(tz.charAt(1))) {
@@ -1454,32 +1461,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
 
                 TimeZone defaultTimezone = TimeZone.getDefault();
-                String offsetId = defaultTimezone.toZoneId().getRules()
-                    .getStandardOffset(Instant.now()).getId();
                 // TODO oracle should alter session to local time_zone, need more test case
                 if (tz != null) {
-                    timeZone = Utils.getTimeZone(tz);
-                    serverTimeZone = timeZone;
-                    if (defaultTimezone.getRawOffset() != timeZone.getRawOffset()) {
-                        if (!this.importedTimeZoneTables) {
-                            sendAlterSessionTimezone(offsetId);
-                        } else {
-                            sendAlterSessionTimezone(defaultTimezone.getID());
-                        }
+                    serverTimeZone = Utils.getTimeZone(tz);
+                    if (defaultTimezone.getRawOffset() != serverTimeZone.getRawOffset()) {
+                        sendAlterSessionTimezone();
                         getResult(new Results());
-                        timeZone = defaultTimezone;
-                    } else {
-                        timeZone = defaultTimezone;
                     }
                 } else {
-                    if (!this.importedTimeZoneTables) {
-                        sendAlterSessionTimezone(offsetId);
-                    } else {
-                        sendAlterSessionTimezone(defaultTimezone.getID());
-                    }
+                    sendAlterSessionTimezone();
                     getResult(new Results());
-                    timeZone = defaultTimezone;
                 }
+                timeZone = defaultTimezone;
 
             } else {
                 tz = options.serverTimezone;
@@ -1505,7 +1498,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                 + tz
                                 + "' defined in the 'serverTimezone' parameter cannot be parsed "
                                 + "by java TimeZone implementation. See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your "
-                                + "JRE implementation.", "01S00");
+                                + "JRE implementation.", "01S00", e);
             } else {
                 throw exceptionFactory
                     .create(
@@ -1515,7 +1508,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                 + "jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly with "
                                 + "sessionVariables=time_zone='Canada/Atlantic' for example).  See "
                                 + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.",
-                        "01S00");
+                        "01S00", e);
             }
         } catch (IOException e) {
             throw new SQLException("Alter session set time_zone exception", e);
