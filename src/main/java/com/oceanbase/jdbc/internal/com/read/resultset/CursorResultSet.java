@@ -230,7 +230,7 @@ public class CursorResultSet extends Cursor {
                 updateStartIndexInEntireResult();
             }
         } catch (IOException e) {
-            handleIoException(e);
+            throw handleIoException(e);
         }
     }
 
