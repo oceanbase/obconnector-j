@@ -700,6 +700,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             remainParameterSize -= currentTurnParamSize;
           } else {
             continueRewrite = false;
+            if (currentTurnParamSize != remainParameterSize) {
+                // currentTurnParamSize means the previous turn, and remainParameterSize means the last turn
+                // actual sql will be different, in this case it's necessary to prepare the new actual sql
+                serverPrepareResult = null;
+            }
             currentTurnParamSize = remainParameterSize;
             remainParameterSize = 0;
           }
@@ -809,9 +814,6 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             if (protocol.supportStmtPrepareExecute()) {
               // under rewriteBatchedStatements
               serverPrepareResult = protocol.executePreparedQuery(parameterHolder.length, parameterHolder, serverPrepareResult, results);
-              if(!hasLongData(parameterHolder)) {
-                serverPrepareResult = null; // reset serverPrepareResult every time
-              }
             } else {
               protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
             }

@@ -1001,7 +1001,7 @@ public class ComplexScenarioOracleTestCases extends BaseOracleTest {
                 preparedStatement.addBatch();
             }
             val = 0;
-            preparedStatement.executeBatch();
+            preparedStatement.executeBatch();//ORA-01722: invalid number
             rs = stmt.executeQuery("select * from rewriteclob");
             long count = 0;
             while (rs.next()) {
@@ -1033,7 +1033,7 @@ public class ComplexScenarioOracleTestCases extends BaseOracleTest {
                 preparedStatement.addBatch();
             }
             val = 0;
-            preparedStatement.executeBatch();
+            preparedStatement.executeBatch();//ORA-01000: maximum open cursors exceeded
             rs = stmt.executeQuery("select * from rewriteclob");
             count = 0;
             while (rs.next()) {
