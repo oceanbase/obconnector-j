@@ -80,7 +80,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
     public CompressPacketOutputStream(OutputStream out, long threadId, Options options,
                                       TimeTrace timeTrace) {
-        super(out, options.maxQuerySizeToLog, threadId, options.getCharacterEncoding(), timeTrace);
+        super(out, options.maxQuerySizeToLog, threadId, options.getCharacterEncoding(), timeTrace, options.encloseParamInParentheses);
         maxPacketLength = MAX_PACKET_LENGTH;
     }
 

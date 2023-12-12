@@ -48,6 +48,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class PreparedStatementOracleTest extends BaseOracleTest {
@@ -374,6 +375,27 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         stmt.setFetchSize(30);
         i = stmt.executeUpdate("select * from " + tableName);
         Assert.assertEquals(21, i);
+    }
+
+    @Test
+    public void aone53311351() throws SQLException, InterruptedException {
+        Assume.assumeFalse(sharedUsePrepare());
+        createTable("test", "n1 INT, d1 DATE DEFAULT sysdate");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("INSERT INTO test(n1) VALUES(1)");
+        stmt.executeUpdate("INSERT INTO test(n1) VALUES(2)");
+        stmt.executeUpdate("INSERT INTO test(n1) VALUES(3)");
+
+        PreparedStatement s = sharedConnection.prepareStatement("UPDATE test set n1 = n1 -? WHERE n1 = 1");
+        s.setDouble(1,-1);
+        int retRows = s.executeUpdate();
+        System.out.println(retRows);
+        Assert.assertEquals(1, retRows);
+
+//        ResultSet rs = stmt.executeQuery("select * from test");
+//        while (rs.next()) {
+//            System.out.println(rs.getString(1) + " " + rs.getString(2));
+//        }
     }
 
 }

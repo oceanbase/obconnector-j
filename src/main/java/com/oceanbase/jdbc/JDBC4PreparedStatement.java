@@ -671,6 +671,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   public String asSql(boolean quoteStreamsAndUnknowns) throws SQLException {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     PacketOutputStream out  = new StandardPacketOutputStream(byteArrayOutputStream, connection.getServerThreadId(), options, protocol.getTimeTrace());
+    out.setOracleMode(protocol.isOracleMode());
     ClientPrepareResult clientPrepareResult = prepareResult;
     try {
       out.startPacket(0);

@@ -918,6 +918,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 reader.setTraceCache(traceCache);
             }
         }
+        writer.setOracleMode(isOracleMode);
     }
 
     private void assignStream(Socket socket, Options options) throws SQLException {

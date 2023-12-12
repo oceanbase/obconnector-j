@@ -172,4 +172,9 @@ public interface PacketOutputStream {
 
     Charset getCharset();
 
+    boolean isEncloseParamInParentheses();
+
+    boolean isOracleMode();
+
+    void setOracleMode(boolean oracleMode);
 }

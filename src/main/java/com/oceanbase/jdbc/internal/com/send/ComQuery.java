@@ -85,7 +85,13 @@ public class ComQuery {
             out.write(clientPrepareResult.getQueryParts().get(0));
             out.write(clientPrepareResult.getQueryParts().get(1));
             for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
+                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
+                    out.write("(".getBytes(out.getCharset()));
+                }
                 parameters[i].writeTo(out);
+                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
+                    out.write(")".getBytes(out.getCharset()));
+                }
                 out.write(clientPrepareResult.getQueryParts().get(i + 2));
             }
             out.write(clientPrepareResult.getQueryParts().get(
@@ -95,7 +101,13 @@ public class ComQuery {
 
             out.write(clientPrepareResult.getQueryParts().get(0));
             for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
+                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
+                    out.write("(".getBytes(out.getCharset()));
+                }
                 parameters[i].writeTo(out);
+                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
+                    out.write(")".getBytes(out.getCharset()));
+                }
                 out.write(clientPrepareResult.getQueryParts().get(i + 1));
             }
         }

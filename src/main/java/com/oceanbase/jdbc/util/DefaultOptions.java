@@ -1093,6 +1093,12 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.8",
             "Permit loading data from file",
+            false),
+    ENCLOSE_PARAM_IN_PARENTHESES(
+            "encloseParamInParentheses",
+            Boolean.TRUE,
+            "2.4.8",
+            "When oracle mode binds a parameter through text protocol, enclose the parameter values in parentheses.",
             false);
 
   private final String optionName;

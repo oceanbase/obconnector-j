@@ -231,6 +231,7 @@ public class Options implements Cloneable {
     public boolean extendOracleResultSetClass;
     public int     logTraceTime;
     public boolean oracleChangeReadOnlyToRepeatableRead;
+    public boolean encloseParamInParentheses = true; // todo: default false may be better
 
     @Override
     public String toString() {
@@ -707,6 +708,9 @@ public class Options implements Cloneable {
         if (oracleChangeReadOnlyToRepeatableRead != opt.oracleChangeReadOnlyToRepeatableRead) {
             return false;
         }
+        if (encloseParamInParentheses != opt.encloseParamInParentheses) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -861,6 +865,7 @@ public class Options implements Cloneable {
         result = 31 * result + (extendOracleResultSetClass ? 1 : 0);
         result = 31 * result + logTraceTime;
         result = 31 * result + (oracleChangeReadOnlyToRepeatableRead ? 1 : 0);
+        result = 31 * result + (encloseParamInParentheses ? 1 : 0);
         return result;
     }
 

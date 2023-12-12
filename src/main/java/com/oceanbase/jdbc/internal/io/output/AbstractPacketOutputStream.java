@@ -94,6 +94,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private TimeZone          tm                         = null;
     protected Charset         charset                    = null;
     private TimeTrace         timeTrace;
+    private boolean           encloseParamInParentheses;
+    private boolean           isOracleMode;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
@@ -103,7 +105,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      * @param threadId thread id
      */
     public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId,
-                                      String encoding, TimeTrace timeTrace) {
+                                      String encoding, TimeTrace timeTrace, boolean encloseParamInParentheses) {
         super(out);
         buf = new byte[SMALL_BUFFER_SIZE];
         this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -111,6 +113,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         this.threadId = threadId;
         this.charset = Charset.forName(encoding);
         this.timeTrace = timeTrace;
+        this.encloseParamInParentheses = encloseParamInParentheses;
     }
 
     public void setTimeZone(TimeZone tm) {
@@ -1155,6 +1158,18 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (timeTrace != null) {
             timeTrace.endSendRequest();
         }
+    }
+
+    public boolean isEncloseParamInParentheses() {
+        return encloseParamInParentheses;
+    }
+
+    public boolean isOracleMode() {
+        return isOracleMode;
+    }
+
+    public void setOracleMode(boolean oracleMode) {
+        isOracleMode = oracleMode;
     }
 
 }
