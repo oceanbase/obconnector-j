@@ -460,6 +460,10 @@ public class ColumnDefinition {
         return 0;
     }
 
+    public int getPrimitiveDecimals(){
+        return decimals;
+    }
+
     public ColumnType getColumnType() {
         return type;
     }

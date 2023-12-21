@@ -356,8 +356,9 @@ public class DataTypeUtilities {
             }
         }
         result = result.substring(0, endIndex + 1);
-        if (result.split("\\.")[1].matches("^0{2,}$")) {
-            result = result.split("\\.")[0] + ".0";
+        String[] resultSplit = result.split("\\.");
+        if (resultSplit[1].matches("^0{2,}$")) {
+            result = resultSplit[0] + ".0";
         }
         return is_negative == 0 ? result : "-" + result;
     }

@@ -250,6 +250,7 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     return null;
                 }
+
                 if (getProtocol().isOracleMode()) {
                     LocalDateTime localDateTime = timestamp.toLocalDateTime();
                     int nano = localDateTime.getNano();
@@ -262,9 +263,21 @@ public class TextRowProtocol extends RowProtocol {
                         localDateTime.getHour(), localDateTime.getMinute(),
                         localDateTime.getSecond(), nano, 0, null);
                     return str;
-                } else {
-                    return timestamp.toString();
+                } else if (options.compatibleMysqlVersion == 8) {
+                    if (columnInfo.getLength() >= 19) {
+                        String[] timeSplit = timestamp.toString().split("\\.");
+                        String datetime = timeSplit[0];
+                        StringBuilder millisecond = new StringBuilder(timeSplit[1]);
+                        if (!millisecond.toString().matches("0+")) {
+                            for (int i = millisecond.length(); i < columnInfo.getPrimitiveDecimals(); i++) {
+                                millisecond.append(0);
+                            }
+                            datetime = datetime + "." + millisecond;
+                        }
+                        return datetime;
+                    }
                 }
+                return timestamp.toString();
             case INTERVALDS:
                 INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
                 return intervalds.toString();
@@ -406,7 +419,7 @@ public class TextRowProtocol extends RowProtocol {
             }
 
         } catch (NumberFormatException nfe) {
-            if(length==0){
+            if (length == 0) {
                 return convertToZeroWithEmptyCheck();
             }
 
@@ -1181,6 +1194,12 @@ public class TextRowProtocol extends RowProtocol {
         if (options.maximizeMysqlCompatibility && options.useLegacyDatetimeCode
             && rawValue.indexOf(".") > 0) {
             return rawValue.substring(0, rawValue.indexOf("."));
+        }
+        if (rawValue.contains(".")) {
+            String[] internalTimeValue = rawValue.split("\\.");
+            if (options.compatibleMysqlVersion == 5 || internalTimeValue[1].matches("0+")) {
+                return internalTimeValue[0];
+            }
         }
         return rawValue;
     }

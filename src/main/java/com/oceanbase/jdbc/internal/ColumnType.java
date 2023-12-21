@@ -65,56 +65,56 @@ import com.oceanbase.jdbc.util.Options;
 
 public enum ColumnType {
 
-    OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE),
+    NULL(6, Types.NULL, "Types.NULL", String.class.getName(), ColumnType.BOTH_TYPE),
     TINYINT(1, Types.TINYINT, "Types.TINYINT", Integer.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT  -> Types.TINYINT
     SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName(), ColumnType.BOTH_TYPE),
     INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.MYSQL_TYPE),
-    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.MYSQL_TYPE),
-    DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName(), ColumnType.MYSQL_TYPE),
-    NULL(6, Types.NULL, "Types.NULL", String.class.getName(), ColumnType.BOTH_TYPE),
-    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE),
+    NUMBER(3, Types.INTEGER, "Types.INTEGER", com.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE),
     BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName(), ColumnType.BOTH_TYPE),
-    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.BOTH_TYPE), // in V1 it is FIELD_TYPE_INT24
-    DATE(10, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE),
-    TIME(11, Types.TIME, "Types.TIME", Time.class.getName(), ColumnType.BOTH_TYPE),
+    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName(), ColumnType.MYSQL_TYPE),
+    BINARY_FLOAT(4, Types.FLOAT, "Types.FLOAT", java.lang.Float.class.getName(), ColumnType.ORACLE_TYPE), // todo: 256
+    DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName(), ColumnType.MYSQL_TYPE),
+    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(), ColumnType.ORACLE_TYPE), // todo: 257
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.MYSQL_TYPE),
+    DATE(10, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.MYSQL_TYPE),
+    TIME(11, Types.TIME, "Types.TIME", Time.class.getName(), ColumnType.MYSQL_TYPE),
     DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.BOTH_TYPE),
-    YEAR(13, Types.DATE, "Types.SMALLINT", Short.class.getName(), ColumnType.BOTH_TYPE), // DONE Types.SMALLINT -> Types.DATE
-    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE),
-    VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE),
-    BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE),
-    JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.MYSQL_TYPE),
-    OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.ORACLE_TYPE),
-    ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-    SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-    TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE),
-    MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARBINARY -> LONGVARBINARY
-    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE), //Types.CHAR -> Types.DECIMAL
-    BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.BOTH_TYPE),
-    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE),
-    VARCHAR2(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.ORACLE_TYPE),
-    STRING(254, Types.CHAR, "Types.CHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-    GEOMETRY(255, Types.CHAR, "Types.VARBINARY", "[B", ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
-
+    YEAR(13, Types.DATE, "Types.SMALLINT", Short.class.getName(), ColumnType.MYSQL_TYPE), // DONE Types.SMALLINT -> Types.DATE
+    COMPLEX(160, Types.OTHER, "Types.OTHER", ComplexData.class.getName(), ColumnType.ORACLE_TYPE),
     TIMESTAMP_TZ(200, -101, "Types.TIMESTAMP", TIMESTAMPTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -101
     TIMESTAMP_LTZ(201, -102, "Types.TIMESTAMP", TIMESTAMPLTZ.class.getName(), ColumnType.ORACLE_TYPE), // Types.TIMESTAMP -> -102
     TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.ORACLE_TYPE),
-    ORA_BLOB(210, Types.BLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Blob", ColumnType.ORACLE_TYPE), // ObLobType
-    ORA_CLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob", ColumnType.ORACLE_TYPE), // ObLobType
     INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
     INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
-    COMPLEX(160, Types.OTHER, "Types.OTHER", ComplexData.class.getName(), ColumnType.ORACLE_TYPE),
+    NUMBER_FLOAT(206, Types.DOUBLE, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
+    ROWID(209, Types.ROWID, "Types.ROWID", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
+    JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE), // DONE VARCHAR -> CHAR
+    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.MYSQL_TYPE),
+    OBDECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.ORACLE_TYPE),
+    TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.MYSQL_TYPE),
+    MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.MYSQL_TYPE), // DONE VARBINARY -> LONGVARBINARY
+    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.MYSQL_TYPE), //Types.CHAR -> Types.DECIMAL
+    BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B", ColumnType.MYSQL_TYPE),
+    GEOMETRY(255, Types.CHAR, "Types.VARBINARY", "[B", ColumnType.MYSQL_TYPE), // DONE VARCHAR -> CHAR
+    VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE),
+    NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
+    NCHAR(208, Types.NCHAR, "Types.NCHAR", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
+    ORA_BLOB(210, Types.BLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Blob", ColumnType.ORACLE_TYPE), // ObLobType
+    ORA_CLOB(211, Types.CLOB, "Types.LONGVARBINARY", "com.oceanbase.jdbc.Clob", ColumnType.ORACLE_TYPE), // ObLobType
+    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE),
+    VARCHAR2(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.ORACLE_TYPE),
+    STRING(254, Types.CHAR, "Types.CHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    // todo: check unknown
+    OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.BOTH_TYPE),
+    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName(), ColumnType.BOTH_TYPE), // in V1 it is FIELD_TYPE_INT24
+    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName(), ColumnType.BOTH_TYPE),
+    BIT(16, Types.BIT, "Types.BIT", "[B", ColumnType.BOTH_TYPE),
+    ENUM(247, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
+    SET(248, Types.CHAR, "Types.VARCHAR", String.class.getName(), ColumnType.BOTH_TYPE), // DONE VARCHAR -> CHAR
     ARRAY(161, Types.ARRAY, "Types.Array", ArrayImpl.class.getName(), ColumnType.ORACLE_TYPE),
     STRUCT(162, Types.STRUCT, "Types.STRUCT", StructImpl.class.getName(), ColumnType.ORACLE_TYPE),
     RAW(203, Types.VARBINARY, "Types.VARBINARY", "[B", ColumnType.ORACLE_TYPE),
-    CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE),
-    NUMBER(3, Types.INTEGER, "Types.INTEGER", com.oceanbase.jdbc.extend.datatype.NUMBER.class.getName(), ColumnType.ORACLE_TYPE),
-    NUMBER_FLOAT(206, Types.DOUBLE, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
-    BINARY_DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", java.lang.Double.class.getName(), ColumnType.ORACLE_TYPE),
-    NCHAR(208, Types.NCHAR, "Types.NCHAR", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
-    NVARCHAR2(207, Types.VARCHAR, "Types.NVARCHAR2", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
-    ROWID(209, Types.ROWID, "Types.ROWID", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
-    BINARY_FLOAT(4, Types.FLOAT, "Types.FLOAT", java.lang.Float.class.getName(), ColumnType.ORACLE_TYPE);
+    CURSOR(163, Types.OTHER, "Types.OTHER", "CURSORTEMP", ColumnType.ORACLE_TYPE);
 
     /* Add one protocol type need to check:
      *      1.java.sql.Types, must same as JDBC/O-JDBC, it not in java.sql.Types

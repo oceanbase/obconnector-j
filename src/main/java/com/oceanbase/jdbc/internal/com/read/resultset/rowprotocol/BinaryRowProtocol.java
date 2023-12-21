@@ -401,6 +401,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     && options.compatibleMysqlVersion == 8) {
                     return "0000-00-00 00:00:00";
                 }
+
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     return null;
@@ -418,9 +419,21 @@ public class BinaryRowProtocol extends RowProtocol {
                         localDateTime.getHour(), localDateTime.getMinute(),
                         localDateTime.getSecond(), nano, 0, null);
                     return str;
-                } else {
-                    return timestamp.toString();
+                } else if (options.compatibleMysqlVersion == 8) {
+                    if (columnInfo.getLength() >= 19) {
+                        String[] timeSplit = timestamp.toString().split("\\.");
+                        String datetime = timeSplit[0];
+                        StringBuilder millisecond = new StringBuilder(timeSplit[1]);
+                        if (!millisecond.toString().matches("0+")) {
+                            for (int i = millisecond.length(); i < columnInfo.getPrimitiveDecimals(); i++) {
+                                millisecond.append(0);
+                            }
+                            datetime = datetime + "." + millisecond;
+                        }
+                        return datetime;
+                    }
                 }
+                return timestamp.toString();
             case INTERVALDS:
                 INTERVALDS intervalds = getInternalINTERVALDS(columnInfo);
                 return intervalds.toString();
@@ -1689,6 +1702,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return value.toString();
             }
         }
+
         String rawValue = new String(buf, pos, length,
             getCurrentEncoding(columnInfo.getColumnType()));
         if ("0000-00-00".equals(rawValue)) {
@@ -1724,20 +1738,32 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         int microseconds = 0;
+        StringBuilder microsecondString = null;
         if (length > 8) {
             microseconds = ((buf[pos + 8] & 0xff) | (buf[pos + 9] & 0xff) << 8
                             | (buf[pos + 10] & 0xff) << 16 | (buf[pos + 11] & 0xff) << 24);
+            if (getProtocol().isOracleMode()) {
+                microsecondString = new StringBuilder(Integer.toString(microseconds));
+                while (microsecondString.length() < 6) {
+                    microsecondString.insert(0, "0");
+                }
+            } else if (options.compatibleMysqlVersion == 8) {
+                BigDecimal bigDecimal = (new BigDecimal(microseconds)).divide(
+                    new BigDecimal(1000 * 1000)).stripTrailingZeros();
+                String decimalPart = bigDecimal.toPlainString().split("\\.")[1];
+
+                if (!decimalPart.matches("[0]+")) {
+                    microsecondString = new StringBuilder(decimalPart);
+                    for (int i = decimalPart.length(); i < columnInfo.getPrimitiveDecimals(); i++) {
+                        microsecondString.append('0');
+                    }
+                }
+            }
         }
 
-        StringBuilder microsecondString = new StringBuilder(Integer.toString(microseconds));
-        while (microsecondString.length() < 6) {
-            microsecondString.insert(0, "0");
-        }
         boolean negative = (buf[pos] == 0x01);
-        return (negative ? "-" : "")
-               + (hourString + ":" + minuteString + ":" + secondString + ((microsecondString
-                   .toString().matches("[0]+") && !this.getProtocol().isOracleMode()) ? ""
-                   : "." + microsecondString));
+        return (negative ? "-" : "") + hourString + ":" + minuteString + ":" + secondString
+               + (microsecondString == null ? "" : ("." + microsecondString));
     }
 
     /**

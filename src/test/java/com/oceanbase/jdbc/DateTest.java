@@ -1022,4 +1022,209 @@ public class DateTest extends BaseTest {
         Assert.assertNull(rs.getTimestamp(1));
     }
 
+    @Test
+    public void testDateTimeGetString() throws SQLException {
+        Connection conn = null;
+        createTable("test_datetime_get_string", "c0 datetime(4)");
+        PreparedStatement pstmt = sharedConnection
+            .prepareStatement("insert into test_datetime_get_string (c0) values (?)");
+        //The millisecond part is less than 4 digits
+        //12:12:12
+        //12:12:12.0
+        //12:12:12.01
+        //12:12:12.1
+        //12:12:12.10
+        pstmt.setString(1, "2023-01-01 12:12:12");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.0");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.01");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.10");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12");
+        pstmt.addBatch();
+        //The millisecond part is equal to 4 bits
+        //12:12:12.0000
+        //12:12:12.0100
+        //12:12:12.1000
+        pstmt.setString(1, "2023-01-01 12:12:12.0000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.0100");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.1000");
+        pstmt.addBatch();
+        //The millisecond part is more than 4 digits
+        //12:12:12.000000
+        //12:12:12.010000
+        //12:12:12.100000
+        pstmt.setString(1, "2023-01-01 12:12:12.000000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.010000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.100000");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+
+        conn = setConnection("&compatibleMysqlVersion=5");
+        ResultSet rs = conn.prepareStatement("select * from test_datetime_get_string")
+            .executeQuery();
+
+        /**
+         * mysql-jdbc5
+         * 2023-01-01 12:12:12.0
+         * 2023-01-01 12:12:12.0
+         * 2023-01-01 12:12:12.01
+         * 2023-01-01 12:12:12.1
+         * 2023-01-01 12:12:12.0
+         * 2023-01-01 12:12:12.0
+         * 2023-01-01 12:12:12.01
+         * 2023-01-01 12:12:12.1
+         * 2023-01-01 12:12:12.0
+         * 2023-01-01 12:12:12.01
+         * 2023-01-01 12:12:12.1
+         */
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.01", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.01", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.01", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1", rs.getString(1));
+
+        conn = setConnection("&compatibleMysqlVersion=8");
+        rs = conn.prepareStatement("select * from test_datetime_get_string").executeQuery();
+        /**
+         * mysql-jdbc8
+         * 2023-01-01 12:12:12
+         * 2023-01-01 12:12:12
+         * 2023-01-01 12:12:12.0100
+         * 2023-01-01 12:12:12.1000
+         * 2023-01-01 12:12:12
+         * 2023-01-01 12:12:12
+         * 2023-01-01 12:12:12.0100
+         * 2023-01-01 12:12:12.1000
+         * 2023-01-01 12:12:12
+         * 2023-01-01 12:12:12.0100
+         * 2023-01-01 12:12:12.1000
+         */
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1000", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1000", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2023-01-01 12:12:12.1000", rs.getString(1));
+    }
+
+    @Test
+    public void testTimeGetString() throws SQLException {
+        Connection conn = null;
+        createTable("test_time_get_string", "c0 time(4)");
+        PreparedStatement pstmt = sharedConnection
+            .prepareStatement("insert into test_time_get_string (c0) values (?)");
+        //The millisecond part is less than 4 digits
+        //12:12:12
+        //12:12:12.0
+        //12:12:12.01
+        //12:12:12.1
+        //12:12:12.10
+        pstmt.setString(1, "2023-01-01 12:12:12");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.0");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.01");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.10");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12");
+        pstmt.addBatch();
+        //The millisecond part is equal to 4 bits
+        //12:12:12.0000
+        //12:12:12.0100
+        //12:12:12.1000
+        pstmt.setString(1, "2023-01-01 12:12:12.0000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.0100");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.1000");
+        pstmt.addBatch();
+        //The millisecond part is more than 4 digits
+        //12:12:12.000000
+        //12:12:12.010000
+        //12:12:12.100000
+        pstmt.setString(1, "2023-01-01 12:12:12.000000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.010000");
+        pstmt.addBatch();
+        pstmt.setString(1, "2023-01-01 12:12:12.100000");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+
+        conn = setConnection("&compatibleMysqlVersion=5");
+        ResultSet rs = conn.prepareStatement("select * from test_time_get_string").executeQuery();
+        int i = 0;
+        while (rs.next()) {
+            //mysql-jdbc5 always 12:12:12
+            assertEquals("12:12:12", rs.getString(1));
+            i++;
+        }
+        assertEquals(11, i);
+
+        conn = setConnection("&compatibleMysqlVersion=8");
+        rs = conn.prepareStatement("select * from test_time_get_string").executeQuery();
+        assertTrue(rs.next());
+        assertEquals("12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.1000", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.1000", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.0100", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("12:12:12.1000", rs.getString(1));
+    }
+
 }
