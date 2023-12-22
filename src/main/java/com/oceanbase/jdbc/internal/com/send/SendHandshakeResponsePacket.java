@@ -184,9 +184,8 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0
-            && options.sendConnectionAttributes) {
-            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0 ) {
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp, options.sendConnectionAttributes);
         }
 
         pos.flush();
@@ -277,9 +276,8 @@ public class SendHandshakeResponsePacket {
             pos.write((byte) 0);
         }
 
-        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0
-            && options.sendConnectionAttributes) {
-            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp);
+        if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0) {
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp,  options.sendConnectionAttributes);
         }
 
         pos.flush();
@@ -287,9 +285,19 @@ public class SendHandshakeResponsePacket {
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-                                               String host, Options options, String clientIp)
+                                               String host, Options options, String clientIp, boolean sendConnectionAttributes)
                                                                                              throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
+
+        // ob_client_name must be send
+        buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
+        buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
+        if (!sendConnectionAttributes){
+            pos.writeFieldLength(buffer.position);
+            pos.write(buffer.buf, 0, buffer.position);
+            return;
+        }
+
         Set<String>  banListSet = new HashSet<>();
         String[] banListArray = new String[0];
         if (options.defaultConnectionAttributesBanList!=null) {
@@ -300,10 +308,6 @@ public class SendHandshakeResponsePacket {
         if (!banListSet.contains(_MYSQL_CLIENT_TYPE)) {
             buffer.writeStringSmallLength(_MYSQL_CLIENT_TYPE.getBytes(pos.getCharset()));
             buffer.writeStringLength(CLIENT_TYPE, pos.getCharset());
-        }
-        if (!banListSet.contains(_CLIENT_NAME)) {
-            buffer.writeStringSmallLength(_CLIENT_NAME.getBytes(pos.getCharset()));
-            buffer.writeStringLength(OceanBaseDatabaseMetaData.DRIVER_NAME, pos.getCharset());
         }
         if (!banListSet.contains(_CLIENT_VERSION)) {
             buffer.writeStringSmallLength(_CLIENT_VERSION.getBytes(pos.getCharset()));

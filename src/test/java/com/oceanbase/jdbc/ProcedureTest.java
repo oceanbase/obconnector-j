@@ -45,6 +45,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.fail;
 
+import java.math.BigDecimal;
 import java.sql.*;
 
 import org.junit.Assert;
@@ -203,4 +204,16 @@ public class ProcedureTest extends BaseTest {
         Assert.assertEquals(3, cstmt.getInt(3));
     }
 
+    @Test
+    public void test() throws SQLException {
+        Connection conn = setConnection("&sendConnectionAttributes=false");
+        createProcedure("calcutotal", "( in q int(11), in p decimal(10,2), out t decimal(10,2)) begin set t = q * p; end;");
+        CallableStatement cs = conn.prepareCall("call calcutotal(?, ?, ?)");
+        cs.setInt(1, 2);
+        cs.setBigDecimal(2, new BigDecimal(5));
+        cs.registerOutParameter(3, Types.DECIMAL);
+        cs.execute();
+        BigDecimal bigDecimal = cs.getBigDecimal(3);
+        Assert.assertEquals("10.00", bigDecimal.toString());
+    }
 }
