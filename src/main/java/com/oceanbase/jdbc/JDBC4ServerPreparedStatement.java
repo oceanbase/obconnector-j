@@ -93,6 +93,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   private   int                             iterationCount;
   private   int                             executeMode = 0x0000;
   private   long                            checksum = 1;
+  private   int                             previousTurnParamSize = 1;
   // result
   protected ServerPrepareResult             serverPrepareResult;
   private   OceanBaseResultSetMetaData      resultSetMetaData;
@@ -679,11 +680,16 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     lock.lock();
     try {
       lockLogger.debug("JDBC4ServerPreparedStatement.executeBatchInternal locked");
-
+      if (serverPrepareResult != null) {
+          logger.debug("queryParameterSize = {}, serverPrepareResult != null", queryParameterSize);
+      } else {
+          logger.debug("queryParameterSize = {}, serverPrepareResult == null", queryParameterSize);
+      }
       executeQueryPrologue(serverPrepareResult);
       if (queryTimeout != 0 && options.enableQueryTimeouts) {
         setTimerTask(true);
       }
+
       int remainParameterSize = queryParameterSize;
       int currentTurnParamSize = queryParameterSize;
       boolean continueRewrite = true;
@@ -700,63 +706,76 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             remainParameterSize -= currentTurnParamSize;
           } else {
             continueRewrite = false;
-            if (currentTurnParamSize != remainParameterSize) {
-                // currentTurnParamSize means the previous turn, and remainParameterSize means the last turn
-                // actual sql will be different, in this case it's necessary to prepare the new actual sql
-                serverPrepareResult = null;
-            }
+
             currentTurnParamSize = remainParameterSize;
             remainParameterSize = 0;
           }
+          logger.debug("previousTurnParamSize = {}, currentTurnParamSize = {}, remainParameterSize = {}", previousTurnParamSize, currentTurnParamSize, remainParameterSize);
+
           String sqlString = curString;
           if (protocol.isOracleMode() && options.supportNameBinding) {
             sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
           }
           List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.getCharacterEncoding());
           if (list != null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(list.get(0));
-            sb.append(list.get(1));
-            for (int i = 0; i < parameterCountReal; i++) {
-              sb.append('?');
-              sb.append(list.get(i + 2));
-            }
+              if (currentTurnParamSize != previousTurnParamSize) {
+                  // actual sql will be different, in this case it's necessary to prepare the new actual sql
+                  StringBuilder sb = new StringBuilder();
+                  sb.append(list.get(0));
+                  sb.append(list.get(1));
+                  for (int i = 0; i < parameterCountReal; i++) {
+                      sb.append('?');
+                      sb.append(list.get(i + 2));
+                  }
 
-            int remain = currentTurnParamSize - 1;
-            while (remain != 0) {
-              sb.append(',');
-              sb.append(list.get(1));
-              for (int i = 0; i < parameterCountReal; i++) {
-                sb.append('?');
-                sb.append(list.get(i + 2));
-              }
-              remain--;
-            }
-            if(parameterCountReal == 0) {
-                for(int i = 2 ;i< list.size() ;i++) {
-                    sb.append(list.get(i));
-                }
-            } else {
-                sb.append(list.get(list.size() - 1));
-            }
+                  int remain = currentTurnParamSize - 1;
+                  while (remain != 0) {
+                      sb.append(',');
+                      sb.append(list.get(1));
+                      for (int i = 0; i < parameterCountReal; i++) {
+                          sb.append('?');
+                          sb.append(list.get(i + 2));
+                      }
+                      remain--;
+                  }
+                  if(parameterCountReal == 0) {
+                      for(int i = 2 ;i< list.size() ;i++) {
+                          sb.append(list.get(i));
+                      }
+                  } else {
+                      sb.append(list.get(list.size() - 1));
+                  }
 
-            int total = currentTurnParamSize * parameterCountReal;
-            ParameterHolder[] parameterHolder;
-            ParameterHolder[] allParams = new ParameterHolder[total];
-            int cur = 0;
-            for (int counter = preIndex; counter < currentTurnParamSize + preIndex; counter++) {
-              parameterHolder = parametersList.get(counter);
-              for (int i = 0; i < parameterHolder.length; i++) {
-                allParams[cur++] = parameterHolder[i];
+                  // old ps needs to be released at the same time
+                  if (serverPrepareResult != null) {
+                      logger.debug("releasing old [ps-id={}] {}", serverPrepareResult.getStatementId(), actualSql);
+                      serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+                      serverPrepareResult = null; // aim to prepare_execute
+                  }
+                  this.actualSql = sb.toString();
+                  prepare(actualSql);
+                  parameterCount = parameterCountReal;
+                  if (serverPrepareResult != null) {
+                      logger.debug("prepared new [ps-id={}] {}", serverPrepareResult.getStatementId(), actualSql);
+                  }
+                  previousTurnParamSize = currentTurnParamSize;
               }
-            }
-            queryParameterSize = 1;
-            preIndex = preIndex + currentTurnParamSize;
-            currentQueryParameters = allParams;
-            this.actualSql = sb.toString();
-            prepare(actualSql);
-            parameterCount = parameterCountReal;
-            isInsert = true;
+
+              // set currentQueryParameters every time in batch
+              int total = currentTurnParamSize * parameterCountReal;
+              ParameterHolder[] parameterHolder;
+              ParameterHolder[] allParams = new ParameterHolder[total];
+              int cur = 0;
+              for (int counter = preIndex; counter < currentTurnParamSize + preIndex; counter++) {
+                  parameterHolder = parametersList.get(counter);
+                  for (int i = 0; i < parameterHolder.length; i++) {
+                      allParams[cur++] = parameterHolder[i];
+                  }
+              }
+              queryParameterSize = 1;
+              preIndex = preIndex + currentTurnParamSize;
+              currentQueryParameters = allParams;
+              isInsert = true;
           } else {
             isInsert = false;
           }

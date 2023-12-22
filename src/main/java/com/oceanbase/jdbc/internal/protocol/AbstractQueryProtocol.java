@@ -263,6 +263,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       lockLogger.debug("AbstractQueryProtocol.prepare locked");
       spanId = ob20BeginTraceAndSpan("prepare");
+      logger.debug("preparing sql: {}", sql);
 
       // search in cache first
       if (options.cachePrepStmts && options.useServerPrepStmts) {
@@ -1988,6 +1989,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     // deallocate from server if not cached
     if (serverPrepareResult.canBeDeallocate()) {
+      logger.debug("closing [ps-id={}] {}", serverPrepareResult.getStatementId(), serverPrepareResult.getSql());
       forceReleasePrepareStatement(serverPrepareResult.getStatementId());
       if (options.cachePrepStmts && options.useServerPrepStmts) {
         serverPrepareStatementCache.remove(database + "-" + serverPrepareResult.getSql());

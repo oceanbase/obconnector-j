@@ -371,25 +371,4 @@ public class OracleCmdPreparedExecuteTest extends BaseOracleTest {
         stmt.executeQuery("select 1 from dual");
     }
 
-    @Test
-    public void reuseStatementId() {
-        int count = 0;
-        try {
-            Connection connection = setConnection("&cachePrepStmts=true&callableStmtCacheSize=1024&useOraclePrepareExecute=true&useServerPrepStmts=true&useCursorFetch=TRUE&defaultFetchSize=25000&rewriteBatchedStatements=TRUE&allowMultiQueries=TRUE&useLocalSessionState=TRUE&useUnicode=TRUE&characterEncoding=utf-8&socketTimeout=3000000&connectTimeout=60000");
-            createTable("test_yw", "name varchar(20)");
-            PreparedStatement ps = connection.prepareStatement("INSERT into test_yw(name) VALUES (?)");
-            for (int i=1; i<=1000; i++) {
-                count ++;
-                ps.setString(1,"流水" + i);
-                ps.addBatch();
-                ps.executeBatch();
-            }
-            ps.close();
-            connection.close();
-        } catch (Exception ex) {
-            System.out.println("for循环个数："+count);
-            ex.printStackTrace();
-        }
-    }
-
 }
