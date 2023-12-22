@@ -55,6 +55,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 
 import org.junit.*;
 
@@ -1783,6 +1784,22 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains(
                     "Can't convert empty string ('') to numeric"));
         }
+    }
+
+    @Test
+    public void aone53147863() throws SQLException {
+        createTable("t1", "c0 Tinyint(1), c1 double, c2 int");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into t1 values (5.2, 5.2, 5.2)");
+
+        ResultSet rs = sharedConnection.prepareStatement("select * from t1").executeQuery();
+        assertTrue(rs.next());
+        assertEquals(5, rs.getByte(1));
+        assertEquals(5, rs.getByte(2));
+        assertEquals(5, rs.getByte(3));
+        assertEquals("[53]", Arrays.toString(rs.getBytes(1)));
+        assertEquals("[53, 46, 50]", Arrays.toString(rs.getBytes(2)));
+        assertEquals("[53]", Arrays.toString(rs.getBytes(3)));
     }
 
 }

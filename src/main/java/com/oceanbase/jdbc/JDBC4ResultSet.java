@@ -93,6 +93,7 @@ import com.oceanbase.jdbc.internal.util.ResourceStatus;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 
 public class JDBC4ResultSet implements ResultSetImpl {
 
@@ -1517,48 +1518,55 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (row.lastValueWasNull()) {
             return null;
         }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_CLOB) {
-            throw new SQLFeatureNotSupportedException();
-        }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType() == ColumnType.ORA_BLOB) {
-            java.sql.Blob blob = getBlob(columnIndex);
-            if (blob == null) {
-                return null;
-            }
-            long len = ((com.oceanbase.jdbc.Blob) blob).length();
-            return blob.getBytes(1, (int) len);
-        }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.TIMESTAMP_LTZ
-            .getType()) {
-            TIMESTAMPLTZ timestampltz = getTIMESTAMPLTZ(columnIndex);
-            if (timestampltz == null) {
-                return null;
-            }
-            return timestampltz.getBytes();
-        }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.TIMESTAMP_TZ
-            .getType()) {
-            TIMESTAMPTZ timestamptz = getTIMESTAMPTZ(columnIndex);
-            if (timestamptz == null) {
-                return null;
-            }
-            return timestamptz.getBytes();
-        }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.INTERVALYM
-            .getType()) {
-            INTERVALYM intervalym = getINTERVALYM(columnIndex);
-            if (intervalym == null) {
-                return null;
-            }
-            return intervalym.getBytes();
-        }
-        if (columnsInformation[actualColumnIndex - 1].getColumnType().getType() == ColumnType.INTERVALDS
-            .getType()) {
-            INTERVALDS intervalds = getINTERVALDS(columnIndex);
-            if (intervalds == null) {
-                return null;
-            }
-            return intervalds.getBytes();
+
+        ColumnType type = columnsInformation[actualColumnIndex - 1].getColumnType();
+        switch (type) {
+            case TINYINT:
+            case INTEGER:
+            case DOUBLE:
+                if (!protocol.isOracleMode() && isBinaryEncoded()) {
+                    return StringUtils.getBytesFromString(getString(columnIndex), row.getEncoding());
+                }
+                break;
+
+            case ORA_CLOB:
+                throw new SQLFeatureNotSupportedException();
+
+            case ORA_BLOB:
+                java.sql.Blob blob = getBlob(columnIndex);
+                if (blob == null) {
+                    return null;
+                }
+                long len = ((com.oceanbase.jdbc.Blob) blob).length();
+                return blob.getBytes(1, (int) len);
+
+            case TIMESTAMP_LTZ:
+                TIMESTAMPLTZ timestampltz = getTIMESTAMPLTZ(columnIndex);
+                if (timestampltz == null) {
+                    return null;
+                }
+                return timestampltz.getBytes();
+
+            case TIMESTAMP_TZ:
+                TIMESTAMPTZ timestamptz = getTIMESTAMPTZ(columnIndex);
+                if (timestamptz == null) {
+                    return null;
+                }
+                return timestamptz.getBytes();
+
+            case INTERVALYM:
+                INTERVALYM intervalym = getINTERVALYM(columnIndex);
+                if (intervalym == null) {
+                    return null;
+                }
+                return intervalym.getBytes();
+
+            case INTERVALDS:
+                INTERVALDS intervalds = getINTERVALDS(columnIndex);
+                if (intervalds == null) {
+                    return null;
+                }
+                return intervalds.getBytes();
         }
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
