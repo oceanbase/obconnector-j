@@ -1071,7 +1071,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       lockLogger.debug("JDBC4ServerPreparedStatement.prepareExecuteInternal locked");
 
       if (sqlType == OceanBaseStatement.STMT_SELECT) {
-        iterationCount = isFetchSizeSet ? fetchSize : 10; // in Oracle-JDBC default fetch size is 10
+        iterationCount = fetchSize; // in Oracle-JDBC default fetch size is 10
         // TODO: more execute-mode
         if (resultSetScrollType != ResultSet.TYPE_FORWARD_ONLY) {
           executeMode |= Packet.OCI_STMT_SCROLLABLE_READONLY;

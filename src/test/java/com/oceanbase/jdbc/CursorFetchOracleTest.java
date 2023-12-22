@@ -1316,6 +1316,23 @@ public class CursorFetchOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testDefaultFetchSize() throws SQLException {
+        Connection conn = setConnection("&useCursorFetch=true&defaultFetchSize=5&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        createTable("fetchSizeTest1", "id int, test varchar(100)");
+        Statement statement = conn.createStatement();
+        for (int i = 0; i < 25; i++) {
+            statement.addBatch("insert into fetchSizeTest1 (id, test) values(" +i +", 'fetch_" + i + "')");
+        }
+        statement.executeBatch();
+
+        PreparedStatement ps2 = conn.prepareStatement("select id, test from fetchSizeTest1");
+        ResultSet resultSet = ps2.executeQuery();
+        while (resultSet.next()) {
+            System.out.println(resultSet.getRow() + "\t" + resultSet.getString(1) + "\t" + resultSet.getString(2));
+        }
+    }
+
+    @Test
     public void tesUseCursorOffset() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&useCursorOffset=true");
         conn.createStatement().execute("create or replace procedure get_result(v_sql in varchar2, c out sys_refcursor) is begin open c for v_sql; end;");
@@ -1330,6 +1347,5 @@ public class CursorFetchOracleTest extends BaseOracleTest {
         rs.close();
         cs.close();
     }
-
 
 }
