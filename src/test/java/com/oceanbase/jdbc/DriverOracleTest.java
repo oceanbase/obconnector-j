@@ -535,14 +535,19 @@ public class DriverOracleTest extends BaseOracleTest {
     public void releaseSavepoint() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         sharedConnection.setAutoCommit(false);
-        stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej1')");
-        stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej2')");
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test) values(0,'hej1')");
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test) values(1,'hej2')");
         Savepoint savepoint = sharedConnection.setSavepoint();
-        stmt.executeUpdate("INSERT INTO Drivert6 (test)  values('hej3')");
-        stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej4')");
-        sharedConnection.releaseSavepoint(savepoint);
-        stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej5')");
-        stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej6')");
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test)  values(2,'hej3')");
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test) values(3,'hej4')");
+        try {
+            sharedConnection.releaseSavepoint(savepoint);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("releaseSavepoint is not supported"));
+        }
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test) values(4,'hej5')");
+        stmt.executeUpdate("INSERT INTO Drivert6 (id,test) values(5,'hej6')");
         sharedConnection.commit();
         ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert6");
         assertTrue(rs.next());
