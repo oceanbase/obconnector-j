@@ -93,7 +93,7 @@ public class CursorResultSet extends Cursor {
             }
         }
 
-        if (protocol.supportFetchWithOffset()) {
+        if (protocol.supportFetchWithOffset() && !(this instanceof RefCursor)) {
             if (resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY) {
                 isServerSide = true;
             } else if (protocol.supportStmtPrepareExecute()) {

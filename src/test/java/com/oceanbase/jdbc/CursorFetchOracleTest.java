@@ -1315,4 +1315,21 @@ public class CursorFetchOracleTest extends BaseOracleTest {
 
     }
 
+    @Test
+    public void tesUseCursorOffset() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorOffset=true");
+        conn.createStatement().execute("create or replace procedure get_result(v_sql in varchar2, c out sys_refcursor) is begin open c for v_sql; end;");
+        CallableStatement cs = conn.prepareCall("call get_result(?,?)");
+        cs.setString(1, "select 1 from dual");
+        cs.registerOutParameter(2, Types.REF_CURSOR);
+        cs.execute();
+        ResultSet rs = (ResultSet) cs.getObject(2);
+        while (rs.next()){
+            Assert.assertEquals(1, rs.getInt(1));
+        }
+        rs.close();
+        cs.close();
+    }
+
+
 }
