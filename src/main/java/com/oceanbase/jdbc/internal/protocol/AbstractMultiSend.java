@@ -325,7 +325,6 @@ public abstract class AbstractMultiSend {
             // bulk can prepare, and so if prepare cache is enable, can replace an already cached
             // prepareStatement
             // this permit to release those old prepared statement without conflict.
-            protocol.forceReleaseWaitingPrepareStatement();
           }
         }
 

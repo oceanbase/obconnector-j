@@ -46,6 +46,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -396,6 +397,32 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
 //        while (rs.next()) {
 //            System.out.println(rs.getString(1) + " " + rs.getString(2));
 //        }
+    }
+
+    @Test
+    public void  testCloseStatment() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("t_close", "id int, st varchar(20)");
+        CountDownLatch countDownLatch = new CountDownLatch(20 * 1000);
+        for (int i = 0; i < 20; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    try {
+                        //每次创建新的ps对象
+                        PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO test_nh4 values (" + j + ",'wffffdfd');");
+                        preparedStatement.execute();
+                        //运行完成后进行关闭ps对象
+                        preparedStatement.close();
+                        System.out.println(Thread.currentThread().getName() +" 线程运行了"+ j +"次");
+                        countDownLatch.countDown();
+                    } catch (Exception e) {
+                        System.err.println(Thread.currentThread().getName() + "报错。。。");
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+        countDownLatch.await();
     }
 
 }

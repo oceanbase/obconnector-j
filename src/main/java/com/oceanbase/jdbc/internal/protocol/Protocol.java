@@ -276,8 +276,6 @@ public interface Protocol {
 
     boolean forceReleasePrepareStatement(int statementId) throws SQLException;
 
-    void forceReleaseWaitingPrepareStatement() throws SQLException;
-
     ServerPrepareStatementCache prepareStatementCache();
 
     TimeZone getTimeZone();

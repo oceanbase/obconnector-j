@@ -112,7 +112,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private ThreadPoolExecutor readScheduler = null;
   private InputStream localInfileInputStream;
   private long maxRows; //returned by a statement
-  private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
   private long checksum = 1;
@@ -1732,48 +1731,30 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if connection exception.
    */
   public boolean forceReleasePrepareStatement(int statementId) throws SQLException {
-    if (lock.tryLock()) {
-        UUID spanId = null;
-        try {
-          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement locked");
-          spanId = ob20BeginTraceAndSpan("close prepared statement");
+    lock.lock();
+    UUID spanId = null;
+    try {
+      lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement locked");
+      spanId = ob20BeginTraceAndSpan("close prepared statement");
 
-          checkClose();
+      checkClose();
 
-          writer.startPacket(0);
-          writer.write(Packet.COM_STMT_CLOSE);
-          writer.writeInt(statementId);
-          writer.flush();
+      writer.startPacket(0);
+      writer.write(Packet.COM_STMT_CLOSE);
+      writer.writeInt(statementId);
+      writer.flush();
 
-          return true;
-        } catch (IOException e) {
-          connected = false;
-          whyConnectedIsFalse();
+      return true;
+    } catch (IOException e) {
+      connected = false;
+      whyConnectedIsFalse();
 
-          throw new SQLNonTransientConnectionException(
+      throw new SQLNonTransientConnectionException(
               "Could not deallocate query: " + e.getMessage(), "08000", e);
-        } finally {
-          ob20EndSpanAndTrace(spanId);
-          lock.unlock();
-          lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement unlocked");
-        }
-    } else {
-      // lock is used by another thread (bulk reading)
-      statementIdToRelease = statementId;
-    }
-
-    return false;
-  }
-
-  /**
-   * Force release of prepare statement that are not used. This permit to deallocate a statement
-   * that cannot be release due to multi-thread use.
-   *
-   * @throws SQLException if connection occur
-   */
-  public void forceReleaseWaitingPrepareStatement() throws SQLException {
-    if (statementIdToRelease != -1 && forceReleasePrepareStatement(statementIdToRelease)) {
-      statementIdToRelease = -1;
+    } finally {
+      ob20EndSpanAndTrace(spanId);
+      lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.forceReleasePrepareStatement unlocked");
     }
   }
 
@@ -2615,7 +2596,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // bulk can prepare, and so if prepare cache is enable, can replace an already cached
         // prepareStatement
         // this permit to release those old prepared statement without conflict.
-        forceReleaseWaitingPrepareStatement();
       }
       activeFutureTask = null;
     }
