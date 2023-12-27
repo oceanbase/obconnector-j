@@ -1003,4 +1003,37 @@ public class ClobOracleTest extends BaseOracleTest {
         }
         conn.setAutoCommit(true);
     }
+
+    @Test
+    public void testClobLength() throws SQLException, IOException {
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+        createTable("clobTest1", "c1 clob");
+        String sql = "insert into  clobTest1 values (?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        int clobSize = 1024 * 5;
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < clobSize; i++) {
+            stringBuilder.append('a');
+        }
+        String str = stringBuilder.toString();
+        ps.setClob(1, new StringReader(str));
+        ps.execute();
+
+        ResultSet rs = conn.prepareStatement("select c1 from clobTest1").executeQuery();
+        assertTrue(rs.next());
+        java.sql.Clob clob = rs.getClob(1);
+        Assert.assertEquals(clobSize, clob.length());
+        Assert.assertEquals(clobSize, clob.length());
+
+        java.sql.Clob clob1 = conn.createClob();
+        Writer writer = clob1.setCharacterStream(1);
+        for (int i = 0; i < 2000; i++) {
+            writer.write("a");
+        }
+        writer.flush();
+        Assert.assertEquals(2000, clob1.length());
+        writer.close();
+        ps.close();
+    }
 }

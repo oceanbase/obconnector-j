@@ -397,11 +397,13 @@ public class Clob extends Lob implements java.sql.Clob {
             return this.charData.length();
         }
 
-        if ((data == null || data.length == 0) && lengthFromServer == -1) {
+        if (data == null || data.length == 0) {
             if (locator != null && locator.payloadSize > 0 && locator instanceof ObLobLocatorV2) {
-                lengthFromServer = 0; // change state
-                // in this case, this is out-row lob which hasn't been read from server, so both charData and data are empty
-                getLengthFromServer();
+                if (lengthFromServer == -1) {
+                    lengthFromServer = 0; // change state
+                    // in this case, this is out-row lob which hasn't been read from server, so both charData and data are empty
+                    getLengthFromServer();
+                }
                 return lengthFromServer;
             }
         }
