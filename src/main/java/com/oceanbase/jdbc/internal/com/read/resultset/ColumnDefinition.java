@@ -309,7 +309,7 @@ public class ColumnDefinition {
         arr[pos] = (byte) len; /* 4 bytes : column length */
         pos += 4;
 
-        arr[pos++] = (byte) ColumnType.convertSqlTypeToColumnType(type.getSqlType()).getType(); /* 1 byte : type */
+        arr[pos++] = (byte) type.getType(); /* 1 byte : type */
 
         return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding);
     }
