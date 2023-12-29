@@ -3,6 +3,8 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.sql.*;
 
 import org.junit.Assert;
@@ -164,4 +166,26 @@ public class OracleReturningIntoTest extends BaseOracleTest {
                 "not support batch operation for DML_Returning_Into feature"));
         }
     }
+
+    @Test
+    public void testReturningStreamData() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            createTable("t_return_clob", "c1 clob, c2 blob");
+            JDBC4ServerPreparedStatement ps = (JDBC4ServerPreparedStatement) conn
+                    .prepareStatement("insert into t_return_clob values(?, ?) returning c1,c2 into ?,?");
+
+            ps.setCharacterStream(1, new StringReader("abc"));
+            ps.setBinaryStream(2, new ByteArrayInputStream("abc".getBytes()));
+            ps.registerReturnParameter(3, Types.CLOB);
+            ps.registerReturnParameter(4, Types.BLOB);
+            ps.execute();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

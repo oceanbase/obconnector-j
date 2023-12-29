@@ -110,9 +110,11 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
         ServerPrepareResult cachedServerPrepareResult = super.get(key);
         // if there is already some cached data (and not been deallocate), return existing cached data
         if (cachedServerPrepareResult != null && cachedServerPrepareResult.incrementShareCounter()) {
-            return cachedServerPrepareResult;
+            if (cachedServerPrepareResult.isReturnByPrepareExecute() || !result.isReturnByPrepareExecute()) {
+                return cachedServerPrepareResult;
+            }
         }
-        // if no cache data, or been deallocate, put new result in cache
+        // if no cache data, or been deallocate, or same ps-id from prepare-execute command, put new result in cache
         result.setAddToCache();
         super.put(key, result);
         return null;

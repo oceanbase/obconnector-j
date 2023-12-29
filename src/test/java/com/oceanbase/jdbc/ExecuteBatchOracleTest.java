@@ -47,6 +47,7 @@ package com.oceanbase.jdbc;
 import org.junit.Test;
 
 import java.sql.*;
+import java.sql.Clob;
 
 import static org.junit.Assert.fail;
 
@@ -162,6 +163,39 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         } catch (SQLException e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void aone54176188() {
+        int count = 0;
+        try {
+            Connection connection = setConnection("&maxBatchTotalParamsNum=3&cachePrepStmts=true&rewriteBatchedStatements=TRUE&useServerPrepStmts=true&usePieceData=true");//
+            createTable("test_yw", "name clob");
+            PreparedStatement ps = connection.prepareStatement("INSERT into test_yw(name) VALUES (?)");
+            Clob clob = connection.createClob();
+            clob.setString(1, "abc");
+
+            for (int i=1; i<=10; i++) {
+                count ++;
+                ps.setClob(1,clob);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            //300 300 300 100
+
+            for (int i=1; i<=4; i++) {
+                count ++;
+                ps.setClob(1,clob);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+
+            ps.close();
+            connection.close();
+        } catch (Exception ex) {
+            System.out.println("for循环个数："+count);
+            ex.printStackTrace();
         }
     }
 

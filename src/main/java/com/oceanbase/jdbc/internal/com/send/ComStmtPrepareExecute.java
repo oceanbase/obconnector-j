@@ -247,9 +247,18 @@ public class ComStmtPrepareExecute {
                     }
 
                     if (serverPrepareResult == null) {
-                        serverPrepareResult = new ServerPrepareResult(results.getSql(), statementId,
+                        String sql = results.getSql();
+                        serverPrepareResult = new ServerPrepareResult(sql, statementId,
                                 columns, params, protocol);
                         serverPrepareResult.setReturnByPrepareExecute(true);
+                        if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts
+                                && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
+                            String key = protocol.getDatabase() + "-" + sql;
+                            ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
+                                    serverPrepareResult);
+                            return cachedServerPrepareResult != null ? cachedServerPrepareResult
+                                    : serverPrepareResult;
+                        }
                     } else {
                         serverPrepareResult.setStatementId(statementId);
                     }
