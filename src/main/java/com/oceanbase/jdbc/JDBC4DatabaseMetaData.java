@@ -2669,7 +2669,6 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      */
     public boolean supportsTransactionIsolationLevel(int level) {
         switch (level) {
-            case Connection.TRANSACTION_READ_UNCOMMITTED:
             case Connection.TRANSACTION_READ_COMMITTED:
             case Connection.TRANSACTION_REPEATABLE_READ:
             case Connection.TRANSACTION_SERIALIZABLE:
