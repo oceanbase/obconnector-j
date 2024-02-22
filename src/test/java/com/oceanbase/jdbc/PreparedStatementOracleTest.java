@@ -425,4 +425,31 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         countDownLatch.await();
     }
 
+    @Test
+    public void testcachePrepStmts() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&cachePrepStmts=true");
+        createTable("test_nh4", "id int, st varchar(20)");
+        CountDownLatch countDownLatch = new CountDownLatch(20 * 1000);
+        for (int i = 0; i < 20; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    try {
+                        //每次创建新的ps对象
+                        PreparedStatement preparedStatement = conn.prepareStatement("insert into test_nh4 values(?,?)");
+                        preparedStatement.setInt(1, j);
+                        preparedStatement.setString(2, "wjjj");
+                        preparedStatement.execute();
+                        //运行完成后进行关闭ps对象
+                        preparedStatement.close();
+                        System.out.println(Thread.currentThread().getName() +" 线程运行了"+ j +"次");
+                        countDownLatch.countDown();
+                    } catch (Exception e) {
+                        System.err.println(Thread.currentThread().getName() + "报错。。。");
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+        countDownLatch.await();
+    }
 }
