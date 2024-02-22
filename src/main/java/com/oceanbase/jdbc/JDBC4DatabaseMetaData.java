@@ -2902,7 +2902,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
                         ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR };
                 ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
-                    false, columnNames, columnTypes, false, columnNamePattern);
+                    false, columnNames, columnTypes, false, columnNamePattern, schemaPattern);
                 return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
@@ -2937,7 +2937,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     ResultSet getProcAndFuncs(String catalog, String procedureNamePattern, boolean isProcedure,
                               boolean isFunction, String[] columnNames, ColumnType[] columnTypes,
-                              boolean forGetFunctionColumns, String columnPattern)
+                              boolean forGetFunctionColumns, String columnPattern, String schemaPattern)
                                                                                   throws SQLException {
 
         String db = catalog;
@@ -2973,7 +2973,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             }
             proceduresStmt.setString(1, procedureNamePattern);
 
-            if (db != null || this.protocol.getDatabase() != null) {
+            if (schemaPattern != null && schemaPattern.length() != 0) {
+                proceduresStmt.setString(2, schemaPattern);
+            } else if (db != null || this.protocol.getDatabase() != null) {
                 String tmp = this.protocol.getDatabase();
                 if (this.protocol.isOracleMode()) {
                     if (tmp != null && !tmp.startsWith("'")) {
@@ -3598,7 +3600,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 ColumnType.SMALLINT, ColumnType.VARCHAR, ColumnType.NUMBER, ColumnType.NUMBER,
                 ColumnType.VARCHAR, ColumnType.VARCHAR };
         ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, functionNamePattern, false, true,
-            columnNames, columnTypes, true, columnNamePattern);
+            columnNames, columnTypes, true, columnNamePattern, schemaPattern);
         return procsAndOrFuncsRs;
     }
 
