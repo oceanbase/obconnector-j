@@ -86,7 +86,7 @@ public enum ColumnType {
     TIMESTAMP_NANO(202, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName(), ColumnType.ORACLE_TYPE),
     INTERVALYM(204, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
     INTERVALDS(205, Types.OTHER, "Types.OTHER", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
-    NUMBER_FLOAT(206, Types.DOUBLE, "Types.FLOAT", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE),
+    NUMBER_FLOAT(206, Types.DOUBLE, "Types.FLOAT", java.lang.Double.class.getName(), ColumnType.ORACLE_TYPE),
     ROWID(209, Types.ROWID, "Types.ROWID", java.lang.String.class.getName(), ColumnType.ORACLE_TYPE), //
     JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName(), ColumnType.MYSQL_TYPE), // DONE VARCHAR -> CHAR
     DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName(), ColumnType.MYSQL_TYPE),
