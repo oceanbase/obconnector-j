@@ -1362,4 +1362,93 @@ public class DataTypeTest extends BaseTest {
         assertEquals("[B",metaData.getColumnClassName(8));
     }
 
+    @Test
+    public void testYearGetString() throws Exception {
+        Connection conn = sharedConnection;
+        Assume.assumeTrue(sharedUsePrepare());
+        Statement statement = conn.createStatement();
+        statement.execute("drop table if exists test_year");
+        statement.execute("create table test_year (y year)");
+
+        statement.execute("insert into test_year values(0000)");
+        statement.execute("insert into test_year values(0)");
+        statement.execute("insert into test_year values(0001)");
+        statement.execute("insert into test_year values(2023)");
+        statement.execute("insert into test_year values(65)");
+        statement.execute("insert into test_year values(79)");
+        statement.execute("insert into test_year values('0')");
+
+        conn = setConnection("&yearIsDateType=false&compatibleMysqlVersion=5");
+        PreparedStatement ps1 = conn.prepareStatement("select y from test_year");
+        ResultSet rs1 = ps1.executeQuery();
+        assertTrue(rs1.next());
+        Assert.assertEquals("0000", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("0000", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("2001", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("2023", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("2065", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("1979", rs1.getString(1));
+        assertTrue(rs1.next());
+        Assert.assertEquals("2000", rs1.getString(1));
+
+        conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=5");
+        PreparedStatement ps2 = conn.prepareStatement("select y from test_year");
+        ResultSet rs2 = ps2.executeQuery();
+        assertTrue(rs2.next());
+        Assert.assertEquals("0001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("0001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("2001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("2023-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("2065-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("1979-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        Assert.assertEquals("2000-01-01", rs2.getString(1));
+
+        conn = setConnection("&yearIsDateType=false&compatibleMysqlVersion=8");
+        PreparedStatement ps3 = conn.prepareStatement("select y from test_year");
+        ResultSet rs3 = ps3.executeQuery();
+        assertTrue(rs3.next());
+        Assert.assertEquals("0", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("0", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("2001", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("2023", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("2065", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("1979", rs3.getString(1));
+        assertTrue(rs3.next());
+        Assert.assertEquals("2000", rs3.getString(1));
+
+        conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=8");
+        PreparedStatement ps4 = conn.prepareStatement("select y from test_year");
+        ResultSet rs4 = ps4.executeQuery();
+        assertTrue(rs4.next());
+        Assert.assertEquals("2000-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("2000-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("2001-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("2023-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("2065-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("1979-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        Assert.assertEquals("2000-01-01", rs4.getString(1));
+    }
+
 }

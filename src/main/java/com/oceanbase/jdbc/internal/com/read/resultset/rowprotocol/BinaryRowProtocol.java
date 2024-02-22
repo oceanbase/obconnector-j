@@ -392,6 +392,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (options.yearIsDateType) {
                     Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (dateInter == null) ? null : dateInter.toString();
+                } else if (options.compatibleMysqlVersion == 5) {
+                    int internalSmallInt = getInternalSmallInt(columnInfo);
+                    return zeroFillingIfNeeded(String.valueOf(internalSmallInt), columnInfo);
                 }
                 return String.valueOf(getInternalSmallInt(columnInfo));
             case TIMESTAMP:
@@ -1058,6 +1061,16 @@ public class BinaryRowProtocol extends RowProtocol {
                         if (year <= 69) {
                             year += 2000;
                         } else {
+                            year += 1900;
+                        }
+                    }
+
+                    if (columnInfo.getColumnType() == ColumnType.YEAR
+                        && this.options.compatibleMysqlVersion == 8) {
+                        if (year < 100) {
+                            if (year <= 69) {
+                                year += 100;
+                            }
                             year += 1900;
                         }
                     }
