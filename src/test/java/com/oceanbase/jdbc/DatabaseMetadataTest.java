@@ -1851,4 +1851,30 @@ public class DatabaseMetadataTest extends BaseTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testUseInformationScheme() throws SQLException {
+        Connection conn = setConnection("&useInformationSchema=true");
+        DatabaseMetaData connMetaData = conn.getMetaData();
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("drop table if exists test2");
+        stmt.execute("drop table if exists test1");
+        stmt.execute("create table test1(id1 int primary key)");
+        stmt.execute("create table test2(id2 int not null,"
+                + " foreign key(id2) references test1(id1))");
+        // getExportedKeys
+        ResultSet exportRs = connMetaData.getExportedKeys(null, null, "test1");
+        assertTrue(exportRs.next());
+        assertEquals("test2", exportRs.getString("FKTABLE_NAME"));
+        // getCrossReference
+        ResultSet crossReference = connMetaData.getCrossReference(null, null, "`test1`", null, null, "`test2`");
+        assertFalse(crossReference.next());
+        // getTables
+        ResultSet rs = connMetaData.getTables(null, "", "%", new String[]{"TABLE"});
+        ResultSetMetaData metaData2 = rs.getMetaData();
+        assertTrue(rs.next());
+        assertEquals("TABLE_TYPE", metaData2.getColumnLabel(4));
+        assertEquals("TABLE", rs.getString(4));
+    }
 }

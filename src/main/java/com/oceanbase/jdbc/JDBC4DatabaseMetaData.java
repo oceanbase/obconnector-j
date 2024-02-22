@@ -800,6 +800,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     ResultSet getTablesUsingInfoSchema(ColumnType[] columnTypes, String[] columnNames,
                                        String tableNamePattern, String[] types, String catalog)
                                                                                                throws SQLException {
+        if (catalog == null || catalog.length() == 0) {
+            catalog = this.connection.getCatalog();
+        }
+
         StringBuilder sqlBuf = new StringBuilder(
             "SELECT TABLE_SCHEMA AS TABLE_CAT, NULL AS TABLE_SCHEM,");
         sqlBuf
@@ -1502,7 +1506,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
     }
 
-    ArrayList<String>   getALlTableNames(String catalog) throws SQLException {
+    ArrayList<String>  getALlTableNames(String catalog) throws SQLException {
         try (ResultSet rs = getTables(catalog, "", "%", new String[]{"TABLE"})) {
             ArrayList<String> tableNameList = new ArrayList<>();
             while (rs.next()) {
