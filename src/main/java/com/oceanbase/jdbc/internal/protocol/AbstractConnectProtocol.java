@@ -1180,7 +1180,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 writer.startPacket(0);
                 writer.write(Packet.COM_QUERY);
-                writer.write("set NCHARACTER_SET_CONNECTION = '" + options.nCharacterEncoding + "'");
+                String nCharacterEncoding = options.nCharacterEncoding;
+                if (nCharacterEncoding.toUpperCase().contains("UTF-16BE")) {
+                    nCharacterEncoding = "UTF16";
+                }
+                writer.write("set NCHARACTER_SET_CONNECTION = '" + nCharacterEncoding + "'");
                 writer.flush();
                 getResult(new Results());
                 if (options.nCharacterEncoding.toUpperCase().contains("UTF16")) {
