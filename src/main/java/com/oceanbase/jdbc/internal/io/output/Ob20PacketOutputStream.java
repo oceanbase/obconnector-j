@@ -195,7 +195,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
             }
 
             if (commandEnd) {
-                if (ob20.header.payloadLength == MAX_PAYLOAD_LENGTH) {
+                if (pos == MAX_PACKET_LENGTH) {
                     writeEmptyPacket();
                 } else {
                     ob20.updateRequestId();

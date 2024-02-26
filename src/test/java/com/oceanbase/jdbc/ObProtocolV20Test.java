@@ -1,6 +1,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.*;
+import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -97,6 +98,55 @@ public class ObProtocolV20Test extends BaseTest {
         stmt.executeQuery("select 1 from dual");
         rs = stmt.executeQuery("show trace");
         Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testAone54384043() throws SQLException {
+        Connection conn = setConnection("&useOceanBaseProtocolV20=true");
+        String tableName = "t_insert";
+        createTable(tableName, "value longblob");
+        Statement stmt = conn.createStatement();
+
+        int[] array = {-2, -3};
+        int dataLen[] = new int[2];
+        int index = 0;
+        for(int k : array){
+            for(int i = 24; i <= 24; i++){
+                System.out.println("k is " + k + ", i is " + i + ", execute insert");
+                int maxAllowedPacketSize = (int) Math.pow(2, i) + k;
+                int DataLen = maxAllowedPacketSize - ("INSERT INTO " + tableName + " VALUES('')").length();
+                String s = getRandomVarchar(DataLen);
+                dataLen[index] = s.length();
+                index ++;
+                try {
+                    stmt.executeUpdate("INSERT INTO " + tableName + " VALUES('" + s + "')");
+                } catch (SQLException se1) {
+                    //处理JDBC错误
+                    System.out.println("ERROR Massage:" + se1.getMessage());
+                }
+            }
+        }
+
+        ResultSet rs = stmt.executeQuery("select * from t_insert");
+        int i = 0 ;
+        while (rs.next()) {
+            String string = rs.getString(1);;
+            Assert.assertEquals(dataLen[i], string.length());
+            i ++;
+        }
+
+        stmt.executeUpdate("drop table " + tableName);
+    }
+
+    public  String getRandomVarchar(int length){
+        String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < length; i++){
+            int number=random.nextInt(62);
+            sb.append(str.charAt(number));
+        }
+        return sb.toString();
     }
 
 }

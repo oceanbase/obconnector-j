@@ -84,6 +84,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private static final int  LARGE_BUFFER_SIZE          = 1024 * 1024;
 
     protected byte[]          buf;
+    /**
+     relative position in mysql payload
+     */
     protected int             pos;
     protected long            cmdLength;
     protected int             maxPacketLength;
