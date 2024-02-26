@@ -1092,4 +1092,21 @@ public class ConnectionTest extends BaseTest {
             sharedConnection.getTransactionIsolation());
   }
 
+  @Test
+  public void testTransactionIsolation2() throws SQLException {
+    Connection conn = sharedConnection;
+    DatabaseMetaData metaData = conn.getMetaData();
+    assertFalse(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
+    assertTrue(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED));
+    assertTrue(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ));
+    assertTrue(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
+
+    try {
+      conn.setTransactionIsolation(OceanBaseConnection.TRANSACTION_READ_UNCOMMITTED);
+      fail();
+    } catch (SQLSyntaxErrorException e) {
+      assertTrue(e.getMessage().contains("Unsupported transaction isolation level"));
+    }
+  }
+
 }

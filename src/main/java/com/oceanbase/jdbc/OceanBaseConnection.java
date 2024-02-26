@@ -1234,6 +1234,10 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
+        if (level == TRANSACTION_READ_UNCOMMITTED) {
+            throw exceptionFactory.create("Unsupported transaction isolation level");
+        }
+
         if (this.protocol.isOracleMode()
             && (level != TRANSACTION_READ_COMMITTED && level != TRANSACTION_REPEATABLE_READ && level != TRANSACTION_SERIALIZABLE)) {
             throw exceptionFactory.create("Unsupported transaction isolation level by OracleModel");
