@@ -426,6 +426,21 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testParamentCountOfSql() {
+        try {
+            Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+            String sql = "SELECT /*/*111 */*/* */ from (select ? from dual)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setLong(1, 2);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            assertEquals("2", rs.getString(1));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    @Test
     public void testcachePrepStmts() throws Exception {
         Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&cachePrepStmts=true");
         createTable("test_nh4", "id int, st varchar(20)");

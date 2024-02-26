@@ -860,6 +860,8 @@ public class Utils {
     int lastParamPos = 0;
     int commentStart = 0;
     boolean slashEnd = false;
+    int lastCommentEndStarPos = 0;
+    int lastCommentBeginSlashPos = 0;
     boolean semicolonEnd = false;
     KeyState keyState = KeyState.Normal;
     boolean nameBindingEnd = false;
@@ -882,14 +884,15 @@ public class Utils {
 
       switch (car) {
         case '*':
-          if (state == LexState.Normal && lastChar == '/') {
+          if (state == LexState.Normal && lastChar == '/' && i > lastCommentEndStarPos + 2) {
             state = LexState.SlashStarComment;
             commentStart = i - 1;
+            lastCommentBeginSlashPos = i - 1;
           }
           break;
 
         case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
+          if (state == LexState.SlashStarComment && lastChar == '*' && i > lastCommentBeginSlashPos + 2) {
             state = LexState.Normal;
             slashEnd = true;
             if (skipComment) {
@@ -898,6 +901,7 @@ public class Utils {
               trimedSqlString.append(queryString.substring(lastParamPos, commentStart));
             }
             lastParamPos = i + 1;
+            lastCommentEndStarPos = i - 1;
           } else if (state == LexState.Normal && lastChar == '/') {
             if (slashEnd) {
               slashEnd = false;
