@@ -1803,6 +1803,32 @@ public class ResultSetTest extends BaseTest {
     }
 
     @Test
+    public void testGetWarnings() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("select * from dual");
+            fail();
+        } catch (SQLException e) {
+            assertNull( conn.getWarnings());
+            SQLWarning warnings = stmt.getWarnings();
+            assertEquals("No tables used", warnings.getMessage());
+        }
+
+        conn = setConnectionOrigin("?useServerPrepStmts=true&emulateUnsupportedPstmts=true");
+        PreparedStatement ps = null;
+        try {
+            ps = conn.prepareStatement("select * from dual");
+            ps.execute();
+            fail();
+        } catch (SQLException e) {
+            assertNull(conn.getWarnings());
+            SQLWarning warnings = stmt.getWarnings();
+            assertEquals("No tables used", warnings.getMessage());
+        }
+    }
+
+    @Test
     public void testAoneID53220911() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&emptyStringsConvertToZero=true");
         createTable("t_f", "c1 int, c2 varchar(20)");

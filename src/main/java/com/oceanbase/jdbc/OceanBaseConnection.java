@@ -1276,41 +1276,11 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     public SQLWarning getWarnings() throws SQLException {
         //mysql mode no longer concern the hasWarnings flag
-        if (warningsCleared || isClosed() || (!protocol.hasWarnings() && protocol.isOracleMode())) {
-            return null;
-        }
         // If it is oracle mode and protocol.hasWarnings() , need to return a SQLWarning to inform the user
-        if (protocol.isOracleMode()) {
+        if (protocol.isOracleMode() && protocol.hasWarnings()) {
             return new SQLWarning("The execution is complete, but with warnings");
         }
-        if (protocol != null) {
-            protocol.startCallInterface();
-        }
-
-        SQLWarning last = null;
-        SQLWarning first = null;
-        try (Statement st = this.createStatement()) {
-            try (ResultSet rs = st.executeQuery("show warnings")) {
-                // returned result set has 'level', 'code' and 'message' columns, in this order.
-                while (rs.next()) {
-                    int code = rs.getInt(2);
-                    String message = rs.getString(3);
-                    SQLWarning warning = new SQLWarning(message, null, code);
-                    if (first == null) {
-                        first = warning;
-                        last = warning;
-                    } else {
-                        last.setNextWarning(warning);
-                        last = warning;
-                    }
-                }
-            }
-        }
-
-        if (protocol != null) {
-            protocol.endCallInterface("OceanBaseConnection.getWarnings");
-        }
-        return first;
+        return null;
     }
 
     /**
