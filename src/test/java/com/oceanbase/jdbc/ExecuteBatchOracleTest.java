@@ -44,11 +44,13 @@
 
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
 import java.sql.Clob;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class ExecuteBatchOracleTest extends BaseOracleTest {
@@ -197,6 +199,37 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
             System.out.println("for循环个数："+count);
             ex.printStackTrace();
         }
+    }
+
+    @Test
+    public void testEncloseParamInParentheses() throws SQLException {
+        Connection conn = setConnection("&encloseParamInParentheses=true&rewriteBatchedStatements=true");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t1");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table t1 (c1 int, c2 varchar(20))");
+        stmt.execute("insert into t1 values (10, 'aaa')");
+        stmt.execute("insert into t1 values (20, 'bbb')");
+        stmt.execute("insert into t1 values (30, 'ccc')");
+
+
+        PreparedStatement ps = conn.prepareStatement("update t1 set c1 = c1-?");
+        ps.setInt(1, -1);
+        ps.addBatch();
+        ps.setInt(1, -10);
+        ps.addBatch();
+        ps.executeBatch();
+        assertEquals(-1, ps.getUpdateCount());
+
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        Assert.assertTrue(rs.next());
+        assertEquals(21, rs.getInt(1));
+        Assert.assertTrue(rs.next());
+        assertEquals(31, rs.getInt(1));
+        Assert.assertTrue(rs.next());
+        assertEquals(41, rs.getInt(1));
     }
 
 }

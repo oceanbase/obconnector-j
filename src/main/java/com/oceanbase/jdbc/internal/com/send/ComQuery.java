@@ -85,13 +85,7 @@ public class ComQuery {
             out.write(clientPrepareResult.getQueryParts().get(0));
             out.write(clientPrepareResult.getQueryParts().get(1));
             for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
-                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
-                    out.write("(".getBytes(out.getCharset()));
-                }
-                parameters[i].writeTo(out);
-                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
-                    out.write(")".getBytes(out.getCharset()));
-                }
+                addParenthesesArroundValue(out, parameters[i]);
                 out.write(clientPrepareResult.getQueryParts().get(i + 2));
             }
             out.write(clientPrepareResult.getQueryParts().get(
@@ -101,13 +95,7 @@ public class ComQuery {
 
             out.write(clientPrepareResult.getQueryParts().get(0));
             for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
-                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
-                    out.write("(".getBytes(out.getCharset()));
-                }
-                parameters[i].writeTo(out);
-                if (out.isOracleMode() && out.isEncloseParamInParentheses()) {
-                    out.write(")".getBytes(out.getCharset()));
-                }
+                addParenthesesArroundValue(out, parameters[i]);
                 out.write(clientPrepareResult.getQueryParts().get(i + 1));
             }
         }
@@ -150,7 +138,7 @@ public class ComQuery {
             }
 
             for (int i = 0; i < paramCount; i++) {
-                parameters[i].writeTo(pos);
+                addParenthesesArroundValue(pos, parameters[i]);
                 pos.write(queryParts.get(i + 2));
             }
             pos.write(queryParts.get(paramCount + 2));
@@ -180,7 +168,7 @@ public class ComQuery {
                         pos.write(firstPart, 0, firstPart.length);
                         pos.write(secondPart, 0, secondPart.length);
                         for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeTo(pos);
+                            addParenthesesArroundValue(pos, parameters[i]);
                             pos.write(queryParts.get(i + 2));
                         }
                         pos.write(queryParts.get(paramCount + 2));
@@ -194,7 +182,7 @@ public class ComQuery {
                     pos.write(firstPart, 0, firstPart.length);
                     pos.write(secondPart, 0, secondPart.length);
                     for (int i = 0; i < paramCount; i++) {
-                        parameters[i].writeTo(pos);
+                        addParenthesesArroundValue(pos, parameters[i]);
                         pos.write(queryParts.get(i + 2));
                     }
                     pos.write(queryParts.get(paramCount + 2));
@@ -210,7 +198,7 @@ public class ComQuery {
             int intermediatePartLength = queryParts.get(1).length;
 
             for (int i = 0; i < paramCount; i++) {
-                parameters[i].writeTo(pos);
+                addParenthesesArroundValue(pos, parameters[i]);
                 pos.write(queryParts.get(i + 2));
                 intermediatePartLength += queryParts.get(i + 2).length;
             }
@@ -240,7 +228,7 @@ public class ComQuery {
                         pos.write(secondPart, 0, secondPart.length);
 
                         for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeTo(pos);
+                            addParenthesesArroundValue(pos, parameters[i]);
                             byte[] addPart = queryParts.get(i + 2);
                             pos.write(addPart, 0, addPart.length);
                         }
@@ -253,7 +241,7 @@ public class ComQuery {
                     pos.write(secondPart, 0, secondPart.length);
 
                     for (int i = 0; i < paramCount; i++) {
-                        parameters[i].writeTo(pos);
+                        addParenthesesArroundValue(pos, parameters[i]);
                         pos.write(queryParts.get(i + 2));
                     }
                     index++;
@@ -372,5 +360,22 @@ public class ComQuery {
             pos.write(bytes);
         }
         pos.flush();
+    }
+
+    /**
+     * Use encloseParamInParentheses to determine whether to add parentheses
+     * @param pos output stream
+     * @param parameter the value
+     * @throws IOException
+     * @throws SQLException
+     */
+    public static void addParenthesesArroundValue(PacketOutputStream pos, ParameterHolder parameter) throws IOException, SQLException {
+        if (pos.isOracleMode() && pos.isEncloseParamInParentheses()) {
+            pos.write("(".getBytes(pos.getCharset()));
+        }
+        parameter.writeTo(pos);
+        if (pos.isOracleMode() && pos.isEncloseParamInParentheses()) {
+            pos.write(")".getBytes(pos.getCharset()));
+        }
     }
 }
