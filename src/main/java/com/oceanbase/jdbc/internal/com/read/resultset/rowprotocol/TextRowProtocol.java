@@ -413,16 +413,20 @@ public class TextRowProtocol extends RowProtocol {
                             "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case VARCHAR2:
+                case NVARCHAR2:
+                    if (length == 0) {
+                        return convertToZeroWithEmptyCheck();
+                    }
                 default:
                     return Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
             }
 
         } catch (NumberFormatException nfe) {
-            if (length == 0) {
-                return convertToZeroWithEmptyCheck();
-            }
-
             NumberFormatException exceptionTmp = null;
             // parse error.
             // if its a decimal retry without the decimal part.
@@ -450,19 +454,6 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     /**
-     * convertToZeroWithEmptyCheck
-     * @return
-     * @throws SQLException
-     */
-    private int convertToZeroWithEmptyCheck() throws SQLException {
-        if (options.emptyStringsConvertToZero) {
-            return 0;
-        }
-
-        throw new SQLException("Can't convert empty string ('') to numeric");
-    }
-
-    /**
      * Get float from raw text format.
      *
      * @param columnInfo column information
@@ -477,6 +468,14 @@ public class TextRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return parseBit();
+            case VARSTRING:
+            case VARCHAR:
+            case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
+                if (length == 0) {
+                    return convertToZeroWithEmptyCheck();
+                }
             case TINYINT:
             case SMALLINT:
             case YEAR:
@@ -485,11 +484,6 @@ public class TextRowProtocol extends RowProtocol {
             case FLOAT:
             case DOUBLE:
             case DECIMAL:
-            case VARSTRING:
-            case VARCHAR:
-            case VARCHAR2:
-            case NVARCHAR2:
-            case STRING:
             case OLDDECIMAL:
             case BIGINT:
             case NUMBER_FLOAT:
@@ -542,6 +536,14 @@ public class TextRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case BIT:
                 return parseBit();
+            case VARSTRING:
+            case VARCHAR:
+            case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
+                if (length == 0) {
+                    return convertToZeroWithEmptyCheck();
+                }
             case TINYINT:
             case SMALLINT:
             case YEAR:
@@ -550,10 +552,6 @@ public class TextRowProtocol extends RowProtocol {
             case FLOAT:
             case DOUBLE:
             case DECIMAL:
-            case VARSTRING:
-            case VARCHAR:
-            case VARCHAR2:
-            case STRING:
             case OLDDECIMAL:
             case BIGINT:
             case BINARY_DOUBLE:
@@ -607,11 +605,9 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
 
-        if (columnInfo.getColumnType() == ColumnType.BIT) {
-            return BigDecimal.valueOf(parseBit());
-        }
-
         switch (columnInfo.getColumnType()) {
+            case BIT:
+                return BigDecimal.valueOf(parseBit());
             case BINARY_FLOAT:
                 Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
                     .getColumnType())));
@@ -622,6 +618,14 @@ public class TextRowProtocol extends RowProtocol {
                     getCurrentEncoding(columnInfo.getColumnType())));
                 // check
                 return BigDecimal.valueOf(d);
+            case VARSTRING:
+            case VARCHAR:
+            case STRING:
+            case VARCHAR2:
+            case NVARCHAR2:
+                if (length == 0) {
+                    return BigDecimal.valueOf(convertToZeroWithEmptyCheck());
+                }
             default:
                 break;
         }

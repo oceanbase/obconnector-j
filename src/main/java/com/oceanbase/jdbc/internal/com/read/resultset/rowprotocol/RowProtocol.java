@@ -994,4 +994,16 @@ public abstract class RowProtocol {
       }
   }
 
+  /**
+   * convertToZeroWithEmptyCheck
+   * @return
+   * @throws SQLException
+   */
+  public int convertToZeroWithEmptyCheck() throws SQLException {
+    if (options.emptyStringsConvertToZero) {
+      return 0;
+    }
+
+    throw new SQLException("Can't convert empty string ('') to numeric");
+  }
 }

@@ -540,6 +540,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 case STRING:
                 case VARCHAR2:
                 case NVARCHAR2:
+                    if (length == 0) {
+                        return convertToZeroWithEmptyCheck();
+                    }
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                     break;
@@ -656,10 +659,13 @@ public class BinaryRowProtocol extends RowProtocol {
                     return bigDecimal.longValue();
                 case VARSTRING:
                 case VARCHAR:
-                case OBDECIMAL:
                 case STRING:
                 case VARCHAR2:
                 case NVARCHAR2:
+                    if (length == 0) {
+                        return convertToZeroWithEmptyCheck();
+                    }
+                case OBDECIMAL:
                     return Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                 default:
@@ -744,7 +750,6 @@ public class BinaryRowProtocol extends RowProtocol {
             case BINARY_FLOAT:
                 int asInt = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8)
                             | ((buf[pos + 2] & 0xff) << 16) | ((buf[pos + 3] & 0xff) << 24);
-
                 return Float.intBitsToFloat(asInt);
             case NUMBER_FLOAT:
                 String str = new String(buf, pos, length,
@@ -753,12 +758,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 return f;
             case DOUBLE:
                 return (float) getInternalDouble(columnInfo);
-            case DECIMAL:
             case VARSTRING:
             case VARCHAR:
             case STRING:
             case VARCHAR2:
             case NVARCHAR2:
+                if (length == 0) {
+                    return convertToZeroWithEmptyCheck();
+                }
+            case DECIMAL:
                 try {
                     return Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
                         .getColumnType())));
@@ -835,12 +843,15 @@ public class BinaryRowProtocol extends RowProtocol {
                                     + ((long) (buf[pos + 5] & 0xff) << 40)
                                     + ((long) (buf[pos + 6] & 0xff) << 48) + ((long) (buf[pos + 7] & 0xff) << 56));
                 return Double.longBitsToDouble(valueDouble);
-            case DECIMAL:
             case VARSTRING:
             case VARCHAR:
             case STRING:
             case VARCHAR2:
             case NVARCHAR2:
+                if (length == 0) {
+                    return convertToZeroWithEmptyCheck();
+                }
+            case DECIMAL:
                 try {
                     return Double.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
@@ -929,12 +940,15 @@ public class BinaryRowProtocol extends RowProtocol {
                     return BigDecimal.valueOf(getInternalDouble(columnInfo)).setScale(columnInfo.getDecimals());
                 }
                 return BigDecimal.valueOf(getInternalDouble(columnInfo));
-            case DECIMAL:
             case VARSTRING:
             case VARCHAR:
             case VARCHAR2:
             case NVARCHAR2:
             case STRING:
+                if (length == 0) {
+                    return new BigDecimal(convertToZeroWithEmptyCheck());
+                }
+            case DECIMAL:
             case OLDDECIMAL:
             case OBDECIMAL:
             case NUMBER_FLOAT:
@@ -1576,10 +1590,13 @@ public class BinaryRowProtocol extends RowProtocol {
                     return bigDecimal.byteValue();
                 case VARSTRING:
                 case VARCHAR:
-                case OBDECIMAL:
                 case VARCHAR2:
                 case NVARCHAR2:
                 case STRING:
+                    if (length == 0) {
+                        return (byte) convertToZeroWithEmptyCheck();
+                    }
+                case OBDECIMAL:
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                     break;
@@ -1661,8 +1678,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARCHAR:
                 case VARCHAR2:
                 case NVARCHAR2:
-                case OBDECIMAL:
                 case STRING:
+                    if (length == 0) {
+                        return (short) convertToZeroWithEmptyCheck();
+                    }
+                case OBDECIMAL:
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                     break;

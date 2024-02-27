@@ -1913,4 +1913,25 @@ public class ResultSetOracleTest extends BaseOracleTest {
         Assert.assertEquals(1, rs.getFetchSize());
         Assert.assertEquals(-2147483648, pstmt.getFetchSize());
     }
+
+    @Test
+    public void testAoneID53220911() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&emptyStringsConvertToZero=true");
+        createTable("t_f", "c1 int, c2 varchar(20)");
+        conn.createStatement().execute("insert into t_f values(1, '')");
+        ResultSet rs = conn.prepareStatement("select c1 , c2 from t_f").executeQuery();
+        while (rs.next()) {
+            assertEquals(0, rs.getByte(2));
+            assertEquals(0, rs.getShort(2));
+            assertEquals(0, rs.getInt(2));
+            assertEquals(0, rs.getLong(2));
+            assertEquals(null, rs.getString(2));
+            assertEquals(null, rs.getObject(2));
+            assertEquals(false, rs.getBoolean(2));
+            assertArrayEquals(null, rs.getBytes(2));
+            assertEquals(0, rs.getFloat(2), 0.1);
+            assertEquals(0, rs.getDouble(2), 0.1);
+            assertEquals(null, rs.getBigDecimal(2));
+        }
+    }
 }
