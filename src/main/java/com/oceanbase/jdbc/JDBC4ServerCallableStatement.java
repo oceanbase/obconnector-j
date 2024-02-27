@@ -50,19 +50,21 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
 import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class JDBC4ServerCallableStatement extends CallableProcedureStatement implements
                                                                             CloneableCallableStatement {
@@ -254,13 +256,19 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             if (inParamInfo.isInput() && inParamInfo.isOutput()) {
                 StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
                 ParameterHolder holder = currentParameterHolder.get(i);
+                String holderStr;
+                if (holder instanceof StringParameter) {
+                    holderStr = ((StringParameter) holder).getFullString();
+                } else {
+                    holderStr = holder.toString();
+                }
                 queryBuf.append("SET ");
                 queryBuf.append(inOutParameterName);
                 queryBuf.append("=");
-                if (holder.toString() == "<null>") {
+                if (holderStr == "<null>") {
                     queryBuf.append("null");
                 } else {
-                    queryBuf.append(holder.toString());
+                    queryBuf.append(holderStr);
                 }
 
                 String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
@@ -286,7 +294,13 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
                     sb.append(inOutParameterName);
                 } else {
-                    String holderStr = currentParameterHolder.get(i).toString();
+                    ParameterHolder holder = currentParameterHolder.get(i);
+                    String holderStr;
+                    if (holder instanceof StringParameter) {
+                        holderStr = ((StringParameter) holder).getFullString();
+                    } else {
+                        holderStr = holder.toString();
+                    }
                     if (holderStr.equals("<null>")) {
                         sb.append("null" );
                     } else {

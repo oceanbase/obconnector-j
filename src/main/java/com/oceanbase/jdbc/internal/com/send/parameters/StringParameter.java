@@ -194,6 +194,14 @@ public class StringParameter implements Cloneable, ParameterHolder {
         }
     }
 
+    public String getFullString(){
+        String tmp = stringValue;
+        if (needEscape(stringValue, stringValue.length())) {
+            tmp = escapedString(stringValue, stringValue.length());
+        }
+        return "'" + tmp + "'";
+    }
+
     public boolean isNullData() {
         return false;
     }

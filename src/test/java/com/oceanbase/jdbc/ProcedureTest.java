@@ -43,14 +43,15 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ProcedureTest extends BaseTest {
     public static String procName  = "testProc" + getRandomString(5);
@@ -216,4 +217,32 @@ public class ProcedureTest extends BaseTest {
         BigDecimal bigDecimal = cs.getBigDecimal(3);
         Assert.assertEquals("10.00", bigDecimal.toString());
     }
+
+    @Test
+    public void testAone54427985() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        createTable("t0", "c1 varchar(4000), c2 varchar(4000)");
+        createProcedure("addRow", "(inout p varchar(4000), in q varchar(4000)) begin insert into t0(c1, c2) values(p, q); end;");
+        Statement statement = conn.createStatement();
+
+        int len = 2000;
+        byte[] b = new byte[len];
+        StringBuffer s = new StringBuffer();
+        for (int i = 0; i < len ; i++) {
+            s.append("a");
+            b[i] = 'b';
+        }
+
+        CallableStatement prepareCall = conn.prepareCall("call addRow(?, ?)");
+        prepareCall.setString(1, s.toString());
+        prepareCall.setBytes(2, b);
+        prepareCall.execute();
+        prepareCall.close();
+        ResultSet rs = statement.executeQuery("select * from t0");
+        rs.next();
+        assertEquals(2000, rs.getString(1).length());
+        assertEquals(2000, rs.getString(2).length());
+        conn.close();
+    }
+
 }
