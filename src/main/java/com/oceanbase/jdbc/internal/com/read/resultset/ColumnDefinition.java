@@ -190,7 +190,7 @@ public class ColumnDefinition {
             originalColumnNameLength);
         buffer.readByte();
         charsetNumber = buffer.readShort();
-        length = buffer.readInt();
+        length = buffer.readLong4BytesV1();
         sqltype = buffer.readByte() & 0xff;
         longColFlag = buffer.readShort();
         type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
@@ -438,6 +438,9 @@ public class ColumnDefinition {
                 }
 
                 return (int) length / maxWidth;
+            }
+            if (vtype == Types.LONGVARBINARY && length == (1L << 32) -1) {
+                return Integer.MAX_VALUE;
             }
         }
         return (int) length;

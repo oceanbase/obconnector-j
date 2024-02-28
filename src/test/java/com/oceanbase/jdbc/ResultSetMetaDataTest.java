@@ -285,4 +285,21 @@ public class ResultSetMetaDataTest extends BaseTest {
       assertEquals(rsmd.getColumnName(1), "id_alias");
     }
   }
+
+  @Test
+  public void testLongBlob() throws SQLException {
+      Statement stmt = sharedConnection.createStatement();
+      createTable("test_column_display_size","c1 TINYBLOB, c2 BLOB, c3 MEDIUMBLOB, c4 LONGBLOB");
+      ResultSet rs = stmt.executeQuery("select * from test_column_display_size");
+      ResultSetMetaData metaData = rs.getMetaData();
+      assertEquals(255,metaData.getColumnDisplaySize(1));
+      assertEquals(65535,metaData.getColumnDisplaySize(2));
+      assertEquals(16777215,metaData.getColumnDisplaySize(3));
+      assertEquals(2147483647,metaData.getColumnDisplaySize(4));
+
+      assertEquals(-3,metaData.getColumnType(1));
+      assertEquals(-4,metaData.getColumnType(2));
+      assertEquals(-4,metaData.getColumnType(3));
+      assertEquals(-4,metaData.getColumnType(4));
+  }
 }
