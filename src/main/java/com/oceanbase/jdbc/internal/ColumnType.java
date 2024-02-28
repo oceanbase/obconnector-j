@@ -224,6 +224,8 @@ public enum ColumnType {
                 return Types.LONGVARBINARY;
             case "VARBINARY":
                 return Types.VARBINARY;
+            case "JSON":
+                return Types.VARCHAR;
             default:
                 return Types.OTHER;
         }

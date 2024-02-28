@@ -245,4 +245,16 @@ public class ProcedureTest extends BaseTest {
         conn.close();
     }
 
+    @Test
+    public void testJsonTypeForAone50689660() throws Exception {
+        Connection conn = sharedConnection;
+        createTable("testJsonType", "id INT PRIMARY KEY, jsonDoc JSON");
+        createProcedure("testJsonTypeProc", "(OUT jsonDoc JSON) SELECT t.jsonDoc INTO jsonDoc FROM testJsonType t");
+        CallableStatement testCstmt = conn.prepareCall("{CALL testJsonTypeProc(?)}");
+        ParameterMetaData metaData = testCstmt.getParameterMetaData();
+        assertEquals(1, metaData.getParameterCount());
+        assertEquals("java.lang.String", metaData.getParameterClassName(1));
+        assertEquals("JSON", metaData.getParameterTypeName(1));
+    }
+
 }
