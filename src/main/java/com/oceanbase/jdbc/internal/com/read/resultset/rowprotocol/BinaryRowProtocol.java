@@ -55,6 +55,7 @@ import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -1596,9 +1597,14 @@ public class BinaryRowProtocol extends RowProtocol {
                     if (length == 0) {
                         return (byte) convertToZeroWithEmptyCheck();
                     }
-                case OBDECIMAL:
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    break;
+                case OBDECIMAL:
+                    BigDecimal decimal = new BigDecimal(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    decimal.setScale(0, RoundingMode.HALF_UP);
+                    value = decimal.longValue();
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
@@ -1682,9 +1688,14 @@ public class BinaryRowProtocol extends RowProtocol {
                     if (length == 0) {
                         return (short) convertToZeroWithEmptyCheck();
                     }
-                case OBDECIMAL:
                     value = Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    break;
+                case OBDECIMAL:
+                    BigDecimal decimal = new BigDecimal(new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    decimal.setScale(0, RoundingMode.HALF_UP);
+                    value = decimal.longValue();
                     break;
                 default:
                     throw new SQLException("getShort not available for data field type "

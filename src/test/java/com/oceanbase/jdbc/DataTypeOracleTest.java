@@ -886,4 +886,30 @@ public class DataTypeOracleTest extends BaseOracleTest {
         assertEquals(0, rs.getLong(3));
     }
 
+    @Test
+    public void testNumberGetXXX() throws SQLException {
+        createTable("test_number_get_xxx", "c1 number(2,3)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into test_number_get_xxx values (0.023567)");
+        ResultSet rs = stmt.executeQuery("select * from test_number_get_xxx");
+        rs.next();
+        ResultSetMetaData metaData = rs.getMetaData();
+        assertEquals("NUMBER", metaData.getColumnTypeName(1));
+        assertEquals(3, metaData.getScale(1));
+        assertEquals(2, metaData.getPrecision(1));
+        assertEquals(4, metaData.getColumnDisplaySize(1));
+
+        assertEquals(0, rs.getByte(1));
+        assertEquals(0, rs.getShort(1));
+        assertEquals(0, rs.getInt(1));
+        assertEquals(0, rs.getLong(1));
+
+        assertEquals(Float.valueOf("0.024"), rs.getFloat(1), 0.000001d);
+        assertEquals(Float.valueOf("0.024"), rs.getDouble(1), 0.000001d);
+        assertEquals("0.024", rs.getString(1));
+        assertEquals("0.024", rs.getNString(1));
+        assertEquals(new BigDecimal("0.024"), rs.getObject(1));
+        assertEquals(new BigDecimal("0.024"), rs.getBigDecimal(1));
+    }
+
 }

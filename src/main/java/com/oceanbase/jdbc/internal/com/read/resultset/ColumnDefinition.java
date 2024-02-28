@@ -443,6 +443,25 @@ public class ColumnDefinition {
                 return Integer.MAX_VALUE;
             }
         }
+        if (type.getSqlType() == Types.DECIMAL && this.isOracleMode) {
+            int columnPrecision = precision;
+            int columnDecimals = decimals;
+            if (columnPrecision != 0 && columnDecimals == -127) {
+                columnPrecision = (int)((double)columnPrecision / 3.32193D);
+                columnDecimals = 1;
+            } else {
+                if (columnPrecision == 0) {
+                    columnPrecision = 38;
+                }
+
+                if (columnDecimals == -127) {
+                    columnDecimals = 0;
+                }
+            }
+
+            int displaySize = columnPrecision + (columnDecimals != 0 ? 1 : 0) + 1;
+            return displaySize;
+        }
         return (int) length;
     }
 
