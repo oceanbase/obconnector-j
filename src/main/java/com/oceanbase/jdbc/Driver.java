@@ -59,6 +59,7 @@ import java.util.Properties;
 import com.oceanbase.jdbc.internal.util.DeRegister;
 import com.oceanbase.jdbc.internal.util.constant.HaMode;
 import com.oceanbase.jdbc.internal.util.constant.Version;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 
@@ -80,6 +81,9 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if it is not possible to connect
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
+        if (url == null) {
+            throw ExceptionFactory.INSTANCE.create("The url cannot be null", "08001");
+        }
         UrlParser urlParser = UrlParser.parse(url, props);
         if (urlParser == null
             || (urlParser.getHostAddresses() == null && urlParser.getExtendDescription() == null && urlParser
@@ -97,7 +101,10 @@ public class Driver implements java.sql.Driver {
      * @return true if the url is valid for this driver
      */
     @Override
-    public boolean acceptsURL(String url) {
+    public boolean acceptsURL(String url) throws SQLException {
+        if (url == null) {
+            throw ExceptionFactory.INSTANCE.create("The url cannot be null", "08001");
+        }
         return UrlParser.acceptsUrl(url);
     }
 

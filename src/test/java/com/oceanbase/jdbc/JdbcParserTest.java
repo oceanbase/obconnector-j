@@ -194,7 +194,7 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testAcceptsUrl() {
+    public void testAcceptsUrl() throws SQLException {
         Driver driver = new Driver();
         assertTrue(driver.acceptsURL("jdbc:oceanbase://localhost/test"));
         assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test"));

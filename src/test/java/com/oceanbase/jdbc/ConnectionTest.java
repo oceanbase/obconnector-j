@@ -1093,6 +1093,24 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
+  public void testDriverURLNull() throws SQLException {
+    Driver driver = new Driver();
+    try {
+      driver.connect(null, null);
+      fail();
+    } catch (Exception e) {
+      assertEquals("The url cannot be null", e.getMessage());
+    }
+
+    try {
+      driver.acceptsURL(null);
+      fail();
+    } catch (Exception e) {
+      assertEquals("The url cannot be null", e.getMessage());
+    }
+  }
+
+  @Test
   public void testTransactionIsolation2() throws SQLException {
     Connection conn = sharedConnection;
     DatabaseMetaData metaData = conn.getMetaData();
