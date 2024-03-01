@@ -1700,7 +1700,7 @@ public class DriverOracleTest extends BaseOracleTest {
     assertEquals(
         isMysql ? "MySQL" : "MariaDB", sharedConnection.getMetaData().getDatabaseProductName());
     if (!isMysql) {
-      try (Connection connection = setConnection("&useMysqlMetadata=true")) {
+      try (Connection connection = setConnection("&useCompatibleMetadata=true")) {
         assertEquals("MySQL", connection.getMetaData().getDatabaseProductName());
       }
     }

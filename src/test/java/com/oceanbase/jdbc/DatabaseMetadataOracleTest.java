@@ -1232,4 +1232,17 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testProductNameAndVersionForAone54281659() throws SQLException {
+        Connection conn = sharedConnection;
+        DatabaseMetaData connMetaData = conn.getMetaData();
+        assertEquals("OceanBase", connMetaData.getDatabaseProductName());
+        System.out.println(connMetaData.getDatabaseProductVersion());
+
+        conn = setConnection("&useCompatibleMetadata=true");
+        DatabaseMetaData metaData = conn.getMetaData();
+        assertEquals("Oracle", metaData.getDatabaseProductName());
+        System.out.println(connMetaData.getDatabaseProductVersion());
+    }
+
 }

@@ -1853,6 +1853,19 @@ public class DatabaseMetadataTest extends BaseTest {
     }
 
     @Test
+    public void testProductNameAndVersionForAone54281659() throws SQLException {
+        Connection conn = sharedConnection;
+        DatabaseMetaData connMetaData = conn.getMetaData();
+        assertEquals("OceanBase", connMetaData.getDatabaseProductName());
+        System.out.println(connMetaData.getDatabaseProductVersion());
+
+        conn = setConnection("&useCompatibleMetadata=true");
+        DatabaseMetaData metaData = conn.getMetaData();
+        assertEquals("MySQL", metaData.getDatabaseProductName());
+        System.out.println(connMetaData.getDatabaseProductVersion());
+    }
+
+    @Test
     public void testUseInformationScheme() throws SQLException {
         Connection conn = setConnection("&useInformationSchema=true");
         DatabaseMetaData connMetaData = conn.getMetaData();

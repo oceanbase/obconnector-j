@@ -114,7 +114,6 @@ public class Options implements Cloneable {
     public boolean nullCatalogMeansCurrent = true;
     public boolean dumpQueriesOnException;
     public boolean useOldAliasMetadataBehavior;
-    public boolean useMysqlMetadata;
     public boolean allowLocalInfile = false;
     public boolean cachePrepStmts = false;
     public int prepStmtCacheSize = 250;
@@ -232,6 +231,7 @@ public class Options implements Cloneable {
     public int     logTraceTime;
     public boolean oracleChangeReadOnlyToRepeatableRead;
     public boolean encloseParamInParentheses = true; // todo: default false may be better
+    public boolean useCompatibleMetadata;
 
     @Override
     public String toString() {

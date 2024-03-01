@@ -1930,22 +1930,24 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     /**
-     * Return Server type. MySQL or MariaDB. MySQL can be forced for compatibility with option
-     * "useMysqlMetadata"
+     * Return Server type. MySQL,Oracle or OceanBase. MySQL or Oracle can be forced for compatibility with option
+     * "useCompatibleMetadata"
      *
      * @return server type
      * @throws SQLException in case of socket error.
      */
     public String getDatabaseProductName() throws SQLException {
-        if (connection.getProtocol().isOracleMode()) {
-            return "Oracle";
-        } else {
+        if (connection.getProtocol().getOptions().useCompatibleMetadata) {
+            if (protocol.isOracleMode()) {
+                return "Oracle";
+            }
             return "MySQL";
         }
+        return "OceanBase";
     }
 
     public String getDatabaseProductVersion() {
-        return connection.getProtocol().getServerVersion();
+        return connection.getProtocol().getObServerVersion();
     }
 
     public int getDatabaseMajorVersion() {

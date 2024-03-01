@@ -705,12 +705,12 @@ public enum DefaultOptions {
             "2.0.1",
             "The driver will call setFetchSize(n) with this value on all newly-created Statements",
             false),
-    USE_MYSQL_AS_DATABASE(
-            "useMysqlMetadata",
+    USE_COMPATIBLE_METADATA(
+            "useCompatibleMetadata",
             Boolean.FALSE,
-            "2.0.1",
+            "2.4.9",
             "force DatabaseMetadata.getDatabaseProductName() "
-                    + "to return \"MySQL\" as database, not real database type",
+                    + "to return \"MySQL\" or \"Oracle\" as database, not real database type",
             false),
     BLANK_TABLE_NAME_META(
             "blankTableNameMeta",
