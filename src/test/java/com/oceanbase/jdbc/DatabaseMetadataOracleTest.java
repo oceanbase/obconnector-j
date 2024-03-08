@@ -320,6 +320,49 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testGetTablesRemarksReporting() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table TEST_GET_TAB");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table TEST_GET_TAB (c0 number)");
+        stmt.execute("COMMENT ON TABLE TEST_GET_TAB IS 'This is a table remarks'");
+
+        Connection conn = setConnection("&remarksReporting=false");
+        ResultSet rs = conn.getMetaData().getTables(null, conn.getMetaData().getUserName(), "TEST_GET_TAB", null);
+        assertTrue(rs.next());
+        assertEquals("TEST",rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GET_TAB",rs.getString("TABLE_NAME"));
+        assertNull(rs.getString("REMARKS"));
+
+        conn = setConnection("&remarksReporting=true");
+        rs = conn.getMetaData().getTables(null, conn.getMetaData().getUserName(), "TEST_GET_TAB", null);
+        assertTrue(rs.next());
+        assertEquals("TEST",rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GET_TAB",rs.getString("TABLE_NAME"));
+        assertEquals("This is a table remarks",rs.getString("REMARKS"));
+
+        ((ObConnection)conn).setRemarksReporting(false);
+        rs = conn.getMetaData().getTables(null, conn.getMetaData().getUserName(), "TEST_GET_TAB", null);
+        assertTrue(rs.next());
+        assertEquals("TEST",rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GET_TAB",rs.getString("TABLE_NAME"));
+        assertNull(rs.getString("REMARKS"));
+
+        ((ObConnection)conn).setRemarksReporting(true);
+        rs = conn.getMetaData().getTables(null, conn.getMetaData().getUserName(), "TEST_GET_TAB", null);
+        assertTrue(rs.next());
+        assertEquals("TEST",rs.getString("TABLE_SCHEM"));
+        assertEquals("TEST_GET_TAB",rs.getString("TABLE_NAME"));
+        assertEquals("This is a table remarks",rs.getString("REMARKS"));
+
+        rs.close();
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
     public void getDriverNameTest() throws SQLException {
         String driverName = sharedConnection.getMetaData().getDriverName();
         assertEquals(driverName, "OceanBase Connector/J");

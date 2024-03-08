@@ -217,7 +217,12 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             typeList = "  AND o.object_type IN ('TABLE', 'SYNONYM', 'VIEW') ";
         }
         String orderBy = "  ORDER BY table_type, table_schem, table_name ";
-        String sql = OB_ORA_GET_TABLES + typeList + orderBy;
+        String sql = "";
+        if (this.connection.getRemarksReporting()) {
+            sql = OB_ORA_GET_TABLES_REMARKS_REPORTING + typeList + orderBy;
+        } else {
+            sql = OB_ORA_GET_TABLES + typeList + orderBy;
+        }
         PreparedStatement stmt = this.connection.prepareStatement(sql);
         stmt.setString(1, schemaPattern == null ? "%" : schemaPattern);
         stmt.setString(2, tableNamePattern == null ? "%" : tableNamePattern);
@@ -242,15 +247,16 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
+        boolean remarksReporting = this.connection.getRemarksReporting();
         String querySql = String
             .format(OB_ORA_GET_COLUMNS,
                     connection.getProtocol().getOptions().compatibleOjdbcVersion == 8 ? 2 : 3,
-                    connection.getRemarksReporting() ? "c.comments" : "NULL",
-                    connection.getRemarksReporting() ? ",all_col_comments c " : "",
+                    remarksReporting ? "c.comments" : "NULL",
+                    remarksReporting ? ",all_col_comments c " : "",
                     schemaPattern == null ? "%" : schemaPattern,
                     tableNamePattern == null ? "%" : tableNamePattern,
                     columnNamePattern == null ? '%' : columnNamePattern,
-                    connection.getRemarksReporting() ? "    AND t.owner = c.owner (+)\n    AND t.table_name = c.table_name (+)\n    AND t.column_name = c.column_name (+)" : "");
+                    remarksReporting ? "    AND t.owner = c.owner (+)\n    AND t.table_name = c.table_name (+)\n    AND t.column_name = c.column_name (+)" : "");
 //        int count = results.getFetchSize();
         String[] data = new String[24];
         List<String[]> list = new ArrayList<> ();

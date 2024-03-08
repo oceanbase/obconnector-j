@@ -52,7 +52,7 @@ public interface ObConnection extends MysqlConnection {
 
     void changeUser(String userName, String newPassword) throws SQLException;
 
-    void setRemarksReporting(boolean value);
+    void setRemarksReporting(boolean remarksReporting);
 
     boolean getRemarksReporting();
 }

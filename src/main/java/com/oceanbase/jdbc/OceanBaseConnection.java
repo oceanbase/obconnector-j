@@ -261,6 +261,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         //todo add connection propertis in the future
         this.complexDataCache = new LRUCache(50);
         this.urlParser = protocol.getUrlParser();
+        this.remarksReporting = options.remarksReporting;
     }
 
     public OceanBaseConnection(UrlParser urlParser, GlobalStateInfo globalInfo, boolean flag)
@@ -288,6 +289,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             //        }
             //todo add connection propertis in the future
             this.complexDataCache = new LRUCache(50);
+            this.remarksReporting = options.remarksReporting;
         } finally {
             threadLock.unlock();
             lockLogger.debug("OceanBaseConnection.OceanBaseConnection unlocked");
@@ -2606,16 +2608,6 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
     }
 
-    @Override
-    public void setRemarksReporting(boolean value) {
-        remarksReporting = value;
-    }
-
-    @Override
-    public boolean getRemarksReporting() {
-        return remarksReporting;
-    }
-
     public void setFullLinkTraceModule(String module, String action) {
         protocol.setFullLinkTraceModule(module, action);
     }
@@ -2666,6 +2658,16 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     public long getFullLinkTraceSlowQueryThreshold() {
         return protocol.getFullLinkTraceSlowQueryThreshold();
+    }
+
+    @Override
+    public void setRemarksReporting(boolean remarksReporting) {
+        this.remarksReporting = remarksReporting;
+    }
+
+    @Override
+    public boolean getRemarksReporting() {
+        return this.remarksReporting;
     }
 
 }

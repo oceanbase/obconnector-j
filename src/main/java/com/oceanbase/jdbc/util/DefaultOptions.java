@@ -1099,7 +1099,14 @@ public enum DefaultOptions {
             Boolean.TRUE,
             "2.4.8",
             "When oracle mode binds a parameter through text protocol, enclose the parameter values in parentheses.",
-            false);
+            false),
+    REMARKS_REPORTING(
+            "remarksReporting",
+            Boolean.FALSE,
+            "2.4.9",
+            "add options for getTable interface query associated with two views all_objects and all_tab_comments",
+            false
+    );
 
   private final String optionName;
   private final String description;

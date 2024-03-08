@@ -231,6 +231,7 @@ public class Options implements Cloneable {
     public int     logTraceTime;
     public boolean oracleChangeReadOnlyToRepeatableRead;
     public boolean encloseParamInParentheses = true; // todo: default false may be better
+    public boolean remarksReporting = false;
     public boolean useCompatibleMetadata;
 
     @Override
