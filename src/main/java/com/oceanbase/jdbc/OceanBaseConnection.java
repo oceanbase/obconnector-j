@@ -236,7 +236,9 @@ public class OceanBaseConnection implements ConnectionImpl {
     private static ReentrantLock     threadLock                          = new ReentrantLock();
     private static Thread            lbThread                            = null;
     private boolean                  remarksReporting                    = false;
-    protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+    protected static final Logger    lockLogger                          = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+
+    private OceanBaseConnection      lobConn;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -2668,6 +2670,20 @@ public class OceanBaseConnection implements ConnectionImpl {
     @Override
     public boolean getRemarksReporting() {
         return this.remarksReporting;
+    }
+    public OceanBaseConnection getLobConn() throws SQLException {
+        if (lobConn == null || lobConn.isClosed()) {
+            Protocol protocol = this.getProtocol();
+            UrlParser urlParser = protocol.getUrlParser();
+            urlParser.getOptions().pool = false;
+            lobConn = OceanBaseConnection.newConnection(urlParser, null);
+            this.setLobConn(lobConn);
+        }
+        return lobConn;
+    }
+
+    public void setLobConn(OceanBaseConnection lobConn) {
+        this.lobConn = lobConn;
     }
 
 }

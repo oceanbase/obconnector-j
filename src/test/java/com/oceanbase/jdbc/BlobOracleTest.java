@@ -50,8 +50,7 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -62,7 +61,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 public class BlobOracleTest extends BaseOracleTest {
 
@@ -1433,6 +1432,34 @@ public class BlobOracleTest extends BaseOracleTest {
         java.sql.Blob b1 = rs.getBlob("v1");
         System.out.println(b1.length());
         System.out.println(b1.getBytes(1, 5).length);
+    }
+
+    @Test
+    public void testStreamResultForAone54492994() throws SQLException, IOException {
+        Connection conn = sharedConnection;
+        createTable("blobTest1", "c1 blob");
+        String sql = "insert into  blobTest1 values (?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        int size = 1024 * 5;
+        byte[] bytes = new byte[size];
+        ps.setBytes(1, bytes);
+        assertEquals(1, ps.executeUpdate());
+
+        conn = setConnection("&extendOracleResultSetClass=true");
+        PreparedStatement preparedStatement = conn.prepareStatement("select c1 from blobTest1 ");
+        preparedStatement.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = preparedStatement.executeQuery();
+        assertTrue(rs.next());
+        java.sql.Blob blob = rs.getBlob(1);
+        InputStream stream = blob.getBinaryStream();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int n ;
+        while (-1 != (n = stream.read(buffer))) {
+            output.write(buffer, 0, n);
+        }
+        byte[] res = output.toByteArray();
+        assertEquals(size, res.length);
     }
 
 }

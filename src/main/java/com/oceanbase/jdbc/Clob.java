@@ -50,6 +50,9 @@
  */
 package com.oceanbase.jdbc;
 
+import com.oceanbase.jdbc.internal.com.read.Buffer;
+import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -57,9 +60,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.sql.Types;
-
-import com.oceanbase.jdbc.internal.com.read.Buffer;
-import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class Clob extends Lob implements java.sql.Clob {
 
@@ -641,7 +641,7 @@ public class Clob extends Lob implements java.sql.Clob {
         }
 
         int offset = 1;
-        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+        try (java.sql.CallableStatement cstmt = this.locator.connection.getLobConn().prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
             ((OceanBaseStatement) cstmt).setInternal();
             while (true) {
                 cstmt.setClob(1, this);

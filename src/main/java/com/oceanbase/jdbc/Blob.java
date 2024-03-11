@@ -469,7 +469,7 @@ public class Blob extends Lob implements java.sql.Blob {
         clearData();
 
         int offset = 1;
-        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
+        try (java.sql.CallableStatement cstmt = this.locator.connection.getLobConn().prepareCall("{call DBMS_LOB.READ( ?, ?, ?, ?)}")) {
             ((OceanBaseStatement) cstmt).setInternal();
             while (true) {
                 cstmt.setBlob(1, this);

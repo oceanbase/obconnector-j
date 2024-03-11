@@ -50,15 +50,15 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class ClobOracleTest extends BaseOracleTest {
 
@@ -1035,5 +1035,40 @@ public class ClobOracleTest extends BaseOracleTest {
         Assert.assertEquals(2000, clob1.length());
         writer.close();
         ps.close();
+    }
+
+    @Test
+    public void testStreamResultForAone54492994() throws Exception, IOException {
+        Connection conn = sharedConnection;
+        createTable("clobTest1", "c1 clob");
+
+        String sql = "insert into  clobTest1 values (?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        int clobSize = 1024 * 5;
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < clobSize; i++) {
+            stringBuilder.append('a');
+        }
+        String str = stringBuilder.toString();
+        for (int i = 0; i < 5; i++) {
+            ps.setClob(1, new StringReader(str));
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        conn = setConnection("&extendOracleResultSetClass=true");
+        PreparedStatement preparedStatement = conn.prepareStatement("select c1 from clobTest1 ");
+        preparedStatement.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            java.sql.Clob clob = rs.getClob(1);
+            Reader reader = clob.getCharacterStream();
+            StringBuffer sb = new StringBuffer();
+            char[] chars = new char[1024];
+            while (reader.read(chars) != -1) {
+                sb.append(chars);
+            }
+            assertEquals(clobSize, sb.length());
+        }
     }
 }
