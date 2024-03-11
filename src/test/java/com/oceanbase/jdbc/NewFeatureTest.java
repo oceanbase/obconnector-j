@@ -375,29 +375,38 @@ public class NewFeatureTest extends BaseTest {
 
     @Test
     public void testLoadDataLocalFile() throws SQLException, IOException {
-        File file = new File("./validateInfile_data.txt");
-        if (!file.exists()){
-            assertTrue(file.createNewFile());
+        File file = null;
+        try {
+            file = new File("./validateInfile_data.txt");
+            file.deleteOnExit();
+            if (!file.exists()){
+                assertTrue(file.createNewFile());
+            }
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))){
+                bw.write("1,John,25,123 Main St");
+                bw.newLine();
+                bw.write("2,Jane,30,456 Elm St");
+                bw.newLine();
+                bw.write("3,Michael,35,789 Oak St");
+                bw.newLine();
+            }
+            createTable("my_table", "id INT, name VARCHAR(50), age INT, salary DECIMAL(10,2)");
+            doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=false"));
+            doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=true"));
+        } finally {
+            if (file != null && file.exists()) {
+                file.delete();
+            }
         }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))){
-            bw.write("1,John,25,123 Main St");
-            bw.newLine();
-            bw.write("2,Jane,30,456 Elm St");
-            bw.newLine();
-            bw.write("3,Michael,35,789 Oak St");
-            bw.newLine();
-        }
-        createTable("my_table", "id INT, name VARCHAR(50), age INT, salary DECIMAL(10,2)");
-        doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=false"));
-        doTestLoadDataLocalFile(setConnection("&allowLoadLocalInfile=true&useOceanBaseProtocolV20=true"));
-        file.delete();
+
     }
+
     public void doTestLoadDataLocalFile(Connection conn) throws SQLException {
         String tableName = "my_table";
         Statement stmt = conn.createStatement();
         stmt.executeUpdate("delete from " + tableName);
-        stmt.execute("LOAD DATA LOCAL INFILE './validateInfile_data.txt' INTO TABLE " + tableName
-                + " FIELDS TERMINATED BY ','" + " LINES TERMINATED BY '\\n'");
+        stmt.execute("LOAD DATA /*+parallel(8)*/ LOCAL INFILE './validateInfile_data.txt'/* This is a comment */ INTO TABLE /* This is a comment */" + tableName
+                + " FIELDS /* This is a comment */ TERMINATED BY ','" + " LINES TERMINATED BY '\\n'");
         Assert.assertEquals("Records: 3  Deleted: 0  Skipped: 0  Warnings: 0",
                 ((OceanBaseStatement) stmt).getServerInfo());
         ResultSet rs = stmt.executeQuery("select * from " + tableName);
@@ -407,6 +416,20 @@ public class NewFeatureTest extends BaseTest {
         Assert.assertEquals("2 Jane 30",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
         assertTrue(rs.next());
         Assert.assertEquals("3 Michael 35",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+
+        stmt.executeUpdate("delete from " + tableName);
+        PreparedStatement pstmt = conn.prepareStatement("LOAD DATA /*+parallel(8)*/ LOCAL INFILE ?/* This is a comment */ INTO TABLE /* This is a comment */" + tableName
+                + " FIELDS /* This is a comment */ TERMINATED BY ','" + " LINES TERMINATED BY '\\n'");
+        pstmt.setString(1,"./validateInfile_data.txt");
+        pstmt.execute();
+        rs = stmt.executeQuery("select * from " + tableName);
+        assertTrue(rs.next());
+        Assert.assertEquals("1 John 25",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+        assertTrue(rs.next());
+        Assert.assertEquals("2 Jane 30",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+        assertTrue(rs.next());
+        Assert.assertEquals("3 Michael 35",rs.getString("id") + " " + rs.getString("name") + " " + rs.getInt("age"));
+
         stmt.close();
         conn.close();
     }
