@@ -860,7 +860,7 @@ public class Utils {
     int lastParamPos = 0;
     int commentStart = 0;
     boolean slashEnd = false;
-    int lastCommentEndStarPos = 0;
+    int lastCommentEndStarPos = -2;
     int lastCommentBeginSlashPos = 0;
     boolean semicolonEnd = false;
     KeyState keyState = KeyState.Normal;

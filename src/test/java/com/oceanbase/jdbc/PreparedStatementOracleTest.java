@@ -48,6 +48,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import java.util.concurrent.CountDownLatch;
 
+import com.oceanbase.jdbc.internal.util.Utils;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -426,7 +427,7 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void testParamentCountOfSql() {
+    public void testParamentCountOfSqlForAone54180535() {
         try {
             Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
             String sql = "SELECT /*/*111 */*/* */ from (select ? from dual)";
@@ -438,6 +439,9 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        String sql = "/*t1,t2,t3*/ -- t1\n-- t2\n-- t3\n/*t1, t2, t3*/ select 1 from dual";
+        Assert.assertEquals("  select 1 from dual", Utils.trimSQLString(sql, false, false));
     }
     
     @Test
