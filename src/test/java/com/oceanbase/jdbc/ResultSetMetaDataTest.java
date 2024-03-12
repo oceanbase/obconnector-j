@@ -302,4 +302,23 @@ public class ResultSetMetaDataTest extends BaseTest {
       assertEquals(-4,metaData.getColumnType(3));
       assertEquals(-4,metaData.getColumnType(4));
   }
+
+    @Test
+    public void testLongTextForAone53146546() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        createTable("test_column_display_size","c1 TINYTEXT, c2 TEXT, c3 MEDIUMTEXT, c4 LongTEXT");
+        ResultSet rs = stmt.executeQuery("select * from test_column_display_size");
+        ResultSetMetaData metaData = rs.getMetaData();
+        // for utf8mb4
+        assertEquals(63,metaData.getColumnDisplaySize(1));
+        assertEquals(16383,metaData.getColumnDisplaySize(2));
+        assertEquals(4194303,metaData.getColumnDisplaySize(3));
+        assertEquals(536870911,metaData.getColumnDisplaySize(4));
+
+        assertEquals(-1,metaData.getColumnType(1));
+        assertEquals(-1,metaData.getColumnType(2));
+        assertEquals(-1,metaData.getColumnType(3));
+        assertEquals(-1,metaData.getColumnType(4));
+
+    }
 }

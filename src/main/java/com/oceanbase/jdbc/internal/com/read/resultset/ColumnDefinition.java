@@ -437,7 +437,7 @@ public class ColumnDefinition {
                     maxWidth = 1;
                 }
 
-                return (int) length / maxWidth;
+                return length > Integer.MAX_VALUE ? Integer.MAX_VALUE / maxWidth : (int) length / maxWidth;
             }
             if (vtype == Types.LONGVARBINARY && length == (1L << 32) -1) {
                 return Integer.MAX_VALUE;
