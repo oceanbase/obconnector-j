@@ -63,6 +63,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -764,10 +765,13 @@ public class TextRowProtocol extends RowProtocol {
                             getCurrentEncoding(columnInfo.getColumnType())), cal, columnInfo);
                     }
                     try {
+                        String s = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+                        if (getProtocol().isOracleMode()) {
+                            return Date.valueOf(s.trim());
+                        }
                         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                         sdf.setTimeZone(timeZone);
-                        java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                            getCurrentEncoding(columnInfo.getColumnType())));
+                        java.util.Date utilDate = sdf.parse(s);
                         return new Date(utilDate.getTime());
 
                     } catch (ParseException e) {
@@ -778,7 +782,9 @@ public class TextRowProtocol extends RowProtocol {
             }
         } catch (SQLException sqlException) {
             throw sqlException; // don't re-wrap
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            throw new SQLException("bad format, " + e.getMessage());
+        }catch (Exception e) {
             SQLException sqlException = new SQLException("Bad format for DATE "
                                                          + new String(buf, pos, length,
                                                              getCurrentEncoding(columnInfo
@@ -840,14 +846,17 @@ public class TextRowProtocol extends RowProtocol {
                 throw new SQLException("Cannot read Time using a Types.DATE field");
             } else {
                 String raw = new String(buf, pos, length,
-                    getCurrentEncoding(columnInfo.getColumnType()));
+                    getCurrentEncoding(columnInfo.getColumnType())).trim();
                 if (!getProtocol().isOracleMode()) {
                     return getTimeFromString(raw, cal);
                 }
+                Pattern pattern = Pattern.compile(
+                        "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d+$");
+
                 if (!options.useLegacyDatetimeCode
-                    && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
+                        && !pattern.matcher(raw).find()) {
                     throw new SQLException("Time format \"" + raw
-                                           + "\" incorrect, must be HH:mm:ss");
+                            + "\" incorrect, must be HH:mm:ss");
                 }
                 boolean negate = raw.startsWith("-");
                 if (negate) {
@@ -864,19 +873,21 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     calendar.clear();
                     calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes,
-                        seconds);
+                            seconds);
                     int nanoseconds = extractNanos(raw);
                     calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
-
                     return new Time(calendar.getTimeInMillis());
                 } else {
                     throw new SQLException(
-                        raw + " cannot be parse as time. time must have \"99:99:99\" format");
+                            raw + " cannot be parse as time. time must have \"99:99:99\" format");
                 }
             }
         } catch (SQLException e) {
             throw e; // don't re-wrap
-        } catch (NumberFormatException e) {
+        } catch (IllegalArgumentException e) {
+            if (getProtocol().isOracleMode()) {
+                throw new SQLException("Time format incorrect, must be HH:mm:ss");
+            }
             SQLException sqlException = new SQLException("Cannot convert value "
                                                          + new String(buf, pos, length,
                                                              getCurrentEncoding(columnInfo
@@ -907,15 +918,24 @@ public class TextRowProtocol extends RowProtocol {
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP_TZ:
                     TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
-                        timeZone);
+                            timeZone);
                     timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
                     return timestamp.timestampValue(cal);
                 case TIMESTAMP_LTZ:
                     TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
-                        userCalendar, timeZone);
+                            userCalendar, timeZone);
                     timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
-                        oracleTimestampLTZ.getBytes());
+                            oracleTimestampLTZ.getBytes());
                     return timestamp.timestampValue(cal);
+                case VARCHAR2:
+                case NVARCHAR2:
+                case NCHAR:
+                case STRING:
+                    try {
+                        return Timestamp.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    } catch (Exception e) {
+                        throw new SQLException("bad format, " + e.getMessage());
+                    }
             }
         }
         // other time type use system timezone

@@ -1042,6 +1042,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case VARCHAR2:
                 case NVARCHAR2:
                 case VARSTRING:
+                case NCHAR:
                     String rawValue = new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                     if (!getProtocol().isOracleMode()) {
@@ -1053,13 +1054,14 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
 
                     try {
-                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                        sdf.setTimeZone(timeZone);
-                        java.util.Date utilDate = sdf.parse(new String(buf, pos, length,
-                            getCurrentEncoding(columnInfo.getColumnType())));
-                        return new Date(utilDate.getTime());
-
-                    } catch (ParseException e) {
+                        String regex = "^\\d{4}-\\d{2}-\\d{2}";
+                        if (!rawValue.matches(regex + ".*")) {
+                            throw new SQLException("bad format");
+                        }
+                        return Date.valueOf(rawValue.trim());
+                    } catch (IllegalArgumentException illegalArgumentException) {
+                        throw new SQLException("bad format, " + illegalArgumentException.getMessage());
+                    } catch (Exception e) {
                         throw ExceptionFactory.INSTANCE.create("Could not get object as Date : "
                                                                + e.getMessage(), "S1009", e);
                     }
@@ -1110,6 +1112,8 @@ public class BinaryRowProtocol extends RowProtocol {
                     Date dt = new Date(calendar.getTimeInMillis());
                     return dt;
             }
+        } catch (IllegalArgumentException illegalArgumentException) {
+            throw new SQLException("bad format, " + illegalArgumentException.getMessage());
         } catch (SQLException sqlException) {
             throw sqlException; // don't re-wrap
         } catch (Exception e) {
@@ -1170,6 +1174,20 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                 }
                 throw new SQLException("Cannot read Time using a Types.DATE field");
+            case STRING:
+            case NCHAR:
+            case VARCHAR2:
+            case NVARCHAR2:
+                if (getProtocol().isOracleMode()) {
+                    String raw = new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType()));
+                    try {
+                        return Time.valueOf(raw);
+                    } catch (IllegalArgumentException e) {
+                        throw new SQLException("Time format \"" + raw
+                                + "\" incorrect, must be HH:mm:ss");
+                    }
+                }
             default:
                 ColumnType type = columnInfo.getColumnType();
                 if (!getProtocol().isOracleMode()
@@ -1249,6 +1267,15 @@ public class BinaryRowProtocol extends RowProtocol {
                         Calendar calWithoutTZ = getCalendarInstance(userCalendar);
                         return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
                             .timestampValue(calWithoutTZ);
+                    case VARCHAR2:
+                    case NVARCHAR2:
+                    case NCHAR:
+                    case STRING:
+                        try {
+                            return Timestamp.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())).trim());
+                        } catch (Exception e) {
+                            throw new SQLException("bad format, " + e.getMessage());
+                        }
                 }
             }
 

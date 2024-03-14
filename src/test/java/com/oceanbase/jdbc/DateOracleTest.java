@@ -214,7 +214,7 @@ public class DateOracleTest extends BaseOracleTest {
                 "insert into timestampzerotest values ('" + timestampZero + "', '" + timestampZero
                         + "', '" + dateZero + "')");
         } catch (Exception e) {
-            Assert.assertTrue("", e.getMessage().contains("day of month must be between 1 and last day of month"));
+            Assert.assertTrue("", e.getMessage().contains("year must be between"));
         }
 
     }
@@ -244,7 +244,8 @@ public class DateOracleTest extends BaseOracleTest {
         cal3.set(Calendar.DAY_OF_YEAR, 1);
 
         Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
-        PreparedStatement preparedStatement1 = sharedConnection
+        Connection conn = setConnection("&compatibleOjdbcVersion=8");
+        PreparedStatement preparedStatement1 = conn
             .prepareStatement("/*CLIENT*/ insert into timestampAsDate values (?, ?, ?)");
         preparedStatement1.setTimestamp(1, currentTimeStamp);
         preparedStatement1.setTimestamp(2, currentTimeStamp);
@@ -256,11 +257,11 @@ public class DateOracleTest extends BaseOracleTest {
 
         Date dateWithoutTime = new Date(cal.getTimeInMillis());
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery(
+        ResultSet rs = conn.createStatement().executeQuery(
             "select * from timestampAsDate");
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime);
 
-        PreparedStatement pstmt = sharedConnection
+        PreparedStatement pstmt = conn
             .prepareStatement("select * from timestampAsDate where 1 = ?");
         pstmt.setInt(1, 1);
         pstmt.addBatch();
@@ -428,18 +429,19 @@ public class DateOracleTest extends BaseOracleTest {
     @Test
     public void testTimeTypeToStringPs() {
         try {
-            ResultSet rs = sharedConnection.prepareStatement(
+            Connection conn = setConnection("&compatibleOjdbcVersion=8");
+            ResultSet rs = conn.prepareStatement(
                 "select to_date('2022-02-02 15:30:20','yyyy-MM-DD hh24:MI:SS') from dual")
                 .executeQuery();
             Assert.assertTrue(rs.next());
             Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));//2022-02-02 15:30:20.0
-            rs = sharedConnection
+            rs = conn
                 .prepareStatement(
                     "select to_timestamp('2022-02-02 15:30:20.000000','yyyy-MM-DD hh24:MI:SS.FF') from dual")
                 .executeQuery();
             Assert.assertTrue(rs.next());
             Assert.assertEquals("2022-02-02 15:30:20", rs.getString(1));
-            rs = sharedConnection
+            rs = conn
                 .prepareStatement(
                     "select to_timestamp('2022-02-02 15:30:20.123000','yyyy-MM-DD hh24:MI:SS.FF') from dual")
                 .executeQuery();
@@ -452,7 +454,8 @@ public class DateOracleTest extends BaseOracleTest {
 
     @Test
     public void testTimestampParamOnDateIndex() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
+        Connection conn = setConnection("&compatibleOjdbcVersion=8");
+        Statement stmt = conn.createStatement();
         createTable("test_date_index","v0 date");
         Date d = new Date(System.currentTimeMillis());
         Timestamp t = new Timestamp(d.getTime());
@@ -461,25 +464,33 @@ public class DateOracleTest extends BaseOracleTest {
             stmt.execute("create index test_timestamp_to_date_index on test_date_index(v0)");
         } catch (SQLException e) {
         }
-        PreparedStatement pstmt = sharedConnection.prepareStatement("insert into test_date_index values (?)");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_date_index values (?)");
         pstmt.setDate(1,d);
         pstmt.execute();
-        pstmt = sharedConnection.prepareStatement("select * from test_date_index where v0 = ?");
+        pstmt = conn.prepareStatement("select * from test_date_index where v0 = ?");
         pstmt.setTimestamp(1,t);
         ResultSet rs = pstmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(t,rs.getTimestamp(1));
         assertEquals(d.toString(),rs.getDate(1).toString());
-        pstmt = sharedConnection.prepareStatement("explain select * from test_date_index where v0 = ?");
+        pstmt = conn.prepareStatement("explain select * from test_date_index where v0 = ?");
         pstmt.setTimestamp(1,t);
         rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertTrue(rs.getString("Query Plan").contains("TEST_DATE_INDEX(TEST_TIMESTAMP_TO_DATE_INDEX)"));
+        boolean hasIndex = false;
+        while (rs.next()) {
+            if (rs.getString("Query Plan").contains("TEST_DATE_INDEX(TEST_TIMESTAMP_TO_DATE_INDEX)")) {
+                hasIndex = true;
+                break;
+            }
+        }
+        assertTrue(hasIndex);
     }
 
     @Test
     public void testTimestampParamCaseToDateParamOnTimestampIndex() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
+        Connection conn = setConnection("&compatibleOjdbcVersion=8");
+        Statement stmt = conn.createStatement();
+//        Statement stmt = sharedConnection.createStatement();
         createTable("test_timestamp_index", "v0 timestamp");
         Date d = new Date(System.currentTimeMillis());
         Timestamp t = new Timestamp(d.getTime());
@@ -488,20 +499,26 @@ public class DateOracleTest extends BaseOracleTest {
             stmt.execute("create index test_timestamp_on_timestamp_index on test_timestamp_index(v0)");
         } catch (SQLException e) {
         }
-        PreparedStatement pstmt = sharedConnection.prepareStatement("insert into test_timestamp_index values (?)");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_timestamp_index values (?)");
         pstmt.setDate(1,d);
         pstmt.execute();
-        pstmt = sharedConnection.prepareStatement("select * from test_timestamp_index where v0 = ?");
+        pstmt = conn.prepareStatement("select * from test_timestamp_index where v0 = ?");
         pstmt.setTimestamp(1,t);
         ResultSet rs = pstmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(t,rs.getTimestamp(1));
         assertEquals(d.toString(),rs.getDate(1).toString());
-        pstmt = sharedConnection.prepareStatement("explain select * from test_timestamp_index where v0 = ?");
+        pstmt = conn.prepareStatement("explain select * from test_timestamp_index where v0 = ?");
         pstmt.setTimestamp(1,t);
         rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertTrue(rs.getString("Query Plan").contains("TEST_TIMESTAMP_INDEX(TEST_TIMESTAMP_ON_TIMESTAMP_INDEX)"));
+        boolean hasIndex = false;
+        while (rs.next()) {
+            if (rs.getString("Query Plan").contains("TEST_TIMESTAMP_INDEX(TEST_TIMESTAMP_ON_TIMESTAMP_INDEX)")) {
+                hasIndex = true;
+                break;
+            }
+        }
+        assertTrue(hasIndex);
     }
 
     @Test

@@ -608,4 +608,119 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertEquals("0.3", rs.getString(3));
     }
 
+    @Test
+    public void testFetTimeFromCharacter() throws SQLException {
+        createTable("test_get_time_from_character","v0 char(25), v1 nchar(25), v2 varchar2(50), v3 nvarchar2(50)");
+        Connection conn = setConnection("&compatibleOjdbcVersion=6");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into test_get_time_from_character values ('2022-12-12 10:50:30.6','2022-12-12 10:50:30.6','2022-12-12 10:50:30.6','2022-12-12 10:50:30.6')");
+        stmt.execute("insert into test_get_time_from_character values ('2022-12-12','2022-12-12','2022-12-12','2022-12-12')");
+        ResultSet rs = stmt.executeQuery("select * from test_get_time_from_character");
+        Timestamp timestamp = Timestamp.valueOf("2022-12-12 10:50:30.6");
+        String timestampStr = "2022-12-12 10:50:30.6    ";
+        String timeStr = "2022-12-12               ";
+        assertTrue(rs.next());
+        for (int i = 1; i <= 4; i++) {
+            //char or varchar2, nchar or nvarchar2
+            if (i < 3) {
+                //char or nchar
+                assertEquals(timestampStr, rs.getString(i));
+            } else {
+                //varchar2 or nvarchar2
+                assertEquals(timestampStr.trim(), rs.getString(i));
+            }
+            assertEquals(timestamp,rs.getTimestamp(i));
+            try {
+                rs.getDate(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e.getMessage().startsWith("bad format"));
+            }
+            try {
+                rs.getTime(i);
+                fail();
+            } catch (Exception e) {
+//                assertEquals("Time format incorrect, must be HH:mm:ss", e.getMessage());
+                assertTrue(e.getMessage().contains("incorrect, must be HH:mm:ss"));
+            }
+        }
+        assertTrue(rs.next());
+        for (int i = 1; i <= 4; i++) {
+            //char or varchar2, nchar or nvarchar2
+            if (i < 3) {
+                //char or nchar
+                assertEquals(timeStr, rs.getString(i));
+            } else {
+                //varchar2 or nvarchar2
+                assertEquals(timeStr.trim(), rs.getString(i));
+            }
+            try {
+                rs.getTimestamp(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e.getMessage().startsWith("bad format"));
+            }
+            rs.getDate(i);
+            try {
+                rs.getTime(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e.getMessage().startsWith("Time format"));
+            }
+        }
+
+        conn = setConnection("&compatibleOjdbcVersion=8");
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery("select * from test_get_time_from_character");
+        assertTrue(rs.next());
+        for (int i = 1; i <= 4; i++) {
+            //char or varchar2, nchar or nvarchar2
+            if (i < 3) {
+                //char or nchar
+                assertEquals(timestampStr, rs.getString(i));
+            } else {
+                //varchar2 or nvarchar2
+                assertEquals(timestampStr.trim(), rs.getString(i));
+            }
+            assertEquals(timestamp,rs.getTimestamp(i));
+            try {
+                rs.getDate(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e instanceof SQLException);
+            }
+            try {
+                rs.getTime(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e instanceof SQLException);
+            }
+        }
+        assertTrue(rs.next());
+        for (int i = 1; i <= 4; i++) {
+            //char or varchar2, nchar or nvarchar2
+            if (i < 3) {
+                //char or nchar
+                assertEquals(timeStr, rs.getString(i));
+            } else {
+                //varchar2 or nvarchar2
+                assertEquals(timeStr.trim(), rs.getString(i));
+            }
+            try {
+                rs.getTimestamp(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e instanceof SQLException);
+            }
+            rs.getDate(i);
+            try {
+                rs.getTime(i);
+                fail();
+            } catch (Exception e) {
+                assertTrue(e instanceof SQLException);
+            }
+        }
+    }
+
+
 }
