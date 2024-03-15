@@ -864,7 +864,7 @@ public class TextRowProtocol extends RowProtocol {
                     return getTimeFromString(raw, cal);
                 }
                 Pattern pattern = Pattern.compile(
-                        "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d+$");
+                        "^(?:(\\d{4}-\\d{2}-\\d{2})\\s)?\\d{2}:\\d{2}:\\d{2}$");
 
                 if (!options.useLegacyDatetimeCode
                         && !pattern.matcher(raw).find()) {

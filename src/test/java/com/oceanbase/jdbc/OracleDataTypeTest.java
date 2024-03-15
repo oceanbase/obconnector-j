@@ -615,6 +615,8 @@ public class OracleDataTypeTest extends BaseOracleTest {
         Statement stmt = conn.createStatement();
         stmt.execute("insert into test_get_time_from_character values ('2022-12-12 10:50:30.6','2022-12-12 10:50:30.6','2022-12-12 10:50:30.6','2022-12-12 10:50:30.6')");
         stmt.execute("insert into test_get_time_from_character values ('2022-12-12','2022-12-12','2022-12-12','2022-12-12')");
+        stmt.execute("insert into test_get_time_from_character values ('10:50:30','10:50:30','10:50:30','10:50:30')");
+
         ResultSet rs = stmt.executeQuery("select * from test_get_time_from_character");
         Timestamp timestamp = Timestamp.valueOf("2022-12-12 10:50:30.6");
         String timestampStr = "2022-12-12 10:50:30.6    ";
@@ -668,6 +670,9 @@ public class OracleDataTypeTest extends BaseOracleTest {
                 assertTrue(e.getMessage().startsWith("Time format"));
             }
         }
+        assertTrue(rs.next());
+        assertEquals(Time.valueOf("10:50:30"),rs.getTime(1));
+        assertEquals(Time.valueOf("10:50:30"),rs.getTime(2));
 
         conn = setConnection("&compatibleOjdbcVersion=8");
         stmt = conn.createStatement();
@@ -720,6 +725,9 @@ public class OracleDataTypeTest extends BaseOracleTest {
                 assertTrue(e instanceof SQLException);
             }
         }
+        assertTrue(rs.next());
+        assertEquals(Time.valueOf("10:50:30"),rs.getTime(1));
+        assertEquals(Time.valueOf("10:50:30"),rs.getTime(2));
     }
 
 

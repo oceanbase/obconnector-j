@@ -1182,7 +1182,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     String raw = new String(buf, pos, length,
                             getCurrentEncoding(columnInfo.getColumnType()));
                     try {
-                        return Time.valueOf(raw);
+                        return Time.valueOf(raw.trim());
                     } catch (IllegalArgumentException e) {
                         throw new SQLException("Time format \"" + raw
                                 + "\" incorrect, must be HH:mm:ss");
