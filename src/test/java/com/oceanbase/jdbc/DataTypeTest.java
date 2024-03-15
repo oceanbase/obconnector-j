@@ -1363,9 +1363,8 @@ public class DataTypeTest extends BaseTest {
     }
 
     @Test
-    public void testYearGetString() throws Exception {
+    public void testYearGetStringAone53362080() throws Exception {
         Connection conn = sharedConnection;
-        Assume.assumeTrue(sharedUsePrepare());
         Statement statement = conn.createStatement();
         statement.execute("drop table if exists test_year");
         statement.execute("create table test_year (y year)");
@@ -1395,6 +1394,8 @@ public class DataTypeTest extends BaseTest {
         Assert.assertEquals("1979", rs1.getString(1));
         assertTrue(rs1.next());
         Assert.assertEquals("2000", rs1.getString(1));
+        conn.close();
+        rs1.close();
 
         conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=5");
         PreparedStatement ps2 = conn.prepareStatement("select y from test_year");
@@ -1413,6 +1414,8 @@ public class DataTypeTest extends BaseTest {
         Assert.assertEquals("1979-01-01", rs2.getString(1));
         assertTrue(rs2.next());
         Assert.assertEquals("2000-01-01", rs2.getString(1));
+        conn.close();
+        rs2.close();
 
         conn = setConnection("&yearIsDateType=false&compatibleMysqlVersion=8");
         PreparedStatement ps3 = conn.prepareStatement("select y from test_year");
@@ -1431,6 +1434,8 @@ public class DataTypeTest extends BaseTest {
         Assert.assertEquals("1979", rs3.getString(1));
         assertTrue(rs3.next());
         Assert.assertEquals("2000", rs3.getString(1));
+        conn.close();
+        rs3.close();
 
         conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=8");
         PreparedStatement ps4 = conn.prepareStatement("select y from test_year");
@@ -1449,6 +1454,7 @@ public class DataTypeTest extends BaseTest {
         Assert.assertEquals("1979-01-01", rs4.getString(1));
         assertTrue(rs4.next());
         Assert.assertEquals("2000-01-01", rs4.getString(1));
+        conn.close();
+        rs4.close();
     }
-
 }

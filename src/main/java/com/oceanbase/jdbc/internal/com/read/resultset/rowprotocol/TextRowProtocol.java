@@ -226,6 +226,11 @@ public class TextRowProtocol extends RowProtocol {
                 if (options.yearIsDateType) {
                     Date date1 = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (date1 == null) ? null : date1.toString();
+                } else if(options.compatibleMysqlVersion == 8){
+                    String tempYear = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+                    if ("0000".equals(tempYear)) {
+                        return "0";
+                    }
                 }
                 break;
             case TIMESTAMP:
@@ -752,6 +757,14 @@ public class TextRowProtocol extends RowProtocol {
                         if (year <= 69) {
                             year += 2000;
                         } else {
+                            year += 1900;
+                        }
+                    }
+                    if (this.options.compatibleMysqlVersion == 8) {
+                        if (year < 100) {
+                            if (year <= 69) {
+                                year += 100;
+                            }
                             year += 1900;
                         }
                     }
