@@ -236,7 +236,8 @@ public class OceanBaseConnection implements ConnectionImpl {
     private static ReentrantLock     threadLock                          = new ReentrantLock();
     private static Thread            lbThread                            = null;
     private boolean                  remarksReporting                    = false;
-    protected static final Logger    lockLogger                          = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+    protected static final Logger    lockLogger                          = LoggerFactory
+                                                                             .getLogger("JDBC-COST-LOGGER");
 
     private OceanBaseConnection      lobConn;
 
@@ -808,6 +809,13 @@ public class OceanBaseConnection implements ConnectionImpl {
                     try {
                         CallableStatement callableStatement = callableStatementCache.get(cacheKey);
                         if (callableStatement != null) {
+                            //reset cache resetSpecialParamIndex
+                            if (callableStatement instanceof CallableProcedureStatement) {
+                                ((CallableProcedureStatement) callableStatement).resetSpecialParamIndex = false;
+                                for (CallParameter param : ((CallableProcedureStatement) callableStatement).params) {
+                                    param.cleanCache();
+                                }
+                            }
                             // Clone to avoid side effect like having some open resultSet.
                             return ((CloneableCallableStatement) callableStatement).clone(this);
                         }
@@ -2671,6 +2679,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     public boolean getRemarksReporting() {
         return this.remarksReporting;
     }
+
     public OceanBaseConnection getLobConn() throws SQLException {
         if (lobConn == null || lobConn.isClosed()) {
             Protocol protocol = this.getProtocol();

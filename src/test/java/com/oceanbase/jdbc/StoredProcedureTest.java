@@ -1565,4 +1565,19 @@ public class StoredProcedureTest extends BaseTest {
         Assert.assertEquals(20, callableStatement.getInt(1));
     }
 
+    @Test
+    public void testOutParamMysql() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        createProcedure("testOutParam", "(p1 int, OUT p2 INT) begin set p2 = p1; end");
+        //        stmt.execute("drop procedure IF EXISTS testOutParam");
+        //        stmt.execute("create  procedure testOutParam (p1 int, OUT p2 INT) begin set p2 = p1; end");
+
+        CallableStatement cs = sharedConnection.prepareCall("{call testOutParam(?, ?)}");
+        cs.setInt(1, 5);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.execute();
+        assertEquals(5, cs.getInt(2));
+    }
+
 }

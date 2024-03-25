@@ -65,24 +65,53 @@ import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    protected static final Pattern      PARAMETER_PATTERN = Pattern
-                                                              .compile(
-                                                                  "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\\`[\\w\\d\\S]+\\`)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                                                                  Pattern.CASE_INSENSITIVE);
+    protected static final Pattern      PARAMETER_PATTERN                                   = Pattern
+                                                                                                .compile(
+                                                                                                    "\\s*" // any empty character
+                                                                                                            + "(IN\\s+|OUT\\s+|INOUT\\s+)+" // IN ｜ OUT ｜ INOUT parameter types  must be matched at least once
+                                                                                                            + "(\\`[\\w\\d\\S]+\\`)\\s+" // param name
+                                                                                                            + "(UNSIGNED\\s+)?" // keyWords 'UNSIGNED'
+                                                                                                            + "(\\w+)\\s*" // data type matching, such as varchar
+                                                                                                            + "(\\([\\d,]+\\))?" // one or more numbers separated by commas within parentheses, such as (10,2)
+                                                                                                            + "\\s*(?=,?|\\))", // the separator comma between parameter lists, or the closing parenthesis of the parameter list
+                                                                                                    Pattern.CASE_INSENSITIVE);
+
+    protected static final Pattern      PARAMETER_PATTERN_MYSQL_MODE_NOT_INFORMATION_SCHEMA = Pattern
+                                                                                                .compile(
+                                                                                                    "\\s*" //zero or any blank charact
+                                                                                                            + "(IN\\s+|OUT\\s+|INOUT\\s+)?" // 'IN' || 'OUT' || 'INOUT' parameter modifiers
+                                                                                                            + "(\\`[\\w\\d\\S]+\\`)\\s+" //a String enclosed in reverse quotation marks ('XXXX')
+                                                                                                            + "(UNSIGNED\\s+)?" //keyWords 'UNSIGNED'
+                                                                                                            + "(\\w+)\\s*" //one or more word characters, usually the name of a data type such as INT or VARCHAR
+                                                                                                            + "(\\([\\d,]+\\))?" //one or more numbers separated by commas within parentheses, such as (10,2)
+                                                                                                            + "\\s*(?=,?|\\))", //The matching position is followed by zero or one comma ',' or a right parenthesis ')'
+                                                                                                    Pattern.CASE_INSENSITIVE);
+
     // the return characteristic such like ：NO SQL | READS SQL DATA | MODIFIES SQL DATA |DETERMINISTIC
-    protected static final Pattern      RETURN_PATTERN    = Pattern
-                                                              .compile(
-                                                                  "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+|\\w+\\s+|\\w+\\s+\\w+|\\w+\\s+\\w+\\s+\\w+)?\\s*",
-                                                                  Pattern.CASE_INSENSITIVE);
+    protected static final Pattern      RETURN_PATTERN                                      = Pattern
+                                                                                                .compile(
+                                                                                                    "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+|\\w+\\s+|\\w+\\s+\\w+|\\w+\\s+\\w+\\s+\\w+)?\\s*",
+                                                                                                    Pattern.CASE_INSENSITIVE);
     protected final OceanBaseConnection con;
+    protected boolean                   isOracleMode;
     protected final String              name;
-    protected List<CallParameter>       params;
+    // a set of parameters in the form of placeholders
+    protected List<CallParameter>       placeholderParams;
+    protected List<CallParameter>       allParams;
+    /**
+     * placeholderToParameterIndexMap[i] = j
+     * The assignment placeholderToParameterIndexMap[i] = j
+     * indicates that the (i+1)th placeholder in the SQL string corresponds to the (j+1)th parameter in the SQL command. For instance,
+     * in the SQL call call test_pro('a',?,10,?), placeholderToParameterIndexMap[0] = 1 means that the first placeholder ? is associated with the second parameter in the SQL call.
+     */
+    protected int[]                     placeholderToParameterIndexMap;
     protected String                    obOraclePackageName;
     protected String                    obOracleSchema;
     protected String                    database;
     protected boolean                   valid;
     protected boolean                   isFunction;
     protected String                    query;
+    protected SQLException              outputParamSetParamValueException;
 
     public String getProName() {
         return name;
@@ -102,11 +131,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
      */
     public CallableParameterMetaData(OceanBaseConnection con, String database, String name,
                                      boolean isFunction) {
-        this.params = null;
         this.con = con;
+        this.isOracleMode = con.getProtocol().isOracleMode();
         if (database != null) {
             String tmp = database.replace("`", "");
-            if (this.con.getProtocol().isOracleMode()) {
+            if (this.isOracleMode) {
                 if (tmp.equals(this.con.getProtocol().getDatabase())) {
                     this.database = tmp;
                     this.obOracleSchema = tmp;
@@ -167,7 +196,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (name.startsWith("\"") && name.endsWith("\"")) {
             this.name = name.replace("`", "").replace("\"", "");
         } else {
-            if (this.con.getProtocol().isOracleMode()) {
+            if (this.isOracleMode) {
                 this.name = name.replace("`", "").toUpperCase(Locale.ROOT);
             } else {
                 this.name = name;
@@ -194,11 +223,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
             return;
         }
         // Initialize params
-        params = new ArrayList<>();
+        allParams = new ArrayList<>();
         ColumnDefinition[] parameters = serverPrepareResult.getParameters();
         for (int i = 0; i < parameters.length ; i++) {
             CallParameter callParameter = new CallParameter();
-            params.add(callParameter);
+            allParams.add(callParameter);
         }
         valid = false;
     }
@@ -215,36 +244,44 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     void resetParams(String arguments, boolean isObFunction) throws SQLException {
-        List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>() ;
+        List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>();
         if (arguments != null) {
-            arguments = Utils.trimSQLString(arguments, false, true, false);  //arguments  remove comments
-            paramList = Utils.argumentsSplit(arguments, ",", "'\"",
-                "'\"");
+            arguments = Utils.trimSQLString(arguments, false, true, false); //arguments  remove comments
+            paramList = Utils.argumentsSplit(arguments, ",", "'\"", "'\"");
+        }
+        //check special parameters like "call test_p(a => ?)"
+        boolean haveSpecialParameters = false;
+        Pattern specialParametersPattern = Pattern.compile("\\w+\\s*=>\\s*\\?");
+        for (int i = 0; i < paramList.size(); i++) {
+            String parsedCallParameterName = paramList.get(i).getName();
+            if (specialParametersPattern.matcher(parsedCallParameterName).find()){
+                haveSpecialParameters = true;
+                paramList.set(i, new ParsedCallParameters(true, parsedCallParameterName.split("=")[0].trim()));
+            }
         }
         if (isObFunction) {
             paramList.add(0, new ParsedCallParameters(true, "?"));
         }
 
-        int parameterCount = params.size();
-        int[] placeholderToParameterIndexMap = new int[parameterCount];
-        for (int i = 0; i < parameterCount; i++) {
-            placeholderToParameterIndexMap[i] = -1; // not param
-        }
+        // expected: allParams.size() >= paramList.size()
+        placeholderToParameterIndexMap = new int[paramList.size()];
         int placeholderCount = 0;
         for (int i = 0; i < paramList.size(); i++) {
             if (paramList.get(i).isParam()) { // ? or name binding param
                 placeholderToParameterIndexMap[placeholderCount++] = i;
+            } else {
+                placeholderToParameterIndexMap[i] = -1; // not param
             }
         }
 
-        List<CallParameter> currentParams = new ArrayList<>(parameterCount);
-        // Traverse each parameter： if it has a placeholder in SQL, add to the container;
-        // otherwise, an exception will be thrown for an OUT parameter
-        for (int index = 0; index < parameterCount; index++) {
-            CallParameter parameter = params.get(index);
+        List<CallParameter> currentParams = new ArrayList<>(placeholderCount);
+
+        for (int index = 0; index < allParams.size(); index++) {
+            CallParameter parameter = allParams.get(index);
 
             boolean found = false;
-            for (int placeholderIndex = 0; placeholderIndex <= index; placeholderIndex++) {
+            int len = placeholderToParameterIndexMap.length;
+            for (int placeholderIndex = 0; placeholderIndex < len; placeholderIndex++) {
                 if (placeholderToParameterIndexMap[placeholderIndex] == index) {
                     found = true;
                     currentParams.add(parameter);
@@ -255,12 +292,44 @@ public class CallableParameterMetaData implements ParameterMetaData {
                     break;
                 }
             }
-
-            if (!found && !con.getProtocol().isOracleMode() && parameter.isOutput()) {
-                throw new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
+            if (!found && parameter.isOutput() && outputParamSetParamValueException == null) {
+                outputParamSetParamValueException =  new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
             }
         }
-        this.params = currentParams;
+        for (int i = allParams.size(); i < paramList.size(); i++) {
+            currentParams.add(new CallParameter());
+        }
+        this.placeholderParams = currentParams;
+
+        //reset param index when param have '=>?'
+        //基于用户sql参数顺序，调整placeholderParams中对应元素的相对顺序
+        if (haveSpecialParameters) {
+            placeholderParams = new ArrayList<>(currentParams.size());
+
+            for (int paramListIndex = 0; paramListIndex < paramList.size(); paramListIndex++) {
+                ParsedCallParameters parsedCallParameter = paramList.get(paramListIndex);
+                String parsedCallParameterName = parsedCallParameter.getName();
+
+                boolean found = false;
+                for (int currentParamIndex = 0; currentParamIndex < currentParams.size(); currentParamIndex++) {
+                    CallParameter parameter = currentParams.get(currentParamIndex);
+                    String parameterName = parameter.getName();
+                    //compatible observer 3.2.X paramName is ('paramName')
+                    if (parameterName.startsWith("`") && parameterName.endsWith("`") && !parsedCallParameterName.startsWith("`")) {
+                        parsedCallParameterName = "`" + parsedCallParameterName + "`";
+                    }
+
+                    if (parsedCallParameterName.equalsIgnoreCase(parameterName)) {
+                        placeholderParams.add(parameter);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && parsedCallParameter.isParam()) {
+                    throw new SQLException("param matching error");
+                }
+            }
+        }
     }
 
     private String[] queryMetaInfos(boolean isFunction) throws SQLException {
@@ -327,8 +396,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
-        params = new ArrayList<>();
-        int index = 1;
+        allParams = new ArrayList<>();
+        int index = 0;
         if(isFunction) {
             int returnIndex = paramList.indexOf("RETURNS");
             if(returnIndex != -1) {
@@ -337,11 +406,16 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 paramList = paramList.substring(0, returnIndex - 1);
                 CallParameter parameterRetrurn = parseFunctionReturnParam(returnString);
                 parameterRetrurn.setIndex(index++);
-                params.add(parameterRetrurn);
+                allParams.add(parameterRetrurn);
             }
         }
 
-        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        Matcher matcher2;
+        if (isFunction && !isOracleMode && !con.getProtocol().haveInformationSchemaParameters()) {
+            matcher2 = PARAMETER_PATTERN_MYSQL_MODE_NOT_INFORMATION_SCHEMA.matcher(paramList);
+        } else {
+            matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        }
         while (matcher2.find()) {
             CallParameter callParameter = new CallParameter();
 
@@ -385,7 +459,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 callParameter.setPrecision(Integer.parseInt(columnSize));
             }
 
-            params.add(callParameter);
+            allParams.add(callParameter);
             callParameter.setIndex(index++);
         }
     }
@@ -399,8 +473,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         if (name == null || name.equals("")) {
             return;
         }
-        if (!con.getProtocol().isOracleMode()
-            && con.getProtocol().haveInformationSchemaParameters()) {
+        if (!isOracleMode && con.getProtocol().haveInformationSchemaParameters()) {
             readMetadataUsingInformationSchema();
             return;
         }
@@ -450,7 +523,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         cps.setString(2, this.name.replace("`", "").toUpperCase(Locale.ROOT));
         ResultSet rs = cps.executeQuery();
 
-        params = new ArrayList<>();
+        allParams = new ArrayList<>();
         if (rs.next()) {
             String specificSchema = rs.getString("SPECIFIC_SCHEMA");
             int count = 0;
@@ -482,24 +555,28 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 callParameter.setPrecision(numericPrecision > 0 ? numericPrecision : characterMaxLength);
                 callParameter.setScale(rs.getInt("NUMERIC_SCALE"));
 
-                callParameter.setIndex(++count);
-                params.add(callParameter);
+                callParameter.setIndex(count++);
+                allParams.add(callParameter);
             } while (rs.next() && rs.getString("SPECIFIC_SCHEMA").equals(specificSchema));
         }
         cps.close();
         rs.close();
     }
 
+    /**
+     * When it is an Oracle function, return the number of placeholder type parameters in SQL
+     * @return placeholderParams.size
+     */
     public int getParameterCount() {
-        return params.size();
+        return placeholderParams != null ? placeholderParams.size() : 0;
     }
 
     public CallParameter getParam(int index) throws SQLException {
-        if (index < 1 || index > params.size()) {
+        if (index < 1 || index > placeholderParams.size()) {
             throw new SQLException("invalid parameter index " + index);
         }
         readMetadataFromDbIfRequired();
-        return params.get(index - 1);
+        return allParams.get(placeholderParams.get(index - 1).getIndex());
     }
 
     public int isNullable(int param) throws SQLException {
@@ -568,5 +645,16 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     public boolean isWrapperFor(Class<?> iface) {
         return false;
+    }
+
+    public boolean hasEmptyPlaceholderParams() {
+        return this.placeholderParams == null || this.placeholderParams.isEmpty();
+    }
+
+    public CallParameter getPlaceholderParam(int index) {
+        if (hasEmptyPlaceholderParams()) {
+            return null;
+        }
+        return placeholderParams.get(index);
     }
 }

@@ -664,4 +664,79 @@ public class CallStatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testProcedureCommentOnlySingleWord() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop procedure if exists testP");
+        stmt.execute("CREATE PROCEDURE testP(var1 INT,var2 int(11),BEGINVar int(11),BEGINBoolean boolean) COMMENT 'aaaaa'\nBEGIN\nSELECT var1;\nEND");
+        CallableStatement cstmt = sharedConnection.prepareCall("{call testP(?,?,?,?)}");
+        cstmt.setInt(1, 1);
+        cstmt.setInt(2, 1);
+        cstmt.setInt(3, 1);
+        cstmt.setBoolean(4, false);
+        assertTrue(cstmt.execute());
+    }
+
+    @Test
+    public void testMissingInPutParamForAone54886458() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        String name = "pl_sql";
+        String body = "(c1 varchar(20), c2 varchar(20)) begin select 1; end;";
+        stmt.execute("drop procedure IF EXISTS " + name);
+        stmt.execute("create procedure " + name + body);
+
+        CallableStatement callStmt = sharedConnection.prepareCall("call pl_sql(?, ?)");
+        callStmt.setString(1, "aaa?");
+        callStmt.setString(1, "'bbb'");
+        try {
+            callStmt.execute();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("missing param error", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testMissingOutPutParamAndMissingInPutParam() throws SQLException {
+        createProcedure("t_p", "(OUT c1 int, OUT c2 int, OUT c3 int, c4 int, c5 int)"
+                               + "BEGIN SELECT 1,2,3 INTO c1, c2, c3 FROM dual; END");
+        CallableStatement cs = sharedConnection.prepareCall("{call t_p(?, ?, ?, ?, ?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt(4, 4);
+        cs.setInt(5, 4);
+        cs.execute();
+        assertEquals(1, cs.getInt(1));
+        assertEquals(2, cs.getInt(2));
+        assertEquals(3, cs.getInt(3));
+
+        cs = sharedConnection.prepareCall("{call t_p(?, ?, ?, ?, ?)}");
+        try {
+            cs.execute();
+        } catch (SQLException e) {
+            assertEquals("missing param error", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testParameterType() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+
+        stmt.executeUpdate("DROP FUNCTION IF EXISTS testF1");
+        stmt.executeUpdate("CREATE FUNCTION testF1(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+        CallableStatement cStmt = conn.prepareCall("{? = CALL testF1(?,?,?)}");
+        ParameterMetaData parameterMetaData = cStmt.getParameterMetaData();
+        assertEquals(4, parameterMetaData.getParameterCount());
+        assertEquals(Types.INTEGER, parameterMetaData.getParameterType(1));
+        assertEquals("FLOAT", parameterMetaData.getParameterTypeName(2));
+        assertEquals(Types.BIGINT, parameterMetaData.getParameterType(3));
+        assertEquals(Types.INTEGER, parameterMetaData.getParameterType(4));
+
+        cStmt = conn.prepareCall("{? = CALL testF1(4,5,?)}");
+        parameterMetaData = cStmt.getParameterMetaData();
+        assertEquals(2, parameterMetaData.getParameterCount());
+        assertEquals(Types.INTEGER, parameterMetaData.getParameterType(1));
+        assertEquals(Types.INTEGER, parameterMetaData.getParameterType(2));
+    }
+
 }

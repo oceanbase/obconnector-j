@@ -195,4 +195,8 @@ class CallParameter {
     public int getInOutModifier() {
         return this.inOutModifier;
     }
+
+    public void cleanCache() {
+        this.isInput = false;
+    }
 }

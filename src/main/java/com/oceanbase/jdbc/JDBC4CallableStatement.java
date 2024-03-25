@@ -62,7 +62,7 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class JDBC4CallableStatement extends CallableFunctionStatement implements
                                                                      CloneableCallableStatement {
 
-    private SelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like

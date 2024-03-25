@@ -68,7 +68,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     protected CallableParameterMetaData parameterMetadata;
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     private CallParameter[]             params;
-    protected String                    arguments = null;
+    protected String                    arguments;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -571,6 +571,16 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);
+
+        if (protocol.isOracleMode()) {
+            CallParameter placeHolderParameter = parameterMetadata
+                .getPlaceholderParam(parameterIndex - 1);
+            if (null != placeHolderParameter) {
+                placeHolderParameter.setOutput(true);
+                placeHolderParameter.setOutputSqlType(sqlType);
+                placeHolderParameter.setScale(scale);
+            }
+        }
     }
 
     @Override

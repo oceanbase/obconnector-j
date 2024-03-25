@@ -43,15 +43,15 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class ProcedureTest extends BaseTest {
     public static String procName  = "testProc" + getRandomString(5);
@@ -184,25 +184,25 @@ public class ProcedureTest extends BaseTest {
     public void testProcedureDefaultValue() throws Exception {
         createProcedure(
             "testPro",
-            "(c1 int, out c2 int, c3 int, out c4 int, out c5 int, c6 int, c7 int) BEGIN SELECT 1 into c2; select 2 into c4; select 3 into c5; END");
+            "(c1 int, out c2 int, c3 int, out c4 int, out c5 int, c6 int, c7 int) BEGIN SELECT 2 into c2; select 4 into c4; select 5 into c5; END");
 
         CallableStatement cstmt = sharedConnection
-            .prepareCall("{CALL testPro(4, ?, 5, ?, ?, 6, 7)}");
+            .prepareCall("{CALL testPro(1, ?, 3, ?, ?, 6, 7)}");
         cstmt.registerOutParameter(2, Types.INTEGER);
         cstmt.registerOutParameter(3, Types.INTEGER);
         cstmt.execute();
-        Assert.assertEquals(1, cstmt.getInt(1));
-        Assert.assertEquals(2, cstmt.getInt(2));
-        Assert.assertEquals(3, cstmt.getInt(3));
+        Assert.assertEquals(2, cstmt.getInt(1));
+        Assert.assertEquals(4, cstmt.getInt(2));
+        Assert.assertEquals(5, cstmt.getInt(3));
 
         cstmt.clearParameters();
         cstmt.registerOutParameter(1, Types.INTEGER);
         cstmt.registerOutParameter(2, Types.INTEGER);
         cstmt.registerOutParameter(3, Types.INTEGER);
         cstmt.execute();
-        Assert.assertEquals(1, cstmt.getInt(1));
-        Assert.assertEquals(2, cstmt.getInt(2));
-        Assert.assertEquals(3, cstmt.getInt(3));
+        Assert.assertEquals(2, cstmt.getInt(1));
+        Assert.assertEquals(4, cstmt.getInt(2));
+        Assert.assertEquals(5, cstmt.getInt(3));
     }
 
     @Test
@@ -222,13 +222,14 @@ public class ProcedureTest extends BaseTest {
     public void testAone54427985() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
         createTable("t0", "c1 varchar(4000), c2 varchar(4000)");
-        createProcedure("addRow", "(inout p varchar(4000), in q varchar(4000)) begin insert into t0(c1, c2) values(p, q); end;");
+        createProcedure("addRow",
+            "(inout p varchar(4000), in q varchar(4000)) begin insert into t0(c1, c2) values(p, q); end;");
         Statement statement = conn.createStatement();
 
         int len = 2000;
         byte[] b = new byte[len];
         StringBuffer s = new StringBuffer();
-        for (int i = 0; i < len ; i++) {
+        for (int i = 0; i < len; i++) {
             s.append("a");
             b[i] = 'b';
         }
@@ -249,12 +250,126 @@ public class ProcedureTest extends BaseTest {
     public void testJsonTypeForAone50689660() throws Exception {
         Connection conn = sharedConnection;
         createTable("testJsonType", "id INT PRIMARY KEY, jsonDoc JSON");
-        createProcedure("testJsonTypeProc", "(OUT jsonDoc JSON) SELECT t.jsonDoc INTO jsonDoc FROM testJsonType t");
+        createProcedure("testJsonTypeProc",
+            "(OUT jsonDoc JSON) SELECT t.jsonDoc INTO jsonDoc FROM testJsonType t");
         CallableStatement testCstmt = conn.prepareCall("{CALL testJsonTypeProc(?)}");
         ParameterMetaData metaData = testCstmt.getParameterMetaData();
         assertEquals(1, metaData.getParameterCount());
         assertEquals("java.lang.String", metaData.getParameterClassName(1));
         assertEquals("JSON", metaData.getParameterTypeName(1));
+    }
+
+    @Test
+    public void testFunctionParameterMetaData() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("DROP FUNCTION IF EXISTS testPro");
+        stmt.executeUpdate("CREATE FUNCTION testPro(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+        CallableStatement cStmt = conn.prepareCall("{? = CALL testPro(?,?,?)}");
+        Assert.assertEquals(4, cStmt.getParameterMetaData().getParameterCount());
+
+        cStmt = conn.prepareCall("{? = CALL testPro(4,5,?)}");
+        Assert.assertEquals(2, cStmt.getParameterMetaData().getParameterCount());
+
+    }
+
+    @Test
+    public void testSetStringByParameterName() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("DROP PROCEDURE IF EXISTS pl_sql;");
+        stmt.execute("CREATE PROCEDURE pl_sql (c1 varchar(20), c2 varchar(20)) begin select 1; end;");
+        CallableStatement cs = conn.prepareCall("call pl_sql('aaa', ?)");
+
+        cs.setString("c2", "bbb");
+        cs.execute();
+
+        cs = conn.prepareCall("call pl_sql('a'aa', ?)");
+        try {
+            cs.setString("c2", "bbb");
+        } catch (SQLException e) {
+            assertEquals("there is no parameter with the name c2", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testProcedurForAone55269141() throws Exception {
+        createProcedure("t_p", "(OUT param_1 int, OUT param_2 int UNSIGNED)"
+                               + "BEGIN SELECT 1,2 INTO param_1, param_2 FROM dual; END");
+        CallableStatement storedProc = sharedConnection.prepareCall("{call t_p(?, ?)}");
+        storedProc.registerOutParameter(1, Types.INTEGER);
+        storedProc.registerOutParameter(2, Types.INTEGER);
+        storedProc.execute();
+        assertEquals(1, storedProc.getInt(1));
+        assertEquals(2, storedProc.getInt(2));
+    }
+
+    @Test
+    public void testforAone54894992() throws SQLException {
+        Connection conn = sharedConnection;
+        createProcedure("pl_sql",
+            "(c1 int, out c2 int, out c3 int, inout c4 int) begin set c2=c1; set c3 = c2 + c1; end;");
+        CallableStatement cs = conn.prepareCall("call pl_sql(5, ?, ?, ?)");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.setInt(3, 15);
+        cs.execute();
+        assertEquals(5, cs.getInt(1));
+        assertEquals(10, cs.getInt(2));
+        assertEquals(15, cs.getInt(3));
+    }
+
+    @Test
+    public void testGetParameterCountBug() {
+        try {
+            createProcedure("testP1", "(a int,  b int, c int) BEGIN SELECT a, b, c; END");
+            sharedConnection.prepareCall("call testP1(?, ?)");
+
+            createProcedure("testP2", "(a int,  b int, out c int) BEGIN SELECT a, b, c; END");
+            sharedConnection.prepareCall("call testP2(?, ?)");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    public void testCallSpecialParameters() throws Exception {
+        createProcedure("t_p1", "(out a int) begin set a:= 1; end");
+        CallableStatement cs = sharedConnection.prepareCall("call t_p1(a=>?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        assertEquals(1, cs.getInt(1));
+
+        createProcedure("t_p2", "(out a int, b int) begin select b into a from dual; end");
+        cs = sharedConnection.prepareCall("call t_p2(a=>?, b=>10)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        assertEquals(10, cs.getInt(1));
+
+        createProcedure("t_p3", "(out a int, out b int) begin set a:=5; set b:=10; end");
+        cs = sharedConnection.prepareCall("call t_p3(a=>?, b=>?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.execute();
+        assertEquals(5, cs.getInt(1));
+        assertEquals(10, cs.getInt(2));
+
+        cs = sharedConnection.prepareCall("call t_p3(b=>?, a=>?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.execute();
+        assertEquals(10, cs.getInt(1));
+        assertEquals(5, cs.getInt(2));
+
+        cs = sharedConnection.prepareCall("call t_p3(b=>?, a=>?)");
+        cs.registerOutParameter("b", Types.INTEGER);
+        cs.registerOutParameter("a", Types.INTEGER);
+        cs.execute();
+        assertEquals(10, cs.getInt(1));
+        assertEquals(5, cs.getInt(2));
     }
 
 }

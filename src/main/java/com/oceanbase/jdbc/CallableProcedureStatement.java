@@ -70,13 +70,23 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     protected List<CallParameter>       params;
-    protected int[]                     outputParameterMapper = null;
+    /**
+     * The index for output parameters and result sets starts at 1.
+     * outputParameterMapper[i] = j means that the (i+1)th element of the outputParameterMapper array represents the jth output parameter in the callable statement.
+     * If it's an input parameter, then the value is -1.
+     * Parameters written directly into the SQL are not recorded in this array.
+     * For example: Given the stored procedure test_pro(c1 out, c2 in, c3 in, c4 out) and the callable statement prepareCall("call test_pro(?,1,?,?)"),
+     * the outputParameterMapper would be [1, -1, 2].
+     */
+    protected int[]                     outputParameterMapper;
     protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
-    protected String                    arguments             = null;
-    private boolean                     firstMapName          = true;
+    protected String                    arguments;
+    private boolean                     firstMapName = true;
+    protected boolean                   resetSpecialParamIndex;
 
-    //protected CallableStatementParamInfo paramInfo;
+    //    private boolean                     isParameterIndexUsed;
+    //    private boolean                     isParameterNameUsed;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -131,41 +141,61 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @throws SQLException exception
      */
     private int nameToIndex(String parameterName) throws SQLException {
-        if (protocol.isOracleMode()) {
-            if (firstMapName) {
-                params.clear();
-                firstMapName = false;
-            }
-
-            for (int i = 1; i <= params.size(); i++) {
-                String name = params.get(i - 1).getName();
-                if (name != null && name.equalsIgnoreCase(parameterName)) {
-                    return i;
-                }
-            }
-
-            CallParameter param = new CallParameter();
-            param.setName(parameterName);
-            param.setIndex(params.size() + 1);
-
-            params.add(param);
-            return params.size();
-        }
-
         parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments,
             this.isObFunction);
 
+        if (protocol.isOracleMode()
+            && (parameterMetadata.getParameterCount() == 0 || arguments == null)) {
+            return getIndexAndFillParams(parameterName);
+        }
+
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
-            String name = parameterMetadata.getName(i);
+            String name;
             if (!this.protocol.isOracleMode()) {
+                name = parameterMetadata.placeholderParams.get(i - 1).getName();
                 name = name.replaceAll("\\`(\\w+)\\`", "$1");
+            } else {
+                name = parameterMetadata.getName(i);
             }
+            if (name != null && name.equalsIgnoreCase(parameterName)) {
+                if (this.protocol.isOracleMode()) {
+                    return getIndexAndFillParams(parameterName);
+                }
+                return i;
+            }
+        }
+
+        // When the parameterName does not exist on the server，for example, naming and binding the return value of a function's return
+        if (protocol.isOracleMode()) {
+            return getIndexAndFillParams(parameterName);
+        }
+
+        throw new SQLException("there is no parameter with the name " + parameterName);
+    }
+
+    /**
+     * Fill in params based on registerOutputParameter() and setXXX()
+     * @param parameterName
+     * @return
+     */
+    private int getIndexAndFillParams(String parameterName) {
+        if (firstMapName && (arguments == null ? true : !arguments.contains("=>"))) {
+            params.clear();
+            firstMapName = false;
+        }
+
+        for (int i = 1; i <= params.size(); i++) {
+            String name = params.get(i - 1).getName();
             if (name != null && name.equalsIgnoreCase(parameterName)) {
                 return i;
             }
         }
 
-        throw new SQLException("there is no parameter with the name " + parameterName);
+        CallParameter param = new CallParameter();
+        param.setName(parameterName);
+        param.setIndex(params.size());
+        params.add(param);
+        return params.size();
     }
 
     /**
@@ -224,14 +254,22 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (this.isObFunction && !this.protocol.isOracleMode()) {
                 return 1; //for mysql ObFunciton only
             }
-            if (outputParameterMapper[parameterIndex - 1] == -1) {
+            if (arguments != null && arguments.length() > 0 && arguments.contains("=>")
+                && !resetSpecialParamIndex) { //resetParamIndex
+                for (int i = 0; i < outputParameterMapper.length; i++) {
+                    outputParameterMapper[i] = params.get(i).getIndex() + 1;
+                }
+                resetSpecialParamIndex = true;
+            }
+            int outputIndex = outputParameterMapper[parameterIndex - 1];
+            if (outputIndex == -1) {
                 // this is not an outputParameter
                 throw new SQLException(
                     "Parameter in index '"
                             + parameterIndex
                             + "' is not declared as output parameter with method registerOutParameter");
             }
-            return outputParameterMapper[parameterIndex - 1];
+            return outputIndex;
         } catch (ArrayIndexOutOfBoundsException arrayIndexOutOfBoundsException) {
             if (parameterIndex < 1) {
                 throw new SQLException("Index " + parameterIndex + " must at minimum be 1");
@@ -650,6 +688,16 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);
+
+        if (protocol.isOracleMode()) {
+            CallParameter placeHolderParameter = parameterMetadata
+                .getPlaceholderParam(parameterIndex - 1);
+            if (null != placeHolderParameter) {
+                placeHolderParameter.setOutput(true);
+                placeHolderParameter.setOutputSqlType(sqlType);
+                placeHolderParameter.setScale(scale);
+            }
+        }
     }
 
     @Override
@@ -703,7 +751,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
     }
 
-    private CallParameter getParameter(int index) throws SQLException {
+    protected CallParameter getParameter(int index) throws SQLException {
         if (index > params.size() || index <= 0) {
             throw new SQLException("No parameter with index " + index);
         }

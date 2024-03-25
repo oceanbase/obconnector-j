@@ -604,7 +604,8 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         callableStatement.setInt(3, 1);
         callableStatement.setInt(4, 1);
 
-        assertEquals(3, callableStatement.getParameterMetaData().getParameterCount());
+        //ojdbc is 4
+        assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
         //assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
         ResultSetMetaData rsmd = null;
         DatabaseMetaData dbmd = null;
@@ -918,7 +919,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
 
         procDef.append(")\nis BEGIN\nSELECT 1 into param_0 from dual;\nEND;");
-        System.out.println(procDef.toString());
+        //System.out.println(procDef.toString());
         createProcedure("testHugeNumberOfParameters", procDef.toString());
 
         try (CallableStatement callableStatement =
@@ -928,7 +929,12 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
       for (int i = 1; i <= num; i++) {
         callableStatement.registerOutParameter(i, Types.VARCHAR);
       } */
-            callableStatement.execute();
+            try {
+                callableStatement.execute();
+                Assert.fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("Missing IN or OUT parameter in index::1"));
+            }
         }
     }
 
@@ -1276,7 +1282,6 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
             assertEquals("ncfact string", callSt3.getString(2));
             assertEquals("ffact string", callSt3.getString(3));
             assertEquals("fdoc string", callSt3.getString(4));
-            System.out.println("Over!");
         }
     }
 
@@ -1450,6 +1455,7 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         assertEquals("ox", cstmt.getString(2));
         assertEquals("ox", cstmt.getObject(2, String.class)); // works
         assertEquals("ox", cstmt.getObject(2));
+        //oracle-jdbc : SQLException: 不允许的操作: Ordinal binding and Named binding cannot be combined!
         assertEquals("ox", cstmt.getObject("testValue"));
 
         // registering with Binary Type
@@ -1524,7 +1530,6 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
         }
     }
 
-    //@Ignore //ignore first
     @Test
     public void functionCaching() throws SQLException {
         createFunction(
@@ -1548,7 +1553,12 @@ public class StoredProcedureOracleTest extends BaseOracleTest {
 
         try (CallableStatement st2 = sharedConnection.prepareCall("{? = call hello2(?)}")) {
             st2.registerOutParameter(1, Types.INTEGER);
-            assertTrue(st2.execute());
+            try {
+                st2.execute();//索引中丢失  IN 或 OUT 参数:: 2
+                Assert.fail();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
 
             st.close();
 

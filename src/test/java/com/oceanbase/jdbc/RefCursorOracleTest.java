@@ -43,6 +43,8 @@
  */
 package com.oceanbase.jdbc;
 
+import static org.junit.Assert.fail;
+
 import java.sql.*;
 
 import org.junit.Assert;
@@ -85,6 +87,29 @@ public class RefCursorOracleTest extends BaseOracleTest {
         }
         Assert.assertEquals(count, 0);
         cs.close();
+    }
+
+    @Test
+    public void testRefCursorProxyIntOutNull() {
+        try {
+            Connection conn = sharedConnection;
+            String sqla = "create or replace procedure pro1(a int, a2 in out int, a3 in int, b out sys_refcursor) is begin open b for select 1,2,3 from dual; end;";
+            conn.createStatement().execute(sqla);
+            CallableStatement cstmt = conn.prepareCall("call pro1(?,?,?,?);");
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 1);
+            cstmt.setInt(3, 2);
+            cstmt.registerOutParameter(2, Types.INTEGER);
+            cstmt.registerOutParameter(4, Types.REF_CURSOR);
+            cstmt.execute();
+            ResultSet rs = (ResultSet) cstmt.getObject(4);
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals(2, rs.getInt(2));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 
 }

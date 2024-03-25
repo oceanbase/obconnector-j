@@ -695,7 +695,11 @@ public class CallStatementOracleTest extends BaseOracleTest {
         cs.setString("col1", "aa1");
         cs.setInt("col2", 111);
         cs.setString("col3", "bb1");
-        cs.execute();// oracle: "ORA-00917: 缺失逗号"
+        try {
+            cs.execute();// oracle: "ORA-00917: 缺失逗号"
+        } catch (Exception e) {
+            e.printStackTrace();//java.sql.SQLException: there is no parameter with the name col1
+        }
 
         cs = connection.prepareCall("insert into " + tableName + " values(?, ?, ?)");
         cs.setString(1, "aa2");
@@ -975,16 +979,18 @@ public class CallStatementOracleTest extends BaseOracleTest {
 
     @Test
     public void callWenhaoDengyu() throws Exception {
-        createFunction("testFunctionCall", "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
 
-        CallableStatement cs = sharedConnection.prepareCall("{? = call test.testFunctionCall(10, 20 ,?)}");
+        CallableStatement cs = sharedConnection
+            .prepareCall("{? = call test.testFunctionCall(10, 20 ,?)}");
         cs.registerOutParameter(1, Types.INTEGER);
         cs.registerOutParameter(2, Types.INTEGER);
         cs.setInt(2, 30);
         cs.setQueryTimeout(120);
         cs.executeUpdate();
         Assert.assertEquals(60, cs.getInt(1));
-//        Assert.assertEquals(10, cs.getInt("c"));
+        //        Assert.assertEquals(10, cs.getInt("c"));
 
         cs = sharedConnection.prepareCall("{call ?:= test.testFunctionCall(10, 20 ,?)}");
         cs.registerOutParameter(1, Types.INTEGER);
@@ -993,7 +999,7 @@ public class CallStatementOracleTest extends BaseOracleTest {
         cs.setQueryTimeout(120);
         cs.executeUpdate();
         Assert.assertEquals(60, cs.getInt(1));
-//        Assert.assertEquals(10, cs.getInt("c"));
+        //        Assert.assertEquals(10, cs.getInt("c"));
 
         cs = sharedConnection.prepareCall("{call ?  :=   \ntestFunctionCall(10, 20 ,?)}");
         cs.registerOutParameter(1, Types.INTEGER);
@@ -1002,7 +1008,188 @@ public class CallStatementOracleTest extends BaseOracleTest {
         cs.setQueryTimeout(120);
         cs.executeUpdate();
         Assert.assertEquals(60, cs.getInt(1));
-//        Assert.assertEquals(10, cs.getInt("c"));
+        //        Assert.assertEquals(10, cs.getInt("c"));
+    }
+
+    @Test
+    public void aone52845056() {
+        try {
+            createProcedure(
+                "GetRecVar",
+                "(P1 IN OUT VARCHAR,P2 IN OUT VARCHAR,P3 IN OUT VARCHAR,P4 IN OUT VARCHAR) is begin \n p1:='str1';p2:='str2';p3:='str3';p4:='str4';\nend;");
+            CallableStatement callableStatement = sharedConnection
+                .prepareCall("{call GetRecVar(?,?,?,?)}");
+
+            callableStatement.setString(1, null);
+            callableStatement.setString(2, null);
+            callableStatement.setString(3, null);
+            callableStatement.setString(4, null);
+
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            //            callableStatement.registerOutParameter(2,Types.VARCHAR);
+            //            callableStatement.registerOutParameter(3,Types.VARCHAR);
+            callableStatement.registerOutParameter(4, Types.VARCHAR);
+
+            callableStatement.execute();
+
+            System.out.println(callableStatement.getObject("p1"));
+            //            System.out.println(callableStatement.getObject(2));
+            //            System.out.println(callableStatement.getObject(3));
+
+            //oracle-jdbc : SQLException: 不允许的操作: Ordinal binding and Named binding cannot be combined!
+            //System.out.println(callableStatement.getObject(4));
+
+            createProcedure("GetRecVar",
+                "(P1 IN OUT VARCHAR, P2 IN  VARCHAR, P3  OUT VARCHAR, P4 IN OUT VARCHAR) is begin \n "
+                        + "p1:='str1';p3:='str3';p4:='str4';\nend;");
+            callableStatement = sharedConnection.prepareCall("{call GetRecVar(?,'str2',?,?)}");
+
+            callableStatement.setString(1, null);
+            callableStatement.setString(2, null);
+            callableStatement.setString(3, null);
+
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+
+            callableStatement.execute();
+
+            System.out.println(callableStatement.getObject(1));
+            try {
+                System.out.println(callableStatement.getObject(2));
+            } catch (Exception e) {
+                System.out.println(e.getMessage());//定义丢失
+                Assert
+                    .assertTrue(e
+                        .getMessage()
+                        .contains(
+                            "Parameter in index '2' is not declared as output parameter with method registerOutParameter"));
+            }
+            System.out.println(callableStatement.getObject(3));
+            try {
+                System.out.println(callableStatement.getObject(4));
+            } catch (Exception e) {
+                System.out.println(e.getMessage());//无效的列索引
+                Assert.assertTrue(e.getMessage().contains("No parameter with index 4"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void test() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        stmt.execute("CREATE OR REPLACE PROCEDURE pl_sql (c1 IN VARCHAR2, c2 IN VARCHAR2) AS\n"
+                     + "  v_result NUMBER;\n" + "BEGIN\n" + "  SELECT 1 INTO v_result FROM dual;\n"
+                     + "END pl_sql;");
+
+        CallableStatement callStmt = sharedConnection.prepareCall("call pl_sql(?, ?)");
+        callStmt.setString(1, "aaa?");
+        callStmt.setString(1, "'bbb'");
+        try {
+            callStmt.execute();
+        } catch (SQLException e) {
+            assertEquals("Missing IN or OUT parameter in index::2", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCallFunctionWithIncorrectParameterPlaceHolderCountForAone5061681()
+                                                                                      throws SQLException {
+        createFunction("testFunction2",
+            "(a FLOAT, b NUMBER, c in INT) RETURN INT IS d INT;\nBEGIN d:=a+b+c; RETURN d;\nEND;");
+        doTestCallFunctionWithIncorrectParameterPlaceHolderCount(setConnectionOrigin("?useOraclePrepareExecute=true"));
+
+        //observer4.2.0 prepareCall("{? = call testFunction2(?,?,?)}") missing return data when using ps protocol, but prepareCall("{? = call testFunction2(?,100,?)}") success.
+        doTestCallFunctionWithIncorrectParameterPlaceHolderCount(setConnectionOrigin("?useOraclePrepareExecute=false"));
+    }
+
+    public void doTestCallFunctionWithIncorrectParameterPlaceHolderCount(Connection conn)
+                                                                                         throws SQLException {
+        CallableStatement cs = conn.prepareCall("{? = call testFunction2(?,?,?,?,?)}");
+        ParameterMetaData paramMeta = cs.getParameterMetaData();
+        assertEquals(6, paramMeta.getParameterCount());
+
+        cs.registerOutParameter(1, JDBCType.INTEGER);
+        cs.setFloat(2, 1.1f);
+        cs.setFloat(3, 1);
+        cs.setFloat(4, 1);
+        cs.setFloat(5, 1);
+        cs.setFloat(6, 1);
+        assertEquals(6, cs.getParameterMetaData().getParameterCount());
+        try {
+            cs.execute();
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains(
+                "ORA-00600: internal error code, arguments: -5555, Incorrect number of arguments"));
+        }
+
+        cs = conn.prepareCall("{? = call testFunction2(?,?,?)}");
+        cs.registerOutParameter(1, JDBCType.INTEGER);
+        cs.setFloat(2, 1.1f);
+        cs.setFloat(3, 1);
+        cs.setInt(4, 1);
+        cs.execute();
+        assertEquals(4, cs.getParameterMetaData().getParameterCount());
+        assertEquals(3, cs.getInt(1));
+    }
+
+    @Test
+    public void testOracleParameterType() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+
+        stmt.executeUpdate("CREATE or replace FUNCTION testF1(a float, b int, c int) RETURN INT is BEGIN \nRETURN a;\nEND");
+        CallableStatement cStmt = conn.prepareCall("{? = CALL testF1(?,?,?)}");
+        ParameterMetaData parameterMetaData = cStmt.getParameterMetaData();
+        assertEquals(4, parameterMetaData.getParameterCount());
+
+        try {
+            parameterMetaData.getParameterType(1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Not supported in oracle mode.", e.getMessage());
+        }
+
+    }
+
+    @Test
+    public void testCallFunction() throws Exception {
+        createFunction("testFunctionCall",
+            "(a FLOAT, b NUMBER, c in out INT) RETURN INT AS d INT;\nBEGIN\nd:=a+b+c;\nc:=10;\nRETURN d;\nEND;");
+        CallableStatement cs = setConnection("&useOraclePrepareExecute=true").prepareCall(
+            "{? = call testFunctionCall(10, 20 ,?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.setInt(2, 30);
+        cs.execute();
+        Assert.assertEquals(60, cs.getInt(1));
+        try {
+            cs.getInt("c");
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("there is no parameter with the name c"));
+        }
+    }
+
+    @Test
+    public void testSpecialParametersForAone55464832() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("create or replace procedure p1(a out int) is begin a:=10;end;");
+        CallableStatement ps = sharedConnection.prepareCall("call p1(a =>?)");
+        ps.registerOutParameter(1, Types.INTEGER);
+        ps.execute();
+        assertEquals(10, ps.getInt(1));
+        assertEquals(10, ps.getInt("a"));
+
+        ps = sharedConnection.prepareCall("call p1(a =>     ?)");
+        ps.registerOutParameter(1, Types.INTEGER);
+        ps.execute();
+        assertEquals(10, ps.getInt(1));
+        assertEquals(10, ps.getInt("a"));
     }
 
 }

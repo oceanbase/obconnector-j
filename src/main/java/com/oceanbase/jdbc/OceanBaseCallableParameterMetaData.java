@@ -89,7 +89,9 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         }
         this.query = query;
         queryMetaInfos();
-        resetParams(arguments, isObFunction);
+        if (allParams != null && !allParams.isEmpty()) {
+            resetParams(arguments, isObFunction);
+        }
         valid = true;
     }
 
@@ -155,7 +157,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         if (!matcher.matches()) {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
-        CallParameter callParameter = params.get(0);
+        CallParameter callParameter = allParams.get(0);
 
         callParameter.setOutput(true);
         callParameter.setSigned(matcher.group(1) == null);
@@ -177,10 +179,10 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     }
 
     private void parseParamList(boolean isFunction, String paramList) throws SQLException {
-        params = new ArrayList<>();
+        allParams = new ArrayList<>();
         if (isFunction) {
             // output parameter
-            params.add(new CallParameter());
+            allParams.add(new CallParameter());
         }
 
         Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
@@ -203,7 +205,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                         "unknown parameter direction " + direction + "for " + callParameter.getName());
             }
 
-            callParameter.setName(matcher2.group(2).trim());
+            String paramName = matcher2.group(2).trim();
+            callParameter.setName(paramName);
             callParameter.setSigned(matcher2.group(3) == null);
 
             String typeName = matcher2.group(4).trim().toUpperCase(Locale.ROOT);
@@ -221,7 +224,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
                 callParameter.setPrecision(Integer.parseInt(columnSize));
             }
 
-            params.add(callParameter);
+            allParams.add(callParameter);
+            mapNameToParameter.put(paramName, callParameter);
         }
     }
 
@@ -248,13 +252,13 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
     }
 
     private void addParametersFromDBOD(java.sql.ResultSet paramTypesRs) throws SQLException {
-        this.params = new ArrayList<CallParameter>();
+        this.allParams = new ArrayList<CallParameter>();
         if (isFunction) {
             CallParameter callParameter = new CallParameter();
             callParameter.setOutput(true);
             callParameter.setInput(false);
             callParameter.setName("functionreturn");
-            params.add(callParameter);
+            allParams.add(callParameter);
         }
 
         int i = 0;
@@ -264,9 +268,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             boolean isOutParameter = false;
             boolean isInParameter = false;
 
-            if (this.getParameterCount() == 0 && this.isFunction) {
-                isOutParameter = true;
-            } else if (null == inOut || inOut.equalsIgnoreCase("IN")) {
+            if (null == inOut || inOut.equalsIgnoreCase("IN")) {
                 isInParameter = true;
                 inOutModifier = DatabaseMetaData.procedureColumnIn;
             } else if (inOut.equalsIgnoreCase("INOUT")) {
@@ -291,7 +293,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
                 isOutParameter, jdbcType, typeName, precision, scale, jdbcType, inOutModifier);
 
-            this.params.add(paramInfoToAdd);
+            this.allParams.add(paramInfoToAdd);
             this.mapNameToParameter.put(paramName, paramInfoToAdd);
         }
     }

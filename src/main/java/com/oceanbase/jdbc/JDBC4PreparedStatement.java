@@ -76,8 +76,8 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   private       ParameterHolder[]       parameters;
   private final List<ParameterHolder[]> parametersList = new ArrayList<>();
   private       ClientPrepareResult     prepareResult;
-  private       ResultSetMetaData       resultSetMetaData = null;
-  private       ParameterMetaData       parameterMetaData = null;
+  private       ResultSetMetaData       resultSetMetaData;
+  private       ParameterMetaData       parameterMetaData;
 
   /**
    * Constructor.
