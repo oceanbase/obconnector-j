@@ -2402,17 +2402,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               "LOAD DATA LOCAL INFILE not permit in batch. file '" + fileName + "'",
               SqlStates.INVALID_AUTHORIZATION.getSqlState(),
               -1);
-        } else if (!Utils.validateFileName(results.getSql(), results.getParameters(), fileName)) {
-          writer.writeEmptyPacket();
-          reader.getPacket(true);
-          throw new SQLException(
-              "LOAD DATA LOCAL INFILE asked for file '"
-                  + fileName
-                  + "' that doesn't correspond to initial query "
-                  + results.getSql()
-                  + ". Possible malicious proxy changing server answer ! Command interrupted",
-              SqlStates.INVALID_AUTHORIZATION.getSqlState(),
-              -1);
         }
 
         try {

@@ -61,6 +61,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
@@ -1829,19 +1830,21 @@ public class Utils {
   public static boolean validateFileName(
       String sql, ParameterHolder[] parameters, String fileName) {
     Pattern pattern =
-        Pattern.compile("^(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOAD\\s+DATA\\s+(?:LOW_PRIORITY\\s+|CONCURRENT\\s+)?(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOCAL\\s+INFILE\\s+'" + fileName + "'(?:\\s*\\/\\*.*?\\*\\/\\s*)*INTO\\s+TABLE\\s+(?:\\s*\\/\\*.*?\\*\\/\\s*)*(?:\\w+(?:\\.\\w+)?)(?:\\s*\\/\\*.*?\\*\\/\\s*)*",
-            Pattern.CASE_INSENSITIVE);
-    if (pattern.matcher(sql).find()) {
-      return true;
+            Pattern.compile(
+                    "^(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOAD\\s+DATA\\s+(?:LOW_PRIORITY\\s+|CONCURRENT\\s+)?(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOCAL\\s+INFILE\\s*'(.+?)'\\s*(?:\\/\\*.*?\\*\\/\\s*)*INTO\\s+TABLE\\s+(?:\\s*\\/\\*.*?\\*\\/\\s*)*(?:\\w+(?:\\.\\w+)?)(?:\\s*\\/\\*.*?\\*\\/\\s*)*",
+                    Pattern.CASE_INSENSITIVE);
+    Matcher matcher = pattern.matcher(sql);
+    if (matcher.find()) {
+      String fileNameFromSql = matcher.group(1);
+      if (fileName.replaceAll("[/\\\\]", "").equalsIgnoreCase(fileNameFromSql.replaceAll("[/\\\\]", ""))) {
+        return true;
+      }
     }
-
     if (parameters != null) {
-      pattern =
-          Pattern.compile(
-                  "^(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOAD\\s+DATA\\s+(?:LOW_PRIORITY\\s+|CONCURRENT\\s+)?(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOCAL\\s+INFILE\\s+",
+      pattern = Pattern.compile("^(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOAD\\s+DATA\\s+(?:LOW_PRIORITY\\s+|CONCURRENT\\s+)?(?:\\s*\\/\\*.*?\\*\\/\\s*)*LOCAL\\s+INFILE\\s+",
               Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.length > 0) {
-        return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+        return parameters[0].toString().toLowerCase().replaceAll("[/\\\\]", "").equals("'" + fileName.toLowerCase().replaceAll("[/\\\\]", "") + "'");
       }
     }
     return false;

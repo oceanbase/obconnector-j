@@ -57,6 +57,10 @@ import org.junit.Test;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
 
+import java.io.File;
+import java.io.IOException;
+import java.sql.SQLException;
+
 public class UtilsTest {
 
     @Test
@@ -95,41 +99,46 @@ public class UtilsTest {
     }
 
     @Test
-    public void localLocalParsing() {
-        assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE 'file_name'", null, "file_name"));
-        assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE 'file_name'", null,
-            "file_name"));
-        assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE 'file_name'", null,
-            "file_name"));
-        assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE 'file_name' /*gni*/",
-            null, "file_name"));
-        assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'/etc/tto/file_name'",
-            null, "/etc/tto/file_name"));
-
-        assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'/etc/tto/file_name'",
-            null, "file_name"));
-        assertFalse(Utils.validateFileName("LOAD DATA INFILE 'file_name' /**/", null, "file_name"));
-
-        ParameterHolder[] goodParameterHolders = new ParameterHolder[] { new StringParameter(
-            "file_name", false, "utf8") };
-
-        assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE ?", goodParameterHolders,
-            "file_name"));
-        assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE ?",
-            goodParameterHolders, "file_name"));
-        assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE ?",
-            goodParameterHolders, "file_name"));
-        assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE ? /*gni*/",
-            goodParameterHolders, "file_name"));
-        ParameterHolder[] pathParameterHolders = new ParameterHolder[] { new StringParameter(
-            "/etc/tto/file_name", false, "utf8") };
-        assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n?",
-            pathParameterHolders, "/etc/tto/file_name"));
-
-        assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n?",
-            pathParameterHolders, "file_name"));
-        assertFalse(Utils.validateFileName("LOAD DATA INFILE ? /**/", goodParameterHolders,
-            "file_name"));
+    public void localLocalParsing() throws SQLException, IOException {
+        File file = new File("./test_localLocalParsing.txt");
+        file.createNewFile();
+        file.deleteOnExit();
+        try {
+            assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE '" + file.toPath() + "' INTO TABLE test_tab", null, file.getPath()));
+            assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE '" + file.toPath() + "' INTO TABLE test_tab", null,
+                    file.getPath()));
+            assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE '" + file.toPath() + "' INTO TABLE test_tab", null,
+                    file.getPath()));
+            assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE '" + file.toPath() + "' /*gni*/INTO TABLE test_tab",
+                    null, file.getPath()));
+            assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'" + file.toPath() + "' INTO TABLE test_tab",
+                    null, file.getPath()));
+            assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'/etc/tto/file_name'",
+                    null, "file_name"));
+            assertFalse(Utils.validateFileName("LOAD DATA INFILE '" + file.toPath() + "' /**/ INTO TABLE test_tab", null, "file_name"));
+            ParameterHolder[] goodParameterHolders = new ParameterHolder[]{new StringParameter(
+                    file.getPath(), false, "utf8")};
+            assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE ? INTO TABLE test_tab", goodParameterHolders,
+                    file.getPath()));
+            assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE ? INTO TABLE test_tab",
+                    goodParameterHolders, file.getPath()));
+            assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE ? INTO TABLE test_tab",
+                    goodParameterHolders, file.getPath()));
+            assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE ? /*gni*/ INTO TABLE test_tab",
+                    goodParameterHolders, file.getPath()));
+            ParameterHolder[] pathParameterHolders = new ParameterHolder[]{new StringParameter(
+                    "/etc/tto/file_name", false, "utf8")};
+            assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n? INTO TABLE test_tab",
+                    pathParameterHolders, "/etc/tto/file_name"));
+            assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n? INTO TABLE test_tab",
+                    pathParameterHolders, file.getPath()));
+            assertFalse(Utils.validateFileName("LOAD DATA INFILE ? /**/ INTO TABLE test_tab", goodParameterHolders,
+                    file.getPath()));
+        } finally {
+            if (file != null && file.exists()) {
+                file.delete();
+            }
+        }
     }
 
     @Test
