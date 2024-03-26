@@ -697,7 +697,7 @@ public class Clob extends Lob implements java.sql.Clob {
             throw new SQLException("Invalid operation on closed CLOB");
         }
 
-        try (java.sql.CallableStatement cstmt = this.locator.connection.prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}")) {
+        try (java.sql.CallableStatement cstmt = this.locator.connection.getLobConn().prepareCall("{? = call DBMS_LOB.GETLENGTH( ?)}")) {
             ((OceanBaseStatement) cstmt).setInternal();
             cstmt.setClob(2, this);
             cstmt.registerOutParameter(1, Types.INTEGER);

@@ -1071,4 +1071,29 @@ public class ClobOracleTest extends BaseOracleTest {
             assertEquals(clobSize, sb.length());
         }
     }
+
+    @Test
+    public void testLobStreamResultForAone55787988() throws Exception {
+        Connection conn = setConnection("&usePieceData=true&extendOracleResultSetClass=true");
+        createTable("t_lob", "c1 clob, c2 blob");
+        PreparedStatement ps = conn.prepareStatement("insert into  t_lob values (?,?)");
+        StringBuilder stringBuilder = new StringBuilder();
+        int size = 1024 * 5;
+        for (int i = 0; i < size; i++) {
+            stringBuilder.append('a');
+        }
+        String str = stringBuilder.toString();
+        byte[] bytes = str.getBytes();
+        ps.setClob(1, new StringReader(str));
+        ps.setBlob(2, new ByteArrayInputStream(bytes));
+        ps.execute();
+
+        ps = conn.prepareStatement("select * from t_lob");
+        ps.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(size, rs.getClob(1).length());
+        assertEquals(size, rs.getBlob(2).length());
+    }
+
 }
