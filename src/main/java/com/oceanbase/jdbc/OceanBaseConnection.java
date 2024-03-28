@@ -2681,18 +2681,21 @@ public class OceanBaseConnection implements ConnectionImpl {
     }
 
     public OceanBaseConnection getLobConn() throws SQLException {
-        if (lobConn == null || lobConn.isClosed()) {
-            Protocol protocol = this.getProtocol();
-            UrlParser urlParser = protocol.getUrlParser();
-            urlParser.getOptions().pool = false;
-            lobConn = OceanBaseConnection.newConnection(urlParser, null);
-            this.setLobConn(lobConn);
+        if (null != this.protocol.getActiveStreamingResult()) {
+            if (!this.options.clobberStreamingResults) {
+                if (lobConn == null || lobConn.isClosed()) {
+                    try {
+                        UrlParser parser = (UrlParser) this.urlParser.clone();
+                        parser.getOptions().pool = false;
+                        lobConn = OceanBaseConnection.newConnection(parser, null);
+                    } catch (CloneNotSupportedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return lobConn;
+            }
         }
-        return lobConn;
-    }
-
-    public void setLobConn(OceanBaseConnection lobConn) {
-        this.lobConn = lobConn;
+        return this;
     }
 
 }

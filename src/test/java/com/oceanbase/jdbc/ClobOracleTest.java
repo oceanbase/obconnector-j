@@ -1096,4 +1096,51 @@ public class ClobOracleTest extends BaseOracleTest {
         assertEquals(size, rs.getBlob(2).length());
     }
 
+    @Test
+    public void testClobLobLocatorV2ForAone55819451() {
+        try {
+            Connection conn = setConnectionOrigin("?useServerPrepStmts=true&usePieceData=true");
+            String clobTest = "t_clob" ;
+
+            createTable(clobTest, "c1 clob");
+            PreparedStatement ps = conn.prepareStatement("insert into " + clobTest + " values(?)");
+            int size1 = 1024 * 3;
+            java.sql.Clob clob = conn.createClob();
+            Writer writer = clob.setCharacterStream(1);
+            for (int i = 0; i < size1; i++) {
+                writer.write("a");
+            }
+            writer.flush();
+            ps.setClob(1, clob);
+            ps.execute();
+
+            conn.setAutoCommit(false);
+            ps = conn.prepareStatement("select c1 from " + clobTest + " for update");
+            ResultSet rs = ps.executeQuery();
+            assertTrue(rs.next());
+
+            java.sql.Clob clob3 = rs.getClob(1);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 1024 * 10; i++) {
+                sb.append("b");
+            }
+            clob3.setString(1, sb.toString());
+            int updateSize = (int) clob3.length();
+            assertEquals(1024 * 10, updateSize);
+            String subString = clob3.getSubString(1, updateSize);
+            conn.commit();
+            conn.setAutoCommit(true);
+
+            ps = conn.prepareStatement("select c1 from " + clobTest);
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+            String string = rs.getString(1);
+            assertEquals(updateSize, string.length());
+            assertEquals(subString, string);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
 }
