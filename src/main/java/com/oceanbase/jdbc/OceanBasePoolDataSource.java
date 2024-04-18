@@ -435,11 +435,11 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
                 return iface.cast(this);
             } else {
                 throw new SQLException(
-                    "The receiver is not a wrapper and does not implement the interface");
+                    "The receiver is not a wrapper and does not implement the interface " + iface.getName());
             }
         } catch (Exception e) {
             throw new SQLException(
-                "The receiver is not a wrapper and does not implement the interface");
+                "The receiver is not a wrapper and does not implement the interface " + iface.getName());
         }
     }
 

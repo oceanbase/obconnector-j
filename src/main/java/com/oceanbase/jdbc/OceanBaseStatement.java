@@ -1817,12 +1817,12 @@ public class OceanBaseStatement implements Statement, Cloneable {
       } else {
         throw exceptionFactory
             .raiseStatementError(connection, this)
-            .create("The receiver is not a wrapper and does not implement the interface", "42000");
+            .create("The receiver is not a wrapper and does not implement the interface " + iface.getName(), "42000");
       }
     } catch (Exception e) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
-          .create("The receiver is not a wrapper and does not implement the interface", "42000");
+          .create("The receiver is not a wrapper and does not implement the interface " + iface.getName(), "42000");
     }
   }
 
