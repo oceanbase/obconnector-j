@@ -274,4 +274,27 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertTrue(rs.next());
         assertEquals("BEND", rs.getString("COLUMN_NAME"));
     }
+
+    @Test
+    public void testFofAone55293893() throws SQLException {
+        Connection connection = setConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("CREATE OR REPLACE type ty_test as object ( c1 varchar(10), c2 char(10) );");
+
+        createProcedure("ty_pl", "(c1 varchar, c2 char, o_ty out SYS_REFCURSOR) as begin open o_ty for SELECT ty_test(c1, c2) from (select c1 as c1, c2 as c2 from dual); end;");
+
+        CallableStatement cstmt = connection.prepareCall("call ty_pl(?, ?, ?)");
+        cstmt.setString(1, "hello");
+        cstmt.setString(2, "上海");
+        cstmt.registerOutParameter(3, Types.REF_CURSOR);
+        cstmt.execute();
+
+        ResultSet rs = (ResultSet)cstmt.getObject(3);
+        rs.next();
+        Struct struct = (Struct) rs.getObject(1);
+        Object[] attributes = struct.getAttributes();
+        assertEquals(2, attributes.length);
+        assertEquals("hello", attributes[0]);
+        assertEquals("上海    ", attributes[1]);
+    }
 }

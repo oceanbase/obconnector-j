@@ -2463,6 +2463,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 // number type use UTF-8 to convert
                 break;
             case ComplexDataType.TYPE_VARCHAR2:
+            case ComplexDataType.TYPE_CHAR:
                 b = packet.readLenByteArray(0);
                 value = new String(b, 0, b.length, charset);
                 break;
@@ -2481,10 +2482,6 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_OBJECT:
                 value = getComplexStruct(packet, type, connection);
-                break;
-            case ComplexDataType.TYPE_CHAR:
-                b = packet.readLenByteArray(0);
-                value = (char) (b[0]);
                 break;
             case ComplexDataType.TYPE_CLOB:
                 b = packet.readLenByteArray(0);
