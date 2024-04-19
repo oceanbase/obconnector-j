@@ -252,6 +252,9 @@ public class BinaryRowProtocol extends RowProtocol {
                                 return;
                             case CURSOR:
                                 this.pos = internalPos;
+                                if (this.buf != null && this.buf.length >= this.pos) {
+                                    this.length = this.buf[this.pos];
+                                }
                                 this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                                 return;
                             case BINARY_FLOAT:

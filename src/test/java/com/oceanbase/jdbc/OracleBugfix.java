@@ -3121,4 +3121,44 @@ public class OracleBugfix extends BaseOracleTest {
         Assert.assertEquals(i, columnCount);
     }
 
+    @Test
+    public void testCursorGetStringAndGetBytes() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("create or replace procedure abcd_test1(\n" +
+                "          var_result_info out varchar2,\n" +
+                "          value_list out sys_refcursor) IS\n" +
+                "          BEGIN\n" +
+                "              open value_list for\n" +
+                "          select\n" +
+                "            1 as usercode,\n" +
+                "            2 as username\n" +
+                "          from\n" +
+                "            dual;\n" +
+                "                var_result_info := 'asdasdasd';\n" +
+                "         \n" +
+                "          end;");
+        CallableStatement statement = sharedConnection.prepareCall("DECLARE\n"
+                + "  var_result_info varchar2(32767);\n"
+                + "  value_list sys_refcursor;\n"
+                + "BEGIN\n"
+                + "  \"ABCD_TEST1\"(var_result_info => "
+                + "var_result_info, value_list => value_list);\n"
+                + "  ? := var_result_info;\n"
+                + "  ? := value_list;\n"
+                + "END;");
+        statement.registerOutParameter(1, Types.VARCHAR);
+        statement.registerOutParameter(2, Types.REF);
+        statement.executeQuery();
+        assertEquals("asdasdasd",statement.getString(1));
+        statement.getString(2);
+        assertEquals(1,statement.getBytes(2)[0]);
+        ResultSet resultSet = (ResultSet) statement.getObject(2);
+        ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+        while (resultSet.next()) {
+            for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+                assertEquals(j+"",resultSet.getString(j));
+            }
+        }
+    }
+
 }
