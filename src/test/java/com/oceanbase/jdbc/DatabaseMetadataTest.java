@@ -1890,4 +1890,19 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("TABLE_TYPE", metaData2.getColumnLabel(4));
         assertEquals("TABLE", rs.getString(4));
     }
+
+    @Test
+    public void testForAone56144336() throws SQLException {
+        Connection conn = sharedConnection;
+        DatabaseMetaData metaData = conn.getMetaData();
+        // lower_case_table_names == 1
+        assertTrue(metaData.storesLowerCaseIdentifiers());
+        assertFalse(metaData.storesMixedCaseIdentifiers());
+        assertFalse(metaData.storesUpperCaseIdentifiers());
+        assertTrue(metaData.storesLowerCaseQuotedIdentifiers());
+        assertFalse(metaData.storesMixedCaseQuotedIdentifiers());
+        assertTrue(metaData.storesUpperCaseQuotedIdentifiers());
+        assertFalse(metaData.supportsMixedCaseIdentifiers());
+        assertFalse(metaData.supportsMixedCaseQuotedIdentifiers());
+    }
 }

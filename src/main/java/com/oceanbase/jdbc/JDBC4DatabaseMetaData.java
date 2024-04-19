@@ -2021,7 +2021,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (this.connection.getProtocol().isOracleMode()) {
             return super.storesMixedCaseIdentifiers();
         }
-        return (connection.getLowercaseTableNames() == 2);
+        return (connection.getLowercaseTableNames() != 1);
     }
 
     public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
@@ -2029,7 +2029,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean storesUpperCaseQuotedIdentifiers() {
-        return storesUpperCaseIdentifiers();
+        if (this.connection.getProtocol().isOracleMode()) {
+            return super.storesUpperCaseIdentifiers();
+        }
+        return true;
     }
 
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
