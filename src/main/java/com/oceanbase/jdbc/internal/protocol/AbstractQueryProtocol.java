@@ -2479,6 +2479,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
         bufferEof.skipBytes(2); // Skip warningCount
         short currentStatus = bufferEof.readShort();
+        this.serverStatus |= (short) (currentStatus & ServerStatus.IN_TRANSACTION);
         /**
          * We don't send an ok packet after all result set rows;
          * Ob server send an execution response packet, but the PS_OUT_PARAMETERS is set

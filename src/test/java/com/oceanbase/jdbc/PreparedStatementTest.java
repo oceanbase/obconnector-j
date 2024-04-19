@@ -779,4 +779,33 @@ public class PreparedStatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testSendRollback() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&useOraclePrepareExecute=false");
+        createTable("t0", "c0 int");
+        Statement statement = conn.createStatement();
+        for (int i = 0; i < 20; i++) {
+            statement.addBatch("insert into t0 values(" + i + ")");
+        }
+        statement.executeBatch();
+
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement("select * from t0 for update");
+        ps.setFetchSize(10);
+        ResultSet rs = ps.executeQuery();
+        //assertTrue(rs.next());
+        ps.close();
+        conn.rollback();
+        System.out.println("111");
+
+        Connection conn2 = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        conn2.setAutoCommit(false);
+        PreparedStatement ps2 = conn2.prepareStatement("select * from t0 for update");
+        ResultSet rs2 = ps2.executeQuery();
+        //assertTrue(rs2.next());
+        ps2.close();
+        conn2.rollback();
+        System.out.println("222");
+    }
+
 }
