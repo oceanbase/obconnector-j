@@ -1592,7 +1592,10 @@ public class OceanBaseStatement implements Statement, Cloneable {
     if (this.maxRows > 0 && rows > this.maxRows
         || this.protocol.isOracleMode() && rows < 0 && (!options.extendOracleResultSetClass || rows != Integer.MIN_VALUE)
         || !this.protocol.isOracleMode() && rows < 0 && rows != Integer.MIN_VALUE) {
-        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
+        if (!this.protocol.isOracleMode()) {
+            throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
+        }
+        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size. in Oracle mode, extendOracleResultSetClass is ineffective if useOraclePrepareExecute is set to true or usePieceData is set to true");
     }
 
     // Oracle JDBC would change 0 to default, which means there is no need to set

@@ -1073,7 +1073,7 @@ public enum DefaultOptions {
             "extendOracleResultSetClass",
             Boolean.FALSE,
             "2.4.7",
-            "Provides how to use streaming result set and complete result sets under the ps protocol",
+            "Provides how to use streaming result set and complete result sets under the ps protocol, in Oracle mode, extendOracleResultSetClass is ineffective if useOraclePrepareExecute is set to true or usePieceData is set to true.",
             false),
     LOG_TRACE_TIME(
             "logTraceTime",
@@ -1473,6 +1473,7 @@ public enum DefaultOptions {
     if (options.usePieceData) {
       options.useOraclePrepareExecute = true;
       options.useCursorFetch = true;
+      options.extendOracleResultSetClass = false;
     }
 
     // cursor functionality is available only for server-side prepared statements
@@ -1498,6 +1499,10 @@ public enum DefaultOptions {
 
     if (credentialPlugin != null && credentialPlugin.mustUseSsl()) {
       options.useSsl = Boolean.TRUE;
+    }
+
+    if (options.useOraclePrepareExecute) {
+      options.extendOracleResultSetClass = false;
     }
   }
 

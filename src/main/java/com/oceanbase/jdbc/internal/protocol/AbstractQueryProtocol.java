@@ -84,7 +84,6 @@ import com.oceanbase.jdbc.internal.com.send.*;
 import com.oceanbase.jdbc.internal.com.send.parameters.LongDataParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
-import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;

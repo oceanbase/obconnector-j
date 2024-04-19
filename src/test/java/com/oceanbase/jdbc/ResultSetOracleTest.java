@@ -1934,4 +1934,34 @@ public class ResultSetOracleTest extends BaseOracleTest {
             assertEquals(null, rs.getBigDecimal(2));
         }
     }
+
+    @Test
+    public void testForAone55822952() {
+        try {
+            Connection conn = setConnectionOrigin("?useOraclePrepareExecute=false&extendOracleResultSetClass=true");
+            createTable("t_clob", "c1 varchar2(20)");
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into t_clob values ('abcdefg')");
+
+            createProcedure("pro_select",
+                " (a1 out varchar2) is begin select c1 into a1 from t_clob; end");
+            CallableStatement cs = conn.prepareCall(" call pro_select(?)");
+            cs.setFetchSize(Integer.MIN_VALUE);
+            cs.registerOutParameter(1, Types.VARCHAR);
+            cs.execute();
+            assertEquals("abcdefg", cs.getString(1));
+
+            Connection conn2 = setConnectionOrigin("?useOraclePrepareExecute=true&extendOracleResultSetClass=true");
+            CallableStatement cs2 = conn2.prepareCall(" call pro_select(?)");
+            try {
+                cs2.setFetchSize(Integer.MIN_VALUE);
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("invalid fetch size. in Oracle mode, extendOracleResultSetClass is ineffective if useOraclePrepareExecute is set to true or usePieceData is set to true"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }
