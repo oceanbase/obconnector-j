@@ -50,8 +50,7 @@ import org.junit.Test;
 import java.sql.*;
 import java.sql.Clob;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class ExecuteBatchOracleTest extends BaseOracleTest {
 
@@ -230,6 +229,23 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         assertEquals(31, rs.getInt(1));
         Assert.assertTrue(rs.next());
         assertEquals(41, rs.getInt(1));
+    }
+
+    @Test
+    public void testEncloseParamInParenthesesForAone101574594() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        try {
+            conn.createStatement().execute("drop table t2");
+        } catch (SQLException ignored) {
+
+        }
+        PreparedStatement ps = conn.prepareStatement("CREATE TABLE t2(c1 INT ,c2 INT) PARTITION BY HASH(c1) PARTITIONS ?");
+        ps.setInt(1, 2);
+        try {
+            ps.execute();
+        } catch (SQLException e) {
+            fail();
+        }
     }
 
 }

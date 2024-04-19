@@ -364,6 +364,7 @@ public class ComQuery {
 
     /**
      * Use encloseParamInParentheses to determine whether to add parentheses
+     * starting from 2.4.10, add spaces before parameters
      * @param pos output stream
      * @param parameter the value
      * @throws IOException
@@ -371,11 +372,8 @@ public class ComQuery {
      */
     public static void addParenthesesArroundValue(PacketOutputStream pos, ParameterHolder parameter) throws IOException, SQLException {
         if (pos.isOracleMode() && pos.isEncloseParamInParentheses()) {
-            pos.write("(".getBytes(pos.getCharset()));
+            pos.write(" ".getBytes(pos.getCharset()));
         }
         parameter.writeTo(pos);
-        if (pos.isOracleMode() && pos.isEncloseParamInParentheses()) {
-            pos.write(")".getBytes(pos.getCharset()));
-        }
     }
 }

@@ -1098,7 +1098,7 @@ public enum DefaultOptions {
             "encloseParamInParentheses",
             Boolean.TRUE,
             "2.4.8",
-            "When oracle mode binds a parameter through text protocol, enclose the parameter values in parentheses.",
+            "When oracle mode binds a parameter through text protocol, enclose the parameter values in parentheses. starting from 2.4.10, add spaces before parameters",
             false),
     REMARKS_REPORTING(
             "remarksReporting",
