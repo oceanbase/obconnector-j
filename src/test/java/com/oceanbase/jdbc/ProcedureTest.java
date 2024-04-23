@@ -372,4 +372,59 @@ public class ProcedureTest extends BaseTest {
         assertEquals(5, cs.getInt(2));
     }
 
+
+    @Test
+    public void testForAone55798407() throws SQLException {
+        Connection conn = sharedConnection;
+        createProcedure("testP", "(c1 int, c2 int, c3 double(5,2)) begin select 1; end");
+        CallableStatement cs =  conn.prepareCall("{call testP(?, 1, 2.6)}");
+        cs.setInt(1, 1);
+        cs.execute();
+        assertEquals(1, cs.getParameterMetaData().getParameterCount());
+
+        cs =  conn.prepareCall("{call testP(1, ?, 2.6)}");
+        cs.setInt(1, 1);
+        cs.execute();
+        assertEquals(1, cs.getParameterMetaData().getParameterCount());
+
+        conn.prepareCall("{call testP(1, 1, ?)}");
+        cs.setDouble(1, 2.6d);
+        cs.execute();
+        assertEquals(1, cs.getParameterMetaData().getParameterCount());
+
+        createFunction("testFunc", "(c1 int, c2 int, c3 double(5,2))\n returns varchar(20) begin return 'a'; end");
+        CallableStatement cs1 =  conn.prepareCall("{? = call testFunc(?, 1, 2.6)}");
+        cs1.registerOutParameter(1, Types.VARCHAR);
+        cs1.setInt(2, 1);
+        cs1.execute();
+        assertEquals(2, cs1.getParameterMetaData().getParameterCount());
+
+        cs1 =  conn.prepareCall("{? = call testFunc(1, ?, 2.6)}");
+        cs1.registerOutParameter(1, Types.VARCHAR);
+        cs1.setInt(2, 1);
+        cs1.execute();
+        assertEquals(2, cs1.getParameterMetaData().getParameterCount());
+
+        cs1 =  conn.prepareCall("{? = call testFunc(1, 1, ?)}");
+        cs1.registerOutParameter(1, Types.VARCHAR);
+        cs1.setDouble(2, 2.6d);
+        cs1.execute();
+        assertEquals(2, cs1.getParameterMetaData().getParameterCount());
+
+        CallableStatement cs2 = conn.prepareCall("call testP(?, 1, 2.6)");
+        cs2.setInt(1,1);
+        cs2.execute();
+        assertEquals(1, cs2.getParameterMetaData().getParameterCount());
+
+        cs2 = conn.prepareCall("call testP(1, ?, 2.6)");
+        cs2.setInt(1,1);
+        cs2.execute();
+        assertEquals(1, cs2.getParameterMetaData().getParameterCount());
+
+        cs2 = conn.prepareCall("call testP(1, 1, ?)");
+        cs2.setDouble(1,2.6d);
+        cs2.execute();
+        assertEquals(1, cs2.getParameterMetaData().getParameterCount());
+    }
+
 }

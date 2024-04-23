@@ -87,13 +87,15 @@ public class OceanBaseConnection implements ConnectionImpl {
      * documented in JDK have the form: {[?=]call[(arg1,..,,argn)]}
      */
     public static final Pattern      CALLABLE_STATEMENT_PATTERN          = Pattern
-                                                                             .compile(
-                                                                                 "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                                                                                         + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
-                                                                                         + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
-                                                                                         + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
-                                                                                 Pattern.CASE_INSENSITIVE
-                                                                                         | Pattern.DOTALL);
+                                                                             .compile("^(\\s*\\{)?\\s*" +                                                       // Match start character "{"
+                                                                                         "(" +                                                                  // begin of match group 2
+                                                                                         "(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*" +              // match the character like "？=", and commnet
+                                                                                         "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*" +                     // match the keyword call， and comment
+                                                                                         "((((`[^`]+`)|([^`\\}\\(]+))\\.)?((`[^`]+`)|([^`\\}\\(]+)))\\s*" +     // match the databaseName and procedureName， like database.procedure
+                                                                                         "(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?" +        // match the procedureParams，and comment begin of （
+                                                                                         ")\\s*" +                                                              // end of match group 2
+                                                                                         "(\\}\\s*)?$"                                                          // Match start character "}"
+                                                                                     ,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */
