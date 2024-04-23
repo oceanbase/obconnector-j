@@ -233,6 +233,7 @@ public class Options implements Cloneable {
     public boolean encloseParamInParentheses = true; // todo: default false may be better
     public boolean remarksReporting = false;
     public boolean useCompatibleMetadata;
+    public boolean generateSimpleParameterMetadata;
 
     @Override
     public String toString() {

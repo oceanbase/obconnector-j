@@ -1105,8 +1105,13 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.9",
             "add options for getTable interface query associated with two views all_objects and all_tab_comments",
-            false
-    );
+            false),
+    GENERATE_SIMPLE_PARAMETER_METADATA(
+            "generateSimpleParameterMetadata",
+            Boolean.FALSE,
+            "2.4.10",
+            "add options for ParameterMetadata compatibility in mysql mode",
+            false);
 
   private final String optionName;
   private final String description;

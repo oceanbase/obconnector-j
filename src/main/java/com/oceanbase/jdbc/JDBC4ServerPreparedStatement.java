@@ -316,7 +316,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     parameterCount = serverPrepareResult.getParamCount();
     resultSetMetaData = new OceanBaseResultSetMetaData(serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(),
         false, this.protocol.isOracleMode(), addRowid ? 1 : 0);
-    parameterMetaData = new OceanBaseParameterMetaData(serverPrepareResult.getParameters());
+    parameterMetaData = new OceanBaseParameterMetaData(serverPrepareResult.getParameters(), parameterCount, options.generateSimpleParameterMetadata);
   }
 
   public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {

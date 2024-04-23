@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -61,9 +62,17 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     private final ColumnDefinition[] parametersInformation;
+    private int parameterCount;
+    private boolean generateSimpleParameterMetadata;
 
     public OceanBaseParameterMetaData(ColumnDefinition[] parametersInformation) {
         this.parametersInformation = parametersInformation;
+    }
+
+    public OceanBaseParameterMetaData(ColumnDefinition[] parametersInformation, int parameterCount, boolean generateSimpleParameterMetadata) {
+        this.parametersInformation = parametersInformation;
+        this.parameterCount = parameterCount;
+        this.generateSimpleParameterMetadata = generateSimpleParameterMetadata;
     }
 
     private void checkAvailable() throws SQLException {
@@ -74,7 +83,9 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     @Override
     public int getParameterCount() throws SQLException {
-        checkAvailable();
+        if (parametersInformation == null) {
+            return parameterCount;
+        }
         return parametersInformation.length;
     }
 
@@ -99,17 +110,27 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     @Override
     public boolean isSigned(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return false;
+        }
         return getParameterInformation(param).isSigned();
     }
-
     @Override
     public int getPrecision(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return 0;
+        }
         long length = getParameterInformation(param).getLength();
         return (length > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) length;
     }
-
     @Override
     public int getScale(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return 0;
+        }
         if (ColumnType.isNumeric(getParameterInformation(param).getColumnType())) {
             return getParameterInformation(param).getDecimals();
         }
@@ -126,17 +147,29 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
      */
     @Override
     public int getParameterType(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return Types.VARCHAR;
+        }
         throw ExceptionFactory.INSTANCE
             .notSupported("Getting parameter type metadata are not supported");
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return "VARCHAR";
+        }
         return getParameterInformation(param).getColumnType().getTypeName();
     }
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
+        if (generateSimpleParameterMetadata) {
+            checkBounds(param);
+            return "java.lang.String";
+        }
         return getParameterInformation(param).getColumnType().getClassName();
     }
 
@@ -161,5 +194,16 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
         return iface.isInstance(this);
+    }
+
+    public void checkBounds(int paramNumber) throws SQLException {
+        if (paramNumber < 1) {
+            throw new SQLException(
+                    "Parameter index of '" + paramNumber + "' is invalid.");
+        }
+        if (paramNumber > this.parameterCount) {
+            throw new SQLException(
+                    "Parameter index of '" + paramNumber + "' is greater than number of parameters, which is '" + this.parameterCount + "'.");
+        }
     }
 }

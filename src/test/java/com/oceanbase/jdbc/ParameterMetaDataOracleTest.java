@@ -44,11 +44,13 @@
 package com.oceanbase.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.sql.*;
 
 import org.junit.Ignore;
+import org.junit.Test;
 
 public class ParameterMetaDataOracleTest extends BaseOracleTest {
 
@@ -145,6 +147,26 @@ public class ParameterMetaDataOracleTest extends BaseOracleTest {
         assertEquals(3, paramMeta.getScale(4));
         assertEquals(true, paramMeta.isSigned(4));// mysql: false
         assertEquals(paramMeta.parameterNullable, paramMeta.isNullable(4));// maria: parameterNullableUnknown
+    }
+
+    @Test
+    public void testGenerateSimpleParameterMetadata() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table test_SimpleParameterMetaData");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table test_SimpleParameterMetaData (v0 int , v1 varchar(32) , v2 date)");
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_SimpleParameterMetaData (v0 , v1 , v2) values (? , ? , ?)");
+        ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+
+        try {
+            parameterMetaData.getParameterType(1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Getting parameter type metadata are not supported", e.getMessage());
+        }
     }
 
 }

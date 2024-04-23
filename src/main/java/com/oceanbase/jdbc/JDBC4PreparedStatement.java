@@ -598,21 +598,8 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
     return parameterMetaData;
   }
 
-  private void loadParametersData() throws SQLSyntaxErrorException {
-    try (ServerSidePreparedStatement ssps =
-        new ServerSidePreparedStatement(
-                false,
-            connection,
-            actualSql,
-            ResultSet.TYPE_SCROLL_INSENSITIVE,
-            ResultSet.CONCUR_READ_ONLY,
-                NO_GENERATED_KEYS,
-            exceptionFactory)) {
-      resultSetMetaData = ssps.getMetaData();
-      parameterMetaData = ssps.getParameterMetaData();
-    } catch (Exception exception) {
-      parameterMetaData = new SimpleParameterMetaData(parameterCount);
-    }
+  private void loadParametersData() {
+    parameterMetaData = new OceanBaseParameterMetaData(null , parameterCount, options.generateSimpleParameterMetadata);
   }
 
   /**

@@ -1,11 +1,11 @@
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertEquals;
-
 import java.math.BigDecimal;
 import java.sql.*;
 
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class ParameterMetaDataTest extends BaseTest {
 
@@ -102,6 +102,65 @@ public class ParameterMetaDataTest extends BaseTest {
         assertEquals(3, paramMeta.getScale(4));
         assertEquals(true, paramMeta.isSigned(4));// mysql: false
         assertEquals(paramMeta.parameterNullable, paramMeta.isNullable(4));// maria: parameterNullableUnknown
+    }
+
+    @Test
+    public void testGenerateSimpleParameterMetadata() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("drop table test_SimpleParameterMetaData");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table test_SimpleParameterMetaData (v0 int , v1 varchar(32) , v2 date)");
+        Connection conn = setConnection("&useServerPrepStmts=true&generateSimpleParameterMetadata=true");
+        PreparedStatement pstmt = conn.prepareStatement("insert into test_SimpleParameterMetaData (v0 , v1 , v2) values (? , ? , ?)");
+        ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+        assertEquals(3, parameterMetaData.getParameterCount());
+        assertFalse(parameterMetaData.isSigned(1));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(1));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(1));
+        assertEquals(0, parameterMetaData.getPrecision(1));
+        assertEquals(0, parameterMetaData.getScale(1));
+
+        assertFalse(parameterMetaData.isSigned(2));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(2));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(2));
+        assertEquals(0, parameterMetaData.getPrecision(2));
+        assertEquals(0, parameterMetaData.getScale(2));
+
+        assertFalse(parameterMetaData.isSigned(3));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(3));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(3));
+        assertEquals(0, parameterMetaData.getPrecision(3));
+        assertEquals(0, parameterMetaData.getScale(3));
+
+        conn = setConnection("&useServerPrepStmts=false&generateSimpleParameterMetadata=true");
+        pstmt = conn.prepareStatement("insert into test_SimpleParameterMetaData (v0 , v1 , v2) values (? , ? , ?)");
+        parameterMetaData = pstmt.getParameterMetaData();
+        assertEquals(3, parameterMetaData.getParameterCount());
+        assertFalse(parameterMetaData.isSigned(1));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(1));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(1));
+        assertEquals(0, parameterMetaData.getPrecision(1));
+        assertEquals(0, parameterMetaData.getScale(1));
+
+        assertFalse(parameterMetaData.isSigned(2));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(2));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(2));
+        assertEquals(0, parameterMetaData.getPrecision(2));
+        assertEquals(0, parameterMetaData.getScale(2));
+
+        assertFalse(parameterMetaData.isSigned(3));
+        assertEquals(12, parameterMetaData.getParameterType(1));
+        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(3));
+        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(3));
+        assertEquals(0, parameterMetaData.getPrecision(3));
+        assertEquals(0, parameterMetaData.getScale(3));
     }
 
 }
