@@ -67,7 +67,7 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void testPooledConnectionClosed() throws Exception {
-        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname
+        ConnectionPoolDataSource ds = new OceanBasePoolDataSource(hostname != null ? hostname
             : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         Connection connection = pc.getConnection();
@@ -91,7 +91,7 @@ public class PooledConnectionTest extends BaseTest {
         Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null
                           && System.getenv("SKYSQL") == null);
 
-        ConnectionPoolDataSource ds = new OceanBaseDataSource(hostname != null ? hostname
+        ConnectionPoolDataSource ds = new OceanBasePoolDataSource(hostname != null ? hostname
             : "localhost", port, database);
         PooledConnection pc = null;
         try {
@@ -121,8 +121,8 @@ public class PooledConnectionTest extends BaseTest {
     @Test
   public void testPooledConnectionStatementError() throws Exception {
     Assume.assumeFalse(options.useSsl != null && options.useSsl);
-    ConnectionPoolDataSource ds =
-        new OceanBaseDataSource(hostname != null ? hostname : "localhost", port, database);
+        ConnectionPoolDataSource ds =
+        new OceanBasePoolDataSource(hostname != null ? hostname : "localhost", port, database);
     PooledConnection pc = ds.getPooledConnection(username, password);
     MyEventListener listener = new MyEventListener();
     pc.addStatementEventListener(listener);

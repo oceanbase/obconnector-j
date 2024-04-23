@@ -64,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.sql.PooledConnection;
 
 import org.junit.Assume;
 import org.junit.Test;
@@ -515,7 +516,6 @@ public class OceanBasePoolDataSourceTest extends BaseTest {
     try (OceanBasePoolDataSource pool =
         new OceanBasePoolDataSource(
             "jdbc:oceanbase://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
-      pool.initialize();
       long start = System.currentTimeMillis();
       try (Connection connection = pool.getConnection()) {
         fail();
@@ -552,4 +552,83 @@ public class OceanBasePoolDataSourceTest extends BaseTest {
       }
     }
   }
+
+    @Test
+    public void testPoolConnForAone55901400() throws SQLException, InterruptedException {
+        // pool == false， do not use pool
+        OceanBasePoolDataSource pool = new OceanBasePoolDataSource(connUri + "&maxPoolSize=2");
+        testPoolComm(pool);
+
+        // pool == true， use pool
+        OceanBasePoolDataSource pool2 = new OceanBasePoolDataSource(connUri
+                                                                    + "&maxPoolSize=2&pool=true");
+        testPoolComm(pool2);
+
+        // more than maxPoolSize=2
+        for (int i = 0; i < 3; i++) {
+          PooledConnection pooledConnection = null;
+          try {
+            pooledConnection = pool2.getPooledConnection();
+            if (i == 2) {
+              fail();
+            }
+            Connection connection = pooledConnection.getConnection();
+            ResultSet resultSet = connection.createStatement().executeQuery("select " + i);
+            resultSet.next();
+            assertEquals(i, resultSet.getInt(1));
+          } catch (SQLException e) {
+            assertEquals("No connection available within the specified time (option 'connectTimeout': 30,000 ms)", e.getMessage());
+          }
+        }
+    }
+
+    public void testPoolComm(OceanBasePoolDataSource pool) throws SQLException,
+                                                          InterruptedException {
+        for (int i = 0; i < 5; i++) {
+            // pool == false : Create a new physical conn
+            // pool == true  : take from pool
+            Connection connection = pool.getConnection();
+            ResultSet resultSet = connection.createStatement().executeQuery("select " + i);
+            resultSet.next();
+            assertEquals(i, resultSet.getInt(1));
+            // pool == false : real close
+            // pool == true  : recycle to connection pool
+            connection.close();
+        }
+
+        for (int i = 0; i < 5; i++) {
+            // pool == false : Create a new physical conn
+            // pool == true  : take from pool
+            PooledConnection pooledConnection = pool.getPooledConnection();
+            Connection connection = pooledConnection.getConnection();
+            ResultSet resultSet = connection.createStatement().executeQuery("select " + i);
+            resultSet.next();
+            assertEquals(i, resultSet.getInt(1));
+            // pool == false : because the pooledConnection does not have a listener, closing at this point has no practical significance
+            // pool == true  : recycle to connection pool
+            connection.close();
+        }
+
+        for (int i = 0; i < 5; i++) {
+            // pool == false : Create a new physical conn
+            // pool == true  : take from pool
+            PooledConnection pooledConnection = pool.getPooledConnection("test@tt1", "test");
+            Connection connection = pooledConnection.getConnection();
+
+            ResultSet resultSet = connection.createStatement().executeQuery("select " + i);
+            resultSet.next();
+            assertEquals(i, resultSet.getInt(1));
+
+            // pool == false : because the pooledConnection does not have a listener, closing at this point has no practical significance
+            // pool == true  : recycle to connection pool
+            connection.close();
+
+            //  pool == false : conn is truly closed. When the next getPooledConnection occurs, a new one will be created directly
+            //  pool == true  : conn is truly closed，and will be removed from the pool when the next getPooledConnection occurs
+            pooledConnection.close();
+            // pool == true  :Verify if the conn is valid based on options.poolValidMinDelay， with a default value of 1000ms
+            Thread.sleep(1100);
+        }
+    }
+
 }

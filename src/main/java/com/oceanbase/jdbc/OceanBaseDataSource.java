@@ -64,17 +64,16 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 
-public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
+public class OceanBaseDataSource implements DataSource, XADataSource {
 
     private UrlParser urlParser;
-
-    private String    hostname;
-    private Integer   port = null;
-    private Integer   connectTimeoutInMs;
-    private String    database;
-    private String    url;
-    private String    user;
-    private String    password;
+    protected String  hostname;
+    protected Integer port = null;
+    protected Integer connectTimeoutInMs;
+    protected String  database;
+    protected String  url;
+    protected String  user;
+    protected String  password;
     private String    properties;
 
     /**
@@ -181,7 +180,7 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
      * @return the port number
      */
     public int getPort() {
-        if (port != 0) {
+        if (port != null && port != 0) {
             return port;
         }
         return urlParser != null ? urlParser.getHostAddresses().get(0).port : 3306;
@@ -373,7 +372,7 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
      * @see #getLoginTimeout
      */
     @Override
-    public void setLoginTimeout(final int seconds) {
+    public void setLoginTimeout(final int seconds) throws SQLException {
         connectTimeoutInMs = seconds * 1000;
     }
 
@@ -426,30 +425,6 @@ public class OceanBaseDataSource implements DataSource, ConnectionPoolDataSource
      */
     public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
         return interfaceOrWrapper.isInstance(this);
-    }
-
-    /**
-     * Attempts to establish a physical database connection that can be used as a pooled connection.
-     *
-     * @return a <code>PooledConnection</code> object that is a physical connection to the database
-     *     that this <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException if a database access error occurs
-     */
-    public PooledConnection getPooledConnection() throws SQLException {
-        return new OceanBasePooledConnection((OceanBaseConnection) getConnection());
-    }
-
-    /**
-     * Attempts to establish a physical database connection that can be used as a pooled connection.
-     *
-     * @param user the database user on whose behalf the connection is being made
-     * @param password the user's password
-     * @return a <code>PooledConnection</code> object that is a physical connection to the database
-     *     that this <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException if a database access error occurs
-     */
-    public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-        return new OceanBasePooledConnection((OceanBaseConnection) getConnection(user, password));
     }
 
     @Override

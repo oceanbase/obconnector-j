@@ -398,15 +398,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         return pooledConnection;
     }
 
-    /**
-     * Retrieve new connection. If possible return idle connection, if not, stack connection query,
-     * ask for a connection creation, and loop until a connection become idle / a new connection is
-     * created.
-     *
-     * @return a connection object
-     * @throws SQLException if no connection is created when reaching timeout (connectTimeout option)
-     */
-    public OceanBaseConnection getConnection() throws SQLException {
+    public OceanBasePooledConnection getPooledConnection() throws SQLException {
 
         pendingRequestNumber.incrementAndGet();
 
@@ -417,7 +409,7 @@ public class Pool implements AutoCloseable, PoolMBean {
             // try to get Idle connection if any (with a very small timeout)
             if ((pooledConnection = getIdleConnection(totalConnection.get() > 4 ? 0 : 50,
                 TimeUnit.MICROSECONDS)) != null) {
-                return pooledConnection.getConnection();
+                return pooledConnection;
             }
 
             // ask for new connection creation if max is not reached
@@ -426,7 +418,7 @@ public class Pool implements AutoCloseable, PoolMBean {
             // try to create new connection if semaphore permit it
             if ((pooledConnection = getIdleConnection(
                 TimeUnit.MILLISECONDS.toNanos(options.connectTimeout), TimeUnit.NANOSECONDS)) != null) {
-                return pooledConnection.getConnection();
+                return pooledConnection;
             }
 
             throw ExceptionFactory.INSTANCE
@@ -440,6 +432,18 @@ public class Pool implements AutoCloseable, PoolMBean {
         } finally {
             pendingRequestNumber.decrementAndGet();
         }
+    }
+
+    /**
+     * Retrieve new connection. If possible return idle connection, if not, stack connection query,
+     * ask for a connection creation, and loop until a connection become idle / a new connection is
+     * created.
+     *
+     * @return a connection object
+     * @throws SQLException if no connection is created when reaching timeout (connectTimeout option)
+     */
+    public OceanBaseConnection getConnection() throws SQLException {
+        return getPooledConnection().getConnection();
     }
 
     /**

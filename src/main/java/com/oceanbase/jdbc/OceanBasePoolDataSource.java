@@ -68,25 +68,20 @@ import com.oceanbase.jdbc.internal.util.pool.Pools;
 import com.oceanbase.jdbc.util.DefaultOptions;
 import com.oceanbase.jdbc.util.Options;
 
-public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSource, XADataSource,
-                                    Closeable, AutoCloseable {
+public class OceanBasePoolDataSource extends OceanBaseDataSource implements
+                                                                ConnectionPoolDataSource,
+                                                                XADataSource, Closeable,
+                                                                AutoCloseable {
 
-    private UrlParser urlParser;
+    private UrlParser poolUrlParser;
     private Pool      pool;
-
-    private String    hostname;
-    private Integer   port;
-    private Integer   connectTimeout;
-    private String    database;
-    private String    url;
-    private String    user;
-    private String    password;
     private String    poolName;
     private Integer   maxPoolSize;
     private Integer   minPoolSize;
     private Integer   maxIdleTime;
     private Boolean   staticGlobal;
     private Integer   poolValidMinDelay;
+    private Boolean   enablePool;
 
     /**
      * Constructor.
@@ -96,30 +91,15 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      * @param database database name
      */
     public OceanBasePoolDataSource(String hostname, int port, String database) {
-        this.hostname = hostname;
-        this.port = port;
-        this.database = database;
+        super(hostname, port, database);
     }
 
     public OceanBasePoolDataSource(String url) {
-        this.url = url;
+        super(url);
     }
 
     /** Default constructor. hostname will be localhost, port 3306. */
     public OceanBasePoolDataSource() {
-    }
-
-    /**
-     * Gets the name of the database.
-     *
-     * @return the name of the database for this data source
-     */
-    public String getDatabaseName() {
-        if (database != null) {
-            return database;
-        }
-        return (urlParser != null && urlParser.getDatabase() != null) ? urlParser.getDatabase()
-            : "";
     }
 
     /**
@@ -137,18 +117,6 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
         if (pool != null) {
             throw new SQLException("can not perform a configuration change once initialized");
         }
-    }
-
-    /**
-     * Gets the username.
-     *
-     * @return the username to use when connecting to the database
-     */
-    public String getUser() {
-        if (user != null) {
-            return user;
-        }
-        return urlParser != null ? urlParser.getUsername() : null;
     }
 
     /**
@@ -171,18 +139,6 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
     public void setPassword(String password) throws SQLException {
         checkNotInitialized();
         this.password = password;
-    }
-
-    /**
-     * Returns the port number.
-     *
-     * @return the port number
-     */
-    public int getPort() {
-        if (port != null && port != 0) {
-            return port;
-        }
-        return urlParser != null ? urlParser.getHostAddresses().get(0).port : 3306;
     }
 
     /**
@@ -231,20 +187,6 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
     }
 
     /**
-     * Returns the name of the database server.
-     *
-     * @return the name of the database server
-     */
-    public String getServerName() {
-        if (hostname != null) {
-            return hostname;
-        }
-        boolean hasHost = urlParser != null
-                          && this.urlParser.getHostAddresses().get(0).host != null;
-        return (hasHost) ? this.urlParser.getHostAddresses().get(0).host : "localhost";
-    }
-
-    /**
      * Sets the server name.
      *
      * @param serverName the server name
@@ -256,66 +198,6 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
     }
 
     /**
-     * Attempts to establish a connection with the data source that this <code>DataSource</code>
-     * object represents.
-     *
-     * @return a connection to the data source
-     * @throws SQLException if a database access error occurs
-     */
-    public Connection getConnection() throws SQLException {
-        try {
-            if (pool == null) {
-                initialize();
-            }
-            return pool.getConnection();
-        } catch (SQLException e) {
-            throw ExceptionFactory.INSTANCE.create(e);
-        }
-    }
-
-    /**
-     * Attempts to establish a connection with the data source that this <code>DataSource</code>
-     * object represents.
-     *
-     * @param username the database user on whose behalf the connection is being made
-     * @param password the user's password
-     * @return a connection to the data source
-     * @throws SQLException if a database access error occurs
-     */
-    public Connection getConnection(final String username, final String password)
-                                                                                 throws SQLException {
-        try {
-            if (pool == null) {
-                this.user = username;
-                this.password = password;
-
-                initialize();
-                return pool.getConnection();
-            }
-
-            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username)
-                : username == null)
-                && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password)
-                    : (password == null || password.isEmpty()))) {
-                return pool.getConnection();
-            }
-
-            // username / password are different from the one already used to initialize pool
-            // -> return a real new connection.
-
-            UrlParser urlParser = (UrlParser) this.urlParser.clone();
-            urlParser.setUsername(username);
-            urlParser.setPassword(password);
-            return OceanBaseConnection.newConnection(urlParser, pool.getGlobalInfo());
-
-        } catch (SQLException e) {
-            throw ExceptionFactory.INSTANCE.create(e);
-        } catch (CloneNotSupportedException cloneException) {
-            throw new SQLException("Error in configuration");
-        }
-    }
-
-    /**
      * Attempts to establish a physical database connection that can be used as a pooled connection.
      *
      * @return a <code>PooledConnection</code> object that is a physical connection to the database
@@ -324,7 +206,16 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      *     method
      */
     public PooledConnection getPooledConnection() throws SQLException {
-        return new OceanBasePooledConnection((OceanBaseConnection) getConnection());
+        if (poolUrlParser == null) {
+            initializeUrlParser();
+        }
+        if (enablePool != null && !enablePool) {
+            return new OceanBasePooledConnection((OceanBaseConnection) super.getConnection());
+        }
+        if (pool == null) {
+            initializePool();
+        }
+        return pool.getPooledConnection();
     }
 
     /**
@@ -337,7 +228,33 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      * @throws SQLException if a database access error occurs
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-        return new OceanBasePooledConnection((OceanBaseConnection) getConnection(user, password));
+        if (poolUrlParser == null) {
+            initializeUrlParser();
+        }
+        if (enablePool != null && !enablePool) {
+            return new OceanBasePooledConnection((OceanBaseConnection) super.getConnection(user,
+                password));
+        }
+
+        if (pool == null) {
+            this.user = user;
+            this.password = password;
+
+            initializePool();
+            return pool.getPooledConnection();
+        }
+
+        if ((poolUrlParser.getUsername() != null ? poolUrlParser.getUsername().equals(user)
+            : user == null)
+            && (poolUrlParser.getPassword() != null ? poolUrlParser.getPassword().equals(password)
+                : (password == null || password.isEmpty()))) {
+            return pool.getPooledConnection();
+        }
+
+        // username / password are different from the one already used to initialize pool
+        // -> return a real new PooledConnection.
+        return new OceanBasePooledConnection((OceanBaseConnection) super.getConnection(user,
+            password));
     }
 
     /**
@@ -389,10 +306,10 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      * @since 1.4
      */
     public int getLoginTimeout() {
-        if (connectTimeout != null) {
-            return connectTimeout / 1000;
+        if (connectTimeoutInMs != null) {
+            return connectTimeoutInMs / 1000;
         }
-        return (urlParser != null) ? urlParser.getOptions().connectTimeout / 1000 : 0;
+        return (poolUrlParser != null) ? poolUrlParser.getOptions().connectTimeout / 1000 : 0;
     }
 
     /**
@@ -409,7 +326,7 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
     @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
         checkNotInitialized();
-        connectTimeout = seconds * 1000;
+        connectTimeoutInMs = seconds * 1000;
     }
 
     /**
@@ -484,7 +401,7 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      * @return current url parser.
      */
     protected UrlParser getUrlParser() {
-        return urlParser;
+        return poolUrlParser;
     }
 
     public String getPoolName() {
@@ -577,7 +494,6 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
 
         if (url != null && !url.isEmpty()) {
             Properties props = new Properties();
-            props.setProperty("pool", "true");
             if (user != null) {
                 props.setProperty("user", user);
             }
@@ -600,8 +516,8 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
             if (maxIdleTime != null) {
                 props.setProperty("maxIdleTime", String.valueOf(maxIdleTime));
             }
-            if (connectTimeout != null) {
-                props.setProperty("connectTimeout", String.valueOf(connectTimeout));
+            if (connectTimeoutInMs != null) {
+                props.setProperty("connectTimeout", String.valueOf(connectTimeoutInMs));
             }
             if (staticGlobal != null) {
                 props.setProperty("staticGlobal", String.valueOf(staticGlobal));
@@ -610,12 +526,12 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
                 props.setProperty("poolValidMinDelay", String.valueOf(poolValidMinDelay));
             }
 
-            urlParser = UrlParser.parse(url, props);
+            poolUrlParser = UrlParser.parse(url, props);
+            enablePool = poolUrlParser.getOptions().pool;
 
         } else {
 
             Options options = DefaultOptions.defaultValues(HaMode.NONE);
-            options.pool = true;
             options.user = user;
             options.password = password;
             options.poolName = poolName;
@@ -632,14 +548,19 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
             if (staticGlobal != null) {
                 options.staticGlobal = staticGlobal;
             }
-            if (connectTimeout != null) {
-                options.connectTimeout = connectTimeout;
+            if (connectTimeoutInMs != null) {
+                options.connectTimeout = connectTimeoutInMs;
             }
             if (poolValidMinDelay != null) {
                 options.poolValidMinDelay = poolValidMinDelay;
             }
+            if (enablePool != null) {
+                options.pool = enablePool;
+            } else {
+                enablePool = false;
+            }
 
-            urlParser = new UrlParser(database, Collections.singletonList(new HostAddress(
+            poolUrlParser = new UrlParser(database, Collections.singletonList(new HostAddress(
                 (hostname == null || hostname.isEmpty()) ? "localhost" : hostname,
                 port == null ? 3306 : port)), options, HaMode.NONE);
         }
@@ -661,10 +582,9 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      *
      * @throws SQLException if connection string has error
      */
-    public synchronized void initialize() throws SQLException {
+    private synchronized void initializePool() throws SQLException {
         if (pool == null) {
-            initializeUrlParser();
-            pool = Pools.retrievePool(urlParser);
+            pool = Pools.retrievePool(poolUrlParser);
         }
     }
 
@@ -686,8 +606,8 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
      */
     public void testForceMaxIdleTime(int maxIdleTime) throws SQLException {
         initializeUrlParser();
-        urlParser.getOptions().maxIdleTime = maxIdleTime;
-        pool = Pools.retrievePool(urlParser);
+        poolUrlParser.getOptions().maxIdleTime = maxIdleTime;
+        pool = Pools.retrievePool(poolUrlParser);
     }
 
     /**
@@ -698,4 +618,5 @@ public class OceanBasePoolDataSource implements ConnectionPoolDataSource, DataSo
     public Pool testGetPool() {
         return pool;
     }
+
 }

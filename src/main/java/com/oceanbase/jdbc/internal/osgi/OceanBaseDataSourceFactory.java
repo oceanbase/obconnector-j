@@ -67,36 +67,18 @@ public class OceanBaseDataSourceFactory implements DataSourceFactory {
 
     @Override
     public DataSource createDataSource(Properties props) throws SQLException {
-        if (props != null
-            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
-                .containsKey(JDBC_MAX_IDLE_TIME))) {
-            return createPoolDataSource(props);
-        } else {
-            return createBasicDataSource(props);
-        }
+        return createBasicDataSource(props);
     }
 
     @Override
     public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
                                                                                     throws SQLException {
-        if (props != null
-            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
-                .containsKey(JDBC_MAX_IDLE_TIME))) {
-            return createPoolDataSource(props);
-        } else {
-            return createBasicDataSource(props);
-        }
+        return createPoolDataSource(props);
     }
 
     @Override
     public XADataSource createXADataSource(Properties props) throws SQLException {
-        if (props != null
-            && (props.containsKey(JDBC_MIN_POOL_SIZE) || props.containsKey(JDBC_MAX_POOL_SIZE) || props
-                .containsKey(JDBC_MAX_IDLE_TIME))) {
-            return createPoolDataSource(props);
-        } else {
-            return createBasicDataSource(props);
-        }
+        return createBasicDataSource(props);
     }
 
     @Override

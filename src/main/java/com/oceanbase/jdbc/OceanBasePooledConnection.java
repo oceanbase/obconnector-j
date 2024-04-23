@@ -105,6 +105,12 @@ public class OceanBasePooledConnection implements PooledConnection {
     public void close() throws SQLException {
         connection.pooledConnection = null;
         connection.close();
+        if (statementEventListeners != null) {
+            statementEventListeners.clear();
+        }
+        if (connectionEventListeners != null) {
+            connectionEventListeners.clear();
+        }
     }
 
     /**

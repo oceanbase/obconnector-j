@@ -244,7 +244,7 @@ public class DataSourceTest extends BaseTest {
   }
 
     @Test
-    public void setLoginTimeOut() {
+    public void setLoginTimeOut() throws SQLException {
         OceanBaseDataSource ds = new OceanBaseDataSource(hostname == null ? "localhost" : hostname,
             port, database);
         assertEquals(30, ds.getLoginTimeout());
