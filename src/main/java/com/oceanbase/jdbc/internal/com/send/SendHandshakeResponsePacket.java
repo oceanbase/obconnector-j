@@ -87,6 +87,7 @@ public class SendHandshakeResponsePacket {
     private static final String           _JAVA_VERSION      = "__java_version";
     private static final String           _PROXY_CAPABILITY  = "__proxy_capability_flag";
     private static final String           _CLIENT_CAPABILITY = "__ob_client_attribute_capability_flag";
+    private static final String           _CLIENT_PROXY_USER = "__ob_client_proxy_user_name";
     public static final String            OB_CAPABILITY_FLAG = "ob_capability_flag";                   // tell which features ob supports
 
     /**
@@ -185,7 +186,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0 ) {
-            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp, options.sendConnectionAttributes);
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp, options.sendConnectionAttributes, credential.getProxyUser());
         }
 
         pos.flush();
@@ -277,7 +278,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & OceanBaseCapabilityFlag.CLIENT_CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp,  options.sendConnectionAttributes);
+            writeConnectAttributes(pos, options.connectionAttributes, host, options, clientIp,  options.sendConnectionAttributes, credential.getProxyUser());
         }
 
         pos.flush();
@@ -285,7 +286,7 @@ public class SendHandshakeResponsePacket {
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-                                               String host, Options options, String clientIp, boolean sendConnectionAttributes)
+                                               String host, Options options, String clientIp, boolean sendConnectionAttributes, String proxyUserName)
                                                                                              throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
@@ -389,6 +390,11 @@ public class SendHandshakeResponsePacket {
             buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }
+        if (!banListSet.contains(_CLIENT_PROXY_USER) && (proxyUserName != null && !proxyUserName.isEmpty())) {
+            buffer.writeStringSmallLength(_CLIENT_PROXY_USER.getBytes(pos.getCharset()));
+            buffer.writeStringLength(proxyUserName,  pos.getCharset());
+        }
+
 
         // fixme  __proxy_connection_id to add ,no supported now. It doesn't matter without this code and may be added later
         pos.writeFieldLength(buffer.position);

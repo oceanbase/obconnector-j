@@ -43,9 +43,13 @@
  */
 package com.oceanbase.jdbc;
 
+import com.oceanbase.jdbc.credential.Credential;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConnectionOracleTest extends BaseOracleTest{
 
@@ -56,4 +60,43 @@ public class ConnectionOracleTest extends BaseOracleTest{
         preparedStatement.executeQuery();
         preparedStatement.close();
     }
+
+
+    @Test
+    public void testProxyUser() throws SQLException {
+        // user = padmin[admin]@oracle
+        Connection connection = sharedConnection;
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery("select * from sys.proxy_users");
+        rs.next();
+        Assert.assertEquals("PADMIN", rs.getString(1));
+        Assert.assertEquals("ADMIN", rs.getString(2));
+        Assert.assertEquals("NO", rs.getString(3));
+        Assert.assertEquals("PROXY MAY ACTIVATE ALL CLIENT ROLES", rs.getString(4));
+
+        ResultSet rs2 = statement.executeQuery("select sys_context('userenv', 'current_user'), sys_context('userenv','proxy_user'), sys_context('userenv','authenticated_identity'), SYS_CONTEXT ('USERENV', 'SESSION_USER')  from dual");
+        rs2.next();
+        Assert.assertEquals("ADMIN", rs2.getString(1));
+        Assert.assertEquals("PADMIN", rs2.getString(2));
+        Assert.assertEquals("ADMIN", rs2.getString(3));
+        Assert.assertEquals("ADMIN", rs2.getString(4));
+    }
+
+    @Test
+    public void testResolveUserName() {
+        List<String[]> list = new ArrayList<>();
+        list.add(new String[]{"ad@tt1", "ad@tt1", ""});
+        list.add(new String[]{"ad@tt1[", "ad@tt1[", ""});
+        list.add(new String[]{"ad[s2]@tt1", "ad@tt1", "s2"});
+        list.add(new String[]{"\"u1[xx]\"[\"u2[yy]\"]", "u1[xx]", "u2[yy]"});
+        list.add(new String[]{"\"adsf[]sdfd@\"[\"adfd[bbb]\"]@oracle", "adsf[]sdfd@@oracle", "adfd[bbb]"});
+
+        for (String[] arr : list) {
+            Credential certificate = new Credential(arr[0], "");
+            Assert.assertEquals(arr[1], certificate.getUser());
+            Assert.assertEquals(arr[2], certificate.getProxyUser());
+        }
+    }
+
+
 }

@@ -46,10 +46,12 @@ package com.oceanbase.jdbc.credential;
 public class Credential {
     private String user;
     private String password;
+    private String proxyUser;
 
     public Credential(String user, String password) {
         this.user = user;
         this.password = password;
+        setUsernameAndProxyUsername(user);
     }
 
     public String getUser() {
@@ -62,5 +64,68 @@ public class Credential {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getProxyUser() {
+        return proxyUser;
+    }
+
+    public void setProxyUser(String proxyUser) {
+        this.proxyUser = proxyUser;
+    }
+
+    private void setUsernameAndProxyUsername(String username) {
+        String originUsername = username;
+        try {
+            username = username.trim();
+            int len = username.length();
+            int[] user_pos = {0, len};
+            int[] proxy_user_pos = new int[2];
+            int left_info_pos = len;
+            char lastChar = 0;
+            boolean hasQuota = false;
+
+            char[] usernameCharArray = username.toCharArray();
+            for (int i = 0; i < usernameCharArray.length; i++) {
+                char currentChar = usernameCharArray[i];
+
+                if (i == 0 && (currentChar == '\'' || currentChar == '\"')) {
+                    hasQuota = true;
+                    user_pos[0] = 1;
+                }
+
+                if (hasQuota && currentChar == '[' && (lastChar == '\'' || lastChar == '\"')) {
+                    user_pos[1] = i - 1 ;
+                    proxy_user_pos[0] = i + 1;
+                }
+
+                if (!hasQuota && currentChar == '[') {
+                    user_pos[1] = i ;
+                    proxy_user_pos[0] = i + 1;
+                }
+
+                if (currentChar == ']' && proxy_user_pos[0] != 0) {
+                    proxy_user_pos[1] = i ;
+                    left_info_pos = i;
+                }
+
+                lastChar = currentChar;
+            }
+
+            if (proxy_user_pos[0] != 0 && proxy_user_pos[1] >= proxy_user_pos[0]) {
+                this.user = username.substring(user_pos[0], user_pos[1]) + username.substring(Math.min(left_info_pos + 1, len));
+                this.proxyUser = username.substring(proxy_user_pos[0], proxy_user_pos[1]);
+                if (proxyUser.length() >= 2 && ((proxyUser.startsWith("\"") && proxyUser.endsWith("\"")) || (proxyUser.startsWith("'") && proxyUser.endsWith("'")))) {
+                    this.proxyUser = proxyUser.substring(1, proxyUser.length() - 1);
+                }
+            } else {
+                this.user = originUsername;
+                this.proxyUser = "";
+            }
+
+        } catch (Exception e) {
+            this.user = originUsername;
+            this.proxyUser = "";
+        }
     }
 }
