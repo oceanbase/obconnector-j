@@ -63,16 +63,16 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     private final ColumnDefinition[] parametersInformation;
     private int parameterCount;
-    private boolean generateSimpleParameterMetadata;
+    private boolean returnSimpleMetadata;
 
     public OceanBaseParameterMetaData(ColumnDefinition[] parametersInformation) {
         this.parametersInformation = parametersInformation;
     }
 
-    public OceanBaseParameterMetaData(ColumnDefinition[] parametersInformation, int parameterCount, boolean generateSimpleParameterMetadata) {
+    public OceanBaseParameterMetaData(ColumnDefinition[] parametersInformation, int parameterCount, boolean returnSimpleMetadata) {
         this.parametersInformation = parametersInformation;
         this.parameterCount = parameterCount;
-        this.generateSimpleParameterMetadata = generateSimpleParameterMetadata;
+        this.returnSimpleMetadata = returnSimpleMetadata;
     }
 
     private void checkAvailable() throws SQLException {
@@ -110,7 +110,7 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     @Override
     public boolean isSigned(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return false;
         }
@@ -118,7 +118,7 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
     }
     @Override
     public int getPrecision(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return 0;
         }
@@ -127,7 +127,7 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
     }
     @Override
     public int getScale(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return 0;
         }
@@ -147,17 +147,21 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
      */
     @Override
     public int getParameterType(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return Types.VARCHAR;
         }
-        throw ExceptionFactory.INSTANCE
-            .notSupported("Getting parameter type metadata are not supported");
+        //todo oracle mode temporarily maintain the original state , further research is needed
+        if (getParameterInformation(param).isOracleMode()) {
+            throw ExceptionFactory.INSTANCE
+                    .notSupported("Getting parameter type metadata are not supported");
+        }
+        return getParameterInformation(param).getColumnType().getType();
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return "VARCHAR";
         }
@@ -166,7 +170,7 @@ public class OceanBaseParameterMetaData implements ParameterMetaData {
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
-        if (generateSimpleParameterMetadata) {
+        if (returnSimpleMetadata) {
             checkBounds(param);
             return "java.lang.String";
         }

@@ -551,4 +551,8 @@ public class ColumnDefinition {
     public int getSqltype() {
         return sqltype;
     }
+
+    public boolean isOracleMode() {
+        return isOracleMode;
+    }
 }

@@ -116,24 +116,23 @@ public class ParameterMetaDataTest extends BaseTest {
         PreparedStatement pstmt = conn.prepareStatement("insert into test_SimpleParameterMetaData (v0 , v1 , v2) values (? , ? , ?)");
         ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
         assertEquals(3, parameterMetaData.getParameterCount());
-        assertFalse(parameterMetaData.isSigned(1));
-        assertEquals(12, parameterMetaData.getParameterType(1));
-        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(1));
-        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(1));
+
+        //useServerPrepStmts=true时，由于server返回值与MySQL不一致，导致部分接口的返回值与MySQL-JDBC也不一致，但此处jdbc行为一致
+        assertEquals(8, parameterMetaData.getParameterType(1));
+        assertEquals("BIGINT", parameterMetaData.getParameterTypeName(1));
+        assertEquals("java.lang.Long", parameterMetaData.getParameterClassName(1));
         assertEquals(0, parameterMetaData.getPrecision(1));
         assertEquals(0, parameterMetaData.getScale(1));
 
-        assertFalse(parameterMetaData.isSigned(2));
-        assertEquals(12, parameterMetaData.getParameterType(1));
-        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(2));
-        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(2));
+        assertEquals(8, parameterMetaData.getParameterType(1));
+        assertEquals("BIGINT", parameterMetaData.getParameterTypeName(2));
+        assertEquals("java.lang.Long", parameterMetaData.getParameterClassName(2));
         assertEquals(0, parameterMetaData.getPrecision(2));
         assertEquals(0, parameterMetaData.getScale(2));
 
-        assertFalse(parameterMetaData.isSigned(3));
-        assertEquals(12, parameterMetaData.getParameterType(1));
-        assertEquals("VARCHAR", parameterMetaData.getParameterTypeName(3));
-        assertEquals("java.lang.String", parameterMetaData.getParameterClassName(3));
+        assertEquals(8, parameterMetaData.getParameterType(1));
+        assertEquals("BIGINT", parameterMetaData.getParameterTypeName(3));
+        assertEquals("java.lang.Long", parameterMetaData.getParameterClassName(3));
         assertEquals(0, parameterMetaData.getPrecision(3));
         assertEquals(0, parameterMetaData.getScale(3));
 
