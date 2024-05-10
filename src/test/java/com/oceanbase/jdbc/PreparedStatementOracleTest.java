@@ -471,4 +471,46 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         }
         countDownLatch.await();
     }
+
+    @Test
+    public void testForAone56598230() throws Exception {
+        createTable("testAone", "a varchar(10), b varchar(10), c varchar(10)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into testAone values('a', 'b', 'c')");
+
+        // testForAone56598230 for parameterParts
+        Connection conn = setConnection("&useServerPrepStmts=false&rewriteBatchedStatements=false");;
+        String sql = "/*comment*/select /*+index(a, b)*/* from testAone where a = ? and b = ? and c = ? ";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setString(1, "a");
+        ps.setString(2, "b");
+        ps.setString(3, "c");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+
+        // testForAone56598230 for rewritableParts
+        conn = setConnection("&useServerPrepStmts=false&rewriteBatchedStatements=true");
+        ps = conn.prepareStatement(sql);
+        ps.setString(1, "a");
+        ps.setString(2, "b");
+        ps.setString(3, "c");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+
+        // testForAone56598230 for rewritablePartsInsertSql
+        conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&rewriteBatchedStatements=true");
+        ps = conn.prepareStatement(sql);
+        ps.setString(1, "a");
+        ps.setString(2, "b");
+        ps.setString(3, "c");
+        ps.addBatch();
+        ps.executeBatch();
+
+        // testForAone56598230 for canAggregateSemiColon
+        conn = setConnection("&useServerPrepStmts=false&useOraclePrepareExecute=false&rewriteBatchedStatements=true");
+        Statement statement = conn.createStatement();
+        statement.addBatch("select /*+index(kdpl_zhminx, KDPL_ZHMINX_IDX1)*/* from testAone where a = 'a';");
+        statement.addBatch("select /*+index(kdpl_zhminx, KDPL_ZHMINX_IDX1)*/* from testAone where b = 'b';");
+        statement.executeBatch();
+    }
 }

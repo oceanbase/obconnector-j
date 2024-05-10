@@ -99,6 +99,8 @@ public class ClientPrepareResult implements PrepareResult {
       LexState state = LexState.Normal;
       char lastChar = '\0';
       boolean endingSemicolon = false;
+      int lastCommentEndStarPos = -2;
+      int lastCommentBeginSlashPos = 0;
 
         boolean singleQuotes = false;
         int lastParameterPosition = 0;
@@ -118,15 +120,17 @@ public class ClientPrepareResult implements PrepareResult {
             }
             switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
+                    if (state == LexState.Normal && lastChar == '/' && i > lastCommentEndStarPos + 2 ) {
                         state = LexState.SlashStarComment;
+                        lastCommentBeginSlashPos = i - 1;
                     }
                     break;
 
                 case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
+                    if (state == LexState.SlashStarComment && lastChar == '*' && i > lastCommentBeginSlashPos + 2 ) {
                         state = LexState.Normal;
                         slashend = true;
+                        lastCommentEndStarPos = i - 1;
                     } else if (state == LexState.Normal && slashend && lastChar == '/') {
                         slashend = false;
                         break;
@@ -306,6 +310,9 @@ public class ClientPrepareResult implements PrepareResult {
         boolean singleQuotes = false;
         boolean endingSemicolon = false;
         char[] query = queryString.toCharArray();
+        int lastCommentEndStarPos = -2;
+        int lastCommentBeginSlashPos = 0;
+        int i = 0;
 
         for (char car : query) {
 
@@ -318,14 +325,16 @@ public class ClientPrepareResult implements PrepareResult {
 
             switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
+                    if (state == LexState.Normal && lastChar == '/' && i > lastCommentEndStarPos + 2) {
                         state = LexState.SlashStarComment;
+                        lastCommentBeginSlashPos = i - 1;
                     }
                     break;
 
                 case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
+                    if (state == LexState.SlashStarComment && lastChar == '*' && i > lastCommentBeginSlashPos + 2) {
                         state = LexState.Normal;
+                        lastCommentEndStarPos = i - 1;
                     }
                     break;
 
@@ -394,6 +403,7 @@ public class ClientPrepareResult implements PrepareResult {
                     }
                     break;
             }
+            i ++ ;
             lastChar = car;
         }
         return state != LexState.EOLComment && !endingSemicolon;
@@ -467,6 +477,8 @@ public class ClientPrepareResult implements PrepareResult {
     boolean hasParam = false;
     boolean endNameBinding = false;
     int     onDuplicateKeyUpdateIndex = -1;
+    int lastCommentEndStarPos = -2;
+    int lastCommentBeginSlashPos = 0;
 
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
@@ -483,13 +495,15 @@ public class ClientPrepareResult implements PrepareResult {
 
       switch (car) {
         case '*':
-          if (state == LexState.Normal && lastChar == '/') {
+          if (state == LexState.Normal && lastChar == '/' && i > lastCommentEndStarPos + 2) {
             state = LexState.SlashStarComment;
+            lastCommentBeginSlashPos = i - 1;
           }
           break;
         case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
+          if (state == LexState.SlashStarComment && lastChar == '*' && i > lastCommentBeginSlashPos + 2) {
             state = LexState.Normal;
+            lastCommentEndStarPos = i - 1;
           }
           break;
 
@@ -837,6 +851,8 @@ public class ClientPrepareResult implements PrepareResult {
         int queryLength = query.length;
         KeyState keyState = KeyState.Normal;
         int onDuplicateKeyUpdateIndex = -1;
+        int lastCommentEndStarPos = -2;
+        int lastCommentBeginSlashPos = 0;
         for (int i = 0; i < queryLength; i++) {
 
             char car = query[i];
@@ -850,13 +866,15 @@ public class ClientPrepareResult implements PrepareResult {
 
             switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
+                    if (state == LexState.Normal && lastChar == '/' && i > lastCommentEndStarPos + 2) {
                         state = LexState.SlashStarComment;
+                        lastCommentBeginSlashPos = i - 1;
                     }
                     break;
                 case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
+                    if (state == LexState.SlashStarComment && lastChar == '*' && i > lastCommentBeginSlashPos + 2) {
                         state = LexState.Normal;
+                        lastCommentEndStarPos = i - 1;
                     }
                     break;
 
