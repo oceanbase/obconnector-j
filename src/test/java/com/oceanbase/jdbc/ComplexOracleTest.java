@@ -72,7 +72,7 @@ public class ComplexOracleTest extends BaseOracleTest {
     public static String refcursor1      = "test_ref";
     public static String struct4         = "test_struct4";
 
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable(tablenameArray, "c1 int primary key,c2 interval day(6) to second(5)");
         createTable(tablenameStruct, " c1 int primary key,c2 interval year(4) to month");
@@ -881,7 +881,6 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
-
     @Test
     public void testSdoGeometry() {
         String host = "11.158.31.35";
@@ -921,6 +920,30 @@ public class ComplexOracleTest extends BaseOracleTest {
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void testGISPSRe() throws SQLException {
+        Connection conn = DriverManager
+                .getConnection("jdbc:oceanbase://11.162.218.141:4848/test?user=test@oracle&password=test&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table my_tt1");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE my_tt1(c1 number, c2 SDO_GEOMETRY)");
+        JDBC4ServerPreparedStatement ps = (JDBC4ServerPreparedStatement)conn.prepareStatement("insert into my_tt1 values(1, " +
+                "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(0, 1, NULL), NULL, NULL)) returning c2 into ?");
+        ps.registerReturnParameter(1, Types.STRUCT, "SDO_GEOMETRY");
+        ps.execute();
+
+        ResultSet rs = ps.getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getString(1));
+        Struct struct = (Struct) rs.getObject(1);
+        System.out.println(struct.getSQLTypeName());
+        Object[] objects = struct.getAttributes();
+        Assert.assertEquals(5, objects.length);
     }
 
 }

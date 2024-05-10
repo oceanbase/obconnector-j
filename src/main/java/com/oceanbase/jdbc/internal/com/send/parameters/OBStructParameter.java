@@ -111,6 +111,9 @@ public class OBStructParameter implements Cloneable, ParameterHolder {
 
     @Override
     public boolean isNullData() {
+        if (structValue.getAttrCount() == 0) {
+            return true;
+        }
         return false;
     }
 

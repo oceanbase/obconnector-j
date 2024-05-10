@@ -52,6 +52,7 @@ import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBArrayParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBVarcharParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
