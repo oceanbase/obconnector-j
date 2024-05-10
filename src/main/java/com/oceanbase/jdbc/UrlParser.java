@@ -118,6 +118,7 @@ public class UrlParser implements Cloneable {
     public static final String   DBNAME_PROPERTY_KEY = "DBNAME";
     private String               extendDescription;
     private ConfigParser.OcpApi  ocpApi;
+    private String               connectedUsername;
 
     public static String getPropertyDbName(Properties props) {
         return props.getProperty(DBNAME_PROPERTY_KEY);
@@ -574,6 +575,14 @@ public class UrlParser implements Cloneable {
         ocpApi.ip = info[0];
         ocpApi.port = info[1];
         ocpApi.appName = info[2];
+    }
+
+    public String getConnectedUsername() {
+        return connectedUsername;
+    }
+
+    public void setConnectedUsername(String connectedUsername) {
+        this.connectedUsername = connectedUsername;
     }
 
 }

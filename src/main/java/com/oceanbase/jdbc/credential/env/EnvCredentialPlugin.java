@@ -93,6 +93,6 @@ public class EnvCredentialPlugin implements CredentialPlugin {
         String pwdKey = this.options.nonMappedOptions.getProperty("pwdKey");
         String envUser = System.getenv(userKey != null ? userKey : "MARIADB_USER");
         return new Credential(envUser == null ? userName : envUser,
-            System.getenv(pwdKey != null ? pwdKey : "MARIADB_PWD"));
+                System.getenv(pwdKey != null ? pwdKey : "MARIADB_PWD"), this.options.useProxyUser);
     }
 }

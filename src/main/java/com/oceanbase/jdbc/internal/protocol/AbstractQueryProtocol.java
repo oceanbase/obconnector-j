@@ -1668,7 +1668,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       lockLogger.debug("AbstractQueryProtocol.changeUser locked");
       spanId = ob20BeginTraceAndSpan("change user");
 
-      Credential credential = new Credential(user, pwd);
+      Credential credential = new Credential(user, pwd, options.useProxyUser);
+      urlParser.setConnectedUsername(credential.getUser());
       String clientIp = this.socket.getLocalAddress().getHostAddress();
       SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
           serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02

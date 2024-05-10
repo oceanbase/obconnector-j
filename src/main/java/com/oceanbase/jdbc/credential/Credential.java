@@ -51,7 +51,14 @@ public class Credential {
     public Credential(String user, String password) {
         this.user = user;
         this.password = password;
-        setUsernameAndProxyUsername(user);
+    }
+
+    public Credential(String user, String password, boolean useProxyUser) {
+        this.user = user;
+        this.password = password;
+        if (useProxyUser) {
+            setUsernameAndProxyUsername();
+        }
     }
 
     public String getUser() {
@@ -74,8 +81,9 @@ public class Credential {
         this.proxyUser = proxyUser;
     }
 
-    private void setUsernameAndProxyUsername(String username) {
-        String originUsername = username;
+    private void setUsernameAndProxyUsername() {
+        String originUsername = this.user;
+        String username = this.user;
         try {
             username = username.trim();
             int len = username.length();
@@ -91,15 +99,15 @@ public class Credential {
 
                 if (i == 0 && (currentChar == '\'' || currentChar == '\"')) {
                     hasQuota = true;
-                    user_pos[0] = 1;
                 }
 
                 if (hasQuota && currentChar == '[' && (lastChar == '\'' || lastChar == '\"')) {
-                    user_pos[1] = i - 1 ;
+                    user_pos[1] = i;
                     proxy_user_pos[0] = i + 1;
                 }
 
-                if (!hasQuota && currentChar == '[') {
+                // When user does not start with quotation marks, use the first "[" as the dividing point between user and proxy user, like xx["u2[yy]"]
+                if (!hasQuota && currentChar == '[' && proxy_user_pos[0] == 0) {
                     user_pos[1] = i ;
                     proxy_user_pos[0] = i + 1;
                 }
@@ -115,9 +123,6 @@ public class Credential {
             if (proxy_user_pos[0] != 0 && proxy_user_pos[1] >= proxy_user_pos[0]) {
                 this.user = username.substring(user_pos[0], user_pos[1]) + username.substring(Math.min(left_info_pos + 1, len));
                 this.proxyUser = username.substring(proxy_user_pos[0], proxy_user_pos[1]);
-                if (proxyUser.length() >= 2 && ((proxyUser.startsWith("\"") && proxyUser.endsWith("\"")) || (proxyUser.startsWith("'") && proxyUser.endsWith("'")))) {
-                    this.proxyUser = proxyUser.substring(1, proxyUser.length() - 1);
-                }
             } else {
                 this.user = originUsername;
                 this.proxyUser = "";

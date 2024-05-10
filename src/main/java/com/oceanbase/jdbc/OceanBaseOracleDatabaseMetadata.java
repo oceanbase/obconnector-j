@@ -426,6 +426,9 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
     }
 
     public String getUserName() throws SQLException {
+        if (this.urlParser.getConnectedUsername() != null) {
+            return this.urlParser.getConnectedUsername();
+        }
         try (ResultSet rs = executeQuery(OB_ORA_GET_USER_NAME)) {
             rs.next();
             String userName = rs.getString(1);

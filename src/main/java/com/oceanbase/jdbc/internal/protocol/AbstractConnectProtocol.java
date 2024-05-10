@@ -553,9 +553,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (credentialPlugin != null) {
             credential = credentialPlugin.initialize(options, username, hostAddress).get();
         } else {
-            credential = new Credential(username, urlParser.getPassword());
+            credential = new Credential(username, urlParser.getPassword(), options.useProxyUser);
         }
-
+        this.urlParser.setConnectedUsername(credential.getUser());
         this.socket = createSocket(host, port, options);
         assignStream(this.socket, options);
 
@@ -796,6 +796,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                         errorPacket.getMessage(), Charset.defaultCharset()
                                             .displayName()), errorPacket.getSqlState(), errorPacket
                                     .getErrorCode());
+                    }
+                    if (this.options.useProxyUser) {
+                        throw exceptionFactory.create(errorPacket.getMessage() +
+                                        ", useProxyUser=true option in the URL to check whether it is required in the current tenant mode",
+                                errorPacket.getSqlState(), errorPacket.getErrorCode());
                     }
                     throw exceptionFactory.create(errorPacket.getMessage(),
                         errorPacket.getSqlState(), errorPacket.getErrorCode());

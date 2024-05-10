@@ -234,6 +234,7 @@ public class Options implements Cloneable {
     public boolean remarksReporting = false;
     public boolean useCompatibleMetadata;
     public boolean generateSimpleParameterMetadata;
+    public boolean useProxyUser;
 
     @Override
     public String toString() {

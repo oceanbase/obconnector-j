@@ -1111,6 +1111,12 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.10",
             "add options for ParameterMetadata compatibility in mysql mode",
+            false),
+    USE_PROXY_USER(
+            "useProxyUser",
+            Boolean.FALSE,
+            "2.4.10",
+            "add options for set to true in Oracle mode to use proxy user login",
             false);
 
   private final String optionName;

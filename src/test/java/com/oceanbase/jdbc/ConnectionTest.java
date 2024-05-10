@@ -1126,5 +1126,4 @@ public class ConnectionTest extends BaseTest {
       assertTrue(e.getMessage().contains("Unsupported transaction isolation level"));
     }
   }
-
 }

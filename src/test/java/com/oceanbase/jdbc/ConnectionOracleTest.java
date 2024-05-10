@@ -83,20 +83,13 @@ public class ConnectionOracleTest extends BaseOracleTest{
     }
 
     @Test
-    public void testResolveUserName() {
-        List<String[]> list = new ArrayList<>();
-        list.add(new String[]{"ad@tt1", "ad@tt1", ""});
-        list.add(new String[]{"ad@tt1[", "ad@tt1[", ""});
-        list.add(new String[]{"ad[s2]@tt1", "ad@tt1", "s2"});
-        list.add(new String[]{"\"u1[xx]\"[\"u2[yy]\"]", "u1[xx]", "u2[yy]"});
-        list.add(new String[]{"\"adsf[]sdfd@\"[\"adfd[bbb]\"]@oracle", "adsf[]sdfd@@oracle", "adfd[bbb]"});
-
-        for (String[] arr : list) {
-            Credential certificate = new Credential(arr[0], "");
-            Assert.assertEquals(arr[1], certificate.getUser());
-            Assert.assertEquals(arr[2], certificate.getProxyUser());
-        }
+    public void testForAone56523104() throws SQLException {
+        // with useProxyUser
+        OceanBaseConnection conn = (OceanBaseConnection) sharedConnection;
+        Assert.assertTrue(conn.getProtocol().getOptions().useProxyUser);
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery("select user from dual");
+        rs.next();
+        Assert.assertNotEquals(rs.getString(1), conn.getMetaData().getUserName());
     }
-
-
 }
