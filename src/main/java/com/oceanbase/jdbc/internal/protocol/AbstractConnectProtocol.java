@@ -797,9 +797,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                             .displayName()), errorPacket.getSqlState(), errorPacket
                                     .getErrorCode());
                     }
-                    if (this.options.useProxyUser) {
+                    if (this.options.useProxyUser && errorPacket.getErrorCode() == 1235) {
                         throw exceptionFactory.create(errorPacket.getMessage() +
-                                        ", useProxyUser=true option in the URL to check whether it is required in the current tenant mode",
+                                        ", please remove \"&useProxyUser=true\" from your URL.",
                                 errorPacket.getSqlState(), errorPacket.getErrorCode());
                     }
                     throw exceptionFactory.create(errorPacket.getMessage(),
