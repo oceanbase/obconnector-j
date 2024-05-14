@@ -924,8 +924,7 @@ public class ComplexOracleTest extends BaseOracleTest {
 
     @Test
     public void testGISPSRe() throws SQLException {
-        Connection conn = DriverManager
-                .getConnection("jdbc:oceanbase://11.162.218.141:4848/test?user=test@oracle&password=test&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
         Statement stmt = conn.createStatement();
         try {
             stmt.execute("drop table my_tt1");
@@ -946,4 +945,31 @@ public class ComplexOracleTest extends BaseOracleTest {
         Assert.assertEquals(5, objects.length);
     }
 
+    @Test
+    public void testGISGETForAone56696447() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&compatibleOjdbcVersion=6");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t_gis");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE t_gis(c1 number, c2 SDO_GEOMETRY)");
+        stmt.execute("insert into t_gis values(1, SDO_GEOMETRY(2003, null, SDO_POINT_TYPE(1,1,1), SDO_ELEM_INFO_ARRAY(1,1003,3), SDO_ORDINATE_ARRAY(1,1, 5,7)))");
+        // stmt.execute("insert into t_gis values(1, SDO_GEOMETRY(2003, null, null, SDO_ELEM_INFO_ARRAY(1,1003,1), SDO_ORDINATE_ARRAY(10,105, 15,105, 20,110, 10,110, 10,105)))");
+        PreparedStatement ps = conn.prepareStatement("select c2 from t_gis");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        assertNull(rs.getString(1));
+
+        conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&compatibleOjdbcVersion=8");
+        ps = conn.prepareStatement("select c2 from t_gis");
+        rs = ps.executeQuery();
+        rs.next();
+        try {
+            rs.getString(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e instanceof SQLFeatureNotSupportedException);
+        }
+    }
 }

@@ -478,6 +478,11 @@ public class BinaryRowProtocol extends RowProtocol {
 
             case GEOMETRY:
                 return new String(buf, pos, length);
+            case COMPLEX:
+                if (this.options.compatibleOjdbcVersion == 8) {
+                    throw new SQLFeatureNotSupportedException();
+                }
+                return null;
 
             default:
                 if (getMaxFieldSize() > 0) {
