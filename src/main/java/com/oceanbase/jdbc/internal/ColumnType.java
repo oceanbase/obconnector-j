@@ -355,9 +355,6 @@ public enum ColumnType {
     public static ColumnType convertSqlTypeToColumnType(int sqlType) {
         for (ColumnType v : values()) {
             if (v.sqlType == sqlType) {
-//                if (v == ColumnType.STRUCT) {
-//                    return ColumnType.COMPLEX;
-//                }
                 return v;
             }
         }
