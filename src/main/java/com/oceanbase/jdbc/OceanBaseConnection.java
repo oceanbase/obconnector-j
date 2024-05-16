@@ -1952,7 +1952,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 ps.close();
 
                 String tmpString = null;
-                if (typeName.startsWith("DBMS_XA")) {
+                if (typeName.startsWith("DBMS_XA") || typeName.toUpperCase().startsWith("SDO_")) {
                     tmpString = "'SYS'";
                 } else {
                     tmpString = "SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')";

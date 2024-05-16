@@ -881,4 +881,95 @@ public class ComplexOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testSdoGeometry() {
+        String host = "11.158.31.35";
+        int port = 46003;//proxy
+        String username = "test@oracle";
+        String password = "test";
+        //host="100.83.231.1";
+        //port=2828;
+
+        String url = String.format("jdbc:oceanbase://%s:%d/%s?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=true",
+                host, port, "test");
+
+        try {
+            Connection conn = DriverManager.getConnection(url, username, password);
+            PreparedStatement ps = null;
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table my_tt1");
+            } catch (Exception ignore) {}
+            stmt.execute("create table my_tt1(c1 number, c2 SDO_GEOMETRY)");
+            stmt.execute("insert into my_tt1 values(1, SDO_GEOMETRY(2003, 4000, SDO_POINT_TYPE(1,1,1), SDO_ELEM_INFO_ARRAY(1,1003,3), SDO_ORDINATE_ARRAY(1,1, 5,7)))");
+            String createPlSql = "select g.c2.sdo_point from my_tt1 g";
+            //String createPlSql = "select c1 from my_tt1";
+            System.out.println("=========callable stmt test==========");
+            try (ResultSet rs = stmt.executeQuery(createPlSql)) {
+                while (rs.next()) {
+                    //System.out.println(rs.getNString(1));
+                    System.out.println(rs.getObject(1));
+                }
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+            stmt.execute("drop table my_tt1;");
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testGISPSRe() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table my_tt1");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE my_tt1(c1 number, c2 SDO_GEOMETRY)");
+        JDBC4ServerPreparedStatement ps = (JDBC4ServerPreparedStatement)conn.prepareStatement("insert into my_tt1 values(1, " +
+                "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(0, 1, NULL), NULL, NULL)) returning c2 into ?");
+        ps.registerReturnParameter(1, Types.STRUCT, "SDO_GEOMETRY");
+        ps.execute();
+
+        ResultSet rs = ps.getReturnResultSet();
+        rs.next();
+        System.out.println(rs.getString(1));
+        Struct struct = (Struct) rs.getObject(1);
+        System.out.println(struct.getSQLTypeName());
+        Object[] objects = struct.getAttributes();
+        Assert.assertEquals(5, objects.length);
+    }
+
+    @Test
+    public void testGISGETForAone56696447() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&compatibleOjdbcVersion=6");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t_gis");
+        } catch (SQLException e) {
+        }
+        stmt.execute("CREATE TABLE t_gis(c1 number, c2 SDO_GEOMETRY)");
+        stmt.execute("insert into t_gis values(1, SDO_GEOMETRY(2003, null, SDO_POINT_TYPE(1,1,1), SDO_ELEM_INFO_ARRAY(1,1003,3), SDO_ORDINATE_ARRAY(1,1, 5,7)))");
+        // stmt.execute("insert into t_gis values(1, SDO_GEOMETRY(2003, null, null, SDO_ELEM_INFO_ARRAY(1,1003,1), SDO_ORDINATE_ARRAY(10,105, 15,105, 20,110, 10,110, 10,105)))");
+        PreparedStatement ps = conn.prepareStatement("select c2 from t_gis");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        assertNull(rs.getString(1));
+
+        conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&compatibleOjdbcVersion=8");
+        ps = conn.prepareStatement("select c2 from t_gis");
+        rs = ps.executeQuery();
+        rs.next();
+        try {
+            rs.getString(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e instanceof SQLFeatureNotSupportedException);
+        }
+    }
 }

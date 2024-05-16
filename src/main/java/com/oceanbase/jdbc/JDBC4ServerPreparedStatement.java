@@ -65,6 +65,7 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
+import com.oceanbase.jdbc.internal.com.send.parameters.OBStructParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -375,6 +376,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         if (index >= 0 && parameterIndex <= parameterCount) {
             if (externalType != Types.REF && externalType != Types.STRUCT && externalType != Types.ARRAY && externalType != Types.SQLXML) {
                 throw new SQLException("Invalid parameter type for this interface.");
+            } else if (externalType == Types.STRUCT) {
+                Struct x = connection.createStruct(internalTypeName, null);
+                setParameter(parameterIndex, new OBStructParameter((ObStruct) x, this.protocol.getOptions()));
             } else {
                 setParameter(parameterIndex, new NullParameter(ColumnType.convertSqlTypeToColumnType(externalType)));
             }
