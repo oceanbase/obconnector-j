@@ -768,6 +768,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       cursorFetchPstmt = pstmt;
       pstmt.setFetchSize(this.fetchSize);
+      pstmt.setMaxRows(this.getMaxRows());
       if (isCloseOnCompletion()) {
         pstmt.closeOnCompletion();
       }

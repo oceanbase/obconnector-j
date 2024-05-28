@@ -127,4 +127,50 @@ public class StatementOracleTest extends BaseOracleTest {
         Assert.assertTrue(rs3.isAfterLast());
     }
 
+    @Test
+    public void testMaxRowsForAone55087008() throws SQLException {
+        createTable("t_max", "c1 int");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into t_max values(?)");
+        for (int i = 0; i < 20; i++) {
+            ps.setInt(1, i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false&maxRows=14");
+        PreparedStatement ps2 = conn.prepareStatement("select * from t_max where rownum <= 10", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs2 = ps2.executeQuery();
+        rs2.last();
+        Assert.assertEquals(10, rs2.getRow());
+
+
+        PreparedStatement ps3 = conn.prepareStatement("select c1 from t_max", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        ps3.setMaxRows(4);
+        ResultSet rs3 = ps3.executeQuery();
+        rs3.last();
+        Assert.assertEquals(4, rs3.getRow());
+
+        PreparedStatement ps4 = conn.prepareStatement("select c1 from t_max", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs4 = ps4.executeQuery();
+        rs4.last();
+        Assert.assertEquals(14, rs4.getRow());
+
+        Connection conn2 = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        PreparedStatement ps2_1 = conn2.prepareStatement("select c1 from t_max", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        ps2_1.setMaxRows(4);
+        ResultSet rs2_1 = ps2_1.executeQuery();
+        rs2_1.last();
+        Assert.assertEquals(4, rs2_1.getRow());
+
+        PreparedStatement ps2_2 = conn2.prepareStatement("select c1 from t_max", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs2_2 = ps2_2.executeQuery();
+        rs2_2.last();
+        Assert.assertEquals(20, rs2_2.getRow());
+    }
+
 }

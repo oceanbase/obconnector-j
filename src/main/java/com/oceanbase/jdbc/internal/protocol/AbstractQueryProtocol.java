@@ -94,6 +94,7 @@ import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.constant.StateChange;
+import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
@@ -1987,9 +1988,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setMaxRows(long max) throws SQLException {
     if (maxRows != max) {
       if (max == 0) {
-        executeQuery("set @@SQL_SELECT_LIMIT=DEFAULT");
+        if (this.isOracleMode() && Version.compare(this.getObServerVersion(), "4.2.4") >= 0) {
+          executeQuery("set @@_ORACLE_SQL_SELECT_LIMIT=DEFAULT");
+        } else {
+          executeQuery("set @@SQL_SELECT_LIMIT=DEFAULT");
+        }
       } else {
-        executeQuery("set @@SQL_SELECT_LIMIT=" + max);
+        if (this.isOracleMode() && Version.compare(this.getObServerVersion(), "4.2.4") >= 0) {
+          executeQuery("set @@_ORACLE_SQL_SELECT_LIMIT=" + max);
+        }else {
+          executeQuery("set @@SQL_SELECT_LIMIT=" + max);
+        }
       }
       maxRows = max;
     }
