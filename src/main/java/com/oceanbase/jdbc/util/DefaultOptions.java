@@ -1117,6 +1117,12 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.10",
             "add options for set to true in Oracle mode to use proxy user login",
+            false),
+    MAP_DATE_TO_TIMESTAMP(
+            "mapDateToTimestamp",
+            Boolean.TRUE,
+            "2.4.11",
+            "Allow to get Date which is like xxxx-xx-xx, which is compatible with ojdbc.",
             false);
 
   private final String optionName;

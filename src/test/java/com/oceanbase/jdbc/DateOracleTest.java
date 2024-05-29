@@ -591,4 +591,107 @@ public class DateOracleTest extends BaseOracleTest {
         rs.close();
         pstmt.close();
     }
+
+    @Test
+    public void testmapDateToTimeStampForAone57081238() throws SQLException {
+        // for ojdbc6
+        createTable("dtest", "d date, t timestamp");
+        Connection connection = setConnection("&compatibleOjdbcVersion=6");
+        PreparedStatement ps = connection.prepareStatement("insert into dtest values(?, ?)");
+        java.sql.Date date = new Date(Timestamp.valueOf("2024-05-13 12:23:12.111111").getTime());
+        ps.setDate(1, date);
+        ps.setTimestamp(2, Timestamp.valueOf("2024-05-13 12:23:12.111111"));
+        ps.execute();
+        ps.close();
+
+        Connection conn = setConnection("&useServerPrepStmts=false&mapDateToTimestamp=false&compatibleOjdbcVersion=6");
+        ResultSet rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13", rs.getString(1));
+        assertEquals("2024-05-13", rs.getObject(1).toString());
+        assertEquals("00:00:00", rs.getTime(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=true&mapDateToTimestamp=false&compatibleOjdbcVersion=6");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13", rs.getString(1));
+        assertEquals("2024-05-13", rs.getObject(1).toString());
+        assertEquals("00:00:00", rs.getTime(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=false&mapDateToTimestamp=true&compatibleOjdbcVersion=6");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getString(1));
+        assertEquals("2024-05-13 00:00:00.0", rs.getObject(1).toString());
+        assertEquals("00:00:00", rs.getTime(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=true&mapDateToTimestamp=true&compatibleOjdbcVersion=6");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getString(1));
+        assertEquals("2024-05-13 00:00:00.0", rs.getObject(1).toString());
+        assertEquals("00:00:00", rs.getTime(1).toString());
+        assertEquals("2024-05-13 00:00:00.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        // for ojdbc8
+        createTable("dtest", "d date, t timestamp");
+        connection = setConnection("&compatibleOjdbcVersion=8");
+        ps = connection.prepareStatement("insert into dtest values(?, ?)");
+        java.sql.Date date1 = new Date(Timestamp.valueOf("2024-05-13 12:23:12.111111").getTime());
+        ps.setDate(1, date1);
+        ps.setTimestamp(2, Timestamp.valueOf("2024-05-13 12:23:12.111111"));
+        ps.execute();
+        ps.close();
+
+        conn = setConnection("&useServerPrepStmts=false&mapDateToTimestamp=false&compatibleOjdbcVersion=8");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13", rs.getString(1));
+        assertEquals("2024-05-13", rs.getObject(1).toString());
+        assertEquals("12:23:12", rs.getTime(1).toString());
+        assertEquals("2024-05-13 12:23:12.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=true&mapDateToTimestamp=false&compatibleOjdbcVersion=8");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13", rs.getString(1));
+        assertEquals("2024-05-13", rs.getObject(1).toString());
+        assertEquals("12:23:12", rs.getTime(1).toString());
+        assertEquals("2024-05-13 12:23:12.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=false&mapDateToTimestamp=true&compatibleOjdbcVersion=8");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13 12:23:12", rs.getString(1));
+        assertEquals("2024-05-13 12:23:12.0", rs.getObject(1).toString());
+        assertEquals("12:23:12", rs.getTime(1).toString());
+        assertEquals("2024-05-13 12:23:12.0", rs.getTimestamp(1).toString());
+        rs.close();
+
+        conn = setConnection("&useServerPrepStmts=true&mapDateToTimestamp=true&compatibleOjdbcVersion=8");
+        rs = conn.createStatement().executeQuery("select * from dtest");
+        Assert.assertTrue(rs.next());
+        assertEquals("2024-05-13", rs.getDate(1).toString());
+        assertEquals("2024-05-13 12:23:12", rs.getString(1));
+        assertEquals("2024-05-13 12:23:12.0", rs.getObject(1).toString());
+        assertEquals("12:23:12", rs.getTime(1).toString());
+        assertEquals("2024-05-13 12:23:12.0", rs.getTimestamp(1).toString());
+        rs.close();
+    }
 }

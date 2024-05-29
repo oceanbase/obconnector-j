@@ -408,7 +408,10 @@ public class BinaryRowProtocol extends RowProtocol {
                     && options.compatibleMysqlVersion == 8) {
                     return "0000-00-00 00:00:00";
                 }
-
+                if (columnInfo.getColumnType() == ColumnType.DATETIME && !options.mapDateToTimestamp && getProtocol().isOracleMode()) {
+                    Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
+                    return (dateInter == null) ? null : dateInter.toString();
+                }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
                     return null;
@@ -1462,6 +1465,9 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+                if (columnInfo.getColumnType() == ColumnType.DATETIME && !this.options.mapDateToTimestamp && getProtocol().isOracleMode()) {
+                    return getInternalDate(columnInfo, null, timeZone);
+                }
                 return getInternalTimestamp(columnInfo, null, timeZone);
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);

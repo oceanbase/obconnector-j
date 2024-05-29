@@ -236,6 +236,10 @@ public class TextRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+                if (columnInfo.getColumnType() == ColumnType.DATETIME && !options.mapDateToTimestamp && getProtocol().isOracleMode()) {
+                    Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
+                    return (dateInter == null) ? null : dateInter.toString();
+                }
                 // use local time zone
                 Timestamp timestamp = null;
                 try {
@@ -1058,6 +1062,9 @@ public class TextRowProtocol extends RowProtocol {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
+                if (columnInfo.getColumnType() == ColumnType.DATETIME && !this.options.mapDateToTimestamp && getProtocol().isOracleMode()) {
+                    return getInternalDate(columnInfo, null, timeZone);
+                }
                 return getInternalTimestamp(columnInfo, null, timeZone);
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);

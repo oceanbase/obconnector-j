@@ -235,6 +235,7 @@ public class Options implements Cloneable {
     public boolean useCompatibleMetadata;
     public boolean generateSimpleParameterMetadata;
     public boolean useProxyUser;
+    public boolean mapDateToTimestamp = true;
 
     @Override
     public String toString() {
@@ -714,6 +715,9 @@ public class Options implements Cloneable {
         if (encloseParamInParentheses != opt.encloseParamInParentheses) {
             return false;
         }
+        if (mapDateToTimestamp != opt.mapDateToTimestamp) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -869,6 +873,7 @@ public class Options implements Cloneable {
         result = 31 * result + logTraceTime;
         result = 31 * result + (oracleChangeReadOnlyToRepeatableRead ? 1 : 0);
         result = 31 * result + (encloseParamInParentheses ? 1 : 0);
+        result = 31 * result + (mapDateToTimestamp ? 1 : 0);
         return result;
     }
 
