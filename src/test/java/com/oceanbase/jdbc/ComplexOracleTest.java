@@ -972,4 +972,35 @@ public class ComplexOracleTest extends BaseOracleTest {
             assertTrue(e instanceof SQLFeatureNotSupportedException);
         }
     }
+
+    @Test
+    public void testForAone56285525() throws SQLException {
+        String synonyms = System.getProperty("synonyms");
+        Connection conn = setConnection("zeroDateTimeBehavior=convertToNull&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop user " + synonyms + " cascade");
+        } catch (Exception ignored) {
+
+        }
+
+        stmt.execute("create user " + synonyms + " identified by " + synonyms);
+        stmt.execute("grant dba to " + synonyms);
+        stmt.execute("create or replace type tb force is table of int");
+        stmt.execute("create or replace procedure proc(arg out tb) is begin arg := tb(); end;");
+
+        String url = System.getProperty("db_o_url");
+        Connection conn2 = DriverManager.getConnection(url);
+        Statement stmt2 = conn2.createStatement();
+        stmt2.execute("create or replace synonym tb for test.tb");
+        stmt2.execute("create or replace synonym proc for test.proc");
+
+        CallableStatement call = conn2.prepareCall("call proc(?)");
+        call.registerOutParameter(1, Types.ARRAY);
+        try {
+            call.execute();
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 }
