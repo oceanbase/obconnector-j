@@ -934,24 +934,25 @@ public class BinaryRowProtocol extends RowProtocol {
                               + ((long) (buf[pos + 5] & 0xff) << 40)
                               + ((long) (buf[pos + 6] & 0xff) << 48) + ((long) (buf[pos + 7] & 0xff) << 56));
                 if (columnInfo.isSigned()) {
-                    return new BigDecimal(String.valueOf(BigInteger.valueOf(value)))
-                        .setScale(columnInfo.getDecimals());
+                    BigDecimal decimal = new BigDecimal(String.valueOf(BigInteger.valueOf(value)));
+                    return setScaleOrHandleException(decimal, columnInfo.getDecimals());
                 } else {
-                    return new BigDecimal(String.valueOf(new BigInteger(1, new byte[] {
+                    BigDecimal decimal = new BigDecimal(String.valueOf(new BigInteger(1, new byte[]{
                             (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40),
                             (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16),
-                            (byte) (value >> 8), (byte) value }))).setScale(columnInfo
-                        .getDecimals());
+                            (byte) (value >> 8), (byte) value})));
+                    return setScaleOrHandleException(decimal, columnInfo.getDecimals());
                 }
             case FLOAT:
             case BINARY_FLOAT:
                 return BigDecimal.valueOf(getInternalFloat(columnInfo));
             case DOUBLE:
             case BINARY_DOUBLE:
-                if (!getProtocol().isOracleMode()) {
-                    return BigDecimal.valueOf(getInternalDouble(columnInfo)).setScale(columnInfo.getDecimals());
+                BigDecimal decimal = BigDecimal.valueOf(getInternalDouble(columnInfo));
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5) {
+                    return setScaleOrHandleException(decimal, columnInfo.getDecimals());
                 }
-                return BigDecimal.valueOf(getInternalDouble(columnInfo));
+                return decimal;
             case VARSTRING:
             case VARCHAR:
             case VARCHAR2:
@@ -1644,7 +1645,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case OBDECIMAL:
                     BigDecimal decimal = new BigDecimal(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
-                    decimal.setScale(0, RoundingMode.HALF_UP);
+                    decimal = decimal.setScale(0, RoundingMode.HALF_UP);
                     value = decimal.longValue();
                     break;
                 default:
@@ -1735,7 +1736,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case OBDECIMAL:
                     BigDecimal decimal = new BigDecimal(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
-                    decimal.setScale(0, RoundingMode.HALF_UP);
+                    decimal = decimal.setScale(0, RoundingMode.HALF_UP);
                     value = decimal.longValue();
                     break;
                 default:
@@ -2605,5 +2606,17 @@ public class BinaryRowProtocol extends RowProtocol {
      */
     public boolean isBinaryEncoded() {
         return true;
+    }
+
+    private BigDecimal setScaleOrHandleException(BigDecimal decimal, int scale) throws SQLException {
+        try {
+            return decimal.setScale(scale);
+        } catch (ArithmeticException ex) {
+            try {
+                return decimal.setScale(scale, RoundingMode.HALF_UP);
+            } catch (ArithmeticException e) {
+                throw new SQLException("ResultSet.Bad_format_for_BigDecimal");
+            }
+        }
     }
 }

@@ -1457,4 +1457,24 @@ public class DataTypeTest extends BaseTest {
         conn.close();
         rs4.close();
     }
+
+    @Test
+    public void testForAone52673608() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&compatibleMysqlVersion=5");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table test_decimal");
+        } catch (SQLException e) {
+        }
+        stmt.execute("create table test_decimal (v0 double(5,2))");
+        stmt.execute("insert into test_decimal values (123.3333)");
+        ResultSet rs = conn.prepareStatement("select v0/7 from test_decimal").executeQuery();
+        rs.next();
+        assertEquals(new BigDecimal("17.618571"), rs.getBigDecimal(1));
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleMysqlVersion=8");
+        rs = conn.prepareStatement("select v0/7 from test_decimal").executeQuery();
+        rs.next();
+        assertEquals(new BigDecimal("17.61857142857143"), rs.getBigDecimal(1));
+    }
 }
