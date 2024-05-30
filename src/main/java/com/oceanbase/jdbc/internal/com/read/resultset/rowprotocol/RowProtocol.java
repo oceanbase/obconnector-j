@@ -65,6 +65,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -152,7 +153,7 @@ public abstract class RowProtocol {
     return  StandardCharsets.UTF_8;
 
   }
-  public abstract void setPosition(int position);
+  public abstract void setPosition(int position, JDBC4ResultSet resultSet) throws SQLException;
 
   public int getLengthMaxFieldSize() {
     return maxFieldSize != 0 && maxFieldSize < length ? maxFieldSize : length;

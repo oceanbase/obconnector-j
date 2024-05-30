@@ -2049,6 +2049,8 @@ public class OceanBaseConnection implements ConnectionImpl {
                         ps.setString(2, typeName.toUpperCase());
                         rs = ps.executeQuery();
                     }
+                } else {
+                    rs.beforeFirst();
                 }
             }
 

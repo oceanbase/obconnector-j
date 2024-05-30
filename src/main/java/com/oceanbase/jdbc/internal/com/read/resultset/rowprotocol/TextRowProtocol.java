@@ -65,6 +65,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -89,7 +90,7 @@ public class TextRowProtocol extends RowProtocol {
      *
      * @param newIndex index (0 is first).
      */
-    public void setPosition(int newIndex) {
+    public void setPosition(int newIndex, JDBC4ResultSet resultSet) throws SQLException {
         if (index != newIndex) {
             if (index == -1 || index > newIndex) {
                 pos = 0;

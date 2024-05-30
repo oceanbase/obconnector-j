@@ -72,6 +72,7 @@ import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
 import com.oceanbase.jdbc.OceanBaseConnection;
+import com.oceanbase.jdbc.JDBC4ResultSet;
 import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -107,7 +108,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @see <a href="https://mariadb.com/kb/en/mariadb/resultset-row/">Resultset row protocol
      * documentation</a>
      */
-    public void setPosition(int newIndex) {
+    public void setPosition(int newIndex, JDBC4ResultSet resultSet) throws SQLException {
 
         // check NULL-Bitmap that indicate if field is null
         if ((buf[1 + (newIndex + 2) / 8] & (1 << ((newIndex + 2) % 8))) != 0) {
@@ -178,6 +179,12 @@ public class BinaryRowProtocol extends RowProtocol {
                                 break;
                             // add
                             case COMPLEX:
+                                if (complexEndPos == null) {
+                                    if (resultSet.complexEndPos[index] == 0) {
+                                        resultSet.getComplex(index +  1);
+                                    }
+                                    this.complexEndPos = resultSet.complexEndPos;
+                                }
                                 internalPos = this.complexEndPos[index];
                                 break;
                             case CURSOR:

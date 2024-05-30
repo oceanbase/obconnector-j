@@ -877,7 +877,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             row.resetRow(data[rowPointer]);
             lastRowPointer = rowPointer;
         }
-        row.setPosition(position - 1);
+        row.setPosition(position - 1, this);
     }
 
     @Override

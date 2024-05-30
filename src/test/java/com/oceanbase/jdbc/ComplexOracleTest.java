@@ -1003,4 +1003,50 @@ public class ComplexOracleTest extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testGisForAone57141394() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("t_gis2", "c1 number, c2 SDO_GEOMETRY");
+
+        try {
+            PreparedStatement ps = conn.prepareStatement("insert into t_gis2 values(2, ?)");
+            Object sdoPointType = conn.createStruct("SDO_POINT_TYPE", new Object[]{0, 1, null});
+            Object sdoGeometry = conn.createStruct("SDO_GEOMETRY", new Object[]{2001, null, sdoPointType, null, null});
+            ps.setObject(1, sdoGeometry);
+            ps.execute();
+
+            PreparedStatement ps1 = conn.prepareStatement("select t.c2.sdo_gtype, t.c2.sdo_point, t.c2.sdo_point.y from t_gis2 t where t.c1 = 2");
+            ResultSet rs = ps1.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(2001, rs.getInt(1));
+            Struct struct = (Struct) rs.getObject(2);
+            Object[] attributes = struct.getAttributes();
+            assertEquals(new BigDecimal(0) , attributes[0]);
+            assertEquals(1, rs.getInt(3));
+        } catch (Exception e) {
+            fail();
+        }
+
+    }
+
+    @Test
+    public void testGisMemberFunctionForAone57133075() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        Statement stmt = conn.createStatement();
+        createTable("t_gis7", "c1 number,c2 SDO_GEOMETRY");
+        stmt.execute("insert into t_gis7 values(1, SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(10, 50, NULL), NULL, NULL))");
+        stmt.execute("insert into t_gis7 values(2, sdo_geometry(2003, null, null, SDO_ELEM_INFO_ARRAY(1,1003,3), SDO_ORDINATE_ARRAY(1,1,5,7)))");
+
+        PreparedStatement ps = conn.prepareStatement("select t.c2.sdo_gtype, t.c2.sdo_srid, t.c2.sdo_point, t.c2.sdo_point.x, t.c2.sdo_point.y, t.c2.sdo_point.z from t_gis7 t where c1 = 1");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        assertEquals(2001, rs.getInt(1));
+        assertNull(rs.getString(2));
+        Object[] point = ((Struct) rs.getObject(3)).getAttributes();
+        assertEquals(3, point.length);
+        assertEquals(new BigDecimal(10) , rs.getBigDecimal(4));
+        assertEquals(new BigDecimal(50) , rs.getBigDecimal(5));
+        assertNull(rs.getBigDecimal(6));
+    }
 }
