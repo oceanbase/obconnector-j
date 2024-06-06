@@ -1233,6 +1233,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             zoneId = zoneId.substring("GMT".length());
         }
 
+        // when zoneId is "Z", it means the default timezone is UTC
+        if (zoneId.equals("Z")) {
+            zoneId = "+00:00";
+        }
+
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         writer.write(ALTER_SESSION_TIMEZONE_QUERY);
