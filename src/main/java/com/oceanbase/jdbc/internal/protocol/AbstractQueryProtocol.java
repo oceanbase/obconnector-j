@@ -1548,7 +1548,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       spanId = ob20BeginTraceAndSpan("execute query to be prepared by array binding");
 
       if (options.usePieceData) {
-        boolean firstPrepared = true;
         for (int i = 0; i < parameterCount; i++) {
           ParameterHolder holder = queryParameters.get(0)[i];
           if (holder.isLongData()) {
@@ -1557,11 +1556,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               boolean continueWrite = true;
               boolean first = true;
               while (continueWrite) {
-                if (firstPrepared) {
-                  // prepre here
+                if (serverPrepareResult == null) {
                   serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
                   serverPrepareResult.resetParameterTypeHeader();
-                  firstPrepared = false;
                 }
                 writer.startPacket(0);
                 writer.write(Packet.COM_STMT_SEND_PIECE_DATA);

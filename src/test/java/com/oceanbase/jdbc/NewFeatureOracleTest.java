@@ -46,6 +46,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.assertEquals;
 
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Arrays;
@@ -633,6 +634,37 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testForAone54593691() throws SQLException, UnsupportedEncodingException {
+        Connection conn = setConnection("&useServerPrepStmts=true&usePieceData=true&useArrayBinding=true");
+        createTable("t0", "c1 blob, c2 blob");
+        PreparedStatement ps = conn.prepareStatement("insert into t0 values(?, ?)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("alter system set open_cursors = 5");
+
+        conn.setAutoCommit(false);
+
+        String s = "1231abcd奥星贝斯";
+        byte[] blobContent = s.getBytes("utf-8");
+        java.sql.Blob b = new com.oceanbase.jdbc.Blob(blobContent);
+
+        for(int i=1;i<=6;i++){
+            for(int j=1;j<=2;j++){
+                ps.setBlob(1, b);
+                ps.setBlob(2, b);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        ps.close();
+        conn.commit();
+
+        ResultSet rs = stmt.executeQuery("select count(1) from t0");
+        Assert.assertTrue(rs.next());
+        assertEquals(12, rs.getInt(1));
+    }
+
 
     @Test
     public void testArrayBindingDeleteForAone56539864() throws SQLException {
