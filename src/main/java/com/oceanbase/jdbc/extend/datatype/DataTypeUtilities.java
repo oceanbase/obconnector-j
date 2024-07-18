@@ -596,6 +596,8 @@ public class DataTypeUtilities {
         if (null == calendar) {
             calendar = Calendar.getInstance();
         }
+
+        calendar.clear();
         calendar.set(i, result[2] - 1, result[3], result[4], result[5], result[6]);
         calendar.set(Calendar.MILLISECOND, 0);
         long time = calendar.getTime().getTime();

@@ -1227,4 +1227,16 @@ public class DateTest extends BaseTest {
         assertEquals("12:12:12.1000", rs.getString(1));
     }
 
+    @Test
+    public void testForAone57018934() throws SQLException {
+        createTable("t_date", "c1 date, c2 varchar(30)");
+        Connection conn = setConnection("&getDateOptimization=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_date values(' 2024-07-11 12:22:33  ', ' 2024-07-11 12:22:33.123  ')");
+        ResultSet rs = stmt.executeQuery("select * from t_date");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("2024-07-11", rs.getDate(1).toString());
+        Assert.assertEquals("2024-07-11 12:22:33.123", rs.getTimestamp(2).toString());
+    }
+
 }

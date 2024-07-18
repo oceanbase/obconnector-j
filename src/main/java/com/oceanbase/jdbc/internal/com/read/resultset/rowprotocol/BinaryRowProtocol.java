@@ -1119,7 +1119,7 @@ public class BinaryRowProtocol extends RowProtocol {
                         day = buf[pos + 3];
                     }
 
-                    Calendar calendar = Calendar.getInstance();
+                    Calendar calendar = getCalendarInstance(null);
                     calendar.clear();
                     calendar.set(Calendar.YEAR, year);
                     calendar.set(Calendar.MONTH, month - 1);
@@ -1267,16 +1267,18 @@ public class BinaryRowProtocol extends RowProtocol {
             }
 
             if (this.getProtocol().isOracleMode()) {
-                Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                Calendar cal ;
                 TIMESTAMP timestamp = null;
                 switch (columnInfo.getColumnType()) {
                     case TIMESTAMP_TZ:
+                        cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
                         TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo,
                             userCalendar, timeZone);
                         timestamp = TIMESTAMPTZ.resultTIMESTAMP(getProtocol(),
                             oracleTimestampZ.toBytes());
                         return timestamp.timestampValue(cal);
                     case TIMESTAMP_LTZ:
+                        cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
                         TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
                             userCalendar, timeZone);
                         timestamp = TIMESTAMPLTZ.resultTIMESTAMP(getProtocol(),

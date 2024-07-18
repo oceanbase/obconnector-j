@@ -931,15 +931,17 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
         if (this.getProtocol().isOracleMode()) {
-            Calendar cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+            Calendar cal;
             TIMESTAMP timestamp = null;
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP_TZ:
+                    cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
                     TIMESTAMPTZ oracleTimestampZ = getInternalTIMESTAMPTZ(columnInfo, userCalendar,
                             timeZone);
                     timestamp = TIMESTAMPTZ.toTIMESTAMP(getProtocol(), oracleTimestampZ.toBytes());
                     return timestamp.timestampValue(cal);
                 case TIMESTAMP_LTZ:
+                    cal = getCalendarInstanceWithTimezone(userCalendar, timeZone);
                     TIMESTAMPLTZ oracleTimestampLTZ = getInternalTIMESTAMPLTZ(columnInfo,
                             userCalendar, timeZone);
                     timestamp = TIMESTAMPLTZ.toTIMESTAMP(getProtocol(),
@@ -965,6 +967,9 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+                if (options.getDateOptimization) {
+                    return getTimestampFromBytes(columnInfo, userCalendar, timeZone);
+                }
                 String rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 return getTimestampFromString(columnInfo, rawValue, userCalendar, timeZone);

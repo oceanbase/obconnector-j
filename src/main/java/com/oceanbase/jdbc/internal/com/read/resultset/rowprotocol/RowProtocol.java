@@ -89,6 +89,10 @@ public abstract class RowProtocol {
   protected static final int NULL_LENGTH = -1;
   private Protocol    protocol;
 
+  private Calendar calendarWithoutTimeZone;
+
+  private Calendar calendarWithTimeZone;
+
   static {
     TEXT_LOCAL_DATE_TIME =
         new DateTimeFormatterBuilder()
@@ -163,10 +167,23 @@ public abstract class RowProtocol {
     return maxFieldSize;
   }
   public Calendar getCalendarInstance(Calendar calendar) {
-      return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance();
+    if (calendar != null) {
+      return (Calendar) calendar.clone();
+    }
+    if (calendarWithoutTimeZone == null) {
+      calendarWithoutTimeZone = Calendar.getInstance();
+    }
+    return calendarWithoutTimeZone;
   }
     public Calendar getCalendarInstanceWithTimezone(Calendar calendar,TimeZone timeZone) {
-        return calendar != null ? (Calendar) calendar.clone() : Calendar.getInstance(timeZone);
+      if (calendar != null) {
+        return (Calendar) calendar.clone();
+      }
+      if (calendarWithTimeZone == null) {
+        calendarWithTimeZone = Calendar.getInstance(timeZone);
+      }
+      calendarWithTimeZone.setTimeZone(timeZone);
+      return calendarWithTimeZone;
     }
   public abstract String getInternalString(
       ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
@@ -891,6 +908,205 @@ public abstract class RowProtocol {
           throw  sqlException;
       }
   }
+
+  public static int getInt(byte[] buf, int offset, int endpos) throws NumberFormatException {
+    int len = endpos - offset;
+    int res = 0;
+    for (int i = 0; i < len; i++) {
+      int power = len - i - 1;
+      res += (int) ((buf[offset + i ] - '0') * Math.pow(10, power));
+    }
+    return res;
+  }
+
+  public Timestamp getTimestampFromBytes(ColumnDefinition columnInfo  ,Calendar calendar,TimeZone timezone) throws SQLException {
+    int start = pos;
+    int end = pos + this.length - 1;
+    while (start <= end && Character.isWhitespace(buf[start])) {
+      start++;
+    }
+    while (end >= start && Character.isWhitespace(buf[end])) {
+      end--;
+    }
+    int newLength = end - start + 1;
+
+    byte[] bytes = new byte[newLength];
+    System.arraycopy(buf, start, bytes, 0, newLength);
+
+    int length = bytes.length;
+    int nanosPos = -1;
+    int nanosLength = 0;
+    boolean haveHalfLine = false;
+    boolean haveColon = false;
+
+    for (int i = 0; i < length; i++) {
+      if (bytes[i] == '-') {
+        haveHalfLine = true;
+      }
+      if (bytes[i] == ':') {
+        haveColon = true;
+      }
+      if (bytes[i] == '.') {
+        length = i ;
+        nanosPos = i;
+        nanosLength = bytes.length - length - 1;
+      }
+    }
+
+    try {
+      int year = 1970;
+      int month = 0;
+      int day = 0;
+      int hour = 0;
+      int minutes = 0;
+      int seconds = 0;
+      int nanos = 0;
+      if (nanosLength > 0 && nanosPos > 0) {
+        nanos = getInt(bytes,  nanosPos + 1 , bytes.length);
+        if (nanosLength < 9) {
+          int factor = (int) (Math.pow(10, 9 - nanosLength));
+          nanos = nanos * factor;
+        }
+      }
+
+      switch (length) {
+        case 2: // YY
+        case 4: // YYMM
+        case 6: // YYMMDD
+          year = getInt(bytes, 0, 2);
+          if (year <= 69) {
+            year = (year + 100);
+          }
+          year += 1900;
+          switch (length) {
+            case 2:
+              month = 1;
+              day = 1;
+              break;
+            case 4:
+              month = getInt(bytes, 2, 4);
+              day = 1;
+              break;
+            case 6:
+              month = getInt(bytes, 2, 4);
+              day = getInt(bytes, 4, 6);
+              break;
+          }
+          break;
+        case 12:
+          // yymmddhhmmss
+          year = getInt(bytes, 0, 2);
+          if (year <= 69) {
+            year = (year + 100);
+          }
+          year += 1900;
+          month = getInt(bytes, 2, 4);
+          day = getInt(bytes, 4, 6);
+          hour = getInt(bytes, 6, 8);
+          minutes = getInt(bytes, 8, 10);
+          seconds = getInt(bytes, 10, 12);
+          break;
+        case 14:
+          // yyyymmddhhmmss
+          year = getInt(bytes, 0, 4);
+          month = getInt(bytes, 4, 6);
+          day = getInt(bytes, 6, 8);
+          hour = getInt(bytes, 8, 10);
+          minutes = getInt(bytes, 10, 12);
+          seconds = getInt(bytes, 12, 14);
+          break;
+        case 10:
+          if ((columnInfo.getColumnType() == ColumnType.DATE) || haveHalfLine) {
+            //yyyy-mm-dd
+            year = getInt(bytes, 0, 4);
+            month = getInt(bytes, 5, 7);
+            day = getInt(bytes, 8, 10);
+            hour = 0;
+            minutes = 0;
+          } else {
+            //yymmddhhmm
+            year = getInt(bytes, 0, 2);
+            if (year <= 69) {
+              year = (year + 100);
+            }
+            month = getInt(bytes, 2, 4);
+            day = getInt(bytes, 4, 6);
+            hour = getInt(bytes, 6, 8);
+            minutes = getInt(bytes, 8, 10);
+            year += 1900;
+            // two-digit year
+          }
+          break;
+        case 8:
+          if (haveColon) {
+            // hh:mm:ss
+            hour = getInt(bytes, 0, 2);
+            minutes = getInt(bytes, 3, 5);
+            seconds = getInt(bytes, 6, 8);
+            year = 1970;
+            month = 1;
+            day = 1;
+            break;
+          } else {
+            // yyyymmdd
+            year = getInt(bytes, 0, 4);
+            month = getInt(bytes, 4, 6);
+            day = getInt(bytes, 6, 8);
+            year -= 1900;
+            month--;
+          }
+          break;
+        default:
+          if (length >= 19 && length <= 26) {
+            // yyyy-mm-dd hh:mm:ss[.f...]
+            year = getInt(bytes, 0, 4);
+            month = getInt(bytes, 5, 7);
+            day = getInt(bytes, 8, 10);
+            hour = getInt(bytes, 11, 13);
+            minutes = getInt(bytes, 14, 16);
+            seconds = getInt(bytes, 17, 19);
+            break;
+          }
+          throw new SQLException("Bad format for Timestamp ");
+      }
+      boolean dateIsZero = (year + month + day) == 0 ;
+      boolean dateTimeIsZero = (year + month + day + hour + minutes + seconds ) == 0;
+
+      if (bytes[0] == '0' && (dateIsZero || dateTimeIsZero)) {
+        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+          throw new SQLException("Value '" + new String(buf, pos, length,
+                  getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
+        }
+        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_CONVERT_TO_NULL)) {
+          lastValueNull |= BIT_LAST_ZERO_DATE;
+          return null;
+        } else {
+          // round
+          year = 1;
+          month = 1;
+          day = 1;
+        }
+        Timestamp tt;
+        Calendar localCal = getCalendarInstance(calendar);
+        synchronized (localCal) {
+          localCal.clear();
+          localCal.set(year, month - 1, day, hour, minutes, seconds);
+          tt = new Timestamp(localCal.getTimeInMillis());
+        }
+        tt.setNanos(nanos);
+        return tt;
+      }
+
+      Timestamp timestamp = buildTimestmap(year, month, day, hour, minutes, seconds, nanos, calendar, timezone);
+      return timestamp;
+    } catch (NumberFormatException e) {
+      SQLException sqlException = new SQLException("Cannot convert value " +new String(buf, pos, length,
+              getCurrentEncoding(columnInfo.getColumnType()))+ " to TIMESTAMP.");
+      sqlException.initCause(e);
+      throw  sqlException;
+    }
+  }
+
 
   public Time getTimeFromString(String raw,Calendar cal) throws SQLException {
       if (!options.useLegacyDatetimeCode
