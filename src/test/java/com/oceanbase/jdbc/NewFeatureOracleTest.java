@@ -633,4 +633,35 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testArrayBindingDeleteForAone56539864() throws SQLException {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true&useServerPrepStmts=true&useArrayBinding=true&useOraclePrepareExecute=true");
+            Statement stmt = conn.createStatement();
+            createTable("t_delete", "id number, c1 varchar2(20)");
+            stmt.execute("insert into t_delete values(1,'AA'), (2,'AA'), (3,'AA')");
+
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("delete from t_delete where id=?");
+            ps.setInt(1,1);
+            ps.addBatch();
+            ps.setString(1,"2468");
+            ps.addBatch();
+            ps.setInt(1,3);
+            ps.addBatch();
+            ps.executeBatch();
+            conn.commit();
+
+            conn.setAutoCommit(true);
+            ResultSet rs = stmt.executeQuery("select count(*) from t_delete");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+        }
+    }
+
 }

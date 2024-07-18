@@ -856,6 +856,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           if(options.useServerPrepStmts && !this.protocol.getAutocommit() && protocol.isOracleMode() && options.useArrayBinding) {
             if(protocol.supportStmtPrepareExecute()) {
                 executeBatchByArrayBinding = true;
+                iterationCount = 2;
+                protocol.setIterationCount(iterationCount);
             } else {
                 executeBatchByArrayBinding = false;
             }
