@@ -1964,4 +1964,26 @@ public class ResultSetOracleTest extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testRowAndFetchForAone53528091() throws SQLException {
+        Connection conn = sharedConnection;
+        createTable("t_d", "c1 varchar(20)");
+        PreparedStatement ps = conn.prepareStatement("insert into t_d values(?)");
+        for (int i = 0; i < 30; i++) {
+            ps.setString(1, "col_" + i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        PreparedStatement ps2 = conn.prepareStatement("select * from t_d");
+        ps2.setMaxRows(12);
+        ps2.setFetchSize(20);
+        ResultSet rs = ps2.executeQuery();
+        int count = 0;
+        while (rs.next()) {
+            count ++;
+        }
+        assertEquals(12, count);
+    }
 }
