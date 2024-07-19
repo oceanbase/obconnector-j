@@ -636,6 +636,28 @@ public class NewFeatureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void  testForAone57857839() throws SQLException, UnsupportedEncodingException {
+        Connection conn  = setConnection("&useServerPrepStmts=true&usePieceData=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure p1(c0 blob)is begin null;end;");
+        conn.setAutoCommit(false);
+        Blob b= new com.oceanbase.jdbc.Blob("123".getBytes("utf-8"));
+        CallableStatement ps = conn.prepareCall("call p1(?)");
+        ps.setBlob(1, b);
+        ps.execute();
+        ps.close();
+
+        try {
+            ps = conn.prepareCall("call p1(?)");
+            ps.setBlob(1, b);
+            ps.execute();
+            ps.close();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testForAone54593691() throws SQLException, UnsupportedEncodingException {
         Connection conn = setConnection("&useServerPrepStmts=true&usePieceData=true&useArrayBinding=true");
         createTable("t0", "c1 blob, c2 blob");

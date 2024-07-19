@@ -1129,8 +1129,12 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           }
       }
       if (serverPrepareResult != null) {
-        serverPrepareResult.resetParameterTypeHeader();
-        results.setStatementId(serverPrepareResult.getStatementId());
+          if (serverPrepareResult.getStatementId() != 0) {
+              serverPrepareResult.resetParameterTypeHeader();
+              results.setStatementId(serverPrepareResult.getStatementId());
+          } else {
+              serverPrepareResult = null;
+          }
       }
 
       serverPrepareResult = protocol.executePreparedQuery(parameterCount, parameterHolders, serverPrepareResult, results);
