@@ -176,6 +176,9 @@ public class Results {
 
         Utils.TrimSQLInfo trimSQLInfo = Utils.trimSQLStringInternal(sql,
             protocol.noBackslashEscapes(), protocol.isOracleMode(), true);
+        if (protocol.isOracleMode()) {
+            return false;
+        }
         return trimSQLInfo.getOnDuplicateKeyUpdateIndex() == -1 ? false : true;
     }
 

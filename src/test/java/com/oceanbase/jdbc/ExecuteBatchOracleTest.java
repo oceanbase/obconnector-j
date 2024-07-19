@@ -248,4 +248,60 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testExecuteBatchReForAone57343322() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("ob_tmp_t_uw_sy_amount", "product_id number(10), decision_id number(10), amount number(12,2)," +
+                "insert_time date, last_updated_observe timestamp(6), last_updated timestamp(6)");
+        stmt.execute("insert into ob_tmp_t_uw_sy_amount (product_id, decision_id, amount, insert_time, last_updated, " +
+                "last_updated_observe) values (64806, 2, 40000.00, date '2016-08-30', timestamp '2024-05-31 11:38:57.248341', null)");
+
+        String sql = "merge into OB_TMP_T_UW_SY_AMOUNT a using (\n" +
+                "  select\n" +
+                "    *\n" +
+                "  from\n" +
+                "    OB_TMP_T_UW_SY_AMOUNT\n" +
+                "  where\n" +
+                "    PRODUCT_ID = 64806\n" +
+                "    and DECISION_ID = 2\n" +
+                ") b on (\n" +
+                "  a.DECISION_ID = b.DECISION_ID\n" +
+                "  and a.PRODUCT_ID = b.PRODUCT_ID\n" +
+                ")\n" +
+                "when matched then\n" +
+                "update\n" +
+                "set\n" +
+                "  a.AMOUNT = b.AMOUNT,\n" +
+                "  a.INSERT_TIME = b.INSERT_TIME,\n" +
+                "  a.LAST_UPDATED_OBSERVE = b.LAST_UPDATED_OBSERVE,\n" +
+                "  a.LAST_UPDATED = b.LAST_UPDATED\n" +
+                "where\n" +
+                "  a.LAST_UPDATED < b.LAST_UPDATED\n" +
+                "  when not matched then\n" +
+                "insert\n" +
+                "  (\n" +
+                "    a.AMOUNT,\n" +
+                "    a.INSERT_TIME,\n" +
+                "    a.LAST_UPDATED_OBSERVE,\n" +
+                "    a.LAST_UPDATED,\n" +
+                "    a.DECISION_ID,\n" +
+                "    a.PRODUCT_ID\n" +
+                "  )\n" +
+                "values\n" +
+                "  (\n" +
+                "    b.AMOUNT,\n" +
+                "    b.INSERT_TIME,\n" +
+                "    b.LAST_UPDATED_OBSERVE,\n" +
+                "    b.LAST_UPDATED,\n" +
+                "    b.DECISION_ID,\n" +
+                "    b.PRODUCT_ID\n" +
+                "  )";
+
+        PreparedStatement preparedStatement = conn.prepareStatement(sql);
+        preparedStatement.addBatch();
+        int[] updateCounts = preparedStatement.executeBatch();
+
+        assertEquals(0, updateCounts[0]);
+    }
 }
