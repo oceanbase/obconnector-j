@@ -128,7 +128,7 @@ public class StatementOracleTest extends BaseOracleTest {
     }
 
     @Test
-    public void testMaxRowsForAone55087008() throws SQLException {
+    public void testMaxRowsForAone55087008AndAone57643521() throws SQLException {
         createTable("t_max", "c1 int");
         PreparedStatement ps = sharedConnection.prepareStatement("insert into t_max values(?)");
         for (int i = 0; i < 20; i++) {

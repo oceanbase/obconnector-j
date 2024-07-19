@@ -1985,19 +1985,32 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setMaxRows(long max) throws SQLException {
     if (maxRows != max) {
       if (max == 0) {
-        if (this.isOracleMode() && Version.compare(this.getObServerVersion(), "4.2.4") >= 0) {
-          executeQuery("set @@_ORACLE_SQL_SELECT_LIMIT=DEFAULT");
+        if (this.isOracleMode()) {
+          setMaxRowsForOracle(String.valueOf(max));
         } else {
           executeQuery("set @@SQL_SELECT_LIMIT=DEFAULT");
         }
       } else {
-        if (this.isOracleMode() && Version.compare(this.getObServerVersion(), "4.2.4") >= 0) {
-          executeQuery("set @@_ORACLE_SQL_SELECT_LIMIT=" + max);
+        if (this.isOracleMode()) {
+          setMaxRowsForOracle(String.valueOf(max));
         }else {
           executeQuery("set @@SQL_SELECT_LIMIT=" + max);
         }
       }
       maxRows = max;
+    }
+  }
+
+  private void setMaxRowsForOracle(String maxRows) throws SQLException {
+    String maxRowsStr = "DEFAULT";
+    if (!"0".equals(maxRows)) {
+      maxRowsStr = maxRows;
+    }
+
+    try {
+      executeQuery("set @@_ORACLE_SQL_SELECT_LIMIT = " + maxRowsStr);
+    } catch (SQLException e) {
+      executeQuery("set @@SQL_SELECT_LIMIT = " + maxRowsStr);
     }
   }
 
