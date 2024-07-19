@@ -49,9 +49,23 @@
  */
 package com.oceanbase.jdbc;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.PseudoColumnUsage;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Types;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.SortedMap;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,6 +79,11 @@ import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.Identifier;
 import com.oceanbase.jdbc.util.Options;
 
+import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_GET_PROCEDURE_COL_INFO_V6;
+import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_GET_PROCEDURE_COL_INFO_V8;
+import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_PKG_PROCEDURE_COL_NO_WILDCARDS;
+import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_UNPKG_PROCEDURE_COL_NO_WILDCARDS;
+
 public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     public static final String        DRIVER_NAME               = "OceanBase Connector/J";
@@ -72,6 +91,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     private final OceanBaseConnection connection;
     private boolean                   datePrecisionColumnExist  = true;
     Protocol                          protocol                  = null;
+
     private static final Pattern      RETURN_PATTERN            = Pattern
                                                                     .compile(
                                                                         "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
@@ -84,6 +104,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                                                                     .compile(
                                                                         "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?(\"[\\w\\d\\S]+\")\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                                                                         Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern      SQL_WILDCARD_PATTERN      = Pattern.compile("^%|^_|[^/]%|[^/]_",  Pattern.CASE_INSENSITIVE);
+    private static final Pattern      SQL_ESCAPE_PATTERN        = Pattern.compile("/",  Pattern.CASE_INSENSITIVE);
+
     String[]                          exportKeysColumnNames     = { "PKTABLE_CAT", "PKTABLE_SCHEM",
             "PKTABLE_NAME", "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME",
             "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE", "FK_NAME", "PK_NAME",
@@ -2871,10 +2895,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getProcedureColumns(String catalog, String schemaPattern,
                                          String procedureNamePattern, String columnNamePattern)
                                                                                                throws SQLException {
-        if (!connection.getProtocol().isOracleMode() && procedureNamePattern != null && procedureNamePattern.contains("`")) {
+        if (this.protocol.isOracleMode()) {
+            return getProcedureColumnsForOracle(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+        }
+
+        if (procedureNamePattern != null && procedureNamePattern.contains("`")) {
             procedureNamePattern = procedureNamePattern.replace("`", "");
         }
-        if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
+
+        if (haveInformationSchemaParameters()) {
             /*
              *  Get info from information_schema.parameters. Compatible with maria, almost mysql 8.x
              */
@@ -2892,6 +2921,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             firstCondition = this.patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
             this.patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
             sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
+
             return this.executeQuery(sb.toString());
         } else {
             /* No information_schema.parameters. Compatible with mysql 5.x
@@ -2907,16 +2937,14 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 ColumnType[] columnTypes = { ColumnType.VARCHAR, ColumnType.VARCHAR,
                         ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.NUMBER,
                         ColumnType.SMALLINT, ColumnType.VARCHAR,
-
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT,
                         ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR,
                         ColumnType.VARCHAR,
-
                         ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER,
                         ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR };
-                ResultSet procsAndOrFuncsRs = getProcAndFuncs(catalog, procedureNamePattern, true,
+
+                return getProcAndFuncs(catalog, procedureNamePattern, true,
                     false, columnNames, columnTypes, false, columnNamePattern, schemaPattern);
-                return procsAndOrFuncsRs;
             } catch (SQLException throwables) {
                 throw throwables;
             }
@@ -4806,5 +4834,232 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     @Override
     public boolean supportsRefCursors() {
         return false;
+    }
+
+    private ResultSet getProcedureColumnsForOracle(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
+        if ("".equals(catalog) && (schemaPattern == null || !haveWildcardsInSql(schemaPattern)) && procedureNamePattern != null && !haveWildcardsInSql(procedureNamePattern)) {
+            if (schemaPattern != null) {
+                schemaPattern = stripSqlEscapes(schemaPattern);
+            }
+            procedureNamePattern = stripSqlEscapes(procedureNamePattern);
+            return getOraPLColumnsWithNoWildcardsAndUnPakaged(schemaPattern, procedureNamePattern, columnNamePattern);
+        }
+
+        if (catalog == null || catalog.isEmpty() || haveWildcardsInSql(catalog) || schemaPattern != null && haveWildcardsInSql(schemaPattern)) {
+            return getOraPLColumnsWithWildcards(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+        }
+
+        catalog = stripSqlEscapes(catalog);
+        if (schemaPattern != null) {
+            schemaPattern = stripSqlEscapes(schemaPattern);
+        }
+        return getOraPLColumnsWithNoWildcardsAndPakaged(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+    }
+
+    private ResultSet getOraPLColumnsWithWildcards(String catalog, String schemaPattern, String procedureNamePattern,
+                                                   String columnNamePattern) throws SQLException {
+        if (schemaPattern == null) {
+            schemaPattern = "%";
+        } else if (schemaPattern.isEmpty()) {
+            schemaPattern = this.getUserName().toUpperCase();
+        }
+
+        if (procedureNamePattern == null) {
+            procedureNamePattern = "%";
+        } else if (procedureNamePattern.isEmpty()) {
+            throw new SQLException("Invalid name or pattern");
+        }
+
+        if (columnNamePattern != null && columnNamePattern.isEmpty()) {
+            throw new SQLException("Invalid name or pattern");
+        } else if (columnNamePattern == null) {
+            columnNamePattern = "%";
+        }
+
+        String actualSql = buildProcedureColumnsSql(true, true, columnNamePattern);
+        if (catalog != null) {
+            if (catalog.isEmpty()) {
+                actualSql += " AND package_name IS NULL";
+            } else {
+                actualSql += " AND package_name LIKE ? ESCAPE '/'";
+            }
+        }
+        if (columnNamePattern.equals("%")) {
+            actualSql += " AND (argument_name LIKE ? ESCAPE '/' OR (argument_name IS NULL AND data_type IS NOT NULL)) ";
+        } else {
+            actualSql += " AND argument_name LIKE ? ESCAPE '/'";
+        }
+        actualSql += " ORDER BY procedure_schem, procedure_name, overload, sequence";
+
+        PreparedStatement ps = this.connection.prepareStatement(actualSql);
+        ps.setString(1, schemaPattern);
+        ps.setString(2, procedureNamePattern);
+        if (catalog == null || catalog.isEmpty()) {
+            ps.setString(3, columnNamePattern);
+        } else {;
+            ps.setString(3, catalog);
+            ps.setString(4, columnNamePattern);
+        }
+        ps.closeOnCompletion();
+        return ps.executeQuery();
+    }
+
+    private ResultSet getOraPLColumnsWithNoWildcardsAndPakaged(String catalog, String schemaPattern, String procedureNamePattern,
+                                                               String columnNamePattern) throws SQLException {
+        if ("".equals(columnNamePattern)) {
+            throw new SQLException("Invalid name or pattern");
+        }
+
+        CallableStatement cs = null;
+        try {
+            cs = this.connection.prepareCall(OB_ORA_PKG_PROCEDURE_COL_NO_WILDCARDS);
+            cs.setString(1, catalog);
+            cs.setString(2, schemaPattern);
+            cs.setString(3, procedureNamePattern);
+            cs.registerOutParameter(4, Types.VARCHAR);
+            cs.registerOutParameter(5, Types.VARCHAR);
+            cs.registerOutParameter(6, Types.NUMERIC);
+            cs.execute();
+            int status = cs.getInt(6);
+            if (status != 0) {
+                throw new SQLException("Detected synonym loop");
+            }
+            String outOwner = cs.getString(4);
+            String outPackageName = cs.getString(5);
+
+            String sql = buildProcedureColumnsSql(false, true, columnNamePattern);
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setString(1, outOwner);
+            ps.setString(2, procedureNamePattern);
+            ps.setString(3, outPackageName);
+            ps.setString(4, columnNamePattern == null ? "%" : columnNamePattern);
+            ps.closeOnCompletion();
+            return ps.executeQuery();
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    private ResultSet getOraPLColumnsWithNoWildcardsAndUnPakaged(String schemaPattern, String procedureNamePattern,
+                                                                 String columnNamePattern) throws SQLException {
+        if ("".equals(columnNamePattern)) {
+            throw new SQLException("Invalid name or pattern");
+        }
+
+        CallableStatement cs = null;
+        try {
+            cs = this.connection.prepareCall(OB_ORA_UNPKG_PROCEDURE_COL_NO_WILDCARDS);
+            cs.setString(1, schemaPattern);
+            cs.setString(2, procedureNamePattern);
+            cs.registerOutParameter(3, Types.VARCHAR);
+            cs.registerOutParameter(4, Types.VARCHAR);
+            cs.registerOutParameter(5, Types.NUMERIC);
+            cs.execute();
+            int status = cs.getInt(5);
+            if (status != 0) {
+                throw new SQLException("Detected synonym loop");
+            }
+            String outOwner = cs.getString(3);
+            String outName = cs.getString(4);
+
+            String sql = buildProcedureColumnsSql(false, false, columnNamePattern);
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setString(1, outOwner);
+            ps.setString(2, outName);
+            ps.setString(3, columnNamePattern == null ? "%" : columnNamePattern);
+            ps.closeOnCompletion();
+            return ps.executeQuery();
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    /**
+     * Based on wildcards and the packaged, construct SQL to retrieve ProcedureColumns
+     * @param hasWildcards
+     * @param packaged
+     * @param columnNamePattern
+     * @return
+     */
+    private String buildProcedureColumnsSql(boolean hasWildcards, boolean packaged, String columnNamePattern){
+        String actualSql = "";
+        String orderSql = " ORDER BY procedure_schem, procedure_name, overload, sequence ";
+        String sqlForOjdbc6 = String.format(OB_ORA_GET_PROCEDURE_COL_INFO_V6,
+                this.protocol.getOptions().mapDateToTimestamp ? "93 " : "91 ");
+        String sqlForOjdbc8 = String.format(OB_ORA_GET_PROCEDURE_COL_INFO_V8,
+                this.protocol.getOptions().mapDateToTimestamp ? "93 " : "91 ");
+
+        actualSql = sqlForOjdbc6;
+        if (this.protocol.getOptions().compatibleOjdbcVersion == 8) {
+            actualSql =sqlForOjdbc8;
+        }
+
+        if (hasWildcards) {
+            if (this.protocol.getOptions().compatibleOjdbcVersion == 6) {
+                actualSql += " WHERE owner LIKE ? ESCAPE '/' AND object_name LIKE ? ESCAPE '/' AND data_level = 0 ";
+            }else {
+                actualSql += ", all_procedures proc  WHERE arg.owner LIKE ? ESCAPE '/'  " +
+                        " AND arg.object_name LIKE ? ESCAPE '/' AND arg.data_level = 0  " +
+                        " AND arg.owner = proc.owner  " +
+                        " AND arg.object_id = proc.object_id  " +
+                        " AND arg.subprogram_id = proc.subprogram_id  ";
+            }
+        } else {
+            if (packaged) {
+                actualSql += " WHERE owner = ? \n" +
+                        "  AND object_name LIKE ? ESCAPE '/' \n" +
+                        " AND data_level = 0\n" +
+                        " AND package_name = ? " ;
+            } else {
+                actualSql += " WHERE owner = ? \n" +
+                        "  AND object_name = ?\n" +
+                        " AND data_level = 0\n" +
+                        " AND package_name is null" ;
+            }
+
+            if (this.protocol.getOptions().compatibleOjdbcVersion == 6) {
+                actualSql += "  AND argument_name LIKE ? ESCAPE '/' \n";
+            }
+            if (this.protocol.getOptions().compatibleOjdbcVersion == 8){
+                if (columnNamePattern != null && !columnNamePattern.equals("%")) {
+                    actualSql += "  AND argument_name LIKE ? ESCAPE '/' \n";
+                } else {
+                    actualSql += " AND (argument_name LIKE ? ESCAPE '/'\n      OR (argument_name IS NULL\n          AND data_type IS NOT NULL))\n ";
+                }
+            }
+            actualSql += orderSql;
+        }
+        return actualSql;
+    }
+
+    /**
+     * Check if wildcards exist in the text pattern.
+     * @param pattern pattern
+     * @return
+     */
+    private boolean haveWildcardsInSql(String pattern) {
+        Matcher matcher = SQL_WILDCARD_PATTERN.matcher(pattern);
+        return matcher.find();
+    }
+
+    /**
+     * Remove escape characters from text pattern
+     * @param pattern pattern
+     * @return
+     */
+    private String stripSqlEscapes(String pattern) {
+        StringBuffer stringBuffer = new StringBuffer();
+
+        Matcher matcher = SQL_ESCAPE_PATTERN.matcher(pattern);
+        while (matcher.find()) {
+            matcher.appendReplacement(stringBuffer, "");
+        }
+        matcher.appendTail(stringBuffer);
+
+        return stringBuffer.toString();
     }
 }

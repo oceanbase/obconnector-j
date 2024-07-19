@@ -912,4 +912,79 @@ public class DataTypeOracleTest extends BaseOracleTest {
         assertEquals(new BigDecimal("0.024"), rs.getBigDecimal(1));
     }
 
+    @Test
+    public void testForAone56792504() throws SQLException {
+        createProcedure("test_col", "(ch_1 char, ch_2 varchar2, ch_3 nchar, " +
+                                                "num_1 number, num_2 long, " +
+                                                "big_1 blob, big_2 bfile, " +
+                                                "time_1 date, time_2 timestamp, " +
+                                                "re out integer) is begin select 1 into re from dual; end;");
+
+        Connection conn = setConnection("&compatibleOjdbcVersion=6");
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet rs = metaData.getProcedureColumns(null, "TEST", "TEST_COL", null);
+        Assert.assertTrue(rs.next());
+        assertEquals("CH_1", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("CHAR", rs.getString("TYPE_NAME"));
+        assertEquals("1", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("CH_2", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("VARCHAR2", rs.getString("TYPE_NAME"));
+        assertEquals("12", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("CH_3", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("NCHAR", rs.getString("TYPE_NAME"));
+        assertEquals("1111", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("NUM_1", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("NUMBER", rs.getString("TYPE_NAME"));
+        assertEquals("3", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("NUM_2", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("VARCHAR2", rs.getString("TYPE_NAME"));
+        assertEquals("12", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("BIG_1", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("LONGTEXT", rs.getString("TYPE_NAME"));
+        assertEquals("1111", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("BIG_2", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("EXT", rs.getString("TYPE_NAME"));
+        assertEquals("1111", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("TIME_1", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("DATE", rs.getString("TYPE_NAME"));
+        assertEquals("93", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("TIME_2", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("COLUMN_TYPE"));
+        assertEquals("TIMESTAMP", rs.getString("TYPE_NAME"));
+        assertEquals("93", rs.getString("DATA_TYPE"));
+
+        Assert.assertTrue(rs.next());
+        assertEquals("RE", rs.getString("COLUMN_NAME"));
+        assertEquals("4", rs.getString("COLUMN_TYPE"));
+        assertEquals("NUMBER", rs.getString("TYPE_NAME"));
+        assertEquals("3", rs.getString("DATA_TYPE"));
+
+        rs.close();
+        conn.close();
+
+    }
 }

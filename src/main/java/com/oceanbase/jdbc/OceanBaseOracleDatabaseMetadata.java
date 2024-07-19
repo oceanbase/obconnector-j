@@ -179,11 +179,11 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
             stmt.setString(7, schemaStr);
             stmt.setString(8, procedureStr);
         } else if (catalog.equals("")) {
-            stmt = this.connection.prepareStatement(OB_ORA_GET_GET_PROCEDURE_CATALOG_EMPTY);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_PROCEDURE_CATALOG_EMPTY);
             stmt.setString(1, schemaStr);
             stmt.setString(2, procedureStr);
         } else {
-            stmt = this.connection.prepareStatement(OB_ORA_GET_GET_PROCEDURE_WITH_CATALOG);
+            stmt = this.connection.prepareStatement(OB_ORA_GET_PROCEDURE_WITH_CATALOG);
             stmt.setString(1, catalog);
             stmt.setString(2, schemaStr);
             stmt.setString(3, procedureStr);

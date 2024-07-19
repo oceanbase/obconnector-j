@@ -48,10 +48,10 @@ public class DefaultSQLs {
     public static final String OB_ORA_GET_PROCEDURE_CATALOG_NULL              = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,"
                                                                                 + OB_ORA_GET_PROCEDURE_CATALOG_PROCEDURE_TYPE
                                                                                 + " AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
-    public static final String OB_ORA_GET_GET_PROCEDURE_CATALOG_EMPTY         = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,"
+    public static final String OB_ORA_GET_PROCEDURE_CATALOG_EMPTY             = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,"
                                                                                 + OB_ORA_GET_PROCEDURE_CATALOG_PROCEDURE_TYPE
                                                                                 + " AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? ";
-    public static final String OB_ORA_GET_GET_PROCEDURE_WITH_CATALOG          = "SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
+    public static final String OB_ORA_GET_PROCEDURE_WITH_CATALOG              = "SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
     public static final String OB_ORA_GET_SCHEMAS                             = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
     public static final String OB_ORA_GET_SCHEMAS_WITH_SCHEMAPATTERN          = "SELECT username AS table_schem,null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
     public static final String OB_ORA_GET_CATALOG                             = "select 'getCatalog return null' as table_cat from dual where 2=1";
@@ -175,5 +175,267 @@ public class DefaultSQLs {
                                                                                 + "  AND t.table_name = i.table_name\n"
                                                                                 + "  AND t.column_name = i.column_name order by 1\n";
     public static final String OB_ORA_KEYS_QUERY                              = "SELECT NULL AS pktable_cat, p_cons.owner as pktable_schem,p_cons.table_name as pktable_name, p_cons_cols.column_name as pkcolumn_name,NULL as fktable_cat,f_cons.owner as fktable_schem,f_cons.table_name as fktable_name,f_cons_cols.column_name as fkcolumn_name, f_cons_cols.position as key_seq,NULL as update_rule,decode (f_cons.delete_rule, 'CASCADE', 0, 'SET NULL', 2, 1) as delete_rule,f_cons.constraint_name as fk_name, p_cons.constraint_name as pk_name, decode(f_cons.deferrable,'DEFERRABLE',5,'NOT DEFERRABLE',7 ,'DEFERRED', 6) deferrability  FROM all_cons_columns p_cons_cols, all_constraints p_cons,all_cons_columns f_cons_cols, all_constraints f_cons WHERE 1 = 1  %s %s %s %s  AND f_cons.constraint_type = 'R'   AND p_cons.owner = f_cons.r_owner  AND p_cons.constraint_name = f_cons.r_constraint_name  AND p_cons.constraint_type = 'P'  AND p_cons_cols.owner = p_cons.owner  AND p_cons_cols.constraint_name = p_cons.constraint_name  AND p_cons_cols.table_name = p_cons.table_name  AND f_cons_cols.owner = f_cons.owner  AND f_cons_cols.constraint_name = f_cons.constraint_name  AND f_cons_cols.table_name = f_cons.table_name  AND f_cons_cols.position = p_cons_cols.position ";
+
+    public static final String OB_ORA_PKG_PROCEDURE_COL_NO_WILDCARDS          = "declare " +
+                                                                                "  in_package_name varchar2(32) := null; " +
+                                                                                "  in_owner varchar2(32) := null; " +
+                                                                                "  in_name varchar2(32) := null; " +
+                                                                                "  my_user_name varchar2(32) := null; " +
+                                                                                "  cnt number := 0; " +
+                                                                                "  temp_package_name varchar2(32) := null; " +
+                                                                                "  temp_owner varchar2(32) := null; " +
+                                                                                "  out_package_name varchar2(32) := null; " +
+                                                                                "  out_owner varchar2(32) := null; " +
+                                                                                "  loc varchar2(32) := null; " +
+                                                                                "  status number := 0; " +
+                                                                                "  TYPE recursion_check_type is table of number index by varchar2(65); " +
+                                                                                "  recursion_check recursion_check_type; " +
+                                                                                "  dotted_name varchar2(65); " +
+                                                                                "  recursion_cnt number := 0; \n" +
+                                                                                "begin " +
+                                                                                "  in_package_name := ?; " +
+                                                                                "  in_owner := ?; " +
+                                                                                "  in_name := ?; " +
+                                                                                "  select user into my_user_name from dual; " +
+                                                                                "  if( my_user_name = in_owner ) then " +
+                                                                                "    select count(*) into cnt from user_arguments where package_name = in_package_name; " +
+                                                                                "    if( cnt >= 1 ) then " +
+                                                                                "      out_owner := in_owner; " +
+                                                                                "      out_package_name := in_package_name; " +
+                                                                                "      loc := 'USER_ARGUMENTS'; " +
+                                                                                "    end if; " +
+                                                                                "  else " +
+                                                                                "    select count(*) into cnt from all_arguments where owner = in_owner and package_name = in_package_name; " +
+                                                                                "    if( cnt >= 1 ) then " +
+                                                                                "      out_owner := in_owner; " +
+                                                                                "      out_package_name := in_package_name; " +
+                                                                                "      loc := 'ALL_ARGUMENTS'; " +
+                                                                                "    end if; " +
+                                                                                "  end if; " +
+                                                                                "  if loc is null then " +
+                                                                                "  temp_owner := in_owner; " +
+                                                                                "  temp_package_name := in_package_name; " +
+                                                                                "  loop " +
+                                                                                "    begin " +
+                                                                                "      dotted_name := temp_owner || '.' ||temp_package_name; " +
+                                                                                "      begin " +
+                                                                                "        recursion_cnt := recursion_check(dotted_name ); " +
+                                                                                "        status := -1; " +
+                                                                                "        exit; " +
+                                                                                "      exception " +
+                                                                                "      when NO_DATA_FOUND then " +
+                                                                                "        recursion_check( dotted_name ) := 1; " +
+                                                                                "      end; " +
+                                                                                "      select table_owner, table_name into out_owner, out_package_name from all_synonyms  " +
+                                                                                "        where  owner = temp_owner and synonym_name = temp_package_name; " +
+                                                                                "      cnt := cnt + 1; " +
+                                                                                "      temp_owner  := out_owner; " +
+                                                                                "      temp_package_name := out_package_name; " +
+                                                                                "      exception " +
+                                                                                "      when NO_DATA_FOUND then " +
+                                                                                "        exit; " +
+                                                                                "      end; " +
+                                                                                "    end loop; " +
+                                                                                "    if( not(out_owner is null) ) then " +
+                                                                                "      loc := 'ALL_SYNONYMS'; " +
+                                                                                "    end if; " +
+                                                                                "  end if; " +
+                                                                                " ? := out_owner; " +
+                                                                                " ? := out_package_name; " +
+                                                                                " ? := status; " +
+                                                                                " end; ";
+
+    public static final String OB_ORA_UNPKG_PROCEDURE_COL_NO_WILDCARDS        = "declare " +
+                                                                                "  in_owner varchar2(32) := null; " +
+                                                                                "  in_name varchar2(32) := null; " +
+                                                                                "  my_user_name varchar2(32) := null; " +
+                                                                                "  cnt number := 0; " +
+                                                                                "  temp_owner varchar2(32) := null; " +
+                                                                                "  temp_name  varchar2(32):= null; " +
+                                                                                "  out_owner varchar2(32) := null; " +
+                                                                                "  out_name  varchar2(32):= null; " +
+                                                                                "  loc varchar2(32) := null; " +
+                                                                                "  status number := 0; " +
+                                                                                "  TYPE recursion_check_type is table of number index by varchar2(65); " +
+                                                                                "  recursion_check recursion_check_type; " +
+                                                                                "  dotted_name varchar2(65); " +
+                                                                                "  recursion_cnt number := 0; \n" +
+                                                                                "begin\n" +
+                                                                                "  in_owner := ?; " +
+                                                                                "  in_name := ?; " +
+                                                                                "  select user into my_user_name from dual; " +
+                                                                                "  if( my_user_name = in_owner ) then " +
+                                                                                "    select count(*) into cnt from user_procedures where object_name = in_name; " +
+                                                                                "    if( cnt = 1 ) then " +
+                                                                                "      out_owner := in_owner; " +
+                                                                                "      out_name := in_name; " +
+                                                                                "      loc := 'USER_PROCEDURES'; " +
+                                                                                "    end if; " +
+                                                                                "  else " +
+                                                                                "    select count(*) into cnt from all_arguments where owner = in_owner and object_name = in_name; " +
+                                                                                "    if( cnt >= 1 ) then " +
+                                                                                "      out_owner := in_owner; " +
+                                                                                "      out_name := in_name; " +
+                                                                                "      loc := 'ALL_ARGUMENTS'; " +
+                                                                                "    end if; " +
+                                                                                "  end if; " +
+                                                                                "  if loc is null then " +
+                                                                                "    temp_owner := in_owner; " +
+                                                                                "    temp_name := in_name; " +
+                                                                                "    loop " +
+                                                                                "      begin " +
+                                                                                "        dotted_name := temp_owner || '.' ||temp_name; " +
+                                                                                "        begin " +
+                                                                                "          recursion_cnt := recursion_check(dotted_name ); " +
+                                                                                "          status := -1; " +
+                                                                                "          exit; " +
+                                                                                "        exception " +
+                                                                                "        when NO_DATA_FOUND then " +
+                                                                                "          recursion_check( dotted_name ) := 1; " +
+                                                                                "        end; " +
+                                                                                "        select table_owner, table_name into out_owner, out_name from all_synonyms  " +
+                                                                                "          where  owner = temp_owner and synonym_name = temp_name; " +
+                                                                                "        cnt := cnt + 1; " +
+                                                                                "        temp_owner  := out_owner; " +
+                                                                                "        temp_name := out_name; " +
+                                                                                "        exception " +
+                                                                                "        when NO_DATA_FOUND then " +
+                                                                                "          exit; " +
+                                                                                "        end; " +
+                                                                                "      end loop; " +
+                                                                                "      if( not(out_owner is null) ) then " +
+                                                                                "        loc := 'ALL_SYNONYMS'; " +
+                                                                                "    end if; " +
+                                                                                "  end if; \n " +
+                                                                                " ? := out_owner; " +
+                                                                                " ? := out_name; " +
+                                                                                " ? := status; " +
+                                                                                " end; ";
+
+    public static final String OB_ORA_GET_PROCEDURE_COL_INFO_V6               = "SELECT package_name AS procedure_cat, " +
+                                                                                " owner AS procedure_schem, " +
+                                                                                " object_name AS procedure_name, " +
+                                                                                " argument_name AS column_name, " +
+                                                                                " DECODE(position, 0, 5, " +
+                                                                                "                  DECODE(in_out, 'IN', 1, " +
+                                                                                "                                 'OUT', 4, " +
+                                                                                "                                 'IN/OUT', 2, " +
+                                                                                "                                 0)) AS column_type, " +
+                                                                                " DECODE (data_type, 'CHAR', 1, " +
+                                                                                "                    'VARCHAR2', 12, " +
+                                                                                "                    'NUMBER', 3, " +
+                                                                                "                    'LONG', -1, " +
+                                                                                "                    'DATE', %s, " +
+                                                                                "                    'RAW', -3, " +
+                                                                                "                    'LONG RAW', -4, " +
+                                                                                "                    'TIMESTAMP', 93,  " +
+                                                                                "                    'TIMESTAMP WITH TIME ZONE', -101,  " +
+                                                                                "                    'TIMESTAMP WITH LOCAL TIME ZONE', -102,  " +
+                                                                                "                    'INTERVAL YEAR TO MONTH', -103,  " +
+                                                                                "                    'INTERVAL DAY TO SECOND', -104,  " +
+                                                                                "                    'BINARY_FLOAT', 100, 'BINAvRY_DOUBLE', 101, 1111) AS data_type, " +
+                                                                                " DECODE(data_type, 'OBJECT', type_owner || '.' || type_name, data_type) AS type_name, " +
+                                                                                " DECODE (data_precision, NULL, data_length, data_precision) AS precision, " +
+                                                                                " data_length AS length, " +
+                                                                                " data_scale AS scale, " +
+                                                                                " 10 AS radix, " +
+                                                                                " 1 AS nullable, " +
+                                                                                " NULL AS remarks, " +
+                                                                                " NULL AS column_def, " +
+                                                                                " NULL as sql_data_type, " +
+                                                                                " NULL AS sql_datetime_sub, " +
+                                                                                " DECODE(data_type, 'CHAR', 32767, " +
+                                                                                "                   'VARCHAR2', 32767, " +
+                                                                                "                   'LONG', 32767, " +
+                                                                                "                   'RAW', 32767, " +
+                                                                                "                   'LONG RAW', 32767, " +
+                                                                                "                   NULL) AS char_octet_length, " +
+                                                                                " (sequence - 1) AS ordinal_position, " +
+                                                                                " 'YES' AS is_nullable, " +
+                                                                                " NULL AS specific_name, " +
+                                                                                " sequence, " +
+                                                                                " overload, " +
+                                                                                " NULL AS default_value " +
+                                                                                " FROM all_arguments \n ";
+
+    public static final String OB_ORA_GET_PROCEDURE_COL_INFO_V8               = "SELECT arg.package_name AS procedure_cat,  " +
+                                                                                "       arg.owner AS procedure_schem,  " +
+                                                                                "       arg.object_name AS procedure_name,  " +
+                                                                                "       arg.argument_name AS column_name,  " +
+                                                                                "       DECODE(arg.position, 0, 5,  " +
+                                                                                "                        DECODE(arg.in_out, 'IN', 1,  " +
+                                                                                "                                       'OUT', 4,  " +
+                                                                                "                                       'IN/OUT', 2,  " +
+                                                                                "                                       0)) AS column_type,  " +
+                                                                                "  DECODE(substr(arg.data_type, 1, 9),   " +
+                                                                                "    'TIMESTAMP',   " +
+                                                                                "      DECODE(substr(arg.data_type, 10, 1),   " +
+                                                                                "        '(',   " +
+                                                                                "          DECODE(substr(arg.data_type, 19, 5),   " +
+                                                                                "            'LOCAL', -102, 'TIME ', -101, 93),   " +
+                                                                                "        DECODE(substr(arg.data_type, 16, 5),   " +
+                                                                                "          'LOCAL', -102, 'TIME ', -101, 93)),   " +
+                                                                                "    'INTERVAL ',   " +
+                                                                                "      DECODE(substr(arg.data_type, 10, 3),   " +
+                                                                                "       'DAY', -104, 'YEA', -103),   " +
+                                                                                "    DECODE(arg.data_type,   " +
+                                                                                "      'BINARY_DOUBLE', 101,   " +
+                                                                                "      'BINARY_FLOAT', 100,   " +
+                                                                                "      'BFILE', -13,   " +
+                                                                                "      'BLOB', 2004,   " +
+                                                                                "      'CHAR', 1,   " +
+                                                                                "      'CLOB', 2005,   " +
+                                                                                "      'COLLECTION', 2003,   " +
+                                                                                "      'DATE', %s, " +
+                                                                                "      'FLOAT', 6,   " +
+                                                                                "      'LONG', -1,   " +
+                                                                                "      'LONG RAW', -4,   " +
+                                                                                "      'NCHAR', -15,   " +
+                                                                                "      'NCLOB', 2011,   " +
+                                                                                "      'NUMBER', 2,   " +
+                                                                                "      'NVARCHAR', -9,   " +
+                                                                                "      'NVARCHAR2', -9,   " +
+                                                                                "      'OBJECT', 2002,   " +
+                                                                                "      'OPAQUE/XMLTYPE', 2009,   " +
+                                                                                "      'RAW', -3,   " +
+                                                                                "      'REF', 2006,   " +
+                                                                                "      'ROWID', -8,   " +
+                                                                                "      'SQLXML', 2009,   " +
+                                                                                "      'UROWID', -8,   " +
+                                                                                "      'VARCHAR2', 12,   " +
+                                                                                "      'VARRAY', 2003,   " +
+                                                                                "      'XMLTYPE', 2009,   " +
+                                                                                "      DECODE((SELECT a.typecode   " +
+                                                                                "        FROM ALL_TYPES a   " +
+                                                                                "        WHERE a.type_name = arg.data_type  " +
+                                                                                "        ),   " +
+                                                                                "        'OBJECT', 2002,   " +
+                                                                                "        'COLLECTION', 2003, 1111)))   " +
+                                                                                " AS data_type,  " +
+                                                                                "       DECODE(arg.data_type, 'OBJECT', arg.type_owner || '.' || arg.type_name,               arg.data_type) AS type_name,  " +
+                                                                                "       DECODE (arg.data_precision, NULL, arg.data_length,  " +
+                                                                                "                               arg.data_precision) AS precision,  " +
+                                                                                "       arg.data_length AS length,  " +
+                                                                                "       arg.data_scale AS scale,  " +
+                                                                                "       10 AS radix,  " +
+                                                                                "       1 AS nullable,  " +
+                                                                                "       NULL AS remarks,  " +
+                                                                                "       NULL AS column_def,  " +
+                                                                                "       NULL as sql_data_type,  " +
+                                                                                "       NULL AS sql_datetime_sub,  " +
+                                                                                "       DECODE(arg.data_type,  " +
+                                                                                "                         'CHAR', 32767,  " +
+                                                                                "                         'VARCHAR2', 32767,  " +
+                                                                                "                         'LONG', 32767,  " +
+                                                                                "                         'RAW', 32767,  " +
+                                                                                "                         'LONG RAW', 32767,  " +
+                                                                                "                         NULL) AS char_octet_length,  " +
+                                                                                "       (arg.sequence - 1) AS ordinal_position,  " +
+                                                                                "       'YES' AS is_nullable,  " +
+                                                                                "       NULL AS specific_name,  " +
+                                                                                "       arg.sequence,  " +
+                                                                                "       arg.overload,  " +
+                                                                                "       NULL as default_value  " +
+                                                                                " FROM all_arguments arg";
 
 }
