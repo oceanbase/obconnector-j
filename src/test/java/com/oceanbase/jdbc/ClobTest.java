@@ -395,4 +395,84 @@ public class ClobTest extends BaseTest {
         clob.truncate(0);
         assertEquals("", clob.getSubString(1L, (int) clob.length()));
     }
+
+    @Test
+    public void testClobSetMethodsForAone53671316() throws Exception {
+        // setString -- begin
+        java.sql.Clob clob = sharedConnection.createClob();
+        clob.setString(1, "clob");
+        String str = "string";
+        java.sql.Clob finalClob = clob;
+        SQLException exception = assertThrows(SQLException.class, () -> finalClob.setString(0, str));
+        Assert.assertEquals("Starting position can not be < 1", exception.getMessage());
+
+        clob.setString(4, str);
+        assertEquals("clostring", clob.getSubString(1, (int) clob.length()));
+
+        clob = sharedConnection.createClob();
+        clob.setString(1, "clob");
+        String finalStr = str;
+        java.sql.Clob finalClob1 = clob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob1.setString(6, finalStr));
+
+        clob = sharedConnection.createClob();
+        clob.setString(1, "clob");
+        java.sql.Clob finalClob2 = clob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob2.setString(6, ""));
+
+        clob = sharedConnection.createClob();
+        java.sql.Clob finalClob3 = clob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob3.setString(2, finalStr));
+
+        clob = sharedConnection.createClob();
+        java.sql.Clob finalClob4 = clob;
+        assertThrows(SQLException.class, () -> finalClob4.setString(0, str));
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob4.setString(2, str));
+        clob.setString(1, "");
+        assertEquals("", clob.getSubString(1, (int) clob.length()));
+        // setString -- end
+
+        // setCharacterStream -- begin
+        java.sql.Clob clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        java.sql.Clob finalClob5 = clob1;
+        SQLException e1 = assertThrows(SQLException.class, () -> finalClob5.setCharacterStream(0));
+        assertEquals("Starting position can not be < 1", e1.getMessage());
+
+        Writer writer = clob1.setCharacterStream(4);
+        writer.write("string");
+        writer.flush();
+        writer.close();
+        assertEquals("clostring", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        java.sql.Clob finalClob6 = clob1;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob6.setCharacterStream(6));
+
+        clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        writer = clob1.setCharacterStream(4);
+        writer.write("");
+        writer.flush();
+        writer.close();
+        assertEquals("clob", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        java.sql.Clob finalClob7 = clob1;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob7.setCharacterStream(6));
+
+        clob1 = sharedConnection.createClob();
+        java.sql.Clob finalClob8 = clob1;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalClob8.setCharacterStream(2));
+
+        clob1 = sharedConnection.createClob();
+        writer = clob1.setCharacterStream(1);
+        writer.write("string");
+        writer.flush();
+        writer.close();
+        assertEquals("string", clob1.getSubString(1, (int) clob1.length()));
+        // setCharacterStream -- end
+    }
 }

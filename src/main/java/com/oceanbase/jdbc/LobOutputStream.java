@@ -45,6 +45,8 @@ package com.oceanbase.jdbc;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public class LobOutputStream extends OutputStream {
     private final Lob lob;
@@ -77,8 +79,14 @@ public class LobOutputStream extends OutputStream {
         }
         int realLen = Math.min(buf.length - off, len);
         if (pos + realLen >= lob.length) {
-            int newLen = 2 * lob.length + realLen;
+            int newLen = Math.min(lob.length, pos) + realLen;
+            if (this.lob.isOracleMode) {
+                newLen = pos + realLen;
+            }
             byte[] tmp = new byte[newLen];
+            if (this.lob instanceof Clob) {
+                Arrays.fill(tmp, (byte) ' ');
+            }
             System.arraycopy(lob.data, lob.offset, tmp, 0, lob.length);
             lob.data = tmp;
             pos -= lob.offset;
@@ -86,11 +94,16 @@ public class LobOutputStream extends OutputStream {
             lob.length = pos + realLen;
         }
         System.arraycopy(buf, off, lob.data, pos, realLen);
+        lob.charData = new String(lob.data, 0 , lob.length,
+                Charset.forName(lob.encoding == null ? "UTF-8" : lob.encoding));
         pos += realLen;
     }
 
     @Override
     public void write(byte[] buf) throws IOException {
+        if (this.lob.isOracleMode && buf.length == 0) {
+            return;
+        }
         write(buf, 0, buf.length);
     }
 }

@@ -45,6 +45,7 @@ package com.oceanbase.jdbc;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -376,7 +377,12 @@ public abstract class Lob implements Serializable {
      */
     public OutputStream setBinaryStream(final long pos) throws SQLException {
         if (pos < 1) {
-            throw ExceptionFactory.INSTANCE.create("Invalid position in blob");
+            if (!this.isOracleMode) {
+                throw ExceptionFactory.INSTANCE.create("Invalid position in blob");
+            }
+            if (pos < 0) {
+                throw new IllegalArgumentException();
+            }
         }
         if (offset > 0) {
             byte[] tmp = new byte[length];
@@ -384,7 +390,7 @@ public abstract class Lob implements Serializable {
             data = tmp;
             offset = 0;
         }
-        return new LobOutputStream(this, (int) (pos - 1) + offset);
+        return new LobOutputStream(this, (int) (pos > 0 ? pos - 1 : pos) + offset);
     }
 
     public InputStream getBinaryStream() throws SQLException {
@@ -428,6 +434,9 @@ public abstract class Lob implements Serializable {
         } else {
 
             byte[] newContent = new byte[arrayPos + bytes.length];
+            if (this instanceof Clob) {
+                Arrays.fill(newContent, (byte) ' ');
+            }
             if (Math.min(arrayPos, length) > 0) {
                 System.arraycopy(data, this.offset, newContent, 0, Math.min(arrayPos, length));
             }
@@ -453,6 +462,7 @@ public abstract class Lob implements Serializable {
         this.data = new byte[0];
         this.offset = 0;
         this.length = 0;
+        this.charData = null;
     }
 
     public boolean isEmptyLob() {

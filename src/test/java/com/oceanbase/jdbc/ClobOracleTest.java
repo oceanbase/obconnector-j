@@ -50,15 +50,16 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class ClobOracleTest extends BaseOracleTest {
 
@@ -1143,4 +1144,109 @@ public class ClobOracleTest extends BaseOracleTest {
         }
     }
 
+
+    @Test
+    public void testTruncate() throws SQLException, IOException {
+        String str = "string";
+        java.sql.Clob clob = sharedConnection.createClob();
+        clob.setString(1, str);
+        Exception exception = assertThrows(Exception.class, () -> clob.truncate(-1));
+        Assert.assertEquals("Invalid argument: 'len' should not be < 0", exception.getMessage());
+        Exception e2 = assertThrows(Exception.class, () -> clob.truncate(str.length() + 1));
+        Assert.assertEquals("Cannot truncate CLOB of length 6 to length of 7", e2.getMessage());
+        java.sql.Blob blob = sharedConnection.createBlob();
+        Exception e3 = assertThrows(Exception.class, () -> blob.truncate(-1));
+        Assert.assertEquals("'len' should be >= 0", e3.getMessage());
+    }
+
+    @Test
+    public void testClobSetMethodsForAone53671316() throws Exception {
+        // setString -- begin
+        java.sql.Clob clob = sharedConnection.createClob();
+        clob.setString(1, "clob");
+        String str = "string";
+        java.sql.Clob finalClob = clob;
+        SQLException exception = assertThrows(SQLException.class, () -> finalClob.setString(0, str));
+        Assert.assertEquals("Starting position can not be < 1", exception.getMessage());
+
+        clob.setString(2, str);
+        assertEquals("cstring", clob.getSubString(1, (int) clob.length()));
+
+        clob = sharedConnection.createClob();
+        clob.setString(1, "cl\0b");
+        clob.setString(8, "\0string");
+        assertEquals("cl\0b   \0string", clob.getSubString(1, (int) clob.length()));
+
+        clob = sharedConnection.createClob();
+        clob.setString(1, "clob");
+        clob.setString(6, "");
+        assertEquals("clob", clob.getSubString(1, (int) clob.length()));
+
+        clob = sharedConnection.createClob();
+        clob.setString(3, "string");
+        assertEquals("  string", clob.getSubString(1, (int) clob.length()));
+
+        clob = sharedConnection.createClob();
+        java.sql.Clob finalClob1 = clob;
+        SQLException e1 = assertThrows(SQLException.class, () -> finalClob1.setString(0, "string"));
+        Assert.assertEquals("Starting position can not be < 1", e1.getMessage());
+
+        clob = sharedConnection.createClob();
+        clob.setString(2, "");
+        assertEquals("", clob.getSubString(1, (int) clob.length()));
+        // setString -- end
+
+        // setCharacterStream -- begin
+        java.sql.Clob clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        java.sql.Clob finalClob2 = clob1;
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> finalClob2.setCharacterStream(-1));
+
+        Writer writer = clob1.setCharacterStream(0);
+        writer.write("string");
+        writer.flush();
+        writer.close();
+        assertEquals("string", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        clob1.setString(1, "cl\0b");
+        writer = clob1.setCharacterStream(6);
+        writer.write("string");
+        writer.flush();
+        writer.close();
+        assertEquals("cl\0b string", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        clob1.setString(1, "clob");
+        writer = clob1.setCharacterStream(6);
+        writer.write("");
+        writer.flush();
+        writer.close();
+        assertEquals("clob", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        writer = clob1.setCharacterStream(4);
+        writer.write("string");
+        writer.flush();
+        writer.close();
+        assertEquals("   string", clob1.getSubString(1, (int) clob1.length()));
+
+        clob1 = sharedConnection.createClob();
+        writer = clob1.setCharacterStream(4);
+        writer.write("");
+        writer.flush();
+        writer.close();
+        assertEquals("", clob1.getSubString(1, (int) clob1.length()));
+        // setCharacterStream -- end
+    }
+
+    @Test
+    public void testSetCharacterStremaForAone52877708() throws SQLException, IOException {
+        Connection conn = sharedConnection;
+        java.sql.Clob clob = conn.createClob();
+        Writer writer = clob.setCharacterStream(2);
+        writer.write("abc");
+        writer.flush();
+        Assert.assertEquals(" abc", clob.getSubString(1,4));
+    }
 }

@@ -50,7 +50,8 @@
  */
 package com.oceanbase.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -61,7 +62,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import org.junit.*;
 
 public class BlobOracleTest extends BaseOracleTest {
 
@@ -1462,4 +1463,76 @@ public class BlobOracleTest extends BaseOracleTest {
         assertEquals(size, res.length);
     }
 
+    @Test
+    public void testBlobSetMethodsForAone53671316() throws Exception {
+        // setBytes -- begin
+        java.sql.Blob blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        byte[] bytes = "bbbbbb".getBytes();
+        byte[] nullBytes = new byte[0];
+
+        java.sql.Blob finalBlob = blob;
+        assertThrows(SQLSyntaxErrorException.class, () -> finalBlob.setBytes(0, bytes));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        blob.setBytes(4, bytes);
+        assertEquals("[97, 97, 97, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        blob.setBytes(6, bytes);
+        assertEquals("[97, 97, 97, 97, 0, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        blob.setBytes(6, nullBytes);
+        assertEquals("[97, 97, 97, 97]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(6, bytes);
+        assertEquals("[0, 0, 0, 0, 0, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(3, nullBytes);
+        assertEquals("[]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+        // setBytes -- end
+
+        // setBinaryStream -- start
+        java.sql.Blob blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        java.sql.Blob finalBlob5 = blob1;
+        assertThrows(IllegalArgumentException.class, () -> finalBlob5.setBinaryStream(-1));
+
+        blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        OutputStream os = blob1.setBinaryStream(6);
+        os.write(bytes);
+        os.flush();
+        os.close();
+        assertEquals("[97, 97, 97, 97, 0, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob1.getBytes(1L, (int) blob1.length())));
+
+        blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        os = blob1.setBinaryStream(8);
+        os.write(nullBytes);
+        os.flush();
+        os.close();
+        assertEquals("[97, 97, 97, 97]", Arrays.toString(blob1.getBytes(1L, (int) blob1.length())));
+
+        blob1 = sharedConnection.createBlob();
+        os = blob1.setBinaryStream(2);
+        os.write(bytes);
+        os.flush();
+        os.close();
+        assertEquals("[0, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob1.getBytes(1L, (int) blob1.length())));
+
+        blob1 = sharedConnection.createBlob();
+        os = blob1.setBinaryStream(2);
+        os.write(nullBytes);
+        os.flush();
+        os.close();
+        assertEquals("[]", Arrays.toString(blob1.getBytes(1L, (int) blob1.length())));
+        // setBinaryStream -- end
+    }
 }

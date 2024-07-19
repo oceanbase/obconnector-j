@@ -267,6 +267,14 @@ public class Clob extends Lob implements java.sql.Clob {
      * @throws SQLException if position is invalid
      */
     public Writer setCharacterStream(long pos) throws SQLException {
+        if (pos < 1) {
+            if (!this.isOracleMode) {
+                throw new SQLException(Clob_4);
+            }
+            if (pos < 0) {
+                throw new IllegalArgumentException();
+            }
+        }
         int bytePosition = utf8Position((int) pos - 1);
         OutputStream stream = setBinaryStream(bytePosition + 1);
         try {
@@ -320,8 +328,13 @@ public class Clob extends Lob implements java.sql.Clob {
      */
     private int utf8Position(int charPosition) {
         int pos = offset;
+        int byteValue ;
         for (int i = 0; i < charPosition; i++) {
-            int byteValue = data[pos] & 0xff;
+            if (this.isOracleMode && pos >= data.length) {
+                byteValue = 0x20;
+            }else {
+                byteValue = data[pos] & 0xff;
+            }
             if (byteValue < 0x80) {
                 pos += 1;
             } else if (byteValue < 0xC2) {
@@ -351,7 +364,7 @@ public class Clob extends Lob implements java.sql.Clob {
         if (pos < 1L) {
             throw new SQLException(Clob_4);
         }
-        if (str == null || str.length() == 0) {
+        if (this.isOracleMode && (str == null || str.length() == 0)) {
             return 0;
         }
 

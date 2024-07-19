@@ -1552,7 +1552,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @return An object that implements the <code>Clob</code> interface
      */
     public java.sql.Clob createClob() {
-        return new Clob();
+        Clob clob = new Clob();
+        clob.isOracleMode = this.protocol.isOracleMode();
+        return clob;
     }
 
     /**
@@ -1563,7 +1565,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @return An object that implements the <code>Blob</code> interface
      */
     public java.sql.Blob createBlob() {
-        return new Blob();
+        Blob blob = new Blob();
+        blob.isOracleMode = this.protocol.isOracleMode();
+        return blob;
     }
 
     /**

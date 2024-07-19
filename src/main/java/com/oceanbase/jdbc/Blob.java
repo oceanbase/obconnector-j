@@ -241,7 +241,7 @@ public class Blob extends Lob implements java.sql.Blob {
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
-        if (bytes == null || bytes.length == 0) {
+        if (this.isOracleMode && (bytes == null || bytes.length == 0)) {
             return 0;
         }
 
@@ -255,13 +255,17 @@ public class Blob extends Lob implements java.sql.Blob {
             System.arraycopy(bytes, 0, data, offset + arrayPos, bytes.length);
         } else {
 
-            byte[] newContent = new byte[arrayPos + bytes.length];
+            int newLen = Math.min(length, arrayPos) + bytes.length;
+            if (this.isOracleMode) {
+                newLen = arrayPos + bytes.length;
+            }
+            byte[] newContent = new byte[newLen];
             if (Math.min(arrayPos, length) > 0) {
                 System.arraycopy(data, this.offset, newContent, 0, Math.min(arrayPos, length));
             }
             System.arraycopy(bytes, 0, newContent, arrayPos, bytes.length);
             data = newContent;
-            length = arrayPos + bytes.length;
+            length = newLen;
             offset = 0;
             charData = new String(data, Charset.forName(this.encoding == null ? "UTF-8"
                 : this.encoding));

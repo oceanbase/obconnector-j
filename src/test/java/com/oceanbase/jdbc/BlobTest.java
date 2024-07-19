@@ -615,4 +615,70 @@ public class BlobTest extends BaseTest {
         }
 
     }
+
+    @Test
+    public void testBlobSetMethodsForAone53671316() throws Exception {
+        // setBytes -- begin
+        java.sql.Blob blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        byte[] bytes = "bbbbbb".getBytes();
+
+        java.sql.Blob finalBlob = blob;
+        assertThrows(Exception.class, () -> finalBlob.setBytes(0, bytes));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        blob.setBytes(4, bytes);
+        assertEquals("[97, 97, 97, 98, 98, 98, 98, 98, 98]", Arrays.toString(blob.getBytes(1L, (int) blob.length())));
+
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        java.sql.Blob finalBlob1 = blob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalBlob1.setBytes(6, bytes));
+
+        byte[] nullBytes = new byte[0];
+        blob = sharedConnection.createBlob();
+        blob.setBytes(1, "aaaa".getBytes());
+        java.sql.Blob finalBlob2 = blob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalBlob2.setBytes(6, nullBytes));
+
+        blob = sharedConnection.createBlob();
+        java.sql.Blob finalBlob3 = blob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalBlob3.setBytes(2, bytes));
+
+        blob = sharedConnection.createBlob();
+        java.sql.Blob finalBlob4 = blob;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalBlob4.setBytes(2, nullBytes));
+
+        blob = sharedConnection.createBlob();
+        assertEquals(6, blob.setBytes(1, bytes));
+        // setBytes -- end
+
+        // setBinaryStream -- start
+        java.sql.Blob blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        java.sql.Blob finalBlob5 = blob1;
+        SQLSyntaxErrorException e1 = assertThrows(SQLSyntaxErrorException.class, () -> finalBlob5.setBinaryStream(0));
+        assertEquals("Invalid position in blob", e1.getMessage());
+
+        blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        OutputStream os = blob1.setBinaryStream(6);
+        OutputStream finalOs = os;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalOs.write(bytes));
+        os.close();
+
+        blob1 = sharedConnection.createBlob();
+        blob1.setBytes(1, "aaaa".getBytes());
+        os = blob1.setBinaryStream(6);
+        OutputStream finalOs1 = os;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalOs1.write(nullBytes));
+        os.close();
+
+        blob1 = sharedConnection.createBlob();
+        os = blob1.setBinaryStream(2);
+        OutputStream finalOs2 = os;
+        assertThrows(IndexOutOfBoundsException.class, () -> finalOs2.write(bytes));
+        // setBinaryStream -- end
+    }
 }
