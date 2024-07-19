@@ -1049,4 +1049,58 @@ public class ComplexOracleTest extends BaseOracleTest {
         assertEquals(new BigDecimal(50) , rs.getBigDecimal(5));
         assertNull(rs.getBigDecimal(6));
     }
+
+    @Test
+    public void testForAone58098066() throws SQLException {
+        String synonyms = System.getProperty("synonyms");
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+
+        try {
+            stmt.execute("drop user " + synonyms + " cascade");
+        } catch (SQLException e) {
+            //throw new RuntimeException(e);
+        }
+
+        stmt.execute("create user " + synonyms + " identified by " + synonyms);
+        stmt.execute("grant dba to " + synonyms + "; grant execute any type to " + synonyms);
+        stmt.execute("create or replace type obj0 force as object(c0 int)");
+        stmt.execute("create or replace public synonym syn_obj0 for obj0");
+        stmt.execute("create or replace procedure p1(a out syn_obj0) is begin null;end;");
+        CallableStatement cs =conn.prepareCall("call p1(?)");
+        cs.registerOutParameter(1, Types.STRUCT);
+        cs.execute();
+        cs.close();
+
+        String url = System.getProperty("DbUrl2") + synonyms;
+        Connection conn2 = DriverManager.getConnection(url, synonyms+"@oracle", synonyms);
+        Statement stmt2 = conn2.createStatement();
+        stmt2.execute("create or replace procedure p1(a out syn_obj0) is begin null; end;");
+        CallableStatement cs2 = conn2.prepareCall("call p1(?)");
+        cs2.registerOutParameter(1, Types.STRUCT);
+        try {
+            cs2.execute();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("unknown complex data type."));
+        }
+    }
+
+    @Test
+    public void testForAone58098220() throws SQLException {
+        Connection conn = sharedConnection;
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace type obj0 force as object(c0 int)");
+        stmt.execute("create or replace synonym syn_obj0 for obj0");
+
+        stmt.execute("create or replace procedure p1(a syn_obj0) is begin null;end;");
+        CallableStatement call =conn.prepareCall("call p1(?)");
+        try {
+            call.setObject(1, conn.createStruct("syn_obj0", new Object[]{1}));
+            call.execute();
+        } catch (SQLException e) {
+            Assert.fail();
+        }
+    }
 }

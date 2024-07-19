@@ -64,11 +64,7 @@ import com.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
-import com.oceanbase.jdbc.internal.util.CallableStatementCache;
-import com.oceanbase.jdbc.internal.util.ConnectionState;
-import com.oceanbase.jdbc.internal.util.LRUCache;
-import com.oceanbase.jdbc.internal.util.StringCacheUtil;
-import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.*;
 import com.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -2008,14 +2004,18 @@ public class OceanBaseConnection implements ConnectionImpl {
     }
 
     public ComplexDataType getComplexDataTypeFromRemote(String typeName) throws SQLException {
+        String synonymOriginName = typeName;
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            java.sql.Connection conn = this.getComplexConnection(); // NOPMD
-            java.sql.PreparedStatement ps = conn.prepareStatement(complexTypeSql,
+            conn = this.getComplexConnection(); // NOPMD
+            ps = conn.prepareStatement(complexTypeSql,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             ps.setString(1, typeName.toUpperCase());
             ps.setString(2, typeName.toUpperCase());
-            java.sql.ResultSet rs = ps.executeQuery(); // NOPMD
+            rs = ps.executeQuery(); // NOPMD
             if (rs.next()) {
                 rs.beforeFirst();
             } else {
@@ -2036,17 +2036,18 @@ public class OceanBaseConnection implements ConnectionImpl {
                 ps.setString(2, typeName.toUpperCase());
                 rs = ps.executeQuery(); // NOPMD
                 if (!rs.next()) {
-                    rs.close();
-                    ps.close();
-
-                    String schema = getPLSchemaByNameResolve(typeName, conn);
+                    HashMap<String, String> nameResolveMap = getPLSchemaByNameResolve(typeName, conn);
+                    String schema = nameResolveMap.get("schema");
                     if (schema != null && !schema.isEmpty()) {
+                        rs.close();
+                        ps.close();
+                        synonymOriginName = nameResolveMap.get("name").toUpperCase();
                         complexAllTypeActuallySql = String.format(complexAllTypeSql,
                             "'" + schema.toUpperCase() + "'", "'" + schema.toUpperCase() + "'");
                         ps = conn.prepareStatement(complexAllTypeActuallySql,
                             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                        ps.setString(1, typeName.toUpperCase());
-                        ps.setString(2, typeName.toUpperCase());
+                        ps.setString(1, synonymOriginName);
+                        ps.setString(2, synonymOriginName);
                         rs = ps.executeQuery();
                     }
                 } else {
@@ -2054,6 +2055,11 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             }
 
+            if (!rs.next()) {
+                throw new SQLException("unknown complex data type.");
+            }
+            // first loop
+            rs.beforeFirst();
             while (rs.next()) {
                 ComplexDataType complexType = null;
                 String childTypeName = rs.getString(CHILD_TYPE_INDEX);
@@ -2111,13 +2117,20 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
             } while (rs.next());
 
-            rs.close();
-            ps.close();
-            conn.close();
         } catch (SQLException e) {
             throw e;
+        }finally {
+            if (rs != null) {
+                rs.close();
+            }
+            if (ps != null) {
+                ps.close();
+            }
+            if (conn != null) {
+                conn.close();;
+            }
         }
-        return getComplexDataTypeFromCache(typeName);
+        return getComplexDataTypeFromCache(synonymOriginName);
     }
 
     /**
@@ -2721,9 +2734,12 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @return
      * @throws SQLException
      */
-    private String getPLSchemaByNameResolve(String typeName, Connection conn) throws SQLException {
+    private HashMap<String , String> getPLSchemaByNameResolve(String typeName, Connection conn) throws SQLException {
         CallableStatement cs = null;
-        String schema = "";
+        String schema;
+        String name;
+        String objectNumber;
+        HashMap<String, String> nameResolveMap = new HashMap<>();
         try {
             cs = conn.prepareCall("call DBMS_UTILITY.NAME_RESOLVE(?, ?, ?, ?, ?, ?, ?, ?)");
             cs.setString(1, typeName.toUpperCase());
@@ -2736,6 +2752,11 @@ public class OceanBaseConnection implements ConnectionImpl {
             cs.registerOutParameter(8, Types.VARCHAR);
             cs.execute();
             schema = cs.getString(3);
+            name = cs.getString(5);
+            objectNumber = cs.getString(8);
+            nameResolveMap.put("schema", schema);
+            nameResolveMap.put("name", name);
+            nameResolveMap.put("objectNumber", objectNumber);
         } catch (Exception e) {
             // eat
         } finally {
@@ -2743,6 +2764,6 @@ public class OceanBaseConnection implements ConnectionImpl {
                 cs.close();
             }
         }
-        return schema;
+        return nameResolveMap;
     }
 }
