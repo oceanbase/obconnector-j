@@ -236,7 +236,7 @@ public class Options implements Cloneable {
     public boolean generateSimpleParameterMetadata;
     public boolean useProxyUser;
     public boolean mapDateToTimestamp = true;
-    public boolean getDateOptimization;
+    public boolean obDateTypeOptimization;
 
     @Override
     public String toString() {
@@ -719,7 +719,7 @@ public class Options implements Cloneable {
         if (mapDateToTimestamp != opt.mapDateToTimestamp) {
             return false;
         }
-        if (getDateOptimization != opt.getDateOptimization) {
+        if (obDateTypeOptimization != opt.obDateTypeOptimization) {
             return false;
         }
         return Objects.equals(minPoolSize, opt.minPoolSize);

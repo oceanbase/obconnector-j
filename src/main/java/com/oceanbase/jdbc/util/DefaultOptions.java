@@ -1124,8 +1124,8 @@ public enum DefaultOptions {
             "2.4.11",
             "Allow to get Date which is like xxxx-xx-xx, which is compatible with ojdbc.",
             false),
-    GET_DATE_OPTIMIZATION(
-            "getDateOptimization",
+    OB_DATETYPE_OPTIMIZATION(
+            "obDateTypeOptimization",
             Boolean.FALSE,
             "2.4.12",
             "Optimize the performance of the getDate method of ResultSet.",

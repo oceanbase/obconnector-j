@@ -967,7 +967,7 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
-                if (options.getDateOptimization) {
+                if (options.obDateTypeOptimization) {
                     return getTimestampFromBytes(columnInfo, userCalendar, timeZone);
                 }
                 String rawValue = new String(buf, pos, length,

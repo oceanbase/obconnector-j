@@ -1230,7 +1230,7 @@ public class DateTest extends BaseTest {
     @Test
     public void testForAone57018934() throws SQLException {
         createTable("t_date", "c1 date, c2 varchar(30)");
-        Connection conn = setConnection("&getDateOptimization=true");
+        Connection conn = setConnection("&obDateTypeOptimization=true");
         Statement stmt = conn.createStatement();
         stmt.execute("insert into t_date values(' 2024-07-11 12:22:33  ', ' 2024-07-11 12:22:33.123  ')");
         ResultSet rs = stmt.executeQuery("select * from t_date");
