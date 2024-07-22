@@ -355,15 +355,16 @@ public class OceanBaseXaResource implements XAResource {
                 // TODO: Cache this for lifetime of XAConnection
                 psStmt = mySQLConnection.prepareStatement(command);
                 psStmt.setNull(1, java.sql.Types.NULL);
-                rs = psStmt.executeQuery();
+                psStmt.execute();
+                rs = ((OceanBaseStatement)psStmt).getResults().getCallableResultSet();
                 while (rs.next()) {
                     java.sql.Array array = rs.getArray(1);
                     arrayRes = array.getResultSet();
                     while (arrayRes.next()) {
                         java.sql.Struct struct = (java.sql.Struct) arrayRes.getObject(2);
                         Object[] objArr = struct.getAttributes();
-                        recoveredXidList.add(new OceanBaseXid(((String) objArr[1]).getBytes(),
-                                ((String) objArr[2]).getBytes(), ((BigDecimal) objArr[0]).intValue()));
+                        recoveredXidList.add(new OceanBaseXid((byte[]) objArr[1],
+                                (byte[]) objArr[2], ((BigDecimal) objArr[0]).intValue()));
                     }
                     array.free();
                 }

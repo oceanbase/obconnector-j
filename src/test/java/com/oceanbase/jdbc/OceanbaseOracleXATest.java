@@ -336,5 +336,30 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         XAResource xaResource = mysqlXAConnection.getXAResource();
         xaResource.recover(XAResource.TMSTARTRSCAN);
     }
+    @Test
+    public void testForAone58086892() throws SQLException, XAException {
+        Connection conn = setConnection("&useOceanBaseProtocolV20=false&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        createTable("t1", "c1 varchar(20), c2 varchar(20)");
+        stmt.execute("insert into t1 values('abc', '123')");
+        JDBC4MysqlXAConnection xaConnection = new JDBC4MysqlXAConnection((OceanBaseConnection) conn);
+        String gtridStr = "g_one_1";
+        String bqualStr = "b_one_1";
+        MysqlXid mysqlXid = new MysqlXid(gtridStr.getBytes(), bqualStr.getBytes(), 123);
+        XAResource xaResource = xaConnection.getXAResource();
+        xaResource.start(mysqlXid, XAResource.TMNOFLAGS);
+        PreparedStatement ps = conn.prepareStatement("insert into t1 values(?, ?)");
+        ps.setString(1, "def");
+        ps.setString(2, "456");
+        ps.executeUpdate();
+        xaResource.end(mysqlXid, XAResource.TMSUCCESS);
+        xaResource.prepare(mysqlXid);
+        Xid[] recover = xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+        Assert.assertEquals(1, recover.length);
+        xaResource.commit(mysqlXid, false);
+        ResultSet rs1 = stmt.executeQuery("select count(1) from t1 ");
+        Assert.assertTrue(rs1.next());
+        Assert.assertEquals(2, rs1.getInt(1));
+    }
 
 }
