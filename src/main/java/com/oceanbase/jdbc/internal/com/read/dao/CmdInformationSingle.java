@@ -200,4 +200,9 @@ public class CmdInformationSingle implements CmdInformation {
     public boolean getRewrite() {
         return false;
     }
+
+    @Override
+    public void setArrayBinding(boolean arrayBinding) {
+
+    }
 }

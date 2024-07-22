@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc;
 
 import java.sql.*;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -173,4 +174,42 @@ public class StatementOracleTest extends BaseOracleTest {
         Assert.assertEquals(20, rs2_2.getRow());
     }
 
+    @Test
+    public void testBatchUpdateForAone57969289() throws SQLException {
+        createTable("t_ar", "id int , c1 int, c2 varchar(20)");
+        Connection conn = setConnection("&useArrayBinding=true&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        PreparedStatement ps = conn.prepareStatement("insert into t_ar values(?, ?, ?)");
+        for (int i = 1; i <= 4; i++) {
+            for (int j = 0; j < i; j++) {
+                ps.setInt(1, i);
+                ps.setInt(2, i);
+                ps.setString(3, i + "_char");
+                ps.addBatch();
+            }
+        }
+        ps.executeBatch();
+
+        conn.setAutoCommit(false);
+        PreparedStatement ps1 = conn
+                .prepareStatement("update t_ar set c2 = 'up' where id = ? and c1 = ?");
+
+        ps1.setInt(1, 0);
+        ps1.setString(2, "0");
+        ps1.addBatch();
+
+        for (int i = 1; i <= 3; i++) {
+            ps1.setString(1, i + "");
+            ps1.setInt(2, i);
+            ps1.addBatch();
+        }
+
+        ps1.setInt(1, 8);
+        ps1.setString(2, "8");
+        ps1.addBatch();
+
+        int[] ints = ps1.executeBatch();
+        Assert.assertEquals("[-2, -2, -2, -2, -2]", Arrays.toString(ints));
+        conn.setAutoCommit(true);
+        conn.close();
+    }
 }

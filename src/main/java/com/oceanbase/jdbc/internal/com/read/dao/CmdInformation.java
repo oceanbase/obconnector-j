@@ -94,4 +94,6 @@ public interface CmdInformation {
     void setRewrite(boolean rewritten);
 
     boolean getRewrite();
+
+    void setArrayBinding(boolean arrayBinding);
 }

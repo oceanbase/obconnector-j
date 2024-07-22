@@ -661,6 +661,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           protocol.executePreparedQueryArrayBinding(
               mustExecuteOnMaster, serverPrepareResult, results, parametersList.subList(startIndex, endIndex), queryParameterSize);
         }
+        results.getCmdInformation().setArrayBinding(options.useArrayBinding);
     } catch (SQLException queryException) {
       if (options.continueBatchOnError) {
         if (exception == null) {

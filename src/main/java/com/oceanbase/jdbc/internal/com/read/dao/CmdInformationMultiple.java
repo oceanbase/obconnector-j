@@ -70,6 +70,7 @@ public class CmdInformationMultiple implements CmdInformation {
     private boolean               hasException;
     private boolean               rewritten;
     private String                serverInfo;
+    private boolean               arrayBinding;
 
     /**
      * Object containing update / insert ids, optimized for only multiple result.
@@ -142,7 +143,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
-        if (rewritten) {
+        if (rewritten || arrayBinding) {
             int[] ret = new int[expectedSize];
             Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
             return ret;
@@ -274,4 +275,10 @@ public class CmdInformationMultiple implements CmdInformation {
     public boolean getRewrite() {
         return this.rewritten;
     }
+
+    @Override
+    public void setArrayBinding(boolean arrayBinding) {
+        this.arrayBinding = arrayBinding;
+    }
+
 }

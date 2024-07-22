@@ -70,6 +70,7 @@ public class CmdInformationBatch implements CmdInformation {
   private boolean hasException;
   private boolean rewritten;
   private String serverInfo;
+  private boolean arrayBinding;
 
   /**
    * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch, doesn't
@@ -127,13 +128,16 @@ public class CmdInformationBatch implements CmdInformation {
 
   @Override
   public int[] getUpdateCounts() {
-    if (rewritten) {
+    if (rewritten || arrayBinding) {
       int[] ret = new int[expectedSize];
       int resultValue;
       if (hasException) {
         resultValue = Statement.EXECUTE_FAILED;
       } else if (expectedSize == 1) {
         resultValue = updateCounts.element().intValue();
+        if (arrayBinding && resultValue == -1) {
+          resultValue = Statement.SUCCESS_NO_INFO;
+        }
       } else {
         resultValue = 0;
         Iterator<Long> iterator = updateCounts.iterator();
@@ -299,5 +303,9 @@ public class CmdInformationBatch implements CmdInformation {
   }
 
   public boolean getRewrite() {return  this.rewritten;}
+
+  public void setArrayBinding(boolean arrayBinding) {
+    this.arrayBinding = arrayBinding;
+  }
 
 }
