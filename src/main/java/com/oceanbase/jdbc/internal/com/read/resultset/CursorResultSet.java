@@ -110,6 +110,8 @@ public class CursorResultSet extends Cursor {
     }
 
     protected boolean cursorFetch() throws SQLException {
+        this.lock.lock();
+        lockLogger.debug("CursorResultSet.cursorFetch locked");
         if (isLastRowSent || statement != null && statement.getMaxRows() > 0
             && endIndexInEntireResult >= statement.getMaxRows()) {
             isLastRowSent = true;
@@ -131,6 +133,8 @@ public class CursorResultSet extends Cursor {
             }
             throw e;
         } finally {
+            lock.unlock();
+            lockLogger.debug("CursorResultSet.cursorFetch unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("CursorResultSet.cursorFetch");
             }
@@ -138,6 +142,8 @@ public class CursorResultSet extends Cursor {
     }
 
     private boolean cursorFetchForOracle(byte offsetType, int offset) throws SQLException {
+        this.lock.lock();
+        lockLogger.debug("CursorResultSet.cursorFetchForOracle locked");
         if (statement != null && statement.getMaxRows() > 0
             && endIndexInEntireResult >= statement.getMaxRows()) {
             isLastRowSent = true;
@@ -166,6 +172,8 @@ public class CursorResultSet extends Cursor {
                 throw e;
             }
         } finally {
+            lock.unlock();
+            lockLogger.debug("CursorResultSet.cursorFetchForOracle unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("CursorResultSet.cursorFetchForOracle");
             }

@@ -153,7 +153,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected ResourceStatus                status = ResourceStatus.OPEN;
     protected boolean                       isModified;
     private boolean                         eofDeprecated;
-    private ReentrantLock                   lock;
+    protected ReentrantLock                 lock;
     protected boolean                       forceAlias;
     public ComplexData[]                    complexData;
     public int[]                            complexEndPos;

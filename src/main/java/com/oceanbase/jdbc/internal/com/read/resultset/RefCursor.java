@@ -77,6 +77,8 @@ public class RefCursor extends CursorResultSet {
     }
 
     private boolean cursorFetchInternal(int tmpFetchSize) throws SQLException {
+        this.lock.lock();
+        lockLogger.debug("RefCursor.cursorFetchInternal locked");
         if (isLastRowSent) {
             return false;
         }
@@ -108,6 +110,8 @@ public class RefCursor extends CursorResultSet {
             }
             throw e;
         } finally {
+            lock.unlock();
+            lockLogger.debug("RefCursor.cursorFetchInternal unlocked");
             if (protocol != null) {
                 protocol.endCallInterface("RefCursor.cursorFetch");
             }

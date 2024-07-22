@@ -56,7 +56,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -930,6 +932,50 @@ public class StatementTest extends BaseTest {
         thread2.start();
         thread1.join();
         thread2.join();
+    }
+
+    @Test
+    public void testForAone57530300() throws SQLException, InterruptedException {
+        createTable("test_stmt", "id int, c1 varchar(20)");
+        Connection connection = sharedConnection;
+        Statement statement = connection.createStatement();
+        statement.execute("insert into test_stmt values(2, '120')");
+
+        int size = 20;
+        String sql = "SELECT /*+ query_timeout(60000000) */ * from test_stmt where id = 2  ";
+        Connection conn = setConnection("&zeroDateTimeBehavior=convertToNull&useCursorFetch=true&defaultFetchSize=999&useServerPrepStmts=true&prepStmtCacheSqlLimit=2000&useUnicode=true&characterEncoding=UTF8&nCharacterEncoding=utf8&jdbcCompliantTruncation=false&useSSL=false");
+
+        CountDownLatch countDownLatch = new CountDownLatch(size);
+        for (int i = 0; i < size; i++) {
+            Thread thread = new Thread(() -> {
+                Statement stmt = null;
+                ResultSet rs = null;
+                try {
+                    stmt = conn.createStatement();
+                    rs = stmt.executeQuery(sql);
+                    boolean next = rs.next();
+                    Assert.assertTrue(next);
+                    Assert.assertEquals("120", rs.getString(2));
+                } catch (SQLException e) {
+                    Assert.fail();
+                    throw new RuntimeException(e);
+                } finally {
+                    try {
+                        if (rs != null) {
+                            rs.close();
+                        }
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                countDownLatch.countDown();
+            });
+            thread.start();
+        }
+        countDownLatch.await();
     }
 
 }
