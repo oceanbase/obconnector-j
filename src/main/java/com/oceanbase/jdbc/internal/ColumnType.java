@@ -56,6 +56,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 import com.oceanbase.jdbc.Blob;
@@ -323,7 +324,7 @@ public enum ColumnType {
      * @return MariaDb type
      */
     public static ColumnType convertProtocolTypeToColumnType(int typeValue, int charsetNumber,
-                                                             boolean isOracleMode) {
+                                                             boolean isOracleMode, Options options) {
 
         ColumnType columnType;
         if (isOracleMode) {
@@ -338,7 +339,9 @@ public enum ColumnType {
             columnType = BLOB;
         }
 
-        if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252) {
+        if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252
+                && (!isOracleMode && null != options &&
+                (options.compatibleMysqlVersion == 5 || (options.compatibleMysqlVersion==8 && !options.useNewResultSetMetaData)))) {
             // MariaDB Text dataType
             return ColumnType.VARCHAR;
         }
@@ -371,12 +374,18 @@ public enum ColumnType {
      * @return type
      */
     public static String getColumnTypeName(ColumnType type, long len, boolean signed,
-                                           boolean binary, boolean isOracelMode) {
+                                           boolean binary, boolean isOracelMode, Options options) {
         long l = len;
         switch (type) {
+            case TINYINT:
+                if (options.useNewResultSetMetaData) {
+                    return getColumnTypeNameWithNewResutlSet(type, len, signed, binary, isOracelMode, options);
+                }
             case SMALLINT:
             case MEDIUMINT:
             case BIGINT:
+            case FLOAT:
+            case DOUBLE:
                 if (!signed) {
                     return type.getTypeName() + " UNSIGNED";
                 } else {
@@ -397,7 +406,9 @@ public enum ColumnType {
                 Each BLOB value is stored using a two-byte length prefix that
                 indicates the number of bytes in the value.
                  */
-
+                if (options.useNewResultSetMetaData) {
+                    return getColumnTypeNameWithNewResutlSet(type, len, signed, binary, isOracelMode, options);
+                }
                 if (binary) {
                     l -= 2;
                 }
@@ -449,6 +460,55 @@ public enum ColumnType {
         }
     }
 
+    public static String getColumnTypeNameWithNewResutlSet(ColumnType type, long len, boolean signed,
+                                                    boolean binary, boolean isOracelMode, Options options) {
+        long l = len;
+        switch (type) {
+            case TINYINT:
+                if (!isOracelMode && options.compatibleMysqlVersion == 8) {
+                    if (signed && len == 1 && options.tinyInt1isBit) {
+                        if (options.transformedBitIsBoolean) {
+                            return "BOOLEAN";
+                        }
+                        return "BIT";
+                    }
+                }
+                if (!signed) {
+                    return type.getTypeName() + " UNSIGNED";
+                }
+                break;
+            case BLOB:
+                if (binary) {
+                    l -= 2;
+                }
+                if (!isOracelMode && options.compatibleMysqlVersion == 8 && !binary) {
+                    if (l <= 255) {
+                        return "TINYTEXT";
+                    } else if (l <= 65535) {
+                        return "TEXT";
+                    } else if (l <= 16777215) {
+                        return "MEDIUMTEXT";
+                    } else {
+                        return "LONGTEXT";
+                    }
+                }
+                if (len < 0) {
+                    return "LONGBLOB";
+                } else if (l <= 255) {
+                    return "TINYBLOB";
+                } else if (l <= 65535) {
+                    return "BLOB";
+                } else if (l <= 16777215) {
+                    return "MEDIUMBLOB";
+                } else {
+                    return "LONGBLOB";
+                }
+            default:
+                break;
+        }
+        return type.getTypeName();
+    }
+
     /**
      * Get class name.
      *
@@ -477,11 +537,37 @@ public enum ColumnType {
                 }
                 return Short.class.getName();
             case BIT:
+                if (options.useNewResultSetMetaData) {
+                    return getClassNameWithNewResultSet(type, len, signed, binary, options);
+                }
                 return (len == 1) ? Boolean.class.getName() : "[B";
             case STRING:
             case VARCHAR:
             case VARSTRING:
                 return binary ? "[B" : String.class.getName();
+            case BLOB:
+            case DATETIME:
+                if (options.useNewResultSetMetaData) {
+                    return getClassNameWithNewResultSet(type, len, signed, binary, options);
+                }
+                break;
+            default:
+                break;
+        }
+        return type.getClassName();
+    }
+
+    public static String getClassNameWithNewResultSet(ColumnType type, int len, boolean signed, boolean binary,
+                                      Options options) {
+        switch (type) {
+            case BIT:
+                return Boolean.class.getName();
+            case BLOB:
+                return binary ? "[B" : String.class.getName();
+            case DATETIME:
+                if (options.compatibleMysqlVersion == 8) {
+                    return LocalDateTime.class.getName();
+                }
             default:
                 break;
         }
@@ -530,6 +616,54 @@ public enum ColumnType {
             default:
                 return false;
         }
+    }
+
+    public static long getPrecisionBYTypeNameForMysql8(String typeName) {
+        switch (typeName){
+            case "BIT":
+                return 1L;
+            case "DECIMAL":
+            case "DECIMAL UNSIGNED":
+                return 65L;
+            case "TINYINT":
+            case "TINYINT UNSIGNED":
+            case "BOOLEAN":
+                return 3L;
+            case "SMALLINT":
+            case "SMALLINT UNSIGNED":
+                return 5L;
+            case "MEDIUMINT":
+                return 7L;
+            case "MEDIUMINT UNSIGNED":
+                return 8L;
+            case "INT":
+            case "INT UNSIGNED":
+            case "DATE":
+                return 10L;
+            case "FLOAT":
+            case "FLOAT UNSIGNED":
+                return 12L;
+            case "TIME":
+                return 16L;
+            case "BIGINT":
+                return 19L;
+            case "BIGINT UNSIGNED":
+                return 20;
+            case "DOUBLE":
+            case "DOUBLE UNSIGNED":
+                return 22L;
+            case "TIMESTAMP":
+            case "DATETIME":
+                return 26L;
+            case "YEAR":
+                return 4L;
+            case "VARCHAR":
+            case "VARBINARY":
+                return 65535L;
+            default:
+                return 0L;
+        }
+
     }
 
 }

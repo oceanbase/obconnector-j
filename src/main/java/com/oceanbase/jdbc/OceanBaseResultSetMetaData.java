@@ -358,6 +358,9 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         }
         switch (ci.getColumnType()) {
             case BIT:
+                if (options.useNewResultSetMetaData) {
+                    return getColumnTypeWithNewResultSet(ci);
+                }
                 if (ci.getLength() == 1) {
                     return Types.BIT;
                 }
@@ -377,7 +380,10 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 return Types.SMALLINT;
             case BLOB:
                 if (!this.isOracleMode) {
-                    if (ci.getLength() <= 255){
+                    if (options.useNewResultSetMetaData) {
+                        return getColumnTypeWithNewResultSet(ci);
+                    }
+                    if (ci.getLength() <= 255 ){
                         return Types.VARBINARY;
                     }
                     return Types.LONGVARBINARY;
@@ -415,9 +421,44 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
                 } else {
                     return Types.LONGVARBINARY;
                 }
+            case JSON:
+            case GEOMETRY:
+                if (options.useNewResultSetMetaData) {
+                    return getColumnTypeWithNewResultSet(ci);
+                }
+                return ci.getColumnType().getSqlType();
             default:
                 return ci.getColumnType().getSqlType();
         }
+    }
+
+    public int getColumnTypeWithNewResultSet(ColumnDefinition ci) {
+        switch (ci.getColumnType()) {
+            case BLOB:
+                if (!this.isOracleMode) {
+                    if (!ci.isBinary()) {
+                        if (ci.getLength() <= 255) {
+                            return Types.VARCHAR;
+                        }
+                        return Types.LONGVARCHAR;
+                    }
+                    if (ci.getLength() <= 255){
+                        return Types.VARBINARY;
+                    }
+                    return Types.LONGVARBINARY;
+                }
+                break;
+            case JSON:
+                if (!isOracleMode && options.compatibleMysqlVersion == 8) {
+                    return Types.LONGVARCHAR;
+                }
+                return Types.CHAR;
+            case GEOMETRY:
+                return Types.BINARY;
+            default:
+                break;
+        }
+        return ci.getColumnType().getSqlType();
     }
 
     /**
@@ -431,7 +472,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     public String getColumnTypeName(final int column) throws SQLException {
         ColumnDefinition ci = getColumnInformation(column);
         return ColumnType.getColumnTypeName(ci.getColumnType(), ci.getLength(), ci.isSigned(),
-            ci.isBinary(), isOracleMode);
+            ci.isBinary(), isOracleMode, options);
     }
 
     /**

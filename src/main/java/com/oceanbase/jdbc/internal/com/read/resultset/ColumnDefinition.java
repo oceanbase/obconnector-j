@@ -58,6 +58,7 @@ import java.sql.Types;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.util.constant.ColumnFlags;
+import com.oceanbase.jdbc.util.Options;
 
 /** Protocol details : https://mariadb.com/kb/en/resultset/#column-definition-packet */
 public class ColumnDefinition {
@@ -108,6 +109,7 @@ public class ColumnDefinition {
     private final boolean      isOracleMode;
     private int                precisionAdjustFactor   = 0;
     private String             encoding                = "UTF-8";
+    private Options            options;
 
     /**
      * Constructor for extent.
@@ -137,6 +139,7 @@ public class ColumnDefinition {
         nameStart = other.nameStart;
         nameLength = other.nameLength;
         longColFlag = other.longColFlag;
+        options = other.options;
     }
 
     /**
@@ -144,10 +147,11 @@ public class ColumnDefinition {
      *
      * @param buffer buffer
      */
-    public ColumnDefinition(Buffer buffer, boolean OracleMode, String encoding) {
+    public ColumnDefinition(Buffer buffer, boolean OracleMode, String encoding, Options options) {
         isOracleMode = OracleMode;
         this.encoding = encoding;
         this.buffer = buffer;
+        this.options = options;
         // has41NewNewProt fixme :Value should be based on connection properties
 
         /*
@@ -193,7 +197,7 @@ public class ColumnDefinition {
         length = buffer.readLong4BytesV1();
         sqltype = buffer.readByte() & 0xff;
         longColFlag = buffer.readShort();
-        type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode);
+        type = ColumnType.convertProtocolTypeToColumnType(sqltype, charsetNumber, OracleMode, options);
 
         decimals = (byte) (buffer.readByte() & 0xff);
         precision = (byte) (buffer.readByte() & 0xff);
@@ -256,7 +260,7 @@ public class ColumnDefinition {
      * @return ColumnInformation
      */
     public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode,
-                                          String encoding) {
+                                          String encoding, Options options) {
         Charset charset = Charset.forName(encoding);
         byte[] nameBytes = name.getBytes(charset);
         // todo check the encoding
@@ -311,7 +315,7 @@ public class ColumnDefinition {
 
         arr[pos++] = (byte) type.getType(); /* 1 byte : type */
 
-        return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding);
+        return new ColumnDefinition(new Buffer(arr), isOracleMode, encoding, options);
     }
 
     private int adjustStartForFieldLength(int nameStart, int nameLength) {
@@ -388,6 +392,9 @@ public class ColumnDefinition {
             case Types.REAL:
             case Types.DOUBLE:
             case Types.NUMERIC:
+                if ( options.useNewResultSetMetaData) {
+                    return getPrecisionWithNewResultSet();
+                }
                 if (decimals > 0) {
                     return length - 1 + precisionAdjustFactor;
                 } else {
@@ -404,6 +411,9 @@ public class ColumnDefinition {
             case NVARCHAR2:
             case NCHAR:
                 if (isOracleMode) {
+                    if (options.useNewResultSetMetaData) {
+                        return getPrecisionWithNewResultSet();
+                    }
                     return length / maxWidth;
                 } else {
                     return length;
@@ -412,14 +422,85 @@ public class ColumnDefinition {
             case STRING:
             case VARSTRING:
             case ORA_CLOB:
+                if (options.useNewResultSetMetaData) {
+                    return getPrecisionWithNewResultSet();
+                }
                 if (isOracleMode) {
                     return length;
                 } else {
                     return length / maxWidth;
                 }
             default:
+                if (options.useNewResultSetMetaData) {
+                    return getPrecisionWithNewResultSet();
+                }
                 return length;
         }
+    }
+
+    public long getPrecisionWithNewResultSet() {
+        switch (type.getSqlType()) {
+            case Types.DECIMAL:
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+            case Types.NUMERIC:
+                if (isOracleMode) {
+                    return precision;
+                }
+                if (!isOracleMode && options.compatibleMysqlVersion == 8) {
+                    return clampGetLength(this.getDisplaySize());
+                }
+                if (decimals > 0) {
+                    return length - 1 + precisionAdjustFactor;
+                } else {
+                    return length + precisionAdjustFactor;
+                }
+            default:
+                break;
+        }
+
+        int maxWidth = maxCharlen[charsetNumber & 0xff];
+        if (maxWidth == 0) {
+            maxWidth = 1;
+        }
+        switch (type) {
+            case COMPLEX:
+                return precision;
+            case DATETIME:
+            case TIMESTAMP_NANO:
+            case TIMESTAMP_LTZ:
+            case TIMESTAMP_TZ:
+            case INTERVALYM:
+            case INTERVALDS:
+            case RAW:
+            case ROWID:
+                if (isOracleMode) {
+                    return precision;
+                }
+            case ORA_BLOB:
+            case ORA_CLOB:
+            case BLOB:
+                if (isOracleMode) {
+                    return -1;
+                }
+            case VARCHAR2:
+            case STRING:
+            case VARSTRING:
+            case VARCHAR:
+            case NCHAR:
+            case NVARCHAR2:
+                if (isOracleMode) {
+                    return length;
+                }
+                return clampGetLength(length) / maxWidth;
+        }
+        return clampGetLength(length);
     }
 
     /**
@@ -429,6 +510,30 @@ public class ColumnDefinition {
      */
     public int getDisplaySize() {
         if (!isOracleMode) {
+            if (options.useNewResultSetMetaData && options.compatibleMysqlVersion == 8) {
+                switch (type) {
+                    case TINYINT:
+                    case SMALLINT:
+                    case MEDIUMINT:
+                    case INTEGER:
+                    case BIGINT:
+                        String typeName = ColumnType.getColumnTypeName(type, length, isSigned(), isBinary(), isOracleMode, options);
+                        return (int) ColumnType.getPrecisionBYTypeNameForMysql8(typeName);
+                    case DECIMAL:
+                        long colength = length;
+                        colength --;
+                        if (decimals > 0) {
+                            colength --;
+                        }
+                        return (int) colength;
+                    default:
+                        int maxWidth = maxCharlen[charsetNumber & 0xff];
+                        if (maxWidth == 0) {
+                            maxWidth = 1;
+                        }
+                        return clampGetLength(length) / maxWidth;
+                }
+            }
             int vtype = type.getSqlType();
             if (vtype == Types.VARCHAR || vtype == Types.CHAR || vtype == Types.NVARCHAR
                     || vtype == Types.NCHAR || vtype == Types.CLOB) {
@@ -443,6 +548,11 @@ public class ColumnDefinition {
                 return Integer.MAX_VALUE;
             }
         }
+
+        if (this.isOracleMode && options.useNewResultSetMetaData) {
+            return getDisplaySizeWithNewResultSet();
+        }
+
         if (type.getSqlType() == Types.DECIMAL && this.isOracleMode) {
             int columnPrecision = precision;
             int columnDecimals = decimals;
@@ -465,19 +575,89 @@ public class ColumnDefinition {
         return (int) length;
     }
 
+    public int getDisplaySizeWithNewResultSet() {
+        if (this.isOracleMode) {
+            switch (type.getSqlType()) {
+                case Types.NUMERIC:
+                case Types.DECIMAL:
+                case Types.DOUBLE:
+                    if (!type.equals(ColumnType.BINARY_DOUBLE)) {
+                        int columnPrecision = precision;
+                        int columnDecimals = decimals;
+                        if (columnPrecision != 0 && columnDecimals == -127) {
+                            columnPrecision = (int)((double)columnPrecision / 3.32193D);
+                            columnDecimals = 1;
+                        } else {
+                            if (columnPrecision == 0) {
+                                columnPrecision = 38;
+                            }
+
+                            if (columnDecimals == -127) {
+                                columnDecimals = 0;
+                            }
+                        }
+
+                        int displaySize = columnPrecision + (columnDecimals != 0 ? 1 : 0) + 1;
+                        return displaySize;
+                    }
+                default:
+                    break;
+            }
+        }
+        return (int) length;
+    }
+
     public int getDecimals() {
         switch (type.getSqlType()) {
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+                if ( options.useNewResultSetMetaData ) {
+                    return getDecimalsWithNewResultSet();
+                }
             case Types.BIT:
             case Types.TINYINT:
             case Types.SMALLINT:
             case Types.INTEGER:
             case Types.BIGINT:
-            case Types.FLOAT:
-            case Types.REAL:
-            case Types.DOUBLE:
             case Types.NUMERIC:
             case Types.DECIMAL:
                 return decimals;
+            case Types.TIMESTAMP:
+            case -101:
+            case -102:
+            case Types.OTHER:
+                if ( isOracleMode && options.useNewResultSetMetaData ) {
+                    return getDecimalsWithNewResultSet();
+                }
+        }
+        return 0;
+    }
+
+    public int getDecimalsWithNewResultSet() {
+        switch (type.getSqlType()) {
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.DOUBLE:
+                if (!isOracleMode && options.compatibleMysqlVersion == 8) {
+                    if (decimals == 31) {
+                        return 0;
+                    }
+                }
+                return decimals;
+            case Types.TIMESTAMP:
+            case -101:
+            case -102:
+            case Types.OTHER:
+                if (isOracleMode) {
+                    if (type == ColumnType.COMPLEX) {
+                        return 0;
+                    }
+                    return decimals;
+                }
+                break;
+            default:
+                break;
         }
         return 0;
     }
@@ -554,5 +734,12 @@ public class ColumnDefinition {
 
     public boolean isOracleMode() {
         return isOracleMode;
+    }
+
+    public int clampGetLength(long length) {
+        if (length > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) length;
     }
 }

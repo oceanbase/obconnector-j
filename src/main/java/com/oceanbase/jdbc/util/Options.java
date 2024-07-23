@@ -236,6 +236,7 @@ public class Options implements Cloneable {
     public boolean generateSimpleParameterMetadata;
     public boolean useProxyUser;
     public boolean mapDateToTimestamp = true;
+    public boolean useNewResultSetMetaData; 
     public boolean obDateTypeOptimization;
 
     @Override
@@ -719,6 +720,9 @@ public class Options implements Cloneable {
         if (mapDateToTimestamp != opt.mapDateToTimestamp) {
             return false;
         }
+        if (useNewResultSetMetaData != opt.useNewResultSetMetaData) {
+            return false;
+        } 
         if (obDateTypeOptimization != opt.obDateTypeOptimization) {
             return false;
         }
@@ -878,6 +882,7 @@ public class Options implements Cloneable {
         result = 31 * result + (oracleChangeReadOnlyToRepeatableRead ? 1 : 0);
         result = 31 * result + (encloseParamInParentheses ? 1 : 0);
         result = 31 * result + (mapDateToTimestamp ? 1 : 0);
+        result = 31 * result + (useNewResultSetMetaData ? 1 : 0);
         return result;
     }
 

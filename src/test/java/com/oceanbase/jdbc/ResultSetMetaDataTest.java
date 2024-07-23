@@ -53,7 +53,9 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.util.*;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -320,5 +322,118 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals(-1,metaData.getColumnType(3));
         assertEquals(-1,metaData.getColumnType(4));
 
+    }
+
+    @Test
+    public void testForAone57111946() throws SQLException {
+        Connection conn = setConnection("&useNewResultSetMetaData=true&compatibleMysqlVersion=5");
+        createTable("t_meta", "c1 boolean, c2 bigint, c3 bigint(255) zerofill , c4 tinyint, c5  tinyint(1), c6 smallint, c7 smallint(5) unsigned" +
+                ", c8 mediumint, c9 mediumint(64) zerofill, c10 numeric, c11 numeric(20,5), c12 decimal, c13  decimal(65,30), c14 double, c15 double(15,5), c16 FLOAT " +
+                ", c17 FLOAT(7,5), c18 bit , c19 bit(51), c20 datetime, c21 datetime(6), c22 timestamp, c23 TIMESTAMP(3), c24 date, c25 time, c26 time(3), c27 year , c28 char(0)" +
+                ", c29 char(80), " +
+                "d1 char(80) character set gbk, d2 varchar(0), d3 varchar(51), d4 varchar(51) character set gbk, d5 BINARY(51), d6 varbinary(51), d7 blob, " +
+                "d8 blob(51), d9 tinyblob, d10 mediumblob, d11 longblob, d12 text, d13 text character set gbk, d14 tinytext, d15 tinytext character set gbk, d16 mediumtext, d17 mediumtext character set gbk" +
+                ", d18 longtext, d19 enum('red', 'green', 'blue'), d20 ENUM('12', '1.2222222'), d21 set('red', 'green', 'blue'), d22 json, d23 point, d24 geometry, d25 linestring, d26 polygon, d27 multipoint, " +
+                "d28 multilinestring, d29 multipolygon, d30 geometrycollection");
+
+        class metaInfo{
+            private String columnName;
+            private String columnDefine;
+            private int[] metainfos;
+            metaInfo(String columnName, String columnDefine, int[] metainfos){
+                this.columnName = columnName;
+                this.columnDefine = columnDefine;
+                this.metainfos = metainfos;
+            }
+        }
+
+        List<metaInfo> metaInfoListlist = new ArrayList<>();
+        metaInfoListlist.add(new metaInfo("c1", "boolean", new int[]{1, 1, 0 }));
+        metaInfoListlist.add(new metaInfo("c2", "bigint", new int[]{20, 20, 0 }));
+        metaInfoListlist.add(new metaInfo("c3", "bigint(255) zerofill", new int[]{255, 255, 0 }));
+        metaInfoListlist.add(new metaInfo("c4", "tinyint", new int[]{4, 4, 0 }));
+        metaInfoListlist.add(new metaInfo("c5", "tinyint(1)", new int[]{1, 1, 0 }));
+        metaInfoListlist.add(new metaInfo("c6", "smallint", new int[]{6, 6, 0 }));
+        metaInfoListlist.add(new metaInfo("c7", "smallint(5) unsigned", new int[]{5, 5, 0 }));
+        metaInfoListlist.add(new metaInfo("c8", "mediumint", new int[]{9, 9, 0 }));
+        metaInfoListlist.add(new metaInfo("c9", "mediumint(64) zerofill", new int[]{64, 64, 0 }));
+        metaInfoListlist.add(new metaInfo("c10", "numeric", new int[]{11, 10, 0 }));
+
+        metaInfoListlist.add(new metaInfo("c11", "numeric(20,5)", new int[]{22, 20, 5}));
+        metaInfoListlist.add(new metaInfo("c12", "decimal", new int[]{11, 10, 0}));
+        metaInfoListlist.add(new metaInfo("c13", "decimal(65,30)", new int[]{67, 65, 30}));
+        metaInfoListlist.add(new metaInfo("c14", "double", new int[]{23, 23, 31}));
+        metaInfoListlist.add(new metaInfo("c15", "double(15,5)", new int[]{15, 15, 5}));
+        metaInfoListlist.add(new metaInfo("c16", "FLOAT", new int[]{12, 12, 31}));
+        metaInfoListlist.add(new metaInfo("c17", "FLOAT(7,5)", new int[]{7, 7, 5}));
+        metaInfoListlist.add(new metaInfo("c18", "bit", new int[]{1, 1, 0}));
+        metaInfoListlist.add(new metaInfo("c19", "bit(51)", new int[]{51, 51, 0}));
+        metaInfoListlist.add(new metaInfo("c20", "datetime", new int[]{19, 19, 0}));
+        metaInfoListlist.add(new metaInfo("c21", "datetime(6)", new int[]{26, 26, 0}));
+        metaInfoListlist.add(new metaInfo("c22", "timestamp", new int[]{19, 19, 0}));
+        metaInfoListlist.add(new metaInfo("c23", "TIMESTAMP(3)", new int[]{23, 23, 0}));
+        metaInfoListlist.add(new metaInfo("c24", "date", new int[]{10, 10, 0}));
+        metaInfoListlist.add(new metaInfo("c25", "time", new int[]{10, 10, 0}));
+        metaInfoListlist.add(new metaInfo("c26", "time(3)", new int[]{14, 14, 0}));
+        metaInfoListlist.add(new metaInfo("c27", "year", new int[]{4, 4, 0}));
+        metaInfoListlist.add(new metaInfo("c28", "char(0)", new int[]{0, 0, 0}));
+        metaInfoListlist.add(new metaInfo("c29", "char(80)", new int[]{80, 80, 0}));
+        metaInfoListlist.add(new metaInfo("d1", "char(80) character set gbk", new int[]{80, 80, 0}));
+        metaInfoListlist.add(new metaInfo("d2", "varchar(0)", new int[]{0, 0, 0}));
+        metaInfoListlist.add(new metaInfo("d3", "varchar(51)", new int[]{51, 51, 0}));
+        metaInfoListlist.add(new metaInfo("d4", "varchar(51) character set gbk", new int[]{51, 51, 0}));
+
+        metaInfoListlist.add(new metaInfo("d5", "BINARY(51)", new int[]{51, 51, 0}));
+        metaInfoListlist.add(new metaInfo("d6", "varbinary(51)", new int[]{51, 51, 0}));
+        metaInfoListlist.add(new metaInfo("d7", "blob", new int[]{65535, 65535, 0}));
+        metaInfoListlist.add(new metaInfo("d8", "blob(51)", new int[]{255, 255, 0}));
+        metaInfoListlist.add(new metaInfo("d9", "tinyblob", new int[]{255, 255, 0}));
+        metaInfoListlist.add(new metaInfo("d10", "mediumblob", new int[]{16777215, 16777215, 0}));
+        metaInfoListlist.add(new metaInfo("d11", "longblob", new int[]{2147483647, 2147483647, 0}));
+
+        metaInfoListlist.add(new metaInfo("d12", "text", new int[]{16383, 16383, 0}));
+        metaInfoListlist.add(new metaInfo("d13", "text character set gbk", new int[]{16383, 16383, 0}));
+        metaInfoListlist.add(new metaInfo("d14", "tinytext", new int[]{63, 63, 0}));
+        metaInfoListlist.add(new metaInfo("d15", "tinytext character set gbk", new int[]{63, 63, 0}));
+        metaInfoListlist.add(new metaInfo("d16", "mediumtext", new int[]{4194303, 4194303, 0}));
+        metaInfoListlist.add(new metaInfo("d17", "mediumtext character set gbk", new int[]{4194303, 4194303, 0}));
+        metaInfoListlist.add(new metaInfo("d18", "longtext", new int[]{536870911, 536870911, 0}));
+        metaInfoListlist.add(new metaInfo("d19", "enum('red', 'green', 'blue')", new int[]{5, 5, 0}));
+        metaInfoListlist.add(new metaInfo("d20", "ENUM('12', '1.2222222')", new int[]{9, 9, 0}));
+        metaInfoListlist.add(new metaInfo("d21", "set('red', 'green', 'blue')", new int[]{14, 14, 0}));
+        metaInfoListlist.add(new metaInfo("d22", "json", new int[]{2147483647, 2147483647, 0}));
+
+        metaInfoListlist.add(new metaInfo("d23", "point", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d24", "geometry", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d25", "linestring", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d26", "polygon", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d27", "multipoint", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d28", "multilinestring", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d29", "multipolygon", new int[]{2147483647, 2147483647, 0}));
+        metaInfoListlist.add(new metaInfo("d30", "geometrycollection", new int[]{2147483647, 2147483647, 0}));
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t_meta");
+        ResultSetMetaData metaData = rs.getMetaData();
+        int size = metaData.getColumnCount();
+        for (int i = 1; i <= size; i++) {
+            metaInfo metaInfo = metaInfoListlist.get(i - 1);
+            Assert.assertEquals(metaInfo.metainfos[0], metaData.getColumnDisplaySize(i));
+            Assert.assertEquals(metaInfo.metainfos[1], metaData.getPrecision(i));
+            Assert.assertEquals(metaInfo.metainfos[2], metaData.getScale(i));
+        }
+    }
+
+    @Test
+    public void testForAone55761318() throws SQLException {
+        createTable("test55761318", "c1 DECIMAL UNSIGNED, c2 TINYINT UNSIGNED, c3 SMALLINT UNSIGNED, c4 INT UNSIGNED," +
+                " c5 FLOAT UNSIGNED, c6 DOUBLE UNSIGNED, c7 BIGINT UNSIGNED, c8 MEDIUMINT UNSIGNED");
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from test55761318");
+        ResultSetMetaData metaData = rs.getMetaData();
+        int count = metaData.getColumnCount();
+        for (int i = 1; i <= count; i++) {
+            Assert.assertTrue(metaData.getColumnTypeName(i).contains("UNSIGNED"));
+        }
     }
 }

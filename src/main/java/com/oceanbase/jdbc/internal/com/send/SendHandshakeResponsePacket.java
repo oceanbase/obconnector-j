@@ -55,8 +55,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.function.Supplier;
 
-import javax.swing.*;
-
 import com.oceanbase.jdbc.OceanBaseDatabaseMetaData;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -89,6 +87,7 @@ public class SendHandshakeResponsePacket {
     private static final String           _CLIENT_CAPABILITY = "__ob_client_attribute_capability_flag";
     private static final String           _CLIENT_PROXY_USER = "__ob_client_proxy_user_name";
     public static final String            OB_CAPABILITY_FLAG = "ob_capability_flag";                   // tell which features ob supports
+    public static final String            OB_CLIENT_CAPABILITY_FLAG = "__ob_client_capability_flag";
 
     /**
      * Send handshake response packet.
@@ -386,7 +385,9 @@ public class SendHandshakeResponsePacket {
         }
         if (!banListSet.contains(_CLIENT_CAPABILITY) && options.useLobLocatorV2) {
             long capFlag = OceanBaseCapabilityFlag.OB_CLIENT_CAP_LOB_LOCATOR_V2;
-
+            if (options.useNewResultSetMetaData) {
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_USE_NEW_RESULTSET_METADATA;
+            }
             buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }

@@ -186,6 +186,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean                     useOceanBaseProtocolV20;
     protected boolean                     enableFullLinkTrace;
     protected boolean                     useNewExtraInfo;
+    protected boolean                     useNewResultSetMetaData;
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
     TimeTrace                             timeTrace;
@@ -879,6 +880,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                                                   && ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_FULL_LINK_TRACE) != 0); // full link trace require for OB2.0 protocol
                                             useNewExtraInfo = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_NEW_EXTRA_INFO) != 0);
                                         }
+
+                                        // process __ob_client_capability_flag
+                                        if (name.equals(SendHandshakeResponsePacket.OB_CLIENT_CAPABILITY_FLAG)) {
+                                            useNewResultSetMetaData = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_USE_NEW_RESULTSET_METADATA) != 0);
+                                        }
                                         break;
                                     default:
                                         break;
@@ -896,6 +902,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
         }
         writer.permitTrace(true);
+        resetObClientOptions();
     }
 
     private void compressionHandler(Options options) throws IOException {
@@ -2189,6 +2196,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public int getServerStatus() {
         return serverStatus;
+    }
+
+    /**
+     * According to the results returned by the server, reset the relevant configuration of the capability negotiation in the option.
+     */
+    private void resetObClientOptions() {
+        options.useNewResultSetMetaData = useNewResultSetMetaData;
     }
 
 }

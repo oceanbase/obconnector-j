@@ -204,7 +204,7 @@ public class ComStmtPrepareExecute {
                     if (numParams > 0) {
                         for (int i = 0; i < numParams; i++) {
                             params[i] = new ColumnDefinition(reader.getPacket(false), true,
-                                    protocol.getOptions().getCharacterEncoding());
+                                    protocol.getOptions().getCharacterEncoding(), protocol.getOptions());
                         }
                         if (!eofDeprecated) {
                             protocol.skipEofPacket();

@@ -1124,12 +1124,18 @@ public enum DefaultOptions {
             "2.4.11",
             "Allow to get Date which is like xxxx-xx-xx, which is compatible with ojdbc.",
             false),
+    USE_NEW_RESULTSET_METADATA(
+            "useNewResultSetMetaData",
+            Boolean.FALSE,
+            "2.4.12",
+            "Use the new ResultSetMetaData to ensure the correctness of metadata.",
+            false), 
     OB_DATETYPE_OPTIMIZATION(
             "obDateTypeOptimization",
             Boolean.FALSE,
             "2.4.12",
             "Optimize the performance of the getDate method of ResultSet.",
-            false);;
+            false);
 
   private final String optionName;
   private final String description;
