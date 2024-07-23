@@ -1849,4 +1849,26 @@ public class ResultSetTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForAone56020353() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=12&maxRows=10&compatibleMysqlVersion=5");
+        testContentForAone56020353(conn);
+        Connection conn1 = setConnection("&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=12&maxRows=10&compatibleMysqlVersion=8");
+        testContentForAone56020353(conn1);
+    }
+
+    public void testContentForAone56020353(Connection conn) throws SQLException {
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        stmt.execute("drop table if exists test");
+        stmt.execute("create table test (c1 int primary key)");
+        stmt.execute("insert into test values (10)");
+        PreparedStatement ps = conn.prepareStatement("select * from test", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = ps.executeQuery();
+        rs.absolute(1);
+        assertEquals(10, rs.getInt(1));
+        rs.updateInt(1, 20);
+        rs.updateRow();
+        assertEquals(20, rs.getInt(1));
+    }
+
 }

@@ -2507,8 +2507,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (canBeUpdate) {
             if (results.getStatement() != null && results.getStatement().getConnection() != null) {
                 connection = results.getStatement().getConnection();
-                Statement stmt = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY);
+                Statement stmt = connection.getMetadataSafeStatement();
                 ResultSet rs;
                 rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
