@@ -364,7 +364,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
           ResultSet rs = null;
           int cur = 0;
           for(SelectResultSet curResultSet : results.getExecutionResults()) {
-              int index = cur * 2 +1 ;
+              int index = cur ;
               int curRowsNum = results.getCmdInformation().getUpdateCounts()[index];
               if(curRowsNum > 0) {
                   totoalRowsNum += curRowsNum;

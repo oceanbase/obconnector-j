@@ -43,8 +43,6 @@
  */
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
@@ -52,6 +50,8 @@ import java.sql.*;
 import java.util.Arrays;
 
 import org.junit.*;
+
+import static org.junit.Assert.*;
 
 public class NewFeatureOracleTest extends BaseOracleTest {
     @BeforeClass()
@@ -718,4 +718,31 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testArrayBindingInsertIntErrorForDima2024072400103910874() throws SQLException {
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useArrayBinding=true&usePieceData=true");
+        Statement stmt = conn.createStatement();
+        try{
+            stmt.execute("drop table t1");
+        }catch(SQLException e){}
+
+        stmt.execute("create table t1(c1 int,c2 int)");
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement("insert into t1 values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,2);
+        ps.addBatch();
+
+        ps.setString(1,"error");
+        ps.setInt(2,2);
+        ps.addBatch();
+
+        try {
+            ps.executeBatch();
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("ORA-01722: invalid number"));
+        }
+        conn.commit();
+    }
 }
