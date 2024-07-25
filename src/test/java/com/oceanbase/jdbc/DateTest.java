@@ -1239,4 +1239,23 @@ public class DateTest extends BaseTest {
         Assert.assertEquals("2024-07-11 12:22:33.123", rs.getTimestamp(2).toString());
     }
 
+
+    @Test
+    public void testCurTimeForDima2024072400103912260() throws SQLException {
+        Connection conn1 = setConnection("&useServerPrepStmts=false");
+        PreparedStatement ps = conn1.prepareStatement(
+                " SELECT '12:12:12.123'");
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+        Assert.assertEquals("12:12:12", rs.getTime(1).toString());
+        ps.close();
+
+        conn1 = setConnection("&useServerPrepStmts=true");
+        ps = conn1.prepareStatement(
+                " SELECT '12:12:12.123'");
+        rs = ps.executeQuery();
+        assertTrue(rs.next());
+        Assert.assertEquals("12:12:12", rs.getTime(1).toString());
+        ps.close();
+    }
 }
