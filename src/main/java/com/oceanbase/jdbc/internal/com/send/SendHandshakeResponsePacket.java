@@ -383,13 +383,18 @@ public class SendHandshakeResponsePacket {
             buffer.writeStringSmallLength(_PROXY_CAPABILITY.getBytes(pos.getCharset()));
             buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
         }
-        if (!banListSet.contains(_CLIENT_CAPABILITY) && options.useLobLocatorV2) {
-            long capFlag = OceanBaseCapabilityFlag.OB_CLIENT_CAP_LOB_LOCATOR_V2;
+        if (!banListSet.contains(_CLIENT_CAPABILITY)) {
+            long capFlag = 0;
+            if (options.useLobLocatorV2) {
+                capFlag |= OceanBaseCapabilityFlag.OB_CLIENT_CAP_LOB_LOCATOR_V2;
+            }
             if (options.useNewResultSetMetaData) {
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_USE_NEW_RESULTSET_METADATA;
             }
-            buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
-            buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
+            if (capFlag != 0) {
+                buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
+                buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());
+            }
         }
         if (!banListSet.contains(_CLIENT_PROXY_USER) && (proxyUserName != null && !proxyUserName.isEmpty())) {
             buffer.writeStringSmallLength(_CLIENT_PROXY_USER.getBytes(pos.getCharset()));
