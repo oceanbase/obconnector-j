@@ -77,20 +77,20 @@ public class RefCursor extends CursorResultSet {
     }
 
     private boolean cursorFetchInternal(int tmpFetchSize) throws SQLException {
-        this.lock.lock();
-        lockLogger.debug("RefCursor.cursorFetchInternal locked");
-        if (isLastRowSent) {
-            return false;
-        }
-        if (this.rowObCursorData == null) {
-            isLastRowSent = true;
-            return false;
-        }
         if (protocol != null) {
             protocol.startCallInterface();
         }
-
+        this.lock.lock();
         try {
+            lockLogger.debug("RefCursor.cursorFetchInternal locked");
+            if (isLastRowSent) {
+                return false;
+            }
+            if (this.rowObCursorData == null) {
+                isLastRowSent = true;
+                return false;
+            }
+
             ColumnDefinition[] ci = ((ServerSidePreparedStatement) this.getStatement())
                 .cursorFetch(this.rowObCursorData.getCursorId(), tmpFetchSize);
             if (ci != null) {

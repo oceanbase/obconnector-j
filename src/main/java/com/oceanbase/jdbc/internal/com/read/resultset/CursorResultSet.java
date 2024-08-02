@@ -110,18 +110,18 @@ public class CursorResultSet extends Cursor {
     }
 
     protected boolean cursorFetch() throws SQLException {
-        this.lock.lock();
-        lockLogger.debug("CursorResultSet.cursorFetch locked");
-        if (isLastRowSent || statement != null && statement.getMaxRows() > 0
-            && endIndexInEntireResult >= statement.getMaxRows()) {
-            isLastRowSent = true;
-            return false;
-        }
         if (protocol != null) {
             protocol.startCallInterface();
         }
-
+        this.lock.lock();
         try {
+            lockLogger.debug("CursorResultSet.cursorFetch locked");
+            if (isLastRowSent || statement != null && statement.getMaxRows() > 0
+                && endIndexInEntireResult >= statement.getMaxRows()) {
+                isLastRowSent = true;
+                return false;
+            }
+
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetch(this.statementId,
                 this.getFetchSize());
 
@@ -142,18 +142,18 @@ public class CursorResultSet extends Cursor {
     }
 
     private boolean cursorFetchForOracle(byte offsetType, int offset) throws SQLException {
-        this.lock.lock();
-        lockLogger.debug("CursorResultSet.cursorFetchForOracle locked");
-        if (statement != null && statement.getMaxRows() > 0
-            && endIndexInEntireResult >= statement.getMaxRows()) {
-            isLastRowSent = true;
-            return false;
-        }
         if (protocol != null) {
             protocol.startCallInterface();
         }
-
+        this.lock.lock();
         try {
+            lockLogger.debug("CursorResultSet.cursorFetchForOracle locked");
+            if (statement != null && statement.getMaxRows() > 0
+                && endIndexInEntireResult >= statement.getMaxRows()) {
+                isLastRowSent = true;
+                return false;
+            }
+
             ((ServerSidePreparedStatement) this.getStatement()).cursorFetchForOracle(
                 this.statementId, this.getFetchSize(), offsetType, offset);
 
