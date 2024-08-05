@@ -1889,7 +1889,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
      *                          the database
      * @return <code>ResultSet</code> - each row is a column description
      * @throws SQLException if a database access error occurs
-     * @see PseudoColumnUsage
+     * see PseudoColumnUsage
      * @since 1.7
      */
     public ResultSet getPseudoColumns(String catalog, String schemaPattern,
