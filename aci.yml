@@ -1,0 +1,18 @@
+version: "2.0"
+
+stages:
+  - 代码扫描
+
+jobs:
+  安全扫描:
+    stage: 代码扫描
+    component: stc
+    inputs:
+      tenantName: oceanbase # 使用oceanbase规则进行扫描，而不是用主站规则
+      # checkRule:
+      # - urgentCount = 0 && highCount = 0 # 卡点规则：高危和严重bug数均为0
+      # - urgent = 0 && high = 0
+
+# only:
+#   triggerType:
+#     - tagPush
