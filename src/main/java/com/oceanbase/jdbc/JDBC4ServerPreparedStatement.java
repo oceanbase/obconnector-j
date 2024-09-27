@@ -425,6 +425,20 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
+      if (this.protocol.isOracleMode() && resultSetMetaData == null) {
+          ServerPrepareResult prepareResult = this.protocol.prepare(actualSql, mustExecuteOnMaster);
+          resultSetMetaData = new OceanBaseResultSetMetaData(prepareResult.getColumns(), protocol.getUrlParser().getOptions(),
+              false, this.protocol.isOracleMode(), addRowid ? 1 : 0);
+
+          // Release resources promptly
+          try {
+              this.protocol.forceReleasePrepareStatement(prepareResult.getStatementId());
+          } catch (SQLException e) {
+              // eat
+          } finally {
+              prepareResult.release();
+          }
+      }
     return resultSetMetaData;
   }
 
