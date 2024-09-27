@@ -1288,4 +1288,23 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         System.out.println(connMetaData.getDatabaseProductVersion());
     }
 
+    @Test
+    public void testMetadataForDima2024082600104260091() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+        createTable("t_meta", "c1 int , c2 int, c3 int");
+        PreparedStatement ps = conn.prepareStatement("select c1 from t_meta where c2 = ? and c3 = ?");
+        ResultSetMetaData metaData = ps.getMetaData();
+        Assert.assertNotNull(metaData);
+        Assert.assertEquals(1, metaData.getColumnCount());
+
+        createTable("t_meta2", "c1 int , c2 int, c3 blob");
+        PreparedStatement ps2 = conn.prepareStatement("select c1 from t_meta2 where c2 = ? and c3 = ?");
+        try {
+            ps2.getMetaData();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("00932"));
+        }
+    }
+
 }

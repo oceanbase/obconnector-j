@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
@@ -532,7 +533,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       return rs.getMetaData();
     }
     if (resultSetMetaData == null) {
-      loadParametersData();
+      loadResultSetMetaData();
     }
     return resultSetMetaData;
   }
@@ -596,6 +597,40 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       loadParametersData();
     }
     return parameterMetaData;
+  }
+
+  private void loadResultSetMetaData() throws SQLException {
+    if (this.sqlType != OceanBaseStatement.STMT_SELECT || this.resultSetMetaData != null) {
+      return;
+    }
+    JDBC4PreparedStatement clientStmt = null;
+    ResultSet resultSet = null;
+    try {
+      clientStmt =  this.clone(this.connection);
+      clientStmt.setMaxRows(1);
+      int count = clientStmt.getParameterCount();
+      for (int i = 1; i <= count; i++) {
+        clientStmt.setString(i, null);
+      }
+
+      boolean execute = clientStmt.execute();
+      if (execute) {
+        resultSet = clientStmt.getResultSet();
+        this.resultSetMetaData = resultSet.getMetaData();
+      } else {
+        this.resultSetMetaData = new OceanBaseResultSetMetaData(new ColumnDefinition[]{}, this.options,
+                false, protocol.isOracleMode(),this.addRowid ? 1 : 0 );
+      }
+    } catch (CloneNotSupportedException e) {
+        throw new RuntimeException(e);
+    } finally {
+      if (resultSet != null) {
+        resultSet.close();
+      }
+      if (clientStmt != null) {
+        clientStmt.close();
+      }
+    }
   }
 
   private void loadParametersData() {

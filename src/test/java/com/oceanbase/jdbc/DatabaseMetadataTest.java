@@ -1905,4 +1905,24 @@ public class DatabaseMetadataTest extends BaseTest {
         assertFalse(metaData.supportsMixedCaseIdentifiers());
         assertFalse(metaData.supportsMixedCaseQuotedIdentifiers());
     }
+
+    @Test
+    public void testMetadataForDima2024082600104260091() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("t_meta", "c1 int , c2 int, c3 int");
+        PreparedStatement ps = conn.prepareStatement("select c1 from t_meta where c2 = ? and c3 = ?");
+        ResultSetMetaData metaData = ps.getMetaData();
+        Assert.assertNotNull(metaData);
+        Assert.assertEquals(1, metaData.getColumnCount());
+
+        ParameterMetaData parameterMetaData = ps.getParameterMetaData();
+        Assert.assertNotNull(parameterMetaData);
+        Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+        createTable("t_meta2", "c1 int , c2 int, c3 blob");
+        PreparedStatement ps2 = conn.prepareStatement("select c1 from t_meta2 where c2 = ? and c3 = ?");
+        ResultSetMetaData ps2MetaData = ps2.getMetaData();
+        Assert.assertNotNull(ps2MetaData);
+        Assert.assertEquals(1, ps2MetaData.getColumnCount());
+    }
 }
