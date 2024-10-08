@@ -117,6 +117,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     protected ColumnDefinition[]            columnsInformation;
     protected int                           columnInformationLength;
     protected int                           columnIndexOffset;
+    protected int                           columnIndexEndPos;
     protected boolean                       noBackslashEscapes;
     protected Protocol                      protocol;
     protected PacketInputStream             reader;
@@ -1770,7 +1771,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClose();
         return new OceanBaseResultSetMetaData(columnsInformation, options, forceAlias, this
-            .getProtocol().isOracleMode(), columnIndexOffset);
+            .getProtocol().isOracleMode(), columnIndexOffset, columnIndexEndPos);
     }
 
     /**

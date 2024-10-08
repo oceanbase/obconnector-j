@@ -281,4 +281,9 @@ public class CmdInformationMultiple implements CmdInformation {
         this.arrayBinding = arrayBinding;
     }
 
+    @Override
+    public boolean getArrayBinding() {
+        return arrayBinding;
+    }
+
 }

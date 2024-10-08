@@ -478,7 +478,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   public void addBatch() throws SQLException {
       lock.lock();
       try {
-          if (returnParamCount > 0) {
+          if (returnParamCount > 0 && (!options.useArrayBinding || !options.useOraclePrepareExecute || options.compatibleOjdbcVersion != 8)) {
               throw new SQLFeatureNotSupportedException("not support batch operation for DML_Returning_Into feature.");
           }
 
@@ -491,7 +491,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public void addBatch(final String sql) throws SQLException {
-    if (returnParamCount > 0) {
+    if (returnParamCount > 0 && (!options.useArrayBinding || !options.useOraclePrepareExecute || options.compatibleOjdbcVersion != 8)) {
       throw new SQLException("not support batch operation for DML_Returning_Into feature.");
     }
 
@@ -1313,7 +1313,20 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     public ResultSet getReturnResultSet() throws SQLException {
         checkClose();
         if (returnParamCount != 0) {
-            return (results != null && results.isReturning()) ? results.getResultSet() : null;
+            // determine whether the current operation is batch
+            if (results != null && results.isReturning()) {
+                SelectResultSet resultSet = results.getResultSet();
+                ColumnDefinition[] columnDefinitions = resultSet.columnsInformation;
+                int length = columnDefinitions.length;
+                resultSet.columnIndexEndPos = length;
+                if (results.getCmdInformation().getArrayBinding()) {
+                    resultSet.columnIndexOffset = 2;
+                    resultSet.columnIndexEndPos = length - 1;
+                    resultSet.columnInformationLength = length - 1;
+                }
+                return resultSet;
+            }
+            return null;
         } else {
             throw new SQLException("Statement handle not executed");
         }
