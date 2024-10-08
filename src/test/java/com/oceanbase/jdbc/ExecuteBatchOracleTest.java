@@ -304,4 +304,56 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
 
         assertEquals(0, updateCounts[0]);
     }
+
+    @Test
+    public void testReturninIntoForDima2024082600104255128() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&useArrayBinding=true&compatibleOjdbcVersion=8");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop sequence s1;");
+        } catch (Exception ignored) {
+            //
+        } finally {
+            stmt.execute("create sequence s1 start with 1 increment by 1");
+        }
+        createTable("t_batch", "id  number(10) , c1 varchar(15), c2 int, c3 varchar(15) ");
+        stmt.execute("create or replace trigger tri1\n" + "before insert on t_batch\n"
+                + "for each row\n" + "begin\n" + "  select  s1.nextval\n" + "  into :new.id\n"
+                + "  from dual;\n" + "end;");
+
+        String sql = "insert into t_batch(c1, c2, c3) values(?, ?, ?) ";
+
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement(sql, new int[]{1, 2, 3, 4});
+
+        for (int i = 1; i <= 3; i++) {
+            ps.setString(1, "aaa" + i);
+            ps.setInt(2, i);
+            ps.setString(3, "bbb" + i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        conn.setAutoCommit(true);
+        ResultSet returnRs = ps.getGeneratedKeys();
+        ResultSetMetaData returnRsMetaData = returnRs.getMetaData();
+
+        Assert.assertEquals(4, returnRsMetaData.getColumnCount());
+        for (int i = 1; i <= 3; i++) {
+            Assert.assertTrue(returnRs.next());
+            Assert.assertEquals(i, returnRs.getInt(1));
+            Assert.assertEquals("aaa" + i, returnRs.getString(2));
+            Assert.assertEquals(i, returnRs.getInt(3));
+            Assert.assertEquals("bbb" + i, returnRs.getString(4));
+            try {
+                returnRs.getString(5);
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("No such column"));
+            }
+        }
+        returnRs.close();
+        ps.close();
+        stmt.close();
+    }
 }

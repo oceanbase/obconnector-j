@@ -68,6 +68,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
     private final boolean            forceAlias;
     private final boolean            isOracleMode;
     private final int                columnIndexOffset;
+    private final int                columnIndexEndPos;
 
     /**
      * Constructor.
@@ -83,6 +84,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         this.forceAlias = forceAlias;
         this.isOracleMode = false;
         this.columnIndexOffset = 0;
+        this.columnIndexEndPos = this.fieldPackets.length;
     }
 
     public OceanBaseResultSetMetaData(final ColumnDefinition[] fieldPackets, final Options options,
@@ -93,6 +95,22 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
         this.forceAlias = forceAlias;
         this.isOracleMode = isOracleMode;
         this.columnIndexOffset = columnIndexOffset;
+        this.columnIndexEndPos = this.fieldPackets.length;
+    }
+
+    public OceanBaseResultSetMetaData(final ColumnDefinition[] fieldPackets, final Options options,
+                                      final boolean forceAlias, boolean isOracleMode,
+                                      final int columnIndexOffset, final int columnIndexEndPos) {
+        this.fieldPackets = fieldPackets;
+        this.options = options;
+        this.forceAlias = forceAlias;
+        this.isOracleMode = isOracleMode;
+        this.columnIndexOffset = columnIndexOffset;
+        if (columnIndexEndPos == 0) {
+            this.columnIndexEndPos = fieldPackets.length;
+        } else {
+            this.columnIndexEndPos = columnIndexEndPos;
+        }
     }
 
     /**
@@ -101,7 +119,7 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
      * @return the number of columns
      */
     public int getColumnCount() {
-        return fieldPackets.length - columnIndexOffset;
+        return columnIndexEndPos - columnIndexOffset;
     }
 
     /**
@@ -530,11 +548,11 @@ public class OceanBaseResultSetMetaData implements ResultSetMetaData {
 
     private ColumnDefinition getColumnInformation(int column) throws SQLException {
         int actualColumnIndex = column + columnIndexOffset;
-        if (actualColumnIndex >= 1 && actualColumnIndex <= fieldPackets.length) {
+        if (actualColumnIndex >= 1 && actualColumnIndex <= columnIndexEndPos) {
             return fieldPackets[actualColumnIndex - 1];
         }
         throw ExceptionFactory.INSTANCE.create(String.format(
-            "wrong column index %s. must be in [1, %s] range", column, fieldPackets.length
+            "wrong column index %s. must be in [1, %s] range", column, columnIndexEndPos
                                                                        - columnIndexOffset));
     }
 

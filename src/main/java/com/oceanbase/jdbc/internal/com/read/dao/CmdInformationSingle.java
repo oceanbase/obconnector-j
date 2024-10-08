@@ -205,4 +205,9 @@ public class CmdInformationSingle implements CmdInformation {
     public void setArrayBinding(boolean arrayBinding) {
 
     }
+
+    @Override
+    public boolean getArrayBinding() {
+        return false;
+    }
 }
