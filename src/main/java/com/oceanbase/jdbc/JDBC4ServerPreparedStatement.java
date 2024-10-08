@@ -720,7 +720,12 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       // rewrite batch not work for update sql
       while (continueRewrite) {
         if (options.rewriteBatchedStatements) {
-          if ((remainParameterSize * parameterCountReal) > options.maxBatchTotalParamsNum) {
+          String sqlString = curString;
+          if (protocol.isOracleMode() && options.supportNameBinding) {
+              sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
+          }
+          List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.getCharacterEncoding());
+          if (list != null && (remainParameterSize * parameterCountReal) > options.maxBatchTotalParamsNum) {
             currentTurnParamSize = (options.maxBatchTotalParamsNum / parameterCountReal);
             remainParameterSize -= currentTurnParamSize;
           } else {
@@ -731,11 +736,6 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           }
           logger.debug("previousTurnParamSize = {}, currentTurnParamSize = {}, remainParameterSize = {}", previousTurnParamSize, currentTurnParamSize, remainParameterSize);
 
-          String sqlString = curString;
-          if (protocol.isOracleMode() && options.supportNameBinding) {
-            sqlString = Utils.trimSQLString(curString, protocol.noBackslashEscapes(), true, true);
-          }
-          List<String> list = ClientPrepareResult.rewritablePartsInsertSql(sqlString, false, this.protocol.isOracleMode(), this.options.getCharacterEncoding());
           if (list != null) {
               if (currentTurnParamSize != previousTurnParamSize) {
                   // actual sql will be different, in this case it's necessary to prepare the new actual sql

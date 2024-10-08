@@ -49,6 +49,7 @@ import org.junit.Test;
 
 import java.sql.*;
 import java.sql.Clob;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
@@ -306,6 +307,29 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testBatchForDima2024081600104156188() throws SQLException {
+        Connection conn = setConnection("&rewriteBatchedStatements=true&maxBatchTotalParamsNum=5&allowMultiQueries=false&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        createTable("t_batch", "id NUMBER(10), name VARCHAR2(50),age NUMBER(3)");
+
+        conn.setAutoCommit(false);
+        String sql = "UPDATE t_batch SET age = age+? WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        for (int i = 0; i < 10; i++) {
+            pstmt.setInt(1, 1 + i);
+            pstmt.setInt(2, 1 + i);
+            pstmt.addBatch();
+        }
+        int[] result = pstmt.executeBatch();
+        Assert.assertEquals("[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]", Arrays.toString(result));
+        conn.commit();
+        pstmt.close();
+
+        ResultSet rs = stmt.executeQuery("select count(1) from t_batch");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(0, rs.getInt(1));
+ 
+    @Test
     public void testReturninIntoForDima2024082600104255128() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&useArrayBinding=true&compatibleOjdbcVersion=8");
         Statement stmt = conn.createStatement();
@@ -354,6 +378,6 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         }
         returnRs.close();
         ps.close();
-        stmt.close();
+        stmt.close(); 
     }
 }
