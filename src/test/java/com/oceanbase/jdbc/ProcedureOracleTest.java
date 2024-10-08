@@ -297,4 +297,19 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals("hello", attributes[0]);
         assertEquals("上海    ", attributes[1]);
     }
+
+    @Test
+    public void testForDima2024062200102855194() throws SQLException {
+        Connection conn = sharedConnection;
+        conn.createStatement().execute("create or replace function t_fun return varchar2 as begin return 'aaa'; end;");
+        CallableStatement cs = conn.prepareCall("select t_fun() as jbo from dual");
+        cs.execute();
+        try {
+            cs.getString(1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Index 1 must at maximum be 0"));
+        }
+
+    }
 }
