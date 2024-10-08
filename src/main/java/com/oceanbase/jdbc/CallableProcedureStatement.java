@@ -286,184 +286,219 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     @Override
     public String getString(int parameterIndex) throws SQLException {
-        return getOutputResult().getString(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getString(outputIndex);
     }
 
     @Override
     public String getString(String parameterName) throws SQLException {
-        return getOutputResult().getString(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getString(outputIndex);
     }
 
     @Override
     public boolean getBoolean(int parameterIndex) throws SQLException {
-        return getOutputResult().getBoolean(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getBoolean(outputIndex);
     }
 
     @Override
     public boolean getBoolean(String parameterName) throws SQLException {
-        return getOutputResult().getBoolean(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getBoolean(outputIndex);
     }
 
     @Override
     public byte getByte(int parameterIndex) throws SQLException {
-        return getOutputResult().getByte(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getByte(outputIndex);
     }
 
     @Override
     public byte getByte(String parameterName) throws SQLException {
-        return getOutputResult().getByte(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getByte(outputIndex);
     }
 
     @Override
     public short getShort(int parameterIndex) throws SQLException {
-        return getOutputResult().getShort(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getShort(outputIndex);
     }
 
     @Override
     public short getShort(String parameterName) throws SQLException {
-        return getOutputResult().getShort(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getShort(outputIndex);
     }
 
     @Override
     public int getInt(String parameterName) throws SQLException {
-        return getOutputResult().getInt(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getInt(outputIndex);
     }
 
     @Override
     public int getInt(int parameterIndex) throws SQLException {
-        return getOutputResult().getInt(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getInt(outputIndex);
     }
 
     @Override
     public long getLong(String parameterName) throws SQLException {
-        return getOutputResult().getLong(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getLong(outputIndex);
     }
 
     @Override
     public long getLong(int parameterIndex) throws SQLException {
-        return getOutputResult().getLong(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getLong(outputIndex);
     }
 
     @Override
     public float getFloat(String parameterName) throws SQLException {
-        return getOutputResult().getFloat(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getFloat(outputIndex);
     }
 
     @Override
     public float getFloat(int parameterIndex) throws SQLException {
-        return getOutputResult().getFloat(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getFloat(outputIndex);
     }
 
     @Override
     public double getDouble(int parameterIndex) throws SQLException {
-        return getOutputResult().getDouble(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getDouble(outputIndex);
     }
 
     @Override
     public double getDouble(String parameterName) throws SQLException {
-        return getOutputResult().getDouble(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getDouble(outputIndex);
     }
 
     @Override
     @Deprecated
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
-        return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getBigDecimal(outputIndex);
     }
 
     @Override
     public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
-        return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getBigDecimal(outputIndex);
     }
 
     @Override
     public BigDecimal getBigDecimal(String parameterName) throws SQLException {
-        return getOutputResult().getBigDecimal(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getBigDecimal(outputIndex);
     }
 
     @Override
     public byte[] getBytes(String parameterName) throws SQLException {
-        return getOutputResult().getBytes(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getBytes(outputIndex);
     }
 
     @Override
     public byte[] getBytes(int parameterIndex) throws SQLException {
-        return getOutputResult().getBytes(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getBytes(outputIndex);
     }
 
     @Override
     public Date getDate(int parameterIndex) throws SQLException {
-        return getOutputResult().getDate(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getDate(outputIndex);
     }
 
     @Override
     public Date getDate(String parameterName) throws SQLException {
-        return getOutputResult().getDate(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getDate(outputIndex);
     }
 
     @Override
     public Date getDate(String parameterName, Calendar cal) throws SQLException {
-        return getOutputResult().getDate(nameToOutputIndex(parameterName), cal);
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getDate(outputIndex, cal);
     }
 
     @Override
     public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
-        return getOutputResult().getDate(indexToOutputIndex(parameterIndex), cal);
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getDate(outputIndex, cal);
     }
 
     @Override
     public Time getTime(int parameterIndex, Calendar cal) throws SQLException {
-        return getOutputResult().getTime(indexToOutputIndex(parameterIndex), cal);
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getTime(outputIndex, cal);
     }
 
     @Override
     public Time getTime(String parameterName) throws SQLException {
-        return getOutputResult().getTime(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getTime(outputIndex);
     }
 
     @Override
     public Time getTime(String parameterName, Calendar cal) throws SQLException {
-        return getOutputResult().getTime(nameToOutputIndex(parameterName), cal);
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getTime(outputIndex, cal);
     }
 
     @Override
     public Time getTime(int parameterIndex) throws SQLException {
-        return getOutputResult().getTime(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getTime(outputIndex);
     }
 
     @Override
     public Timestamp getTimestamp(int parameterIndex) throws SQLException {
-        return getOutputResult().getTimestamp(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getTimestamp(outputIndex);
     }
 
     @Override
     public Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SQLException {
-        return getOutputResult().getTimestamp(indexToOutputIndex(parameterIndex), cal);
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getTimestamp(outputIndex, cal);
     }
 
     @Override
     public Timestamp getTimestamp(String parameterName) throws SQLException {
-        return getOutputResult().getTimestamp(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getTimestamp(outputIndex);
     }
 
     @Override
     public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
-        return getOutputResult().getTimestamp(nameToOutputIndex(parameterName), cal);
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getTimestamp(outputIndex, cal);
     }
 
     @Override
     public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
-        return getOutputResult().getObject(indexToOutputIndex(parameterIndex), map);
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getObject(outputIndex, map);
     }
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
         Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(parameterIndex)
             .getOutputSqlType());
+        int outputIndex = indexToOutputIndex(parameterIndex);
         if (classType != null) {
-            return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
+            return getOutputResult().getObject(outputIndex, classType);
         }
-        return getOutputResult().getObject(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getObject(outputIndex);
     }
 
     @Override
@@ -471,75 +506,89 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         int index = nameToIndex(parameterName);
         Class<?> classType = ColumnType.convertSqlTypeToClass(getParameter(index)
             .getOutputSqlType());
+        int outputIndex = indexToOutputIndex(index);
         if (classType != null) {
-            return getOutputResult().getObject(indexToOutputIndex(index), classType);
+            return getOutputResult().getObject(outputIndex, classType);
         }
-        return getOutputResult().getObject(indexToOutputIndex(index));
+        return getOutputResult().getObject(outputIndex);
     }
 
     @Override
     public Object getObject(String parameterName, Map<String, Class<?>> map) throws SQLException {
-        return getOutputResult().getObject(nameToOutputIndex(parameterName), map);
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getObject(outputIndex, map);
     }
 
     @Override
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-        return getOutputResult().getObject(indexToOutputIndex(parameterIndex), type);
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getObject(outputIndex, type);
     }
 
     @Override
     public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
-        return getOutputResult().getObject(nameToOutputIndex(parameterName), type);
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getObject(outputIndex, type);
     }
 
     @Override
     public Ref getRef(int parameterIndex) throws SQLException {
-        return getOutputResult().getRef(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getRef(outputIndex);
     }
 
     @Override
     public Ref getRef(String parameterName) throws SQLException {
-        return getOutputResult().getRef(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getRef(outputIndex);
     }
 
     @Override
     public java.sql.Blob getBlob(int parameterIndex) throws SQLException {
-        return getOutputResult().getBlob(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getBlob(outputIndex);
     }
 
     @Override
     public java.sql.Blob getBlob(String parameterName) throws SQLException {
-        return getOutputResult().getBlob(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getBlob(outputIndex);
     }
 
     @Override
     public java.sql.Clob getClob(String parameterName) throws SQLException {
-        return getOutputResult().getClob(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getClob(outputIndex);
     }
 
     @Override
     public java.sql.Clob getClob(int parameterIndex) throws SQLException {
-        return getOutputResult().getClob(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getClob(outputIndex);
     }
 
     @Override
     public Array getArray(String parameterName) throws SQLException {
-        return getOutputResult().getArray(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getArray(outputIndex);
     }
 
     @Override
     public Array getArray(int parameterIndex) throws SQLException {
-        return getOutputResult().getArray(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getArray(outputIndex);
     }
 
     @Override
     public URL getURL(int parameterIndex) throws SQLException {
-        return getOutputResult().getURL(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getURL(outputIndex);
     }
 
     @Override
     public URL getURL(String parameterName) throws SQLException {
-        return getOutputResult().getURL(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getURL(outputIndex);
     }
 
     @Override
@@ -554,12 +603,14 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     @Override
     public NClob getNClob(int parameterIndex) throws SQLException {
-        return getOutputResult().getNClob(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getNClob(outputIndex);
     }
 
     @Override
     public NClob getNClob(String parameterName) throws SQLException {
-        return getOutputResult().getNClob(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getNClob(outputIndex);
     }
 
     @Override
@@ -574,32 +625,38 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     @Override
     public String getNString(int parameterIndex) throws SQLException {
-        return getOutputResult().getString(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getString(outputIndex);
     }
 
     @Override
     public String getNString(String parameterName) throws SQLException {
-        return getOutputResult().getString(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getString(outputIndex);
     }
 
     @Override
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        return getOutputResult().getCharacterStream(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getCharacterStream(outputIndex);
     }
 
     @Override
     public Reader getNCharacterStream(String parameterName) throws SQLException {
-        return getOutputResult().getCharacterStream(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getCharacterStream(outputIndex);
     }
 
     @Override
     public Reader getCharacterStream(int parameterIndex) throws SQLException {
-        return getOutputResult().getCharacterStream(indexToOutputIndex(parameterIndex));
+        int outputIndex = indexToOutputIndex(parameterIndex);
+        return getOutputResult().getCharacterStream(outputIndex);
     }
 
     @Override
     public Reader getCharacterStream(String parameterName) throws SQLException {
-        return getOutputResult().getCharacterStream(nameToOutputIndex(parameterName));
+        int outputIndex = nameToOutputIndex(parameterName);
+        return getOutputResult().getCharacterStream(outputIndex);
     }
 
     private void checkIsOutputParam(int paramIndex) throws SQLException {
