@@ -1906,6 +1906,16 @@ public class DatabaseMetadataTest extends BaseTest {
         assertFalse(metaData.supportsMixedCaseQuotedIdentifiers());
     }
 
+    @Test 
+    public void testForDima2024062200102856416() throws SQLException {
+        Connection connection = sharedConnection;
+        createTable("`test_table`", "id INT COMMENT 'This is a test table with a comment'");
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet resultSet = metaData.getColumns(null, null, "`test_table`", null);
+        resultSet.next();
+        assertEquals("This is a test table with a comment", resultSet.getString("REMARKS"));
+    }
+
     @Test
     public void testMetadataForDima2024082600104260091() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=false");
@@ -1923,6 +1933,6 @@ public class DatabaseMetadataTest extends BaseTest {
         PreparedStatement ps2 = conn.prepareStatement("select c1 from t_meta2 where c2 = ? and c3 = ?");
         ResultSetMetaData ps2MetaData = ps2.getMetaData();
         Assert.assertNotNull(ps2MetaData);
-        Assert.assertEquals(1, ps2MetaData.getColumnCount());
+        Assert.assertEquals(1, ps2MetaData.getColumnCount()); 
     }
 }

@@ -1238,6 +1238,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (connection.getProtocol().isOracleMode()) {
             return super.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern);
         }
+
+        String tableNamePatternWithNoBacktick = tableNamePattern;
+        if (tableNamePatternWithNoBacktick != null && tableNamePatternWithNoBacktick.length() > 2
+                && tableNamePatternWithNoBacktick.startsWith("`") && tableNamePatternWithNoBacktick.endsWith("`")) {
+            tableNamePatternWithNoBacktick = tableNamePatternWithNoBacktick.substring(1, tableNamePatternWithNoBacktick.length() - 1);
+        }
         Options options = urlParser.getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
                      + dataTypeClause("COLUMN_TYPE")
@@ -1278,7 +1284,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
                      + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
                      + catalogCond("TABLE_SCHEMA", catalog)
-                     + patternCond("TABLE_NAME", tableNamePattern)
+                     + patternCond("TABLE_NAME", tableNamePatternWithNoBacktick)
                      + patternCond("COLUMN_NAME", columnNamePattern)
                      + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
