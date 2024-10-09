@@ -309,7 +309,83 @@ public class ProcedureOracleTest extends BaseOracleTest {
             fail();
         } catch (SQLException e) {
             Assert.assertTrue(e.getMessage().contains("Index 1 must at maximum be 0"));
+        } 
+    }
+
+    @Test 
+    public void testNestedArrayForDima2024080500104042401() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace type obj0 force as object(c0 varchar2(10))");
+        stmt.execute("create or replace type tb is table of obj0");
+        stmt.execute("create or replace procedure p1(a tb) is begin null;end;");
+        conn.createStruct("obj0", new Object[] {"aaa"});
+
+        stmt.execute("drop type obj0 force");
+        stmt.execute("create or replace type obj0 is varray(2) of int");
+        stmt.execute("create or replace procedure pro2(c1 out obj0) is begin c1 :=obj0(2,4); end;");
+        CallableStatement cst = conn.prepareCall("call pro2(?)");
+        cst.registerOutParameter(1, Types.ARRAY);
+        cst.execute();
+
+        Array array = cst.getArray(1);
+        Object[] arrobj = (Object[]) array.getArray();
+        assertEquals(2, arrobj.length);
+    }
+
+    @Test
+    public void testNestedArrayForDima2024080500104042171() throws Exception {
+        Connection conn = sharedConnection;
+        String observer_version = ((OceanBaseConnection) conn).getProtocol().getObServerVersion();
+        Statement stmt = conn.createStatement();
+        createTable("t_1", "id1 int, id2 int");
+        stmt.execute("insert into t_1 values (1, 2), (3, 4), (5, 6)");
+
+        try {
+            stmt.execute("drop type obj0 force");
+        } catch (SQLException e) {
+            //
+        }
+        stmt.execute("create or replace type obj0 force as object(c0 varchar2(10))");
+        stmt.execute("create or replace type tb is table of obj0");
+        stmt.execute("create or replace procedure p1(a tb) is begin null;end;");
+        conn.createStruct("obj0", new Object[] {"aaa"});
+
+        // modify udt
+        try {
+            stmt.execute("drop type obj0 force");
+        } catch (SQLException e) {
+            //
+        }
+        stmt.execute("create or replace type obj0 as object (c1 int, c2 int)");
+        stmt.execute("create or replace type array0 is varray(10) of obj0");
+
+        String str;
+        if (observer_version.compareTo("4.2") >= 0) {
+            str = "obj0(id1,id2)";
+        } else {
+            str = "id1,id2";
         }
 
+        String sql = "create or replace procedure test_array (b out array0) is begin "
+                + "select "+ str +" bulk collect into b from t_1 ; end";
+        stmt.execute(sql);
+        CallableStatement cs = conn.prepareCall("{call test_array(?)}");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        Array array = cs.getArray(1);
+        Object[] arrobj = (Object[]) array.getArray();
+        Assert.assertEquals(3, arrobj.length);
+
+        for (int i = 0; i < 3; i++) {
+            Struct struct = (Struct) arrobj[i];
+            Object[] attributes = struct.getAttributes();
+            Assert.assertEquals(2, attributes.length);
+
+            Assert.assertEquals(i * 2 + 1, ((Number)attributes[0]).intValue());
+            Assert.assertEquals(i * 2 + 2, ((Number)attributes[1]).intValue());
+        }
     }
+    
 }

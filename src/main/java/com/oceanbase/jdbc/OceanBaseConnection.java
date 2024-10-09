@@ -2069,21 +2069,15 @@ public class OceanBaseConnection implements ConnectionImpl {
                 String childTypeName = rs.getString(CHILD_TYPE_INDEX);
                 int type = ComplexDataType.getObComplexType(rs.getString(ATTR_TYPE_INDEX));
                 if (ComplexDataType.TYPE_OBJECT == type || ComplexDataType.TYPE_COLLECTION == type) {
-                    complexType = getComplexDataTypeFromCache(childTypeName);
-                    if (null == complexType) {
-                        complexType = new ComplexDataType(childTypeName,
-                            rs.getString(CHILD_OWNER_INDEX), type);
-                        complexType.setValid(false);
-                        recacheComplexDataType(complexType);
-                    }
+                    complexType = new ComplexDataType(childTypeName,
+                        rs.getString(CHILD_OWNER_INDEX), type);
+                    complexType.setValid(false);
+                    recacheComplexDataType(complexType);
                 } else {
                     // for base data type
-                    complexType = getComplexDataTypeFromCache(childTypeName);
-                    if (null == complexType) {
-                        complexType = new ComplexDataType(childTypeName, "", type);
-                        complexType.setValid(true);
-                        recacheComplexDataType(complexType);
-                    }
+                    complexType = new ComplexDataType(childTypeName, "", type);
+                    complexType.setValid(true);
+                    recacheComplexDataType(complexType);
                 }
                 if (rs.getInt(DEPTH_INDEX) > 0) {
                     // depth > 0 means parent is object  or collection
@@ -2154,19 +2148,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         if (!this.getProtocol().isOracleMode()) {
             throw exceptionFactory.notSupported("Struct type is not supported");
         }
-        boolean fetchTypeFromRemote = true;
-        ComplexDataType type = null;
-        if (getCacheComplexData()) { // todo
-            synchronized (this.complexDataCache) {
-                type = (ComplexDataType) this.complexDataCache.get(typeName.toUpperCase());
-                if (null != type && type.isValid()) {
-                    fetchTypeFromRemote = false;
-                }
-            }
-        }
-        if (fetchTypeFromRemote) {
-            type = getComplexDataTypeFromRemote(typeName);
-        }
+        ComplexDataType type = getComplexDataTypeFromRemote(typeName);
         ObStruct struct = new StructImpl(type);
         struct.setAttrData(attributes);
         return struct;

@@ -49,6 +49,8 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Arrays;
 
+import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.oceanbase.jdbc.extend.datatype.StructImpl;
 import org.junit.*;
 
 /**
@@ -1101,6 +1103,127 @@ public class ComplexOracleTest extends BaseOracleTest {
             call.execute();
         } catch (SQLException e) {
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testNestedArrayForDima2024081200104103579() throws SQLException {
+        Connection conn = sharedConnection;
+        String observer_version = conn.getMetaData().getDatabaseProductVersion();
+        Statement stmt = conn.createStatement();
+        createTable("t_1", "id1 int, id2 int");
+        stmt.execute("insert into t_1 values (1, 2), (3, 4), (5, 6)");
+        try {
+            stmt.execute("drop type obj0 force");
+        } catch (SQLException e) {
+            //
+        }
+        stmt.execute("create or replace type obj0 is table of number");
+        conn.createStruct("obj0", new Object[] {1});
+
+        try {
+            stmt.execute("drop type obj0 force");
+            stmt.execute("drop type array0 force");
+        } catch (SQLException e) {
+            //
+        }
+        stmt.execute("create or replace type obj0 as object (c1 int, c2 int)");
+        stmt.execute("create or replace type array0 is varray(10) of obj0");
+
+        String str;
+        if (observer_version.compareTo("4.2") >= 0) {
+            str = "obj0(id1,id2)";
+        } else {
+            str = "id1,id2";
+        }
+
+        String sql = "create or replace procedure test_array (b out array0) is begin "
+                + "select "+ str +" bulk collect into b from t_1 ; end";
+        stmt.execute(sql);
+        CallableStatement cs = conn.prepareCall("{call test_array(?)}");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        Array array = cs.getArray(1);
+        Object[] arrobj = (Object[]) array.getArray();
+        assertEquals(3, arrobj.length);
+
+        for (int i = 0; i < 3; i++) {
+            StructImpl struct = (StructImpl) arrobj[i];
+            Assert.assertEquals("OBJ0", struct.getSQLTypeName());
+            ComplexDataType complexType = struct.getComplexType();
+
+            ComplexDataType[] attrTypes = complexType.getAttrTypes();
+            assertEquals(2, attrTypes.length);
+            assertEquals("NUMBER", attrTypes[0].getTypeName());
+            assertEquals("NUMBER", attrTypes[1].getTypeName());
+
+            Object[] attrData = struct.getAttributes();
+            assertEquals(2, attrData.length);
+            assertEquals(i * 2 + 1 , ((Number) attrData[0]).intValue());
+            assertEquals(i * 2 + 2, ((Number) attrData[1]).intValue());
+        }
+
+    }
+
+    @Test
+    public void testForDima2024062200102855809() {
+        try {
+            Connection conn = sharedConnection;
+            Statement stmt = conn.createStatement();
+            stmt.execute("create or replace type obj0 force as object (c0 int,c1 int)");
+            stmt.execute("create or replace type tb is table of obj0");
+            stmt.execute("create or replace procedure p1(a tb) is begin null;end;");
+            Object[] structArray = new Object[10];
+            for (int i = 0; i < 10; ++i) {
+                structArray[i] = conn.createStruct("obj0", new Object[] { 1, 1});
+            }
+            conn.createStatement().execute("create or replace type obj0 force is object(c0 int)");
+            conn.createStatement().execute("create or replace type tb force is table of obj0");
+            conn.createStatement().execute("create or replace procedure p2(b out tb) is begin b:=tb(obj0(10));end;");
+            CallableStatement call1 = conn.prepareCall("call p2(?)");
+            call1.registerOutParameter(1,Types.ARRAY);
+            call1.execute();
+
+            Array array = call1.getArray(1);
+            Object[] resultArray = (Object[]) array.getArray();
+            assertEquals(1, resultArray.length);
+
+            StructImpl struct = (StructImpl) resultArray[0];
+            Assert.assertEquals("OBJ0", struct.getSQLTypeName());
+            ComplexDataType complexType = struct.getComplexType();
+
+            ComplexDataType[] attrTypes = complexType.getAttrTypes();
+            assertEquals(1, attrTypes.length);
+            assertEquals("NUMBER", attrTypes[0].getTypeName());
+
+            Object[] attrData = struct.getAttributes();
+            assertEquals(1, attrData.length);
+            assertEquals(10, ((Number) attrData[0]).intValue());
+        }catch (SQLException e){
+            fail();
+        }
+    }
+
+    @Test
+    public void testForDima2024062200102855809_2() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace type obj0 force as object(c0 int)");
+        stmt.execute("create or replace procedure p1(a obj0) is begin null;end;");
+        CallableStatement  cs1 = conn.prepareCall("call p1(?)");
+        cs1.setObject(1, conn.createStruct("obj0", new Object[]{1}));
+        cs1.execute();
+        cs1.close();
+
+        try {
+            stmt.execute("create or replace type obj0 force as object (c0 int, c1 int)");
+            stmt.execute("create or replace procedure p1(a obj0) is begin null;end;");
+            CallableStatement cs2 =conn.prepareCall("call p1(?)");
+            cs2.setObject(1, conn.createStruct("obj0", new Object[]{1,2}));
+            cs2.execute();
+            cs2.close();
+        } catch (SQLException e) {
+            fail();
         }
     }
 }
