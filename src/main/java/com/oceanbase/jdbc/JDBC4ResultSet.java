@@ -2189,7 +2189,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
             ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
-                throw new SQLException("the field complex type is not TYPE_COLLECTION");
+                // avoid the impact of caching
+                type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);
+                if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
+                    throw new SQLException("the field complex type is not TYPE_COLLECTION");
+                }
             }
             Array ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
@@ -2243,7 +2247,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
             ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
-                throw new SQLException("the field complex type is not TYPE_COLLECTION");
+                // avoid impact of cache
+                type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);
+                if (type.getType() != ComplexDataType.TYPE_OBJECT) {
+                    throw new SQLException("the field complex type is not TYPE_COLLECTION");
+                }
             }
             Struct ret = row.getInternalStruct(columnsInformation[actualColumnIndex - 1], type,conn);
             complexEndPos[actualColumnIndex - 1] = row.pos;
