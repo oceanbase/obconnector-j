@@ -394,11 +394,32 @@ public class BinaryRowProtocol extends RowProtocol {
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
+                if (length == 0) {
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        return "0000-00-00";
+                    }
+                    if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                        throw new SQLException("Value '0000-00-00' can not be represented as java.sql.Date");
+                    }
+                }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
                 Date date = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                 if (date == null) {
                     return null;
                 }
-                return date.toString();
+                String dateStr = date.toString();
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    if (yearIsZero) {
+                        yearIsZero = false;
+                        String[] split = dateStr.split("-");
+                        if ("0001".equals(split[0])) {
+                            dateStr = dateStr.replaceFirst("0001", "0000");
+                        }
+                    }
+                }
+                return dateStr;
             case YEAR:
                 if (options.yearIsDateType) {
                     Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
@@ -418,6 +439,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (columnInfo.getColumnType() == ColumnType.DATETIME && !options.mapDateToTimestamp && getProtocol().isOracleMode()) {
                     Date dateInter = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (dateInter == null) ? null : dateInter.toString();
+                }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
                 }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 if (timestamp == null) {
@@ -446,6 +470,13 @@ public class BinaryRowProtocol extends RowProtocol {
                                 millisecond.append(0);
                             }
                             datetime = datetime + "." + millisecond;
+                        }
+                        if (yearIsZero) {
+                            yearIsZero = false;
+                            String[] split = datetime.split("-");
+                            if ("0001".equals(split[0])) {
+                                datetime = datetime.replaceFirst("0001", "0000");
+                            }
                         }
                         return datetime;
                     }
@@ -1002,6 +1033,11 @@ public class BinaryRowProtocol extends RowProtocol {
             if (lastValueWasNull()) {
                 return null;
             }
+            if (getProtocol().isOracleMode()) {
+                if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                    throw new SQLException("Invalid column type, getDate not implemented for this type.");
+                }
+            }
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
                 case TIMESTAMP_NANO:
@@ -1019,43 +1055,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                     return (timestamp == null) ? null : new Date(timestamp.getTime());
                 case TIME:
-                    if (length != 0) {
-                        int year = 0;
-                        int month = 0;
-                        int day = 0;
-                        int hour = 0;
-                        int minute = 0;
-                        int seconds = 0;
-                        if (length != 0) {
-                            // bits[0] // skip tm->neg
-                            // binaryData.readLong(); // skip daysPart
-                            hour = buf[pos + 5];
-                            minute = buf[pos + 6];
-                            seconds = buf[pos + 7];
-                        }
-
-                        year = 1970;
-                        month = 1;
-                        day = 1;
-                        Calendar dateCal = getCalendarInstance(cal);
-                        synchronized (dateCal) {
-                            java.util.Date origCalDate = dateCal.getTime();
-                            try {
-                                dateCal.clear();
-                                dateCal.set(Calendar.MILLISECOND, 0);
-
-                                // why-oh-why is this different than java.util.date, in the year part, but it still keeps the silly '0' for the start month????
-                                dateCal.set(year, month - 1, day, 0, 0, 0);
-
-                                long dateAsMillis = dateCal.getTimeInMillis();
-
-                                return new Date(dateAsMillis);
-                            } finally {
-                                dateCal.setTime(origCalDate);
-                            }
-                        }
-                    }
-                    throw new SQLException("Cannot read Date using a Types.TIME field");
+                    return new Date(0L);
                 case STRING:
                 case VARCHAR:
                 case VARCHAR2:
@@ -1086,6 +1086,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                 default:
                     if (length == 0) {
+                        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                            if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                                throw new SQLException("Zero date value prohibited");
+                            }
+                            throw new SQLException("Value '0000-00-00' can not be represented as java.sql.Date");
+                        }
                         lastValueNull |= BIT_LAST_FIELD_NULL;
                         return null;
                     }
@@ -1120,6 +1126,14 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
 
                     Calendar calendar = getCalendarInstance(null);
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && !useCalLenientFlag) {
+                        calendar.setLenient(false);
+                    }
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
+                        yearIsZero = true;
+                    } else {
+                        yearIsZero = false;
+                    }
                     calendar.clear();
                     calendar.set(Calendar.YEAR, year);
                     calendar.set(Calendar.MONTH, month - 1);
@@ -1128,7 +1142,15 @@ public class BinaryRowProtocol extends RowProtocol {
                     calendar.set(Calendar.MINUTE, 0);
                     calendar.set(Calendar.SECOND, 0);
                     calendar.set(Calendar.MILLISECOND, 0);
-                    Date dt = new Date(calendar.getTimeInMillis());
+                    Date dt = null;
+                    try {
+                        dt = new Date(calendar.getTimeInMillis());
+                    } finally {
+                        if (useCalLenientFlag) {
+                            useCalLenientFlag = false;
+                        }
+                        calendar.setLenient(true);
+                    }
                     return dt;
             }
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1159,40 +1181,41 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return null;
         }
+        if (getProtocol().isOracleMode()) {
+            if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                throw new SQLException("Invalid column type, getTime not implemented for this type.");
+            }
+        }
         switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case TIMESTAMP_NANO:
             case DATETIME:
             case TIMESTAMP_TZ:
             case TIMESTAMP_LTZ:
+                if (length == 0) {
+                    return Time.valueOf("00:00:00");
+                }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
                 Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
-                if (length != 0) {
-                    int year = 0;
-                    int month = 0;
-                    int day = 0;
-                    int hour = 0;
-                    int minute = 0;
-                    int seconds = 0;
-                    year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
-                    month = buf[pos + 2];
-                    day = buf[pos + 3];
-                    Calendar calendar = getCalendarInstance(cal);
-                    synchronized (calendar) {
-                        java.util.Date origCalDate = calendar.getTime();
-                        try {
-                            calendar.clear();
-                            // Set 'date' to epoch of Jan 1, 1970
-                            calendar.set(1970, 0, 1, hour, minute, seconds);
-                            long timeAsMillis = calendar.getTimeInMillis();
-                            return new Time(timeAsMillis);
-                        } finally {
-                            calendar.setTime(origCalDate);
-                        }
-                    }
+                return Time.valueOf("00:00:00");
+            case YEAR:
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    return Time.valueOf("00:00:00");
                 }
-                throw new SQLException("Cannot read Time using a Types.DATE field");
+                int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                if (year == 0) {
+                    throw new SQLException("Bad format for Time '0001-01-01'");
+                }
+                String yearString = getInternalString(columnInfo, cal, timeZone);
+                try {
+                    return Time.valueOf(yearString);
+                } catch (Exception e) {
+                    throw new SQLException("Bad format for Time'" + yearString + "'");
+                }
             case STRING:
             case NCHAR:
             case VARCHAR2:
@@ -1235,6 +1258,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     minutes = buf[pos + 6];
                     seconds = buf[pos + 7];
                 }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    hour = day * 24 + hour;
+                    if (hour < 0 || hour >= 24) {
+                        throw new SQLException("The value '" + hour + ":" + minutes +":"+ seconds + "' is an invalid TIME value.");
+                    }
+                }
                 calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1
                     : 1) * hour, minutes, seconds);
 
@@ -1267,6 +1296,9 @@ public class BinaryRowProtocol extends RowProtocol {
             }
 
             if (this.getProtocol().isOracleMode()) {
+                if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                    throw new SQLException("Invalid column type, getTimestamp not implemented for this type.");
+                }
                 Calendar cal ;
                 TIMESTAMP timestamp = null;
                 switch (columnInfo.getColumnType()) {
@@ -1312,6 +1344,9 @@ public class BinaryRowProtocol extends RowProtocol {
             switch (columnInfo.getColumnType()) {
                 case TIME:
                     boolean negate = false;
+                    if (length == 0) {
+                       return buildTimestmap(year, 1, 1, hour, minutes, seconds, nanos, userCalendar, timeZone);
+                    }
                     if (length > 0) {
                         negate = (buf[pos] & 0xff) == 0x01;
                     }
@@ -1331,8 +1366,19 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                     year = 1970;
                     month = 1;
-                    day = ((negate ? -1 : 1) * day) + 1;
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        hour = day * 24 + hour;
+                        if (hour < 0 || hour >= 24) {
+                            throw new SQLException("The value '" + hour + ":" + minutes +":"+ seconds + "' is an invalid TIME value.");
+                        }
+                    }
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5) {
+                        day = 1;
+                    }else {
+                        day = ((negate ? -1 : 1) * day) + 1;
+                    }
                     hour = (negate ? -1 : 1) * hour;
+
                     break;
 
                 case STRING:
@@ -1365,7 +1411,17 @@ public class BinaryRowProtocol extends RowProtocol {
                         }
                     }
                     break;
-
+                case YEAR:
+                    year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        if (year < 100) {
+                            if (year <= 69) {
+                                year += 100;
+                            }
+                            year += 1900;
+                        }
+                    }
+                    return buildTimestmap(year, 1, 1, hour, minutes, seconds, nanos, userCalendar, timeZone);
                 default:
                     if (length > 0) {
                         year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
@@ -1388,6 +1444,9 @@ public class BinaryRowProtocol extends RowProtocol {
 
             if (length == 0 || ((year == 0) && (month == 0) && (day == 0))) {
                 if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        throw new SQLException("Zero date value prohibited");
+                    }
                     throw new SQLException(
                             "Value '0000-00-00' can not be represented as java.sql.Timestamp");
                 }
@@ -1403,10 +1462,25 @@ public class BinaryRowProtocol extends RowProtocol {
 
             Calendar calendar = getCalendarInstance(userCalendar);
             Timestamp tt;
+            if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
+                yearIsZero = true;
+            } else {
+                yearIsZero = false;
+            }
             synchronized (calendar) {
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && !useCalLenientFlag) {
+                    calendar.setLenient(false);
+                }
                 calendar.clear();
                 calendar.set(year, month - 1, day, hour, minutes, seconds);
-                tt = new Timestamp(calendar.getTimeInMillis());
+                try {
+                    tt = new Timestamp(calendar.getTimeInMillis());
+                } finally {
+                    if (useCalLenientFlag) {
+                        useCalLenientFlag = false;
+                    }
+                    calendar.setLenient(true);
+                }
             }
             tt.setNanos(nanos);
             return tt;
@@ -1478,7 +1552,19 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (columnInfo.getColumnType() == ColumnType.DATETIME && !this.options.mapDateToTimestamp && getProtocol().isOracleMode()) {
                     return getInternalDate(columnInfo, null, timeZone);
                 }
-                return getInternalTimestamp(columnInfo, null, timeZone);
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
+                Timestamp timestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && columnInfo.getColumnType() == ColumnType.DATETIME) {
+                    LocalDateTime localDateTime = timestamp.toLocalDateTime();
+                    if (yearIsZero) {
+                        yearIsZero = false;
+                        localDateTime = localDateTime.withYear(0);
+                    }
+                    return localDateTime;
+                }
+                return timestamp;
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
@@ -1780,7 +1866,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return time value
      */
-    public String getInternalTimeString(ColumnDefinition columnInfo) {
+    public String getInternalTimeString(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
             return null;
         }
@@ -1807,7 +1893,10 @@ public class BinaryRowProtocol extends RowProtocol {
         int day = ((buf[pos + 1] & 0xff) | ((buf[pos + 2] & 0xff) << 8)
                    | ((buf[pos + 3] & 0xff) << 16) | ((buf[pos + 4] & 0xff) << 24));
         int hour = buf[pos + 5];
-        int timeHour = hour + day * 24;
+        int timeHour = hour;
+        if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+            timeHour = hour + day * 24;
+        }
 
         String hourString;
         if (timeHour < 10) {

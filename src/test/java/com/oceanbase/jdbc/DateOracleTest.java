@@ -52,6 +52,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.TimeZone;
 
 import org.junit.Assert;
@@ -693,5 +694,152 @@ public class DateOracleTest extends BaseOracleTest {
         assertEquals("12:23:12", rs.getTime(1).toString());
         assertEquals("2024-05-13 12:23:12.0", rs.getTimestamp(1).toString());
         rs.close();
+    }
+
+    @Test
+    public void testForDima2024062200102855417() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("basic_all_time_columns", "col1 DATE, col2 TIMESTAMP(6)," +
+                "col3 TIMESTAMP(6) WITH TIME ZONE, col4 TIMESTAMP(6) WITH LOCAL TIME ZONE, col5  INTERVAL YEAR(2) TO MONTH, col6 INTERVAL DAY(2) TO SECOND(6)");
+
+        stmt.execute("insert into basic_all_time_columns(col1,col2,col3,col4,col5,col6) values (" +
+                "    TO_DATE('2021-01-01', 'YYYY-MM-DD'),\n" +
+                "    TO_TIMESTAMP('2021-01-01 10:00:00.0', 'YYYY-MM-DD HH24:MI:SS.FF'),\n" +
+                "    TO_TIMESTAMP_TZ('2021-01-01 10:00:00.0 +00:00', 'YYYY-MM-DD HH24:MI:SS.FF TZH:TZM'),\n" +
+                "    TO_TIMESTAMP('2021-01-01 10:00:00.0', 'YYYY-MM-DD HH24:MI:SS.FF'),\n" +
+                "    INTERVAL '01-03' YEAR TO MONTH,\n" +
+                "    INTERVAL '02 03:04:05.123456' DAY TO SECOND" +
+                ")");
+
+        conn = setConnection("&useServerPrepStmts=false&compatibleOjdbcVersion=6");
+        PreparedStatement ps = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs = ps.executeQuery();
+        testAssert(rs, 6) ;
+        rs.close();
+        ps.close();
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleOjdbcVersion=6");
+        PreparedStatement ps2 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs2 = ps2.executeQuery();
+        testAssert(rs2, 6);
+        rs2.close();
+        ps2.close();
+
+        conn = setConnection("&useServerPrepStmts=false&compatibleOjdbcVersion=8");
+        PreparedStatement ps3 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs3 = ps3.executeQuery();
+        testAssert(rs3, 8);
+        rs3.close();
+        ps3.close();
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleOjdbcVersion=8");
+        PreparedStatement ps4 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs4 = ps4.executeQuery();
+        testAssert(rs4, 8);
+        rs4.close();
+        ps4.close();
+    }
+
+    public void testAssert(ResultSet rs, int oracleVersion) throws SQLException {
+        HashMap<Integer, String> typeMap = new HashMap<>();
+        typeMap.put(1, "DATE");
+        typeMap.put(2, "TIMESTAMP(6)");
+        typeMap.put(3, "TIMESTAMP(6) WITH TIME ZONE");
+        typeMap.put(4, "TIMESTAMP(6) WITH LOCAL TIME ZONE");
+        typeMap.put(5, "INTERVAL YEAR(2) TO MONTH");
+        typeMap.put(6, "INTERVAL DAY(2) TO SECOND(6)");
+        while (rs.next()) {
+            String getStringVal = null;
+            String getTimeVal = null;
+            String getDateVal = null;
+            String getTimestampVal = null;
+            String getObjectVal = null;
+            String colType = null;
+            for (int i = 1; i <= 6; i++) {
+                colType = typeMap.get(i);
+                try {
+                    getStringVal =  rs.getString(i);
+                } catch (SQLException e) {
+                    getStringVal = e.getMessage();
+                }
+                try {
+                    getTimeVal = rs.getTime(i) == null ? null : rs.getTime(i).toString();
+                } catch (SQLException e) {
+                    getTimeVal = e.getMessage();
+                }
+
+                try {
+                    getDateVal = rs.getDate(i) == null ? null : rs.getDate(i).toString();
+                } catch (SQLException e) {
+                    getDateVal = e.getMessage();
+                }
+
+                try {
+                    getTimestampVal = rs.getTimestamp(i) == null ? null : rs.getTimestamp(i).toString();
+                } catch (SQLException e) {
+                    getTimestampVal = e.getMessage();
+                }
+
+                try {
+                    getObjectVal = rs.getObject(i) == null ? null : rs.getObject(i).toString();
+                } catch (SQLException e) {
+                    getObjectVal = e.getMessage();
+                }
+
+                if (i == 1) {
+                    Assert.assertEquals("DATE", colType);
+                    if (6 == oracleVersion) {
+                        Assert.assertEquals("2021-01-01 00:00:00.0", getStringVal);
+                    } else {
+                        Assert.assertEquals("2021-01-01 00:00:00", getStringVal);
+                    }
+                    Assert.assertEquals("00:00:00", getTimeVal);
+                    Assert.assertEquals("2021-01-01", getDateVal);
+                    Assert.assertEquals("2021-01-01 00:00:00.0", getTimestampVal);
+                    Assert.assertEquals("2021-01-01 00:00:00.0", getObjectVal);
+                }
+                if (i == 2) {
+                    Assert.assertEquals("TIMESTAMP(6)", colType);
+                    Assert.assertEquals("2021-01-01 10:00:00", getStringVal);
+                    Assert.assertEquals("10:00:00", getTimeVal);
+                    Assert.assertEquals("2021-01-01", getDateVal);
+                    Assert.assertEquals("2021-01-01 10:00:00.0", getTimestampVal);
+                    Assert.assertEquals("2021-01-01 10:00:00.0", getObjectVal);
+                }
+                if (i == 3) {
+                    Assert.assertEquals("TIMESTAMP(6) WITH TIME ZONE", colType);
+                    Assert.assertEquals("2021-01-01 10:00:00.0 +0:00", getStringVal);
+                    Assert.assertEquals("18:00:00", getTimeVal);
+                    Assert.assertEquals("2021-01-01", getDateVal);
+                    Assert.assertEquals("2021-01-01 18:00:00.0", getTimestampVal);
+                    Assert.assertTrue(getObjectVal.contains("TIMESTAMPTZ"));
+                }
+                if (i == 4) {
+                    Assert.assertEquals("TIMESTAMP(6) WITH LOCAL TIME ZONE", colType);
+                    Assert.assertEquals("2021-01-01 10:00:00.0 Asia/Shanghai", getStringVal);
+                    Assert.assertEquals("10:00:00", getTimeVal);
+                    Assert.assertEquals("2021-01-01", getDateVal);
+                    Assert.assertEquals("2021-01-01 10:00:00.0", getTimestampVal);
+                    Assert.assertTrue(getObjectVal.contains("TIMESTAMPLTZ"));
+                }
+                if (i == 5) {
+                    Assert.assertEquals("INTERVAL YEAR(2) TO MONTH", colType);
+                    Assert.assertEquals("1-3", getStringVal);
+                    Assert.assertTrue(getTimeVal.contains("not implemented"));
+                    Assert.assertTrue(getDateVal.contains("not implemented"));
+                    Assert.assertTrue(getTimestampVal.contains("not implemented"));
+                    Assert.assertEquals("1-3", getObjectVal);
+                }
+                if (i == 6) {
+                    Assert.assertEquals("INTERVAL DAY(2) TO SECOND(6)", colType);
+                    Assert.assertEquals("2 3:4:5.123456", getStringVal);
+                    Assert.assertTrue(getTimeVal.contains("not implemented"));
+                    Assert.assertTrue(getDateVal.contains("not implemented"));
+                    Assert.assertTrue(getTimestampVal.contains("not implemented"));
+                    Assert.assertEquals("2 3:4:5.123456", getObjectVal);
+                }
+            }
+        }
     }
 }
