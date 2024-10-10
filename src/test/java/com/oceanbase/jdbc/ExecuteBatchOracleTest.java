@@ -328,6 +328,7 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         ResultSet rs = stmt.executeQuery("select count(1) from t_batch");
         Assert.assertTrue(rs.next());
         Assert.assertEquals(0, rs.getInt(1));
+    }
  
     @Test
     public void testReturninIntoForDima2024082600104255128() throws SQLException {
