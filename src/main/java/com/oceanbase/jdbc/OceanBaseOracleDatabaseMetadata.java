@@ -51,6 +51,7 @@ import java.util.List;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.util.Options;
 
 public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaData {
 
@@ -617,5 +618,67 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         stmt.closeOnCompletion();
         ResultSet rs = stmt.executeQuery();
         return rs;
+    }
+
+    @Override
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern,
+                                        String functionNamePattern, String columnNamePattern)
+            throws SQLException {
+        if (schemaPattern == null) {
+            schemaPattern = "%";
+        } else if (schemaPattern.isEmpty()) {
+            schemaPattern = this.getUserName().toUpperCase();
+        }
+
+        if (functionNamePattern == null) {
+            functionNamePattern = "%";
+        } else if (functionNamePattern.isEmpty()) {
+            throw new SQLException("Invalid name or pattern");
+        }
+
+        if (columnNamePattern != null && columnNamePattern.isEmpty()) {
+            throw new SQLException("Invalid name or pattern");
+        } else if (columnNamePattern == null) {
+            columnNamePattern = "%";
+        }
+
+        String actualSql = buildFunctionColumnsSql();
+        if (catalog != null) {
+            if (catalog.isEmpty()) {
+                actualSql += " AND arg.package_name IS NULL";
+            } else {
+                actualSql += " AND arg.package_name LIKE ? ESCAPE '/'";
+            }
+        }
+
+        if (columnNamePattern.equals("%")) {
+            actualSql += " AND (arg.argument_name LIKE ? ESCAPE '/' OR (arg.argument_name IS NULL AND arg.data_type IS NOT NULL)) ";
+        } else {
+            actualSql += " AND arg.argument_name LIKE ? ESCAPE '/'";
+        }
+        actualSql += " ORDER BY function_schem, function_name, overload, sequence";
+
+        PreparedStatement ps = this.connection.prepareStatement(actualSql);
+        ps.setString(1, schemaPattern);
+        ps.setString(2, functionNamePattern);
+        if (catalog == null || catalog.isEmpty()) {
+            ps.setString(3, columnNamePattern);
+        } else {;
+            ps.setString(3, catalog);
+            ps.setString(4, columnNamePattern);
+        }
+        ps.closeOnCompletion();
+        return ps.executeQuery();
+    }
+
+    private String buildFunctionColumnsSql() {
+        Options options = this.connection.getProtocol().getOptions();
+        if (options.compatibleOjdbcVersion == 8) {
+            return String.format(OB_ORA_GET_FUNCTION_COL_INFO_V8,
+                    options.mapDateToTimestamp ? "93 " : "91 ");
+        }
+        return String.format(OB_ORA_GET_FUNCTION_COL_INFO_V6,
+                options.mapDateToTimestamp ? "93 " : "91 ");
+
     }
 }

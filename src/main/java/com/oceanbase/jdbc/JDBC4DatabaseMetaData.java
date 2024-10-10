@@ -79,10 +79,7 @@ import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.Identifier;
 import com.oceanbase.jdbc.util.Options;
 
-import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_GET_PROCEDURE_COL_INFO_V6;
-import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_GET_PROCEDURE_COL_INFO_V8;
-import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_PKG_PROCEDURE_COL_NO_WILDCARDS;
-import static com.oceanbase.jdbc.util.DefaultSQLs.OB_ORA_UNPKG_PROCEDURE_COL_NO_WILDCARDS;
+import static com.oceanbase.jdbc.util.DefaultSQLs.*;
 
 public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
@@ -3619,15 +3616,15 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     public ResultSet getFunctionColumns(String catalog, String schemaPattern,
                                         String functionNamePattern, String columnNamePattern)
                                                                                              throws SQLException {
-        if (!connection.getProtocol().isOracleMode() && functionNamePattern != null && functionNamePattern.contains("`")) {
+        if (this.protocol.isOracleMode()) {
+            return super.getFunctionColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern);
+        }
+
+        if (functionNamePattern != null && functionNamePattern.contains("`")) {
             functionNamePattern = functionNamePattern.replace("`", "");
         }
 
-        //todo unfinished
-        //        if (this.connection.getProtocol().isOracleMode()){
-        //            super.getFunctionColumns(catalog,schemaPattern,functionNamePattern,columnNamePattern);
-        //        }
-        if (!connection.getProtocol().isOracleMode() && haveInformationSchemaParameters()) {
+        if (haveInformationSchemaParameters()) {
             // compatible with maria, almost mysql 8.x
             StringBuilder sb = new StringBuilder(
                 "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN' THEN 1  WHEN 'OUT' THEN 3  WHEN 'INOUT' THEN 2  ELSE 4 END COLUMN_TYPE,"

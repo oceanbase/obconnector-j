@@ -1307,4 +1307,26 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2024072900103969985() throws SQLException {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace function f_getC(c1 char) return int is begin null; return null; end; ");
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet rs = metaData.getFunctionColumns(null, null, "f_getC".toUpperCase(), null);
+
+        assertTrue(rs.next());
+        assertEquals("TEST", rs.getString("FUNCTION_SCHEM"));
+        assertNull(rs.getString("COLUMN_NAME"));
+        assertEquals("3", rs.getString("DATA_TYPE"));
+        assertEquals("NUMBER", rs.getString("TYPE_NAME"));
+
+        assertTrue(rs.next());
+        assertEquals("TEST", rs.getString("FUNCTION_SCHEM"));
+        assertEquals("C1", rs.getString("COLUMN_NAME"));
+        assertEquals("1", rs.getString("DATA_TYPE"));
+        assertEquals("CHAR", rs.getString("TYPE_NAME"));
+    }
+
 }
