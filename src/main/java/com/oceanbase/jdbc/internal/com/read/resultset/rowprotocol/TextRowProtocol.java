@@ -73,6 +73,8 @@ import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
+import static com.oceanbase.jdbc.util.Options.ZERO_DATETIME_EXCEPTION;
+
 public class TextRowProtocol extends RowProtocol {
 
     /**
@@ -213,6 +215,18 @@ public class TextRowProtocol extends RowProtocol {
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
+                try {
+                    handleZeroDateException(columnInfo, Date.class);
+                } catch (SQLException e) {
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                        return "0000-00-00";
+                    }
+                    throw e;
+                }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
+
                 Date date = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                 if (date == null) {
                     if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
@@ -222,13 +236,26 @@ public class TextRowProtocol extends RowProtocol {
                     }
                     return null;
                 }
-                return date.toString();
+                String dateStr = date.toString();
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    if (yearIsZero) {
+                        yearIsZero = false;
+                        String[] split = dateStr.split("-");
+                        if ("0001".equals(split[0])) {
+                            dateStr = dateStr.replaceFirst("0001", "0000");
+                        }
+                    }
+                }
+                return dateStr;
             case YEAR:
+                String tempYear = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
+                if ("0000".equals(tempYear) && options.compatibleMysqlVersion == 5) {
+                    return "0001-01-01";
+                }
                 if (options.yearIsDateType) {
                     Date date1 = getInternalDate(columnInfo, cal, TimeZone.getDefault());
                     return (date1 == null) ? null : date1.toString();
                 } else if(options.compatibleMysqlVersion == 8){
-                    String tempYear = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
                     if ("0000".equals(tempYear)) {
                         return "0";
                     }
@@ -243,10 +270,13 @@ public class TextRowProtocol extends RowProtocol {
                 }
                 // use local time zone
                 Timestamp timestamp = null;
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
                 try {
                     timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
                 } catch (SQLException sqlex) {
-                    if (sqlex.getMessage().equals("Value '0000-00-00 00:00:00' can not be represented as java.sql.Timestamp")
+                    if (sqlex.getMessage().equals("Zero date value prohibited")
                             && !getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                         return "0000-00-00 00:00:00";
                     }
@@ -284,6 +314,13 @@ public class TextRowProtocol extends RowProtocol {
                                 millisecond.append(0);
                             }
                             datetime = datetime + "." + millisecond;
+                        }
+                        if (yearIsZero) {
+                            yearIsZero = false;
+                            String[] split = datetime.split("-");
+                            if ("0001".equals(split[0])) {
+                                datetime = datetime.replaceFirst("0001", "0000");
+                            }
                         }
                         return datetime;
                     }
@@ -667,6 +704,12 @@ public class TextRowProtocol extends RowProtocol {
                 return null;
             }
 
+            if (getProtocol().isOracleMode()) {
+                if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                    throw new SQLException("Invalid column type, getDate not implemented for this type.");
+                }
+            }
+
             switch (columnInfo.getColumnType()) {
                 case DATE:
                     int[] datePart = new int[] { 0, 0, 0 };
@@ -687,16 +730,27 @@ public class TextRowProtocol extends RowProtocol {
                     }
 
                     if (datePart[0] == 0 && datePart[1] == 0 && datePart[2] == 0) {
+                        if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION) ) {
+                            if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                                throw new SQLException("Zero date value prohibited");
+                            }
+                            throw new SQLException("Value '" + new String(buf, pos, length,
+                                    getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Date");
+                        }
                         lastValueNull |= BIT_LAST_ZERO_DATE;
                         return null;
                     }
 
-                    return new Date(datePart[0] - 1900, datePart[1] - 1, datePart[2]);
+                    Timestamp timestamp1 = buildTimestmap(datePart[0], datePart[1], datePart[2], 0, 0, 0, 0, cal, timeZone);
+                    return new Date(timestamp1.getTime());
 
                 case TIMESTAMP:
                 case TIMESTAMP_NANO:
                 case DATETIME:
                 case TIMESTAMP_LTZ:
+                    if (!getProtocol().isOracleMode()) {
+                        handleZeroDateException(columnInfo, Date.class);
+                    }
                     Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                     if (timestamp == null) {
                         return null;
@@ -754,6 +808,9 @@ public class TextRowProtocol extends RowProtocol {
                         }
                     }
                 case YEAR:
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5) {
+                        handleZeroDateException(columnInfo, Date.class);
+                    }
                     int year = 0;
                     for (int begin = pos; begin < pos + length; begin++) {
                         year = year * 10 + buf[begin] - 48;
@@ -828,34 +885,36 @@ public class TextRowProtocol extends RowProtocol {
                 return null;
             }
 
+            if (getProtocol().isOracleMode()) {
+                if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                    throw new SQLException("Invalid column type, getTime not implemented for this type.");
+                }
+            }
+
             if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
                 || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
                 || columnInfo.getColumnType() == ColumnType.DATETIME
                 || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
                 || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+                if (!getProtocol().isOracleMode()) {
+                    handleZeroDateException(columnInfo, Time.class);
+                }
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
 
-            } else if (columnInfo.getColumnType() == ColumnType.DATE) {
+            } else if (columnInfo.getColumnType() == ColumnType.DATE
+                    || (columnInfo.getColumnType() == ColumnType.YEAR && options.compatibleMysqlVersion == 8)) {
                 if (length != 0) {
-                    int year = 0;
-                    int month = 0;
-                    int day = 0;
-                    int hour = 0;
-                    int minute = 0;
-                    int seconds = 0;
-                    year = (buf[pos + 0] & 0xff) | ((buf[pos + 1] & 0xff) << 8);
-                    month = buf[pos + 2];
-                    day = buf[pos + 3];
+                    handleZeroDateException(columnInfo, Time.class);
                     Calendar calendar = getCalendarInstance(cal);
                     synchronized (calendar) {
                         java.util.Date origCalDate = calendar.getTime();
                         try {
                             calendar.clear();
-                            // Set 'date' to epoch of Jan 1, 1970
-                            calendar.set(1970, 0, 1, hour, minute, seconds);
-                            long timeAsMillis = calendar.getTimeInMillis();
-                            return new Time(timeAsMillis);
+                            return new Time(calendar.getTimeInMillis());
                         } finally {
                             calendar.setTime(origCalDate);
                         }
@@ -901,6 +960,11 @@ public class TextRowProtocol extends RowProtocol {
                 }
             }
         } catch (SQLException e) {
+            if (e.getMessage().equals("Zero date value prohibited")) {
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    return Time.valueOf("00:00:00");
+                }
+            }
             throw e; // don't re-wrap
         } catch (IllegalArgumentException e) {
             if (getProtocol().isOracleMode()) {
@@ -931,6 +995,10 @@ public class TextRowProtocol extends RowProtocol {
             return null;
         }
         if (this.getProtocol().isOracleMode()) {
+            if (columnInfo.getColumnType() == ColumnType.INTERVALYM || columnInfo.getColumnType() == ColumnType.INTERVALDS) {
+                throw new SQLException("Invalid column type, getTimestamp not implemented for this type.");
+            }
+
             Calendar cal;
             TIMESTAMP timestamp = null;
             switch (columnInfo.getColumnType()) {
@@ -986,7 +1054,12 @@ public class TextRowProtocol extends RowProtocol {
                 Calendar cal = getCalendarInstance(userCalendar);
                 return getInternalTIMESTAMP(columnInfo, userCalendar, TimeZone.getDefault())
                     .timestampValue(cal);
-
+            case YEAR:
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5) {
+                    handleZeroDateException(columnInfo, Timestamp.class);
+                }
+                Date date = getInternalDate(columnInfo, userCalendar, TimeZone.getDefault());
+                return new Timestamp(date.getTime());
             default:
                 String value = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
@@ -1071,7 +1144,19 @@ public class TextRowProtocol extends RowProtocol {
                 if (columnInfo.getColumnType() == ColumnType.DATETIME && !this.options.mapDateToTimestamp && getProtocol().isOracleMode()) {
                     return getInternalDate(columnInfo, null, timeZone);
                 }
-                return getInternalTimestamp(columnInfo, null, timeZone);
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    useCalLenientFlag = true;
+                }
+                Timestamp timestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && columnInfo.getColumnType() == ColumnType.DATETIME) {
+                    LocalDateTime localDateTime = timestamp.toLocalDateTime();
+                    if (yearIsZero) {
+                        yearIsZero = false;
+                        localDateTime = localDateTime.withYear(0);
+                    }
+                    return localDateTime;
+                }
+                return timestamp;
             case DATE:
                 return getInternalDate(columnInfo, null, timeZone);
             case DECIMAL:
@@ -1230,7 +1315,7 @@ public class TextRowProtocol extends RowProtocol {
      * @param columnInfo column information
      * @return String representation of time
      */
-    public String getInternalTimeString(ColumnDefinition columnInfo) {
+    public String getInternalTimeString(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
             return null;
         }
@@ -1239,6 +1324,16 @@ public class TextRowProtocol extends RowProtocol {
             getCurrentEncoding(columnInfo.getColumnType()));
         if ("0000-00-00".equals(rawValue)) {
             return null;
+        }
+
+        String newRawvalue = rawValue;
+        if (rawValue.contains(".")) {
+            String[] split = rawValue.split("\\.");
+            newRawvalue = split[0];
+        }
+        if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5 &&
+                newRawvalue.length() != 5 && newRawvalue.length() != 8) {
+            throw new SQLException("Time format \"" + rawValue + "\" incorrect, must be HH:mm:ss");
         }
 
         if (options.maximizeMysqlCompatibility && options.useLegacyDatetimeCode
@@ -1655,5 +1750,50 @@ public class TextRowProtocol extends RowProtocol {
             return Double.NEGATIVE_INFINITY;
         }
         return null;
+    }
+
+    private boolean isZeroDateOrTime(ColumnDefinition columnInfo) throws SQLException {
+        int[] datePart = new int[] { 0, 0, 0 };
+        if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
+                || columnInfo.getColumnType() == ColumnType.DATETIME
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
+                || columnInfo.getColumnType() == ColumnType.TIMESTAMP_LTZ) {
+            datePart = new int[] { 0, 0, 0, 0, 0, 0 };
+        }
+        int partIdx = 0;
+        for (int begin = pos; begin < pos + length; begin++) {
+            byte b = buf[begin];
+            if (b == '-' || b == ':' || b == ' ') {
+                partIdx++;
+                continue;
+            }
+            if (b < '0' || b > '9') {
+                throw new SQLException("cannot parse data in date string '"
+                        + new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo
+                                .getColumnType())) + "'");
+            }
+            datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
+        }
+        for (int j : datePart) {
+            if (j != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void handleZeroDateException(ColumnDefinition columnInfo, Class clazz) throws SQLException {
+        boolean zeroDateOrTime = isZeroDateOrTime(columnInfo);
+        if (zeroDateOrTime) {
+            if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                    throw new SQLException("Zero date value prohibited");
+                }
+                throw new SQLException("Value '" + new String(buf, pos, length,
+                        getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as " + clazz.getName());
+            }
+        }
     }
 }

@@ -53,15 +53,13 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.sql.Date;
 import java.time.*;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Properties;
-import java.util.TimeZone;
+import java.util.*;
 
+import org.checkerframework.checker.units.qual.C;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DateTest extends BaseTest {
@@ -74,7 +72,7 @@ public class DateTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable("dtest", "d date");
         createTable("date_test2",
@@ -1257,5 +1255,355 @@ public class DateTest extends BaseTest {
         assertTrue(rs.next());
         Assert.assertEquals("12:12:12", rs.getTime(1).toString());
         ps.close();
+    }
+
+    @Test
+    public void testForDima2024062200102855417() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("basic_all_time_columns", "col1 timestamp NULL DEFAULT NULL, col2 time DEFAULT NULL," +
+                "col3 date DEFAULT NULL, col4 datetime DEFAULT NULL, col5 year(4) DEFAULT NULL");
+        stmt.execute("insert into basic_all_time_columns(`col1`,`col2`,`col3`,`col4`,`col5`) values ('0000-00-00 00:00:00','000:00:00','0000-00-00','0000-00-00 00:00:00','0000');");
+        stmt.execute("insert into basic_all_time_columns(`col1`,`col2`,`col3`,`col4`,`col5`) values (NULL,NULL,NULL,NULL,NULL);");
+        stmt.execute("insert into basic_all_time_columns(`col1`,`col2`,`col3`,`col4`,`col5`) values ('2023-04-20 12:00:00','234:45:34','2023-04-20','2023-04-20 12:00:00','2023');");
+
+        conn = setConnection("&useServerPrepStmts=false&compatibleMysqlVersion=5");
+        PreparedStatement ps = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs = ps.executeQuery();
+        testAssert(rs, true, 5) ;
+        rs.close();
+        ps.close();
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleMysqlVersion=5");
+        PreparedStatement ps2 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs2 = ps2.executeQuery();
+        testAssert(rs2, false, 5);
+        rs2.close();
+        ps2.close();
+
+        conn = setConnection("&useServerPrepStmts=false&compatibleMysqlVersion=8");
+        PreparedStatement ps3 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs3 = ps3.executeQuery();
+        testAssert(rs3, true, 8);
+        rs3.close();
+        ps3.close();
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleMysqlVersion=8");
+        PreparedStatement ps4 = conn.prepareStatement("select * from basic_all_time_columns");
+        ResultSet rs4 = ps4.executeQuery();
+        testAssert(rs4, false, 8);
+        rs4.close();
+        ps4.close();
+    }
+
+    public void testAssert(ResultSet rs, boolean textProtocol, int mysqlVersion) throws SQLException {
+        HashMap<Integer, String> typeMap = new HashMap<>();
+        typeMap.put(1, "timestamp");
+        typeMap.put(2, "time");
+        typeMap.put(3, "date");
+        typeMap.put(4, "datetime");
+        typeMap.put(5, "year(4)");
+        int rowNum = 0;
+        while (rs.next()) {
+            rowNum ++;
+            String getStringVal = null;
+            String getTimeVal = null;
+            String getDateVal = null;
+            String getTimestampVal = null;
+            String getObjectVal = null;
+            String colType = null;
+            for (int i = 1; i <= 5; i++) {
+                colType = typeMap.get(i);
+                try {
+                    getStringVal =  rs.getString(i);
+                } catch (SQLException e) {
+                    getStringVal = e.getMessage();
+                }
+                try {
+                    getTimeVal = rs.getTime(i) == null ? null : rs.getTime(i).toString();
+                } catch (SQLException e) {
+                    getTimeVal = e.getMessage();
+                }
+
+                try {
+                    getDateVal = rs.getDate(i) == null ? null : rs.getDate(i).toString();
+                } catch (SQLException e) {
+                    getDateVal = e.getMessage();
+                }
+
+                try {
+                    getTimestampVal = rs.getTimestamp(i) == null ? null : rs.getTimestamp(i).toString();
+                } catch (SQLException e) {
+                    getTimestampVal = e.getMessage();
+                }
+
+                try {
+                    getObjectVal = rs.getObject(i) == null ? null : rs.getObject(i).toString();
+                } catch (SQLException e) {
+                    getObjectVal = e.getMessage();
+                }
+
+                if (i == 1) {
+                    Assert.assertEquals("timestamp", colType);
+                    if (rowNum == 1) {
+                        if (mysqlVersion == 5) {
+                            // compatibleMysqlVersion == 5
+                            Assert.assertTrue(getStringVal.contains("can not be represented"));
+                            if (textProtocol) {
+                                Assert.assertTrue(getTimeVal.contains("can not be represented"));
+                            } else {
+                                Assert.assertEquals("00:00:00", getTimeVal);
+                            }
+                            Assert.assertTrue(getDateVal.contains("can not be represented"));
+                            Assert.assertTrue(getTimestampVal.contains("can not be represented"));
+                            Assert.assertTrue(getObjectVal.contains("can not be represented"));
+                        } else {
+                            // compatibleMysqlVersion == 8
+                            Assert.assertEquals("0000-00-00 00:00:00", getStringVal);
+                            Assert.assertEquals("00:00:00", getTimeVal);
+                            Assert.assertTrue(getDateVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getTimestampVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getObjectVal.contains("Zero date value prohibited"));
+                        }
+                    }
+                    if (rowNum == 2) {
+                        Assert.assertTrue(getStringVal == null && getTimeVal == null && getDateVal == null && getTimestampVal == null && getObjectVal == null);
+                    }
+                    if (rowNum == 3) {
+                        if (mysqlVersion == 5) {
+                            Assert.assertEquals("2023-04-20 12:00:00.0", getStringVal);
+                        } else if (mysqlVersion == 8){
+                            Assert.assertEquals("2023-04-20 12:00:00", getStringVal);
+                        }
+                        Assert.assertEquals("12:00:00", getTimeVal);
+                        Assert.assertEquals("2023-04-20", getDateVal);
+                        Assert.assertEquals("2023-04-20 12:00:00.0", getTimestampVal);
+                        Assert.assertEquals("2023-04-20 12:00:00.0", getObjectVal);
+                    }
+                }
+
+                if (i == 2) {
+                    Assert.assertEquals("time", colType);
+                    if (rowNum == 1) {
+                        Assert.assertEquals("00:00:00", getStringVal);
+                        Assert.assertEquals("00:00:00", getTimeVal);
+                        Assert.assertEquals("1970-01-01", getDateVal);
+                        Assert.assertEquals("1970-01-01 00:00:00.0", getTimestampVal);
+                        Assert.assertEquals("00:00:00", getObjectVal);
+                    }
+                    if (rowNum == 2) {
+                        Assert.assertTrue(getStringVal == null && getTimeVal == null && getDateVal == null && getTimestampVal == null && getObjectVal == null);
+                    }
+                    if (rowNum == 3) {
+                        if (mysqlVersion == 5) {
+                            if (textProtocol) {
+                                Assert.assertTrue(getStringVal.contains("Bad format for Time") || getStringVal.contains("Time format"));
+                                Assert.assertTrue(getTimeVal.contains("Bad format for Time") || getTimeVal.contains("Time format"));
+                                Assert.assertTrue(getTimestampVal.contains("Bad format for Time") || getTimestampVal.contains("Time format"));
+                                Assert.assertTrue(getObjectVal.contains("Bad format for Time") || getObjectVal.contains("Time format"));
+                            } else {
+                                Assert.assertEquals("18:45:34", getStringVal);
+                                Assert.assertEquals("18:45:34", getTimeVal);
+                                Assert.assertEquals("1970-01-01 18:45:34.0", getTimestampVal);
+                                Assert.assertEquals("18:45:34", getObjectVal);
+                            }
+                        } else if (mysqlVersion == 8) {
+                            Assert.assertEquals("234:45:34", getStringVal);
+                            Assert.assertTrue(getTimeVal.contains("invalid TIME") || getTimeVal.contains("Time format"));
+                            Assert.assertTrue(getTimestampVal.contains("invalid TIME") || getTimestampVal.contains("Time format"));
+                            Assert.assertTrue(getObjectVal.contains("invalid TIME") || getObjectVal.contains("Time format"));
+                        }
+                        Assert.assertEquals("1970-01-01", getDateVal);
+
+                    }
+                }
+
+                if (i == 3) {
+                    Assert.assertEquals("date", colType);
+                    if (rowNum == 1) {
+                        if (mysqlVersion == 5) {
+                            // compatibleMysqlVersion == 5
+                            Assert.assertTrue(getStringVal.contains("can not be represented"));
+                            if (textProtocol) {
+                                Assert.assertTrue(getTimeVal.contains("can not be represented"));
+                            } else {
+                                Assert.assertEquals("00:00:00", getTimeVal);
+                            }
+                            Assert.assertTrue(getDateVal.contains("can not be represented"));
+                            Assert.assertTrue(getTimestampVal.contains("can not be represented"));
+                            Assert.assertTrue(getObjectVal.contains("can not be represented"));
+                        } else {
+                            // compatibleMysqlVersion == 8
+                            Assert.assertEquals("0000-00-00", getStringVal);
+                            Assert.assertEquals("00:00:00", getTimeVal);
+                            Assert.assertTrue(getDateVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getTimestampVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getObjectVal.contains("Zero date value prohibited"));
+                        }
+                    }
+                    if (rowNum == 2) {
+                        Assert.assertTrue(getStringVal == null && getTimeVal == null && getDateVal == null && getTimestampVal == null && getObjectVal == null);
+                    }
+                    if (rowNum == 3) {
+                        Assert.assertEquals("2023-04-20", getStringVal);
+                        Assert.assertEquals("00:00:00", getTimeVal);
+                        Assert.assertEquals("2023-04-20", getDateVal);
+                        Assert.assertEquals("2023-04-20 00:00:00.0", getTimestampVal);
+                        Assert.assertEquals("2023-04-20", getObjectVal);
+                    }
+                }
+
+                if (i == 4) {
+                    Assert.assertEquals("datetime", colType);
+                    if (rowNum == 1) {
+                        if (mysqlVersion == 5) {
+                            // compatibleMysqlVersion == 5
+                            Assert.assertTrue(getStringVal.contains("can not be represented"));
+                            if (textProtocol) {
+                                Assert.assertTrue(getTimeVal.contains("can not be represented"));
+                            } else {
+                                Assert.assertEquals("00:00:00", getTimeVal);
+                            }
+                            Assert.assertTrue(getDateVal.contains("can not be represented"));
+                            Assert.assertTrue(getTimestampVal.contains("can not be represented"));
+                            Assert.assertTrue(getObjectVal.contains("can not be represented"));
+                        } else {
+                            // compatibleMysqlVersion == 8
+                            Assert.assertEquals("0000-00-00 00:00:00", getStringVal);
+                            Assert.assertEquals("00:00:00", getTimeVal);
+                            Assert.assertTrue(getDateVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getTimestampVal.contains("Zero date value prohibited"));
+                            Assert.assertTrue(getObjectVal.contains("Zero date value prohibited"));
+                        }
+                    }
+                    if (rowNum == 2) {
+                        Assert.assertTrue(getStringVal == null && getTimeVal == null && getDateVal == null && getTimestampVal == null && getObjectVal == null);
+                    }
+                    if (rowNum == 3) {
+                        Assert.assertEquals("12:00:00", getTimeVal);
+                        Assert.assertEquals("2023-04-20", getDateVal);
+                        Assert.assertEquals("2023-04-20 12:00:00.0", getTimestampVal);
+                        if (mysqlVersion == 5) {
+                            Assert.assertEquals("2023-04-20 12:00:00.0", getStringVal);
+                            Assert.assertEquals("2023-04-20 12:00:00.0", getObjectVal);
+                        } else if (mysqlVersion == 8) {
+                            Assert.assertEquals("2023-04-20 12:00:00", getStringVal);
+                            // mysql-jdbc 2023-04-20T12:00
+                            Assert.assertEquals("2023-04-20T12:00", getObjectVal);
+                        }
+                    }
+                }
+
+                if (i == 5) {
+                    Assert.assertEquals("year(4)", colType);
+                    if (rowNum == 1) {
+                        if (mysqlVersion == 5) {
+                            Assert.assertEquals("0001-01-01", getStringVal);
+                            if (textProtocol) {
+                                Assert.assertTrue(getTimeVal.contains("can not be represented") || getTimeVal.contains("Time format"));
+                                Assert.assertTrue(getDateVal.contains("can not be represented"));
+                                Assert.assertTrue(getTimestampVal.contains("can not be represented"));
+                                Assert.assertTrue(getObjectVal.contains("can not be represented"));
+                            } else {
+                                Assert.assertTrue(getTimeVal.contains("Bad format for Time"));
+                                Assert.assertEquals("0001-01-01", getDateVal);
+                                Assert.assertEquals("0001-01-01 00:00:00.0", getTimestampVal);
+                                Assert.assertEquals("0001-01-01", getObjectVal);
+                            }
+                        } else if(mysqlVersion == 8) {
+                            Assert.assertEquals("2000-01-01", getStringVal);
+                            Assert.assertEquals("00:00:00", getTimeVal);
+                            Assert.assertEquals("2000-01-01", getDateVal);
+                            Assert.assertEquals("2000-01-01 00:00:00.0", getTimestampVal);
+                            Assert.assertEquals("2000-01-01", getObjectVal);
+                        }
+                    }
+
+                    if (rowNum == 2) {
+                        Assert.assertTrue(getStringVal == null && getTimeVal == null && getDateVal == null && getTimestampVal == null && getObjectVal == null);
+                    }
+                    if (rowNum == 3) {
+                        Assert.assertEquals("2023-01-01", getStringVal);
+                        Assert.assertEquals("2023-01-01", getDateVal);
+                        Assert.assertEquals("2023-01-01 00:00:00.0", getTimestampVal);
+                        Assert.assertEquals("2023-01-01", getObjectVal);
+                        if (mysqlVersion == 5) {
+                            Assert.assertTrue(getTimeVal.contains("Bad format for Time") || getTimeVal.contains("Time format"));
+                        } else if (mysqlVersion == 8) {
+                            Assert.assertEquals("00:00:00", getTimeVal);
+                        }
+                    }
+                }
+            }
+        }
+        Assert.assertEquals(3, rowNum);
+    }
+
+    @Test
+    public void testForDima2024062200102856176() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=false&compatibleMysqlVersion=8");
+        createTable("t_time", "c1 datetime, c2 date, c3 timestamp");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_time values('0000-01-01 00:01', '0000-01-01', '0000-01-01 00:01')");
+
+        conn = setConnection("&useServerPrepStmts=false&compatibleMysqlVersion=8");
+        testContent(conn);
+
+        conn = setConnection("&useServerPrepStmts=true&compatibleMysqlVersion=8");
+        testContent(conn);
+    }
+
+    public void  testContent(Connection conn) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("select * from t_time");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        // type eq datetime
+        Assert.assertEquals("0000-01-01 00:01:00", rs.getString(1));
+        try {
+            rs.getTimestamp(1);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("YEAR"));
+        }
+        Assert.assertEquals("00:01:00", rs.getTime(1).toString());
+        try {
+            rs.getDate(1);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("YEAR"));
+        }
+        Assert.assertEquals("0000-01-01T00:01", rs.getObject(1).toString());
+
+        // tyep eq date
+        Assert.assertEquals("0000-01-01", rs.getString(2));
+        try {
+            rs.getTimestamp(2);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("YEAR"));
+        }
+        Assert.assertEquals(Time.valueOf("00:00:00"), rs.getTime(2));
+        try {
+            rs.getDate(2);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("YEAR"));
+        }
+        try {
+            rs.getObject(2);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("YEAR"));
+        }
+
+        // type eq timestamp
+        Assert.assertNull(rs.getString(3));
+        Assert.assertNull(rs.getTimestamp(3));
+        Assert.assertNull(rs.getTime(3));
+        Assert.assertNull(rs.getDate(3));
+        Assert.assertEquals("0000-01-01T00:01", rs.getObject(1).toString());
+        rs.close();;
+        ps.close();
+
     }
 }

@@ -129,6 +129,10 @@ public abstract class RowProtocol {
   protected int index;
   public int[] complexEndPos;
 
+  // mysql8 compatible tags
+  protected boolean useCalLenientFlag;
+  protected boolean yearIsZero;
+
   public RowProtocol(int maxFieldSize, Options options) {
     this.maxFieldSize = maxFieldSize;
     this.options = options;
@@ -357,7 +361,7 @@ public abstract class RowProtocol {
 
   public abstract short getInternalShort(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract String getInternalTimeString(ColumnDefinition columnInfo);
+  public abstract String getInternalTimeString(ColumnDefinition columnInfo) throws SQLException;
 
   public abstract BigInteger getInternalBigInteger(ColumnDefinition columnInfo) throws SQLException;
 
@@ -730,16 +734,31 @@ public abstract class RowProtocol {
 
   }
 
-  private Timestamp buildTimestmap(int year,int month,int day,int hour,int minutes,int seconds,int nanos,Calendar calendar,TimeZone timezone) {
+   Timestamp buildTimestmap(int year,int month,int day,int hour,int minutes,int seconds,int nanos,Calendar calendar,TimeZone timezone) {
       Calendar localCal = getCalendarInstance(calendar);
       if (options.useLegacyDatetimeCode) {
           localCal.setTimeZone(timezone);
       }
       Timestamp tt;
+      if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
+         yearIsZero = true;
+      } else {
+         yearIsZero = false;
+      }
       synchronized (localCal) {
+          if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && !useCalLenientFlag) {
+              localCal.setLenient(false);
+          }
           localCal.clear();
           localCal.set(year, month - 1, day, hour, minutes, seconds);
-          tt = new Timestamp(localCal.getTimeInMillis());
+          try {
+              tt = new Timestamp(localCal.getTimeInMillis());
+          } finally {
+              if (useCalLenientFlag) {
+                  useCalLenientFlag = false;
+              }
+              localCal.setLenient(true);
+          }
       }
       tt.setNanos(nanos);
       return tt;
@@ -759,6 +778,9 @@ public abstract class RowProtocol {
           if ((length > 0) && (stringValue.charAt(0) == '0') && (stringValue.equals("0000-00-00") || stringValue.equals("0000-00-00 00:00:00") || stringValue.equals("00000000000000") || stringValue.equals("0"))) {
 
               if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+                  if (options.compatibleMysqlVersion == 8) {
+                    throw new SQLException("Zero date value prohibited");
+                  }
                   throw new SQLException("Value '" + new String(buf, pos, length,
                           getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
               }
@@ -1074,6 +1096,9 @@ public abstract class RowProtocol {
 
       if (bytes[0] == '0' && (dateIsZero || dateTimeIsZero)) {
         if (options.zeroDateTimeBehavior.equalsIgnoreCase(ZERO_DATETIME_EXCEPTION)) {
+          if (options.compatibleMysqlVersion == 8) {
+            throw new SQLException("Zero date value prohibited");
+          }
           throw new SQLException("Value '" + new String(buf, pos, length,
                   getCurrentEncoding(columnInfo.getColumnType())) + "' can not be represented as java.sql.Timestamp");
         }
@@ -1109,8 +1134,14 @@ public abstract class RowProtocol {
 
 
   public Time getTimeFromString(String raw,Calendar cal) throws SQLException {
+      String newRaw = raw;
+      if (raw.contains(".")) {
+        String[] split = raw.split("\\.");
+        newRaw = split[0];
+      }
       if (!options.useLegacyDatetimeCode
-              && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
+              && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3
+              || (newRaw.length() != 5 && newRaw.length() != 8))){
           throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
       }
       boolean negate = raw.startsWith("-");
@@ -1223,4 +1254,5 @@ public abstract class RowProtocol {
 
     throw new SQLException("Can't convert empty string ('') to numeric");
   }
+
 }
