@@ -299,6 +299,17 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2024071500103721142() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("create or replace procedure p1(c1 out clob) is BEGIN \n" +
+                    " -- '//' \n" +
+                    " c1 := '{a}'; end;");
+        } catch (SQLException e) {
+            fail();
+        }
+    }
+
     public void testForDima2024062200102855194() throws SQLException {
         Connection conn = sharedConnection;
         conn.createStatement().execute("create or replace function t_fun return varchar2 as begin return 'aaa'; end;");

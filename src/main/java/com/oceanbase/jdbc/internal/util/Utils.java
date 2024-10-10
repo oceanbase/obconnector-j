@@ -561,8 +561,6 @@ public class Utils {
             if (inComment) {
               if (lastChar == '*' && !isSlashSlashComment) {
                 inComment = false;
-              } else if (lastChar == car && isSlashSlashComment) {
-                inComment = false;
               }
             } else {
               if (lastChar == car) {
