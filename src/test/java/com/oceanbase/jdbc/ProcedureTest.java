@@ -427,4 +427,39 @@ public class ProcedureTest extends BaseTest {
         assertEquals(1, cs2.getParameterMetaData().getParameterCount());
     }
 
+    @Test
+    public void testProcedureParameterForDima2024062200102855386() {
+        // test for procedure
+        try {
+            createProcedure("testP2", "(IN a INT, INOUT b VARCHAR(100)) BEGIN SELECT a, b; END");
+            CallableStatement cs = sharedConnection.prepareCall("call testP2(?,?)");
+            cs.setInt(1, 1);
+            cs.setString(2, "aaa");
+            cs.registerOutParameter(1, Types.INTEGER);
+            fail();
+            cs.registerOutParameter(2, Types.VARCHAR);
+            cs.execute();
+            assertEquals("aaa", cs.getString(2));
+        } catch (SQLException e) {
+
+        }
+
+        // test for function
+        try {
+            createFunction("testF", "(a int, b int) returns int return a + b");
+            CallableStatement cs = sharedConnection.prepareCall("{? = call testF(?, ?)}");
+
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.registerOutParameter(2, Types.INTEGER);
+            fail();
+            cs.registerOutParameter(3, Types.INTEGER, "");
+            cs.setInt(2, 1);
+            cs.setInt(3, 3);
+            cs.execute();
+            assertEquals(4, cs.getInt(1));
+        } catch (SQLException e) {
+            //
+        }
+    }
+
 }
