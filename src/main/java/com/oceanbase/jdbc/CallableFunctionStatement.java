@@ -534,6 +534,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
                                                                                       throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkIsOutputParam(parameterIndex);
+        }
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
@@ -567,6 +570,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
+        if (!protocol.isOracleMode()) {
+            checkIsOutputParam(parameterIndex);
+        }
         CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
@@ -887,5 +893,12 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     public void setObject(String parameterName, Object obj, SQLType targetSqlType)
                                                                                   throws SQLException {
         setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
+    }
+
+    private void checkIsOutputParam(int paramIndex) throws SQLException {
+        CallParameter param = this.params[paramIndex - 1];
+        if (!param.isOutput()) {
+            throw new SQLException("Parameter number " + paramIndex + " is not an OUT parameter");
+        }
     }
 }
