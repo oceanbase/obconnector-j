@@ -398,5 +398,36 @@ public class ProcedureOracleTest extends BaseOracleTest {
             Assert.assertEquals(i * 2 + 2, ((Number)attributes[1]).intValue());
         }
     }
+
+    @Test 
+    public void testPLParameterMetaData() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        CallableStatement cs ;
+        ParameterMetaData paramMeta ;
+
+        stmt.execute("create or replace procedure testPro(c1 out int, c2 varchar, c3 in out int) is\nbegin\n"
+                + " select 1 into c1 from dual; select 3 into c3 from dual; end\n");
+        cs = conn.prepareCall("{call testPro(?,?,?)}");
+        paramMeta = cs.getParameterMetaData();
+        assertEquals(3, paramMeta.getParameterCount());
+
+        stmt.execute("create or replace function testFunc( c1 int, c2 varchar(20),  c3 decimal(5,3))\n return char(20) is begin\n"
+                + " select 1,3 into c1,c3 from dual; return 'hello'; end\n");
+        cs = conn.prepareCall("{? = call testFunc(?,?,?)}");  //不开启二合一协议 报错 -5055, FUNCTION TESTFUNC does not exist
+        paramMeta = cs.getParameterMetaData();
+        assertEquals(4, paramMeta.getParameterCount());
+
+        cs = conn.prepareCall("begin ? := testFunc (1,?,?);end;");
+        paramMeta = cs.getParameterMetaData();
+        assertEquals(3, paramMeta.getParameterCount());
+
+        cs = conn.prepareCall("begin select 1 from dual where id = ? and name = ?;end;");
+        paramMeta = cs.getParameterMetaData();
+        assertEquals(2, paramMeta.getParameterCount());
+
+        cs.close();
+        stmt.close();
+    }
     
 }

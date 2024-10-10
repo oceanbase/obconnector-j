@@ -112,6 +112,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     protected boolean                   isFunction;
     protected String                    query;
     protected SQLException              outputParamSetParamValueException;
+    protected int                       parameterCountOfStmt;
 
     public String getProName() {
         return name;
@@ -568,7 +569,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
      * @return placeholderParams.size
      */
     public int getParameterCount() {
-        return placeholderParams != null ? placeholderParams.size() : 0;
+        return placeholderParams != null ? placeholderParams.size() : parameterCountOfStmt;
     }
 
     public CallParameter getParam(int index) throws SQLException {

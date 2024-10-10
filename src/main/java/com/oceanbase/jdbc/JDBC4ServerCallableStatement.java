@@ -127,6 +127,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments,
             this.isObFunction);
         setParamsAccordingToSetArguments();
+        parameterMetadata.parameterCountOfStmt = this.parameterCount;
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
