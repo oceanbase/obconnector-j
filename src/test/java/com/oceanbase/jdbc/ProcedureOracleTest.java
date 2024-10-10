@@ -302,17 +302,18 @@ public class ProcedureOracleTest extends BaseOracleTest {
     public void testForDima2024071500103721142() throws Exception {
         Statement stmt = sharedConnection.createStatement();
         try {
-            stmt.execute("create or replace procedure p1(c1 out clob) is BEGIN \n" +
-                    " -- '//' \n" +
-                    " c1 := '{a}'; end;");
+            stmt.execute("create or replace procedure p1(c1 out clob) is BEGIN \n" + " -- '//' \n"
+                         + " c1 := '{a}'; end;");
         } catch (SQLException e) {
             fail();
         }
     }
 
+    @Test
     public void testForDima2024062200102855194() throws SQLException {
         Connection conn = sharedConnection;
-        conn.createStatement().execute("create or replace function t_fun return varchar2 as begin return 'aaa'; end;");
+        conn.createStatement().execute(
+            "create or replace function t_fun return varchar2 as begin return 'aaa'; end;");
         CallableStatement cs = conn.prepareCall("select t_fun() as jbo from dual");
         cs.execute();
         try {
@@ -320,10 +321,10 @@ public class ProcedureOracleTest extends BaseOracleTest {
             fail();
         } catch (SQLException e) {
             Assert.assertTrue(e.getMessage().contains("Index 1 must at maximum be 0"));
-        } 
+        }
     }
 
-    @Test 
+    @Test
     public void testNestedArrayForDima2024080500104042401() throws Exception {
         Connection conn = sharedConnection;
         Statement stmt = conn.createStatement();
@@ -331,7 +332,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
         stmt.execute("create or replace type obj0 force as object(c0 varchar2(10))");
         stmt.execute("create or replace type tb is table of obj0");
         stmt.execute("create or replace procedure p1(a tb) is begin null;end;");
-        conn.createStruct("obj0", new Object[] {"aaa"});
+        conn.createStruct("obj0", new Object[] { "aaa" });
 
         stmt.execute("drop type obj0 force");
         stmt.execute("create or replace type obj0 is varray(2) of int");
@@ -361,7 +362,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
         stmt.execute("create or replace type obj0 force as object(c0 varchar2(10))");
         stmt.execute("create or replace type tb is table of obj0");
         stmt.execute("create or replace procedure p1(a tb) is begin null;end;");
-        conn.createStruct("obj0", new Object[] {"aaa"});
+        conn.createStruct("obj0", new Object[] { "aaa" });
 
         // modify udt
         try {
@@ -379,8 +380,8 @@ public class ProcedureOracleTest extends BaseOracleTest {
             str = "id1,id2";
         }
 
-        String sql = "create or replace procedure test_array (b out array0) is begin "
-                + "select "+ str +" bulk collect into b from t_1 ; end";
+        String sql = "create or replace procedure test_array (b out array0) is begin " + "select "
+                     + str + " bulk collect into b from t_1 ; end";
         stmt.execute(sql);
         CallableStatement cs = conn.prepareCall("{call test_array(?)}");
         cs.registerOutParameter(1, Types.ARRAY);
@@ -394,27 +395,27 @@ public class ProcedureOracleTest extends BaseOracleTest {
             Object[] attributes = struct.getAttributes();
             Assert.assertEquals(2, attributes.length);
 
-            Assert.assertEquals(i * 2 + 1, ((Number)attributes[0]).intValue());
-            Assert.assertEquals(i * 2 + 2, ((Number)attributes[1]).intValue());
+            Assert.assertEquals(i * 2 + 1, ((Number) attributes[0]).intValue());
+            Assert.assertEquals(i * 2 + 2, ((Number) attributes[1]).intValue());
         }
     }
 
-    @Test 
+    @Test
     public void testPLParameterMetaData() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
         Statement stmt = conn.createStatement();
-        CallableStatement cs ;
-        ParameterMetaData paramMeta ;
+        CallableStatement cs;
+        ParameterMetaData paramMeta;
 
         stmt.execute("create or replace procedure testPro(c1 out int, c2 varchar, c3 in out int) is\nbegin\n"
-                + " select 1 into c1 from dual; select 3 into c3 from dual; end\n");
+                     + " select 1 into c1 from dual; select 3 into c3 from dual; end\n");
         cs = conn.prepareCall("{call testPro(?,?,?)}");
         paramMeta = cs.getParameterMetaData();
         assertEquals(3, paramMeta.getParameterCount());
 
         stmt.execute("create or replace function testFunc( c1 int, c2 varchar(20),  c3 decimal(5,3))\n return char(20) is begin\n"
-                + " select 1,3 into c1,c3 from dual; return 'hello'; end\n");
-        cs = conn.prepareCall("{? = call testFunc(?,?,?)}");  //不开启二合一协议 报错 -5055, FUNCTION TESTFUNC does not exist
+                     + " select 1,3 into c1,c3 from dual; return 'hello'; end\n");
+        cs = conn.prepareCall("{? = call testFunc(?,?,?)}"); //不开启二合一协议 报错 -5055, FUNCTION TESTFUNC does not exist
         paramMeta = cs.getParameterMetaData();
         assertEquals(4, paramMeta.getParameterCount());
 
@@ -429,5 +430,5 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.close();
         stmt.close();
     }
-    
+
 }
