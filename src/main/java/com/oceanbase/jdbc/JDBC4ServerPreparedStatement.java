@@ -199,17 +199,19 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     // force prepare
     try {
       if (!clone.protocol.isOracleMode()) {
-        if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")) {
+        if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call") && !(this instanceof JDBC4ServerCallableStatement && this.options.cacheCallableStmts)) {
           clone.prepare(actualSql);
         }
       } else {
         if (clone.protocol.supportStmtPrepareExecute()) {
           clone.parameterCount = parameterCount;
         }
-        clone.prepare(actualSql);
+        if (!(this instanceof JDBC4ServerCallableStatement && this.options.cacheCallableStmts)) {
+          clone.prepare(actualSql);
+        }
       }
     } catch (SQLException e) {
-      throw new CloneNotSupportedException("PrepareStatement not ");
+      throw new CloneNotSupportedException("PrepareStatement could not be cloned, " + e.getMessage());
     }
     return clone;
   }

@@ -44,6 +44,8 @@
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.*;
 
 import org.junit.Assert;
@@ -298,6 +300,41 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals("上海    ", attributes[1]);
     }
 
+    @Test 
+    public void testForDima2024080100104013452() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&cacheCallableStmts=false");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure p_lob(c1 int) is begin null;end;");
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            for (int i = 1; i <= 6; i++) {
+                CallableStatement cs = conn.prepareCall("call p_lob(?)");
+                cs.setInt(1, 1);
+                cs.execute();
+            }
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("ORA-01000: maximum open cursors exceeded"));
+        }finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+
+        // cacheCallableStmts=true
+        conn = setConnection("&useServerPrepStmts=true&cacheCallableStmts=true");
+        try {
+            stmt.execute("alter system set open_cursors = 5");
+            for (int i = 1; i <= 6; i++) {
+                CallableStatement cs = conn.prepareCall("call p_lob(?)");
+                cs.setInt(1, 1);
+                cs.execute();
+            }
+        } catch (SQLException e) {
+            fail();
+        }finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+    }
+    
     @Test
     public void testForDima2024071500103721142() throws Exception {
         Statement stmt = sharedConnection.createStatement();
@@ -430,5 +467,4 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.close();
         stmt.close();
     }
-
 }
