@@ -702,10 +702,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         if (this.isObFunction && parameterIndex == 1) {
             return; //skip first
         }
+        CallParameter callParameter = getParameter(parameterIndex);
         if (!protocol.isOracleMode()) {
             checkIsOutputParam(parameterIndex);
         }
-        CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
         callParameter.setOutput(true);
@@ -742,10 +742,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
+        CallParameter callParameter = getParameter(parameterIndex);
         if (!protocol.isOracleMode()) {
             checkIsOutputParam(parameterIndex);
         }
-        CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);

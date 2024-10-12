@@ -462,4 +462,29 @@ public class ProcedureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2024101200104677510() {
+        try {
+            createProcedure("pro2", "(out a int) BEGIN select 1 into a; end");
+            CallableStatement cs = sharedConnection.prepareCall("{call pro2(?)}");
+            cs.registerOutParameter(2, Types.INTEGER);
+            fail();
+            cs.execute();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            Assert.assertTrue(e.getMessage().contains("No parameter with index"));
+        }
+
+        try {
+            createFunction("testF", "(a int, b int) returns int return a + b");
+            CallableStatement cs = sharedConnection.prepareCall("{? = call testF(?, ?)}");
+            cs.registerOutParameter(4, Types.INTEGER);
+            fail();
+            cs.execute();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            Assert.assertTrue(e.getMessage().contains("No parameter with index"));
+        }
+    }
+
 }
