@@ -534,10 +534,10 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
                                                                                       throws SQLException {
+        CallParameter callParameter = getParameter(parameterIndex);
         if (!protocol.isOracleMode()) {
             checkIsOutputParam(parameterIndex);
         }
-        CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
         callParameter.setOutput(true);
@@ -570,10 +570,10 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale)
                                                                                 throws SQLException {
+        CallParameter callParameter = getParameter(parameterIndex);
         if (!protocol.isOracleMode()) {
             checkIsOutputParam(parameterIndex);
         }
-        CallParameter callParameter = getParameter(parameterIndex);
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);
@@ -642,7 +642,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
     private CallParameter getParameter(int index) throws SQLException {
         if (index > params.length || index <= 0) {
-            throw exceptionFactory.create("No parameter with index " + (index));
+            throw new SQLException("No parameter with index " + (index));
         }
         return params[index - 1];
     }
