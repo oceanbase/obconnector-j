@@ -741,8 +741,17 @@ public class TextRowProtocol extends RowProtocol {
                         return null;
                     }
 
-                    Timestamp timestamp1 = buildTimestmap(datePart[0], datePart[1], datePart[2], 0, 0, 0, 0, cal, timeZone);
-                    return new Date(timestamp1.getTime());
+                    if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && datePart[0] == 0) {
+                        if (!useCalLenientFlag) {
+                            throw new SQLException("ILLEGAL YEAR");
+                        } else {
+                            useCalLenientFlag = false;
+                        }
+                        yearIsZero = true;
+                    } else {
+                        yearIsZero = false;
+                    }
+                    return new Date(datePart[0] - 1900, datePart[1] - 1, datePart[2]);
 
                 case TIMESTAMP:
                 case TIMESTAMP_NANO:
@@ -1768,7 +1777,7 @@ public class TextRowProtocol extends RowProtocol {
                 partIdx++;
                 continue;
             }
-            if (b < '0' || b > '9') {
+            if ((b < '0' || b > '9') && columnInfo.getColumnType() == ColumnType.DATE) {
                 throw new SQLException("cannot parse data in date string '"
                         + new String(buf, pos, length,
                         getCurrentEncoding(columnInfo

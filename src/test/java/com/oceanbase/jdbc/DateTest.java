@@ -1606,4 +1606,62 @@ public class DateTest extends BaseTest {
         ps.close();
 
     }
+
+    @Test
+    public void testForDima2024101200104682775() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        Statement stmt = conn.createStatement();
+        createTable("test", "c1 timestamp(5)");
+        stmt.execute("INSERT INTO test VALUES ('2031-01-15 03:14:07.339999')");
+
+        Calendar cal = Calendar.getInstance();
+
+        ResultSet rs = conn.prepareStatement("SELECT * FROM test").executeQuery();
+        rs.next();
+        assertEquals("2031-01-15", rs.getDate(1).toString());
+        assertEquals("2031-01-15", rs.getDate(1, cal).toString());
+
+        assertEquals("03:14:07", rs.getTime(1).toString());
+        assertEquals("03:14:07", rs.getTime(1, cal).toString());
+
+        assertEquals("2031-01-15 03:14:07.34", rs.getTimestamp(1).toString());
+        assertEquals("2031-01-15 03:14:07.34", rs.getTimestamp(1, cal).toString());
+    }
+
+    @Test
+    public void testLocalTHBugForDima2024101200104682969() throws Exception {
+        Locale.setDefault(new Locale("th", "TH"));
+        Assert.assertEquals("th_TH", Locale.getDefault().toString());
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        PreparedStatement prepStmt = null;
+        try {
+            createTable("testLocale", "field1 DATE, field2 TIMESTAMP");
+            stmt.execute("INSERT INTO testLocale VALUES (NOW(), NOW())");
+            ResultSet rs = stmt.executeQuery("SELECT field1, field2 FROM testLocale");
+            rs.next();
+
+            Date origDate = rs.getDate(1);
+            Timestamp origTimestamp = rs.getTimestamp(1);
+            rs.close();
+            stmt.executeUpdate("TRUNCATE TABLE testLocale");
+
+            prepStmt = conn.prepareStatement("INSERT INTO testLocale VALUES (?,?)");
+            prepStmt.setDate(1, origDate);
+            prepStmt.setTimestamp(2, origTimestamp);
+            prepStmt.executeUpdate();
+
+            rs = stmt.executeQuery("SELECT field1, field2 FROM testLocale");
+            rs.next();
+
+            Date testDate = rs.getDate(1);
+            Timestamp testTimestamp = rs.getTimestamp(1);
+            rs.close();
+
+            assertEquals(origDate, testDate);
+            assertEquals(origTimestamp, testTimestamp);
+        } finally {
+            Locale.setDefault(new Locale("zh", "CN"));
+        }
+    }
 }
