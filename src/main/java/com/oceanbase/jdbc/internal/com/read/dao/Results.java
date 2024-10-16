@@ -301,7 +301,13 @@ public class Results {
     public boolean commandEnd() {
         if (cmdInformation != null) {
             if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
-                resultSet = executionResults.poll();
+                SelectResultSet pollResult = executionResults.poll();
+                if (cmdInformation.getArrayBinding() && pollResult != null) {
+                    for (SelectResultSet executionResult : executionResults) {
+                        pollResult.mergeArrayBindingResult(executionResult.getRowData());
+                    }
+                }
+                resultSet = pollResult;
             } else {
                 resultSet = null;
             }

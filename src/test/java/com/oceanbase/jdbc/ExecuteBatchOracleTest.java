@@ -381,4 +381,33 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         ps.close();
         stmt.close(); 
     }
+
+    @Test
+    public void testReturningBatchForDima2024101400104695934() throws SQLException {
+        createTable("t_rb", "c1 int");
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true&compatibleOjdbcVersion=8");
+        conn.setAutoCommit(false);
+        JDBC4ServerPreparedStatement pstmt = (JDBC4ServerPreparedStatement) conn.prepareStatement("insert into t_rb values(?) returning c1 into ?");
+        try {
+            for (int i = 1; i <= 35; i++) {
+                pstmt.setInt(1, i);
+                pstmt.registerReturnParameter(2, Types.INTEGER);
+                if (i == 19) {
+                    pstmt.registerReturnParameter(2, Types.VARCHAR);
+                }
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+            ResultSet rs = pstmt.getReturnResultSet();
+            for (int i = 1; i <= 35; i++) {
+                rs.next();
+                Assert.assertEquals(i, rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            fail();
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
 }
