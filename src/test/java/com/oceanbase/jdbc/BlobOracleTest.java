@@ -1535,4 +1535,21 @@ public class BlobOracleTest extends BaseOracleTest {
         assertEquals("[]", Arrays.toString(blob1.getBytes(1L, (int) blob1.length())));
         // setBinaryStream -- end
     }
+
+    @Test
+    public void testForDima2024101100104675194() throws SQLException {
+        Connection conn = sharedConnection;
+        conn.createStatement().execute("set global ob_default_lob_inrow_threshold = 0;");
+        createTable("t_1", "c1 clob");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_1 values ('aaa')");
+        try {
+            ResultSet rs = stmt.executeQuery("select * from t_1");
+            rs.next();
+            Assert.assertEquals("aaa", rs.getString(1));
+            Assert.assertEquals("aaa", rs.getString(1));
+        } catch (SQLException e) {
+          fail();
+        }
+    }
 }

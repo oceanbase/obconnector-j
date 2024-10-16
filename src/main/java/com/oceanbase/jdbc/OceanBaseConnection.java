@@ -92,6 +92,14 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                                          ")\\s*" +                                                              // end of match group 2
                                                                                          "(\\}\\s*)?$"                                                          // Match start character "}"
                                                                                      ,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    public static final Pattern      ACTUAL_SQL_FUNC_PATTERN          = Pattern
+                                                                            .compile("BEGIN\\s*" +                                                              // match start with BEGIN
+                                                                                         "(\\?:=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*" +                 // match ?:= & comment
+                                                                                         "((((`[^`]+`)|([^`\\}\\(]+))\\.)?((`[^`]+`)|([^`\\}\\(]+)))\\s*" +     // match the databaseName and procedureName， like database.procedure
+                                                                                         "(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?" +        // match the procedureParams，and comment begin of （
+                                                                                         "\\s*;END;"                                                            // match end with ;END;
+                                                                                     ,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */
@@ -901,6 +909,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
+                ((OceanBaseProcedureStatement) callableStatement).originalSql = querySetToServer;
                 callableStatementCache.put(cacheKey, callableStatement);
                 return callableStatement;
             }
@@ -2751,5 +2760,32 @@ public class OceanBaseConnection implements ConnectionImpl {
             }
         }
         return nameResolveMap;
+    }
+
+    public boolean inCallableStatementCache(final String sql, final  boolean isObFunction){
+        String database ;
+        String querySetToServer = sql;
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
+        if (matcher.matches()) {
+            querySetToServer = matcher.group(2);
+            database = matcher.group(10) == null ? null : matcher.group(10).trim();
+        } else if (isObFunction) {
+            Matcher matcherOfunc = ACTUAL_SQL_FUNC_PATTERN.matcher(querySetToServer);
+            if (!matcherOfunc.matches()) {
+                return false;
+            }
+            database = matcherOfunc.group(8) == null ? null : matcherOfunc.group(8).trim();
+        } else {
+            return false;
+        }
+
+        if (database == null && sessionStateAware) {
+            database = protocol.getDatabase();
+        }
+        if (database != null && options.cacheCallableStmts) {
+            CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database, querySetToServer);
+            return callableStatementCache.containsKey(cacheKey);
+        }
+        return false;
     }
 }

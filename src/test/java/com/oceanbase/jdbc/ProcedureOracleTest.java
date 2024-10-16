@@ -467,4 +467,20 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.close();
         stmt.close();
     }
+
+    @Test
+    public void testCachePrepareCallForDima2024101200104677104() {
+        try {
+            createProcedure("pro2", "(var int) is BEGIN null; end");
+            Connection conn = setConnectionOrigin("?cacheCallableStmts=true");
+            for (int i = 0; i < 2; i++) {
+                CallableStatement cs = conn.prepareCall("{call pro2(?)}");
+                cs.setInt(1,2);
+                cs.execute();
+                cs.close();
+            }
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 }
