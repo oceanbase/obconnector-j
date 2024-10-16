@@ -199,14 +199,15 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     // force prepare
     try {
       if (!clone.protocol.isOracleMode()) {
-        if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call") && !(this instanceof JDBC4ServerCallableStatement && this.options.cacheCallableStmts)) {
+        if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")
+                && !(this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction))) {
           clone.prepare(actualSql);
         }
       } else {
         if (clone.protocol.supportStmtPrepareExecute()) {
           clone.parameterCount = parameterCount;
         }
-        if (!(this instanceof JDBC4ServerCallableStatement && this.options.cacheCallableStmts)) {
+        if (!(this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction))) {
           clone.prepare(actualSql);
         }
       }
@@ -1260,6 +1261,12 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     // No possible future use for the cached results, so these can be cleared
     // This makes the cache eligible for garbage collection earlier if the statement is not
     // immediately garbage collected
+
+    // When cacheCallableStmts is true, don`t sent close request to the server.
+    if (this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction)) {
+      super.realClose(true, true);
+      return;
+    }
     if (!released && protocol != null && serverPrepareResult != null) {
       if (protocol != null) {
           protocol.startCallInterface();
