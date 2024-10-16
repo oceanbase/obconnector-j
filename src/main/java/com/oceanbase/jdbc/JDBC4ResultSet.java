@@ -724,6 +724,26 @@ public class JDBC4ResultSet implements ResultSetImpl {
         dataSize++;
     }
 
+    public void mergeArrayBindingResult(byte[][] rowData){
+        if (rowData == null) {
+            return;
+        }
+        if (dataSize == -1) {
+            dataSize = 0;
+        }
+
+        for (byte[] buf : rowData) {
+            if (null != buf) {
+                if (dataSize + 1 >= data.length) {
+                    growDataArray();
+                }
+                data[dataSize++] = buf;
+                processedRows++;
+                endIndexInEntireResult++;
+            }
+        }
+    }
+
     private int skipLengthEncodedValue(byte[] buf, int pos) {
         int type = buf[pos++] & 0xff;
         switch (type) {
@@ -4047,6 +4067,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public boolean isEof() {
         return isEof;
+    }
+
+    public byte[][] getRowData() {
+        return data;
     }
 
 }
