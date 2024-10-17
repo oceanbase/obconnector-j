@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -1124,6 +1125,21 @@ public class ConnectionTest extends BaseTest {
       fail();
     } catch (SQLSyntaxErrorException e) {
       assertTrue(e.getMessage().contains("Unsupported transaction isolation level"));
+    }
+  }
+
+  @Test
+  public void testForDima2024101500104706466() throws Exception {
+    Connection conn = setConnection("&socketTimeout=5000");
+    Statement stmt = conn.createStatement();
+    try {
+      stmt.execute("select sleep(10)");
+      fail();
+    } catch (SQLException e) {
+      Assert.assertTrue(e.getMessage().contains("timed out"));
+      Socket socket = ((OceanBaseConnection) conn).getProtocol().getSocket();
+      Assert.assertTrue(socket.isClosed());
+      Thread.sleep(5000);
     }
   }
 }
