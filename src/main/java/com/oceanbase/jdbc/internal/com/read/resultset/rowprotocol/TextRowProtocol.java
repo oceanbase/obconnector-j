@@ -249,7 +249,7 @@ public class TextRowProtocol extends RowProtocol {
                 return dateStr;
             case YEAR:
                 String tempYear = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
-                if ("0000".equals(tempYear) && options.compatibleMysqlVersion == 5) {
+                if ("0000".equals(tempYear) && options.compatibleMysqlVersion == 5 && options.yearIsDateType) {
                     return "0001-01-01";
                 }
                 if (options.yearIsDateType) {

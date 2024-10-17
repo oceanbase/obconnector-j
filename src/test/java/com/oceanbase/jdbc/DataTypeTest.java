@@ -1477,4 +1477,84 @@ public class DataTypeTest extends BaseTest {
         rs.next();
         assertEquals(new BigDecimal("17.61857142857143"), rs.getBigDecimal(1));
     }
+
+    @Test
+    public void testYearGetStringForDima2024101700104728031() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("test_year", "y year");
+        stmt.execute("insert into test_year values(0000),(0),(0001),(2023),(65),(79),('0')");
+
+        conn = setConnection("&yearIsDateType=false&compatibleMysqlVersion=5");
+        PreparedStatement ps1 = conn.prepareStatement("select y from test_year");
+        ResultSet rs1 = ps1.executeQuery();
+        assertTrue(rs1.next());
+        assertEquals("0000", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("0000", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("2001", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("2023", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("2065", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("1979", rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals("2000", rs1.getString(1));
+
+        conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=5");
+        PreparedStatement ps2 = conn.prepareStatement("select y from test_year");
+        ResultSet rs2 = ps2.executeQuery();
+        assertTrue(rs2.next());
+        assertEquals("0001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("0001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("2001-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("2023-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("2065-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("1979-01-01", rs2.getString(1));
+        assertTrue(rs2.next());
+        assertEquals("2000-01-01", rs2.getString(1));
+
+        conn = setConnection("&yearIsDateType=false&compatibleMysqlVersion=8");
+        PreparedStatement ps3 = conn.prepareStatement("select y from test_year");
+        ResultSet rs3 = ps3.executeQuery();
+        assertTrue(rs3.next());
+        assertEquals("0", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("0", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("2001", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("2023", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("2065", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("1979", rs3.getString(1));
+        assertTrue(rs3.next());
+        assertEquals("2000", rs3.getString(1));
+
+        conn = setConnection("&yearIsDateType=true&compatibleMysqlVersion=8");
+        PreparedStatement ps4 = conn.prepareStatement("select y from test_year");
+        ResultSet rs4 = ps4.executeQuery();
+        assertTrue(rs4.next());
+        assertEquals("2000-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("2000-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("2001-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("2023-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("2065-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("1979-01-01", rs4.getString(1));
+        assertTrue(rs4.next());
+        assertEquals("2000-01-01", rs4.getString(1));
+    }
 }
