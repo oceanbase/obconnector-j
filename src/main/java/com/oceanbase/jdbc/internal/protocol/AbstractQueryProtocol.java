@@ -2715,6 +2715,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } catch (SQLException | IOException queryException) {
         connected = false;
         whyConnectedIsFalse();
+        destroySocket();
 
         return new SQLNonTransientConnectionException(
             initialException.getMessage() + "\nError during reconnection" + traces,
@@ -2724,6 +2725,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
     connected = false;
     whyConnectedIsFalse();
+    destroySocket();
 
     return new SQLNonTransientConnectionException(
         initialException.getMessage() + getTraces(), "08000", initialException);
