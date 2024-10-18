@@ -483,4 +483,41 @@ public class ProcedureOracleTest extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testCacheCallableStmtForDima2024101700104728671() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&cacheCallableStmts=true");
+        Statement stmt = conn.createStatement();
+        createProcedure("p_cur", "(c1 int) is begin null;end;");
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            CallableStatement cs = conn.prepareCall("call p_cur(?)");
+            for (int i = 1; i <= 6; i++) {
+                cs = conn.prepareCall("call p_cur(?)");
+                cs.setInt(1, 1);
+                cs.execute();
+                cs.close();
+            }
+        }catch (Exception e){
+            fail();
+        }finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+
+        conn = setConnection("&cacheCallableStmts=false");
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            for (int i = 1; i <= 6; i++) {
+                CallableStatement cs1 = conn.prepareCall("call p_cur(?)");
+                cs1.setInt(1, 1);
+                cs1.execute();
+            }
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("maximum open cursors exceeded"));
+        } finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+    }
+    
 }

@@ -487,4 +487,14 @@ public class ProcedureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testforDima2024101700104726448() throws SQLException {
+        createFunction("t_out", "(a int) returns int begin return a; end;");
+        CallableStatement cs = sharedConnection.prepareCall("? = call t_out(?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt(2, 1);
+        cs.execute();
+        assertEquals(1, cs.getInt(1));
+    }
+
 }

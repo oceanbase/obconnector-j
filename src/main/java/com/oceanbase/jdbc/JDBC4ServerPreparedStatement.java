@@ -200,14 +200,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     try {
       if (!clone.protocol.isOracleMode()) {
         if (!simpleSql.startsWith("CALL") && !simpleSql.startsWith("call")
-                && !(this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction))) {
+                && !(this instanceof JDBC4ServerCallableStatement && ((JDBC4ServerCallableStatement)this).inCallableStatementCache(connection))) {
           clone.prepare(actualSql);
         }
       } else {
         if (clone.protocol.supportStmtPrepareExecute()) {
           clone.parameterCount = parameterCount;
         }
-        if (!(this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction))) {
+        if (!(this instanceof JDBC4ServerCallableStatement && ((JDBC4ServerCallableStatement)this).inCallableStatementCache(connection))) {
           clone.prepare(actualSql);
         }
       }
@@ -1263,7 +1263,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     // immediately garbage collected
 
     // When cacheCallableStmts is true, don`t sent close request to the server.
-    if (this instanceof JDBC4ServerCallableStatement && connection.inCallableStatementCache(this.originalSql, this.isObFunction)) {
+    if (this instanceof JDBC4ServerCallableStatement && ((JDBC4ServerCallableStatement)this).inCallableStatementCache(this.connection)) {
       super.realClose(true, true);
       return;
     }

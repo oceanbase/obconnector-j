@@ -67,6 +67,7 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.*;
 import com.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.internal.util.pool.GlobalStateInfo;
 import com.oceanbase.jdbc.internal.util.pool.Pools;
@@ -909,8 +910,13 @@ public class OceanBaseConnection implements ConnectionImpl {
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
                     resultSetType, resultSetConcurrency, exceptionFactory);
-                ((OceanBaseProcedureStatement) callableStatement).originalSql = querySetToServer;
-                callableStatementCache.put(cacheKey, callableStatement);
+                ((OceanBaseStatement) callableStatement).originalSql = querySetToServer;
+                if (callableStatement instanceof JDBC4ServerCallableStatement) {
+                    ServerPrepareResult serverPrepareResult = ((JDBC4ServerCallableStatement) callableStatement).serverPrepareResult;
+                    if (serverPrepareResult != null && serverPrepareResult.getStatementId() > 0) {
+                        callableStatementCache.put(cacheKey, callableStatement);
+                    }
+                }
                 return callableStatement;
             }
             return createNewCallableStatement(querySetToServer, procedureName, isFunction,
@@ -2762,30 +2768,7 @@ public class OceanBaseConnection implements ConnectionImpl {
         return nameResolveMap;
     }
 
-    public boolean inCallableStatementCache(final String sql, final  boolean isObFunction){
-        String database ;
-        String querySetToServer = sql;
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
-        if (matcher.matches()) {
-            querySetToServer = matcher.group(2);
-            database = matcher.group(10) == null ? null : matcher.group(10).trim();
-        } else if (isObFunction) {
-            Matcher matcherOfunc = ACTUAL_SQL_FUNC_PATTERN.matcher(querySetToServer);
-            if (!matcherOfunc.matches()) {
-                return false;
-            }
-            database = matcherOfunc.group(8) == null ? null : matcherOfunc.group(8).trim();
-        } else {
-            return false;
-        }
-
-        if (database == null && sessionStateAware) {
-            database = protocol.getDatabase();
-        }
-        if (database != null && options.cacheCallableStmts) {
-            CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database, querySetToServer);
-            return callableStatementCache.containsKey(cacheKey);
-        }
-        return false;
+    public CallableStatementCache getCallableStatementCache() {
+        return callableStatementCache;
     }
 }
