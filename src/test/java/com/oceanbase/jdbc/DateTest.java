@@ -60,6 +60,7 @@ import java.util.*;
 import org.checkerframework.checker.units.qual.C;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DateTest extends BaseTest {
@@ -72,7 +73,7 @@ public class DateTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    //@BeforeClass()
+    @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("dtest", "d date");
         createTable("date_test2",
