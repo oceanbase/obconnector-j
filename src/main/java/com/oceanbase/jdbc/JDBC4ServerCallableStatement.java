@@ -54,6 +54,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -63,8 +64,13 @@ import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
 import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
 import com.oceanbase.jdbc.internal.util.dao.CloneableCallableStatement;
+import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
+
+import static com.oceanbase.jdbc.OceanBaseConnection.ACTUAL_SQL_FUNC_PATTERN;
+import static com.oceanbase.jdbc.OceanBaseConnection.CALLABLE_STATEMENT_PATTERN;
 
 public class JDBC4ServerCallableStatement extends CallableProcedureStatement implements
                                                                             CloneableCallableStatement {
@@ -537,6 +543,54 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         for (CallParameter param : params) {
             if (!param.isOutput() && !param.isInput()) {
                 throw new SQLException("missing param error");
+            }
+        }
+    }
+
+    public boolean inCallableStatementCache(OceanBaseConnection connection){
+        String database ;
+        String querySetToServer = this.originalSql;
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(querySetToServer);
+        if (matcher.matches()) {
+            querySetToServer = matcher.group(2);
+            database = matcher.group(10) == null ? null : matcher.group(10).trim();
+        } else if (this.isObFunction) {
+            Matcher matcherOfunc = ACTUAL_SQL_FUNC_PATTERN.matcher(querySetToServer);
+            if (!matcherOfunc.matches()) {
+                return false;
+            }
+            database = matcherOfunc.group(8) == null ? null : matcherOfunc.group(8).trim();
+        } else {
+            return false;
+        }
+
+        if (database == null) {
+            database = connection.getProtocol().getDatabase();
+        }
+        if (database != null && options.cacheCallableStmts) {
+            CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(database, querySetToServer);
+            return connection.getCallableStatementCache().containsKey(cacheKey);
+        }
+        return false;
+    }
+
+    public void addCallableStatementCacheIfNeed(ServerPrepareResult serverPrepareResult) {
+        if (!options.cacheCallableStmts) {
+            return;
+        }
+        String databaseOfStmt = null;
+        if (serverPrepareResult != null && serverPrepareResult.getStatementId() > 0) {
+            String originalSql = this.getOriginalSql();
+            Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(originalSql);
+            if (matcher.matches()) {
+                databaseOfStmt = matcher.group(10) == null ? null : matcher.group(10).trim();
+            }
+            if (databaseOfStmt == null && this.protocol.sessionStateAware()) {
+                databaseOfStmt = protocol.getDatabase();
+            }
+            if (databaseOfStmt != null) {
+                CallableStatementCacheKey cacheKey = new CallableStatementCacheKey(databaseOfStmt, originalSql);
+                this.connection.getCallableStatementCache().put(cacheKey, this);
             }
         }
     }

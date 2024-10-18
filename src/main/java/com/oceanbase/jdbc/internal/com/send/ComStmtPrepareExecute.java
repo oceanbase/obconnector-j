@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.oceanbase.jdbc.JDBC4ServerCallableStatement;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -251,6 +252,10 @@ public class ComStmtPrepareExecute {
                         serverPrepareResult = new ServerPrepareResult(sql, statementId,
                                 columns, params, protocol);
                         serverPrepareResult.setReturnByPrepareExecute(true);
+                        if (results.getStatement() != null && results.getStatement() instanceof JDBC4ServerCallableStatement) {
+                            JDBC4ServerCallableStatement callableStatement = (JDBC4ServerCallableStatement) results.getStatement();
+                            callableStatement.addCallableStatementCacheIfNeed(serverPrepareResult);
+                        }
                         if (protocol.getOptions().cachePrepStmts && protocol.getOptions().useServerPrepStmts
                                 && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
                             String key = protocol.getDatabase() + "-" + sql;

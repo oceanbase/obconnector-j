@@ -94,7 +94,6 @@ import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.ServerStatus;
 import com.oceanbase.jdbc.internal.util.constant.StateChange;
-import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.ClientPrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.PrepareResult;
 import com.oceanbase.jdbc.internal.util.dao.ServerPrepareResult;

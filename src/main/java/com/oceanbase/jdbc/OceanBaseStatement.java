@@ -1942,5 +1942,9 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return isInternal;
   }
 
+  public String getOriginalSql() {
+    return originalSql;
+  }
+
 
 }
