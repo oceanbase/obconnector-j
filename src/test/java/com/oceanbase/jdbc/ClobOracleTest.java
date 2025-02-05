@@ -1249,4 +1249,133 @@ public class ClobOracleTest extends BaseOracleTest {
         writer.flush();
         Assert.assertEquals(" abc", clob.getSubString(1,4));
     }
+
+    @Test
+    public void testPLSetLobNullForDima2024080100104015501() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure test_blob(a in out blob) as begin null; end;");
+        stmt.execute("create or replace procedure test_clob(a in out clob) as begin null; end;");
+        stmt.close();
+
+        for (int i = 0; i < 2; i++) {
+            if (i == 0) {
+                conn = setConnection("&useServerPrepStmts=true&usePieceData=true");
+            } else {
+                conn = setConnection("&useServerPrepStmts=true");
+            }
+
+            // Blob
+            CallableStatement csBLob = conn.prepareCall("{call test_blob(?)}");
+            // case 1 & 11
+            String s = "ABCDEF";
+            byte[] blobContent = s.getBytes(StandardCharsets.UTF_8);
+            java.sql.Blob inputOutputBlob = conn.createBlob();
+            inputOutputBlob.setBytes(1, blobContent);
+            csBLob.setBlob(1, inputOutputBlob);
+            csBLob.registerOutParameter(1, Types.BLOB);
+            try {
+                csBLob.execute();
+                if (i == 1) {
+                    fail();
+                }
+            } catch (SQLException e) {
+                if (i == 1) {
+                    Assert.assertTrue(e.getMessage().contains(" Not supported send long data on ob oracle"));
+                }
+            }
+
+            // case 2 & 12
+            csBLob.setBlob(1, (java.sql.Blob) null);
+            csBLob.registerOutParameter(1, Types.BLOB);
+            try {
+                csBLob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+
+            // case 3 & 13
+            csBLob.setBlob(1, Blob.getEmptyBLOB());
+            csBLob.registerOutParameter(1, Types.BLOB);
+            try {
+                csBLob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+
+            // case 4 & 14
+            csBLob.setBlob(1, new Blob());
+            csBLob.registerOutParameter(1, Types.BLOB);
+            try {
+                csBLob.execute();
+                fail();
+            } catch (SQLException e) {
+               Assert.assertTrue(e.getMessage().contains("-5555, Incorrect number of arguments"));
+            }
+
+            // case 5 & 15
+            csBLob.setBlob(1, conn.createBlob());
+            csBLob.registerOutParameter(1, Types.BLOB);
+            try {
+                csBLob.execute();
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("-5555, Incorrect number of arguments"));
+            }
+
+            // Clob
+            CallableStatement csClob = conn.prepareCall("{call test_clob(?)}");
+            // case 6 & 16
+            java.sql.Clob inputOutputClob = conn.createClob();
+            inputOutputClob.setString(1, "ABCDEF");
+            csClob.setClob(1, inputOutputClob);
+            csClob.registerOutParameter(1, Types.CLOB);
+            try {
+                csClob.execute();
+                if (i == 1) {
+                    fail();
+                }
+            } catch (SQLException e) {
+                if (i == 1) {
+                    Assert.assertTrue(e.getMessage().contains(" Not supported send long data on ob oracle"));
+                }
+            }
+
+            // case 7 & 17
+            csClob.setClob(1, (java.sql.Clob) null);
+            csClob.registerOutParameter(1, Types.CLOB);
+            try {
+                csClob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+
+            // case 8 & 18
+            csClob.setClob(1, Clob.getEmptyCLOB());
+            csClob.registerOutParameter(1, Types.CLOB);
+            try {
+                csClob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+
+            // case 9 & 19
+            csClob.setClob(1, new Clob());
+            csClob.registerOutParameter(1, Types.CLOB);
+            try {
+                csClob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+
+            // case 10 & 20
+            csClob.setClob(1, conn.createClob());
+            csClob.registerOutParameter(1, Types.CLOB);
+            try {
+                csClob.execute();
+            } catch (SQLException e) {
+                fail();
+            }
+        }
+    }
 }
