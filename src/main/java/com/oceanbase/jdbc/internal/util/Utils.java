@@ -797,7 +797,7 @@ public class Utils {
    * @return
    */
   public static String trimSQLString(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
-    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment).getTrimedString();
+    return trimSQLStringInternal(queryString, noBackslashEscapes, isOracleMode, skipComment, false).getTrimedString();
   }
   public static class TrimSQLInfo{
       String trimedString;
@@ -873,7 +873,7 @@ public class Utils {
         OnDuplicateKey,
         OnDuplicateKeyUpdate
     }
-  public static TrimSQLInfo trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
+  public static TrimSQLInfo trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment, boolean useSensitiveCursorResultSet) {
     char[] query = queryString.toCharArray();
     int queryLength = query.length;
     int parameterCount = 0;
@@ -893,7 +893,7 @@ public class Utils {
     boolean slashEnd = false;
     int lastCommentEndStarPos = -2;
     int lastCommentBeginSlashPos = 0;
-    int subQueryStartPos = getSubQueryStartPos(queryString);
+    int subQueryStartPos = getSubQueryStartPos(queryString, useSensitiveCursorResultSet);
     int subQueryEndPos = getSubQueryEndPos(queryString, subQueryStartPos);
     boolean semicolonEnd = false;
     KeyState keyState = KeyState.Normal;
@@ -1125,7 +1125,7 @@ public class Utils {
                     selectEndPos = i;
                 } else if ((car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
                   // where clauses can be nested in subqueries, so we need to check if the where clause is not inside a subquery
-                  if (!(i < subQueryEndPos && i > subQueryStartPos)) {
+                  if (!(i < subQueryEndPos && i > subQueryStartPos) && useSensitiveCursorResultSet) {
                     whereEndPos = i;
                   }
                 }
@@ -1187,7 +1187,7 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParamPos, queryLength));
     }
-    clauseStartPos = getClauseStartPos(queryString, subQueryEndPos);
+    clauseStartPos = getClauseStartPos(queryString, subQueryEndPos, useSensitiveCursorResultSet);
     return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,clauseStartPos,paramIndexs,onDuplicateKeyUpdateIndex);
   }
 
@@ -1945,7 +1945,10 @@ public class Utils {
         return bytes[0] == -1 || bytes[0] > 0;
     }
 
-    private static int getClauseStartPos(String trimedSql, int subQueryEndPos) {
+    private static int getClauseStartPos(String trimedSql, int subQueryEndPos, boolean useSensitiveCursorResultSet) {
+      if (!useSensitiveCursorResultSet) {
+        return -1;
+      }
       // Remove clauses in subquery
       if (subQueryEndPos != -1) {
         trimedSql = trimedSql.substring(subQueryEndPos);
@@ -1985,7 +1988,10 @@ public class Utils {
       return clauseStartPos == Integer.MAX_VALUE ? -1 : clauseStartPos;
     }
 
-    private static int getSubQueryStartPos(String trimedSql) {
+    private static int getSubQueryStartPos(String trimedSql, boolean useSensitiveCursorResultSet) {
+      if (!useSensitiveCursorResultSet) {
+        return -1;
+      }
       int subQueryStartPos = -1;
       Matcher subQueryMatcher = SUBQUERY_PATTERN.matcher(trimedSql);
       if (subQueryMatcher.find()) {
