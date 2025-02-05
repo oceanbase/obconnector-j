@@ -612,6 +612,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
       writer.setTimeZone(this.getServerTimeZone());
 
+      // search serverPrepareResult in cache
+      if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
+        ServerPrepareResult prepareResult = this.prepareStatementCache().get(this.getDatabase() + "-" + results.getStatement().getActualSql());
+        if (prepareResult != null && prepareResult.incrementShareCounter()) {
+          serverPrepareResult = prepareResult;
+          serverPrepareResult.resetParameterTypeHeader();
+          results.setStatementId(serverPrepareResult.getStatementId());
+        }
+      }
+
       // send execute query
       boolean withRefCursor = false;
       if (serverPrepareResult != null) {

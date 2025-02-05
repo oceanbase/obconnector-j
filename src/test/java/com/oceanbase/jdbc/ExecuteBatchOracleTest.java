@@ -410,4 +410,39 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2024121000106407673() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&cachePrepStmts=true&rewriteBatchedStatements=true");
+        createTable("t_batch", "c1 varchar2(100), c2 varchar2(100), c3 varchar2(100)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            for (int i = 0; i < 10; i++) {
+                PreparedStatement ps = conn.prepareStatement("insert into t_batch values(?, ?, ?)");
+
+                ps.setString(1, "aa" + i);
+                ps.setString(2, "bb" + i);
+                ps.setString(3, "cc" + i);
+                ps.addBatch();
+
+                ps.setString(1, "zz" + i);
+                ps.setString(2, "yy" + i);
+                ps.setString(3, "xx" + i);
+                ps.addBatch();
+
+                ps.executeBatch();
+                ps.close();
+            }
+
+            ResultSet rs = stmt.executeQuery("select count(*) from t_batch");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(20, rs.getInt(1));
+            rs.close();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        } finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+    }
+
 }
