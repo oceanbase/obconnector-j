@@ -1006,9 +1006,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             if (!isColonFound) {
                 if (Character.isWhitespace(currentChar)) {
                     index++;
-                } else if (currentChar == ':' && name.charAt(index + 1) == '=' && name.charAt(index + 2) == ' ') {
+                } else if (currentChar == ':' && name.charAt(index + 1) == '=') {
                     isColonFound = true;
-                    index += 3;
+                    index += 2;
                 } else {
                     throw new SQLException("invalid syntax");
                 }
