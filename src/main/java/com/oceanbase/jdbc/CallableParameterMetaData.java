@@ -403,7 +403,10 @@ public class CallableParameterMetaData implements ParameterMetaData {
             int returnIndex = paramList.indexOf("RETURNS");
             if(returnIndex != -1) {
                 int bodyStartInedx = paramList.toUpperCase(Locale.ROOT).indexOf("BEGIN");
-                String returnString = paramList.substring(returnIndex+"RETURNS".length(), bodyStartInedx);
+                if (bodyStartInedx == -1) {
+                    bodyStartInedx = paramList.toUpperCase(Locale.ROOT).indexOf("RETURN", returnIndex + "RETURNS".length());
+                }
+                String returnString = paramList.substring(returnIndex + "RETURNS".length(), bodyStartInedx);
                 paramList = paramList.substring(0, returnIndex - 1);
                 CallParameter parameterRetrurn = parseFunctionReturnParam(returnString);
                 parameterRetrurn.setIndex(index++);

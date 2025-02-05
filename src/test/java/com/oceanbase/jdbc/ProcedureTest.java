@@ -497,4 +497,34 @@ public class ProcedureTest extends BaseTest {
         assertEquals(1, cs.getInt(1));
     }
 
+    @Test
+    public void testForDima2024062200102854743() throws SQLException {
+        createFunction("testFunc", "(a int) returns varchar(20) DETERMINISTIC return 'aaa';");
+        CallableStatement cs = sharedConnection.prepareCall("? = call testFunc(?)");
+        ParameterMetaData pmd = null;
+        try {
+            pmd = cs.getParameterMetaData();
+            assertEquals(2, pmd.getParameterCount());
+            assertEquals(Types.VARCHAR, pmd.getParameterType(1));
+            assertEquals("varchar", pmd.getParameterTypeName(1));
+            assertEquals(pmd.parameterModeOut, pmd.getParameterMode(1));
+            assertEquals("java.lang.String", pmd.getParameterClassName(1));
+            assertEquals(20, pmd.getPrecision(1));
+            assertEquals(0, pmd.getScale(1));
+            assertEquals(true, pmd.isSigned(1));
+            assertEquals(pmd.parameterNullable, pmd.isNullable(1));
+
+            assertEquals(Types.INTEGER, pmd.getParameterType(2));
+            assertEquals("INT", pmd.getParameterTypeName(2));
+            assertEquals(pmd.parameterModeIn, pmd.getParameterMode(2));
+            assertEquals("java.lang.Integer", pmd.getParameterClassName(2));
+            assertEquals(11, pmd.getPrecision(2));
+            assertEquals(0, pmd.getScale(2));
+            assertEquals(true, pmd.isSigned(2));
+            assertEquals(pmd.parameterNullable, pmd.isNullable(2));
+        } catch (SQLException e) {
+            fail();
+        }
+    }
+
 }
