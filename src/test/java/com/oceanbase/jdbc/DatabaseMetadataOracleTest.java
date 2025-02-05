@@ -1329,4 +1329,22 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         assertEquals("CHAR", rs.getString("TYPE_NAME"));
     }
 
+    @Test
+    public void testMetadataPSForDima2024101700104726753() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("t_meta", "c1 int , c2 int, c3 blob");
+        PreparedStatement ps = conn.prepareStatement("insert into t_meta values(1, null, ?)");
+        ResultSetMetaData metaData = ps.getMetaData();
+        Assert.assertNull(metaData);
+
+        conn = setConnection("&useServerPrepStmts=true");
+        ps = conn.prepareStatement("insert into t_meta values(1, null, ?)");
+        metaData = ps.getMetaData();
+        Assert.assertNull(metaData);
+
+        conn = setConnection("&useOraclePrepareExecute=true");
+        ps = conn.prepareStatement("insert into t_meta values(1, null, ?)");
+        metaData = ps.getMetaData();
+        Assert.assertNull(metaData);
+    }
 }

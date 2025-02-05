@@ -528,6 +528,9 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    */
   public ResultSetMetaData getMetaData() throws SQLException {
     checkClose();
+    if (this.sqlType != STMT_SELECT) {
+      return null;
+    }
     ResultSet rs = getResultSet();
     if (rs != null) {
       return rs.getMetaData();

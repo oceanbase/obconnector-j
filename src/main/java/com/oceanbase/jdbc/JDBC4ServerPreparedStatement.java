@@ -434,18 +434,27 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-      if (this.protocol.isOracleMode() && resultSetMetaData == null) {
-          ServerPrepareResult prepareResult = this.protocol.prepare(actualSql, mustExecuteOnMaster);
-          resultSetMetaData = new OceanBaseResultSetMetaData(prepareResult.getColumns(), protocol.getUrlParser().getOptions(),
-              false, this.protocol.isOracleMode(), addRowid ? 1 : 0);
+      if (!this.protocol.isOracleMode() && (resultSetMetaData == null || resultSetMetaData.getColumnCount() == 0)) {
+          return null;
+      }
 
-          // Release resources promptly
-          try {
-              this.protocol.forceReleasePrepareStatement(prepareResult.getStatementId());
-          } catch (SQLException e) {
-              // eat
-          } finally {
-              prepareResult.release();
+      if (this.protocol.isOracleMode()) {
+          if (this.sqlType != STMT_SELECT) {
+              return null;
+          }
+          if (resultSetMetaData == null) {
+              ServerPrepareResult prepareResult = this.protocol.prepare(actualSql, mustExecuteOnMaster);
+              resultSetMetaData = new OceanBaseResultSetMetaData(prepareResult.getColumns(), protocol.getUrlParser().getOptions(),
+                      false, this.protocol.isOracleMode(), addRowid ? 1 : 0);
+
+              // Release resources promptly
+              try {
+                  this.protocol.forceReleasePrepareStatement(prepareResult.getStatementId());
+              } catch (SQLException e) {
+                  // eat
+              } finally {
+                  prepareResult.release();
+              }
           }
       }
     return resultSetMetaData;
