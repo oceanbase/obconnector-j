@@ -48,7 +48,7 @@ public class OBEmptyLobParameter implements Cloneable, ParameterHolder {
 
     @Override
     public boolean isNullData() {
-        return false;
+        return lobLocatorBinary == null;
     }
 
     /**
