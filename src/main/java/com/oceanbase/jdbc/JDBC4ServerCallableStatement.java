@@ -311,7 +311,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             throw this.parameterMetadata.outputParamSetParamValueException;
         }
 
-        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(originalSql,false,false,false);
+        Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(originalSql, false, false, false, false);
         String trimedString = trimSQLStringInternal.getTrimedString();
         int paramCount = trimSQLStringInternal.getParamCount();
         int beginIndex = 0;

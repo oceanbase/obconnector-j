@@ -133,7 +133,15 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     mustExecuteOnMaster = protocol.isMasterConnection();
 
     originalSql = sql;
-    Utils.TrimSQLInfo tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false);
+    boolean useSensitiveCursorResultSet = false;
+    if (protocol.isOracleMode()) {
+      if (!(resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
+        if (!(resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
+          useSensitiveCursorResultSet = true;
+        }
+      }
+    }
+    Utils.TrimSQLInfo tmp = Utils.trimSQLStringInternal(originalSql, protocol.noBackslashEscapes(), protocol.isOracleMode(), false,useSensitiveCursorResultSet);
     simpleSql = tmp.getTrimedString();
     selectEndPos = tmp.getSelectEndPos();
     whereEndPos = tmp.getWhereEndPos();
@@ -142,14 +150,10 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     actualSql = originalSql;
     parameterCount = tmp.getParamCount();
     // add rowid if needed
-    if (protocol.isOracleMode() && sqlType == STMT_SELECT) {
-      if (!(resultSetScrollType == ResultSet.TYPE_FORWARD_ONLY && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
-        if (!(resultSetScrollType == ResultSet.TYPE_SCROLL_INSENSITIVE && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY)) {
-          // sensitive ResultSet needs rowid to refetch
-          addRowid = true;
-          actualSql = actualSql.substring(0, selectEndPos + 1) + " rowid," + actualSql.substring(selectEndPos + 1);
-        }
-      }
+    if (useSensitiveCursorResultSet && sqlType == STMT_SELECT) {
+      // sensitive ResultSet needs rowid to refetch
+      addRowid = true;
+      actualSql = actualSql.substring(0, selectEndPos + 1) + " rowid," + actualSql.substring(selectEndPos + 1);
     }
 
     // get count of return parameters for DML Returning Into characteristic

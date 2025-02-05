@@ -175,7 +175,7 @@ public class Results {
         }
 
         Utils.TrimSQLInfo trimSQLInfo = Utils.trimSQLStringInternal(sql,
-            protocol.noBackslashEscapes(), protocol.isOracleMode(), true);
+            protocol.noBackslashEscapes(), protocol.isOracleMode(), true, false);
         if (protocol.isOracleMode()) {
             return false;
         }
