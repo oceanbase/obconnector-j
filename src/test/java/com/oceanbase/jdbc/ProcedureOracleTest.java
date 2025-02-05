@@ -519,5 +519,16 @@ public class ProcedureOracleTest extends BaseOracleTest {
             stmt.execute("alter system set open_cursors = 50");
         }
     }
+
+    @Test
+    public void testForDima2024110800105015106() throws SQLException {
+        Connection conn = setConnection();
+        createFunction("func_1", "(a int, b int, c int) return int as v_res int; begin v_res := a + b + c; return v_res; end;  ");
+        CallableStatement cs = conn.prepareCall("call ? :=test.func_1(10, 20, ?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt(2, 30);
+        cs.execute();
+        Assert.assertEquals(60, cs.getInt(1));
+    }
     
 }
