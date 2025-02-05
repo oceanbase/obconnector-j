@@ -3220,13 +3220,22 @@ public class JDBC4ResultSet implements ResultSetImpl {
     }
 
     private String getRefetchSql(int refetchSize) {
-        StringBuilder sb = new StringBuilder(this.statement.getActualSql());
+        int clauseStartPos = this.statement.getClauseStartPos();
+        // When intercepting actualSql, need to consider the length of the "rowid" field. Because clauseStartPos is based on originSql, which does not contain "rowid"
+        int rowidLen = " rowid,".length();
+        String fetchSql = clauseStartPos == -1 ? this.statement.getActualSql()
+                : this.statement.getActualSql().substring(0, clauseStartPos + rowidLen);
+        StringBuilder sb = new StringBuilder(fetchSql);
         sb.append(this.statement.getWhereEndPos() == -1 ? " WHERE (ROWID=?" : " AND (ROWID=?");
 
         for (int i = 0; i < refetchSize - 1; i++) {
             sb.append(" OR ROWID=?");
         }
         sb.append(")");
+        // If there is an "order by" clause, it needs to be added to the end of the SQL statement.
+        if (clauseStartPos != -1) {
+            sb.append(" ").append(this.statement.getActualSql().substring(clauseStartPos + rowidLen));
+        }
 
         return String.valueOf(sb);
     }

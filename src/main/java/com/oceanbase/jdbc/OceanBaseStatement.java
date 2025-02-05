@@ -154,6 +154,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   protected boolean   addRowid;
   protected int       selectEndPos = -1;
   protected int       whereEndPos = -1;
+  protected int       clauseStartPos = -1;
 
     /**
    * Creates a new Statement.
@@ -1946,5 +1947,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
     return originalSql;
   }
 
+  public int getClauseStartPos() {
+      return clauseStartPos;
+  }
 
 }

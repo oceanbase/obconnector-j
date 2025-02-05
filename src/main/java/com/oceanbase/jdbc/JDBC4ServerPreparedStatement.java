@@ -137,6 +137,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     simpleSql = tmp.getTrimedString();
     selectEndPos = tmp.getSelectEndPos();
     whereEndPos = tmp.getWhereEndPos();
+    clauseStartPos = tmp.getClauseStartPos();
     sqlType = Utils.getStatementType(simpleSql);
     actualSql = originalSql;
     parameterCount = tmp.getParamCount();
@@ -192,6 +193,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     clone.simpleSql = simpleSql;
     clone.selectEndPos = selectEndPos;
     clone.whereEndPos = whereEndPos;
+    clone.clauseStartPos = clauseStartPos;
     clone.sqlType = sqlType;
     clone.actualSql = actualSql;
     clone.addRowid = addRowid;
