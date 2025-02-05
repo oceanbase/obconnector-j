@@ -101,6 +101,29 @@ public class Utils {
       Pattern.compile(
           "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
               + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
+
+  private static final Pattern FOR_UPDATE_PATTERN     =       Pattern.compile("(select\\s+.*?)" +                           // keyword 'select'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "(\\s*for\\s*)" +                             // keyword 'for'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "update" +                                    // keyword 'update'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)"           // spaces and comments
+                                                                      , Pattern.CASE_INSENSITIVE);
+  private static final Pattern ORDER_BY_PATTERN       =       Pattern.compile("(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "(\\s*order\\s*)" +                           // keyword 'order'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "by" +                                        // keyword 'update'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)"           // spaces and by
+                                                                      , Pattern.CASE_INSENSITIVE);
+  private static final Pattern HAVING_PATTERN         =       Pattern.compile("(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "(\\s*having\\s*)" +                          // keyword 'having'
+                                                                              "(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)"           // spaces and comments
+                                                                      , Pattern.CASE_INSENSITIVE);
+  private static final Pattern OFFSET_FETCH_PATTERN   =       Pattern.compile("(\\s*(?:/\\*[\\s\\S]*?\\*/)?\\s*)" +         // spaces and comments
+                                                                              "(\\s*OFFSET\\s+[\\s\\S]*?\\s+ROWS\\s+)?" +   // keyword 'OFFSET'
+                                                                              "((\\s*FETCH\\s+(FIRST|NEXT)\\s+)[\\s\\S]*?(row|rows)?\\s+(only|with\\s+ties)\\s*)" // keyword 'fetch'
+                                                                      , Pattern.CASE_INSENSITIVE);
+  private static final  Pattern SUBQUERY_PATTERN      =       Pattern.compile("\\(\\s*select\\s+", Pattern.CASE_INSENSITIVE); // for sub queries start
   private static final SocketHandlerFunction socketHandler;
   public static TnsDaemon tnsDaemon;
 
@@ -781,6 +804,7 @@ public class Utils {
       int  paramCount;
       int  selectEndPos;
       int  whereEndPos;
+      int clauseStartPos;
       List<Integer> paramsIndexs;
 
       public void setOnDuplicateKeyUpdateIndex(int onDuplicateKeyUpdateIndex) {
@@ -793,11 +817,12 @@ public class Utils {
 
       int onDuplicateKeyUpdateIndex;
 
-      public TrimSQLInfo(String trimedString, int paramCount, int selectEndPos, int whereEndPos, List<Integer> paramsIndexs, int onDuplicateKeyUpdateIndex) {
+      public TrimSQLInfo(String trimedString, int paramCount, int selectEndPos, int whereEndPos, int clauseStartPos, List<Integer> paramsIndexs, int onDuplicateKeyUpdateIndex) {
           this.trimedString = trimedString;
           this.paramCount = paramCount;
           this.selectEndPos = selectEndPos;
           this.whereEndPos = whereEndPos;
+          this.clauseStartPos = clauseStartPos;
           this.paramsIndexs = paramsIndexs;
           this.onDuplicateKeyUpdateIndex = onDuplicateKeyUpdateIndex;
       }
@@ -818,6 +843,11 @@ public class Utils {
           return whereEndPos;
       }
 
+      public int getClauseStartPos() {
+        return clauseStartPos;
+      }
+
+
       public List<Integer> getParamsIndexs() {
           return paramsIndexs;
       }
@@ -829,6 +859,7 @@ public class Utils {
                   ", paramCount=" + paramCount +
                   ", selectEndPos=" + selectEndPos +
                   ", whereEndPos=" + whereEndPos +
+                  ", clauseStartPos=" + clauseStartPos +
                   ", paramsIndexs=" + paramsIndexs +
                   ", onDuplicateKeyUpdateIndex=" + onDuplicateKeyUpdateIndex +
                   '}';
@@ -837,10 +868,10 @@ public class Utils {
 
     enum KeyState {
         Normal, /* inside  query */
-        No,
-        Duplicate,
-        Key,
-        Update
+        On,
+        OnDuplicate,
+        OnDuplicateKey,
+        OnDuplicateKeyUpdate
     }
   public static TrimSQLInfo trimSQLStringInternal(String queryString, boolean noBackslashEscapes, boolean isOracleMode, boolean skipComment) {
     char[] query = queryString.toCharArray();
@@ -856,11 +887,14 @@ public class Utils {
     boolean singleQuotes = false;
     int selectEndPos = -1;
     int whereEndPos = -1;
+    int clauseStartPos = -1;
     int lastParamPos = 0;
     int commentStart = 0;
     boolean slashEnd = false;
     int lastCommentEndStarPos = -2;
     int lastCommentBeginSlashPos = 0;
+    int subQueryStartPos = getSubQueryStartPos(queryString);
+    int subQueryEndPos = getSubQueryEndPos(queryString, subQueryStartPos);
     boolean semicolonEnd = false;
     KeyState keyState = KeyState.Normal;
     boolean nameBindingEnd = false;
@@ -1043,17 +1077,16 @@ public class Utils {
                 switch (car) {
                     case 'o':
                     case 'O':
-                        if (state == LexState.Normal
+                        if (keyState != KeyState.OnDuplicateKeyUpdate
                                 && queryLength > i + 1
                                 && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
                             onDuplicateKeyUpdateIndex = trimedSqlString.length();
-                            keyState = KeyState.No;
+                            keyState = KeyState.On;
                         }
                         break;
                     case 'd':
                     case 'D':
-                        if (state == LexState.Normal
-                                && keyState == KeyState.No
+                        if (keyState == KeyState.On
                                 && queryLength > i + 8
                                 && (query[i + 1] == 'u' || query[i + 1] == 'U')
                                 && (query[i + 2] == 'p' || query[i + 2] == 'P')
@@ -1063,37 +1096,38 @@ public class Utils {
                                 && (query[i + 6] == 'a' || query[i + 6] == 'A')
                                 && (query[i + 7] == 't' || query[i + 7] == 'T')
                                 && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
-                            keyState = KeyState.Duplicate;
+                            keyState = KeyState.OnDuplicate;
                         }
                         break;
                     case 'k':
                     case 'K':
-                        if (state == LexState.Normal
-                                && keyState == KeyState.Duplicate
+                        if (keyState == KeyState.OnDuplicate
                                 && queryLength > i + 2
                                 && (query[i + 1] == 'e' || query[i + 1] == 'E')
                                 && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
-                            keyState = KeyState.Key;
+                            keyState = KeyState.OnDuplicateKey;
                         }
                         break;
                     case 'u':
                     case 'U':
-                        if (state == LexState.Normal
-                                && keyState == KeyState.Key
+                        if (keyState == KeyState.OnDuplicateKey
                                 && queryLength > i + 5
                                 && (query[i + 1] == 'p' || query[i + 1] == 'P')
                                 && (query[i + 2] == 'd' || query[i + 2] == 'D')
                                 && (query[i + 3] == 'a' || query[i + 3] == 'A')
                                 && (query[i + 4] == 't' || query[i + 4] == 'T')
                                 && (query[i + 5] == 'e' || query[i + 5] == 'E')) {
-                            keyState = KeyState.Update;
+                            keyState = KeyState.OnDuplicateKeyUpdate;
                         }
                         break;
                 }
                 if (selectEndPos == -1 && (car == 't' || car == 'T') && i >= 5 && queryString.substring(i - 5, i + 1).equalsIgnoreCase("select")) {
                     selectEndPos = i;
-                } else if (whereEndPos == -1 && (car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
+                } else if ((car == 'e' || car == 'E') && i >= 4 && queryString.substring(i - 4, i + 1).equalsIgnoreCase("where")) {
+                  // where clauses can be nested in subqueries, so we need to check if the where clause is not inside a subquery
+                  if (!(i < subQueryEndPos && i > subQueryStartPos)) {
                     whereEndPos = i;
+                  }
                 }
             }
           break;
@@ -1153,7 +1187,8 @@ public class Utils {
     } else {
       trimedSqlString.append(queryString.substring(lastParamPos, queryLength));
     }
-    return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,paramIndexs,onDuplicateKeyUpdateIndex);
+    clauseStartPos = getClauseStartPos(queryString, subQueryEndPos);
+    return new TrimSQLInfo(trimedSqlString.toString(),parameterCount,selectEndPos,whereEndPos,clauseStartPos,paramIndexs,onDuplicateKeyUpdateIndex);
   }
 
   private static int nextCharIndex(int startPos, int stopPos, String searchedString,
@@ -1908,5 +1943,75 @@ public class Utils {
             return false;
         }
         return bytes[0] == -1 || bytes[0] > 0;
+    }
+
+    private static int getClauseStartPos(String trimedSql, int subQueryEndPos) {
+      // Remove clauses in subquery
+      if (subQueryEndPos != -1) {
+        trimedSql = trimedSql.substring(subQueryEndPos);
+      }
+
+      int clauseStartPos = Integer.MAX_VALUE , orderByStartPos = -1, forUpdateStartPos = -1, havingStartPos = -1, offsetOrFetchStartPos = -1;
+
+      Matcher orderByMatcher = ORDER_BY_PATTERN.matcher(trimedSql);
+      Matcher forUpdateMatcher= FOR_UPDATE_PATTERN.matcher(trimedSql);
+      Matcher havingMatcher = HAVING_PATTERN.matcher(trimedSql);
+      Matcher offsetOrFetchMatcher = OFFSET_FETCH_PATTERN.matcher(trimedSql);
+
+      // find clause start pos
+      if (orderByMatcher.find()) {
+        orderByStartPos = orderByMatcher.start(2);
+        clauseStartPos = Math.min(orderByStartPos, clauseStartPos);
+      }
+
+      if (forUpdateMatcher.find()) {
+        forUpdateStartPos = forUpdateMatcher.start(3);
+        clauseStartPos = Math.min(forUpdateStartPos, clauseStartPos);
+      }
+
+      if (havingMatcher.find()) {
+        havingStartPos = havingMatcher.start(2);
+        clauseStartPos = Math.min(havingStartPos, clauseStartPos);
+      }
+
+      if(offsetOrFetchMatcher.find()) {
+        offsetOrFetchStartPos = offsetOrFetchMatcher.start(2) != -1 ? offsetOrFetchMatcher.start(2) : offsetOrFetchMatcher.start(3);
+        clauseStartPos = Math.min(offsetOrFetchStartPos, clauseStartPos);
+      }
+
+      if (subQueryEndPos != -1) {
+        clauseStartPos = clauseStartPos + subQueryEndPos;
+      }
+      return clauseStartPos == Integer.MAX_VALUE ? -1 : clauseStartPos;
+    }
+
+    private static int getSubQueryStartPos(String trimedSql) {
+      int subQueryStartPos = -1;
+      Matcher subQueryMatcher = SUBQUERY_PATTERN.matcher(trimedSql);
+      if (subQueryMatcher.find()) {
+        subQueryStartPos = subQueryMatcher.start();
+      }
+      return subQueryStartPos;
+    }
+
+    private static int getSubQueryEndPos(String trimedSql, int subQueryStartPos) {
+      int subQueryEndPos = -1;
+      if (subQueryStartPos != -1) {
+        String substring = trimedSql.substring(subQueryStartPos);
+        int count = 0;
+        for (int i = 0; i < substring.length(); i++) {
+          if (substring.charAt(i) == '('){
+            count ++;
+          }
+          if (substring.charAt(i) == ')'){
+            count --;
+          }
+          if (count == 0) {
+            subQueryEndPos = i + subQueryStartPos;
+            break;
+          }
+        }
+      }
+      return subQueryEndPos;
     }
 }

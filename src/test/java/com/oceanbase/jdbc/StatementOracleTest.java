@@ -49,6 +49,8 @@ import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
+
 public class StatementOracleTest extends BaseOracleTest {
 
     @Test
@@ -73,7 +75,7 @@ public class StatementOracleTest extends BaseOracleTest {
         }
         try {
             Assert.assertTrue(rs.isLast());
-            Assert.fail();
+            fail();
         } catch (Exception e) {
             Assert.assertEquals(e.getMessage(), "Invalid operation on TYPE_FORWARD_ONLY ResultSet");
         }
@@ -91,7 +93,7 @@ public class StatementOracleTest extends BaseOracleTest {
         }
         try {
             Assert.assertTrue(rs1.isLast());
-            Assert.fail();
+            fail();
         } catch (Exception e) {
             Assert.assertEquals(e.getMessage(), "Invalid operation on TYPE_FORWARD_ONLY ResultSet");
         }
@@ -109,7 +111,7 @@ public class StatementOracleTest extends BaseOracleTest {
         }
         try {
             Assert.assertTrue(rs2.isLast());
-            Assert.fail();
+            fail();
         } catch (Exception e) {
             Assert.assertEquals(e.getMessage(), "Invalid operation on TYPE_FORWARD_ONLY ResultSet");
         }
@@ -212,4 +214,94 @@ public class StatementOracleTest extends BaseOracleTest {
         conn.setAutoCommit(true);
         conn.close();
     }
+
+    @Test
+    public void testForOrderBy() throws SQLException {
+        createTable("t_test", "c1 int , c2 varchar2(100), c3 varchar2(100), one int");
+        Connection conn = setConnection("&useOraclePrepareExecute=false&useCursorFetch=true&defaultFetchSize=25000");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_test values(1, 'a', 'b', 1)");
+        stmt.execute("insert into t_test values(2, 'a', 'b', 2)");
+        stmt.execute("insert into t_test values(3, 'a', 'b', 3)");
+
+        String sql = "select c1, c2 , c3 from t_test /*123\n*/order/*\n123*/by/*123*/ one";
+        Statement stmt1 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt1.executeQuery(sql);
+
+        if (rs.last()) {
+            Assert.assertEquals("3", rs.getString(1));
+        }
+        stmt1.close();
+        stmt.close();
+    }
+
+    @Test
+    public void testForSqlAppend() throws SQLException {
+        createTable("t_test", "c1 int , c2 varchar2(100), c3 varchar2(100)");
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_test values(1, 'a', 'b')");
+        stmt.execute("insert into t_test values(2, 'a', 'b')");
+        stmt.execute("insert into t_test values(3, 'a', 'b')");
+        stmt.execute("insert into t_test values(4, 'a', 'b')");
+        stmt.execute("insert into t_test values(5, 'a', 'b')");
+
+        // having for dima2024111500105136558
+        String sql = "select /*1234*/ c1, c2 from t_test having 1=1";
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        rs.last();
+        Assert.assertEquals(5, rs.getRow());
+        rs.close();
+
+        // limit for dima2024112500105273269
+        sql = "select c1 from t_test where c2 = 'a' /*1234*/\nOFFSET 2 ROWS FETCH FIRST 3 ROWS ONLY";
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(3, rs.getInt(1));
+        rs.close();
+
+        // for update for dima2024112500105272024
+        sql = "select c1  from t_test where c2 = 'a' /*1234*/\nfor/*1234*/update";
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        rs.last();
+        Assert.assertEquals(5, rs.getRow());
+
+        // subQuery
+        sql = "select c1, c2 from (select c1, c2 from t_test  where c2 = 'a' order by c2 OFFSET 2 ROWS FETCH FIRST 3 ROWS ONLY) having 1 = 1 order by c1";
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(3, rs.getInt(1));
+        rs.last();
+        Assert.assertEquals(3, rs.getRow());
+
+        sql = "select c1, c2 from (select c1, c2 from t_test  where c2 = 'a' order by c2 OFFSET 2 ROWS FETCH FIRST 3 ROWS ONLY) where c1 = '4' having 1 = 1 order by c1";
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(4, rs.getInt(1));
+        rs.last();
+        Assert.assertEquals(1, rs.getRow());
+
+        sql = "select c1, c2 from t_test where c1 in (select c1 from t_test  where c2 = 'a' order by c1 desc OFFSET 2 ROWS FETCH FIRST 3 ROWS ONLY)  having 1 = 1 order by c1";
+        ps = conn
+            .prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        rs = ps.executeQuery();
+        rs.last();
+        Assert.assertEquals(3, rs.getInt(1));
+        Assert.assertEquals(3, rs.getRow());
+    }
+
 }
