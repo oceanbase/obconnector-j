@@ -166,20 +166,6 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     /**
-     * ToString implementation.
-     *
-     * @return string value of blob content.
-     */
-    public String toString() {
-        if (charData != null) {
-            return charData;
-        } else {
-            Charset charset = Charset.forName(encoding);
-            return new String(data, offset, length, charset);
-        }
-    }
-
-    /**
      * Get sub string.
      *
      * @param pos    position
