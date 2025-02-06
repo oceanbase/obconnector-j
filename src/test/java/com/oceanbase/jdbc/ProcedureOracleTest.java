@@ -521,6 +521,23 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2024121000106419694() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement statement = conn.createStatement();
+        statement.execute("create or replace type obj0 force as object(c0 int, c1 int);");
+        statement.execute("create or replace procedure p1(a obj0, b out obj0)is begin b:=a;end;");
+
+        CallableStatement call01 = conn.prepareCall("call p1(obj0(1,5),?)");
+        call01.registerOutParameter(1, Types.STRUCT,"OBJ0");
+        call01.execute();
+        Struct struct01 = (Struct) call01.getObject(1);
+        Object[] attributes = struct01.getAttributes();
+        assertEquals(2, attributes.length);
+        assertEquals("1", attributes[0].toString());
+        assertEquals("5", attributes[1].toString());
+    }
+
+    @Test
     public void testForDima2024062200102855995() throws SQLException {
         Connection conn = setConnection();
         CallableStatement cs = null;
@@ -632,5 +649,5 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.setInt(2, 30);
         cs.execute();
         Assert.assertEquals(60, cs.getInt(1));
-    } 
+    }
 }

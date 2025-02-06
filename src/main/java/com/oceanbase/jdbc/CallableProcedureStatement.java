@@ -709,6 +709,16 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
         callParameter.setOutput(true);
+
+        if (protocol.isOracleMode()) {
+            CallParameter placeHolderParameter = parameterMetadata
+                    .getPlaceholderParam(parameterIndex - 1);
+            if (null != placeHolderParameter) {
+                placeHolderParameter.setOutputSqlType(sqlType);
+                placeHolderParameter.setTypeName(typeName);
+                placeHolderParameter.setOutput(true);
+            }
+        }
     }
 
     @Override
