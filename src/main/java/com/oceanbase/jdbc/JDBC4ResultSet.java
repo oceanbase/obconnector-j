@@ -2207,7 +2207,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
                 // avoid the impact of caching
                 type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);
@@ -2236,7 +2236,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
             Object ret = null;
             if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
                 ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
@@ -2265,7 +2265,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName);
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
                 // avoid impact of cache
                 type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);

@@ -43,6 +43,7 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import java.sql.SQLException;
 
 public class ComplexDataType {
@@ -195,5 +196,59 @@ public class ComplexDataType {
 
     public static byte[] getBytes() {
         return null;
+    }
+
+    public static int convertColumnTypeToComplexDataType(ColumnType columnType) {
+        switch (columnType) {
+            case NUMBER:
+            case OBDECIMAL:
+                return TYPE_NUMBER;
+            case VARCHAR2:
+                return TYPE_VARCHAR2;
+            case DATE:
+            case DATETIME:
+                return TYPE_DATE;
+            case TIMESTAMP:
+            case TIMESTAMP_NANO:
+                return TYPE_TIMESTMAP;
+            case STRING:
+                return TYPE_CHAR;
+            case BLOB:
+            case ORA_BLOB:
+                return TYPE_BLOB;
+            case ORA_CLOB:
+                return TYPE_CLOB;
+            case RAW:
+                return TYPE_RAW;
+            default:
+                return TYPE_MAX;
+        }
+    }
+
+    public static String getTypeNameByColumnType(ColumnType columnType) {
+        switch (columnType) {
+            case NUMBER:
+            case OBDECIMAL:
+                return "NUMBER";
+            case VARCHAR2:
+                return "VARCHAR2";
+            case DATE:
+            case DATETIME:
+                return "DATE";
+            case TIMESTAMP:
+            case TIMESTAMP_NANO:
+                return "TIMESTAMP";
+            case STRING:
+                return "CHAR";
+            case BLOB:
+            case ORA_BLOB:
+                return "BLOB";
+            case ORA_CLOB:
+                return "CLOB";
+            case RAW:
+                return "RAW";
+            default:
+                return "UNKNOWN";
+        }
     }
 }

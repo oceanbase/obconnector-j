@@ -106,6 +106,7 @@ public class ColumnDefinition {
     private int                complexTypeNameStart    = -1;
     private int                complexTypeNameLength   = -1;
     private int                complexVersion          = 0;
+    private int                elemSqlType             = -1;
     private final boolean      isOracleMode;
     private int                precisionAdjustFactor   = 0;
     private String             encoding                = "UTF-8";
@@ -225,6 +226,11 @@ public class ColumnDefinition {
                 complexTypeNameLength);
 
             complexVersion = (int) buffer.readFieldLength();
+
+            // if type name is null, means no named array
+            if (this.complexTypeNameLength == 0) {
+                elemSqlType = buffer.readByte() & 0xff;
+            }
         }
 
         if (isSigned()) {
@@ -741,5 +747,9 @@ public class ColumnDefinition {
             return Integer.MAX_VALUE;
         }
         return (int) length;
+    }
+
+    public int getElemSqlType() {
+        return elemSqlType;
     }
 }

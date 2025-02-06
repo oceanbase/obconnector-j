@@ -61,6 +61,8 @@ import java.util.regex.Pattern;
 import com.oceanbase.jdbc.extend.datatype.ArrayImpl;
 import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import com.oceanbase.jdbc.extend.datatype.StructImpl;
+import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
@@ -1998,7 +2000,10 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
     }
 
-    public ComplexDataType getComplexDataType(String typeName) throws SQLException {
+    public ComplexDataType getComplexDataType(String typeName, ColumnDefinition columnDefinition) throws SQLException {
+        if (typeName.isEmpty() && columnDefinition.getElemSqlType() != -1 && columnDefinition.getElemSqlType() != ColumnType.COMPLEX.getType()) {
+            return getAnonymousArrayComplexType(columnDefinition);
+        }
         ComplexDataType type = null;
         type = getComplexDataTypeFromCache(typeName);
         if (null != type && type.isValid()) {
@@ -2006,6 +2011,22 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
         type = getComplexDataTypeFromRemote(typeName);
         return type;
+    }
+
+    public ComplexDataType getAnonymousArrayComplexType(ColumnDefinition columnDefinition){
+        // array
+        ComplexDataType complexDataType = new ComplexDataType("anonymousArray", columnDefinition.getDatabase(),  ComplexDataType.TYPE_COLLECTION);
+
+        // base date type
+        int elemSqlType = columnDefinition.getElemSqlType();
+        ColumnType columnType = ColumnType.convertProtocolTypeToColumnType(elemSqlType, columnDefinition.getCharsetNumber(), protocol.isOracleMode(), options);
+        ComplexDataType attrComplexType = new ComplexDataType(ComplexDataType.getTypeNameByColumnType(columnType), "",  ComplexDataType.convertColumnTypeToComplexDataType(columnType));
+        attrComplexType.setValid(true);
+
+        complexDataType.setAttrCount(1);
+        complexDataType.setAttrType(0, attrComplexType);
+        complexDataType.setValid(true);
+        return complexDataType;
     }
 
     public ComplexDataType getComplexDataTypeFromCache(String typeName) {
