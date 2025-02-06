@@ -159,6 +159,7 @@ public class BinaryRowProtocol extends RowProtocol {
                         switch (columnDefinition[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
+                            case BINARY_DOUBLE:
                                 internalPos += 8;
                                 break;
 
@@ -166,6 +167,7 @@ public class BinaryRowProtocol extends RowProtocol {
                             case MEDIUMINT:
                             case FLOAT:
                             case NUMBER:
+                            case BINARY_FLOAT:
                                 internalPos += 4;
                                 break;
 

@@ -1986,4 +1986,20 @@ public class ResultSetOracleTest extends BaseOracleTest {
         }
         assertEquals(12, count);
     }
+
+    @Test
+    public void testSetPositionForDima2024120200105743946() throws SQLException {
+        createTable("tz1", "c1 float, c2 binary_float, c3 binary_double");
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into tz1 values (1.2, 1.3, 1.4)");
+        ResultSet rs = stmt.executeQuery("select * from tz1");
+        Assert.assertTrue(rs.next());
+        try {
+            Assert.assertEquals("1.4", rs.getString(3));
+            Assert.assertEquals("1.3", rs.getString(2));
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 }
