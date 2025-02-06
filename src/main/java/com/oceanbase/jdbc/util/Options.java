@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.util;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.util.Locale;
 import java.util.Objects;
@@ -887,6 +888,9 @@ public class Options implements Cloneable {
     }
 
     public String getCharacterEncoding(){
+        if ("HKSCS".equals(characterEncoding.toUpperCase(Locale.ROOT)) || "HKSCS31".equals(characterEncoding.toUpperCase(Locale.ROOT))) {
+            return StandardCharsets.UTF_8.name();
+        }
         return "GB18030_2022".equals(characterEncoding.toUpperCase(Locale.ROOT)) ? "gb18030" : characterEncoding;
     }
 
