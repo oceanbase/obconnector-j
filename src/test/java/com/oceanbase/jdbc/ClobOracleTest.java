@@ -1251,6 +1251,16 @@ public class ClobOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2024112000105211953() throws SQLException {
+        Connection conn = sharedConnection;
+        java.sql.Blob blob = conn.createBlob();
+        java.sql.Clob clob = conn.createClob();
+
+        Assert.assertTrue(blob.toString().contains("com.oceanbase.jdbc.Blob@"));
+        Assert.assertTrue(clob.toString().contains("com.oceanbase.jdbc.Clob@"));
+    }
+
+    @Test
     public void testPLSetLobNullForDima2024080100104015501() throws SQLException {
         Connection conn = sharedConnection;
         Statement stmt = conn.createStatement();
