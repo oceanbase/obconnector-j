@@ -44,10 +44,10 @@
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.math.BigDecimal;
 import java.sql.*;
 
+import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -521,6 +521,109 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2024062200102855995() throws SQLException {
+        Connection conn = setConnection();
+        CallableStatement cs = null;
+        Array array = null;
+
+        // smallint
+        cs = conn.prepareCall("declare type tb is table of smallint; begin ? := tb(1, 2, 3); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "NUMBER", ComplexDataType.TYPE_NUMBER, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(3));
+
+        // int
+        cs = conn.prepareCall("declare type tb is table of int; begin ? := tb(1, 2, 3); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "NUMBER", ComplexDataType.TYPE_NUMBER, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(3));
+
+        // decimal
+        cs = conn.prepareCall("declare type tb is table of decimal; begin ? := tb(1, 2, 3); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "NUMBER", ComplexDataType.TYPE_NUMBER, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(3));
+
+        // date, return elem_type is 12, not 10.
+        cs = conn.prepareCall("declare type tb is table of date; begin ? := tb(to_date('2024-11-05', 'yyyy-mm-dd'), to_date('2024-11-06', 'yyyy-mm-dd')); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "DATE", ComplexDataType.TYPE_DATE, Timestamp.valueOf("2024-11-05 00:00:00"), Timestamp.valueOf("2024-11-06 00:00:00"));
+
+        // datetime
+        cs = conn.prepareCall("declare type tb is table of timestamp; begin ? := tb(to_timestamp('2024-11-05 12:23:34', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('2024-11-06 12:23:34', 'YYYY-MM-DD HH24:MI:SS')); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "TIMESTAMP", ComplexDataType.TYPE_TIMESTMAP, Timestamp.valueOf("2024-11-05 12:23:34"), Timestamp.valueOf("2024-11-06 12:23:34"));
+
+        // char
+        cs = conn.prepareCall("declare type tb is table of char; begin ? := tb('a', 'b', 'c'); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "CHAR", ComplexDataType.TYPE_CHAR, "a", "b", "c");
+
+        // varchar
+        cs = conn.prepareCall("declare type tb is table of varchar(10); begin ? := tb('a', 'b', 'c'); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "VARCHAR2", ComplexDataType.TYPE_VARCHAR2, "a", "b", "c");
+
+        // varchar2
+        cs = conn.prepareCall("declare type tb is table of varchar2(10); begin ? := tb('a', 'b', 'c'); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "VARCHAR2", ComplexDataType.TYPE_VARCHAR2, "a", "b", "c");
+
+        // blob
+        cs = conn.prepareCall("declare type tb is table of blob; begin ? := tb(TO_BLOB('68656C6C6F'), TO_BLOB('74657874')); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "BLOB", ComplexDataType.TYPE_BLOB, "hello", "text");
+
+        // clob, elem_type return 251, not 211, becaused by server's error.
+        cs = conn.prepareCall("declare type tb is table of clob; begin ? := tb(TO_CLOB('hello'), TO_CLOB('text')); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "CLOB", ComplexDataType.TYPE_CLOB, "hello", "text");
+
+        // raw
+        cs = conn.prepareCall("declare type tb is table of raw(20); begin ? := tb(UTL_RAW.CAST_TO_RAW('hello'), UTL_RAW.CAST_TO_RAW('text')); end; ");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.execute();
+        array = cs.getArray(1);
+        assertForDima2024062200102855995(array, "RAW", ComplexDataType.TYPE_RAW, "hello", "text");
+    }
+
+    public void assertForDima2024062200102855995(Array array, String typeName, int type, Object... value) throws SQLException {
+        if (typeName.equals("CLOB")) {
+            Assert.assertEquals("BLOB", array.getBaseTypeName());
+            Assert.assertEquals(ComplexDataType.TYPE_BLOB, array.getBaseType());
+        } else {
+            Assert.assertEquals(typeName, array.getBaseTypeName());
+            Assert.assertEquals(type, array.getBaseType());
+        }
+
+        Object[] objects = (Object[]) array.getArray();
+        for (int i = 0; i < objects.length; i++) {
+            if (typeName.equals("BLOB") || typeName.equals("CLOB") || typeName.equals("RAW")) {
+                Assert.assertEquals(value[i], new String((byte[]) objects[i]));
+            } else {
+                Assert.assertEquals(value[i], objects[i]);
+            }
+        }
+    }
+    
+    @Test
     public void testForDima2024110800105015106() throws SQLException {
         Connection conn = setConnection();
         createFunction("func_1", "(a int, b int, c int) return int as v_res int; begin v_res := a + b + c; return v_res; end;  ");
@@ -529,6 +632,5 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.setInt(2, 30);
         cs.execute();
         Assert.assertEquals(60, cs.getInt(1));
-    }
-    
+    } 
 }
