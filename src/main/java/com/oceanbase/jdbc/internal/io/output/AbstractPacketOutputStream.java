@@ -57,6 +57,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
@@ -99,6 +100,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private TimeTrace         timeTrace;
     private boolean           encloseParamInParentheses;
     private boolean           isOracleMode;
+    protected List<byte[]>    sendPacketBufList;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
