@@ -727,4 +727,8 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
     byte[] original = Arrays.copyOfRange(b, 4,b.length); // skip the length
     return new String(original);
   }
+
+  public void addParametes(ParameterHolder[] holder){
+    parametersList.add(holder);
+  }
 }

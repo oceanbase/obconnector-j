@@ -516,6 +516,35 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testEmulateUnsupportedPstmtsForDima2024062200102856222() {
+        try {
+            Connection conn = setConnection("&rewriteBatchedStatements=true&useServerPrepStmts=true&cachePrepStmts=true&emulateUnsupportedPstmts=true&maxBatchTotalParamsNum=3");
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute("drop table t0");
+            } catch (SQLException e) {
+            }
+            stmt.execute("create table t0(c0 int)");
+            stmt.execute("alter system set open_cursors=2");
+            PreparedStatement ps;
+            for (int j = 10; j <= 10; j++) {
+                ps = conn.prepareStatement("insert into t0 values(?)");
+                for (int i = 0; i <= j; i++) {
+                    ps.setInt(1, i);
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+                ps.close();
+            }
+            ResultSet rs = stmt.executeQuery("select count(1) from t0");
+            rs.next();
+            Assert.assertEquals(11, rs.getInt(1));
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+    @Test
     public void testSendMaxAllowedPacketForDima2024120500105994018() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         statement.execute("set global max_allowed_packet = 16777216");
