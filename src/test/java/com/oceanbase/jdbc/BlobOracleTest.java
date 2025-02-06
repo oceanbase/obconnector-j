@@ -1552,4 +1552,32 @@ public class BlobOracleTest extends BaseOracleTest {
           fail();
         }
     }
+
+    @Test
+    public void testForDima2024111400105100716() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("set global ob_default_lob_inrow_threshold = 0;");
+        createTable("t_lob", "c1 clob, c2 blob");
+        stmt.execute("insert into t_lob values ('abc', '616263')");
+        stmt.close();
+
+        Connection conn = setConnection("");
+        conn.setAutoCommit(false);
+        try {
+            PreparedStatement ps = conn.prepareStatement("select * from t_lob for update");
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+
+            java.sql.Clob clob = rs.getClob(1);
+            clob.truncate(2);
+            assertEquals("ab", clob.getSubString(1L, (int) clob.length()));
+
+            java.sql.Blob blob = rs.getBlob(2);
+            blob.truncate(2);
+            assertArrayEquals("ab".getBytes(), blob.getBytes(1L, (int) blob.length()));
+        } finally {
+            conn.setAutoCommit(true);
+        }
+
+    }
 }
