@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.io.output;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.io.TraceObject;
@@ -59,6 +60,7 @@ import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import com.oceanbase.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
@@ -107,14 +109,38 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[1] = (byte) ((pos - 4) >>> 8);
             buf[2] = (byte) ((pos - 4) >>> 16);
             buf[3] = (byte) mysqlSeqNo++;
-            checkMaxAllowedLength(pos - 4);
+
+            cmdLength += pos - 4;
+            if (cmdLength >= maxAllowedPacket) {
+                if (sendPacketBufList != null && !sendPacketBufList.isEmpty()) {
+                    sendPacketBufList.clear();
+                }
+                throw new MaxAllowedPacketException("query size (" + cmdLength
+                        + ") is >= to max_allowed_packet ("
+                        + maxAllowedPacket + ")", false);
+            }
 
             logger.debug("prepare to send: {}, packetLength = {}, packetNumber = {}",
                 serverThreadLog,
                 ((buf[0] & 0xff) + ((buf[1] & 0xff) << 8) + ((buf[2] & 0xff) << 16)),
                 (buf[3] & 0xff));
-            out.write(buf, 0, pos);
-            cmdLength += pos - 4;
+
+            // When commandEnd is true, all packets are sent at once
+            if (!commandEnd) {
+                byte[] bytes = Arrays.copyOf(buf, pos);
+                if (sendPacketBufList == null) {
+                    sendPacketBufList = new ArrayList<>();
+                }
+                sendPacketBufList.add(bytes);
+            } else {
+                if(sendPacketBufList != null && !sendPacketBufList.isEmpty()) {
+                    for (byte[] bytes : sendPacketBufList) {
+                        out.write(bytes);
+                    }
+                    sendPacketBufList.clear();
+                }
+                out.write(buf, 0, pos);
+            }
 
             doTrace(pos);
 

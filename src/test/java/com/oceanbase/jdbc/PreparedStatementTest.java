@@ -56,6 +56,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.Random;
 
 import org.junit.*;
 
@@ -806,6 +807,66 @@ public class PreparedStatementTest extends BaseTest {
         ps2.close();
         conn2.rollback();
         System.out.println("222");
+    }
+
+    @Test
+    public void testSendMaxAllowedPacketForDima2024120500105994018() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("set global max_allowed_packet = 16777216");
+        statement.close();
+        createTable("t_large", "c1 int, c2 longtext, c3 longtext, c4 longtext");
+
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                conn = setConnection("&useServerPrepStmts=true");
+            }
+
+            // set session
+            Statement stmt = conn.createStatement();
+            stmt.execute("set time_zone = '+00:00'");
+            ResultSet rs = stmt.executeQuery("show variables like 'time_zone'");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("+00:00", rs.getString(2));
+            rs.close();
+
+            // insert
+            String sql = "insert into t_large values(?,?,?,?)";
+
+            String MB_2 = getRandomVarchar(2 * 1024 * 1024);
+            String MB_4 = getRandomVarchar(4 * 1024 * 1024);
+            String MB_13 = getRandomVarchar(13 * 1024 * 1024);
+
+            try {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setInt(1, 1);
+                ps.setString(2, MB_2);
+                ps.setString(3, MB_4);
+                ps.setString(4, MB_13);
+                ps.execute();
+                fail();
+                ps.close();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("is >= to max_allowed_packet (16777216)"));
+            }
+
+            // verify if it is a new connection
+            rs = stmt.executeQuery("show variables like 'time_zone'");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("+00:00", rs.getString(2));
+            rs.close();
+        }
+    }
+
+    public  String getRandomVarchar(int length){
+        String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < length; i++){
+            int number=random.nextInt(62);
+            sb.append(str.charAt(number));
+        }
+        return sb.toString();
     }
 
 }
