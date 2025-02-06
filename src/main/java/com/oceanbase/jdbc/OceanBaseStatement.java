@@ -1438,14 +1438,18 @@ public class OceanBaseStatement implements Statement, Cloneable {
    *     or there are no more results
    */
   public int getUpdateCount() throws SQLException {
-    if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
-        // DML returning rs
-        if (results.isReturning() && results.getResultSet() != null) {
-            return (int) results.getResultSet().getProcessedRows();
-        }
-      return results.getCmdInformation().getUpdateCount();
-    }
-    return -1;
+      if (results != null && results.getCmdInformation() != null){
+          boolean dmlReturningRs = results.isReturning() && results.getResultSet() != null;
+          boolean arrayBindingReturningRs = dmlReturningRs && results.getCmdInformation().getArrayBinding();
+          if (arrayBindingReturningRs || (!results.isBatch() && dmlReturningRs)) {
+              return (int) results.getResultSet().getProcessedRows();
+          }
+          if (!results.isBatch()) {
+              return results.getCmdInformation().getUpdateCount();
+          }
+      }
+
+      return -1;
   }
 
   /**
@@ -1456,14 +1460,17 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   @Override
   public long getLargeUpdateCount() {
-    if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
-        // DML returning rs
-        if (results.isReturning() && results.getResultSet() != null) {
-            return results.getResultSet().getProcessedRows();
-        }
-      return results.getCmdInformation().getLargeUpdateCount();
-    }
-    return -1;
+      if (results != null && results.getCmdInformation() != null){
+          boolean dmlReturningRs = results.isReturning() && results.getResultSet() != null;
+          boolean arrayBindingReturningRs = dmlReturningRs && results.getCmdInformation().getArrayBinding();
+          if (arrayBindingReturningRs || (!results.isBatch() && dmlReturningRs)) {
+              return results.getResultSet().getProcessedRows();
+          }
+          if (!results.isBatch()) {
+              return results.getCmdInformation().getLargeUpdateCount();
+          }
+      }
+      return -1;
   }
 
   protected void skipMoreResults() throws SQLException {

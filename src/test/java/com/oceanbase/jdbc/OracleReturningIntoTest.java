@@ -1,14 +1,13 @@
 package com.oceanbase.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.sql.*;
 
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class OracleReturningIntoTest extends BaseOracleTest {
 
@@ -185,6 +184,79 @@ public class OracleReturningIntoTest extends BaseOracleTest {
             e.printStackTrace();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testReturningBatchBySQLForDima2024110800105027138() throws SQLException {
+        createTable("t_rb", "c1 int");
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true&compatibleOjdbcVersion=8");
+        conn.setAutoCommit(false);
+        try {
+            JDBC4ServerPreparedStatement ps = (JDBC4ServerPreparedStatement) conn
+                .prepareStatement("insert into t_rb values(?) returning c1 into ?");
+            ps.setInt(1, 10);
+            ps.registerReturnParameter(2, Types.INTEGER);
+            ps.addBatch();
+            ps.setInt(1, 20);
+            ps.registerReturnParameter(2, Types.VARCHAR);
+            ps.addBatch();
+            int[] ints = ps.executeBatch();
+            assertEquals(2, ps.getUpdateCount());
+            assertArrayEquals(new int[] { -2, -2 }, ints);
+            ResultSet rs = ps.getReturnResultSet();
+            rs.next();
+            assertEquals(10, rs.getInt(1));
+            rs.next();
+            assertEquals(20, rs.getInt(1));
+            conn.commit();
+
+            ps = (JDBC4ServerPreparedStatement) conn
+                .prepareStatement("update t_rb set c1 = ? returning c1 into ?");
+            ps.setInt(1, 11);
+            ps.registerReturnParameter(2, Types.INTEGER);
+            ps.addBatch();
+            ps.setInt(1, 22);
+            ps.registerReturnParameter(2, Types.INTEGER);
+            ps.addBatch();
+            ints = ps.executeBatch();
+            assertEquals(4, ps.getUpdateCount());
+            conn.commit();
+            assertArrayEquals(new int[] { -2, -2 }, ints);
+            rs = ps.getReturnResultSet();
+            rs.next();
+            assertEquals(11, rs.getInt(1));
+            rs.next();
+            assertEquals(11, rs.getInt(1));
+            rs.next();
+            assertEquals(22, rs.getInt(1));
+            rs.next();
+            assertEquals(22, rs.getInt(1));
+            assertFalse(rs.next());
+
+            ps = (JDBC4ServerPreparedStatement) conn
+                .prepareStatement("delete from t_rb where c1 = ? returning c1 into ?");
+            ps.setInt(1, 11);
+            ps.registerReturnParameter(2, Types.INTEGER);
+            ps.addBatch();
+            ps.setInt(1, 22);
+            ps.registerReturnParameter(2, Types.INTEGER);
+            ps.addBatch();
+            ints = ps.executeBatch();
+            assertEquals(2, ps.getUpdateCount());
+
+            assertArrayEquals(new int[] { -2, -2 }, ints);
+            rs = ps.getReturnResultSet();
+            rs.next();
+            assertEquals(22, rs.getInt(1));
+            rs.next();
+            assertEquals(22, rs.getInt(1));
+            assertFalse(rs.next());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            conn.setAutoCommit(true);
         }
     }
 
