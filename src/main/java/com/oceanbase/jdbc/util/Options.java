@@ -147,6 +147,8 @@ public class Options implements Cloneable {
     public boolean useInformationSchema;
     public boolean allowLoadLocalInfile;
     public boolean emptyStringsConvertToZero = true;
+    public boolean emulateLocators;
+    public int locatorFetchBufferSize = 1048576;
 
     // logging options
     public boolean log;
@@ -727,6 +729,12 @@ public class Options implements Cloneable {
         if (obDateTypeOptimization != opt.obDateTypeOptimization) {
             return false;
         }
+        if (emulateLocators != opt.emulateLocators) {
+            return false;
+        }
+        if (locatorFetchBufferSize != opt.locatorFetchBufferSize) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -884,6 +892,8 @@ public class Options implements Cloneable {
         result = 31 * result + (encloseParamInParentheses ? 1 : 0);
         result = 31 * result + (mapDateToTimestamp ? 1 : 0);
         result = 31 * result + (useNewResultSetMetaData ? 1 : 0);
+        result = 31 * result + (emulateLocators ? 1 : 0);
+        result = 31 * result + locatorFetchBufferSize;
         return result;
     }
 

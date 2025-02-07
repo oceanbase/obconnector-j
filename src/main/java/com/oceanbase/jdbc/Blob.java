@@ -154,7 +154,7 @@ public class Blob extends Lob implements java.sql.Blob {
      *
      * @return length of the <code>BLOB</code> in bytes
      */
-    public long length() {
+    public long length() throws SQLException {
         // locator.payloadSize in JDBC(not in server) always represents the length of lob data, no matter locator is v1 or v2
         if (locator != null && locator instanceof ObLobLocatorV2) {
             return locator.payloadSize;

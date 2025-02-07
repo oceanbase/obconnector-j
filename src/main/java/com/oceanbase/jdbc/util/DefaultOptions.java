@@ -1135,7 +1135,27 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.12",
             "Optimize the performance of the getDate method of ResultSet.",
-            false);
+            false),
+    EMULATE_LOCATORS(
+            "emulateLocators",
+            Boolean.FALSE,
+            "2.4.14",
+            "Should the driver emulate 'java.sql.Blob' with locators? " +
+                    "With this feature enabled, the driver will delay loading the actual Blob data until the one of the retrieval methods ('getInputStream()', 'getBytes()', and so forth) on the blob data stream has been accessed. " +
+                    "For this to work, you must use a column alias with the value of the column to the actual name of the Blob. " +
+                    "The feature also has the following restrictions: " +
+                    "The SELECT that created the result set must reference only one table, the table must have a primary key; " +
+                    "the SELECT must alias the original blob column name, specified as a string, to an alternate name; " +
+                    "the SELECT must cover all columns that make up the primary key.",
+            false),
+    LOCATOR_FETCH_BUFFER_SIZE(
+            "locatorFetchBufferSize",
+            1048576,
+            0,
+            "2.4.14",
+            "If 'emulateLocators' is configured as 'true', what size buffer should be used when getting BLOB data for 'getBinaryInputStream()'",
+            false),
+    ;
 
   private final String optionName;
   private final String description;

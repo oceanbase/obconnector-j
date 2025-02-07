@@ -2151,7 +2151,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
             .getType()) {
             blob = new Blob(true, data, encoding, this.statement.getConnection());
         }else {
-            blob = new Blob(row.buf, row.pos, row.length);
+            if (options.emulateLocators && !this.protocol.isOracleMode()) {
+                blob = new BlobFromLocator(this, columnIndex, this.statement.getConnection(), options);
+            }else {
+                blob = new Blob(row.buf, row.pos, row.length);
+            }
         }
         blob.isOracleMode = this.protocol.isOracleMode();
         return blob;

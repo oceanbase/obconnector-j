@@ -43,11 +43,9 @@
  */
 package com.oceanbase.jdbc;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.sql.*;
+import java.util.Arrays;
 
 import org.junit.*;
 
@@ -433,6 +431,91 @@ public class NewFeatureTest extends BaseTest {
         conn.close();
     }
 
+    @Test
+    public void testBlobDataRetrievalForDima2024062200102856563() throws Exception {
+        Connection conn = setConnection("&emulateLocators=true");
+        Statement stmt = conn.createStatement();
+        createTable("test_blob", "id varchar(10), id_card varchar(20), name longblob, primary key(id, id_card)");
+        stmt.executeUpdate("insert into test_blob (id, id_card, name) values (1, '123456', 'abcdefg')");
+
+        ResultSet rs = stmt.executeQuery("SELECT ID, id_card, 'NAME' AS BLOB_DATA from test_blob");
+        Assert.assertTrue(rs.next());
+        java.sql.Blob blob = rs.getBlob("BLOB_DATA");
+
+        Assert.assertEquals("abcdefg", new String(blob.getBytes(1, 10)));
+        Assert.assertEquals(7, blob.length());
+        Assert.assertEquals(3, blob.position("cde".getBytes(), 1));
+
+        java.sql.Blob blob1 = conn.createBlob();
+        blob1.setBytes(1, "efg".getBytes());
+        try {
+            blob.position(blob1, 1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("position"));
+        }
+
+        try {
+            blob.setBinaryStream(1);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e instanceof SQLFeatureNotSupportedException);
+        }
+
+        blob.setBytes(4, "xyz".getBytes());
+        Assert.assertEquals("abcxyzg", new String(blob.getBytes(1, 10)));
+
+        blob.setBytes(4, "def".getBytes(), 1, 2);
+        Assert.assertEquals("abcefzg", new String(blob.getBytes(1, 10)));
+
+        blob.truncate(3);
+        Assert.assertEquals("abc", new String(blob.getBytes(1, 10)));
+
+        blob.free();
+        try {
+            blob.getBytes(1, 10);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NullPointerException);
+        }
+        rs.close();
+
+        // test for locatorFetchBufferSize
+        conn = setConnection("&emulateLocators=true&locatorFetchBufferSize=3");
+        Statement statement = conn.createStatement();
+        ResultSet resultSet = statement.executeQuery("select id, id_card, 'NAME' AS BLOB_DATA from test_blob");
+        Assert.assertTrue(resultSet.next());
+
+        java.sql.Blob blob2 = resultSet.getBlob("BLOB_DATA");
+        blob2.setBytes(1, "abcdefg".getBytes());
+        Assert.assertEquals("abcdefg", new String(blob2.getBytes(1, 10)));
+
+        try {
+            blob2.getBinaryStream(1, 3);
+            fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NullPointerException);
+        }
+
+        InputStream stream = blob2.getBinaryStream();
+        Assert.assertEquals('a', stream.read());
+        Assert.assertEquals('b', stream.read());
+
+        byte[] bytes = new byte[4];
+        stream.read(bytes);
+
+        byte[] bytes2 = new byte[4];
+        bytes2[0] = 'c';
+        Assert.assertTrue(Arrays.equals(bytes2, bytes));
+
+        Assert.assertEquals('d', stream.read());
+
+        stream.read(bytes, 3, 1);
+        bytes2[3] = 'e';
+        Assert.assertTrue(Arrays.equals(bytes2, bytes));
+        resultSet.close();
+    }
+ 
     @Test
     public void testInsertSetForDima2024072400103903857() throws SQLException {
         Connection conn = setConnection("&rewriteBatchedStatements=true");
