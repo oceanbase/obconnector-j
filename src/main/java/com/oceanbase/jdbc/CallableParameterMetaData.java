@@ -277,24 +277,41 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
         List<CallParameter> currentParams = new ArrayList<>(placeholderCount);
 
-        for (int index = 0; index < allParams.size(); index++) {
-            CallParameter parameter = allParams.get(index);
-
-            boolean found = false;
-            int len = placeholderToParameterIndexMap.length;
-            for (int placeholderIndex = 0; placeholderIndex < len; placeholderIndex++) {
-                if (placeholderToParameterIndexMap[placeholderIndex] == index) {
-                    found = true;
-                    currentParams.add(parameter);
-                    break;
-                } else if (placeholderToParameterIndexMap[placeholderIndex] > index || placeholderToParameterIndexMap[placeholderIndex] == -1) {
-                    // if placeholderToParameterIndexMap[placeholderIndex] > index, then placeholderToParameterIndexMap[placeholderIndex + 1] > index
-                    // if placeholderToParameterIndexMap[placeholderIndex] == -1, then placeholderToParameterIndexMap[placeholderIndex + 1] == -1
-                    break;
+        // When haveSpecialParameters is true, matching is required based on parameter names because the order of parameters is not fixed.
+        if (haveSpecialParameters) {
+            for (CallParameter parameter : allParams) {
+                boolean found = false;
+                for (ParsedCallParameters parameters : paramList) {
+                    if (parameters.getName().equalsIgnoreCase(parameter.getName())) {
+                        found = true;
+                        currentParams.add(parameter);
+                        break;
+                    }
+                }
+                if (!found && parameter.isOutput() && outputParamSetParamValueException == null) {
+                    outputParamSetParamValueException = new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
                 }
             }
-            if (!found && parameter.isOutput() && outputParamSetParamValueException == null) {
-                outputParamSetParamValueException =  new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
+        } else {
+            for (int index = 0; index < allParams.size(); index++) {
+                CallParameter parameter = allParams.get(index);
+
+                boolean found = false;
+                int len = placeholderToParameterIndexMap.length;
+                for (int placeholderIndex = 0; placeholderIndex < len; placeholderIndex++) {
+                    if (placeholderToParameterIndexMap[placeholderIndex] == index) {
+                        found = true;
+                        currentParams.add(parameter);
+                        break;
+                    } else if (placeholderToParameterIndexMap[placeholderIndex] > index || placeholderToParameterIndexMap[placeholderIndex] == -1) {
+                        // if placeholderToParameterIndexMap[placeholderIndex] > index, then placeholderToParameterIndexMap[placeholderIndex + 1] > index
+                        // if placeholderToParameterIndexMap[placeholderIndex] == -1, then placeholderToParameterIndexMap[placeholderIndex + 1] == -1
+                        break;
+                    }
+                }
+                if (!found && parameter.isOutput() && outputParamSetParamValueException == null) {
+                    outputParamSetParamValueException =  new SQLException("Parameter " + parameter.getName() + " is not registered as an output parameter.");
+                }
             }
         }
         for (int i = allParams.size(); i < paramList.size(); i++) {
