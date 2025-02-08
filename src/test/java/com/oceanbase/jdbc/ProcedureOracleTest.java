@@ -649,5 +649,51 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.setInt(2, 30);
         cs.execute();
         Assert.assertEquals(60, cs.getInt(1));
-    }
+    } 
+
+    @Test
+    public void testForDima2024062200102856610() throws SQLException {
+        Connection conn = sharedConnection;
+        createProcedure("t_pl1", "(b1 int default 10, p1 out int, b2 int default 5, p2 out int, p3 out int) is begin select b1, b1 - 5, b2 + 5 into p1, p2, p3 from dual; end;");
+        CallableStatement cs;
+        // in order
+        cs = conn.prepareCall("call t_pl1(p1 => ?, p2 => ?, p3 => ?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.registerOutParameter(3, Types.INTEGER);
+        cs.execute();
+        assertEquals(10, cs.getInt(1));
+        assertEquals(5, cs.getInt(2));
+        assertEquals(10, cs.getInt(3));
+
+        // out of order
+        cs = conn.prepareCall("call t_pl1(p3 => ?, p1 => ?, p2 => ?, b2 => ?, b1 => ?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.registerOutParameter(3, Types.INTEGER);
+        cs.setInt(4, 6);
+        cs.setInt(5, 12);
+        cs.execute();
+        assertEquals(11, cs.getInt(1));
+        assertEquals(12, cs.getInt(2));
+        assertEquals(7, cs.getInt(3));
+
+        cs = conn.prepareCall("call t_pl1(p3 => ?, p1 => ?, p2 => ?, b2 => ?, b1 => 12)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.registerOutParameter(3, Types.INTEGER);
+        cs.setInt(4, 6);
+        cs.execute();
+        assertEquals(11, cs.getInt(1));
+        assertEquals(12, cs.getInt(2));
+        assertEquals(7, cs.getInt(3));
+
+        createProcedure("str_pl", "(p1 varchar2, p2 varchar2, p3 out varchar2) is begin p3 := p1 || p2; end;");
+        CallableStatement cs2 = conn.prepareCall("call str_pl(p3 => ?, p2 => 'pl_data=>data', p1 => ?) ");
+        cs2.setString(2, "test_");
+        cs2.registerOutParameter(1, Types.VARCHAR);
+        cs2.execute();
+        assertEquals("test_pl_data=>data", cs2.getString(1));
+    } 
+    
 }

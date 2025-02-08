@@ -55,9 +55,8 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.sql.Date;
+import java.util.*;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -255,9 +254,20 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                 return 1; //for mysql ObFunciton only
             }
             if (arguments != null && arguments.length() > 0 && arguments.contains("=>")
-                && !resetSpecialParamIndex) { //resetParamIndex
+                && !resetSpecialParamIndex) {
+                // The index in outputParameterMapper only includes out parameters.
+                HashMap<String, Integer> outParamsIndexMap = new HashMap<>(parameterMetadata.allParams.size());
+                int index = 1;
+                for (CallParameter allParam : parameterMetadata.allParams) {
+                    if (allParam.isOutput()) {
+                        outParamsIndexMap.put(allParam.getName(), index++);
+                    }
+                }
+
+                //resetParamIndex,
                 for (int i = 0; i < outputParameterMapper.length; i++) {
-                    outputParameterMapper[i] = params.get(i).getIndex() + 1;
+                    CallParameter parameter = params.get(i);
+                    outputParameterMapper[i] = parameter.isOutput() ? outParamsIndexMap.get(parameter.getName()) : -1;
                 }
                 resetSpecialParamIndex = true;
             }
