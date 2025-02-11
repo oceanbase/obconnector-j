@@ -72,7 +72,7 @@ public class BlobTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @BeforeClass()
+    //@BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bug716378",
             "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
@@ -680,5 +680,65 @@ public class BlobTest extends BaseTest {
         OutputStream finalOs2 = os;
         assertThrows(IndexOutOfBoundsException.class, () -> finalOs2.write(bytes));
         // setBinaryStream -- end
+    }
+
+    @Test
+    public void doTestFreeForDima2024062200102856198() throws SQLException {
+        free(new Blob());
+        free(sharedConnection.createBlob());
+
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT CONVERT('1', BINARY);");
+        rs.next();
+        free(rs.getBlob(1));
+
+        rs.close();
+        stmt.close();
+    }
+    public void free(java.sql.Blob blob) throws SQLException {
+        blob.free();
+        assertEquals(0, ((com.oceanbase.jdbc.Blob)blob).length);
+        try {
+            blob.length();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.setBytes(1,"aaaaabbbbb".getBytes());
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.getBytes(1, 5);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.position(blob,1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.getBinaryStream();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.setBinaryStream(2);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
+        try {
+            blob.truncate(3);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB",e.getMessage());
+        }
     }
 }

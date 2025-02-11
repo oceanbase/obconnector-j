@@ -186,7 +186,7 @@ public abstract class Lob implements Serializable {
     protected int                  lengthFromServer     = -1;
     protected ExceptionInterceptor exceptionInterceptor = null;
     protected boolean              isOracleMode;
-
+    protected boolean              isClosed;
     public Lob() {
         data = new byte[0];
         offset = 0;
@@ -376,6 +376,9 @@ public abstract class Lob implements Serializable {
      * @since 1.4
      */
     public OutputStream setBinaryStream(final long pos) throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (pos < 1) {
             if (!this.isOracleMode) {
                 throw ExceptionFactory.INSTANCE.create("Invalid position in blob");
@@ -394,6 +397,9 @@ public abstract class Lob implements Serializable {
     }
 
     public InputStream getBinaryStream() throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
         if (this.length == 0 && !isEmptyLob()) {
             if (locator != null && locator instanceof ObLobLocatorV2) {
@@ -404,6 +410,9 @@ public abstract class Lob implements Serializable {
     }
 
     public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("Out of range (position should be > 0)");
         }
@@ -463,6 +472,7 @@ public abstract class Lob implements Serializable {
         this.offset = 0;
         this.length = 0;
         this.charData = null;
+        this.isClosed = true;
     }
 
     public boolean isEmptyLob() {
@@ -474,6 +484,9 @@ public abstract class Lob implements Serializable {
     }
 
     public byte[] getBytes(final long pos, final int length) throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create(String.format(
                     "Out of range (position should be > 0, but is %s)", pos));
@@ -510,6 +523,5 @@ public abstract class Lob implements Serializable {
     }
 
     abstract protected void readFromServer() throws SQLException;
-
 
 }
