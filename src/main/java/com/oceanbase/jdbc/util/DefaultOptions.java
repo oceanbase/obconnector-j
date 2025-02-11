@@ -1437,17 +1437,19 @@ public enum DefaultOptions {
               assert o.maxValue != null;
               if (value.compareTo((Integer) o.minValue) < 0
                   || value.compareTo((Integer) o.maxValue) > 0) {
-                throw new IllegalArgumentException(
-                    "Optional parameter "
-                        + o.optionName
-                        + " must be greater or equal to "
-                        + o.minValue
-                        + (((Integer) o.maxValue != Integer.MAX_VALUE)
-                            ? " and smaller than " + o.maxValue
-                            : " ")
-                        + ", was \""
-                        + propertyValue
-                        + "\"");
+                  if (o != DEFAULT_FETCH_SIZE || value != Integer.MIN_VALUE) {
+                      throw new IllegalArgumentException(
+                              "Optional parameter "
+                                      + o.optionName
+                                      + " must be greater or equal to "
+                                      + o.minValue
+                                      + (((Integer) o.maxValue != Integer.MAX_VALUE)
+                                      ? " and smaller than " + o.maxValue
+                                      : " ")
+                                      + ", was \""
+                                      + propertyValue
+                                      + "\"");
+                  }
               }
               field.set(options, value);
             } catch (NumberFormatException n) {
@@ -1539,11 +1541,6 @@ public enum DefaultOptions {
     // if min pool size default to maximum pool size if not set
     if (options.pool) {
       options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
-    }
-
-    // if fetchSize is set to less than 0, default it to 0
-    if (options.defaultFetchSize < 0) {
-      options.defaultFetchSize = 0;
     }
 
     if (credentialPlugin != null && credentialPlugin.mustUseSsl()) {
