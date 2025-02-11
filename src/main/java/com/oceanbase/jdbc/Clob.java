@@ -174,6 +174,12 @@ public class Clob extends Lob implements java.sql.Clob {
      * @throws SQLException if pos is less than 1 or length is less than 0
      */
     public String getSubString(long pos, int length) throws SQLException {
+        if (this.isClosed) {
+            if (isOracleMode) {
+                throw new SQLException("Invalid operation on closed LOB");
+            }
+            return null;
+        }
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("position must be >= 1");
         }
@@ -212,6 +218,12 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     public Reader getCharacterStream() throws SQLException {
+        if (this.isClosed) {
+            if (isOracleMode) {
+                throw new SQLException("Invalid operation on closed LOB");
+            }
+            return null;
+        }
         // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
         if (this.length == 0 && !isEmptyLob()) {
             if (locator != null && locator instanceof ObLobLocatorV2) {
@@ -271,6 +283,12 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     public InputStream getAsciiStream() throws SQLException {
+        if (this.isClosed) {
+            if (isOracleMode) {
+                throw new SQLException("Invalid operation on closed LOB");
+            }
+            return null;
+        }
         // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
         if (this.length == 0 && !isEmptyLob()) {
             if (locator != null && locator instanceof ObLobLocatorV2) {
@@ -292,6 +310,9 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     public long position(String searchStr, long start) throws SQLException {
+        if (isOracleMode && isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (start < 1) {
             throw new SQLException("Illegal starting position for search, '" + start + "'");
         }
@@ -347,6 +368,9 @@ public class Clob extends Lob implements java.sql.Clob {
      * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
+        if (isOracleMode && isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (pos < 1L) {
             throw new SQLException(Clob_4);
         }
@@ -391,6 +415,9 @@ public class Clob extends Lob implements java.sql.Clob {
      */
     @Override
     public long length() throws SQLException {
+        if (isOracleMode && isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         // The length of a character string is the number of UTF-16 units (not the number of characters)
         if (this.charData != null) {
             return this.charData.length();
@@ -458,6 +485,12 @@ public class Clob extends Lob implements java.sql.Clob {
 
     @Override
     public void truncate(final long truncateLen) throws SQLException {
+        if (this.isClosed) {
+            if (this.isOracleMode) {
+                throw new SQLException("Invalid operation on closed LOB");
+            }
+            throw new NullPointerException("LOB is closed.");
+        }
         if (truncateLen < 0) {
             if (this.isOracleMode) {
                 throw new SQLException("Invalid argument: 'len' should not be < 0");

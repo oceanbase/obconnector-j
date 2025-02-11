@@ -1554,6 +1554,64 @@ public class BlobOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void doTestFreeForDima2024062200102856198() throws SQLException {
+        free(new Blob());
+        free(sharedConnection.createBlob());
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT TO_BLOB(UTL_RAW.CAST_TO_RAW('1')) FROM DUAL");
+        rs.next();
+        free(rs.getBlob(1));
+        rs.close();
+        stmt.close();
+    }
+    public void free(java.sql.Blob blob) throws SQLException {
+        blob.free();
+        assertEquals(0, ((com.oceanbase.jdbc.Blob) blob).length);
+        try {
+            blob.length();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.setBytes(1, "aaaaabbbbb".getBytes());
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.getBytes(1, 5);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.position(blob, 1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.getBinaryStream();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.setBinaryStream(2);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+        try {
+            blob.truncate(3);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB", e.getMessage());
+        }
+    }
+
+    @Test
     public void testForDima2024111400105100716() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("set global ob_default_lob_inrow_threshold = 0;");
@@ -1578,6 +1636,5 @@ public class BlobOracleTest extends BaseOracleTest {
         } finally {
             conn.setAutoCommit(true);
         }
-
     }
 }

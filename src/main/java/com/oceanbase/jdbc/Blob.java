@@ -155,6 +155,9 @@ public class Blob extends Lob implements java.sql.Blob {
      * @return length of the <code>BLOB</code> in bytes
      */
     public long length() throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         // locator.payloadSize in JDBC(not in server) always represents the length of lob data, no matter locator is v1 or v2
         if (locator != null && locator instanceof ObLobLocatorV2) {
             return locator.payloadSize;
@@ -238,6 +241,9 @@ public class Blob extends Lob implements java.sql.Blob {
      * @see #getBytes
      */
     public int setBytes(final long pos, final byte[] bytes) throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (pos < 1) {
             throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
         }
@@ -340,6 +346,9 @@ public class Blob extends Lob implements java.sql.Blob {
      *     </code> object represents should be truncated
      */
     public void truncate(final long len) throws SQLException {
+        if (isClosed) {
+            throw new SQLException("Invalid operation on closed LOB");
+        }
         if (len < 0) {
             if (isOracleMode) {
                 throw new SQLException("'len' should be >= 0");

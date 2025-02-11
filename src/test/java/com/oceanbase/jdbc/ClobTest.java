@@ -475,4 +475,30 @@ public class ClobTest extends BaseTest {
         assertEquals("string", clob1.getSubString(1, (int) clob1.length()));
         // setCharacterStream -- end
     }
+
+    @Test
+    public void doTestFreeForDima2024062200102856198() throws SQLException {
+        // this constructor cannot determine is mysql or oracle mode
+        // free(new com.oceanbase.jdbc.Clob(bytes));
+        free(sharedConnection.createClob());
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '1' AS clob_value;");
+        rs.next();
+        free(rs.getClob(1));
+    }
+    public void free(java.sql.Clob clob) throws SQLException {
+        clob.free();
+        assertEquals(0, ((com.oceanbase.jdbc.Clob)clob).length);
+        assertNull(clob.getAsciiStream());
+        assertNull(clob.getCharacterStream());
+        assertNull(clob.getSubString(1, 1));
+        assertEquals(-1, clob.position("ab",1));
+        assertEquals(0, clob.length());
+        try {
+            clob.truncate(3);
+            fail();
+        } catch (Exception e) {
+            assertTrue(e instanceof NullPointerException);
+        }
+    }
 }

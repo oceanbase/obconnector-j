@@ -1251,6 +1251,76 @@ public class ClobOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void doTestFreeForDima2024062200102856198() throws SQLException {
+        // this constructor cannot determine is mysql or oracle mode
+        // free(new com.oceanbase.jdbc.Clob(bytes));
+        free(sharedConnection.createClob());
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT TO_CLOB('这是一段CLOB文本') AS clob_value FROM DUAL");
+        rs.next();
+        free(rs.getClob(1));
+    }
+
+    public void free(java.sql.Clob clob) throws SQLException {
+        clob.free();
+        assertEquals(0, ((com.oceanbase.jdbc.Clob)clob).length);
+        try {
+            clob.setString(3,"c");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.getCharacterStream();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.length();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.setAsciiStream(3);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.getAsciiStream();
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.getSubString(1,8);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.position("b",1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.truncate(3);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+        try {
+            clob.setCharacterStream(1);
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid operation on closed LOB" , e.getMessage());
+        }
+    }
+
+    @Test
     public void testForDima2024112000105211953() throws SQLException {
         Connection conn = sharedConnection;
         java.sql.Blob blob = conn.createBlob();
