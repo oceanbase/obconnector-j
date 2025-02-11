@@ -1988,6 +1988,37 @@ public class ResultSetOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testDefaultFetchSizeForDima2024062200102856299() throws SQLException {
+        try (Connection conn = setConnection("&defaultFetchSize=-10")) {
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("Optional parameter defaultFetchSize must be greater or equal to 0"));
+        }
+
+        try (Connection connection = setConnection("&defaultFetchSize=-2147483648")) {
+            PreparedStatement statement = connection.prepareStatement("select 1 from dual");
+            statement.executeQuery();
+            assertEquals(10, statement.getFetchSize());
+            try {
+                statement.setFetchSize(Integer.MIN_VALUE);
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("invalid fetch size"));
+            }
+        }
+
+        try (Connection connection = setConnection("&extendOracleResultSetClass=true&defaultFetchSize=-2147483648")) {
+            PreparedStatement statement = connection.prepareStatement("select 1 from dual");
+            statement.executeQuery();
+            assertEquals(Integer.MIN_VALUE, statement.getFetchSize());
+            statement.setFetchSize(Integer.MIN_VALUE);
+            assertEquals(Integer.MIN_VALUE, statement.getFetchSize());
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+    @Test
     public void testSetPositionForDima2024120200105743946() throws SQLException {
         createTable("tz1", "c1 float, c2 binary_float, c3 binary_double");
         Connection conn = setConnection("&useServerPrepStmts=true");
@@ -2001,5 +2032,5 @@ public class ResultSetOracleTest extends BaseOracleTest {
         } catch (SQLException e) {
             fail();
         }
-    }
+    } 
 }
