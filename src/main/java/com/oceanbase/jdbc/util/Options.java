@@ -166,6 +166,7 @@ public class Options implements Cloneable {
     public int failoverLoopRetries = 120;
     public boolean allowMasterDownConnection;
     public String galeraAllowedState;
+    public int maxReconnects = 3;
 
     // Pool options
     public boolean pool;
@@ -735,6 +736,9 @@ public class Options implements Cloneable {
         if (locatorFetchBufferSize != opt.locatorFetchBufferSize) {
             return false;
         }
+        if (maxReconnects != opt.maxReconnects) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -894,6 +898,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useNewResultSetMetaData ? 1 : 0);
         result = 31 * result + (emulateLocators ? 1 : 0);
         result = 31 * result + locatorFetchBufferSize;
+        result = 31 * result + maxReconnects;
         return result;
     }
 

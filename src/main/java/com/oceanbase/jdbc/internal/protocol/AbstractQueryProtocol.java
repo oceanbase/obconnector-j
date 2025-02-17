@@ -118,6 +118,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private int executeMode;
   private boolean enableNetworkStatistics = false;
   protected static final Logger lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
+  private int maxReconnects;
 
   /**
    * Get a protocol instance.
@@ -132,6 +133,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ReentrantLock lock,
       LruTraceCache traceCache) {
     super(urlParser, globalInfo, lock, traceCache);
+    maxReconnects = this.getOptions().maxReconnects;
   }
 
   /**
@@ -2692,52 +2694,72 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     }
 
-    if (mustReconnect && !explicitClosed) {
-      String traces = getTraces();
-      try {
-        connect();
+    try {
+      // 1. try to reconnect
+      if (mustReconnect && !explicitClosed) {
+        String traces = getTraces();
         try {
-          resetStateAfterFailover(
-              getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
+          if (--maxReconnects < 0) {
+            // 1.1 have no chance to reconnect
+            connected = false;
+            return new SQLNonTransientConnectionException(
+                "Could not reconnect to database after "
+                    + options.maxReconnects
+                    + " attempts, giving up"
+                    +  traces,
+                "08000",
+                initialException);
+          }
+          connect();
 
-          if (maxSizeError) {
+          // 1.2 reconnected
+          try {
+            resetStateAfterFailover(
+                    getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
+
+            // 1.2.1 reset state
+            if (maxSizeError) {
+              return new SQLTransientConnectionException(
+                  "Could not send query: query size is >= to max_allowed_packet ("
+                      + writer.getMaxAllowedPacket()
+                      + ")"
+                      + traces,
+                  "HY000",
+                  initialException);
+            }
+
+            cleanMemory();
             return new SQLTransientConnectionException(
-                "Could not send query: query size is >= to max_allowed_packet ("
-                    + writer.getMaxAllowedPacket()
-                    + ")"
-                    + traces,
+                initialException.getMessage() + traces, "HY000", initialException);
+          } catch (SQLException queryException) {
+            // 1.2.2 failed to reset
+            return new SQLTransientConnectionException(
+                "reconnection succeed, but resetting previous state failed" + traces,
                 "HY000",
                 initialException);
           }
-          cleanMemory();
-
-          return new SQLTransientConnectionException(
-              initialException.getMessage() + traces, "HY000", initialException);
-
-        } catch (SQLException queryException) {
-          return new SQLTransientConnectionException(
-              "reconnection succeed, but resetting previous state failed" + traces,
-              "HY000",
-              initialException);
+        } catch (SQLException | IOException queryException) {
+          // 1.3 failed to reconnect
+          connected = false;
+          return new SQLNonTransientConnectionException(
+              initialException.getMessage() + "\nError during reconnection" + traces,
+              "08000",
+              queryException);
         }
+      }
 
-      } catch (SQLException | IOException queryException) {
-        connected = false;
+      // 2. don't reconnect
+      connected = false;
+      return new SQLNonTransientConnectionException(
+          initialException.getMessage() + getTraces(), "08000", initialException);
+    } finally {
+      if (!connected) {
         whyConnectedIsFalse();
         destroySocket();
-
-        return new SQLNonTransientConnectionException(
-            initialException.getMessage() + "\nError during reconnection" + traces,
-            "08000",
-            queryException);
+      } else {
+        maxReconnects = options.maxReconnects;
       }
     }
-    connected = false;
-    whyConnectedIsFalse();
-    destroySocket();
-
-    return new SQLNonTransientConnectionException(
-        initialException.getMessage() + getTraces(), "08000", initialException);
   }
 
   public void setActiveFutureTask(FutureTask activeFutureTask) {
