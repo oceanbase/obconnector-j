@@ -372,6 +372,18 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return 0;
         }
+        switch (columnInfo.getColumnType()) {
+            case NUMBER_FLOAT:
+                BigDecimal value = getInternalBigDecimal(columnInfo);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
+                return value.intValue();
+            case BINARY_FLOAT:
+            case BINARY_DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                return (int) internalDouble;
+            default:
+                break;
+        }
         long value = getInternalLongUtil(columnInfo, Integer.class, Integer.MIN_VALUE,
             Integer.MAX_VALUE);
         rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
@@ -401,8 +413,6 @@ public class TextRowProtocol extends RowProtocol {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
-                case NUMBER_FLOAT:
-                case BINARY_FLOAT:
                     Float floatValue = Float.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
                     // check
@@ -415,6 +425,14 @@ public class TextRowProtocol extends RowProtocol {
                                                + " is not in Long range", "22003", 1264);
                     }
                     return floatValue.longValue();
+                case NUMBER_FLOAT:
+                    BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, bigDecimal, columnInfo);
+                    return bigDecimal.longValue();
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    double internalDouble = getInternalDouble(columnInfo);
+                    return (long) internalDouble;
                 case DOUBLE:
                     Double doubleValue = Double.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
@@ -623,7 +641,6 @@ public class TextRowProtocol extends RowProtocol {
                     throw sqlException;
                 }
             case BINARY_FLOAT:
-            case NUMBER_FLOAT:
                 if (getProtocol().isOracleMode()) {
                     Double d = getNanAndInfForOracle(columnInfo);
                     if (d != null) {
@@ -632,6 +649,7 @@ public class TextRowProtocol extends RowProtocol {
                 }
                 return (double) Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
+            case NUMBER_FLOAT:
                 String value = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(value);
@@ -660,7 +678,7 @@ public class TextRowProtocol extends RowProtocol {
                 Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
                     .getColumnType())));
                 // check
-                return BigDecimal.valueOf(f);
+                return new BigDecimal(f.toString());
             case BINARY_DOUBLE:
                 Double d = Double.valueOf(new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())));
@@ -1297,6 +1315,18 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) {
             return 0;
         }
+        switch (columnInfo.getColumnType()) {
+            case NUMBER_FLOAT:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.byteValue();
+            case BINARY_FLOAT:
+            case BINARY_DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                return (byte)((int)internalDouble);
+            default:
+                break;
+        }
         long value = getInternalLong(columnInfo);
         rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
         return (byte) value;
@@ -1312,6 +1342,18 @@ public class TextRowProtocol extends RowProtocol {
     public short getInternalShort(ColumnDefinition columnInfo) throws SQLException {
         if (lastValueWasNull()) {
             return 0;
+        }
+        switch (columnInfo.getColumnType()) {
+            case NUMBER_FLOAT:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.shortValue();
+            case BINARY_FLOAT:
+            case BINARY_DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                return (short)((int)internalDouble);
+            default:
+                break;
         }
         long value = getInternalLong(columnInfo);
         rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
