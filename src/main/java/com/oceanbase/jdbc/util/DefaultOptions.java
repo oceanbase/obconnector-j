@@ -1155,7 +1155,13 @@ public enum DefaultOptions {
             "2.4.14",
             "If 'emulateLocators' is configured as 'true', what size buffer should be used when getting BLOB data for 'getBinaryInputStream()'",
             false),
-    ;
+    MAX_RECONNECTS(
+            "maxReconnects",
+            3,
+            0,
+            "2.4.14",
+            "Maximum number of reconnects to attempt if 'autoReconnect' is 'true'.",
+            false);
 
   private final String optionName;
   private final String description;
