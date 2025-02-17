@@ -376,8 +376,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 return zeroFillingIfNeeded(String.valueOf(getInternalLong(columnInfo)), columnInfo);
             case FLOAT:
-            case NUMBER_FLOAT:
                 return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
+            case NUMBER_FLOAT:
             case DECIMAL:
             case OLDDECIMAL:
             case OBDECIMAL:
@@ -580,6 +580,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 case DOUBLE:
                     value = (long) getInternalDouble(columnInfo);
                     break;
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    double internalDouble = getInternalDouble(columnInfo);
+                    return (int) internalDouble;
+                case NUMBER_FLOAT:
                 case DECIMAL:
                 case OLDDECIMAL:
                 case OBDECIMAL:
@@ -687,8 +692,6 @@ public class BinaryRowProtocol extends RowProtocol {
                     }
                     return unsignedValue.longValue();
                 case FLOAT:
-                case NUMBER_FLOAT:
-                case BINARY_FLOAT:
                     Float floatValue = getInternalFloat(columnInfo);
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '"
@@ -704,6 +707,7 @@ public class BinaryRowProtocol extends RowProtocol {
                                                + " is not in Long range", "22003", 1264);
                     }
                     return doubleValue.longValue();
+                case NUMBER_FLOAT:
                 case DECIMAL:
                 case OLDDECIMAL:
                     BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -717,6 +721,10 @@ public class BinaryRowProtocol extends RowProtocol {
                     if (length == 0) {
                         return convertToZeroWithEmptyCheck();
                     }
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    Double internalDouble = getInternalDouble(columnInfo);
+                    return internalDouble.longValue();
                 case OBDECIMAL:
                     return Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
@@ -929,14 +937,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 return getInternalFloat(columnInfo);
                 //                return Double.parseDouble(new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType())));
             case OBDECIMAL:
+            case NUMBER_FLOAT:
                 String val = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
                 BigDecimal bigDecimal = new BigDecimal(val);
                 return bigDecimal.doubleValue();
-            case NUMBER_FLOAT:
-                Float f = Float.valueOf(new String(buf, pos, length, getCurrentEncoding(columnInfo
-                    .getColumnType())));
-                return (double) f;
             default:
                 throw new SQLException("getDouble not available for data field type "
                                        + columnInfo.getColumnType().getSqlTypeName());
@@ -985,7 +990,8 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             case FLOAT:
             case BINARY_FLOAT:
-                return BigDecimal.valueOf(getInternalFloat(columnInfo));
+                Float f = getInternalFloat(columnInfo);
+                return new BigDecimal(f.toString());
             case DOUBLE:
             case BINARY_DOUBLE:
                 BigDecimal decimal = BigDecimal.valueOf(getInternalDouble(columnInfo));
@@ -1723,6 +1729,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 case DOUBLE:
                     value = (long) getInternalDouble(columnInfo);
                     break;
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    double internalDouble = getInternalDouble(columnInfo);
+                    return (byte) internalDouble;
                 case DECIMAL:
                 case OLDDECIMAL:
                     BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -1744,6 +1754,11 @@ public class BinaryRowProtocol extends RowProtocol {
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
                     decimal = decimal.setScale(0, RoundingMode.HALF_UP);
                     value = decimal.longValue();
+                    break;
+                case NUMBER_FLOAT:
+                    BigDecimal numDecimal = new BigDecimal(new String(buf, pos, length,
+                            getCurrentEncoding(columnInfo.getColumnType())).trim());
+                    value = numDecimal.longValue();
                     break;
                 default:
                     throw new SQLException("getByte not available for data field type "
@@ -1813,6 +1828,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 case DOUBLE:
                     value = (long) getInternalDouble(columnInfo);
                     break;
+                case NUMBER_FLOAT:
                 case DECIMAL:
                 case OLDDECIMAL:
                     BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -1836,6 +1852,10 @@ public class BinaryRowProtocol extends RowProtocol {
                     decimal = decimal.setScale(0, RoundingMode.HALF_UP);
                     value = decimal.longValue();
                     break;
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    double internalDouble = getInternalDouble(columnInfo);
+                    return (short) internalDouble;
                 default:
                     throw new SQLException("getShort not available for data field type "
                                            + columnInfo.getColumnType().getSqlTypeName());

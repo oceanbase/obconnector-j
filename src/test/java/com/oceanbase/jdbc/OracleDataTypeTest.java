@@ -730,5 +730,169 @@ public class OracleDataTypeTest extends BaseOracleTest {
         assertEquals(Time.valueOf("10:50:30"),rs.getTime(2));
     }
 
+    @Test
+    public void testForDima2024062200102855704() throws SQLException {
+        createTable("t1", "c1 float, c2 binary_float, c3 binary_double");
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t1 values (1.2, 1.2, 1.2)");
+        ResultSet rs = stmt.executeQuery("select * from t1");
+
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                conn = setConnection("&useServerPrepStmts=true");
+                stmt = conn.createStatement();
+                rs = stmt.executeQuery("select * from t1");
+            }
+            rs.next();
+            Assert.assertEquals("1.2" , String.valueOf(rs.getFloat(1)));
+            Assert.assertEquals("1.2" , String.valueOf(rs.getDouble(1)));
+            Assert.assertEquals(new BigDecimal("1.2") , rs.getBigDecimal(1) );
+
+            Assert.assertEquals("1.2" , String.valueOf(rs.getFloat(2)));
+            Assert.assertEquals("1.2000000476837158" , String.valueOf(rs.getDouble(2)));
+            Assert.assertEquals(new BigDecimal("1.2") , rs.getBigDecimal(2) );
+
+            Assert.assertEquals("1.2" , String.valueOf(rs.getFloat(3)));
+            Assert.assertEquals("1.2" , String.valueOf(rs.getDouble(3)));
+            Assert.assertEquals(new BigDecimal("1.2") , rs.getBigDecimal(3) );
+        }
+    }
+
+    @Test
+    public void testForDima2024062200102855907() throws SQLException {
+        createTable("t1", "c1 float, c2 binary_float, c3 binary_double");
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t1 values (0.2, 0.2, 0.2)");
+
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        rs.next();
+        for (int i = 1; i <= 3; i++) {
+            Assert.assertEquals("0", String.valueOf(rs.getShort(i)));
+            Assert.assertEquals("0", String.valueOf(rs.getInt(i)));
+            Assert.assertEquals("0", String.valueOf(rs.getLong(i)));
+            Assert.assertEquals("0.2", String.valueOf(rs.getFloat(i)));
+
+            if (i == 2) {
+                Assert.assertEquals("0.20000000298023224", String.valueOf(rs.getDouble(i)));
+            } else {
+                Assert.assertEquals("0.2", String.valueOf(rs.getDouble(i)));
+            }
+            Assert.assertEquals("0.2", String.valueOf(rs.getBigDecimal(i)));
+            Assert.assertEquals("0", String.valueOf(rs.getByte(i)));
+        }
+    }
+
+    @Test
+    public void testForDima2024120600106020947() throws SQLException {
+        createTable("t_demo", "num float");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into t_demo values(0.1733206919376)");
+        stmt.execute("insert into t_demo values(1733206919110.1733206919133)");
+        stmt.execute("insert into t_demo values(1733206919000)");
+        stmt.execute("insert into t_demo values(1733206919133)");
+
+        for (int i = 0; i < 2; i++) {
+            Connection conn = setConnection("&useServerPrepStmts=false");
+            if (i == 1) {
+                conn = setConnection("&useServerPrepStmts=true");
+            }
+            PreparedStatement ps = conn.prepareStatement("select * from t_demo");
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            Assert.assertEquals("0.1733206919376", rs.getString(1));
+            Assert.assertEquals(0L, rs.getLong(1));
+
+            rs.next();
+            Assert.assertEquals("1733206919110.1733206919133", rs.getString(1));
+            Assert.assertEquals(1733206919110L, rs.getLong(1));
+
+            rs.next();
+            Assert.assertEquals("1733206919000", rs.getString(1));
+            Assert.assertEquals(1733206919000L, rs.getLong(1));
+
+            rs.next();
+            Assert.assertEquals("1733206919133", rs.getString(1));
+            Assert.assertEquals(1733206919133L, rs.getLong(1));
+
+            rs.close();
+            ps.close();
+            conn.close();
+        }
+    }
+
+    @Test
+    public void TestForFloatExceedsRange() throws SQLException {
+        createTable("t_demo", "c1 float,  c2 binary_float, c3 binary_double");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into t_demo values(9423372036854775807.1733206919376, 9423372036854775807.1733206919376, 9423372036854775807.1733206919376)");
+        for (int i = 0; i < 2; i++) {
+            Connection conn = setConnection("&useServerPrepStmts=false");
+            if (i == 1) {
+                conn = setConnection("&useServerPrepStmts=true");
+            }
+
+            PreparedStatement ps = conn.prepareStatement("select * from t_demo");
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+
+            // float type
+            try {
+                Assert.assertEquals(-1, rs.getByte(1));
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("Out of range value"));
+            }
+
+            try {
+                Assert.assertEquals(-1, rs.getShort(1));
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("Out of range value"));
+            }
+
+            try {
+                Assert.assertEquals(2147483647, rs.getInt(1));
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("Out of range value"));
+            }
+
+            try {
+                Assert.assertEquals(9223372036854775807L, rs.getLong(1));
+                fail();
+            } catch (SQLException e) {
+                Assert.assertTrue(e.getMessage().contains("Out of range value"));
+            }
+            Assert.assertEquals("9.423372E18", String.valueOf(rs.getFloat(1)));
+            Assert.assertEquals("9.423372036854776E18", String.valueOf(rs.getDouble(1)));
+            Assert.assertEquals("9423372036854775807.1733206919376", String.valueOf(rs.getBigDecimal(1)));
+            Assert.assertEquals("9423372036854775807.1733206919376", String.valueOf(rs.getString(1)));
+            Assert.assertEquals("9423372036854775807.1733206919376", String.valueOf(rs.getObject(1)));
+
+            // binary_float type
+            Assert.assertEquals(-1, rs.getByte(2));
+            Assert.assertEquals(-1, rs.getShort(2));
+            Assert.assertEquals(2147483647, rs.getInt(2));
+            Assert.assertEquals(9223372036854775807L, rs.getLong(2));
+            Assert.assertEquals("9.423372E18", String.valueOf(rs.getFloat(2)));
+            Assert.assertEquals("9.423372102435602E18", String.valueOf(rs.getDouble(2)));
+            Assert.assertEquals("9.423372E+18", String.valueOf(rs.getBigDecimal(2)));
+            Assert.assertEquals("9.423372E18", String.valueOf(rs.getString(2)));
+            Assert.assertEquals("9.423372E18", String.valueOf(rs.getObject(2)));
+
+            // binary_double type
+            Assert.assertEquals(-1, rs.getByte(3));
+            Assert.assertEquals(-1, rs.getShort(3));
+            Assert.assertEquals(2147483647, rs.getInt(3));
+            Assert.assertEquals(9223372036854775807L, rs.getLong(3));
+            Assert.assertEquals("9.423372E18", String.valueOf(rs.getFloat(3)));
+            Assert.assertEquals("9.423372036854776E18", String.valueOf(rs.getDouble(3)));
+            Assert.assertEquals("9.423372036854776E+18", String.valueOf(rs.getBigDecimal(3)));
+            Assert.assertEquals("9.423372036854776E18", String.valueOf(rs.getString(3)));
+            Assert.assertEquals("9.423372036854776E18", String.valueOf(rs.getObject(3)));
+        }
+    }
 
 }
