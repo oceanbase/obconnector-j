@@ -519,24 +519,29 @@ public class NewFeatureTest extends BaseTest {
     @Test
     public void testInsertSetForDima2024072400103903857() throws SQLException {
         Connection conn = setConnection("&rewriteBatchedStatements=true");
-        Statement stmt = conn.createStatement();
-        stmt.execute("alter system flush plan cache global");
-        createTable("tt9", "c1 int primary key auto_increment, c2 varchar(20) ");
-        PreparedStatement pstmt = conn.prepareStatement("insert into tt9 set c2 = ? ");
-        pstmt.setString(1, "aaa");
-        pstmt.addBatch();
-        pstmt.setString(1, "bbb");
-        pstmt.addBatch();
-        pstmt.setString(1, "ccc");
-        pstmt.addBatch();
-        pstmt.executeBatch();
-        ResultSet rs = stmt.executeQuery("select c2 from tt9");
-        rs.next();
-        assertEquals("aaa", rs.getString(1));
-        rs.next();
-        assertEquals("bbb", rs.getString(1));
-        rs.next();
-        assertEquals("ccc", rs.getString(1));
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                conn = setConnection("&rewriteBatchedStatements=true&useServerPrepStmts=true");
+            }
+            Statement stmt = conn.createStatement();
+            stmt.execute("alter system flush plan cache global");
+            createTable("tt9", "c1 int primary key auto_increment, c2 varchar(20) ");
+            PreparedStatement pstmt = conn.prepareStatement("insert into tt9 set c2 = ? ");
+            pstmt.setString(1, "aaa");
+            pstmt.addBatch();
+            pstmt.setString(1, "bbb");
+            pstmt.addBatch();
+            pstmt.setString(1, "ccc");
+            pstmt.addBatch();
+            pstmt.executeBatch();
+            ResultSet rs = stmt.executeQuery("select c2 from tt9");
+            rs.next();
+            assertEquals("aaa", rs.getString(1));
+            rs.next();
+            assertEquals("bbb", rs.getString(1));
+            rs.next();
+            assertEquals("ccc", rs.getString(1));
+        }
     }
 
 }
