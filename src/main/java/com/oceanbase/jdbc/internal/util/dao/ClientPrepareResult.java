@@ -852,6 +852,8 @@ public class ClientPrepareResult implements PrepareResult {
         boolean semicolon = false;
         boolean hasParam = false;
         boolean endNameBinding = false;
+        boolean flagValues = false;
+        boolean flagValue = false;
         char[] query = queryString.toCharArray();
         int queryLength = query.length;
         KeyState keyState = KeyState.Normal;
@@ -970,6 +972,11 @@ public class ClientPrepareResult implements PrepareResult {
                             sb.setLength(0);
                         }
 
+                        if (isInsert && !(flagValue || flagValues)) {
+                            // insert into table set not rewritable
+                            reWritablePrepare = false;
+                        }
+
                         skipChar = true;
                     }
                     break;
@@ -1014,8 +1021,6 @@ public class ClientPrepareResult implements PrepareResult {
                             && (query[i + 2] == 'l' || query[i + 2] == 'L')
                             && (query[i + 3] == 'u' || query[i + 3] == 'U')
                             && (query[i + 4] == 'e' || query[i + 4] == 'E')){
-                        boolean flagValues = false;
-                        boolean flagValue = false;
                         flagValues = (query[i + 5] == 's' || query[i + 5] == 'S') && ((query.length > i + 6) && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40)));
                         flagValue = (query[i + 5] == '(' || ((byte) query[i + 5] <= 40));
                         if(( (isOracleMode && flagValues) || (!isOracleMode && (flagValues || flagValue)) ) && keyState != KeyState.Update) {
