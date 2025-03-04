@@ -304,4 +304,25 @@ public class StatementOracleTest extends BaseOracleTest {
         Assert.assertEquals(3, rs.getRow());
     }
 
+    @Test
+    public void testForDima2025022600107339506() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        createFunction("p_sleep", "(seconds int) return number as begin dbms_lock.sleep(seconds); return 1; end; ");
+
+        try {
+            stmt.setQueryTimeout(1);
+            ResultSet rs = stmt.executeQuery("select p_sleep(1) from dual connect by level <= 10");
+            int count = 0;
+            while (rs.next())
+            {
+                count ++;
+            }
+            Assert.assertEquals(10, count);
+            fail("queryTimeout not valid");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Query timed out"));
+        }
+    }
+
 }

@@ -978,4 +978,17 @@ public class StatementTest extends BaseTest {
         countDownLatch.await();
     }
 
+    @Test
+    public void testForDima2025022600107339506() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=10");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.setQueryTimeout(1);
+            stmt.executeQuery("select sleep(10)");
+            fail("queryTimeout not valid");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Query timed out"));
+        }
+    }
+
 }

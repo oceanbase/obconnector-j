@@ -193,14 +193,6 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
     clone.isObFunction = isObFunction;
     clone.mustExecuteOnMaster = mustExecuteOnMaster;
-    clone.originalSql = originalSql;
-    clone.simpleSql = simpleSql;
-    clone.selectEndPos = selectEndPos;
-    clone.whereEndPos = whereEndPos;
-    clone.clauseStartPos = clauseStartPos;
-    clone.sqlType = sqlType;
-    clone.actualSql = actualSql;
-    clone.addRowid = addRowid;
 
     // force prepare
     try {

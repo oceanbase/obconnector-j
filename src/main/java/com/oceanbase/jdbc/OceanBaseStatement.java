@@ -206,6 +206,14 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.status = ResourceStatus.OPEN;
     clone.warningsCleared = true;
     clone.maxRows = 0;
+    clone.originalSql = originalSql;
+    clone.simpleSql = simpleSql;
+    clone.selectEndPos = selectEndPos;
+    clone.whereEndPos = whereEndPos;
+    clone.clauseStartPos = clauseStartPos;
+    clone.sqlType = sqlType;
+    clone.actualSql = actualSql;
+    clone.addRowid = addRowid;
     if (clone.protocol.isOracleMode() && options.defaultFetchSize <= 0 && !(options.extendOracleResultSetClass && this.options.defaultFetchSize == Integer.MIN_VALUE)) {
       // Oracle JDBC set default fetchSize to 10
       clone.fetchSize = 10;
@@ -755,6 +763,15 @@ public class OceanBaseStatement implements Statement, Cloneable {
     }
   }
 
+    private void setPropertiesForStatement(PreparedStatement pstmt) throws SQLException {
+        pstmt.setFetchSize(this.fetchSize);
+        pstmt.setMaxRows((int) this.maxRows);
+        pstmt.setQueryTimeout(this.queryTimeout);
+        if (isCloseOnCompletion()) {
+            pstmt.closeOnCompletion();
+        }
+    }
+
   /**
    * executes a select query.
    *
@@ -768,11 +785,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     if (isCursorResultSet()) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       cursorFetchPstmt = pstmt;
-      pstmt.setFetchSize(this.fetchSize);
-      pstmt.setMaxRows(this.getMaxRows());
-      if (isCloseOnCompletion()) {
-        pstmt.closeOnCompletion();
-      }
+      setPropertiesForStatement(pstmt);
       ResultSet rs = pstmt.executeQuery();
       this.results =((OceanBaseStatement)pstmt).results;
       return rs;
