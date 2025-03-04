@@ -2457,7 +2457,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         while ((len = is.read(buf)) > 0) {
           writer.startPacket(seq++);
           writer.write(buf, 0, len);
-          writer.flushLoadDataLocalFile();
+          writer.flush();
         }
         writer.writeEmptyPacket();
       } catch (IOException ioe) {

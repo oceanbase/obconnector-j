@@ -238,11 +238,6 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         doFlush();
     }
 
-    public void flushLoadDataLocalFile() throws IOException {
-        flushBuffer(false);
-        doFlush();
-    }
-
     public void doFlush() throws IOException {
         out.flush();
 
