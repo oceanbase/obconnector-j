@@ -67,8 +67,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
                                                                                     CallableStatement,
                                                                                     Cloneable {
 
+    protected CallableParameterMetaData parameterMetadata;
     /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
     protected List<CallParameter>       params;
+    protected String                    arguments;
+
     /**
      * The index for output parameters and result sets starts at 1.
      * outputParameterMapper[i] = j means that the (i+1)th element of the outputParameterMapper array represents the jth output parameter in the callable statement.
@@ -78,12 +81,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * the outputParameterMapper would be [1, -1, 2].
      */
     protected int[]                     outputParameterMapper;
-    protected CallableParameterMetaData parameterMetadata;
     protected boolean                   hasInOutParameters;
-    protected String                    arguments;
     private boolean                     firstMapName = true;
     protected boolean                   resetSpecialParamIndex;
-
     //    private boolean                     isParameterIndexUsed;
     //    private boolean                     isParameterNameUsed;
 

@@ -74,8 +74,10 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class JDBC4PreparedStatement extends BasePrepareStatement {
 
   private static final Logger logger = LoggerFactory.getLogger(JDBC4PreparedStatement.class);
+  // parameter
   private       ParameterHolder[]       parameters;
   private final List<ParameterHolder[]> parametersList = new ArrayList<>();
+  // result
   private       ClientPrepareResult     prepareResult;
   private       ResultSetMetaData       resultSetMetaData;
   private       ParameterMetaData       parameterMetaData;
@@ -139,7 +141,6 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
   public JDBC4PreparedStatement clone(OceanBaseConnection connection)
       throws CloneNotSupportedException {
     JDBC4PreparedStatement clone = (JDBC4PreparedStatement) super.clone(connection);
-    clone.actualSql = actualSql;
     clone.prepareResult = prepareResult;
     clone.parameterCount = prepareResult.getParamCount();
     clone.parameters = new ParameterHolder[parameterCount];

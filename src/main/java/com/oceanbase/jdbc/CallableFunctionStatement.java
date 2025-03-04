@@ -101,7 +101,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         CallableFunctionStatement clone = (CallableFunctionStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
-        clone.connection = connection;
 
         return clone;
     }
