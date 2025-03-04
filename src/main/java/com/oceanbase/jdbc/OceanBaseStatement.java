@@ -180,7 +180,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
     this.exceptionFactory = exceptionFactory;
-    if (protocol.isOracleMode() && options.defaultFetchSize <= 0 && !options.extendOracleResultSetClass) {
+    if (protocol.isOracleMode() && options.defaultFetchSize <= 0 && !(options.extendOracleResultSetClass && this.options.defaultFetchSize == Integer.MIN_VALUE)) {
         // Oracle JDBC set default fetchSize to 10
         this.fetchSize = 10;
     } else {
@@ -206,7 +206,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
     clone.status = ResourceStatus.OPEN;
     clone.warningsCleared = true;
     clone.maxRows = 0;
-    if (clone.protocol.isOracleMode() && options.defaultFetchSize <= 0 && !options.extendOracleResultSetClass) {
+    if (clone.protocol.isOracleMode() && options.defaultFetchSize <= 0 && !(options.extendOracleResultSetClass && this.options.defaultFetchSize == Integer.MIN_VALUE)) {
       // Oracle JDBC set default fetchSize to 10
       clone.fetchSize = 10;
     } else {

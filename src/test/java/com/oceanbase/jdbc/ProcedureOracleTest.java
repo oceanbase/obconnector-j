@@ -694,6 +694,32 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs2.registerOutParameter(1, Types.VARCHAR);
         cs2.execute();
         assertEquals("test_pl_data=>data", cs2.getString(1));
-    } 
+    }
+
+    @Test
+    public void testForDima2025022100107290272() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&extendOracleResultSetClass=true");
+        createTable("t_cur", "c1 int");
+        String query = "insert all";
+        for (int i = 1; i <= 20; i++) {
+            query += " into t_cur values(" + i + ")";
+        }
+        query += "select * from dual";
+        Statement stmt = conn.createStatement();
+        stmt.execute(query);
+
+        createProcedure("pro_cur", "( b out sys_refcursor) is begin open b for select * from t_cur; end;");
+        CallableStatement cstmt = conn.prepareCall("{call pro_cur(?)}");
+        cstmt.registerOutParameter(1, Types.REF_CURSOR);
+        cstmt.executeQuery();
+        ResultSet rs = (ResultSet) cstmt.getObject(1);
+        int row = 0;
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(++row, rs.getRow());
+            Assert.assertEquals(rs.getInt(1), ++i);
+        }
+        Assert.assertEquals(20, i);
+    }
     
 }
