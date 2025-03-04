@@ -55,6 +55,7 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -306,4 +307,32 @@ public class LocalInfileInputStreamTest extends BaseTest {
     Assume.assumeTrue(maxAllowedPacket < 100_000_000);
     checkBigLocalInfile(maxAllowedPacket + 1024);
   }
+
+  @Test
+  public void testForDima2025022000107272482() throws SQLException {
+    Connection conn = setConnection("&allowLoadLocalInfile=true");
+    try {
+      Statement stmt = conn.createStatement();
+      createTable("testLoad", "c1 varchar(20)");
+      File tempFile = File.createTempFile("my-test", ".txt");
+      tempFile.deleteOnExit();
+      String str = tempFile.toURI().toURL().toExternalForm();
+      FileOutputStream fOut = new FileOutputStream(tempFile);
+      fOut.write("aaa\naaa".getBytes());
+      fOut.flush();
+      fOut.close();
+      stmt.execute("LOAD DATA LOCAL INFILE '" + str + "' INTO TABLE /*111*/ testLoad");
+      PreparedStatement ps = conn.prepareStatement("LOAD DATA LOCAL INFILE ? INTO TABLE /*111*/ testLoad");
+      ps.setString(1, str);
+      ps.execute();
+    } catch (Exception e) {
+      fail();
+    }
+
+    PreparedStatement ps = conn.prepareStatement("select count(*) from testLoad");
+    ResultSet rs = ps.executeQuery();
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals(4, rs.getInt(1));
+  }
+
 }
