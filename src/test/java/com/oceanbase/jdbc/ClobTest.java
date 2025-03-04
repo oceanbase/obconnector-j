@@ -501,4 +501,60 @@ public class ClobTest extends BaseTest {
             assertTrue(e instanceof NullPointerException);
         }
     }
+
+    @Test
+    public void testForDima2025021800107249962() throws SQLException, IOException {
+        byte[] bytes = "abcdefg".getBytes(StandardCharsets.UTF_8);
+        com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(bytes);
+
+        // getCharacterStream(long, long)
+        Reader reader = clob.getCharacterStream(2, 5);
+        StringBuffer sb = new StringBuffer();
+        int ch;
+        while ((ch = reader.read()) != -1) {
+            sb.append((char) ch);
+        }
+        Assert.assertEquals("bcdef", sb.toString());
+
+        // getCharacterStream()
+        Reader stream = clob.getCharacterStream();
+        sb = new StringBuffer();
+        while ((ch = stream.read()) != -1) {
+            sb.append((char) ch);
+        }
+        Assert.assertEquals("abcdefg", sb.toString());
+
+        // getSubString(long, long)
+        Assert.assertEquals("cdefg", clob.getSubString(3, 5));
+
+        // length
+        Assert.assertEquals(7, clob.length());
+
+    }
+
+    @Test
+    public void testForDima2025021800107250035() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select 'abcd', 'a', 'b', 'c', 'd', 'e' from dual");
+        rs.next();
+        Clob clob = (Clob) rs.getClob(1);
+        try {
+            clob.position(rs.getClob(2), 0);
+            fail("Illegal starting position for search, '0'");
+        } catch (SQLException e) {
+            //
+        }
+
+        try {
+            clob.position(rs.getClob(2), 10);
+            fail("Starting position for search is past end of CLOB");
+        } catch (SQLException e) {
+            //
+        }
+        assertEquals(1, clob.position(rs.getClob(2), 1));
+        assertEquals(2, clob.position(rs.getClob(3), 1));
+        assertEquals(3, clob.position(rs.getClob(4), 1));
+        assertEquals(4, clob.position(rs.getClob(5), 1));
+        assertEquals(-1, clob.position(rs.getClob(6), 1));
+    }
 }

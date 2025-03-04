@@ -1458,4 +1458,25 @@ public class ClobOracleTest extends BaseOracleTest {
             }
         }
     }
+
+    @Test
+    public void testForDima2025022400107307089() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        createTable("t_clob", "c1 clob");
+        stmt.execute("insert into t_clob values('aaa')");
+        stmt.execute("create or replace type clob_array as table of clob");
+
+        createProcedure("p_clob", "(var out clob_array) is begin select c1 bulk collect into var FROM t_clob;end;");
+        CallableStatement cs = conn.prepareCall("{call p_clob(?)}");
+        cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+        cs.execute();
+        Array array = cs.getArray(1);
+        ResultSet rs = array.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("aaa", rs.getString(2));
+        assertFalse(rs.next());
+    }
+
 }
