@@ -166,6 +166,19 @@ public class Clob extends Lob implements java.sql.Clob {
     }
 
     /**
+     *
+     * @return string value of blob content.
+     */
+    public String getString() {
+        if (charData != null) {
+            return charData;
+        } else {
+            Charset charset = Charset.forName(encoding);
+            return new String(data, offset, length, charset);
+        }
+    }
+
+    /**
      * Get sub string.
      *
      * @param pos    position
@@ -210,7 +223,7 @@ public class Clob extends Lob implements java.sql.Clob {
         }
 
         try {
-            String val = toString();
+            String val = getString();
             return val.substring((int) pos - 1, Math.min((int) pos - 1 + length, val.length()));
         } catch (Exception e) {
             throw new SQLException(e);
@@ -233,7 +246,7 @@ public class Clob extends Lob implements java.sql.Clob {
         if (this.charData != null) {
             return new StringReader(this.charData);
         }
-        return new StringReader(toString());
+        return new StringReader(getString());
     }
 
     /**
@@ -248,7 +261,7 @@ public class Clob extends Lob implements java.sql.Clob {
      *                      in the Clob or if pos + length is greater than the number of characters in the Clob
      */
     public Reader getCharacterStream(long pos, long length) throws SQLException {
-        String val = toString();
+        String val = getString();
         if (val.length() < (int) pos - 1 + length) {
             throw ExceptionFactory.INSTANCE
                 .create("pos + length is greater than the number of characters in the Clob");
@@ -316,15 +329,15 @@ public class Clob extends Lob implements java.sql.Clob {
         if (start < 1) {
             throw new SQLException("Illegal starting position for search, '" + start + "'");
         }
-        if ((start - 1) > this.toString().length()) {
+        if ((start - 1) > this.getString().length()) {
             throw new SQLException("Cannot truncate CLOB of length ");
         }
-        long pos = toString().indexOf(searchStr, (int) start - 1);
+        long pos = getString().indexOf(searchStr, (int) start - 1);
         return (pos == -1) ? (-1) : (pos + 1);
     }
 
     public long position(java.sql.Clob searchStr, long start) throws SQLException {
-        return position(searchStr.toString(), start);
+        return position(((Clob)searchStr).getString(), start);
     }
 
     /**
@@ -436,7 +449,7 @@ public class Clob extends Lob implements java.sql.Clob {
 
         Charset charset = Charset.forName(encoding);
         if (!charset.equals(StandardCharsets.UTF_8)) {
-            return toString().length();
+            return getString().length();
         }
 
         long len = 0;

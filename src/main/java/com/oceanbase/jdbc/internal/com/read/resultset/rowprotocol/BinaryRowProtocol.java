@@ -2623,7 +2623,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (options.supportLobLocator) {
                     Clob c = new com.oceanbase.jdbc.Clob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
-                    value = c.toString();
+                    value = c.getSubString(1L, (int) c.length());
                     c.free();
                 } else {
                     return new String(buf, pos, length, charset);
