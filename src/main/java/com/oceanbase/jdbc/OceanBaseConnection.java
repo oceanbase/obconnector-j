@@ -1546,7 +1546,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
         //this is a no-op in mysql-jdbc
         if (protocol.isOracleMode()) {
-            throw exceptionFactory.notSupported("releaseSavepoint is not supported");
+            throw exceptionFactory.create("releaseSavepoint is not supported", "99999", 17023);
         }
         if (protocol != null) {
             protocol.startCallInterface();
