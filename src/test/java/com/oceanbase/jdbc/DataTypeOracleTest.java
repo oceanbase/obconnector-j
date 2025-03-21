@@ -987,4 +987,30 @@ public class DataTypeOracleTest extends BaseOracleTest {
         conn.close();
 
     }
+
+    @Test
+    public void testForDima2024120200105751211() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&oracleUseNumberForSetDouble=true");
+        createTable("z_t1", "c1 number, c2 binary_double");
+
+        PreparedStatement ps = conn.prepareStatement("insert into z_t1 values(?, ?)");
+        ps.setDouble(1, 12.123456789);
+        ps.setDouble(2, 23);
+        ps.execute();
+
+        ((BasePrepareStatement)ps).setBINARY_DOUBLE(1, 12.123456789);
+        ((BasePrepareStatement)ps).setBINARY_DOUBLE(2, 23d);
+        ps.execute();
+
+        PreparedStatement ps1 = conn.prepareStatement("select * from z_t1");
+        ResultSet rs = ps1.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(12.123456789, rs.getDouble(1), 0.00000001d);
+        assertEquals(23d, rs.getDouble(2), 0.0001d);
+
+        assertTrue(rs.next());
+        assertEquals(12.123456789, rs.getDouble(1), 0.00001d);
+        assertEquals(23d, rs.getDouble(2), 0.0001d);
+        assertFalse(rs.next());
+    }
 }

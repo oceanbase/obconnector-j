@@ -1161,6 +1161,12 @@ public enum DefaultOptions {
             0,
             "2.4.14",
             "Maximum number of reconnects to attempt if 'autoReconnect' is 'true'.",
+            false),
+    ORACLE_USE_NUMBER_FOR_SETDOUBLE(
+            "oracleUseNumberForSetDouble",
+            Boolean.FALSE,
+            "2.4.15",
+            "For Oracle tenants, the serialized data type of the setDouble interface is changed to Number.",
             false);
 
   private final String optionName;
