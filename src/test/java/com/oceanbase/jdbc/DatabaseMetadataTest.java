@@ -2015,4 +2015,57 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals(0, identifier2.getInt("DECIMAL_DIGITS"));
         Assert.assertEquals(1, identifier2.getInt("PSEUDO_COLUMN"));
     }
+
+    @Test
+    public void testForGetPrimarykeysSort() throws SQLException {
+        createTable("z_t1", "col_A INT NOT NULL, col_b INT NOT NULL, col_C VARCHAR(100) NOT NULL, col_D TIMESTAMP, PRIMARY KEY(col_b, col_C, col_A)");
+
+        boolean useInformationSchema = false;
+        DatabaseMetaData metaData;
+        ResultSet rs;
+        Connection conn;
+
+        // compatibleMysqlVersion = 5 && useInformationSchema = false
+        String[] columnNameSort1 = {"col_A", "col_C", "col_b"};
+        // compatibleMysqlVersion = 5 && useInformationSchema = true
+        String[] columnNameSort2 = {"col_b", "col_C", "col_A"};
+        // compatibleMysqlVersion = 8
+        String[] columnNameSort3 = {"col_A", "col_b", "col_C"};
+
+        // compatibleMysqlVersion = 5
+        do {
+            conn = setConnection("&useInformationSchema=" + useInformationSchema + "&compatibleMysqlVersion=5");
+            metaData = conn.getMetaData();
+            rs = metaData.getPrimaryKeys(null, null, "z_t1");
+            String[] columnNameSort;
+            if (useInformationSchema) {
+                columnNameSort = columnNameSort2;
+            } else {
+                columnNameSort = columnNameSort1;
+            }
+
+            for (String s : columnNameSort) {
+                assertTrue(rs.next());
+                assertEquals(s, rs.getString("COLUMN_NAME"));
+            }
+            assertFalse(rs.next());
+            rs.close();
+            conn.close();
+        } while (useInformationSchema = !useInformationSchema);
+
+        // compatibleMysqlVersion = 8
+        do {
+            conn = setConnection("&useInformationSchema=" + useInformationSchema + "&compatibleMysqlVersion=8");
+            metaData = conn.getMetaData();
+            rs = metaData.getPrimaryKeys(null, null, "z_t1");
+            for (String s : columnNameSort3) {
+                assertTrue(rs.next());
+                assertEquals(s, rs.getString("COLUMN_NAME"));
+            }
+            assertFalse(rs.next());
+            rs.close();
+            conn.close();
+        } while (useInformationSchema = !useInformationSchema);
+    }
+
 }

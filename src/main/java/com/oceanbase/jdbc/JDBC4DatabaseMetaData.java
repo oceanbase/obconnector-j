@@ -61,6 +61,7 @@ import java.sql.Types;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedMap;
@@ -755,8 +756,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + catalogCond("B.TABLE_SCHEMA", catalog)
                      + patternCond("A.TABLE_NAME", table)
                      + patternCond("B.TABLE_NAME", table)
-                     + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
-                     + " ORDER BY A.COLUMN_NAME";
+                     + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME ";
+
+        if (this.protocol.getOptions().compatibleMysqlVersion == 8) {
+            sql += " ORDER BY B.TABLE_SCHEMA, B.TABLE_NAME, B.COLUMN_NAME, B.SEQ_IN_INDEX";
+        } else {
+            sql += " ORDER BY B.TABLE_SCHEMA, B.TABLE_NAME, B.INDEX_NAME, B.SEQ_IN_INDEX";
+        }
 
         return executeQuery(sql);
     }
@@ -5084,14 +5090,19 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         String[] columnNames = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "KEY_SEQ", "PK_NAME"};
 
         List<String> catalogList = getCatalogList(catalog);
-        ArrayList<String[]> rowsList = new ArrayList<>();
+        TreeMap<String, String[]> sortMap;
+        if (this.protocol.getOptions().compatibleMysqlVersion == 8) {
+            sortMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        } else {
+            sortMap = new TreeMap<>();
+        }
         for (String catalogStr : catalogList) {
-            String[] tuple = new String[6];
             try (ResultSet rs = executeQuery("show keys from " + table + " from " + catalogStr)){
                 while (rs.next()) {
                     String keyType = rs.getString("Key_name");
                     if (keyType != null) {
                         if (keyType.equalsIgnoreCase("PRIMARY") || keyType.equalsIgnoreCase("PRI")) {
+                            String[] tuple = new String[6];
                             tuple[0] = catalogStr;
                             tuple[1] = null;
                             tuple[2] = table;
@@ -5100,16 +5111,18 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                             tuple[3] = columnName;
                             tuple[4] = rs.getString("Seq_in_index");
                             tuple[5] = keyType;
-                            rowsList.add(tuple);
+                            sortMap.put(columnName, tuple);
                         }
                     }
                 }
             }
         }
 
-        String[][] resData = new String[rowsList.size()][];
-        for (int i = 0; i < rowsList.size(); i++) {
-            resData[i] = rowsList.get(i);
+        Iterator<String[]> iterator = sortMap.values().iterator();
+        String[][] resData = new String[sortMap.size()][];
+        int index = 0;
+        while (iterator.hasNext()) {
+            resData[index ++] = iterator.next();
         }
         return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, resData, this.protocol);
     }
@@ -5125,12 +5138,12 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         List<String> catalogList = getCatalogList(catalog);
         ArrayList<String[]> rowsList = new ArrayList<>();
         for (String catalogStr : catalogList) {
-            String[] tuple = new String[8];
             try (ResultSet results = executeQuery("show columns from " + table + " from " + catalogStr)) {
                 while (results.next()) {
                     String keyType = results.getString("Key");
                     if (keyType != null) {
                         if (keyType.startsWith("PRI") || keyType.startsWith("pri")) {
+                            String[] tuple = new String[8];
                             tuple[0] = Integer.toString(java.sql.DatabaseMetaData.bestRowSession);
                             tuple[1] = results.getString("Field");
 
