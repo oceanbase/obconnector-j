@@ -62,15 +62,20 @@ import com.oceanbase.jdbc.internal.protocol.Protocol;
 
 public class CmdInformationBatch implements CmdInformation {
 
+  // Automatically generated primary key, storing the last_insert_id returned by the server
   private final Queue<Long> insertIds = new ConcurrentLinkedQueue<>();
+  // The number of updated rows , storing the affected_rows returned by the server
   private final Queue<Long> updateCounts = new ConcurrentLinkedQueue<>();
   private final int expectedSize;
   private final int autoIncrement;
+  // The number of automatically generated primary keys,
+  // When the SQL is an on duplicate key update statement, an auto-increment primary key is also returned.
   private int insertIdNumber = 0;
   private boolean hasException;
   private boolean rewritten;
   private String serverInfo;
   private boolean arrayBinding;
+  private boolean containOnDuplicateKey;
 
   /**
    * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch, doesn't
@@ -112,19 +117,18 @@ public class CmdInformationBatch implements CmdInformation {
   @Override
   public void addSuccessStat(long updateCount, long insertId) {
     insertIds.add(insertId);
-    insertIdNumber += updateCount;
+    if (containOnDuplicateKey) {
+      insertIdNumber += 1;
+    } else {
+      insertIdNumber += updateCount;
+    }
     updateCounts.add(updateCount);
   }
 
     public void addSuccessStat(long updateCount, long insertId, boolean containOnDuplicateKey, String serverInfo) {
-        if (containOnDuplicateKey && updateCount == 0) {
-            updateCount = 1;
-        }
-        addSuccessStat(updateCount, insertId);
-        this.serverInfo = serverInfo;
+      addSuccessStat(updateCount, insertId);
+      this.serverInfo = serverInfo;
     }
-
-
 
   @Override
   public int[] getUpdateCounts() {
@@ -241,6 +245,11 @@ public class CmdInformationBatch implements CmdInformation {
       Iterator<Long> idIterator = insertIds.iterator();
       for (Long updateCountLong : updateCounts) {
           int updateCount = updateCountLong.intValue();
+          if (this.containOnDuplicateKey()) {
+            // When using ON DUPLICATE KEY UPDATE, an insertId always exists, but updateCount may be >=0.
+            // If it's 0, the following loop won't populate the ID, and values >=2 cause index overflow. Thus, we temporarily set it to 1.
+            updateCount = 1;
+          }
           if (updateCount != Statement.EXECUTE_FAILED
                   && updateCount != RESULT_SET_VALUE
                   && (insertId = idIterator.next()) > 0) {
@@ -313,4 +322,13 @@ public class CmdInformationBatch implements CmdInformation {
     return arrayBinding;
   }
 
+  @Override
+  public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
+    this.containOnDuplicateKey = containOnDuplicateKey;
+  }
+
+  @Override
+  public boolean containOnDuplicateKey() {
+    return containOnDuplicateKey;
+  }
 }

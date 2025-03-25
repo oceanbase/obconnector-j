@@ -201,11 +201,13 @@ public class Results {
                 return;
             }
         }
+        boolean containOnDuplicateKey = containOnDuplicateKey(statement.getActualSql(), statement.getConnection().getProtocol());
+        cmdInformation.setContainOnDuplicateKey(containOnDuplicateKey);
         cmdInformation
             .addSuccessStat(
                 updateCount,
                 insertId,
-                containOnDuplicateKey(statement.getActualSql(), statement.getConnection().getProtocol()),
+                containOnDuplicateKey,
                 serverInfo);
     }
 
