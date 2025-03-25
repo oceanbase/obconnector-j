@@ -1347,5 +1347,20 @@ public class CursorFetchOracleTest extends BaseOracleTest {
         rs.close();
         cs.close();
     }
+    @Test
+    public void testForDima2025031800107607803() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        createTable("zt1", "c1 int, c2 varchar2(20)");
 
+        Statement statement = conn.createStatement();
+        statement.execute("insert into zt1 values(1, 'a')");
+        PreparedStatement ps = conn.prepareStatement("select * from zt1");
+        ps.setFetchSize(1);
+        ResultSet rs = ps.executeQuery("select * from zt1");
+
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse(rs.isAfterLast());
+        Assert.assertFalse(rs.next());
+        Assert.assertTrue(rs.isAfterLast());
+    }
 }

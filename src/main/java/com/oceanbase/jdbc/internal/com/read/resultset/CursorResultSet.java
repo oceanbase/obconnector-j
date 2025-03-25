@@ -258,7 +258,7 @@ public class CursorResultSet extends Cursor {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        if (protocol.isOracleMode() && dataSize <= 0) {
+        if (protocol.isOracleMode() && dataSize <= 0 && !isLastRowSent) {
             return false;
         }
 
