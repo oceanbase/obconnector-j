@@ -1,0 +1,13 @@
+# 1. You can edit the content of this file directly , or use tools to help you verify the legality and automatically generate it , please click http=//aliwing.alibaba-inc.com/apprelease/home.htm
+# 2. For more about the specifications and conventions of Release files , please click  http=//docs.alibaba-inc.com/pages/viewpage.action?pageId=252891532
+
+code.language=java
+
+baseline.jdk=jdk-1.8.0_40
+
+build.tools.maven=maven3.2.5
+
+build.tools.maven.settings=tao
+
+build.output=target
+
