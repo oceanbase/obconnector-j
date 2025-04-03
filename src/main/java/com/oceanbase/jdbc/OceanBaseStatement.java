@@ -66,6 +66,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
+import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
@@ -781,12 +782,24 @@ public class OceanBaseStatement implements Statement, Cloneable {
    */
   public ResultSet executeQuery(String sql) throws SQLException {
     // reset cursorFetchPstmt everytime
-    cursorFetchPstmt = null;
+    if (this.cursorFetchPstmt != null) {
+      cursorFetchPstmt.close();
+      cursorFetchPstmt = null;
+    }
+    // close result everytime
+    if (this.results != null) {
+      this.results.closeAllOpenResults();
+      this.results.close();
+    }
     if (isCursorResultSet()) {
       PreparedStatement pstmt = this.connection.prepareStatement(sql,this.resultSetScrollType,this.resultSetConcurrency);
       cursorFetchPstmt = pstmt;
       setPropertiesForStatement(pstmt);
       ResultSet rs = pstmt.executeQuery();
+      if (rs instanceof CursorResultSet) {
+         CursorResultSet cursorResultSet = (CursorResultSet) rs;
+         cursorResultSet.setStatementUsedForFetch(cursorFetchPstmt);
+      }
       this.results =((OceanBaseStatement)pstmt).results;
       return rs;
     }
