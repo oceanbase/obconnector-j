@@ -267,7 +267,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       // search in cache first
       if (options.cachePrepStmts && options.useServerPrepStmts) {
-        ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
+        ServerPrepareResult pr = serverPrepareStatementCache.remove(database + "-" + sql);
         if (pr != null && pr.incrementShareCounter()) {
           return pr;
         }
@@ -616,7 +616,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       // search serverPrepareResult in cache
       if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
-        ServerPrepareResult prepareResult = this.prepareStatementCache().get(this.getDatabase() + "-" + results.getStatement().getActualSql());
+        ServerPrepareResult prepareResult = this.prepareStatementCache().remove(this.getDatabase() + "-" + results.getStatement().getActualSql());
         if (prepareResult != null && prepareResult.incrementShareCounter()) {
           serverPrepareResult = prepareResult;
           serverPrepareResult.resetParameterTypeHeader();
@@ -1977,6 +1977,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     // so synchronised use count indicator will be decrement.
     serverPrepareResult.decrementShareCounter();
 
+    // store in cache if not deallocate
+    if (options.cachePrepStmts && options.useServerPrepStmts && !serverPrepareResult.canBeDeallocate()) {
+      ServerPrepareResult oldPrepareResult = serverPrepareStatementCache.put(database + "-" + serverPrepareResult.getSql(), serverPrepareResult);
+      if (oldPrepareResult != null && oldPrepareResult != serverPrepareResult) {
+        oldPrepareResult.setRemoveFromCache();
+        if (oldPrepareResult.canBeDeallocate()) {
+          logger.debug("closing [ps-id={}] {}", oldPrepareResult.getStatementId(), oldPrepareResult.getSql());
+          forceReleasePrepareStatement(oldPrepareResult.getStatementId());
+          oldPrepareResult.release();
+        }
+      }
+    }
+
     // deallocate from server if not cached
     if (serverPrepareResult.canBeDeallocate()) {
       logger.debug("closing [ps-id={}] {}", serverPrepareResult.getStatementId(), serverPrepareResult.getSql());
@@ -2586,7 +2599,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   public ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult) {
-    return serverPrepareStatementCache.put(key, serverPrepareResult);
+    return serverPrepareStatementCache.setToCache(key, serverPrepareResult);
   }
 
   private void cmdPrologue() throws SQLException {
