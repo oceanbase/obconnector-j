@@ -104,6 +104,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
     private static final Pattern      SQL_WILDCARD_PATTERN      = Pattern.compile("^%|^_|[^/]%|[^/]_",  Pattern.CASE_INSENSITIVE);
     private static final Pattern      SQL_ESCAPE_PATTERN        = Pattern.compile("/",  Pattern.CASE_INSENSITIVE);
+    private static final Pattern      FUNCTION_RETURN_PATTERN   = Pattern
+                                                                    .compile(
+                                                                            "\\s+(LANGUAGE|NOT|DETERMINISTIC|CONTAINS|NO|READ|MODIFIES|SQL|COMMENT|BEGIN|RETURN)\\s+",
+                                                                            Pattern.CASE_INSENSITIVE);
 
     String[]                          exportKeysColumnNames     = { "PKTABLE_CAT", "PKTABLE_SCHEM",
             "PKTABLE_NAME", "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME",
@@ -3316,7 +3320,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             boolean isOutParam = false;
             boolean isReturnParam = false;
             String[] data = new String[20];
-            if ( paramList != null && paramList.indexOf("(") != 0 && !matcher1.find()) {
+            boolean isReturnParamList = isReturnParamList(isFunction, paramList);
+            if ( paramList != null && paramList.indexOf("(") != 0 && (!matcher1.find() || isReturnParamList)) {
                 String[] tokens = new String[] { "LANGUAGE", "NOT", "DETERMINISTIC", "CONTAINS", "NO",
                         "READ", "MODIFIES", "SQL", "COMMENT", "BEGIN", "RETURN" };
                 int startIndex = 0;
@@ -3461,6 +3466,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             throws SQLException {
         ArrayList<String> paramListArray = new ArrayList<>();
         ArrayList<String> nameArray = new ArrayList<>();
+        boolean isFunction = false;
         while(procsAndOrFuncsRs.next()) {
             String name = procsAndOrFuncsRs.getString("name");
 
@@ -3484,6 +3490,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 procNameBuf.append("`");
             }
             if("FUNCTION".equals(type)) {
+                isFunction = true;
                 ResultSet paramRetrievalRs = this.connection.createStatement().executeQuery(
                         "SHOW CREATE FUNCTION " + procNameBuf.toString());
                 paramRetrievalRs.next();
@@ -3525,7 +3532,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             }
         }
 
-        return parseParamListProc(false, paramListArray, catalog, nameArray, columnNames, columnTypes,forGetFunctionColumns,columnPattern);
+        return parseParamListProc(isFunction, paramListArray, catalog, nameArray, columnNames, columnTypes,forGetFunctionColumns,columnPattern);
     }
 
     /**
@@ -5064,5 +5071,19 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         matcher.appendTail(stringBuffer);
 
         return stringBuffer.toString();
+    }
+
+    /**
+     * Determine whether it is a return parameter for function
+     * @param isFunction
+     * @param paramList
+     * @return
+     */
+    private boolean isReturnParamList(boolean isFunction, String paramList) {
+        if (!isFunction) {
+            return false;
+        }
+        Matcher matcher = FUNCTION_RETURN_PATTERN.matcher(paramList);
+        return matcher.find();
     }
 }
