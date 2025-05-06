@@ -1888,4 +1888,71 @@ public class ResultSetTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2024062200102856153() throws SQLException {
+        // text row , false
+        Connection conn = setConnection("&jdbcCompliantTruncation=false&useServerPrepStmts=false");
+        ResultSet rs = conn.prepareStatement("SELECT " + Double.MAX_VALUE).executeQuery();
+        rs.next();
+        assertEquals(-1, rs.getByte(1));
+        assertEquals(-1, rs.getShort(1));
+        assertEquals(2147483647, rs.getInt(1));
+        assertEquals(Long.parseLong("9223372036854775807"), rs.getLong(1));
+        rs.close();
+
+        // binary row , false
+        conn = setConnection("&jdbcCompliantTruncation=false&useServerPrepStmts=true");
+        rs = conn.prepareStatement("SELECT " + Double.MAX_VALUE).executeQuery();
+        rs.next();
+        assertEquals(-1, rs.getByte(1));
+        assertEquals(-1, rs.getShort(1));
+        assertEquals(2147483647, rs.getInt(1));
+        assertEquals(Long.parseLong("9223372036854775807"), rs.getLong(1));
+        rs.close();
+
+        // text row , true
+        conn = setConnection("&jdbcCompliantTruncation=true&useServerPrepStmts=false");
+        rs = conn.prepareStatement("SELECT " + Double.MAX_VALUE).executeQuery();
+        rs.next();
+        assertException(rs);
+        rs.close();
+
+        // binary row, true
+        conn = setConnection("&jdbcCompliantTruncation=true&useServerPrepStmts=true");
+        rs = conn.prepareStatement("SELECT " + Double.MAX_VALUE).executeQuery();
+        rs.next();
+        assertException(rs);
+        rs.close();
+    }
+
+    public void assertException(ResultSet rs) {
+        try {
+            rs.getByte(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("is not in class java.lang.Byte range"));
+        }
+
+        try {
+            rs.getShort(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("is not in class java.lang.Short range"));
+        }
+
+        try {
+            rs.getInt(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("is not in class java.lang.Integer range"));
+        }
+
+        try {
+            rs.getLong(1);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("is not in class java.lang.Long range"));
+        }
+    }
+
 }
