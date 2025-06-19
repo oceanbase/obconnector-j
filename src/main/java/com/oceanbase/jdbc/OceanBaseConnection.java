@@ -320,6 +320,10 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                              .getLogger("JDBC-COST-LOGGER");
 
     private OceanBaseConnection      lobConn;
+    
+    private Properties              clientInfo                           = new Properties();
+
+    private static final Pattern    CLIENTINFO_NAME_PATTERN              = Pattern.compile("\\w+\\.[a-zA-Z0-9_$]+");
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -1771,24 +1775,25 @@ public class OceanBaseConnection implements ConnectionImpl {
      *                                info value on the database server or this method is called on a closed connection
      * @since 1.6
      */
+    @Override
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
-        checkClientClose(name);
-        checkClientReconnect(name);
-        checkClientValidProperty(name);
-        if (protocol != null) {
-            protocol.startCallInterface();
-        }
-
-        try (Statement statement = createStatement()) {
-            statement.execute(buildClientQuery(name, value));
-        } catch (SQLException sqle) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
-            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
-        } finally {
-            if (protocol != null) {
-                protocol.endCallInterface("OceanBaseConnection.setClientInfo");
+        if (this.protocol.isOracleMode()) {
+            if (isClosed()) {
+                throw new SQLClientInfoException("No operations allowed after connection closed.", null);
             }
+            if (!CLIENTINFO_NAME_PATTERN.matcher(name).matches() || name.split("\\.", 2)[0].equals("SYS")) {
+                Map<String, ClientInfoStatus> failures = new HashMap<>();
+                failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+                throw new SQLClientInfoException("The name '" + name + "' is invalid or unsupported for clientInfo.", failures);
+            }
+
+            if (value == null) {
+                this.clientInfo.remove(name);
+            } else {
+                this.clientInfo.setProperty(name, value);
+            }
+        } else {
+            this.clientInfo.setProperty(name, value);
         }
     }
 
@@ -1802,43 +1807,12 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @throws SQLException if the database server returns an error when fetching the client info
      *                      values from the database or this method is called on a closed connection
      */
+    @Override
     public Properties getClientInfo() throws SQLException {
-        checkConnection();
-        if (protocol != null) {
-            protocol.startCallInterface();
+        if (this.protocol.isOracleMode()) {
+            checkClosed();
         }
-
-        String sql;
-        if(this.protocol.isOracleMode()) {
-            sql = "SELECT @ApplicationName, @ClientUser, @ClientHostname from dual";
-        } else {
-            sql = "SELECT @ApplicationName, @ClientUser, @ClientHostname";
-        }
-        Properties properties = new Properties();
-        try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery(sql)) {
-                if (rs.next()) {
-                    if (rs.getString(1) != null) {
-                        properties.setProperty("ApplicationName", rs.getString(1));
-                    }
-                    if (rs.getString(2) != null) {
-                        properties.setProperty("ClientUser", rs.getString(2));
-                    }
-                    if (rs.getString(3) != null) {
-                        properties.setProperty("ClientHostname", rs.getString(3));
-                    }
-                    return properties;
-                }
-            }
-        }
-        properties.setProperty("ApplicationName", null);
-        properties.setProperty("ClientUser", null);
-        properties.setProperty("ClientHostname", null);
-
-        if (protocol != null) {
-            protocol.endCallInterface("OceanBaseConnection.getClientInfo");
-        }
-        return properties;
+        return (Properties) this.clientInfo.clone();
     }
 
     /**
@@ -1863,21 +1837,20 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see Connection#setClientInfo(String, String) setClientInfo(String, String)
      * @since 1.6
      */
+    @Override
     public void setClientInfo(final Properties properties) throws SQLClientInfoException {
-        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
-        for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
-            try {
-                setClientInfo(name, properties.getProperty(name));
-            } catch (SQLClientInfoException e) {
-                propertiesExceptions.putAll(e.getFailedProperties());
+        if (this.protocol.isOracleMode()) {
+            if (isClosed()) {
+                throw new SQLClientInfoException("No operations allowed after connection closed.", null);
             }
         }
 
-        if (!propertiesExceptions.isEmpty()) {
-            String errorMsg =
-                    "setClientInfo errors : the following properties where not set : "
-                            + propertiesExceptions.keySet();
-            throw new SQLClientInfoException(errorMsg, propertiesExceptions);
+        this.clientInfo.clear();
+        Enumeration<?> names = properties.propertyNames();
+        while (names.hasMoreElements()) {
+            String name = (String) names.nextElement();
+            String value = properties.getProperty(name);
+            setClientInfo(name, value);
         }
     }
 
@@ -1895,38 +1868,20 @@ public class OceanBaseConnection implements ConnectionImpl {
      * @see DatabaseMetaData#getClientInfoProperties
      * @since 1.6
      */
+    @Override
     public String getClientInfo(final String name) throws SQLException {
-        checkConnection();
-        if (!"ApplicationName".equals(name)
-                && !"ClientUser".equals(name)
-                && !"ClientHostname".equals(name)) {
-            throw new SQLException(
-                    "name must be \"ApplicationName\", \"ClientUser\" or \"ClientHostname\", but was \""
-                            + name
-                            + "\"");
-        }
-        if (protocol != null) {
-            protocol.startCallInterface();
-        }
-
-        String sql;
-        if(this.protocol.isOracleMode()) {
-            sql = "SELECT @" + name + " from dual";
-        } else {
-            sql = "SELECT @" + name;
-        }
-        try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery(sql)) {
-                if (rs.next()) {
-                    return rs.getString(1);
-                }
+        if (this.protocol.isOracleMode()) {
+            checkClosed();
+            if (name == null) {
+                return null;
             }
-        } finally {
-            if (protocol != null) {
-                protocol.endCallInterface("OceanBaseConnection.getClientInfo");
+            if (!CLIENTINFO_NAME_PATTERN.matcher(name).matches()) {
+                Map<String, ClientInfoStatus> failures = new HashMap<>();
+                failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+                throw new SQLClientInfoException("The name '" + name + "' is invalid or unsupported for clientInfo. ", failures);
             }
         }
-        return null;
+        return this.clientInfo.getProperty(name);
     }
 
     /**
