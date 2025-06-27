@@ -53,8 +53,10 @@ package com.oceanbase.jdbc.internal.com.read.dao;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -65,7 +67,7 @@ public class CmdInformationBatch implements CmdInformation {
   // Automatically generated primary key, storing the last_insert_id returned by the server
   private final Queue<Long> insertIds = new ConcurrentLinkedQueue<>();
   // The number of updated rows , storing the affected_rows returned by the server
-  private final Queue<Long> updateCounts = new ConcurrentLinkedQueue<>();
+  private final Deque<Long> updateCounts = new ConcurrentLinkedDeque<>();
   private final int expectedSize;
   private final int autoIncrement;
   // The number of automatically generated primary keys,
@@ -222,14 +224,38 @@ public class CmdInformationBatch implements CmdInformation {
 
   @Override
   public int getUpdateCount() {
-    Long updateCount = updateCounts.peek();
+    Long updateCount = updateCounts.peekLast();
     return (updateCount == null) ? -1 : updateCount.intValue();
+  }
+
+  public int getUpdateCount(boolean isOracleMode) {
+    if (isOracleMode) {
+      Iterator<Long> iterator = updateCounts.iterator();
+      int updateCount = 0;
+      while (iterator.hasNext()) {
+        updateCount += iterator.next().intValue();
+      }
+      return updateCount;
+    }
+    return getUpdateCount();
   }
 
   @Override
   public long getLargeUpdateCount() {
-    Long updateCount = updateCounts.peek();
+    Long updateCount = updateCounts.peekLast();
     return (updateCount == null) ? -1 : updateCount;
+  }
+
+  public long getLargeUpdateCount(boolean isOracleMode) {
+    if (isOracleMode) {
+      Iterator<Long> iterator = updateCounts.iterator();
+      long updateCount = 0;
+      while (iterator.hasNext()) {
+        updateCount += iterator.next();
+      }
+      return updateCount;
+    }
+    return getUpdateCount();
   }
 
   @Override

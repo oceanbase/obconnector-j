@@ -65,6 +65,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.oceanbase.jdbc.internal.com.read.dao.CmdInformationBatch;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.CursorResultSet;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -1472,10 +1473,23 @@ public class OceanBaseStatement implements Statement, Cloneable {
               return (int) results.getResultSet().getProcessedRows();
           }
           if (!results.isBatch()) {
-              return results.getCmdInformation().getUpdateCount();
+              int updateCount = results.getCmdInformation().getUpdateCount();
+              // oracle mode, procedure statement return -1
+              if (this.protocol.isOracleMode() && results.getStatement() instanceof OceanBaseProcedureStatement) {
+                  if (sqlType == STMT_BEGIN || sqlType == STMT_CALL || sqlType == STMT_DECLARE) {
+                      return -1;
+                  }
+              }
+              return updateCount;
+          }else {
+              return ((CmdInformationBatch)results.getCmdInformation()).getUpdateCount(this.protocol.isOracleMode());
           }
       }
 
+      // mysql mode, Actually, when the out parameter exists，affectedRows is returned here, but the server does not return that.
+      if (!this.protocol.isOracleMode() && results.getStatement() instanceof OceanBaseProcedureStatement && results.getCallableResultSet() != null) {
+          return 0;
+      }
       return -1;
   }
 
@@ -1494,8 +1508,21 @@ public class OceanBaseStatement implements Statement, Cloneable {
               return results.getResultSet().getProcessedRows();
           }
           if (!results.isBatch()) {
-              return results.getCmdInformation().getLargeUpdateCount();
+              long largeUpdateCount = results.getCmdInformation().getLargeUpdateCount();
+              if (this.protocol.isOracleMode() && results.getStatement() instanceof OceanBaseProcedureStatement) {
+                  if (sqlType == STMT_BEGIN || sqlType == STMT_CALL || sqlType == STMT_DECLARE) {
+                      return -1;
+                  }
+              }
+              return largeUpdateCount;
+          } else {
+              return ((CmdInformationBatch)results.getCmdInformation()).getLargeUpdateCount(this.protocol.isOracleMode());
           }
+      }
+
+      // mysql mode, Actually, when the out parameter exists，affectedRows is returned here, but the server does not return that.
+      if (!this.protocol.isOracleMode() && results.getStatement() instanceof OceanBaseProcedureStatement && results.getCallableResultSet() != null) {
+          return 0;
       }
       return -1;
   }

@@ -583,4 +583,112 @@ public class ProcedureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2024062100102853722() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("z_t2", "c1 int");
+        Statement stmt = conn.createStatement();
+        createProcedure("pl_insert", "(in p1 int, in p2 int ,in p3 int) begin insert into z_t2 values (p1),(p2),(p3); end;");
+
+        // PL
+        CallableStatement call = conn.prepareCall("call pl_insert(?, ?, ?)");
+        call.setInt(1, 1);
+        call.setInt(2, 2);
+        call.setInt(3, 3);
+        Assert.assertEquals(3, call.executeUpdate());
+        Assert.assertEquals(3, call.getUpdateCount());
+        call.close();
+
+        CallableStatement call2 = conn.prepareCall("call pl_insert(?, ?, ?)");
+        call2.setInt(1, 1);
+        call2.setInt(2, 2);
+        call2.setInt(3, 3);
+        Assert.assertEquals(3, call2.executeLargeUpdate());
+        Assert.assertEquals(3, call2.getLargeUpdateCount());
+        call2.close();
+
+        // out PL
+        createProcedure("pl_out", "(in p1 int, in p2 int ,out p3 int) begin insert into z_t2 values (p1),(p2); set p3 = 1; end;");
+        CallableStatement cs = conn.prepareCall("{CALL pl_out(?, ?, ?)}");
+        cs.setInt(1, 4);
+        cs.setInt(2, 5);
+        cs.registerOutParameter(3, Types.INTEGER);
+        Assert.assertEquals(0, cs.executeUpdate()); // mysql-jdbc = 2
+        Assert.assertEquals(0, cs.getUpdateCount()); // mysql-jdbcc = 2
+
+        CallableStatement cs2 = conn.prepareCall("{CALL pl_out(?, ?, ?)}");
+        cs2.setInt(1, 4);
+        cs2.setInt(2, 5);
+        cs2.registerOutParameter(3, Types.INTEGER);
+        Assert.assertEquals(0, cs2.executeLargeUpdate()); // mysql-jdbc = 2
+        Assert.assertEquals(0, cs2.getLargeUpdateCount()); // mysql-jdbcc = 2
+
+        // out pl 2
+        createProcedure("testPro3", "(out a int) begin set a = 1; end;");
+        CallableStatement cs3 = conn.prepareCall("{CALL testPro3(?)}");
+        cs3.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(0, cs3.executeUpdate());
+        Assert.assertEquals(0, cs3.getUpdateCount());
+
+        CallableStatement cs4 = conn.prepareCall("{CALL testPro3(?)}");
+        cs4.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(0, cs4.executeLargeUpdate());
+        Assert.assertEquals(0, cs4.getLargeUpdateCount());
+
+        // DML
+        createTable("z_t3", "c1 int");
+        PreparedStatement ps = conn.prepareStatement("insert into z_t3 values (1),(2),(3),(4)");
+        Assert.assertEquals(4, ps.executeUpdate());
+        Assert.assertEquals(4, ps.getUpdateCount());
+        ps.close();
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into z_t3 values (1),(2)");
+        Assert.assertEquals(2, ps2.executeLargeUpdate());
+        Assert.assertEquals(2, ps2.getLargeUpdateCount());
+        ps2.close();
+
+        PreparedStatement updatePs = conn.prepareStatement("update z_t3 set c1 = 0 where c1 < 1");
+        Assert.assertEquals(0, updatePs.executeUpdate());
+        Assert.assertEquals(0, updatePs.getUpdateCount());
+        updatePs.close();
+
+        PreparedStatement updatePs2 = conn.prepareStatement("update z_t3 set c1 = 3 where c1 = 3");
+        Assert.assertEquals(1, updatePs2.executeUpdate());
+        Assert.assertEquals(1, updatePs2.getUpdateCount());
+        updatePs2.close();
+
+        PreparedStatement updatePs3 = conn.prepareStatement("update z_t3 set c1 = 0 where c1 < 4");
+        Assert.assertEquals(5, updatePs3.executeUpdate());
+        Assert.assertEquals(5, updatePs3.getUpdateCount());
+        updatePs3.close();
+
+        PreparedStatement delPs = conn.prepareStatement("delete from z_t3 where c1 = 5");
+        Assert.assertEquals(0, delPs.executeUpdate());
+        Assert.assertEquals(0, delPs.getUpdateCount());
+        delPs.close();
+
+        PreparedStatement delPs2 = conn.prepareStatement("delete from z_t3 where c1 = 4");
+        Assert.assertEquals(1, delPs2.executeUpdate());
+        Assert.assertEquals(1, delPs2.getUpdateCount());
+        delPs2.close();
+
+        PreparedStatement delPs3 = conn.prepareStatement("delete from z_t3 where c1 < 2");
+        Assert.assertEquals(5, delPs3.executeUpdate());
+        Assert.assertEquals(5, delPs3.getUpdateCount());
+        delPs3.close();
+
+        createTable("z_t4", "c1 int");
+        stmt.execute("insert into z_t4 values (1),(2),(2),(3),(3),(3)");
+        PreparedStatement batchPs = conn.prepareStatement("delete from z_t4 where c1 = ?");
+        batchPs.setInt(1, 0);
+        batchPs.addBatch();
+        batchPs.setInt(1, 3);
+        batchPs.addBatch();
+        batchPs.setInt(1, 2);
+        batchPs.addBatch();
+        int[] result = batchPs.executeBatch();
+        Assert.assertArrayEquals(new int[]{0, 3, 2}, result);
+        Assert.assertEquals(2, batchPs.getLargeUpdateCount());
+    }
+
 }
