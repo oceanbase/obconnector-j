@@ -867,4 +867,32 @@ public class CursorFetchTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2025030700107422039() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=5");
+        String tableName = "z_t1";
+        createTable("z_t1", "a int, b varchar(8196)");
+
+        Statement statement = conn.createStatement();
+        statement.execute("alter system set open_cursors=10");
+        for (int i = 0; i < 10; i++) {
+            statement.execute("insert into " + tableName + " values(" + i + ", 'a_" + i + "')");
+        }
+
+        Statement stmt = conn.createStatement();
+        try {
+            for (int payload_len = 1; payload_len <= 20; payload_len++) {
+                String query_sql = String.format("select b from %s where a= %s;", tableName, payload_len);
+                ResultSet rs = stmt.executeQuery(query_sql);
+                rs.close();
+            }
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        } finally {
+            statement.execute("alter system set open_cursors=100");
+            statement.close();
+            stmt.close();
+        }
+    }
+
 }
