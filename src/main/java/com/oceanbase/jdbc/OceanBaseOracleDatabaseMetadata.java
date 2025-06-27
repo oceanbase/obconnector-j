@@ -167,7 +167,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         } else if (procedureNamePattern.equals("")) {
             throw new SQLException();
         } else {
-            procedureStr = procedureNamePattern.toUpperCase();
+            procedureStr = this.connection.getProtocol().getOptions().lowercaseRoutinesInMetadata ?
+                    procedureNamePattern.toUpperCase() : procedureNamePattern;
         }
         if (catalog == null) {
             stmt = this.connection.prepareStatement(OB_ORA_GET_PROCEDURE_CATALOG_NULL);
@@ -403,7 +404,8 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         } else if (functionNamePattern.equals("")) {
             throw new SQLException();
         } else {
-            functionName = functionNamePattern.toUpperCase();
+            functionName = this.connection.getProtocol().getOptions().lowercaseRoutinesInMetadata ?
+                    functionNamePattern.toUpperCase() : functionNamePattern;
         }
         if (catalog == null) {
             stmt = this.connection.prepareStatement(OB_ORA_GET_FUNCTION_CATALOG_NULL);

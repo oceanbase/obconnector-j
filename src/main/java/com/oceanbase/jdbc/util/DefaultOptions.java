@@ -1162,6 +1162,12 @@ public enum DefaultOptions {
             "2.4.14",
             "Maximum number of reconnects to attempt if 'autoReconnect' is 'true'.",
             false),
+    LOWERCASE_ROUTINES_IN_METADATA(
+            "lowercaseRoutinesInMetadata",
+            Boolean.FALSE,
+            "2.4.15",
+            "Whether routine names in metadata can be in lowercase.",
+            false),
     ORACLE_USE_NUMBER_FOR_SETDOUBLE(
             "oracleUseNumberForSetDouble",
             Boolean.FALSE,
