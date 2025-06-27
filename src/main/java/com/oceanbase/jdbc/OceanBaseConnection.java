@@ -1273,7 +1273,7 @@ public class OceanBaseConnection implements ConnectionImpl {
             if (catalog == null) {
                 throw new SQLException("The catalog name may not be null", "XAE05");
             }
-            if (catalog.equals(this.protocol.getCatalog())) {
+            if (options.useLocalSessionState && catalog.equals(this.protocol.getCatalog())) {
                 return;
             }
             if (protocol != null) {

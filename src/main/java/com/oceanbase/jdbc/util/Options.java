@@ -149,6 +149,7 @@ public class Options implements Cloneable {
     public boolean emptyStringsConvertToZero = true;
     public boolean emulateLocators;
     public int locatorFetchBufferSize = 1048576;
+    public boolean useLocalSessionState = true;
 
     // logging options
     public boolean log;
@@ -746,6 +747,9 @@ public class Options implements Cloneable {
         if (lowercaseRoutinesInMetadata != opt.lowercaseRoutinesInMetadata) {
             return false;
         }
+        if (useLocalSessionState != opt.useLocalSessionState) {
+           return false;
+        }
         if (oracleUseNumberForSetDouble != opt.oracleUseNumberForSetDouble) {
             return false;
         }
@@ -916,6 +920,7 @@ public class Options implements Cloneable {
         result = 31 * result + locatorFetchBufferSize;
         result = 31 * result + maxReconnects;
         result = 31 * result + (lowercaseRoutinesInMetadata ? 1 : 0);
+        result = 31 * result + (useLocalSessionState ? 1 : 0);
         result = 31 * result + (oracleUseNumberForSetDouble ? 1 : 0);
         result = 31 * result + (convertNoneNanoSecsToDate ? 1 : 0);
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);

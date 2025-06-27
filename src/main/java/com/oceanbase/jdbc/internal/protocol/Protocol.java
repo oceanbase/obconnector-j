@@ -262,7 +262,7 @@ public interface Protocol {
 
     void setTransactionIsolation(int level) throws SQLException;
 
-    int getTransactionIsolationLevel();
+    int getTransactionIsolationLevel() throws SQLException;
 
     boolean isExplicitClosed();
 
