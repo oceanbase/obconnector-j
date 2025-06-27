@@ -1637,4 +1637,37 @@ public class BlobOracleTest extends BaseOracleTest {
             conn.setAutoCommit(true);
         }
     }
+
+    @Test
+    public void testForDima2025022400107305206() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("t_blob", "c1 blob");
+        PreparedStatement ps = conn.prepareStatement("insert into t_blob values(?)");
+        ps.setBytes(1, "aaa".getBytes());
+        ps.execute();
+        ps.setBytes(1, "bbb".getBytes());
+        ps.execute();
+
+        stmt.execute("create or replace type blob_array as table of blob");
+        createProcedure("p_blob", "(var out blob_array) is begin select c1 bulk collect into var FROM t_blob;end;");
+        CallableStatement cs = conn.prepareCall("{call p_blob(?)}");
+        cs.registerOutParameter(1, Types.ARRAY, "BLOB_ARRAY");
+        cs.execute();
+        Array array = cs.getArray(1);
+        Object[] objects = (Object[]) array.getArray();
+        Assert.assertEquals(Arrays.toString("aaa".getBytes()), Arrays.toString(((Blob) objects[0]).getBytes(1L, (int) ((Blob) objects[0]).length())));
+        Assert.assertEquals(Arrays.toString("bbb".getBytes()), Arrays.toString(((Blob) objects[1]).getBytes(1L, (int) ((Blob) objects[1]).length())));
+
+        ResultSet rs = array.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        java.sql.Blob blob1 = (java.sql.Blob) rs.getObject(2);
+        Assert.assertEquals(Arrays.toString("aaa".getBytes()), Arrays.toString(blob1.getBytes(1, 3)));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        java.sql.Blob blob2 = (java.sql.Blob) rs.getObject(2);
+        Assert.assertEquals(Arrays.toString("bbb".getBytes()), Arrays.toString(blob2.getBytes(1, 3)));
+        assertFalse(rs.next());
+    }
 }
