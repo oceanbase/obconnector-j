@@ -402,4 +402,6 @@ public interface Protocol {
     void endCallInterface(String message);
 
     int getServerStatus();
+
+    TimeZone getTimeZoneWithUseLegacyDatetimeCode();
 }

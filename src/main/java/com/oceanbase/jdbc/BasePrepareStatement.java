@@ -652,7 +652,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 setNull(parameterIndex, ColumnType.DATETIME);
                 return;
             }
-            TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZone();
+            TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZoneWithUseLegacyDatetimeCode();
             setParameter(parameterIndex, new TimestampParameter(timestamp, tz, useFractionalSeconds));
         }
     }

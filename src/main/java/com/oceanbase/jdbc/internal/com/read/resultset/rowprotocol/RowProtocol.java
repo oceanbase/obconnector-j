@@ -736,9 +736,6 @@ public abstract class RowProtocol {
 
    Timestamp buildTimestmap(int year,int month,int day,int hour,int minutes,int seconds,int nanos,Calendar calendar,TimeZone timezone) {
       Calendar localCal = getCalendarInstance(calendar);
-      if (options.useLegacyDatetimeCode) {
-          localCal.setTimeZone(timezone);
-      }
       Timestamp tt;
       if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
          yearIsZero = true;

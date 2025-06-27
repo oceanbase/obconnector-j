@@ -357,7 +357,7 @@ public enum DefaultOptions {
             false),
     USE_LEGACY_DATETIME_CODE(
             "useLegacyDatetimeCode",
-            Boolean.TRUE,
+            Boolean.FALSE,
             "2.0.1",
             "if true (default) store date/timestamps "
                     + "according to client time zone.\n"

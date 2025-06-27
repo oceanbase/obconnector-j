@@ -1206,6 +1206,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
                 }
+                if (!getProtocol().isOracleMode()) {
+                    cal = getCalendarInstance(cal);
+                }
                 Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
@@ -1244,6 +1247,11 @@ public class BinaryRowProtocol extends RowProtocol {
                     && (type == ColumnType.STRING || type == ColumnType.VARCHAR || type == ColumnType.VARSTRING)) {
                     String raw = new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
+                    if (options.compatibleMysqlVersion == 8) {
+                        cal = getCalendarInstance(cal);
+                        Timestamp timestampFromString = getTimestampFromString(columnInfo, raw, cal, timeZone);
+                        return (timestampFromString == null) ? null : new Time(timestampFromString.getTime());
+                    }
                     return getTimeFromString(raw, cal);
                 }
                 // convert string to a date
@@ -1394,6 +1402,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 case NVARCHAR2:
                 case VARCHAR2:
                 case VARCHAR:
+                    if (!this.getProtocol().isOracleMode()) {
+                        userCalendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                    }
                     String rawValue = new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType()));
                     if (!getProtocol().isOracleMode()) {
@@ -1468,7 +1479,16 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
             }
 
-            Calendar calendar = getCalendarInstance(userCalendar);
+            Calendar calendar = null;
+
+            calendar = getCalendarInstance(userCalendar);
+            if (!getProtocol().isOracleMode()){
+                if ((!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5)
+                        || (options.compatibleMysqlVersion == 8 && (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME))
+                ) {
+                    calendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                }
+            }
             Timestamp tt;
             if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
                 yearIsZero = true;
@@ -1562,6 +1582,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 }
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
+                    if (columnInfo.getColumnType() == ColumnType.DATETIME) {
+                        timeZone = TimeZone.getDefault();
+                    }
                 }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, null, timeZone);
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && columnInfo.getColumnType() == ColumnType.DATETIME) {
@@ -2059,6 +2082,33 @@ public class BinaryRowProtocol extends RowProtocol {
                 return localDateTimeNoTimeZone.atZone(timeZone.toZoneId());
             }
         }
+
+        if (!getProtocol().isOracleMode()) {
+            Timestamp timestamp = null;
+            Calendar calendar = null;
+            if (!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5) {
+                calendar = getCalendarInstanceWithTimezone(null, timeZone);
+            }
+            switch (columnInfo.getColumnType()){
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                case DATE:
+                case TIME:
+                    if (options.compatibleMysqlVersion == 8) {
+                        timeZone = TimeZone.getDefault();
+                    }
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                default:
+                    break;
+            }
+        }
+
         switch (columnInfo.getColumnType().getSqlType()) {
             case Types.TIMESTAMP:
             case Types.DATE:
@@ -2241,6 +2291,25 @@ public class BinaryRowProtocol extends RowProtocol {
         if (length == 0) {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
+        }
+
+        if (!this.getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+            Timestamp timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId()).toOffsetDateTime();
+                case TIME:
+                case DATE:
+                    timestamp = getInternalTimestamp(columnInfo, null, TimeZone.getDefault());
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), TimeZone.getDefault().toZoneId()).toOffsetDateTime();
+                default:
+                    break;
+            }
         }
 
         ZoneId zoneId = timeZone.toZoneId().normalized();

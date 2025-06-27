@@ -274,7 +274,15 @@ public class TextRowProtocol extends RowProtocol {
                     useCalLenientFlag = true;
                 }
                 try {
-                    timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                    if (!getProtocol().isOracleMode()) {
+                        Calendar newCal = getCalendarInstance(cal);
+                        if (!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5) {
+                            newCal = getCalendarInstanceWithTimezone(cal, timeZone);
+                        }
+                        timestamp = getInternalTimestamp(columnInfo, newCal, timeZone);
+                    } else {
+                        timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                    }
                 } catch (SQLException sqlex) {
                     if (sqlex.getMessage().equals("Zero date value prohibited")
                             && !getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
@@ -929,6 +937,10 @@ public class TextRowProtocol extends RowProtocol {
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
                 }
+
+                if (!getProtocol().isOracleMode()) {
+                    cal = getCalendarInstance(cal);
+                }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
 
@@ -952,6 +964,16 @@ public class TextRowProtocol extends RowProtocol {
                 String raw = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())).trim();
                 if (!getProtocol().isOracleMode()) {
+                    try {
+                        if (options.compatibleMysqlVersion == 8) {
+                            cal = getCalendarInstance(cal);
+                            Timestamp timestampFromString = getTimestampFromString(columnInfo, raw, cal, timeZone);
+                            return (timestampFromString == null) ? null : new Time(timestampFromString.getTime());
+                        }
+                    } catch (SQLException e) {
+                        throw new SQLException("Time format \"" + raw
+                                + "\" incorrect, must be HH:mm:ss");
+                    }
                     return getTimeFromString(raw, cal);
                 }
                 Pattern pattern = Pattern.compile(
@@ -1062,6 +1084,15 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+                if (!this.getProtocol().isOracleMode()) {
+                    ColumnType type = columnInfo.getColumnType();
+                    if ((options.compatibleMysqlVersion == 5 && !options.useLegacyDatetimeCode) ||
+                            (options.compatibleMysqlVersion == 8 &&  type != ColumnType.DATE)) {
+                        userCalendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                    } else {
+                        userCalendar = getCalendarInstance(userCalendar);
+                    }
+                }
                 if (options.obDateTypeOptimization) {
                     return getTimestampFromBytes(columnInfo, userCalendar, timeZone);
                 }
@@ -1072,6 +1103,13 @@ public class TextRowProtocol extends RowProtocol {
                 // time does not go after millisecond
                 rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
+                if (!this.getProtocol().isOracleMode()) {
+                    if (options.compatibleMysqlVersion == 5  && !options.useLegacyDatetimeCode) {
+                        userCalendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                    } else {
+                        userCalendar = getCalendarInstance(userCalendar);
+                    }
+                }
                 Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar,
                     TimeZone.getDefault()).getTime());
                 tt.setNanos(extractNanos(rawValue));
@@ -1173,6 +1211,9 @@ public class TextRowProtocol extends RowProtocol {
                 }
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
+                    if (columnInfo.getColumnType() == ColumnType.DATETIME) {
+                        timeZone = TimeZone.getDefault();
+                    }
                 }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, null, timeZone);
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && columnInfo.getColumnType() == ColumnType.DATETIME) {
@@ -1432,6 +1473,33 @@ public class TextRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
+
+        if (!getProtocol().isOracleMode()) {
+            Timestamp timestamp = null;
+            Calendar calendar = null;
+            if (!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5) {
+                calendar = getCalendarInstanceWithTimezone(null, timeZone);
+            }
+            switch (columnInfo.getColumnType()){
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                case DATE:
+                case TIME:
+                    if (options.compatibleMysqlVersion == 8) {
+                        timeZone = TimeZone.getDefault();
+                    }
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                default:
+                    break;
+            }
+        }
+
         if (getProtocol().isOracleMode()) {
             if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
                 || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
@@ -1597,6 +1665,25 @@ public class TextRowProtocol extends RowProtocol {
         if (length == 0) {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
+        }
+
+        if (!this.getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+            Timestamp timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId()).toOffsetDateTime();
+                case TIME:
+                case DATE:
+                    timestamp = getInternalTimestamp(columnInfo, null, TimeZone.getDefault());
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), TimeZone.getDefault().toZoneId()).toOffsetDateTime();
+                default:
+                    break;
+            }
         }
 
         String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));
