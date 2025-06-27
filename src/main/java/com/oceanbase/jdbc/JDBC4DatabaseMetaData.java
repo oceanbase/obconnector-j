@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.SortedMap;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1256,6 +1257,11 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 && tableNamePatternWithNoBacktick.startsWith("`") && tableNamePatternWithNoBacktick.endsWith("`")) {
             tableNamePatternWithNoBacktick = tableNamePatternWithNoBacktick.substring(1, tableNamePatternWithNoBacktick.length() - 1);
         }
+
+        if (!this.protocol.getOptions().useInformationSchema) {
+            return getColumnsWithOutInformationSchema(catalog, schemaPattern, tableNamePatternWithNoBacktick, columnNamePattern);
+        }
+
         Options options = urlParser.getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
                      + dataTypeClause("COLUMN_TYPE")
@@ -3118,8 +3124,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     length = Math.max(length, (tokenizer.nextToken().length() - 2));
                 }
                 this.columnSize = length;
-            }
-            if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("set")) {
+            }else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("set")) {
                 String sub = fullTypeName.substring(fullTypeName.indexOf("("),
                     fullTypeName.indexOf(")"));
                 StringTokenizer tokenizer = new StringTokenizer(sub, ",");
@@ -3158,11 +3163,30 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                     }
                     this.columnSize = Integer.valueOf(fullTypeName.substring(
                         fullTypeName.indexOf("(") + 1, endIndex));
-                    // Adjust for pseudo-boolean  todo
+                    // Adjust for pseudo-boolean
+                    if (protocol.getOptions().tinyInt1isBit && this.columnSize == 1 && fullTypeName.toLowerCase(Locale.ROOT).startsWith("tinyint")) {
+                        if (protocol.getOptions().transformedBitIsBoolean) {
+                            this.sqlType = Types.BOOLEAN;
+                            this.typeName = "BOOLEAN";
+                        } else {
+                            this.sqlType = Types.BIT;
+                            this.typeName = "BIT";
+                        }
+                    }
                 } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("tinyint")) {
-                    // Adjust for pseudo-boolean  todo
+                    // Adjust for pseudo-boolean
                     this.columnSize = 5;
                     this.decimalDigits = "0";
+
+                    if (protocol.getOptions().tinyInt1isBit && fullTypeName.contains("(1)")) {
+                        if (protocol.getOptions().transformedBitIsBoolean) {
+                            this.sqlType = Types.BOOLEAN;
+                            this.typeName = "BOOLEAN";
+                        } else {
+                            this.sqlType = Types.BIT;
+                            this.typeName = "BIT";
+                        }
+                    }
                 } else if (fullTypeName.toLowerCase(Locale.ROOT).startsWith("smallint")) {
                     this.columnSize = 5;
                     this.decimalDigits = "0";
@@ -5243,5 +5267,172 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             }
         }
         return catalogList;
+    }
+
+    private ResultSet getColumnsWithOutInformationSchema(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
+        ColumnType[] columnTypes = {ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.STRING, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.SMALLINT, ColumnType.STRING, ColumnType.STRING};
+        String[] columnNames = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME",
+                "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+                "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+                "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
+
+        List<String> catalogList = getCatalogList(catalog);
+        final ArrayList<String[]> rows = new ArrayList<>();
+        for (String catalogStr : catalogList) {
+            ArrayList<String> tableNameList = new ArrayList<String>();
+            ResultSet tables = null;
+            try {
+                if (tableNamePattern == null) {
+                    tables = getTables(catalogStr, schemaPattern, "%", new String[0]);
+                } else {
+                    tables = getTables(catalogStr, schemaPattern, tableNamePattern, new String[0]);
+                }
+                while (tables.next()) {
+                    String tableNameFromList = tables.getString("TABLE_NAME");
+                    tableNameList.add(tableNameFromList);
+                }
+            } finally {
+                if (tables != null) {
+                    tables.close();
+                }
+            }
+
+            for (String tableName : tableNameList) {
+                StringBuilder queryBuf = new StringBuilder("SHOW FULL COLUMNS FROM ");
+                queryBuf.append(OceanBaseConnection.quoteIdentifier(tableName));
+                queryBuf.append(" FROM ");
+                queryBuf.append(OceanBaseConnection.quoteIdentifier(catalogStr));
+                if (columnNamePattern != null) {
+                    queryBuf.append(" LIKE ");
+                    queryBuf.append("'").append(columnNamePattern).append("'");
+                }
+
+                // Return correct ordinals if column name pattern is not '%'
+                // Currently, MySQL doesn't show enough data to do this, so we do it the 'hard' way...Once _SYSTEM tables are in, this should be
+                // much easier
+                boolean fixUpOrdinalsRequired = false;
+                Map<String, Integer> ordinalFixUpMap = null;
+                if (columnNamePattern != null && !columnNamePattern.equals("%")) {
+                    fixUpOrdinalsRequired = true;
+
+                    StringBuilder fullColumnQueryBuf = new StringBuilder("SHOW FULL COLUMNS FROM ");
+                    fullColumnQueryBuf.append(OceanBaseConnection.quoteIdentifier(tableName));
+                    fullColumnQueryBuf.append(" FROM ");
+                    fullColumnQueryBuf.append(OceanBaseConnection.quoteIdentifier(catalogStr));
+
+                    try (ResultSet results = executeQuery(fullColumnQueryBuf.toString())){
+                        ordinalFixUpMap = new HashMap<String, Integer>();
+                        int fullOrdinalPos = 1;
+                        while (results.next()) {
+                            String fullOrdColName = results.getString("Field");
+                            ordinalFixUpMap.put(fullOrdColName, Integer.valueOf(fullOrdinalPos++));
+                        }
+                    }
+                }
+
+                try (ResultSet results = executeQuery(queryBuf.toString())){
+                    int ordPos = 1;
+                    while (results.next()) {
+                        String[] tuple = new String[24];
+                        tuple[0] = catalogStr;
+                        tuple[1] = null;
+                        tuple[2] = tableName;
+
+                        tuple[3] = results.getString("Field");
+                        TypeInfo typeInfo = new TypeInfo(results.getString("Type"));
+                        // nullable
+                        String nullabilityInfo = results.getString("Null");
+                        if (nullabilityInfo != null) {
+                            if (nullabilityInfo.equals("YES")) {
+                                typeInfo.nullability = java.sql.DatabaseMetaData.columnNullable;
+                                typeInfo.isNullable = "YES";
+                            } else if (nullabilityInfo.equals("UNKNOWN")) {
+                                typeInfo.nullability = java.sql.DatabaseMetaData.columnNullableUnknown;
+                                typeInfo.isNullable = "";
+                            } else {
+                                typeInfo.nullability = java.sql.DatabaseMetaData.columnNoNulls;
+                                typeInfo.isNullable = "NO";
+                            }
+                        } else {
+                            typeInfo.nullability = java.sql.DatabaseMetaData.columnNoNulls;
+                            typeInfo.isNullable = "NO";
+                        }
+
+                        tuple[4] = String.valueOf(typeInfo.sqlType);
+                        tuple[5] = typeInfo.typeName;
+                        tuple[6] = String.valueOf(typeInfo.columnSize);
+                        if (typeInfo.columnSize != 0) {
+                            String collation = results.getString("Collation");
+                            int mbminlen = 1;
+                            if (collation != null && ("TEXT".equalsIgnoreCase(typeInfo.typeName) || "TINYTEXT".equalsIgnoreCase(typeInfo.typeName)
+                                    || "MEDIUMTEXT".equalsIgnoreCase(typeInfo.typeName))) {
+                                if (collation.indexOf("ucs2") > -1 || collation.indexOf("utf16") > -1) {
+                                    mbminlen = 2;
+                                } else if (collation.indexOf("utf32") > -1) {
+                                    mbminlen = 4;
+                                }
+                            }
+                            tuple[6] = String.valueOf(mbminlen == 1 ? typeInfo.columnSize : typeInfo.columnSize / mbminlen);
+                        }
+                        tuple[7] = String.valueOf(typeInfo.bufferLength);
+                        tuple[8] = typeInfo.decimalDigits;
+                        tuple[9] = String.valueOf(typeInfo.numPrecRadix);
+                        tuple[10] = String.valueOf(typeInfo.nullability);
+
+                        tuple[11] = results.getString("Comment");
+                        tuple[12] = results.getString("Default");
+
+                        tuple[13] = "0";
+                        tuple[14] = "0";
+
+                        String upperCaseTypeName = typeInfo.typeName.toUpperCase();
+                        if (upperCaseTypeName.contains("CHAR") || upperCaseTypeName.contains("BLOB") || upperCaseTypeName.contains("TEXT") || upperCaseTypeName.contains("BINARY")) {
+                            tuple[15] = tuple[6];
+                        } else {
+                            tuple[15] = null;
+                        }
+
+                        if (!fixUpOrdinalsRequired) {
+                            tuple[16] = String.valueOf(ordPos++);
+                        } else {
+                            String origColName = results.getString("Field");
+                            Integer realOrdinal = ordinalFixUpMap.get(origColName);
+
+                            if (realOrdinal != null) {
+                                tuple[16] = String.valueOf(realOrdinal);
+                            } else {
+                                throw new SQLException("Can not find column in full column list to determine true ordinal position.", "S1000");
+                            }
+                        }
+
+                        tuple[17] = typeInfo.isNullable;
+
+                        // We don't support REF or DISTINCT types
+                        tuple[18] = null;
+                        tuple[19] = null;
+                        tuple[20] = null;
+                        tuple[21] = null;
+                        tuple[22] = "";
+
+                        String extra = results.getString("Extra");
+
+                        if (extra != null) {
+                            tuple[22] = extra.toLowerCase().contains("auto_increment") ? "YES" : "NO";
+                            tuple[23] = extra.toLowerCase().contains("generated") ? "YES" : "NO";
+                        }
+                        rows.add(tuple);
+                    }
+                }
+            }
+        }
+        String[][] resData = new String[rows.size()][];
+        int index = 0;
+        for (String[] row : rows) {
+            resData[index ++] = row;
+        }
+        return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, resData, this.protocol);
     }
 }

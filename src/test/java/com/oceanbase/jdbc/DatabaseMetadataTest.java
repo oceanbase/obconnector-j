@@ -53,8 +53,11 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import org.junit.*;
 
 public class DatabaseMetadataTest extends BaseTest {
@@ -2068,4 +2071,51 @@ public class DatabaseMetadataTest extends BaseTest {
         } while (useInformationSchema = !useInformationSchema);
     }
 
+
+    @Test
+    public void testForDima2025061300109474357() throws SQLException {
+        Connection conn = setConnection("&useInformationSchema=false");
+        createTable("t_cols", "c1 int not null primary key auto_increment, c2 varchar(100) CHARACTER SET utf16 COLLATE utf16_unicode_ci, c3 text, c4 datetime(6)");
+
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet columns = metaData.getColumns("", "", "t_cols", "c%");
+
+        String[] columnNames = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME",
+                "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+                "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+                "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
+
+        ColumnType[] columnTypes = {ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.STRING, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.STRING,
+                ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.SMALLINT, ColumnType.STRING, ColumnType.STRING};
+
+        ResultSetMetaData columnsMetaData = columns.getMetaData();
+        for (int i = 0; i < columnsMetaData.getColumnCount(); i++) {
+            Assert.assertEquals(columnsMetaData.getColumnName(i + 1), columnNames[i]);
+            Assert.assertEquals(columnsMetaData.getColumnType(i + 1), columnTypes[i].getSqlType());
+        }
+
+        Object[] c1_Values = {"test", null, "t_cols", "c1", 4, "int", 10, 65535, 0, 10, 0, "", null, 0, 0, 0, 1, "NO", null, null, null, 0, "YES", "NO"};
+        Object[] c2_Values = {"test", null, "t_cols", "c2", 12, "varchar", 100, 65535, 0, 10, 1, "", null, 0, 0, 100, 2, "YES", null, null, null, 0, "NO", "NO"};
+        Object[] c3_Values = {"test", null, "t_cols", "c3", -1, "text", 65535, 65535, 0, 10, 1, "", null, 0, 0, 65535, 3, "YES", null, null, null, 0, "NO", "NO", };
+        Object[] c4_Values = {"test", null, "t_cols", "c4", 93, "datetime", 19, 65535, 0, 10, 1, "", null, 0, 0, 0, 4, "YES", null, null, null, 0, "NO", "NO", };
+
+        List<Object[]> list = Arrays.asList(c1_Values, c2_Values, c3_Values, c4_Values);
+
+        int idx = 0;
+        while (columns.next()) {
+            Object[] objects = list.get(idx ++);
+            for (int i = 0; i < columnNames.length; i++) {
+                if (columnTypes[i] == ColumnType.STRING) {
+                    Assert.assertEquals(objects[i], columns.getString(columnNames[i]));
+                } else if (columnTypes[i] == ColumnType.INTEGER) {
+                    Assert.assertEquals(objects[i], columns.getInt(columnNames[i]));
+                } else if (columnTypes[i] == ColumnType.SMALLINT) {
+                    Assert.assertEquals((short) ((int)objects[i]), columns.getShort(columnNames[i]));
+                }
+            }
+        }
+        columns.close();
+    }
 }
