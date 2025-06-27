@@ -1882,7 +1882,34 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     // todo: remove above
 
-    public boolean getReadonly() {
+    public boolean getReadonly() throws SQLException {
+        if (!this.isOracleMode && !options.useLocalSessionState) {
+            String sql = "select @@session.tx_read_only";
+            if (versionGreaterOrEqual(8, 0, 3)) {
+                sql = "SELECT @@session.transaction_read_only";
+            }
+
+            ResultSet rs = null;
+            try {
+                Results results = new Results();
+                executeQuery(true, results, sql);
+                results.commandEnd();
+                rs = results.getResultSet();
+                if (rs.next()) {
+                    return rs.getInt(1) != 0;
+                }
+            } catch (SQLException e) {
+                throw new SQLException("Could not retrieve transaction read-only status from server", "S1000");
+            } finally {
+                if (rs != null) {
+                    try {
+                        rs.close();
+                    } catch (Exception ex) {
+                        // ignore
+                    }
+                }
+            }
+        }
         return readOnly;
     }
 

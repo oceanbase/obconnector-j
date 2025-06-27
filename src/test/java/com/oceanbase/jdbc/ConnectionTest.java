@@ -1188,4 +1188,37 @@ public class ConnectionTest extends BaseTest {
     Assert.assertEquals(null, connection.getClientInfo("p1"));
     Assert.assertEquals("new_p1_value", connection.getClientInfo("new_p1"));
   }
+
+  @Test
+  public void testForDima2025011600107030749() throws SQLException {
+    Connection conn = setConnection("&useLocalSessionState=false");
+    for (int i = 0; i < 2; i++) {
+      if (i == 1) {
+        conn = setConnection("&useLocalSessionState=true");
+      }
+      // If useLocalSessionState=true, no SQL will be sent when the same value is set for the second time.
+      conn.setAutoCommit(false);
+      conn.setAutoCommit(false);
+      conn.setAutoCommit(true);
+
+      conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+      conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+      conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+      conn.setReadOnly(true);
+      conn.setReadOnly(true);
+      conn.setReadOnly(false);
+
+      conn.setCatalog("oceanbase");
+      conn.setCatalog("oceanbase");
+      conn.setCatalog("test");
+
+      Assert.assertTrue(conn.getAutoCommit());
+
+      // if useLocalSessionState=true, Will not send query SQL。
+      Assert.assertEquals(Connection.TRANSACTION_READ_COMMITTED, conn.getTransactionIsolation());
+      Assert.assertFalse(conn.isReadOnly());
+    }
+  }
+
 }

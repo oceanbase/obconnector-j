@@ -1950,10 +1950,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
-    if (this.autoCommit != autoCommit) {
+    if ((this.isOracleMode() && this.autoCommit != autoCommit) ||
+            (!this.isOracleMode() && !(options.useLocalSessionState && this.autoCommit == autoCommit))) {
       executeQuery("set autocommit = " + (autoCommit ? "1" : "0"));
-    } else {
-      return;
     }
     this.autoCommit = autoCommit;
   }
@@ -2081,8 +2080,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException If socket error.
    */
   public void setReadonly(final boolean readOnly) throws SQLException {
-    if (options.assureReadOnly && this.readOnly != readOnly && versionGreaterOrEqual(5, 6, 5)) {
-      executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
+    if (options.assureReadOnly && versionGreaterOrEqual(5, 6, 5)) {
+      if ((this.isOracleMode() && this.readOnly != readOnly) ||
+              (!this.isOracleMode() && (!options.useLocalSessionState || this.readOnly != readOnly))){
+        executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
+      }
     }
     this.readOnly = readOnly;
   }
@@ -2099,9 +2101,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
       lockLogger.debug("AbstractQueryProtocol.setTransactionIsolation locked");
 
-      if (transactionIsolationLevel == level) {
+      if ((this.isOracleMode() || !this.isOracleMode() && options.useLocalSessionState)
+              && transactionIsolationLevel == level) {
         return;
       }
+
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (level) {
         case Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -2127,7 +2131,48 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
   }
 
-  public int getTransactionIsolationLevel() {
+  public int getTransactionIsolationLevel() throws SQLException {
+    if (!this.isOracleMode() && !options.useLocalSessionState ) {
+      String sql = "SELECT @@session.tx_isolation";
+      if (versionGreaterOrEqual(8, 0, 3)) {
+        sql = "SELECT @@session.transaction_isolation";
+      }
+
+      ResultSet rs = null;
+      try {
+        Results results = new Results();
+        executeQuery(true, results, sql);
+        results.commandEnd();
+        rs = results.getResultSet();
+
+        if (rs.next()) {
+          String s = rs.getString(1);
+          if (s != null) {
+            Map<String, Integer> mapTransIsolationNameToValue = new HashMap<String, Integer>(8);
+            mapTransIsolationNameToValue.put("READ-UNCOMMITTED", Connection.TRANSACTION_READ_UNCOMMITTED);
+            mapTransIsolationNameToValue.put("READ-COMMITTED", Connection.TRANSACTION_READ_COMMITTED);
+            mapTransIsolationNameToValue.put("REPEATABLE-READ", Connection.TRANSACTION_REPEATABLE_READ);
+            mapTransIsolationNameToValue.put("SERIALIZABLE", Connection.TRANSACTION_SERIALIZABLE);
+
+            Integer mapValue = mapTransIsolationNameToValue.get(s);
+            if (mapValue != null) {
+              transactionIsolationLevel = mapValue.intValue();
+              return transactionIsolationLevel;
+            }
+          }
+
+          throw new SQLException("Could not map transaction isolation '" + s + " to a valid JDBC level.", "S1000");
+        }
+      } finally {
+        if (rs != null) {
+          try {
+            rs.close();
+          } catch (Exception ex) {
+            // ignore
+          }
+        }
+      }
+    }
     return transactionIsolationLevel;
   }
 

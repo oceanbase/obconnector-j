@@ -1185,7 +1185,15 @@ public enum DefaultOptions {
             Boolean.FALSE,
             "2.4.15",
             "For Oracle tenants, the serialized data type of the setDouble interface is changed to Number.",
-            false);
+            false),
+    USE_LOCAL_SESSION_STATE(
+            "useLocalSessionState",
+            Boolean.TRUE,
+            "2.4.15",
+            "Should the driver refer to the internal values of auto-commit and transaction isolation " +
+                    "that are set by 'Connection.setAutoCommit()' and 'Connection.setTransactionIsolation()' and transaction state as maintained by the protocol, " +
+                    "rather than querying the database or blindly sending commands to the database for 'commit()' or 'rollback()' method calls?",
+            false),;
 
   private final String optionName;
   private final String description;
