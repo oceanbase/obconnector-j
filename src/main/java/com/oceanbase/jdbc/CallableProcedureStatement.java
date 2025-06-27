@@ -273,6 +273,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             }
             int outputIndex = outputParameterMapper[parameterIndex - 1];
             if (outputIndex == -1) {
+                if (this.protocol.isOracleMode() && params.get(parameterIndex).isOutput()) {
+                    throw new SQLException("Parameter in index '"
+                            + parameterIndex
+                            + "' is not out parameter");
+                }
                 // this is not an outputParameter
                 throw new SQLException(
                     "Parameter in index '"
@@ -726,7 +731,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (null != placeHolderParameter) {
                 placeHolderParameter.setOutputSqlType(sqlType);
                 placeHolderParameter.setTypeName(typeName);
-                placeHolderParameter.setOutput(true);
             }
         }
     }
@@ -774,7 +778,6 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             CallParameter placeHolderParameter = parameterMetadata
                 .getPlaceholderParam(parameterIndex - 1);
             if (null != placeHolderParameter) {
-                placeHolderParameter.setOutput(true);
                 placeHolderParameter.setOutputSqlType(sqlType);
                 placeHolderParameter.setScale(scale);
             }

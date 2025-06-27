@@ -2717,20 +2717,29 @@ public class OceanBaseConnection implements ConnectionImpl {
     /**
      *
      * Using DBMS_UTILITY.NAME_RESOLVE The method obtains the schema of udt，such as using it for synonym
-     * @param typeName
+     * The parameter information for DBMS_UTILITY.NAME_RESOLVE is as follows:
+     * 1. name: The name to be resolved.
+     * 2. context: The type of resolution, e.g., 1 indicates PL.
+     * 3. part1: The first part of the name.
+     * 4. part1_type: The type of part1, e.g., 7 indicates a procedure, 9 indicates a package.
+     *
+     * @param objectName
      * @param conn
      * @return
      * @throws SQLException
+     * @see <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000002016561">DBMS_UTILITY.NAME_RESOLVE</a>
      */
-    private HashMap<String , String> getPLSchemaByNameResolve(String typeName, Connection conn) throws SQLException {
+    protected HashMap<String , String> getPLSchemaByNameResolve(String objectName, Connection conn) throws SQLException {
         CallableStatement cs = null;
         String schema;
         String name;
         String objectNumber;
+        String part1;
+        String part1Type;
         HashMap<String, String> nameResolveMap = new HashMap<>();
         try {
             cs = conn.prepareCall("call DBMS_UTILITY.NAME_RESOLVE(?, ?, ?, ?, ?, ?, ?, ?)");
-            cs.setString(1, typeName.toUpperCase());
+            cs.setString(1, objectName.toUpperCase());
             cs.setInt(2, 1);
             cs.registerOutParameter(3, Types.VARCHAR);
             cs.registerOutParameter(4, Types.VARCHAR);
@@ -2740,10 +2749,14 @@ public class OceanBaseConnection implements ConnectionImpl {
             cs.registerOutParameter(8, Types.VARCHAR);
             cs.execute();
             schema = cs.getString(3);
+            part1 = cs.getString(4);
             name = cs.getString(5);
+            part1Type = cs.getString(7);
             objectNumber = cs.getString(8);
             nameResolveMap.put("schema", schema);
             nameResolveMap.put("name", name);
+            nameResolveMap.put("part1", part1);
+            nameResolveMap.put("part1Type", part1Type);
             nameResolveMap.put("objectNumber", objectNumber);
         } catch (Exception e) {
             // eat

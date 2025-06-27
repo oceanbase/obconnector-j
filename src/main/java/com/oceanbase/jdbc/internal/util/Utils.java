@@ -2022,4 +2022,79 @@ public class Utils {
       }
       return subQueryEndPos;
     }
+
+    public static List<ParsedCallParameters> parseArguments(String arguments) {
+      if (arguments == null) {
+        return null;
+      }
+
+      arguments = arguments.trim();
+      if (arguments.startsWith("(") && arguments.endsWith(")")) {
+        arguments = arguments.substring(1, arguments.length() - 1);
+      }
+
+      List<ParsedCallParameters> retList = new ArrayList<>();
+
+      // contains "=>"
+      Pattern specialParametersPattern = Pattern.compile("\\s*(\\w+\\s*=>\\s*.*?)(?=(,\\s*\\w+\\s*=>\\s*)|$)", Pattern.DOTALL);
+      Matcher matcher = specialParametersPattern.matcher(arguments);
+      boolean find = false;
+      while (matcher.find()) {
+        find = true;
+        String token = matcher.group(1).trim();
+        String[] parts = token.split("\\s*=>\\s*", 2);
+        if (parts.length == 2) {
+          String val = parts[1];
+          retList.add(new ParsedCallParameters(val.startsWith("?") || val.startsWith(":"), token));
+        }
+      }
+      if (find) {
+        return retList;
+      }
+
+      // index param
+      boolean inSingleQuote = false;
+      boolean inDoubleQuote = false;
+      boolean inParentheses = false;
+      char lastChar = 0;
+      int parenthesesCount = 0;
+
+      StringBuilder currentParam = new StringBuilder();
+      if (!arguments.isEmpty()) {
+        lastChar = arguments.charAt(0);
+      }
+      for (int i = 0; i < arguments.length(); i++) {
+        char c = arguments.charAt(i);
+
+        if (c == '\'' && !inDoubleQuote && lastChar != '\\') {
+          inSingleQuote = !inSingleQuote;
+        } else if (c == '"' && !inSingleQuote && lastChar != '\\') {
+          inDoubleQuote = !inDoubleQuote;
+        } else if (c == '(' && !inSingleQuote && !inDoubleQuote) {
+          inParentheses = true;
+          parenthesesCount++;
+        } else if (c == ')' && !inSingleQuote && !inDoubleQuote) {
+          parenthesesCount--;
+          if (parenthesesCount == 0) {
+            inParentheses = false;
+          }
+        }
+
+        if (!inSingleQuote && !inDoubleQuote && c == ',' && !inParentheses) {
+          String token = currentParam.toString().trim();
+          retList.add(new ParsedCallParameters(token.startsWith("?") || token.startsWith(":"), token));
+          currentParam = new StringBuilder();
+        } else {
+          currentParam.append(c);
+        }
+        lastChar = c;
+      }
+
+      // add the last one
+      if (currentParam.length() > 0) {
+        String token = currentParam.toString().trim();
+        retList.add(new ParsedCallParameters(token.startsWith("?") || token.startsWith(":"), token));
+      }
+      return retList;
+    }
 }

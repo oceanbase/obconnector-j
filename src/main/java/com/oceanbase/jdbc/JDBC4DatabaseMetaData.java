@@ -61,6 +61,7 @@ import java.sql.Types;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedMap;
@@ -74,6 +75,7 @@ import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.io.input.StandardPacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.SqlStates;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.dao.Identifier;
@@ -744,6 +746,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         if (table != null && table.contains("`")) {
             table = table.replace("`", "");
         }
+
+        if (!this.protocol.getOptions().useInformationSchema) {
+           return getPrimaryKeysWithOutInformationSchema(catalog, table);
+        }
         // not completely compatible with mysql 8.x(now use 'PRI' in place of 'pri')
         String sql = "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                      + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
@@ -754,8 +760,13 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + catalogCond("B.TABLE_SCHEMA", catalog)
                      + patternCond("A.TABLE_NAME", table)
                      + patternCond("B.TABLE_NAME", table)
-                     + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
-                     + " ORDER BY A.COLUMN_NAME";
+                     + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME ";
+
+        if (this.protocol.getOptions().compatibleMysqlVersion == 8) {
+            sql += " ORDER BY B.TABLE_SCHEMA, B.TABLE_NAME, B.COLUMN_NAME, B.SEQ_IN_INDEX";
+        } else {
+            sql += " ORDER BY B.TABLE_SCHEMA, B.TABLE_NAME, B.INDEX_NAME, B.SEQ_IN_INDEX";
+        }
 
         return executeQuery(sql);
     }
@@ -1814,6 +1825,10 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
 
         if (table.contains("`")) {
             table = table.replace("`", "");
+        }
+
+        if (!this.protocol.getOptions().useInformationSchema) {
+            return getBestRowIdentifierWithOutInformationSchema(catalog, table);
         }
         // Almost compatible with maria 3.x. Refer to https://jira.mariadb.org/browse/CONJ-812 for modification
         catalog = catalog == null ? this.connection.getProtocol().getCatalog() : catalog;
@@ -5085,5 +5100,148 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
         }
         Matcher matcher = FUNCTION_RETURN_PATTERN.matcher(paramList);
         return matcher.find();
+    }
+
+    private ResultSet getPrimaryKeysWithOutInformationSchema(String catalog, String table) throws SQLException {
+        if (table == null) {
+            throw new SQLException("Table not specified", SqlStates.SQL_STATE_ILLEGAL_ARGUMENT.getSqlState());
+        }
+
+        ColumnType[] columnTypes = {ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.STRING, ColumnType.SMALLINT, ColumnType.STRING};
+        String[] columnNames = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "KEY_SEQ", "PK_NAME"};
+
+        List<String> catalogList = getCatalogList(catalog);
+        TreeMap<String, String[]> sortMap;
+        if (this.protocol.getOptions().compatibleMysqlVersion == 8) {
+            sortMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        } else {
+            sortMap = new TreeMap<>();
+        }
+        for (String catalogStr : catalogList) {
+            try (ResultSet rs = executeQuery("show keys from " + table + " from " + catalogStr)){
+                while (rs.next()) {
+                    String keyType = rs.getString("Key_name");
+                    if (keyType != null) {
+                        if (keyType.equalsIgnoreCase("PRIMARY") || keyType.equalsIgnoreCase("PRI")) {
+                            String[] tuple = new String[6];
+                            tuple[0] = catalogStr;
+                            tuple[1] = null;
+                            tuple[2] = table;
+
+                            String columnName = rs.getString("Column_name");
+                            tuple[3] = columnName;
+                            tuple[4] = rs.getString("Seq_in_index");
+                            tuple[5] = keyType;
+                            sortMap.put(columnName, tuple);
+                        }
+                    }
+                }
+            }
+        }
+
+        Iterator<String[]> iterator = sortMap.values().iterator();
+        String[][] resData = new String[sortMap.size()][];
+        int index = 0;
+        while (iterator.hasNext()) {
+            resData[index ++] = iterator.next();
+        }
+        return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, resData, this.protocol);
+    }
+
+    private ResultSet getBestRowIdentifierWithOutInformationSchema(String catalog, String table) throws SQLException {
+        if (table == null) {
+            throw new SQLException("Table not specified", SqlStates.SQL_STATE_ILLEGAL_ARGUMENT.getSqlState());
+        }
+
+        ColumnType[] columnTypes = {ColumnType.SMALLINT, ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.SMALLINT, ColumnType.SMALLINT};
+        String[] columnNames = {"SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "PSEUDO_COLUMN"};
+
+        List<String> catalogList = getCatalogList(catalog);
+        ArrayList<String[]> rowsList = new ArrayList<>();
+        for (String catalogStr : catalogList) {
+            try (ResultSet results = executeQuery("show columns from " + table + " from " + catalogStr)) {
+                while (results.next()) {
+                    String keyType = results.getString("Key");
+                    if (keyType != null) {
+                        if (keyType.startsWith("PRI") || keyType.startsWith("pri")) {
+                            String[] tuple = new String[8];
+                            tuple[0] = Integer.toString(java.sql.DatabaseMetaData.bestRowSession);
+                            tuple[1] = results.getString("Field");
+
+                            String type = results.getString("Type");
+                            //mysql-jdbc5 uses MysqlIO#maxBufferSize, defaulting to 65535.
+                            int size = 65535;
+                            int decimals = 0;
+
+                            if (type.indexOf("enum") != -1) {
+                                String temp = type.substring(type.indexOf("("), type.indexOf(")"));
+                                java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(temp, ",");
+                                int maxLength = 0;
+
+                                while (tokenizer.hasMoreTokens()) {
+                                    maxLength = Math.max(maxLength, (tokenizer.nextToken().length() - 2));
+                                }
+
+                                size = maxLength;
+                                decimals = 0;
+                                type = "enum";
+                            } else if (type.indexOf("(") != -1) {
+                                if (type.indexOf(",") != -1) {
+                                    size = Integer.parseInt(type.substring(type.indexOf("(") + 1, type.indexOf(",")));
+                                    decimals = Integer.parseInt(type.substring(type.indexOf(",") + 1, type.indexOf(")")));
+                                } else {
+                                    size = Integer.parseInt(type.substring(type.indexOf("(") + 1, type.indexOf(")")));
+                                }
+
+                                type = type.substring(0, type.indexOf("("));
+                            }
+
+                            tuple[2] = String.valueOf(ColumnType.convertDbTypeToSqlType(type));
+                            tuple[3] = type;
+                            tuple[4] = String.valueOf(size + decimals);
+                            tuple[5] = String.valueOf(size + decimals);
+                            tuple[6] = String.valueOf(decimals);
+                            tuple[7] = Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo);
+                            rowsList.add(tuple);
+                        }
+                    }
+                }
+            } catch (SQLException sqlEx) {
+                if (!SqlStates.BASE_TABLE_OR_VIEW_NOT_FOUND.getSqlState().equals(sqlEx.getSQLState())) {
+                    throw sqlEx;
+                }
+            }
+        }
+
+        String[][] resData = new String[rowsList.size()][];
+        for (int i = 0; i < rowsList.size(); i++) {
+            resData[i] = rowsList.get(i);
+        }
+        return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, resData, this.protocol);
+    }
+
+    private List<String> getCatalogList(String catalog) throws SQLException {
+        List<String> catalogList = new ArrayList<>();
+        Options options = this.protocol.getOptions();
+
+        if (catalog != null) {
+            if (catalog.isEmpty()) {
+                catalogList.add(this.protocol.getDatabase());
+            } else {
+                catalogList.add(catalog);
+            }
+        } else {
+            if (options.nullCatalogMeansCurrent) {
+                catalogList.add(this.protocol.getDatabase());
+            } else {
+                try (ResultSet rs = getCatalogs()) {
+                    while (rs.next()) {
+                        String catalogStr = rs.getString(1);
+                        catalogList.add(catalogStr);
+                    }
+                }
+            }
+        }
+        return catalogList;
     }
 }

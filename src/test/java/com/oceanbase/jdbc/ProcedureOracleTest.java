@@ -759,4 +759,71 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertNull(rs.getString("SPECIFIC_NAME"));
         rs.close();
     }
+
+    @Test
+    public void testForDima2025033100107911046() throws SQLException {
+        /*
+        * -- Created under sys user
+        * create or replace procedure p1 (c1  in varchar2,  c2 in out varchar2, c3 out varchar2, c4 out varchar2) is begin c3 := '1'; c4 := 'message'; end;
+        *
+        * -- public synonym of same name
+        * create or replace package pack_pl is procedure proc_1 (c1  in varchar2,  c2 in out varchar2, c3 out varchar2, c4 out varchar2); end pack_pl;
+        * create or replace package body pack_pl is procedure proc_1 (c1  in varchar2,  c2 in out varchar2, c3 out varchar2, c4 out varchar2) as begin c3 := 'same-name-sync'; c4 := 'message'; end; end pack_pl;
+        * CREATE public SYNONYM pack_pl FOR sys.pack_pl;
+        *
+        * */
+        Connection conn = setConnection();
+        CallableStatement cs = conn.prepareCall("call SYS.P1(?,?,?,?)");
+        cs.setString(1, "111");
+        cs.setString(2, "222");
+        //cs.registerOutParameter(2, Types.VARCHAR); Don't register inout parameters
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("1", cs.getString(3));
+        Assert.assertEquals("message", cs.getString(4));
+
+        //  public synonym of same name
+        CallableStatement cs2 = conn.prepareCall("call pack_pl.proc_1(?,?,?,?)");
+        cs2.setString(1, "111");
+        cs2.setString(2, "222");
+        //cs2.registerOutParameter(2, Types.VARCHAR); Don't register inout parameters
+        cs2.registerOutParameter(3, Types.VARCHAR);
+        cs2.registerOutParameter(4, Types.VARCHAR);
+        cs2.execute();
+        cs2.execute();
+        Assert.assertEquals("same-name-sync", cs2.getString(3));
+        Assert.assertEquals("message", cs2.getString(4));
+    }
+
+    @Test
+    public void testForDima2025051600109048468() throws Exception {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure proc_1(p1 varchar2, p2 varchar2, p3 varchar2, p4 out varchar2) is begin p4 := p1 || p2 || p3; end;");
+        CallableStatement cs = conn.prepareCall("call proc_1('a', ?, ?, ?)");
+        cs.setString(1, "_test_");
+        cs.setString(2, "b");
+        // Register the in type parameter as out type
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("a_test_b", cs.getString(3));
+    }
+
+    @Test
+    public void testForDima2025051600109048468_2() throws SQLException {
+        Connection conn = setConnection("");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package \"t_pack2\" is function t_fun1(a out int) return varchar; end;");
+        stmt.execute("create or replace package body \"t_pack2\" is function t_fun1(a out int) return varchar as begin a:=2; return 'aaa'; end; end");
+
+        // have a spaces in the database name
+        CallableStatement cs = conn.prepareCall("{? =call " + database + " .\"t_pack2\".t_fun1(?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.execute();
+        assertEquals("aaa", cs.getString(1));
+        assertEquals(2, cs.getInt(2));
+    }
 }
