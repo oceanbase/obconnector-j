@@ -1949,4 +1949,123 @@ public class DatabaseMetadataTest extends BaseTest {
         metaData = ps.getMetaData();
         Assert.assertNull(metaData);
     }
+
+    @Test
+    public void testForDima2025031200107462665() throws SQLException {
+        Connection conn =  setConnection("&nullCatalogMeansCurrent=true&useInformationSchema=false");
+        DatabaseMetaData connMetaData = conn.getMetaData();
+        createTable("z_t1", "id int primary key, name varchar(20)");
+        ResultSet keys = connMetaData.getPrimaryKeys(null, null, "z_t1");
+        ResultSetMetaData keysMetaData = keys.getMetaData();
+
+        Assert.assertEquals(6, keysMetaData.getColumnCount());
+        String[] columnsName = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "KEY_SEQ", "PK_NAME"};
+        Integer[] columnsType = {Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR, Types.SMALLINT, Types.CHAR};
+        for (int i = 0; i < keysMetaData.getColumnCount(); i++) {
+            Assert.assertEquals(columnsName[i], keysMetaData.getColumnName(i + 1));
+            Assert.assertEquals(columnsType[i].intValue(), keysMetaData.getColumnType(i + 1));
+        }
+        Assert.assertTrue(keys.next());
+        assertEquals("test", keys.getString("TABLE_CAT"));
+        assertNull(keys.getString("TABLE_SCHEM"));
+        assertEquals("z_t1", keys.getString("TABLE_NAME"));
+        assertEquals("id", keys.getString("COLUMN_NAME"));
+        assertEquals(1, keys.getInt("KEY_SEQ"));
+        assertEquals("PRIMARY", keys.getString("PK_NAME"));
+    }
+
+    @Test
+    public void testForDima2025031700107571039() throws SQLException {
+        Connection conn =  setConnection("&nullCatalogMeansCurrent=false&useInformationSchema=false");
+        DatabaseMetaData connMetaData = conn.getMetaData();
+        createTable("z_t1", "id int primary key, name varchar(20)");
+
+        ResultSet identifier = connMetaData.getBestRowIdentifier("test", null, "z_t1", 0, false);
+        ResultSetMetaData identifierMetaData = identifier.getMetaData();
+        Assert.assertEquals(8, identifierMetaData.getColumnCount());
+
+        String[] columnsName = {"SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "PSEUDO_COLUMN"};
+        Integer[] columnsType = {Types.SMALLINT, Types.CHAR, Types.INTEGER, Types.CHAR, Types.INTEGER, Types.INTEGER, Types.SMALLINT, Types.SMALLINT};
+        for (int i = 0; i < identifierMetaData.getColumnCount(); i++) {
+            Assert.assertEquals(columnsName[i], identifierMetaData.getColumnName(i + 1));
+            Assert.assertEquals(columnsType[i].intValue(), identifierMetaData.getColumnType(i + 1));
+        }
+
+        Assert.assertTrue(identifier.next());
+        assertEquals(2, identifier.getInt("SCOPE"));
+        Assert.assertEquals("id", identifier.getString("COLUMN_NAME"));
+        Assert.assertEquals(4, identifier.getInt("DATA_TYPE")); // not compatible with mysql-jdbc
+        Assert.assertEquals("int", identifier.getString("TYPE_NAME"));
+        Assert.assertEquals(11, identifier.getInt("COLUMN_SIZE"));
+        Assert.assertEquals(11, identifier.getInt("BUFFER_LENGTH"));
+        Assert.assertEquals(0, identifier.getInt("DECIMAL_DIGITS"));
+        Assert.assertEquals(1, identifier.getInt("PSEUDO_COLUMN"));
+
+        // The primary key is an enum type
+        createTable("z_t2", "sex enum('male', 'female') primary key, name varchar(20)");
+        ResultSet identifier2 = connMetaData.getBestRowIdentifier(null, null, "z_t2", 0, false);
+        Assert.assertTrue(identifier2.next());
+
+        assertEquals(2, identifier2.getInt("SCOPE"));
+        Assert.assertEquals("sex", identifier2.getString("COLUMN_NAME"));
+        Assert.assertEquals(12, identifier2.getInt("DATA_TYPE")); // not compatible with mysql-jdbc
+        Assert.assertEquals("enum", identifier2.getString("TYPE_NAME"));
+        Assert.assertEquals(6, identifier2.getInt("COLUMN_SIZE"));
+        Assert.assertEquals(6, identifier2.getInt("BUFFER_LENGTH"));
+        Assert.assertEquals(0, identifier2.getInt("DECIMAL_DIGITS"));
+        Assert.assertEquals(1, identifier2.getInt("PSEUDO_COLUMN"));
+    }
+
+    @Test
+    public void testForGetPrimarykeysSort() throws SQLException {
+        createTable("z_t1", "col_A INT NOT NULL, col_b INT NOT NULL, col_C VARCHAR(100) NOT NULL, col_D TIMESTAMP, PRIMARY KEY(col_b, col_C, col_A)");
+
+        boolean useInformationSchema = false;
+        DatabaseMetaData metaData;
+        ResultSet rs;
+        Connection conn;
+
+        // compatibleMysqlVersion = 5 && useInformationSchema = false
+        String[] columnNameSort1 = {"col_A", "col_C", "col_b"};
+        // compatibleMysqlVersion = 5 && useInformationSchema = true
+        String[] columnNameSort2 = {"col_b", "col_C", "col_A"};
+        // compatibleMysqlVersion = 8
+        String[] columnNameSort3 = {"col_A", "col_b", "col_C"};
+
+        // compatibleMysqlVersion = 5
+        do {
+            conn = setConnection("&useInformationSchema=" + useInformationSchema + "&compatibleMysqlVersion=5");
+            metaData = conn.getMetaData();
+            rs = metaData.getPrimaryKeys(null, null, "z_t1");
+            String[] columnNameSort;
+            if (useInformationSchema) {
+                columnNameSort = columnNameSort2;
+            } else {
+                columnNameSort = columnNameSort1;
+            }
+
+            for (String s : columnNameSort) {
+                assertTrue(rs.next());
+                assertEquals(s, rs.getString("COLUMN_NAME"));
+            }
+            assertFalse(rs.next());
+            rs.close();
+            conn.close();
+        } while (useInformationSchema = !useInformationSchema);
+
+        // compatibleMysqlVersion = 8
+        do {
+            conn = setConnection("&useInformationSchema=" + useInformationSchema + "&compatibleMysqlVersion=8");
+            metaData = conn.getMetaData();
+            rs = metaData.getPrimaryKeys(null, null, "z_t1");
+            for (String s : columnNameSort3) {
+                assertTrue(rs.next());
+                assertEquals(s, rs.getString("COLUMN_NAME"));
+            }
+            assertFalse(rs.next());
+            rs.close();
+            conn.close();
+        } while (useInformationSchema = !useInformationSchema);
+    }
+
 }

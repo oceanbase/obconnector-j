@@ -244,6 +244,7 @@ public class Options implements Cloneable {
     public boolean obDateTypeOptimization;
     public boolean lowercaseRoutinesInMetadata;
     public boolean oracleUseNumberForSetDouble;
+    public boolean oracleXaPrepareThrowException;
 
     @Override
     public String toString() {
@@ -747,6 +748,9 @@ public class Options implements Cloneable {
         if (oracleUseNumberForSetDouble != opt.oracleUseNumberForSetDouble) {
             return false;
         }
+        if (oracleXaPrepareThrowException != opt.oracleXaPrepareThrowException) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -909,6 +913,7 @@ public class Options implements Cloneable {
         result = 31 * result + maxReconnects;
         result = 31 * result + (lowercaseRoutinesInMetadata ? 1 : 0);
         result = 31 * result + (oracleUseNumberForSetDouble ? 1 : 0);
+        result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
         return result;
     }
 

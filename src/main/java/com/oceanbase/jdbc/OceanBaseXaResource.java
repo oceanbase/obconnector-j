@@ -307,6 +307,10 @@ public class OceanBaseXaResource implements XAResource {
             commandBuf.append("select DBMS_XA.XA_PREPARE(?) from dual");
             ObStruct xidObj = genOracleXid(xid);
             xaRet = dispatchOracleCommand(commandBuf.toString(), xidObj);
+            if (this.connection.getProtocol().getOptions().oracleXaPrepareThrowException
+                    && xaRet != XA_OK && xaRet != XAException.XA_RDONLY) {
+                throw new XAException(xaRet);
+            }
         } else {
             execute("XA PREPARE " + xidToString(xid));
             xaRet = XA_OK;

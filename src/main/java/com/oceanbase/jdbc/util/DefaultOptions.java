@@ -1162,6 +1162,12 @@ public enum DefaultOptions {
             "2.4.14",
             "Maximum number of reconnects to attempt if 'autoReconnect' is 'true'.",
             false),
+    ORACLE_XA_PREPARE_THROW_EXCEPTION(
+            "oracleXaPrepareThrowException",
+            Boolean.FALSE,
+            "2.4.14.1",
+            "Throw an exception when the return value of DBMS_XA.XA_PREPARE is neither 0 nor 3.",
+            false),
     LOWERCASE_ROUTINES_IN_METADATA(
             "lowercaseRoutinesInMetadata",
             Boolean.FALSE,

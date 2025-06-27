@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -147,42 +148,40 @@ public class CallableParameterMetaData implements ParameterMetaData {
                         if (databaseAndPackage.length == 2) {
                             if (databaseAndPackage[1].startsWith("\"")
                                 && databaseAndPackage[1].endsWith("\"")) {
-                                this.obOraclePackageName = databaseAndPackage[1].replace("\"", "");
+                                this.obOraclePackageName = databaseAndPackage[1].replace("\"", "").trim();
                             } else {
                                 this.obOraclePackageName = databaseAndPackage[1]
-                                    .toUpperCase(Locale.ROOT);
+                                    .toUpperCase(Locale.ROOT).trim();
                             }
                             if (databaseAndPackage[0].startsWith("\"")
                                 && databaseAndPackage[0].endsWith("\"")) {
-                                this.obOracleSchema = databaseAndPackage[0].replace("\"", "");
+                                this.obOracleSchema = databaseAndPackage[0].replace("\"", "").trim();
                             } else {
                                 this.obOracleSchema = databaseAndPackage[0]
-                                    .toUpperCase(Locale.ROOT);
+                                    .toUpperCase(Locale.ROOT).trim();
                             }
-                            this.database = databaseAndPackage[0]; // ?
+                            this.database = databaseAndPackage[0].trim(); // ?
                         }
                     } else {
-                        // shcema or poackage
-                        if (tmp.startsWith("\"") && tmp.startsWith("\"")) {
-                            if (tmp.replace("\"", "").equals(this.con.getProtocol().getDatabase())) {
-                                // is schema
-                                this.obOracleSchema = tmp.replace("\"", "");
-                                this.obOraclePackageName = null;
-                            } else {
-                                // is package
-                                this.obOracleSchema = null;
-                                this.obOraclePackageName = tmp.replace("\"", "");
-                            }
-                        } else if (tmp.equals(this.con.getProtocol().getDatabase())
-                                   || tmp.toUpperCase(Locale.ROOT).equals(
-                                       this.con.getProtocol().getDatabase())) {
-                            // schema.proc
-                            this.obOraclePackageName = null;
-                            this.obOracleSchema = tmp.toUpperCase(Locale.ROOT);
-                        } else {
-                            // package.proc
-                            this.obOraclePackageName = tmp.toUpperCase(Locale.ROOT);
+                        String objectName = database + "." + name;
+                        // The internal pl call is set directly to avoid recursive calls
+                        if ("DBMS_UTILITY.NAME_RESOLVE".equals(objectName)) {
+                            this.obOraclePackageName = "DBMS_UTILITY";
                             this.obOracleSchema = null;
+                        } else {
+                            try {
+                                HashMap<String, String> nameResolve = this.con.getPLSchemaByNameResolve(objectName, this.con);
+                                this.obOraclePackageName = null;
+                                if (nameResolve != null && !nameResolve.isEmpty()) {
+                                    this.obOracleSchema = nameResolve.get("schema");
+                                    // 9 means part1 is package
+                                    if ("9".equals(nameResolve.get("part1Type"))) {
+                                        this.obOraclePackageName = nameResolve.get("part1");
+                                    }
+                                }
+                            } catch (SQLException e) {
+                                throw new RuntimeException("Unable to resolve typeName", e);
+                            }
                         }
                         this.database = this.con.getProtocol().getDatabase();
 
@@ -248,7 +247,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>();
         if (arguments != null) {
             arguments = Utils.trimSQLString(arguments, false, true, false); //arguments  remove comments
-            paramList = Utils.argumentsSplit(arguments, ",", "'\"", "'\"");
+            paramList = Utils.parseArguments(arguments);
         }
         //check special parameters like "call test_p(a => ?)"
         boolean haveSpecialParameters = false;
