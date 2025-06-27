@@ -527,4 +527,25 @@ public class ProcedureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2024062200102854804() throws SQLException {
+        createProcedure("testProc1", "(out a int) BEGIN SELECT 1; END");
+        CallableStatement cs = sharedConnection.prepareCall("call testProc1(1)");
+
+        try {
+            cs.registerOutParameter(1, Types.INTEGER);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("No parameter with index 1", e.getMessage());
+        }
+
+        try {
+            cs.execute();
+            fail();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.assertEquals("Parameter a is not registered as an output parameter.", e.getMessage());
+        }
+    }
+
 }

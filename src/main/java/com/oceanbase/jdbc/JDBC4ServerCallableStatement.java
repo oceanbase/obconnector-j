@@ -308,7 +308,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
         if (this.parameterMetadata.outputParamSetParamValueException != null) {
             // throwing at this stage is compatible with mysql
-            throw this.parameterMetadata.outputParamSetParamValueException;
+            throw new SQLException(this.parameterMetadata.outputParamSetParamValueException.getMessage());
         }
 
         Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(originalSql, false, false, false, false);
