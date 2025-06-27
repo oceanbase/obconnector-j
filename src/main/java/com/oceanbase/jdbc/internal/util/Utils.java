@@ -900,6 +900,7 @@ public class Utils {
     boolean nameBindingEnd = false;
 
     int onDuplicateKeyUpdateIndex = -1;
+    int onDuplicateKeyUpdateStartIndex = -1;
 
     for (int i = 0; i < queryLength; i++) {
       if (i == queryLength - 1 && state == LexState.NameBinding && isOracleMode) {
@@ -1080,7 +1081,7 @@ public class Utils {
                         if (keyState != KeyState.OnDuplicateKeyUpdate
                                 && queryLength > i + 1
                                 && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
-                            onDuplicateKeyUpdateIndex = trimedSqlString.length();
+                            onDuplicateKeyUpdateStartIndex = trimedSqlString.length();
                             keyState = KeyState.On;
                         }
                         break;
@@ -1118,6 +1119,7 @@ public class Utils {
                                 && (query[i + 4] == 't' || query[i + 4] == 'T')
                                 && (query[i + 5] == 'e' || query[i + 5] == 'E')) {
                             keyState = KeyState.OnDuplicateKeyUpdate;
+                            onDuplicateKeyUpdateIndex = onDuplicateKeyUpdateStartIndex;
                         }
                         break;
                 }

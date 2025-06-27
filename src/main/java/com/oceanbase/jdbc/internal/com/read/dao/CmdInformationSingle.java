@@ -210,4 +210,15 @@ public class CmdInformationSingle implements CmdInformation {
     public boolean getArrayBinding() {
         return false;
     }
+
+    @Override
+    public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
+
+    }
+
+    @Override
+    public boolean containOnDuplicateKey() {
+        return false;
+    }
+
 }
