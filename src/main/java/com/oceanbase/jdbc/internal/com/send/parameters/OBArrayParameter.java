@@ -139,4 +139,8 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
     public boolean isLongData() {
         return false;
     }
+
+    public ObArray getArrayValue() {
+        return arrayValue;
+    }
 }

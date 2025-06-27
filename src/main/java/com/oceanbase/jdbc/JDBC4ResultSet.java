@@ -2231,7 +2231,11 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
+            String attrTypename = "";
+            if (typeName.isEmpty()) {
+                attrTypename = getAttrTypeNameOfSetArray(actualColumnIndex);
+            }
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex], attrTypename);
             if (type.getType() != ComplexDataType.TYPE_COLLECTION) {
                 // avoid the impact of caching
                 type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);
@@ -2260,13 +2264,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
+            String attrTypeName = "";
+            if (typeName.isEmpty()) {
+                attrTypeName = getAttrTypeNameOfSetArray(actualColumnIndex);
+            }
             ComplexDataType type = null;
             try {
-                type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
+                type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex], attrTypeName);
             } catch (SQLException e) {
                 if (e.getMessage().contains("unknown complex data type.") && this.getStatement() instanceof CallableProcedureStatement) {
                     String registerTypeName = getRegisterTypeName(e, internalColumnIndex);
-                    type = ((OceanBaseConnection) conn).getComplexDataType(registerTypeName, this.columnsInformation[internalColumnIndex]);
+                    type = ((OceanBaseConnection) conn).getComplexDataType(registerTypeName, this.columnsInformation[internalColumnIndex], "");
                 } else {
                     throw e;
                 }
@@ -2299,7 +2307,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
+            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex], "");
             if (type.getType() != ComplexDataType.TYPE_OBJECT) {
                 // avoid impact of cache
                 type = ((OceanBaseConnection) conn).getComplexDataTypeFromRemote(typeName);
@@ -4126,6 +4134,32 @@ public class JDBC4ResultSet implements ResultSetImpl {
             throw e;
         }
         return parameterTypeName;
+    }
+
+    private String getAttrTypeNameOfSetArray(int internalColumnIndex) throws SQLException {
+        if (this.getStatement() instanceof CallableProcedureStatement) {
+            CallableProcedureStatement procedureStatement = (CallableProcedureStatement) this.getStatement();
+            // Find the location of the parameters in the stored procedure
+            int paramIndex = -1;
+            for (int i = 0; i < procedureStatement.outputParameterMapper.length; i++) {
+                if (procedureStatement.outputParameterMapper[i] == internalColumnIndex) {
+                    paramIndex = i;
+                    break;
+                }
+            }
+
+            if (paramIndex > -1) {
+                CallParameter parameter = procedureStatement.params.get(paramIndex);
+                // The server only returns an anonymous array for inout type parameters
+                if (parameter.isInput() && parameter.isOutput()) {
+                    ParameterHolder holder = procedureStatement.currentParameterHolder.get(paramIndex);
+                    if (holder instanceof OBArrayParameter) {
+                        return ((OBArrayParameter) holder).getArrayValue().getComplexType().getAttrType(0).getTypeName();
+                    }
+                }
+            }
+        }
+        return "";
     }
 
 }
