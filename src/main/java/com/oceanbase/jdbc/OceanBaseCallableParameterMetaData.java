@@ -297,4 +297,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             this.mapNameToParameter.put(paramName, paramInfoToAdd);
         }
     }
+
+    public Map<String, CallParameter> getMapNameToParameter() {
+        return mapNameToParameter;
+    }
 }

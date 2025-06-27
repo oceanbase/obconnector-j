@@ -1226,4 +1226,31 @@ public class ComplexOracleTest extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testForDima2025042700108589523() throws SQLException {
+        /*
+        * user1:
+        * create or replace type obj0 force as object(c0 int);
+        * create or replace public synonym syn_obj0 for obj0;
+        * */
+
+        // user2:
+        String dbUrl2 = System.getProperty("dbUrl2");
+        Connection conn = DriverManager.getConnection(dbUrl2);
+        Statement statement = conn.createStatement();
+        statement.execute("create or replace procedure p1(c1 out number, c2 in number, c3 in number, c4 out syn_obj0) is begin c4 := syn_obj0(12); c1 := c2 + 5; end;");
+
+        CallableStatement call = conn.prepareCall("call p1(?, ?, ?, ?)");
+        call.registerOutParameter(1, Types.INTEGER);
+        call.setInt(2, 4);
+        call.setInt(3, 4);
+        call.registerOutParameter(4, Types.STRUCT, "syn_obj0");
+        call.execute();
+
+        Struct struct = (Struct) call.getObject(4);
+        Object[] attributes = struct.getAttributes();
+        Assert.assertEquals(9, call.getInt(1));
+        Assert.assertEquals(12, ((Number) attributes[0]).intValue());
+    }
 }
