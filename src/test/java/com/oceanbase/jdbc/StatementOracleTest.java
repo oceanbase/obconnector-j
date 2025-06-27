@@ -325,4 +325,65 @@ public class StatementOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2025040700108069099() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&cachePrepStmts=true");
+        createTable("t_cache", "c1 varchar2(20)");
+
+        PreparedStatement ps = conn.prepareStatement("insert into t_cache values(?)");
+        for (int i = 0; i < 13; i++) {
+            ps.setString(1, "aaa");
+            ps.addBatch();
+        }
+
+        for (int i = 0; i < 5; i++) {
+            ps.setString(1, "bbb");
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        String sql = "select * from t_cache where c1 = ?";
+        // add ps to cache
+        PreparedStatement psTemp = conn.prepareStatement(sql);
+        psTemp.close();
+
+        PreparedStatement pstmt1 = conn.prepareStatement(sql);
+        PreparedStatement pstmt2 = conn.prepareStatement(sql);
+        pstmt1.setString(1, "aaa");
+        pstmt2.setString(1, "bbb");
+
+        int count = 0;
+        ResultSet rs = pstmt1.executeQuery();
+        // fetch 10 records
+        while (rs.next()) {
+            Assert.assertEquals("aaa", rs.getString(1));
+            count ++;
+            if (count == 10) {
+                break;
+            }
+        }
+
+        // start new query
+        ResultSet rs2 = pstmt2.executeQuery();
+        int count2 = 0;
+        while (rs2.next()) {
+            Assert.assertEquals("bbb", rs2.getString(1));
+            count2 ++;
+        }
+        Assert.assertEquals(5, count2);
+
+        // Get the remaining records of rs
+        try {
+            while (rs.next()) {
+                Assert.assertEquals("aaa", rs.getString(1));
+                count ++;
+            }
+        } catch (SQLException e) {
+            Assert.fail(e.getMessage());
+        }
+        Assert.assertEquals(13, count);
+
+        pstmt1.close();
+        pstmt2.close();
+    }
 }

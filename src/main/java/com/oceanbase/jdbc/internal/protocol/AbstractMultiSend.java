@@ -192,7 +192,7 @@ public abstract class AbstractMultiSend {
                 if (prepareResult == null && protocol.getOptions().cachePrepStmts
                     && protocol.getOptions().useServerPrepStmts) {
                     String key = protocol.getDatabase() + "-" + sql;
-                    prepareResult = protocol.prepareStatementCache().get(key);
+                    prepareResult = protocol.prepareStatementCache().remove(key);
                     if (prepareResult != null
                         && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
                         // in cache but been de-allocated

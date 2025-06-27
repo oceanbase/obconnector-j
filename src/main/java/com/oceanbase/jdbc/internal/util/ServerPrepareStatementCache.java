@@ -96,6 +96,14 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
         return mustBeRemoved;
     }
 
+    public synchronized ServerPrepareResult put(String key, ServerPrepareResult result) {
+        // if there is already some cached data (and not been deallocate), return existing cached data
+        ServerPrepareResult cachedServerPrepareResult = super.get(key);
+        result.setAddToCache();
+        super.put(key, result);
+        return cachedServerPrepareResult;
+    }
+
     /**
      * Associates the specified value with the specified key in this map. If the map previously
      * contained a mapping for the key, the existing cached prepared result shared counter will be
@@ -106,7 +114,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
      * @return the previous value associated with key if not been deallocate, or null if there was no
      *     mapping for key.
      */
-    public synchronized ServerPrepareResult put(String key, ServerPrepareResult result) {
+    public synchronized ServerPrepareResult setToCache(String key, ServerPrepareResult result) {
         ServerPrepareResult cachedServerPrepareResult = super.get(key);
         // if there is already some cached data (and not been deallocate), return existing cached data
         if (cachedServerPrepareResult != null && cachedServerPrepareResult.incrementShareCounter()) {
@@ -114,9 +122,8 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
                 return cachedServerPrepareResult;
             }
         }
-        // if no cache data, or been deallocate, or same ps-id from prepare-execute command, put new result in cache
+        // It is not added to the cache. When stmt.close() is performed, it is actually added to the cache.
         result.setAddToCache();
-        super.put(key, result);
         return null;
     }
 
