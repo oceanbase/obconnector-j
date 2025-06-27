@@ -58,7 +58,7 @@ import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 public class NullParameter implements ParameterHolder, Cloneable {
 
     private static final byte[] NULL = { 'N', 'U', 'L', 'L' };
-    private final ColumnType    type;
+    private ColumnType    type;
 
     public NullParameter() {
         type = ColumnType.NULL;
@@ -91,6 +91,10 @@ public class NullParameter implements ParameterHolder, Cloneable {
 
     public ColumnType getColumnType() {
         return type;
+    }
+
+    public void setColumnType(ColumnType type) {
+        this.type = type;
     }
 
     @Override
