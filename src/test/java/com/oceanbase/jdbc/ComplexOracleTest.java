@@ -1253,4 +1253,57 @@ public class ComplexOracleTest extends BaseOracleTest {
         Assert.assertEquals(9, call.getInt(1));
         Assert.assertEquals(12, ((Number) attributes[0]).intValue());
     }
+
+    @Test
+    public void testForDima2025051500109029754() throws SQLException {
+        Connection conn = setConnection("");
+        CallableStatement ps;
+        Array resultArray;
+        Object[] arrayElements;
+
+        // base type
+        conn.createStatement().execute("create or replace type tb force as table of int;");
+        conn.createStatement().execute("create or replace procedure p(x in out tb) is begin x.extend(1); x(1) := 1025; x(x.count()) := 1024; end;");
+        ps = conn.prepareCall("begin p(?);end;");
+        Integer[] aa = {1, 2, 3};
+        Array array = conn.createArrayOf("integer", aa);
+        ps.setArray(1, array);
+        ps.registerOutParameter(1, Types.ARRAY);
+
+        ps.execute();
+        resultArray = ps.getArray(1);
+        arrayElements = (Object[]) resultArray.getArray();
+
+        assertEquals(4, arrayElements.length);
+        assertEquals(1025, ((BigDecimal)arrayElements[0]).intValue());
+        assertEquals(2, ((BigDecimal)arrayElements[1]).intValue());
+        assertEquals(3, ((BigDecimal)arrayElements[2]).intValue());
+        assertEquals(1024, ((BigDecimal)arrayElements[3]).intValue());
+        ps.close();
+
+        // complex type
+        conn.createStatement().execute("create or replace force type obj as object(c0 int);");
+        conn.createStatement().execute("create or replace force type tbo is table of obj;");
+        conn.createStatement().execute("create or replace procedure p1(p1 in number, p2 number, b  in out tbo, c out varchar2) " +
+                " is a obj; begin a:=obj(1); b:=tbo(a); c := (p1 + p2) || '_res'; end;");
+
+        ps = conn.prepareCall("begin p1(?, ?, ?, ?);end;");
+        Struct objStruct = conn.createStruct("OBJ", new Object[]{1});
+        Array tboArray = conn.createArrayOf("OBJ", new Object[]{objStruct});
+        ps.setInt(1, 4);
+        ps.setInt(2, 5);
+        ps.setArray(3, tboArray);
+        ps.registerOutParameter(3, Types.ARRAY);
+        ps.registerOutParameter(4, Types.VARCHAR);
+
+        ps.execute();
+        resultArray = ps.getArray(3);
+        arrayElements = (Object[]) resultArray.getArray();
+        Struct struct = (Struct) arrayElements[0];
+        Object[] attributes = struct.getAttributes();
+        BigDecimal c0ValueDecimal = (BigDecimal) attributes[0];
+        Assert.assertEquals(1, c0ValueDecimal.intValue());
+        Assert.assertEquals("9_res", ps.getString(4));
+    }
+
 }

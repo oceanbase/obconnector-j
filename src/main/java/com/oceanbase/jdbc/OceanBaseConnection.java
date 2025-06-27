@@ -1955,9 +1955,11 @@ public class OceanBaseConnection implements ConnectionImpl {
         }
     }
 
-    public ComplexDataType getComplexDataType(String typeName, ColumnDefinition columnDefinition) throws SQLException {
-        if (typeName.isEmpty() && columnDefinition.getElemSqlType() != -1 && columnDefinition.getElemSqlType() != ColumnType.COMPLEX.getType()) {
-            return getAnonymousArrayComplexType(columnDefinition);
+    public ComplexDataType getComplexDataType(String typeName, ColumnDefinition columnDefinition, String attrTypeName) throws SQLException {
+        if (typeName.isEmpty() &&
+                (columnDefinition.getElemSqlType() != -1 && columnDefinition.getElemSqlType() != ColumnType.COMPLEX.getType()
+                || (!attrTypeName.isEmpty() && columnDefinition.getElemSqlType() == ColumnType.COMPLEX.getType()))){
+            return getAnonymousArrayComplexType(columnDefinition, attrTypeName);
         }
         ComplexDataType type = null;
         type = getComplexDataTypeFromCache(typeName);
@@ -1968,15 +1970,24 @@ public class OceanBaseConnection implements ConnectionImpl {
         return type;
     }
 
-    public ComplexDataType getAnonymousArrayComplexType(ColumnDefinition columnDefinition){
+    public ComplexDataType getAnonymousArrayComplexType(ColumnDefinition columnDefinition, String attrTypeName) throws SQLException {
         // array
         ComplexDataType complexDataType = new ComplexDataType("anonymousArray", columnDefinition.getDatabase(),  ComplexDataType.TYPE_COLLECTION);
 
-        // base date type
+        ComplexDataType attrComplexType;
         int elemSqlType = columnDefinition.getElemSqlType();
-        ColumnType columnType = ColumnType.convertProtocolTypeToColumnType(elemSqlType, columnDefinition.getCharsetNumber(), protocol.isOracleMode(), options);
-        ComplexDataType attrComplexType = new ComplexDataType(ComplexDataType.getTypeNameByColumnType(columnType), "",  ComplexDataType.convertColumnTypeToComplexDataType(columnType));
-        attrComplexType.setValid(true);
+        if (elemSqlType == ColumnType.COMPLEX.getType()) {
+            // complex date type
+            attrComplexType = getComplexDataTypeFromCache(attrTypeName);
+            if (null == attrComplexType || !attrComplexType.isValid()) {
+                attrComplexType = getComplexDataTypeFromRemote(attrTypeName);
+            }
+        } else {
+            // base date type
+            ColumnType columnType = ColumnType.convertProtocolTypeToColumnType(elemSqlType, columnDefinition.getCharsetNumber(), protocol.isOracleMode(), options);
+            attrComplexType = new ComplexDataType(ComplexDataType.getTypeNameByColumnType(columnType), "",  ComplexDataType.convertColumnTypeToComplexDataType(columnType));
+            attrComplexType.setValid(true);
+        }
 
         complexDataType.setAttrCount(1);
         complexDataType.setAttrType(0, attrComplexType);
