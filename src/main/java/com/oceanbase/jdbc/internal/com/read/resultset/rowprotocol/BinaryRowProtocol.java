@@ -579,11 +579,12 @@ public class BinaryRowProtocol extends RowProtocol {
                     value = (long) getInternalFloat(columnInfo);
                     break;
                 case DOUBLE:
-                    value = (long) getInternalDouble(columnInfo);
-                    break;
+                    double internalDouble = getInternalDouble(columnInfo);
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, internalDouble, columnInfo);
+                    return (int) internalDouble;
                 case BINARY_FLOAT:
                 case BINARY_DOUBLE:
-                    double internalDouble = getInternalDouble(columnInfo);
+                    internalDouble = getInternalDouble(columnInfo);
                     return (int) internalDouble;
                 case NUMBER_FLOAT:
                 case DECIMAL:
@@ -702,11 +703,7 @@ public class BinaryRowProtocol extends RowProtocol {
                     return floatValue.longValue();
                 case DOUBLE:
                     Double doubleValue = getInternalDouble(columnInfo);
-                    if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '"
-                                               + columnInfo.getName() + "' : value " + doubleValue
-                                               + " is not in Long range", "22003", 1264);
-                    }
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleValue, columnInfo);
                     return doubleValue.longValue();
                 case NUMBER_FLOAT:
                 case DECIMAL:
@@ -750,10 +747,7 @@ public class BinaryRowProtocol extends RowProtocol {
             try {
                 double doubleVal = Double.parseDouble(stringVal);
                 // check
-                if (!getProtocol().isOracleMode() && options.jdbcCompliantTruncation) {
-                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal,
-                        columnInfo);
-                }
+                rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleVal, columnInfo);
                 return (long) doubleVal;
             } catch (NumberFormatException e) {
                 throw new SQLException("Out of range value for column '" + columnInfo.getName()
