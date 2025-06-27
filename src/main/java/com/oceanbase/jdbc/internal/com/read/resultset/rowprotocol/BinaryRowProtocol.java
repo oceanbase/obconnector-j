@@ -68,6 +68,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.oceanbase.jdbc.Blob;
 import com.oceanbase.jdbc.Clob;
 import com.oceanbase.jdbc.ObArray;
 import com.oceanbase.jdbc.ObStruct;
@@ -2621,23 +2622,21 @@ public class BinaryRowProtocol extends RowProtocol {
             case ComplexDataType.TYPE_CLOB:
                 b = packet.readLenByteArray(0);
                 if (options.supportLobLocator) {
-                    Clob c = new com.oceanbase.jdbc.Clob(true, b, charset.name(),
+                    value = new Clob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
-                    value = c.getSubString(1L, (int) c.length());
-                    c.free();
                 } else {
-                    return new String(buf, pos, length, charset);
+                    value = new Clob(false, b, charset.name(),
+                            (OceanBaseConnection) connection);
                 }
                 break;
             case ComplexDataType.TYPE_BLOB:
                 b = packet.readLenByteArray(0);
                 if (options.supportLobLocator) {
-                    Blob blob = new com.oceanbase.jdbc.Blob(true, b, charset.name(),
+                    value = new Blob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
-                    value = blob.getBytes(1, (int) blob.length());
-                    blob.free();
                 } else {
-                    value = b;
+                    value = new Blob(false, b, charset.name(),
+                            (OceanBaseConnection) connection);
                 }
                 break;
             default:

@@ -140,7 +140,13 @@ public class ArrayImpl extends ComplexData implements ObArray {
 
     @Override
     public String getString(int columnIndex) throws SQLException {
-        return (String) getObject(columnIndex);
+        Object obj = getObject(columnIndex);
+        if (obj instanceof com.oceanbase.jdbc.Clob) {
+            Clob clob = (com.oceanbase.jdbc.Clob) obj;
+            long len = clob.length();
+            return clob.getSubString(1L, (int) len);
+        }
+        return (String) obj;
     }
 
     @Override
@@ -756,7 +762,15 @@ public class ArrayImpl extends ComplexData implements ObArray {
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        return null;
+        Object obj = getObject(columnIndex);
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Clob) {
+            return (Clob) obj;
+        } else {
+            throw new SQLException("Invalid data type");
+        }
     }
 
     @Override
