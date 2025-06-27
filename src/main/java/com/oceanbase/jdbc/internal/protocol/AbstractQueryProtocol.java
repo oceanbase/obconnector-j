@@ -2845,6 +2845,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     this.checksum = checksum;
   }
 
+  @Override
+  public void executeStreamList(Results results, List<byte[]> queryParts) throws SQLException {
+    cmdPrologue();
+    UUID spanId = null;
+
+    lock.lock();
+    try {
+      lockLogger.debug("AbstractQueryProtocol.executeStreamList locked");
+      spanId = ob20BeginTraceAndSpan("execute for stream list");
+      ComQuery.sendMultiDirect(writer, queryParts);
+      getResult(results);
+    } catch (IOException e) {
+      throw exceptionWithQuery("execute for stream list failed.", handleIoException(e), explicitClosed);
+    } finally {
+      ob20EndSpanAndTrace(spanId);
+      lock.unlock();
+      lockLogger.debug("AbstractQueryProtocol.executeStreamList unlocked");
+    }
+  }
+
   private UUID ob20BeginTraceAndSpan(String tagStr) {
     ob20BeginTrace();
     return ob20BeginSpan(tagStr);

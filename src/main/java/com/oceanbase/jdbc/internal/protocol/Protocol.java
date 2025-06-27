@@ -403,5 +403,8 @@ public interface Protocol {
 
     int getServerStatus();
 
+    void executeStreamList(Results results, List<byte[]> queryParts) throws SQLException;
+
     TimeZone getTimeZoneWithUseLegacyDatetimeCode();
+
 }
