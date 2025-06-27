@@ -479,4 +479,28 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         Assert.assertEquals(10, rs.getInt(1));
     }
 
+    @Test
+    public void testForDima2025060400109342167() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true&convertNoneNanoSecsToDate=false");
+        createTable("t_test", "c1 number, c2 date");
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement("update t_test set c1 = ? where c2 = ?");
+
+        Timestamp time1 = Timestamp.valueOf("2025-06-05 16:08:00.999000");
+        Timestamp time2 = Timestamp.valueOf("2025-06-05 16:08:00.000000");
+
+        // With convertNoneNanoSecsToDate set to false, a single packet will be sent.
+        for (int i = 0; i < 10; i++) {
+            ps.setInt(1, i);
+            ps.setTimestamp(2, time1);
+            if (i >= 4 && i <= 6) {
+                ps.setTimestamp(2, time2);
+            }
+            ps.addBatch();
+        }
+
+        ps.executeBatch();
+        conn.commit();
+        ps.close();
+    }
 }

@@ -642,7 +642,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp, final Calendar cal)
                                                                                                      throws SQLException {
         if (protocol.isOracleMode()) {
-            if (timestamp != null && timestamp.getNanos() == 0) {
+            if (options.convertNoneNanoSecsToDate && timestamp != null && timestamp.getNanos() == 0) {
                 setTimestampToDate(parameterIndex, new Date(timestamp.getTime()));
             } else {
                 setTIMESTAMP(parameterIndex, timestamp);
