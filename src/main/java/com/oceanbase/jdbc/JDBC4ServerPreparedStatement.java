@@ -1367,4 +1367,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         results = cs.results;
         cs.close();
     }
+
+    public void setServerPrepareResult(ServerPrepareResult serverPrepareResult) {
+        this.serverPrepareResult = serverPrepareResult;
+    }
 }

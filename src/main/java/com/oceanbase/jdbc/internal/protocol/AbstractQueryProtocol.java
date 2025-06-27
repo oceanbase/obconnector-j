@@ -71,6 +71,7 @@ import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.credential.Credential;
+import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -582,6 +583,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               if (serverPrepareResult == null) {
                   // prepare here
                   serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+                  if (results.getStatement() instanceof ServerSidePreparedStatement) {
+                    ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+                  }
               }
 
               boolean continueWrite = true;

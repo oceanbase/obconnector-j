@@ -745,4 +745,72 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         }
         conn.commit();
     }
+
+    @Test
+    public void testForDima2025022600107342169() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&usePieceData=true");
+        createTable("t0", "c0 int, c1 blob, primary key(c0)");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("alter system set open_cursors=10;");
+        stmt.execute("insert into t0(c0) values(1)");
+
+        PreparedStatement ps = null;
+        for (int j=1;j<12;j++){
+            try{
+                ps=conn.prepareStatement("insert into t0 values(?,?)");
+                String s = "1231abcd奥星贝斯";
+                byte[] blobContent = s.getBytes("utf-8");
+                java.sql.Blob b = new com.oceanbase.jdbc.Blob(blobContent);
+                ps.setInt(1, 1);
+                ps.setBlob(2,b);
+                ps.execute();
+            }catch (SQLException e){
+                if(e.getMessage().contains("maximum open cursors exceeded")){
+                    Assert.fail(e.getMessage());
+                }
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }finally {
+                if(ps!=null) {
+                    ps.close();
+                }
+            }
+        }
+        conn.close();
+    }
+
+    @Test
+    public void testForDima2025022600107332995() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&useArrayBinding=true");
+        createTable("t_c0", "c0 number primary key");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_c0 values(1)");
+        stmt.execute("alter system set open_cursors= 5;");
+
+        conn.setAutoCommit(false);
+
+        PreparedStatement ps = null;
+        for (int i = 0; i < 10; i++) {
+            try {
+                ps = conn.prepareStatement("insert into t_c0 values(?)");
+                for (int j = 0; j < 5; j++) {
+                    ps.setInt(1, j);
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            } catch (SQLException e) {
+                if (e.getMessage().contains("maximum open cursors exceeded")) {
+                    Assert.fail(e.getMessage());
+                }
+            } finally {
+                if (ps != null) {
+                    ps.close();
+                }
+            }
+        }
+        conn.setAutoCommit(true);
+        stmt.execute("alter system set open_cursors= 50");
+    }
 }
