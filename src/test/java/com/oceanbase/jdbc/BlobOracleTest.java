@@ -1670,4 +1670,39 @@ public class BlobOracleTest extends BaseOracleTest {
         Assert.assertEquals(Arrays.toString("bbb".getBytes()), Arrays.toString(blob2.getBytes(1, 3)));
         assertFalse(rs.next());
     }
+
+    @Test
+    public void testForDima2024122700106677016() throws SQLException {
+        Connection conn = setConnection("");
+        Statement stmt = conn.createStatement();
+        stmt.execute("set global ob_default_lob_inrow_threshold = 0;");
+
+        try {
+            Connection connection = setConnection("&supportLobLocator=false&useLobLocatorV2=false");
+            createTable("t_blob", "c1 blob");
+            Statement statement = connection.createStatement();
+            String str = getRandomString(6023);
+
+            PreparedStatement ps = conn.prepareStatement("insert into t_blob values(?)");
+            ps.setBytes(1, str.getBytes());
+            ps.execute();
+            ps.setBytes(1, "bbb22".getBytes());
+            ps.execute();
+
+            statement.execute("create or replace type blob_array as table of blob");
+            statement.execute("create or replace procedure p_blob(var out blob_array) is begin select c1 bulk collect into var FROM t_blob;end;");
+
+            CallableStatement cs = connection.prepareCall("{call p_blob(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "BLOB_ARRAY");
+            cs.execute();
+            Array array = cs.getArray(1);
+            Object[] objects = (Object[]) array.getArray();
+            assertEquals(Arrays.toString(str.getBytes()), Arrays.toString(((Blob)objects[0]).getBytes(1,6023)));
+            assertEquals(Arrays.toString("bbb22".getBytes()), Arrays.toString(((Blob)objects[1]).getBytes(1,5)));
+        } catch (SQLException e) {
+            fail();
+        } finally {
+            stmt.execute("set global ob_default_lob_inrow_threshold = 8192;");
+        }
+    }
 }

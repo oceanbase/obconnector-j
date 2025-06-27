@@ -1509,4 +1509,36 @@ public class ClobOracleTest extends BaseOracleTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void testForDima2024122700106677016() throws SQLException {
+        Connection conn = setConnection("");
+        Statement stmt = conn.createStatement();
+        stmt.execute("set global ob_default_lob_inrow_threshold = 0;");
+
+        try {
+            Connection connection = setConnection("&supportLobLocator=false&useLobLocatorV2=false");
+            createTable("t_clob", "c1 clob");
+            Statement statement = connection.createStatement();
+            String str = getRandomString(6023);
+            statement.execute("insert into t_clob values('" + str + "')");
+            statement.execute("insert into t_clob values('bbb22')");
+
+            statement.execute("create or replace type clob_array as table of clob");
+            statement.execute("create or replace procedure p_clob(var out clob_array) is begin select c1 bulk collect into var FROM t_clob;end;");
+
+            CallableStatement cs = connection.prepareCall("{call p_clob(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+            cs.execute();
+            Array array = cs.getArray(1);
+            Object[] objects = (Object[]) array.getArray();
+            java.sql.Clob clob = (java.sql.Clob) objects[0];
+            assertEquals(str, clob.getSubString(1L, (int) clob.length()));
+            assertEquals("bbb22", ((Clob) objects[1]).getSubString(1, 5));
+        } catch (SQLException e) {
+            fail();
+        } finally {
+            stmt.execute("set global ob_default_lob_inrow_threshold = 8192;");
+        }
+    }
+
 }
