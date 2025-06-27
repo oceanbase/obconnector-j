@@ -48,6 +48,7 @@ import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -524,6 +525,61 @@ public class ProcedureTest extends BaseTest {
             assertEquals(pmd.parameterNullable, pmd.isNullable(2));
         } catch (SQLException e) {
             fail();
+        }
+    }
+
+    @Test
+    public void testForDima2024080100104012453() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        // in
+        stmt.execute("drop procedure if exists p1");
+        stmt.execute("create procedure p1(c0 blob) begin select 1;end;");
+
+        Blob blob = (Blob) conn.createBlob();
+        blob.setBytes(1, "aaa".getBytes());
+        CallableStatement ps = conn.prepareCall("call p1(?)");
+        ps.setBlob(1, blob);
+        try {
+            ps.execute();
+        } catch (SQLException e) {
+            fail();
+        }
+        ps.close();
+
+        // in out
+        stmt.execute("drop procedure if exists p1");
+        stmt.execute("create procedure p1(inout c0 blob) begin select 1;end;");
+        CallableStatement ps2 = conn.prepareCall("call p1(?)");
+        ps2.setBlob(1, blob);
+        ps2.registerOutParameter(1, Types.BLOB);
+        try {
+            ps2.execute();
+            Assert.assertEquals(Arrays.toString("aaa".getBytes()), Arrays.toString(ps2.getBlob(1).getBytes(1, 3)));
+        } catch (SQLException e) {
+            fail();
+        }
+        ps2.close();
+    }
+
+    @Test
+    public void testForDima2024062200102854804() throws SQLException {
+        createProcedure("testProc1", "(out a int) BEGIN SELECT 1; END");
+        CallableStatement cs = sharedConnection.prepareCall("call testProc1(1)");
+
+        try {
+            cs.registerOutParameter(1, Types.INTEGER);
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("No parameter with index 1", e.getMessage());
+        }
+
+        try {
+            cs.execute();
+            fail();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.assertEquals("Parameter a is not registered as an output parameter.", e.getMessage());
         }
     }
 

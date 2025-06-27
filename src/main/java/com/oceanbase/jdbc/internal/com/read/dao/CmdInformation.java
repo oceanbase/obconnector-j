@@ -98,4 +98,8 @@ public interface CmdInformation {
     void setArrayBinding(boolean arrayBinding);
 
     boolean getArrayBinding();
+
+    void setContainOnDuplicateKey(boolean containOnDuplicateKey);
+
+    boolean containOnDuplicateKey();
 }

@@ -53,14 +53,17 @@ package com.oceanbase.jdbc;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
 import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.com.send.parameters.StreamParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
 import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
@@ -272,6 +275,15 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             mysqlParamNames.add(inOutParameterName);
         }
 
+        boolean haveStreamParam = false;
+        for (Map.Entry<Integer, ParameterHolder> holderEntry : currentParameterHolder.entrySet()) {
+            ParameterHolder holder = holderEntry.getValue();
+            if (holder instanceof StreamParameter) {
+                haveStreamParam = true;
+                break;
+            }
+        }
+
         for (int i = 0; i < parameterMetadata.placeholderParams.size(); i++) {
             String paramName = parameterMetadata.placeholderParams.get(i).getName();
             String inOutParameterName;
@@ -286,29 +298,40 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 StringBuilder queryBuf = new StringBuilder(4 + inOutParameterName.length() + 1 + 1);
                 ParameterHolder holder = currentParameterHolder.get(i);
                 if (holder != null) {
-                    String holderStr;
-                    if (holder instanceof StringParameter) {
-                        holderStr = ((StringParameter) holder).getFullString();
+                    if (holder instanceof StreamParameter) {
+                        List<byte[]> queryParts = new ArrayList<>(2);
+                        inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
+                        String setSql = "SET " + inOutParameterName + " = ";
+                        queryParts.add(setSql.getBytes());
+                        queryParts.add(ParameterHolder.BINARY_INTRODUCER);
+                        queryParts.add(((StreamParameter) holder).getBytes());
+                        queryParts.add(new byte[]{ParameterHolder.QUOTE});
+                        executeForStreamParameter(queryParts);
                     } else {
-                        holderStr = holder.toString();
-                    }
-                    queryBuf.append("SET ");
-                    queryBuf.append(inOutParameterName);
-                    queryBuf.append("=");
-                    if (holderStr == "<null>") {
-                        queryBuf.append("null");
-                    } else {
-                        queryBuf.append(holderStr);
-                    }
+                        String holderStr;
+                        if (holder instanceof StringParameter) {
+                            holderStr = ((StringParameter) holder).getFullString();
+                        } else {
+                            holderStr = holder.toString();
+                        }
+                        queryBuf.append("SET ");
+                        queryBuf.append(inOutParameterName);
+                        queryBuf.append("=");
+                        if (holderStr == "<null>") {
+                            queryBuf.append("null");
+                        } else {
+                            queryBuf.append(holderStr);
+                        }
 
-                    String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
-                    this.execute(query);
+                        String query = queryBuf.toString().replaceAll("\\`(\\w+)\\`", "$1");
+                        this.execute(query);
+                    }
                 }
             }
         }
         if (this.parameterMetadata.outputParamSetParamValueException != null) {
             // throwing at this stage is compatible with mysql
-            throw this.parameterMetadata.outputParamSetParamValueException;
+            throw new SQLException(this.parameterMetadata.outputParamSetParamValueException.getMessage());
         }
 
         Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(originalSql, false, false, false, false);
@@ -316,6 +339,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         int paramCount = trimSQLStringInternal.getParamCount();
         int beginIndex = 0;
         StringBuilder sb = new StringBuilder();
+        List<byte[]> queryParts = new ArrayList<>(paramCount);
         List<Integer> paramIndexs = trimSQLStringInternal.getParamsIndexs();
         if (paramCount > 0  && paramIndexs.size() > 0) {
             for (int i = 0; i < paramIndexs.size() ; i++) {
@@ -323,12 +347,20 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 int end = paramIndexs.get(i);
                 String partPre = trimedString.substring(beginIndex,end);
                 CallParameter inParamInfo = parameterMetadata.allParams.get(parameterIndex);
-                sb.append(partPre);
+                if (haveStreamParam) {
+                    queryParts.add(partPre.getBytes());
+                } else {
+                    sb.append(partPre);
+                }
                 beginIndex = end + 1;
                 if (inParamInfo.isOutput()) {
                     String inOutParameterName = mysqlParamNames.get(parameterIndex);
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
-                    sb.append(inOutParameterName);
+                    if (haveStreamParam) {
+                        queryParts.add(inOutParameterName.getBytes());
+                    } else {
+                        sb.append(inOutParameterName);
+                    }
                 } else {
                     ParameterHolder holder = currentParameterHolder.get(i);
                     String holderStr;
@@ -338,16 +370,36 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                         holderStr = holder.toString();
                     }
                     if (holderStr.equals("<null>")) {
-                        sb.append("null" );
+                        holderStr = "null";
+                    }
+
+                    if (haveStreamParam) {
+                        if (holder instanceof StreamParameter) {
+                            queryParts.add(ParameterHolder.BINARY_INTRODUCER);
+                            queryParts.add(((StreamParameter) holder).getBytes());
+                            queryParts.add(new byte[]{ParameterHolder.QUOTE});
+                        } else {
+                            queryParts.add(holderStr.getBytes());
+                        }
                     } else {
                         sb.append(holderStr);
                     }
                 }
             }
         }
-        sb.append(trimedString.substring(beginIndex));
 
-        int r = this.executeUpdate(sb.toString());
+        if (haveStreamParam) {
+            queryParts.add(trimedString.substring(beginIndex).getBytes());
+        } else {
+            sb.append(trimedString.substring(beginIndex));
+        }
+
+        int r = 0;
+        if (haveStreamParam) {
+            executeForStreamParameter(queryParts);
+        } else {
+            r = this.executeUpdate(sb.toString());
+        }
         outputResultSet = results.getCallableResultSet();
         if (outputResultSet != null) {
             outputResultSet.next();
@@ -595,4 +647,41 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         }
     }
 
+    public void executeForStreamParameter(List<byte[]> queryParts) throws SQLException {
+        if (protocol != null) {
+            protocol.startCallInterface();
+        }
+        lock.lock();
+        try {
+            lockLogger.debug("JDBC4ServerCallableStatement.executeForStreamParameter locked");
+            try {
+                executeQueryPrologue(false);
+                results =
+                        new Results(
+                                this,
+                                fetchSize,
+                                false,
+                                1,
+                                false,
+                                resultSetScrollType,
+                                resultSetConcurrency,
+                                autoGeneratedKeys,
+                                protocol.getAutoIncrementIncrement(),
+                                this.actualSql,
+                                null);
+                protocol.executeStreamList(results, queryParts);
+                results.commandEnd();
+            } catch (SQLException exception) {
+                throw executeExceptionEpilogue(exception);
+            } finally {
+                executeEpilogue();
+            }
+        } finally {
+            lock.unlock();
+            lockLogger.debug("JDBC4ServerCallableStatement.executeForStreamParameter unlocked");
+            if (protocol != null) {
+                protocol.endCallInterface("JDBC4ServerCallableStatement.executeForStreamParameter");
+            }
+        }
+    }
 }

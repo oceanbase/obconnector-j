@@ -1665,4 +1665,214 @@ public class DateTest extends BaseTest {
             Locale.setDefault(new Locale("zh", "CN"));
         }
     }
+
+    @Test
+    public void testForDima2025041500108266634_mysql5() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("set global time_zone = '+04:00'");
+
+        try {
+            List<Object[]> oBValues = new ArrayList<>();
+            String prop1 = "&useServerPrepStmts=true&useLegacyDatetimeCode=false&serverTimezone=GMT+4";
+            String prop2 = "&useServerPrepStmts=true&useLegacyDatetimeCode=true&serverTimezone=GMT+4";
+            String prop3 = "&useServerPrepStmts=false&useLegacyDatetimeCode=false&serverTimezone=GMT+4";
+            String prop4 = "&useServerPrepStmts=false&useLegacyDatetimeCode=true&serverTimezone=GMT+4";
+            String[] properties = new String[]{prop1, prop2, prop3, prop4};
+            for (String property : properties) {
+                Connection connection = setConnection(property);
+                Statement connectionStatement = connection.createStatement();
+                try {
+                    connectionStatement.execute("drop table z_dt");
+                } catch (SQLException e) {
+                }
+                connectionStatement.execute("create table z_dt (c2 date, c3 time , c4 timestamp, c5 datetime, c6 varchar(30), c7 char(30))");
+                connectionStatement.execute("insert into z_dt values('2025-04-26', '14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00')");
+                connectionStatement.close();
+
+                PreparedStatement ps = connection.prepareStatement("select * from z_dt");
+                ResultSet rs = ps.executeQuery();
+                Assert.assertTrue(rs.next());
+                oBValues.addAll(fetchRs(rs));
+                rs.close();
+                ps.close();
+                connection.close();
+            }
+            List<Object[]> mysqlValues = new ArrayList<>();
+
+            // &useServerPrepStmts=true&useLegacyDatetimeCode=false&serverTimezone=GMT+4
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 04:00:00.0", "2025-04-26", "2025-04-26T04:00", "exception", "exception"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 18:30:00.0", "14:30:00", "1970-01-01T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T18:30", "exception", "exception"});
+            // &useServerPrepStmts=true&useLegacyDatetimeCode=true&serverTimezone=GMT+4
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "exception", "exception"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00.0", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00.0", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "exception", "exception"});
+            // &useServerPrepStmts=false&useLegacyDatetimeCode=false&serverTimezone=GMT+4
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 04:00:00.0", "2025-04-26", "2025-04-26T04:00", "exception", "exception"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 18:30:00.0", "14:30:00", "1970-01-01T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 18:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 18:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T18:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T18:30", "exception", "exception"});
+            // &useServerPrepStmts=false&useLegacyDatetimeCode=true&serverTimezone=GMT+4
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "exception", "exception"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00.0", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00.0", "2025-04-26", "14:30:00", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00.0", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "exception", "exception"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "exception", "2025-04-26 14:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "exception", "exception"});
+
+            for (int i = 0; i < oBValues.size(); i++) {
+                Object[] obValue = oBValues.get(i);
+                Object[] mysqlValue = mysqlValues.get(i);
+                for (int j = 0; j < 8; j++) {
+                    Assert.assertEquals(mysqlValue[j], obValue[j].toString());
+                }
+            }
+        } finally {
+            stmt.execute("set global time_zone = '+08:00'");
+        }
+    }
+
+    @Test
+    public void testForDima2025041500108266634_mysql8() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        stmt.execute("set global time_zone = '+04:00'");
+
+        try {
+            List<Object[]> oBValues = new ArrayList<>();
+            String prop1 = "&useServerPrepStmts=true&useLegacyDatetimeCode=false&serverTimezone=GMT+4&compatibleMysqlVersion=8";
+            String prop2 = "&useServerPrepStmts=true&useLegacyDatetimeCode=true&serverTimezone=GMT+4&compatibleMysqlVersion=8";
+            String prop3 = "&useServerPrepStmts=false&useLegacyDatetimeCode=false&serverTimezone=GMT+4&compatibleMysqlVersion=8";
+            String prop4 = "&useServerPrepStmts=false&useLegacyDatetimeCode=true&serverTimezone=GMT+4&compatibleMysqlVersion=8";
+            String[] properties = new String[]{prop1, prop2, prop3, prop4};
+            for (String property : properties) {
+                Connection connection = setConnection(property);
+                Statement connectionStatement = connection.createStatement();
+                try {
+                    connectionStatement.execute("drop table z_dt");
+                } catch (SQLException e) {
+                }
+                connectionStatement.execute("create table z_dt (c2 date, c3 time , c4 timestamp, c5 datetime, c6 varchar(30), c7 char(30))");
+                connectionStatement.execute("insert into z_dt values('2025-04-26', '14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00', '2025-04-26 14:30:00')");
+                connectionStatement.close();
+
+                PreparedStatement ps = connection.prepareStatement("select * from z_dt");
+                ResultSet rs = ps.executeQuery();
+                Assert.assertTrue(rs.next());
+                oBValues.addAll(fetchRs(rs));
+                rs.close();
+                ps.close();
+                connection.close();
+            }
+            List<Object[]> mysqlValues = new ArrayList<>();
+
+            // &useServerPrepStmts=true&useLegacyDatetimeCode=false&serverTimezone=GMT+4&compatibleMysqlVersion=8
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "2025-04-26T00:00+08:00", "2025-04-26T00:00+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "1970-01-01T14:30+08:00", "1970-01-01T14:30+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            // &useServerPrepStmts=true&useLegacyDatetimeCode=true&serverTimezone=GMT+4&compatibleMysqlVersion=8
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "2025-04-26T00:00+08:00", "2025-04-26T00:00+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "1970-01-01T14:30+08:00", "1970-01-01T14:30+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            // &useServerPrepStmts=false&useLegacyDatetimeCode=false&serverTimezone=GMT+4&compatibleMysqlVersion=8
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "2025-04-26T00:00+08:00", "2025-04-26T00:00+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "1970-01-01T14:30+08:00", "1970-01-01T14:30+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            // &useServerPrepStmts=false&useLegacyDatetimeCode=true&serverTimezone=GMT+4&compatibleMysqlVersion=8
+            mysqlValues.add(new Object[]{"2025-04-26", "2025-04-26", "00:00:00", "2025-04-26 00:00:00.0", "2025-04-26", "2025-04-26T00:00", "2025-04-26T00:00+08:00", "2025-04-26T00:00+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"14:30:00", "1970-01-01", "14:30:00", "1970-01-01 14:30:00.0", "14:30:00", "1970-01-01T14:30", "1970-01-01T14:30+08:00", "1970-01-01T14:30+08:00[Asia/Shanghai]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26T14:30", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+            mysqlValues.add(new Object[]{"2025-04-26 14:30:00", "2025-04-26", "14:30:00", "2025-04-26 18:30:00.0", "2025-04-26 14:30:00", "2025-04-26T14:30", "2025-04-26T14:30+04:00", "2025-04-26T14:30+04:00[GMT+04:00]"});
+
+            for (int i = 0; i < oBValues.size(); i++) {
+                Object[] obValue = oBValues.get(i);
+                Object[] mysqlValue = mysqlValues.get(i);
+                for (int j = 0; j < 8; j++) {
+                    Assert.assertEquals(mysqlValue[j], obValue[j].toString());
+                }
+            }
+        } finally {
+            stmt.execute("set global time_zone = '+08:00'");
+        }
+    }
+
+    public List<Object[]> fetchRs(ResultSet rs) {
+        List<Object[]> result = new ArrayList<>();
+        for (int i = 1; i <= 6; i++) {
+            Object[] objects = new Object[8];
+            for (int j = 0; j < 8; j++) {
+                try {
+                    switch (j) {
+                        case 0: objects[j] = rs.getString(i); break;
+                        case 1: objects[j] = rs.getDate(i); break;
+                        case 2: objects[j] = rs.getTime(i); break;
+                        case 3: objects[j] = rs.getTimestamp(i); break;
+                        case 4: objects[j] = rs.getObject(i); break;
+                        case 5: objects[j] = rs.getObject(i, LocalDateTime.class); break;
+                        case 6: objects[j] = rs.getObject(i, OffsetDateTime.class); break;
+                        case 7: objects[j] = rs.getObject(i, ZonedDateTime.class); break;
+                        default: objects[j] = "exception"; break;
+                    }
+                } catch (Exception e) {
+                    objects[j] = "exception";
+                }
+            }
+            result.add(objects);
+        }
+        return result;
+    }
+
+    @Test
+    public void testForDima2025041500108266634_setTimeStamp() throws SQLException {
+        String[] propes = {"&useLegacyDatetimeCode=true&serverTimezone=+5:00&useServerPrepStmts=false",
+                "&useLegacyDatetimeCode=true&serverTimezone=+5:00&useServerPrepStmts=true",
+                "&useLegacyDatetimeCode=false&serverTimezone=+5:00&useServerPrepStmts=false",
+                "&useLegacyDatetimeCode=false&serverTimezone=+5:00&useServerPrepStmts=true"};
+        Connection connection = null;
+        for (int i = 0; i < 4; i++) {
+            connection = setConnection(propes[i]);
+            setSessionTimeZone(connection, "+5:00");
+            createTable("date_test", "d_test date,dt_test datetime, t_test time");
+
+            Statement stmt = connection.createStatement();
+            Date date = Date.valueOf("2009-01-17");
+            Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
+            Time time = Time.valueOf("23:59:59");
+
+            PreparedStatement ps = connection.prepareStatement("insert into date_test (d_test, dt_test, t_test) values (?,?,?)");
+            ps.setDate(1, date);
+            ps.setTimestamp(2, timestamp);
+            ps.setTime(3, time);
+            ps.executeUpdate();
+
+            ResultSet rs = stmt.executeQuery("select d_test, dt_test, t_test from date_test");
+            assertTrue(rs.next());
+            assertEquals(date.toString(), rs.getDate(1).toString());
+            assertEquals(timestamp.toString(), rs.getTimestamp(2).toString());
+            assertEquals(time.toString(), rs.getTime(3).toString());
+            rs.close();
+            stmt.close();
+            connection.close();
+        }
+    }
 }

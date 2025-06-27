@@ -60,6 +60,7 @@ import java.sql.*;
 import java.sql.Clob;
 import java.sql.Date;
 import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -257,7 +258,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.columnInformationLength = columnDefinition.length;
         this.complexData = new ComplexData[columnInformationLength];
         this.complexEndPos = new int[columnInformationLength];
-        timeZone = protocol.getTimeZone();
+        timeZone = protocol.getTimeZoneWithUseLegacyDatetimeCode();
         if (results.isBinaryFormat()) {
             row = new BinaryRowProtocol(columnsInformation, columnInformationLength,
                 results.getMaxFieldSize(), options);
@@ -324,7 +325,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
         this.reader = opt.reader;
         this.isEof = opt.isEof;
-        timeZone = protocol.getTimeZone();
+        timeZone = protocol.getTimeZoneWithUseLegacyDatetimeCode();
         this.row = opt.row;
         this.fetchSize = opt.fetchSize;
         this.resultSetScrollType = opt.resultSetScrollType;
@@ -366,7 +367,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         this.statement = null;
         if (protocol != null) {
             this.options = protocol.getOptions();
-            this.timeZone = protocol.getTimeZone();
+            this.timeZone = protocol.getTimeZoneWithUseLegacyDatetimeCode();
         } else {
             this.options = new Options();
             this.timeZone = TimeZone.getDefault();
@@ -1956,22 +1957,41 @@ public class JDBC4ResultSet implements ResultSetImpl {
             return (T) row.getInternalBigDecimal(col);
 
         } else if (type.equals(LocalDateTime.class)) {
-            ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, LocalDateTime.class,
-                timeZone);
+            ZonedDateTime zonedDateTime = null;
+            if (!this.getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+                zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class, TimeZone.getDefault());
+            } else {
+                zonedDateTime = row.getInternalZonedDateTime(col, LocalDateTime.class, timeZone);
+            }
             return zonedDateTime == null ? null : type.cast(zonedDateTime.withZoneSameInstant(
                 ZoneId.systemDefault()).toLocalDateTime());
 
         } else if (type.equals(ZonedDateTime.class)) {
-            ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class,
-                    timeZone);
+            ZonedDateTime zonedDateTime = null;
+            if (!this.getProtocol().isOracleMode() && options.compatibleMysqlVersion == 5) {
+                throw new SQLException("Cannot read " + type.getName() + " using a "
+                        + col.getColumnType().getSqlTypeName() + " field");
+            } else {
+                zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class,  timeZone);
+            }
             if (zonedDateTime == null) {
                 return null;
             }
-            return type.cast(row.getInternalZonedDateTime(col, ZonedDateTime.class, timeZone));
+            return type.cast(zonedDateTime);
 
         } else if (type.equals(OffsetDateTime.class)) {
             if (!this.protocol.isOracleMode()) {
-                OffsetDateTime offsetDateTime = row.getInternalOffsetDateTime(col, timeZone);
+                if (options.compatibleMysqlVersion == 5) {
+                    try {
+                        return type.cast(OffsetDateTime.parse(getString(columnIndex)));
+                    } catch (DateTimeParseException e) {
+                        //
+                    }
+                    throw new SQLException("Cannot read " + type.getName() + " using a "
+                            + col.getColumnType().getSqlTypeName() + " field");
+                }
+                OffsetDateTime offsetDateTime = null;
+                offsetDateTime = row.getInternalOffsetDateTime(col, timeZone);
                 if (offsetDateTime == null) {
                     return null;
                 }
@@ -2240,7 +2260,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
+            ComplexDataType type = null;
+            try {
+                type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex]);
+            } catch (SQLException e) {
+                if (e.getMessage().contains("unknown complex data type.") && this.getStatement() instanceof CallableProcedureStatement) {
+                    String registerTypeName = getRegisterTypeName(e, internalColumnIndex);
+                    type = ((OceanBaseConnection) conn).getComplexDataType(registerTypeName, this.columnsInformation[internalColumnIndex]);
+                } else {
+                    throw e;
+                }
+            }
             Object ret = null;
             if (type.getType() == ComplexDataType.TYPE_COLLECTION) {
                 ret = row.getInternalArray(columnsInformation[actualColumnIndex - 1], type,conn);
@@ -4084,6 +4114,18 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     public byte[][] getRowData() {
         return data;
+    }
+
+    private String getRegisterTypeName(SQLException e, int internalColumnIndex) throws SQLException {
+        CallableProcedureStatement procedureStatement = (CallableProcedureStatement) this.getStatement();
+        ParameterMetaData parameterMetaData = procedureStatement.getParameterMetaData();
+        Map<String, CallParameter> mapNameToParameter = ((OceanBaseCallableParameterMetaData) parameterMetaData).getMapNameToParameter();
+        CallParameter parameter = mapNameToParameter.get(this.columnsInformation[internalColumnIndex].getName());
+        String parameterTypeName = parameter.getTypeName();
+        if (!parameter.isOutput() || parameterTypeName == null || parameterTypeName.isEmpty()) {
+            throw e;
+        }
+        return parameterTypeName;
     }
 
 }

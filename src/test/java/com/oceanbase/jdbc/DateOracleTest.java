@@ -55,6 +55,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.TimeZone;
 
+import com.oceanbase.jdbc.internal.util.Utils;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -840,6 +841,19 @@ public class DateOracleTest extends BaseOracleTest {
                     Assert.assertEquals("2 3:4:5.123456", getObjectVal);
                 }
             }
+        }
+    }
+
+    @Test
+    public void  testForDima2024062200102857040() throws SQLException {
+        String tz = "GMT+00:00";
+        TimeZone timeZone = Utils.getTimeZone(tz);
+        TimeZone.setDefault(timeZone);
+        try {
+            Connection conn = setConnection("&serverTimezone=Asia/Shanghai");
+            conn.close();
+        } catch (SQLException e) {
+            fail();
         }
     }
 }

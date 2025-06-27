@@ -242,6 +242,8 @@ public class Options implements Cloneable {
     public boolean mapDateToTimestamp = true;
     public boolean useNewResultSetMetaData; 
     public boolean obDateTypeOptimization;
+    public boolean lowercaseRoutinesInMetadata;
+    public boolean oracleUseNumberForSetDouble;
 
     @Override
     public String toString() {
@@ -739,6 +741,12 @@ public class Options implements Cloneable {
         if (maxReconnects != opt.maxReconnects) {
             return false;
         }
+        if (lowercaseRoutinesInMetadata != opt.lowercaseRoutinesInMetadata) {
+            return false;
+        }
+        if (oracleUseNumberForSetDouble != opt.oracleUseNumberForSetDouble) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -899,6 +907,8 @@ public class Options implements Cloneable {
         result = 31 * result + (emulateLocators ? 1 : 0);
         result = 31 * result + locatorFetchBufferSize;
         result = 31 * result + maxReconnects;
+        result = 31 * result + (lowercaseRoutinesInMetadata ? 1 : 0);
+        result = 31 * result + (oracleUseNumberForSetDouble ? 1 : 0);
         return result;
     }
 

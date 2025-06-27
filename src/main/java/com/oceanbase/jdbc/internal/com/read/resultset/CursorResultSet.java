@@ -44,6 +44,7 @@
 package com.oceanbase.jdbc.internal.com.read.resultset;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -74,6 +75,11 @@ public class CursorResultSet extends Cursor {
      * Mark the absolute position of the last row in entire result.
      */
     private int       lastRowIndexInEntireResult;
+
+    /**
+     *  Specifically refer to OceanBaseStatement#cursorFetchPstmt
+     */
+    private PreparedStatement statementUsedForFetch;
 
     public CursorResultSet(ColumnDefinition[] columnsInformation, Results results,
                            Protocol protocol, boolean callableResult, boolean eofDeprecated,
@@ -258,7 +264,7 @@ public class CursorResultSet extends Cursor {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        if (protocol.isOracleMode() && dataSize <= 0) {
+        if (protocol.isOracleMode() && dataSize <= 0 && !isLastRowSent) {
             return false;
         }
 
@@ -572,6 +578,19 @@ public class CursorResultSet extends Cursor {
         } catch (Exception ex) {
             return false;
         }
+    }
+
+    public void setStatementUsedForFetch(PreparedStatement stmt) {
+        this.statementUsedForFetch = stmt;
+    }
+
+    @Override
+    public void close() throws SQLException {
+        if (this.statementUsedForFetch != null) {
+            this.statementUsedForFetch.close();
+            this.statementUsedForFetch = null;
+        }
+        super.close();
     }
 
 }

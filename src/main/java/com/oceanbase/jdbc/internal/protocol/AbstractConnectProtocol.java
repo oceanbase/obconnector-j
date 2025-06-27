@@ -1239,6 +1239,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 || !zoneId.equalsIgnoreCase("GMT-0") || !zoneId.equalsIgnoreCase("GMT0"))) {
             zoneId = zoneId.substring("GMT".length());
         }
+        if ("Z".equalsIgnoreCase(zoneId)) {
+            zoneId = "+00:00";
+        }
 
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
@@ -2205,4 +2208,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         options.useNewResultSetMetaData = useNewResultSetMetaData;
     }
 
+    @Override
+    public TimeZone getTimeZoneWithUseLegacyDatetimeCode() {
+        if (!this.isOracleMode && options.compatibleMysqlVersion == 5 && options.useLegacyDatetimeCode) {
+            return TimeZone.getDefault();
+        }
+        return timeZone;
+    }
 }

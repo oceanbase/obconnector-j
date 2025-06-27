@@ -454,4 +454,65 @@ public class ExecuteBatchTest extends BaseTest {
       }
     }
   }
+
+    @Test
+    public void testForDima2024062200102854742() throws SQLException {
+        createTable("test", "id int not null primary key auto_increment, name_version varchar(50) not null unique ");
+        Connection connection = setConnection("&useAffectedRows=true");
+
+        PreparedStatement ps = connection.prepareStatement("insert into test (id, name_version) values(?,?) on duplicate key update name_version = values(name_version)");
+        ps.setInt(1, 1);
+        ps.setString(2, "name" + 1);
+        ps.addBatch();
+        ps.setInt(1, 3);
+        ps.setString(2, "name" + 3);
+        ps.addBatch();
+        int[] ints = ps.executeBatch();
+        assertArrayEquals(new int[]{1, 1}, ints);
+
+        // Test the same value, executeBatch returns error
+        ps = connection.prepareStatement("insert into test (id, name_version) values(?,?) on duplicate key update name_version = values(name_version)");
+        ps.setInt(1, 1);
+        ps.setString(2, "name" + 1);
+        ps.addBatch();
+        ints = ps.executeBatch();
+        assertArrayEquals(new int[]{0}, ints); //mysql-jdbc [0]
+
+        // "on" exists in SQL, but not "on duplicate key update" sql
+        String sql = "update test set name_version = ? where id = ?";
+        PreparedStatement ps2 = connection.prepareStatement(sql);
+        ps2.setString(1, "name" + 1);
+        ps2.setInt(2, 1);
+        ps2.addBatch();
+        ints = ps2.executeBatch();
+        assertArrayEquals(new int[]{0}, ints);
+
+        // getGeneratedKeys
+        String sql2 = "insert into test (name_version) values(?) on duplicate key update name_version = values(name_version)";
+        ps2 = connection.prepareStatement(sql2, Statement.RETURN_GENERATED_KEYS);
+        for (int i = 1; i <= 4; i++) {
+            ps2.setString(1, "name" + i);
+            ps2.addBatch();
+        }
+        ints = ps2.executeBatch();
+        assertArrayEquals(new int[]{0, 1, 0, 1}, ints);
+
+        ResultSet rs = ps2.getGeneratedKeys(); // 4 5 6 7
+        for (int i = 4; i < 8; i++) {
+            assertTrue(rs.next());
+            assertEquals(i, rs.getInt(1));
+        }
+
+        //getGeneratedKeys 2
+        String sql3 = "insert into test (id, name_version) values(?, 'name1'), (6, 'name6'), (7, 'name7'), (8, 'name8') on duplicate key update name_version = values(name_version)";
+        ps2 = connection.prepareStatement(sql3, Statement.RETURN_GENERATED_KEYS);
+        ps2.setInt(1, 1);
+        ps2.addBatch();
+        ints = ps2.executeBatch();
+        assertArrayEquals(new int[]{4}, ints);
+        rs = ps2.getGeneratedKeys(); // 8
+        assertTrue(rs.next());
+        assertEquals(8, rs.getInt(1));
+    }
+
 }

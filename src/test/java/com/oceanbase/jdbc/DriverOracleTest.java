@@ -1798,4 +1798,36 @@ public class DriverOracleTest extends BaseOracleTest {
       }
     }
     }
+
+    @Test
+    public void testForDima2025031000107443542() throws SQLException {
+        Connection conn = setConnection("");
+        createTable("t_release", "c1 number(10)");
+        conn.setAutoCommit(false);
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_release values (1)");
+        stmt.execute("insert into t_release values (2)");
+        Savepoint savepoint = conn.setSavepoint("savepoint1");
+        stmt.execute("insert into t_release values (3)");
+        stmt.execute("insert into t_release values (4)");
+
+        try {
+            conn.releaseSavepoint(savepoint);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("releaseSavepoint is not supported"));
+            assertEquals("99999", e.getSQLState());
+            assertEquals(17023, e.getErrorCode());
+        }
+
+        conn.rollback(savepoint);
+        conn.commit();
+
+        ResultSet rs = stmt.executeQuery("select count(1) from t_release");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
+        rs.close();
+        conn.close();
+    }
 }

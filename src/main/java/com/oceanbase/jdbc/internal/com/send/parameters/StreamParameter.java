@@ -150,6 +150,17 @@ public class StreamParameter implements Cloneable, LongDataParameterHolder {
         return "<Stream>";
     }
 
+    public byte[] getBytes() {
+        if (lob != null) {
+            try {
+                return lob.getBytes(1, (int) length);
+            } catch (SQLException e) {
+                throw new RuntimeException("Could not getBytes from lob", e);
+            }
+        }
+        return null;
+    }
+
     public ColumnType getColumnType() {
         return ColumnType.BLOB;
     }

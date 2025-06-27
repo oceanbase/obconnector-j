@@ -357,7 +357,7 @@ public enum DefaultOptions {
             false),
     USE_LEGACY_DATETIME_CODE(
             "useLegacyDatetimeCode",
-            Boolean.TRUE,
+            Boolean.FALSE,
             "2.0.1",
             "if true (default) store date/timestamps "
                     + "according to client time zone.\n"
@@ -1161,6 +1161,18 @@ public enum DefaultOptions {
             0,
             "2.4.14",
             "Maximum number of reconnects to attempt if 'autoReconnect' is 'true'.",
+            false),
+    LOWERCASE_ROUTINES_IN_METADATA(
+            "lowercaseRoutinesInMetadata",
+            Boolean.FALSE,
+            "2.4.15",
+            "Whether routine names in metadata can be in lowercase.",
+            false),
+    ORACLE_USE_NUMBER_FOR_SETDOUBLE(
+            "oracleUseNumberForSetDouble",
+            Boolean.FALSE,
+            "2.4.15",
+            "For Oracle tenants, the serialized data type of the setDouble interface is changed to Number.",
             false);
 
   private final String optionName;

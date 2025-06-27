@@ -274,7 +274,15 @@ public class TextRowProtocol extends RowProtocol {
                     useCalLenientFlag = true;
                 }
                 try {
-                    timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                    if (!getProtocol().isOracleMode()) {
+                        Calendar newCal = getCalendarInstance(cal);
+                        if (!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5) {
+                            newCal = getCalendarInstanceWithTimezone(cal, timeZone);
+                        }
+                        timestamp = getInternalTimestamp(columnInfo, newCal, timeZone);
+                    } else {
+                        timestamp = getInternalTimestamp(columnInfo, cal, TimeZone.getDefault());
+                    }
                 } catch (SQLException sqlex) {
                     if (sqlex.getMessage().equals("Zero date value prohibited")
                             && !getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
@@ -373,21 +381,34 @@ public class TextRowProtocol extends RowProtocol {
             return 0;
         }
         switch (columnInfo.getColumnType()) {
+            case FLOAT:
+                float internalFloat = getInternalFloat(columnInfo);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, internalFloat, columnInfo);
+                return (int) internalFloat;
+            case DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, internalDouble, columnInfo);
+                return (int) internalDouble;
+            case DECIMAL:
+            case OLDDECIMAL:
+            case OBDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal.doubleValue(), columnInfo);
+                return bigDecimal.intValue();
             case NUMBER_FLOAT:
                 BigDecimal value = getInternalBigDecimal(columnInfo);
                 rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
                 return value.intValue();
             case BINARY_FLOAT:
             case BINARY_DOUBLE:
-                double internalDouble = getInternalDouble(columnInfo);
+                internalDouble = getInternalDouble(columnInfo);
                 return (int) internalDouble;
             default:
-                break;
+                Long longValue = getInternalLongUtil(columnInfo, Integer.class, Integer.MIN_VALUE,
+                        Integer.MAX_VALUE);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, longValue, columnInfo);
+                return longValue.intValue();
         }
-        long value = getInternalLongUtil(columnInfo, Integer.class, Integer.MIN_VALUE,
-            Integer.MAX_VALUE);
-        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-        return (int) value;
     }
 
     /**
@@ -416,14 +437,7 @@ public class TextRowProtocol extends RowProtocol {
                     Float floatValue = Float.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
                     // check
-                    if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '"
-                                               + columnInfo.getName()
-                                               + "' : value "
-                                               + new String(buf, pos, length,
-                                                   getCurrentEncoding(columnInfo.getColumnType()))
-                                               + " is not in Long range", "22003", 1264);
-                    }
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, floatValue, columnInfo);
                     return floatValue.longValue();
                 case NUMBER_FLOAT:
                     BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -437,14 +451,7 @@ public class TextRowProtocol extends RowProtocol {
                     Double doubleValue = Double.valueOf(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())));
                     // check
-                    if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '"
-                                               + columnInfo.getName()
-                                               + "' : value "
-                                               + new String(buf, pos, length,
-                                                   getCurrentEncoding(columnInfo.getColumnType()))
-                                               + " is not in Long range", "22003", 1264);
-                    }
+                    rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, doubleValue, columnInfo);
                     return doubleValue.longValue();
                 case BIT:
                     return parseBit();
@@ -508,9 +515,7 @@ public class TextRowProtocol extends RowProtocol {
             try {
                 double doubleVal = Double.parseDouble(value);
                 // check
-                if (!getProtocol().isOracleMode() && options.jdbcCompliantTruncation) {
-                    rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
-                }
+                rangeCheck(className, minValue, maxValue, doubleVal, columnInfo);
                 return (long) doubleVal;
             } catch (NumberFormatException e) {
                 throw new SQLException("Out of range value for column '" + columnInfo.getName()
@@ -929,6 +934,10 @@ public class TextRowProtocol extends RowProtocol {
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
                 }
+
+                if (!getProtocol().isOracleMode()) {
+                    cal = getCalendarInstance(cal);
+                }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
 
@@ -952,6 +961,16 @@ public class TextRowProtocol extends RowProtocol {
                 String raw = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType())).trim();
                 if (!getProtocol().isOracleMode()) {
+                    try {
+                        if (options.compatibleMysqlVersion == 8) {
+                            cal = getCalendarInstance(cal);
+                            Timestamp timestampFromString = getTimestampFromString(columnInfo, raw, cal, timeZone);
+                            return (timestampFromString == null) ? null : new Time(timestampFromString.getTime());
+                        }
+                    } catch (SQLException e) {
+                        throw new SQLException("Time format \"" + raw
+                                + "\" incorrect, must be HH:mm:ss");
+                    }
                     return getTimeFromString(raw, cal);
                 }
                 Pattern pattern = Pattern.compile(
@@ -1062,6 +1081,15 @@ public class TextRowProtocol extends RowProtocol {
             case VARCHAR2:
             case VARSTRING:
             case STRING:
+                if (!this.getProtocol().isOracleMode()) {
+                    ColumnType type = columnInfo.getColumnType();
+                    if ((options.compatibleMysqlVersion == 5 && !options.useLegacyDatetimeCode) ||
+                            (options.compatibleMysqlVersion == 8 &&  type != ColumnType.DATE)) {
+                        userCalendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                    } else {
+                        userCalendar = getCalendarInstance(userCalendar);
+                    }
+                }
                 if (options.obDateTypeOptimization) {
                     return getTimestampFromBytes(columnInfo, userCalendar, timeZone);
                 }
@@ -1072,6 +1100,13 @@ public class TextRowProtocol extends RowProtocol {
                 // time does not go after millisecond
                 rawValue = new String(buf, pos, length,
                     getCurrentEncoding(columnInfo.getColumnType()));
+                if (!this.getProtocol().isOracleMode()) {
+                    if (options.compatibleMysqlVersion == 5  && !options.useLegacyDatetimeCode) {
+                        userCalendar = getCalendarInstanceWithTimezone(userCalendar, timeZone);
+                    } else {
+                        userCalendar = getCalendarInstance(userCalendar);
+                    }
+                }
                 Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar,
                     TimeZone.getDefault()).getTime());
                 tt.setNanos(extractNanos(rawValue));
@@ -1173,6 +1208,9 @@ public class TextRowProtocol extends RowProtocol {
                 }
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
                     useCalLenientFlag = true;
+                    if (columnInfo.getColumnType() == ColumnType.DATETIME) {
+                        timeZone = TimeZone.getDefault();
+                    }
                 }
                 Timestamp timestamp = getInternalTimestamp(columnInfo, null, timeZone);
                 if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && columnInfo.getColumnType() == ColumnType.DATETIME) {
@@ -1316,20 +1354,33 @@ public class TextRowProtocol extends RowProtocol {
             return 0;
         }
         switch (columnInfo.getColumnType()) {
-            case NUMBER_FLOAT:
+            case FLOAT:
+                float internalFloat = getInternalFloat(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, internalFloat, columnInfo);
+                return (byte) internalFloat;
+            case DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, internalDouble, columnInfo);
+                return (byte) internalDouble;
+            case DECIMAL:
+            case OLDDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal.doubleValue(), columnInfo);
+                return bigDecimal.byteValue();
+            case NUMBER_FLOAT:
+                bigDecimal = getInternalBigDecimal(columnInfo);
                 rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal, columnInfo);
                 return bigDecimal.byteValue();
             case BINARY_FLOAT:
             case BINARY_DOUBLE:
-                double internalDouble = getInternalDouble(columnInfo);
+                internalDouble = getInternalDouble(columnInfo);
                 return (byte)((int)internalDouble);
             default:
-                break;
+                long value = getInternalLong(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+                return (byte) value;
         }
-        long value = getInternalLong(columnInfo);
-        rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
-        return (byte) value;
     }
 
     /**
@@ -1344,20 +1395,33 @@ public class TextRowProtocol extends RowProtocol {
             return 0;
         }
         switch (columnInfo.getColumnType()) {
-            case NUMBER_FLOAT:
+            case FLOAT:
+                float internalFloat = getInternalFloat(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, internalFloat, columnInfo);
+                return (short) internalFloat;
+            case DOUBLE:
+                double internalDouble = getInternalDouble(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, internalDouble, columnInfo);
+                return (short) internalDouble;
+            case DECIMAL:
+            case OLDDECIMAL:
+            case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal.doubleValue(), columnInfo);
+                return bigDecimal.shortValue();
+            case NUMBER_FLOAT:
+                bigDecimal = getInternalBigDecimal(columnInfo);
                 rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal, columnInfo);
                 return bigDecimal.shortValue();
             case BINARY_FLOAT:
             case BINARY_DOUBLE:
-                double internalDouble = getInternalDouble(columnInfo);
+                internalDouble = getInternalDouble(columnInfo);
                 return (short)((int)internalDouble);
             default:
-                break;
+                long value = getInternalLong(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
+                return (short) value;
         }
-        long value = getInternalLong(columnInfo);
-        rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
-        return (short) value;
     }
 
     /**
@@ -1432,6 +1496,33 @@ public class TextRowProtocol extends RowProtocol {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
+
+        if (!getProtocol().isOracleMode()) {
+            Timestamp timestamp = null;
+            Calendar calendar = null;
+            if (!options.useLegacyDatetimeCode && options.compatibleMysqlVersion == 5) {
+                calendar = getCalendarInstanceWithTimezone(null, timeZone);
+            }
+            switch (columnInfo.getColumnType()){
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                case DATE:
+                case TIME:
+                    if (options.compatibleMysqlVersion == 8) {
+                        timeZone = TimeZone.getDefault();
+                    }
+                    timestamp = getInternalTimestamp(columnInfo, calendar, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId());
+                default:
+                    break;
+            }
+        }
+
         if (getProtocol().isOracleMode()) {
             if (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO
                 || columnInfo.getColumnType() == ColumnType.TIMESTAMP_TZ
@@ -1597,6 +1688,25 @@ public class TextRowProtocol extends RowProtocol {
         if (length == 0) {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
+        }
+
+        if (!this.getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8) {
+            Timestamp timestamp = null;
+            switch (columnInfo.getColumnType()) {
+                case DATETIME:
+                case TIMESTAMP:
+                case VARSTRING:
+                case STRING:
+                case VARCHAR:
+                    timestamp = getInternalTimestamp(columnInfo, null, timeZone);
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), timeZone.toZoneId()).toOffsetDateTime();
+                case TIME:
+                case DATE:
+                    timestamp = getInternalTimestamp(columnInfo, null, TimeZone.getDefault());
+                    return ZonedDateTime.ofInstant(timestamp.toInstant(), TimeZone.getDefault().toZoneId()).toOffsetDateTime();
+                default:
+                    break;
+            }
         }
 
         String raw = new String(buf, pos, length, getCurrentEncoding(columnInfo.getColumnType()));

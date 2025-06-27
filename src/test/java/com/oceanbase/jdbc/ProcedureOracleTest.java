@@ -721,5 +721,42 @@ public class ProcedureOracleTest extends BaseOracleTest {
         }
         Assert.assertEquals(20, i);
     }
-    
+
+    @Test
+    public void testGetProceduresForDima2024062200102856887() throws Exception {
+        Connection conn = sharedConnection;
+        createProcedure("sp1", "(c2 out int) /*sp1 comment1*/ is BEGIN SELECT 1 into c2 from dual; END");
+        // upper
+        ResultSet rs = conn.getMetaData().getProcedures(null, null, "SP1");
+        assertTrue(rs.next());
+
+        assertNull(rs.getString("PROCEDURE_CAT"));
+        assertEquals("SP1", rs.getString("PROCEDURE_NAME"));
+        assertNull(rs.getString(4));
+        assertNull(rs.getString(5));
+        assertNull(rs.getString(6));
+        assertEquals("Standalone procedure or function", rs.getString("REMARKS"));
+        assertEquals(DatabaseMetaData.procedureNoResult, rs.getInt("PROCEDURE_TYPE"));
+        assertNull(rs.getString("SPECIFIC_NAME"));
+        rs.close();
+
+        // lower
+        rs = conn.getMetaData().getProcedures(null, null, "sp1");
+        Assert.assertFalse(rs.next());
+
+        // lower & lowercaseRoutinesInMetadata=true
+        conn = setConnection("&lowercaseRoutinesInMetadata=true");
+        rs = conn.getMetaData().getProcedures(null, null, "sp1");
+        assertTrue(rs.next());
+
+        assertNull(rs.getString("PROCEDURE_CAT"));
+        assertEquals("SP1", rs.getString("PROCEDURE_NAME"));
+        assertNull(rs.getString(4));
+        assertNull(rs.getString(5));
+        assertNull(rs.getString(6));
+        assertEquals("Standalone procedure or function", rs.getString("REMARKS"));
+        assertEquals(DatabaseMetaData.procedureNoResult, rs.getInt("PROCEDURE_TYPE"));
+        assertNull(rs.getString("SPECIFIC_NAME"));
+        rs.close();
+    }
 }

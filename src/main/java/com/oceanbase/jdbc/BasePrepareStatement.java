@@ -652,7 +652,7 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 setNull(parameterIndex, ColumnType.DATETIME);
                 return;
             }
-            TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZone();
+            TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZoneWithUseLegacyDatetimeCode();
             setParameter(parameterIndex, new TimestampParameter(timestamp, tz, useFractionalSeconds));
         }
     }
@@ -1856,7 +1856,11 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                                    + "' is not a valid numeric or approximate numeric value");
 
         }
-        setParameter(parameterIndex, new DoubleParameter(value));
+        if (this.protocol.isOracleMode()) {
+           setParameter(parameterIndex, new OBBigDecimalParameter(BigDecimal.valueOf(value)));
+        } else {
+            setParameter(parameterIndex, new DoubleParameter(value));
+        }
     }
 
     /**

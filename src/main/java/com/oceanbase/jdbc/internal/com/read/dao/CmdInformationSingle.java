@@ -160,7 +160,7 @@ public class CmdInformationSingle implements CmdInformation {
         Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(sql, false, false,
             false, false);
         return trimSQLStringInternal.getTrimedString().matches(
-            "(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
+            "(?s)(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
     }
 
     @Override
@@ -210,4 +210,15 @@ public class CmdInformationSingle implements CmdInformation {
     public boolean getArrayBinding() {
         return false;
     }
+
+    @Override
+    public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
+
+    }
+
+    @Override
+    public boolean containOnDuplicateKey() {
+        return false;
+    }
+
 }

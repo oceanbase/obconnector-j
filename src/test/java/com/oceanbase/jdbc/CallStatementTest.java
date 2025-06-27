@@ -739,4 +739,24 @@ public class CallStatementTest extends BaseTest {
         assertEquals(Types.INTEGER, parameterMetaData.getParameterType(2));
     }
 
+    @Test
+    public void testForDima2024062200102855902() throws Exception {
+        Connection conn = sharedConnection;
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet rs;
+        createFunction("testGetFunction", "(d INT, c INT) RETURNS INT DETERMINISTIC COMMENT 'aaaaaaaa' BEGIN RETURN d; END");
+        try {
+            rs = metaData.getFunctionColumns(null, null, "testGetFunction", "%");
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+            assertTrue(rs.next());
+            assertTrue(rs.getString(4) == null || rs.getString(4).isEmpty());
+            assertTrue(rs.next());
+            assertEquals("d", rs.getString(4));
+            assertTrue(rs.next());
+            assertEquals("c", rs.getString(4));
+        } catch (AssertionError e) {
+            fail();
+        }
+    }
 }

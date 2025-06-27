@@ -1479,4 +1479,34 @@ public class ClobOracleTest extends BaseOracleTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void testForDima2025022400107305206() throws SQLException {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("t_clob", "c1 clob");
+        stmt.execute("insert into t_clob values('aaa')");
+        stmt.execute("insert into t_clob values('bbb')");
+        stmt.execute("create or replace type clob_array as table of clob");
+
+        createProcedure("p_clob", "(var out clob_array) is begin select c1 bulk collect into var FROM t_clob;end;");
+        CallableStatement cs = conn.prepareCall("{call p_clob(?)}");
+        cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+        cs.execute();
+        Array array = cs.getArray(1);
+        Object[] objects = (Object[]) array.getArray();
+        assertEquals("aaa", ((Clob) objects[0]).getSubString(1, 3));
+        assertEquals("bbb", ((Clob) objects[1]).getSubString(1, 3));
+
+        ResultSet rs = array.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("aaa", rs.getString(2));
+        assertEquals("aaa", rs.getClob(2).getSubString(1, 3));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("bbb", rs.getString(2));
+        assertEquals("bbb", rs.getClob(2).getSubString(1, 3));
+        assertFalse(rs.next());
+    }
+
 }

@@ -1142,4 +1142,50 @@ public class ConnectionTest extends BaseTest {
       Thread.sleep(5000);
     }
   }
+
+  @Test
+  public void testForDima2025061900109555840() throws SQLException {
+    Connection connection = setConnection("&useServerPrepStmts=false");
+    // set
+    Properties properties = new Properties();
+    properties.put("p1", "p1_value");
+    properties.put("sys.p2", "p2_value");
+    connection.setClientInfo(properties);
+
+    try {
+      connection.setClientInfo(null, "p3_value");
+      Assert.fail();
+    } catch (Exception e) {
+      //ignore
+    }
+
+    // get
+    Assert.assertEquals("p2_value", connection.getClientInfo("sys.p2"));
+    try {
+      connection.getClientInfo(null);
+      Assert.fail();
+    } catch (Exception e) {
+      // ignore
+    }
+
+    Properties info = connection.getClientInfo();
+    int count = 0;
+    for (Enumeration<String> e = (Enumeration<String>) info.propertyNames(); e.hasMoreElements(); ) {
+      String key = e.nextElement();
+      Assert.assertTrue(properties.containsKey(key));
+      count++;
+    }
+    Assert.assertEquals(2, count);
+
+    // close connection
+    connection.close();
+    Assert.assertEquals("p1_value", connection.getClientInfo("p1"));
+
+    // set new properties
+    Properties newProps = new Properties();
+    newProps.put("new_p1", "new_p1_value");
+    connection.setClientInfo(newProps);
+    Assert.assertEquals(null, connection.getClientInfo("p1"));
+    Assert.assertEquals("new_p1_value", connection.getClientInfo("new_p1"));
+  }
 }

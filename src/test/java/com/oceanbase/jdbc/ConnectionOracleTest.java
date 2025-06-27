@@ -50,6 +50,7 @@ import org.junit.Test;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class ConnectionOracleTest extends BaseOracleTest{
 
@@ -91,5 +92,59 @@ public class ConnectionOracleTest extends BaseOracleTest{
         ResultSet rs = statement.executeQuery("select user from dual");
         rs.next();
         Assert.assertNotEquals(rs.getString(1), conn.getMetaData().getUserName());
+    }
+
+    @Test
+    public void testForDima2025061900109555840() throws SQLException {
+        Connection conn = setConnection();
+        conn.close();
+        try {
+            conn.getClientInfo();
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("No operations allowed after connection closed.", e.getMessage());
+        }
+
+        try {
+            conn.setClientInfo("mine.ApplicationName", "xxx");
+            Assert.fail();
+        } catch (SQLClientInfoException e) {
+            Assert.assertEquals("No operations allowed after connection closed.", e.getMessage());
+        }
+
+        conn = setConnection();
+        Properties props = new Properties();
+        props.setProperty("p1", "p1_value");
+        try {
+            conn.setClientInfo(props);
+            Assert.fail();
+        } catch (SQLClientInfoException e) {
+            Assert.assertEquals("The name 'p1' is invalid or unsupported for clientInfo.", e.getMessage());
+        }
+
+        props.clear();
+        props.setProperty("SYS.P2", "p2_value");
+        try {
+            conn.setClientInfo(props);
+            Assert.fail();
+        } catch (SQLClientInfoException e) {
+            Assert.assertEquals("The name 'SYS.P2' is invalid or unsupported for clientInfo.", e.getMessage());
+        }
+
+        props.clear();
+        props.setProperty("sys.p2", "p2_value");
+        props.setProperty("mine.p3", "p3_value");
+        conn.setClientInfo(props);
+        // get
+        Assert.assertEquals("p2_value", conn.getClientInfo("sys.p2"));
+        Assert.assertEquals("p3_value", conn.getClientInfo("mine.p3"));
+
+        // set new properties
+        props.clear();
+        props.setProperty("mine.applicationName", "aaa");
+        conn.setClientInfo(props);
+        Assert.assertEquals(null, conn.getClientInfo("mine.p3"));
+        Assert.assertEquals(null, conn.getClientInfo(null));
+        Assert.assertEquals("aaa", conn.getClientInfo("mine.applicationName"));
     }
 }

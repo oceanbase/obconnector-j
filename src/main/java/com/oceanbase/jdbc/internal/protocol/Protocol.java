@@ -402,4 +402,9 @@ public interface Protocol {
     void endCallInterface(String message);
 
     int getServerStatus();
+
+    void executeStreamList(Results results, List<byte[]> queryParts) throws SQLException;
+
+    TimeZone getTimeZoneWithUseLegacyDatetimeCode();
+
 }

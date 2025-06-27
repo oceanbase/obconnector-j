@@ -565,55 +565,34 @@ public abstract class RowProtocol {
 
   }
 
-  protected void rangeCheck(
-      Object className, long minValue, long maxValue, BigDecimal value, ColumnDefinition columnInfo)
-      throws SQLException {
-    if (value.compareTo(BigDecimal.valueOf(minValue)) < 0
-        || value.compareTo(BigDecimal.valueOf(maxValue)) > 0) {
-      throw new SQLException(
-          "Out of range value for column '"
-              + columnInfo.getName()
-              + "' : value "
-              + value
-              + " is not in "
-              + className
-              + " range",
-          "22003",
-          1264);
+  protected void throwRangeException(Object className, String value, ColumnDefinition columnInfo) throws SQLException {
+    throw new SQLException(
+            "Out of range value for column '"
+                    + columnInfo.getName()
+                    + "' : value "
+                    + value
+                    + " is not in "
+                    + className
+                    + " range",
+            "22003",
+            1264);
+  }
+
+  protected void rangeCheck(Object className, long minValue, long maxValue, BigDecimal value, ColumnDefinition columnInfo)
+          throws SQLException {
+    if (protocol.isOracleMode() || options.jdbcCompliantTruncation){
+      if (value.compareTo(BigDecimal.valueOf(minValue)) < 0 || value.compareTo(BigDecimal.valueOf(maxValue)) > 0) {
+        throwRangeException(className, String.valueOf(value), columnInfo);
+      }
     }
   }
 
-    protected void rangeCheck(
-            Object className, long minValue, long maxValue, double value, ColumnDefinition columnInfo)
-            throws SQLException {
-        if (value < minValue ||value > maxValue) {
-            throw new SQLException(
-                    "Out of range value for column '"
-                            + columnInfo.getName()
-                            + "' : value "
-                            + value
-                            + " is not in "
-                            + className
-                            + " range",
-                    "22003",
-                    1264);
-        }
-    }
-
-  protected void rangeCheck(
-      Object className, long minValue, long maxValue, long value, ColumnDefinition columnInfo)
-      throws SQLException {
-    if (value < minValue || value > maxValue) {
-      throw new SQLException(
-          "Out of range value for column '"
-              + columnInfo.getName()
-              + "' : value "
-              + value
-              + " is not in "
-              + className
-              + " range",
-          "22003",
-          1264);
+  protected void rangeCheck(Object className, double minValue, double maxValue, double value, ColumnDefinition columnInfo)
+          throws SQLException {
+    if (protocol.isOracleMode() || options.jdbcCompliantTruncation){
+      if (value < minValue || value > maxValue) {
+        throwRangeException(className, String.valueOf(value), columnInfo);
+      }
     }
   }
 
@@ -736,9 +715,6 @@ public abstract class RowProtocol {
 
    Timestamp buildTimestmap(int year,int month,int day,int hour,int minutes,int seconds,int nanos,Calendar calendar,TimeZone timezone) {
       Calendar localCal = getCalendarInstance(calendar);
-      if (options.useLegacyDatetimeCode) {
-          localCal.setTimeZone(timezone);
-      }
       Timestamp tt;
       if (!getProtocol().isOracleMode() && options.compatibleMysqlVersion == 8 && year == 0) {
          yearIsZero = true;

@@ -47,6 +47,7 @@ package com.oceanbase.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Clob;
 import java.util.Arrays;
@@ -443,6 +444,39 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         } finally {
             stmt.execute("alter system set open_cursors = 50");
         }
+    }
+
+    @Test
+    public void testForDima2025040900108106588() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true");
+        createTable("t_batch", "c1 number, c2 varchar2(20)");
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement("insert into t_batch values(?, ?)");
+
+        // send 3 packets,
+        // the first packet sends the first 5 parameters, the second packet sends the 3 parameters 5-7, and the third packet sends the last two parameters
+        for (int i = 0; i < 10; i++) {
+            ps.setInt(1, i);
+            ps.setString(2, "aa_" + i);
+            if ( i < 5 && i != 3 ) {
+                ps.setNull(2, Types.VARCHAR);
+                if (i > 3) {
+                    ps.setNull(1, Types.INTEGER);
+                }
+            }
+
+            if (i >= 5 && i < 8) {
+                ps.setBigDecimal(1, new BigDecimal(i));
+                ps.setNull(2, Types.VARCHAR);
+            }
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        conn.commit();
+
+        ResultSet rs = conn.createStatement().executeQuery("select count(1) from t_batch");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(10, rs.getInt(1));
     }
 
 }

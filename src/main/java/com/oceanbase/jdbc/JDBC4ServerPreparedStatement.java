@@ -889,6 +889,8 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             }
             ParameterHolder[] curParameterHolder;
             ParameterHolder[] preParameterHolder = null;
+
+            ArrayList<NullParameter>[] nullParameterHolder = new ArrayList[parametersList.get(0).length];
             int startIndex = 0;
             int endIndex   = 0;
             for (int counter = 0; counter < queryParameterSize; counter++) {
@@ -896,7 +898,24 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
               endIndex = counter;
               if(counter != 0) {
                 for(int i= 0; i < curParameterHolder.length;i++) {
-                  if ((curParameterHolder[i].getColumnType().getType() !=  preParameterHolder[i].getColumnType().getType())) {
+                    // When a parameter and the subsequent consecutive parameters are all null, they are temporarily stored in nullParameters.
+                    // When the two adjacent parameters have inconsistent types, the null-type parameters are converted to non-null types.
+                    ArrayList<NullParameter> nullParameters = nullParameterHolder[i] == null ? new ArrayList<>() : nullParameterHolder[i];
+                    ColumnType curParameterType = curParameterHolder[i].getColumnType();
+                    ColumnType preParameterTYpe = preParameterHolder[i].getColumnType();
+                    if ((curParameterType.getType() !=  preParameterTYpe.getType())) {
+                      // For NullParameter, modify columnType to avoid subpackaging
+                      if (curParameterType == ColumnType.NULL) {
+                        ((NullParameter)curParameterHolder[i]).setColumnType(preParameterTYpe);
+                        continue;
+                      } else if (preParameterTYpe == ColumnType.NULL) {
+                        ((NullParameter)preParameterHolder[i]).setColumnType(curParameterType);
+                        for (NullParameter nullParameter : nullParameters) {
+                          nullParameter.setColumnType(curParameterType);
+                        }
+                        nullParameters.clear();
+                        continue;
+                      }
                     exceptionRet = executeArrayBinding(startIndex, endIndex, endIndex - startIndex);
                       if (exceptionRet != null) {
                         exception = exceptionRet;
@@ -904,7 +923,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
                     // any type different send a arrray Binding packet (except the long data).
                     startIndex = counter;
                     break;
+                  } else if (preParameterTYpe.getType() == ColumnType.NULL.getType()) {
+                    // For consecutive NullParameter, the type is subsequently modified to the nearest non-null type.
+                    nullParameters.add((NullParameter) preParameterHolder[i]);
                   }
+                  nullParameterHolder[i] = nullParameters;
                 }
               }
               preParameterHolder = curParameterHolder;
@@ -1366,5 +1389,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         cs.executeBatch();
         results = cs.results;
         cs.close();
+    }
+
+    public void setServerPrepareResult(ServerPrepareResult serverPrepareResult) {
+        this.serverPrepareResult = serverPrepareResult;
     }
 }
