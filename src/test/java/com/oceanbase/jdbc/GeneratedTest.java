@@ -52,10 +52,9 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -108,4 +107,39 @@ public class GeneratedTest extends BaseTest {
             assertEquals(autoInc[1] + 3 * autoInc[0], rs.getInt(columnNames[i]));
         }
     }
+
+    @Test
+    public void testForDima2025052000109101328() throws SQLException {
+        Connection conn = setConnection("&rewriteBatchedStatements=true&useServerPrepStmts=false");
+        createTable("t0", "c1 int AUTO_INCREMENT primary key, c2 int");
+        PreparedStatement ps = conn.prepareStatement("insert into t0 values (?,?) \n on duplicate key update c2 = 100", Statement.RETURN_GENERATED_KEYS);
+        ps.setInt(1, 1);
+        ps.setInt(2, 10);
+        ps.addBatch();
+
+        ps.setInt(1, 11);
+        ps.setInt(2, 110);
+        ps.addBatch();
+        ps.executeBatch();
+
+        ResultSet rs = ps.getGeneratedKeys();
+
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(11, rs.getInt(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(12, rs.getInt(1));
+        ps.close();
+
+        // on duplicate key update
+        PreparedStatement ps2 = conn.prepareStatement("insert into t0 values (?,?) \n on duplicate key update c2 = 100", Statement.RETURN_GENERATED_KEYS);
+        ps2.setInt(1, 11);
+        ps2.setInt(2, 200);
+        ps2.execute();
+        ResultSet rs2 = ps2.getGeneratedKeys();
+
+        Assert.assertTrue(rs2.next());
+        Assert.assertEquals(11, rs2.getInt(1));
+        Assert.assertFalse(rs2.next());
+    }
+
 }
