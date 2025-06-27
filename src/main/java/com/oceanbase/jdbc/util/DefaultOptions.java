@@ -1168,6 +1168,12 @@ public enum DefaultOptions {
             "2.4.14.1",
             "Throw an exception when the return value of DBMS_XA.XA_PREPARE is neither 0 nor 3.",
             false),
+    CONVERT_NONE_NANO_SECS_TO_DATE(
+            "convertNoneNanoSecsToDate",
+            Boolean.TRUE,
+            "2.4.15",
+            "When calling setTimestamp, times without nanos are converted to the Date type.",
+            false),
     LOWERCASE_ROUTINES_IN_METADATA(
             "lowercaseRoutinesInMetadata",
             Boolean.FALSE,

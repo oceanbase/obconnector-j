@@ -245,6 +245,7 @@ public class Options implements Cloneable {
     public boolean lowercaseRoutinesInMetadata;
     public boolean oracleUseNumberForSetDouble;
     public boolean oracleXaPrepareThrowException;
+    public boolean convertNoneNanoSecsToDate = true;
 
     @Override
     public String toString() {
@@ -748,6 +749,9 @@ public class Options implements Cloneable {
         if (oracleUseNumberForSetDouble != opt.oracleUseNumberForSetDouble) {
             return false;
         }
+        if (convertNoneNanoSecsToDate != opt.convertNoneNanoSecsToDate) {
+            return false;
+        }
         if (oracleXaPrepareThrowException != opt.oracleXaPrepareThrowException) {
             return false;
         }
@@ -913,6 +917,7 @@ public class Options implements Cloneable {
         result = 31 * result + maxReconnects;
         result = 31 * result + (lowercaseRoutinesInMetadata ? 1 : 0);
         result = 31 * result + (oracleUseNumberForSetDouble ? 1 : 0);
+        result = 31 * result + (convertNoneNanoSecsToDate ? 1 : 0);
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
         return result;
     }
