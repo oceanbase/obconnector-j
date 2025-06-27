@@ -2208,4 +2208,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         options.useNewResultSetMetaData = useNewResultSetMetaData;
     }
 
+    @Override
+    public TimeZone getTimeZoneWithUseLegacyDatetimeCode() {
+        if (!this.isOracleMode && options.compatibleMysqlVersion == 5 && options.useLegacyDatetimeCode) {
+            return TimeZone.getDefault();
+        }
+        return timeZone;
+    }
 }
