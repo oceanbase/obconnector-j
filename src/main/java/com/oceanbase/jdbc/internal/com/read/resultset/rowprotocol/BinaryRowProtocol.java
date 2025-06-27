@@ -79,6 +79,7 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 import com.oceanbase.jdbc.util.Options;
 
@@ -2684,7 +2685,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_CLOB:
                 b = packet.readLenByteArray(0);
-                if (options.supportLobLocator) {
+                boolean returnWithLobLocator = false;
+                if (!options.supportLobLocator) {
+                    String obServerVersion = this.getProtocol().getObServerVersion();
+                    if (Version.compare(obServerVersion, "4.2.5.3") < 0 ||
+                            (Version.compare(obServerVersion, "4.3") >= 0 && Version.compare(obServerVersion, "4.3.5.2") < 0)) {
+                        returnWithLobLocator = true;
+                    }
+                }
+                if (options.supportLobLocator || returnWithLobLocator) {
                     value = new Clob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
                 } else {
@@ -2694,12 +2703,19 @@ public class BinaryRowProtocol extends RowProtocol {
                 break;
             case ComplexDataType.TYPE_BLOB:
                 b = packet.readLenByteArray(0);
-                if (options.supportLobLocator) {
+                returnWithLobLocator = false;
+                if (!options.supportLobLocator) {
+                    String obServerVersion = this.getProtocol().getObServerVersion();
+                    if (Version.compare(obServerVersion, "4.2.5.3") < 0 ||
+                            (Version.compare(obServerVersion, "4.3") >= 0 && Version.compare(obServerVersion, "4.3.5.2") < 0)) {
+                        returnWithLobLocator = true;
+                    }
+                }
+                if (options.supportLobLocator || returnWithLobLocator) {
                     value = new Blob(true, b, charset.name(),
                         (OceanBaseConnection) connection);
                 } else {
-                    value = new Blob(false, b, charset.name(),
-                            (OceanBaseConnection) connection);
+                    value = new Blob(b);
                 }
                 break;
             default:
