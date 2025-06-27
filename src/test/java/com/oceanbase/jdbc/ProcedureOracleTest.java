@@ -46,6 +46,7 @@ import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 
 import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import org.junit.Assert;
@@ -825,5 +826,109 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.execute();
         assertEquals("aaa", cs.getString(1));
         assertEquals(2, cs.getInt(2));
+    }
+
+    @Test
+    public void testForDima2024062100102853722() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        createTable("z_t2", "c1 int");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure pl_insert(p1 int,  p2 int ,p3 int) is begin insert into z_t2 values (p1); insert into z_t2 values (p2); insert into z_t2 values  (p3); end;");
+
+        CallableStatement call = conn.prepareCall("call pl_insert(?, ?, ?)");
+        call.setInt(1, 1);
+        call.setInt(2, 2);
+        call.setInt(3, 3);
+        Assert.assertEquals(0, call.executeUpdate());
+        Assert.assertEquals(-1, call.getUpdateCount());
+        call.close();
+
+        CallableStatement call2 = conn.prepareCall("call pl_insert(?, ?, ?)");
+        call2.setInt(1, 1);
+        call2.setInt(2, 2);
+        call2.setInt(3, 3);
+        Assert.assertEquals(0, call2.executeLargeUpdate());
+        Assert.assertEquals(-1, call2.getLargeUpdateCount());
+
+        // out pl
+        createProcedure("testPro3", "(a out int) is begin a := 1; end;");
+        CallableStatement cs = conn.prepareCall("call testPro3(?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(0, cs.executeUpdate());
+        Assert.assertEquals(-1, cs.getUpdateCount());
+
+        CallableStatement cs2 = conn.prepareCall("{call testPro3(?)}");
+        cs2.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(0, cs2.executeUpdate()); // oracle-jdbc = 1
+        Assert.assertEquals(-1, cs2.getUpdateCount());
+
+        CallableStatement cs3 = conn.prepareCall("begin testPro3(?); end;");
+        cs3.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(1, cs3.executeUpdate());
+        Assert.assertEquals(-1, cs3.getUpdateCount());
+
+        CallableStatement cs4 = conn.prepareCall("declare a int; begin a := 1; testPro3(?); end;");
+        cs4.registerOutParameter(1, Types.INTEGER);
+        Assert.assertEquals(1, cs4.executeUpdate());
+        Assert.assertEquals(-1, cs4.getUpdateCount());
+
+        // DML
+        PreparedStatement ps = conn.prepareStatement("insert into z_t2 values (1),(2),(3),(4)");
+        Assert.assertEquals(4, ps.executeUpdate());
+        Assert.assertEquals(4, ps.getUpdateCount());
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into z_t2 values (1),(2)");
+        Assert.assertEquals(2, ps2.executeLargeUpdate());
+        Assert.assertEquals(2, ps2.getLargeUpdateCount());
+    }
+
+    @Test
+    public void testForDima2024062100102853722_2() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        createTable("call_name", "c1 int, c2 varchar2(20)");
+        String sql = "insert into call_name values(:1, :2)";
+        CallableStatement call = conn.prepareCall(sql);
+        call.setInt(1, 1);
+        call.setString(2, "aaa");
+        assertEquals(1, call.executeUpdate());
+        assertEquals(1, call.getUpdateCount());
+
+        call = conn.prepareCall("insert into call_name values(:1, :2),(:a, :b)");  //oracle-jdbc 不支持语法
+        call.setInt(1, 2);
+        call.setString(2, "bbb");
+        call.setInt(3, 3);
+        call.setString(4, "ccc");
+        assertEquals(2, call.executeUpdate());
+        assertEquals(2, call.getUpdateCount());
+
+        call = conn.prepareCall(sql);
+        call.setInt(1, 4);
+        call.setString(2, "aaa");
+        call.addBatch();
+        call.setInt(1, 5);
+        call.setString(2, "aaa");
+        call.addBatch();
+        call.executeBatch();
+        assertEquals(2, call.getUpdateCount());
+
+        createTable("z_t3", "c1 int");
+        for (int i = 1; i <= 3 ; i++) {
+            for (int j = 1; j <= i; j++) {
+                stmt.execute("insert into z_t3 values (" + i + ")");
+            }
+        }
+        CallableStatement batchPs = conn.prepareCall("delete from z_t3 where c1 = ?");
+        batchPs.setInt(1, 0);
+        batchPs.addBatch();
+        batchPs.setInt(1, 1);
+        batchPs.addBatch();
+        batchPs.setInt(1, 3);
+        batchPs.addBatch();
+        batchPs.setInt(1, 2);
+        batchPs.addBatch();
+        int[] result = batchPs.executeBatch();
+        Assert.assertArrayEquals(new int[]{0, 1, 3, 2}, result);
+        Assert.assertEquals(6, batchPs.getUpdateCount());
     }
 }

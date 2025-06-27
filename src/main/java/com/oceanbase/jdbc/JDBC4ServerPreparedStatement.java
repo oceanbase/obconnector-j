@@ -1038,6 +1038,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           if (protocol.isOracleMode() && results.getResultSet() != null) {
               return results.getResultSet().getProcessedRows();
           }
+          if (!protocol.isOracleMode()) {
+            return getLargeUpdateCount();
+          }
           return 0;
       }
 
@@ -1045,7 +1048,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       if (results.isReturning() && results.getResultSet() != null) {
           return results.getResultSet().getProcessedRows();
       }
-      return getLargeUpdateCount();
+      long largeUpdateCount = getLargeUpdateCount();
+      if (protocol.isOracleMode() && largeUpdateCount == -1 && results.getStatement() instanceof OceanBaseProcedureStatement) {
+          if (sqlType == OceanBaseStatement.STMT_BEGIN || sqlType == OceanBaseStatement.STMT_DECLARE) {
+              return 1;
+          }
+        return 0;
+      }
+      return largeUpdateCount;
   }
   /**
    * Executes the SQL statement in this <code>PreparedStatement</code> object, which must be an SQL
@@ -1064,6 +1074,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       if (protocol.isOracleMode() && results.getResultSet() != null) {
         return (int) results.getResultSet().getProcessedRows();
       }
+      if (!protocol.isOracleMode()) {
+        return getUpdateCount();
+      }
       return 0;
     }
 
@@ -1071,7 +1084,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     if (results.isReturning() && results.getResultSet() != null) {
       return (int) results.getResultSet().getProcessedRows();
     }
-    return getUpdateCount();
+    int updateCount = getUpdateCount();
+    if (protocol.isOracleMode() && updateCount == -1 && results.getStatement() instanceof OceanBaseProcedureStatement) {
+        if (sqlType == OceanBaseStatement.STMT_BEGIN || sqlType == OceanBaseStatement.STMT_DECLARE) {
+            return 1;
+        }
+        return 0;
+    }
+    return updateCount;
   }
 
   @Override
