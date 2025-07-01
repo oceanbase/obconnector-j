@@ -160,7 +160,7 @@ public class CmdInformationSingle implements CmdInformation {
         Utils.TrimSQLInfo trimSQLStringInternal = Utils.trimSQLStringInternal(sql, false, false,
             false, false);
         return trimSQLStringInternal.getTrimedString().matches(
-            "(?s)(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
+            "(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
     }
 
     @Override
