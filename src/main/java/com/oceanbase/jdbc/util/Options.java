@@ -243,7 +243,7 @@ public class Options implements Cloneable {
     public boolean mapDateToTimestamp = true;
     public boolean useNewResultSetMetaData; 
     public boolean obDateTypeOptimization;
-    public boolean lowercaseRoutinesInMetadata;
+    public boolean lowercaseRoutinesInMetadata = true;
     public boolean oracleUseNumberForSetDouble;
     public boolean oracleXaPrepareThrowException;
     public boolean convertNoneNanoSecsToDate = true;
