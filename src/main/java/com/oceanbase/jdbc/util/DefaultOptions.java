@@ -1176,7 +1176,7 @@ public enum DefaultOptions {
             false),
     LOWERCASE_ROUTINES_IN_METADATA(
             "lowercaseRoutinesInMetadata",
-            Boolean.FALSE,
+            Boolean.TRUE,
             "2.4.15",
             "Whether routine names in metadata can be in lowercase.",
             false),

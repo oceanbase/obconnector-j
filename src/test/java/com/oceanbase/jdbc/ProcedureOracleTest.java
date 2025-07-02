@@ -743,7 +743,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
 
         // lower
         rs = conn.getMetaData().getProcedures(null, null, "sp1");
-        Assert.assertFalse(rs.next());
+        Assert.assertTrue(rs.next());
 
         // lower & lowercaseRoutinesInMetadata=true
         conn = setConnection("&lowercaseRoutinesInMetadata=true");
