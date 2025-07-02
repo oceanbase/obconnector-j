@@ -48,7 +48,6 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.oceanbase.jdbc.JDBC4ServerCallableStatement;
-import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -230,6 +229,24 @@ public class ComStmtPrepareExecute {
                         results.setInternalResult(false);
                     }
 
+                    buffer = reader.getPacket(false);
+                    switch (buffer.getByteAt(0)) {
+                        case Packet.OK:
+                            protocol.readOkPacket(buffer, results);
+                            reader.getLogger().trace("Got tail OK packet.");
+                            break;
+                        case Packet.ERROR:
+                            reader.getLogger().trace("Got tail ERROR packet.");
+                            throw protocol.readErrorPacket(buffer, results);
+                        default:
+                            reader.getLogger().error(
+                                "Got unexpected tail packet returned by server, first byte "
+                                        + firstByte);
+                            throw new SQLException(
+                                "Unexpected tail packet returned by server, first byte "
+                                        + firstByte);
+                    }
+
                     if (serverPrepareResult == null) {
                         String sql = results.getSql();
                         serverPrepareResult = new ServerPrepareResult(sql, statementId,
@@ -244,35 +261,12 @@ public class ComStmtPrepareExecute {
                             String key = protocol.getDatabase() + "-" + sql;
                             ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key,
                                     serverPrepareResult);
-                            if (cachedServerPrepareResult != null) {
-                                serverPrepareResult = cachedServerPrepareResult;
-                            }
+                            return cachedServerPrepareResult != null ? cachedServerPrepareResult
+                                    : serverPrepareResult;
                         }
                     } else {
                         serverPrepareResult.setStatementId(statementId);
                     }
-
-                    buffer = reader.getPacket(false);
-                    switch (buffer.getByteAt(0)) {
-                        case Packet.OK:
-                            protocol.readOkPacket(buffer, results);
-                            reader.getLogger().trace("Got tail OK packet.");
-                            break;
-                        case Packet.ERROR:
-                            reader.getLogger().trace("Got tail ERROR packet.");
-                            if (results.getStatement() instanceof ServerSidePreparedStatement) {
-                                ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
-                            }
-                            throw protocol.readErrorPacket(buffer, results);
-                        default:
-                            reader.getLogger().error(
-                                "Got unexpected tail packet returned by server, first byte "
-                                        + firstByte);
-                            throw new SQLException(
-                                "Unexpected tail packet returned by server, first byte "
-                                        + firstByte);
-                    }
-
                     return serverPrepareResult;
 
                 case Packet.ERROR:
