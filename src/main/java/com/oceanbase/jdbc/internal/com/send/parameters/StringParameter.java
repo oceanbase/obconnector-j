@@ -58,6 +58,7 @@ import java.nio.charset.CharsetEncoder;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 
 public class StringParameter implements Cloneable, ParameterHolder {
 
@@ -124,7 +125,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
                     break;
                 case '\u00a5':
                 case '\u20a9':
-                    CharsetEncoder charsetEncoder = Charset.forName(characterEncoding).newEncoder();
+                    CharsetEncoder charsetEncoder = StringUtils.getCharset(characterEncoding).newEncoder();
                     if (charsetEncoder != null) {
                         CharBuffer charBuffer = CharBuffer.allocate(1);
                         ByteBuffer byteBuffer = ByteBuffer.allocate(1);
@@ -149,7 +150,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
         this.characterEncoding = characterEncoding;
-        this.charset = Charset.forName(characterEncoding);
+        this.charset = StringUtils.getCharset(characterEncoding);
     }
 
     /**

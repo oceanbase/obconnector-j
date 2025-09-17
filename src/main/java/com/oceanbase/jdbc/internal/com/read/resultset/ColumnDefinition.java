@@ -57,6 +57,7 @@ import java.sql.Types;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 import com.oceanbase.jdbc.internal.util.constant.ColumnFlags;
 import com.oceanbase.jdbc.util.Options;
 
@@ -267,7 +268,7 @@ public class ColumnDefinition {
      */
     public static ColumnDefinition create(String name, ColumnType type, boolean isOracleMode,
                                           String encoding, Options options) {
-        Charset charset = Charset.forName(encoding);
+        Charset charset = StringUtils.getCharset(encoding);
         byte[] nameBytes = name.getBytes(charset);
         // todo check the encoding
 
@@ -723,7 +724,7 @@ public class ColumnDefinition {
     }
 
     private String toAsciiString(byte[] buffer, int startPos, int length) {
-        Charset cs = Charset.forName(encoding);
+        Charset cs = StringUtils.getCharset(encoding);
         return cs.decode(ByteBuffer.wrap(buffer, startPos, length)).toString();
     }
 

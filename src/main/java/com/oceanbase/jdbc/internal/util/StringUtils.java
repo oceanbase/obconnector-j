@@ -45,13 +45,16 @@
 package com.oceanbase.jdbc.internal.util;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StringUtils {
 
     private static final int BYTE_RANGE = (1 + Byte.MAX_VALUE) - Byte.MIN_VALUE;
     private static byte[] allBytes = new byte[BYTE_RANGE];
     private static byte[] unknownCharsMap = new byte[65536];
+    private static final ConcurrentHashMap<String, Charset> charsetsCache = new ConcurrentHashMap<>();
 
     static {
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
@@ -88,5 +91,20 @@ public class StringUtils {
         } catch (UnsupportedEncodingException uee) {
             throw new SQLException(uee.getMessage(), uee);
         }
+    }
+
+    public static Charset getCharset(String charsetName) {
+        Charset charset = charsetsCache.get(charsetName);
+        if (charset != null) {
+            return charset;
+        }
+
+        charset = Charset.forName(charsetName);
+        Charset oldCharset = charsetsCache.putIfAbsent(charsetName, charset);
+        if (oldCharset != null) {
+            // if the previous value was recently set by another thread we return it instead of value we found here
+            charset = oldCharset;
+        }
+        return charset;
     }
 }

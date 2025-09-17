@@ -43,6 +43,8 @@
  */
 package com.oceanbase.jdbc;
 
+import com.oceanbase.jdbc.internal.util.StringUtils;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -95,7 +97,7 @@ public class LobOutputStream extends OutputStream {
         }
         System.arraycopy(buf, off, lob.data, pos, realLen);
         lob.charData = new String(lob.data, 0 , lob.length,
-                Charset.forName(lob.encoding == null ? "UTF-8" : lob.encoding));
+                StringUtils.getCharset(lob.encoding == null ? "UTF-8" : lob.encoding));
         pos += realLen;
     }
 

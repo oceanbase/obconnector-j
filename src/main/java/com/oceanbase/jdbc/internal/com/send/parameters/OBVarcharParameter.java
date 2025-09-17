@@ -48,6 +48,7 @@ import java.nio.charset.Charset;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 
 public class OBVarcharParameter implements Cloneable, ParameterHolder {
 
@@ -60,7 +61,7 @@ public class OBVarcharParameter implements Cloneable, ParameterHolder {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
         this.characterEncoding = characterEncoding;
-        this.charset = Charset.forName(characterEncoding);
+        this.charset = StringUtils.getCharset(characterEncoding);
     }
 
     /**
