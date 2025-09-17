@@ -62,6 +62,7 @@ import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
 import com.oceanbase.jdbc.internal.protocol.TimeTrace;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
@@ -116,7 +117,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         this.maxQuerySizeToLog = maxQuerySizeToLog;
         cmdLength = 0;
         this.threadId = threadId;
-        this.charset = Charset.forName(encoding);
+        this.charset = StringUtils.getCharset(encoding);
         this.timeTrace = timeTrace;
         this.encloseParamInParentheses = encloseParamInParentheses;
     }

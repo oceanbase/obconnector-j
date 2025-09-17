@@ -43,14 +43,20 @@
  */
 package com.oceanbase.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 import sun.security.action.GetPropertyAction;
 
 import java.security.AccessController;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.fail;
@@ -109,6 +115,76 @@ public class CharsetTest extends BaseTest {
             e.printStackTrace();
             fail();
         }
+    }
+
+    @Test
+    public void testForDima2025063000109725751() throws ExecutionException, InterruptedException, SQLException {
+        // init table
+        String[] columns = new String[40];
+        String[] values = new String[40];
+        String[] marks = new String[40];
+        for (int i = 0; i < 40; i++) {
+            String col = "c" + i + " varchar(10)";
+            columns[i] = col;
+            values[i] = "aaabbb" + i;
+            marks[i] = "?";
+        }
+        String sql = "create table z_t1 (" + String.join(",", columns) + ") default charset utf8mb4 collate utf8mb4_unicode_ci";
+
+        Connection connection = setConnection("&rewriteBatchedStatements=true&allowMultiQueries=true&useServerPrepStmts=true");
+        Statement statement = connection.createStatement();
+        statement.execute("drop table if exists z_t1");
+        statement.execute(sql);
+
+        String insertSql = "insert into z_t1 () values (" + String.join(",", marks) + ")";
+        PreparedStatement preparedStatement = connection.prepareStatement(insertSql);
+        for (int i = 0; i < 1000; i++) {
+            for (int j = 0; j < 40; j++) {
+                preparedStatement.setString(j + 1, values[j]);
+            }
+            preparedStatement.addBatch();
+        }
+        preparedStatement.executeBatch();
+
+        ExecutorService threadPool = Executors.newFixedThreadPool(50);
+        List<Future<Long>> futureTasks = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            Future<Long> task = threadPool.submit(() -> {
+                try {
+                    String charsets[] = new String[]{"utf8", "gbk", "latin1"};
+                    int index = new Random().nextInt(charsets.length);
+                    String charset = charsets[index];
+                    Connection conn = setConnection("&characterEncoding=" + charset);
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY );
+                    ResultSet rs = stmt.executeQuery("select * from z_t1");
+                    long start = System.currentTimeMillis();
+                    int count = 0;
+                    while (rs.next()) {
+                        for (int j = 1; j <= 40; j++) {
+                            rs.getString(j);
+                        }
+                        count++;
+                        if (count % 1000 == 0 && count / 1000 < 500) {
+                            rs.beforeFirst();
+                        }
+                    }
+                    long end = System.currentTimeMillis();
+                    long costTime = end - start;
+                    stmt.close();
+                    conn.close();
+                    return costTime;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            futureTasks.add(task);
+        }
+
+        long totalCost = 0;
+        for (Future<Long> futureTask : futureTasks) {
+            totalCost += futureTask.get();
+        }
+        Assert.assertTrue(totalCost < 400000);
     }
 
 }

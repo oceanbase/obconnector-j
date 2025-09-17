@@ -928,10 +928,10 @@ public class Options implements Cloneable {
     }
 
     public String getCharacterEncoding(){
-        if ("HKSCS".equals(characterEncoding.toUpperCase(Locale.ROOT)) || "HKSCS31".equals(characterEncoding.toUpperCase(Locale.ROOT))) {
+        if ("HKSCS".equalsIgnoreCase(characterEncoding) || "HKSCS31".equalsIgnoreCase(characterEncoding)) {
             return StandardCharsets.UTF_8.name();
         }
-        return "GB18030_2022".equals(characterEncoding.toUpperCase(Locale.ROOT)) ? "gb18030" : characterEncoding;
+        return "GB18030_2022".equalsIgnoreCase(characterEncoding) ? "gb18030" : characterEncoding;
     }
 
     @Override

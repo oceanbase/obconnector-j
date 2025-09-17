@@ -50,6 +50,8 @@
  */
 package com.oceanbase.jdbc.internal.util.dao;
 
+import com.oceanbase.jdbc.internal.util.StringUtils;
+
 import java.nio.charset.Charset;
 import java.security.Key;
 import java.util.ArrayList;
@@ -92,7 +94,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @return ClientPrepareResult
      */
     public static ClientPrepareResult parameterParts(String queryString, boolean noBackslashEscapes, boolean isOracleMode, String encoding) {
-      Charset charset = Charset.forName(encoding);
+      Charset charset = StringUtils.getCharset(encoding);
       boolean reWritablePrepare = false;
       boolean multipleQueriesPrepare = true;
       List<byte[]> partList = new ArrayList<>();
@@ -453,7 +455,7 @@ public class ClientPrepareResult implements PrepareResult {
      */
     public static ClientPrepareResult rewritableParts(
       String queryString, boolean noBackslashEscapes, boolean isOracleMode,String encoding) {
-      Charset charset = Charset.forName(encoding);
+      Charset charset = StringUtils.getCharset(encoding);
     boolean reWritablePrepare = true;
     boolean multipleQueriesPrepare = true;
     List<byte[]> partList = new ArrayList<>();
@@ -830,7 +832,7 @@ public class ClientPrepareResult implements PrepareResult {
 
     public static List<String> rewritablePartsInsertSql(
             String queryString, boolean noBackslashEscapes, boolean isOracleMode,String encoding) {
-        Charset charset = Charset.forName(encoding);
+        Charset charset = StringUtils.getCharset(encoding);
         boolean reWritablePrepare = true;
         boolean multipleQueriesPrepare = true;
         List<String> stringPartList = new ArrayList<>();

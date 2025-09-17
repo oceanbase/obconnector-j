@@ -78,6 +78,7 @@ import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
@@ -2655,7 +2656,7 @@ public class BinaryRowProtocol extends RowProtocol {
                                                                                                  throws SQLException {
         Object value = null;
         byte[] b = null;
-        Charset charset = Charset.forName(this.getProtocol().getEncoding());
+        Charset charset = StringUtils.getCharset(this.getProtocol().getEncoding());
         switch (type.getType()) {
             case ComplexDataType.TYPE_NUMBER:
                 b = packet.readLenByteArray(0);

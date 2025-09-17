@@ -70,6 +70,7 @@ import com.oceanbase.jdbc.extend.datatype.*;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.protocol.Protocol;
+import com.oceanbase.jdbc.internal.util.StringUtils;
 import com.oceanbase.jdbc.util.Options;
 
 public abstract class RowProtocol {
@@ -147,14 +148,14 @@ public abstract class RowProtocol {
       case NVARCHAR2:
       case NCHAR:
         if (this.options.nCharacterEncoding != null && !this.options.nCharacterEncoding.isEmpty()) {
-          return Charset.forName(this.options.nCharacterEncoding);
+          return StringUtils.getCharset(this.options.nCharacterEncoding);
         }
       case VARCHAR:
       case VARCHAR2:
       case VARSTRING:
       case RAW:
       case STRING:
-        return Charset.forName(this.options.getCharacterEncoding());
+        return StringUtils.getCharset(this.options.getCharacterEncoding());
       default:
         break;
     }
