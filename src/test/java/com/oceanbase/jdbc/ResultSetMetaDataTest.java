@@ -54,6 +54,10 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -435,5 +439,66 @@ public class ResultSetMetaDataTest extends BaseTest {
         for (int i = 1; i <= count; i++) {
             Assert.assertTrue(metaData.getColumnTypeName(i).contains("UNSIGNED"));
         }
+    }
+
+    @Test
+    public void testForDima2025080700110356916() throws ExecutionException, InterruptedException, SQLException {
+        // init table
+        String[] columns = new String[40];
+        String[] values = new String[40];
+        String[] marks = new String[40];
+        for (int i = 0; i < 40; i++) {
+            columns[i] = "c" + i + " varchar(10)";
+            values[i] = "aaabbb" + i;
+            marks[i] = "?";
+        }
+
+        Connection connection = setConnection("&rewriteBatchedStatements=true&allowMultiQueries=true&useServerPrepStmts=true");
+        createTable("z_t1", String.join(",", columns));
+
+        String insertSql = "insert into z_t1 () values (" + String.join(",", marks) + ")";
+        PreparedStatement preparedStatement = connection.prepareStatement(insertSql);
+        for (int i = 0; i < 1000; i++) {
+            for (int j = 0; j < 40; j++) {
+                preparedStatement.setString(j + 1, values[j]);
+            }
+            preparedStatement.addBatch();
+        }
+        preparedStatement.executeBatch();
+
+        ExecutorService pool = Executors.newFixedThreadPool(50);
+        List<Future<Long>> futureTasks = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            Future<Long> task = pool.submit(() -> {
+                Connection conn = setConnection();
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY );
+                ResultSet rs = stmt.executeQuery("select * from z_t1 limit 1000");
+                ResultSetMetaData metaData = rs.getMetaData();
+                long start = System.currentTimeMillis();
+                int count = 0;
+                while (rs.next()) {
+                    for (int j = 1; j <= 40; j++) {
+                        metaData.getColumnName(j);
+                    }
+                    count++;
+                    if (count % 1000 == 0 && count / 1000 < 200) {
+                        rs.beforeFirst();
+                    }
+                }
+                long end = System.currentTimeMillis();
+                conn.close();
+                return end - start;
+            });
+            futureTasks.add(task);
+        }
+
+        long totalCost = 0;
+        for (Future<Long> futureTask : futureTasks) {
+            totalCost += futureTask.get();
+        }
+
+        long average = totalCost / 200;
+        Assert.assertTrue(average < 40);
+
     }
 }
