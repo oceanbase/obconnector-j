@@ -92,6 +92,15 @@ class CallParameter {
         this.inOutModifier = inOutModifier;
     }
 
+    public CallParameter clone(){
+        CallParameter parameter = new CallParameter(this.name, this.index, this.isInput, this.isOutput, this.sqlType,
+                this.typeName, this.precision, this.scale, this.outputSqlType, this.inOutModifier);
+        parameter.className = this.className;
+        parameter.canBeNull = this.canBeNull;
+        parameter.isSigned = this.isSigned;
+        return parameter;
+    }
+
     public boolean isInput() {
         return isInput;
     }

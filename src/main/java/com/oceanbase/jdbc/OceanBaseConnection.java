@@ -893,13 +893,6 @@ public class OceanBaseConnection implements ConnectionImpl {
                     try {
                         CallableStatement callableStatement = callableStatementCache.get(cacheKey);
                         if (callableStatement != null) {
-                            //reset cache resetSpecialParamIndex
-                            if (callableStatement instanceof CallableProcedureStatement) {
-                                ((CallableProcedureStatement) callableStatement).resetSpecialParamIndex = false;
-                                for (CallParameter param : ((CallableProcedureStatement) callableStatement).params) {
-                                    param.cleanCache();
-                                }
-                            }
                             // Clone to avoid side effect like having some open resultSet.
                             return ((CloneableCallableStatement) callableStatement).clone(this);
                         }

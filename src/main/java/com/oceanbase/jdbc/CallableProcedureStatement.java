@@ -118,10 +118,16 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     public CallableProcedureStatement clone(OceanBaseConnection connection)
                                                                            throws CloneNotSupportedException {
         CallableProcedureStatement clone = (CallableProcedureStatement) super.clone(connection);
-        clone.params = params;
+        clone.params = new ArrayList<>();
+        for (CallParameter param : params) {
+            CallParameter callParameter = param.clone();
+            callParameter.cleanCache();
+            clone.params.add(callParameter);
+        }
         clone.parameterMetadata = parameterMetadata;
         clone.hasInOutParameters = hasInOutParameters;
         clone.outputParameterMapper = outputParameterMapper;
+        clone.resetSpecialParamIndex = false;
         return clone;
     }
 

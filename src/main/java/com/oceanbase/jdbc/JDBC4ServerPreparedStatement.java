@@ -193,6 +193,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
     clone.isObFunction = isObFunction;
     clone.mustExecuteOnMaster = mustExecuteOnMaster;
+    clone.currentParameterHolder = Collections.synchronizedMap(new TreeMap<>());
 
     // force prepare
     try {
