@@ -111,6 +111,12 @@ public class ColumnDefinition {
     private int                precisionAdjustFactor   = 0;
     private String             encoding                = "UTF-8";
     private Options            options;
+    private String             name;
+    private String             originalName;
+    private String             databaseName;
+    private String             tableName;
+    private String             originalTableName;
+    private String             complexTypeName;
 
     /**
      * Constructor for extent.
@@ -341,25 +347,42 @@ public class ColumnDefinition {
     }
 
     public String getDatabase() {
-        return getStringFromBytes(databaseNameStart, databaseNameLength);
+        if (null == this.databaseName) {
+            this.databaseName = getStringFromBytes(databaseNameStart, databaseNameLength);
+        }
+        return databaseName;
     }
 
     public String getTable() {
-        return getStringFromBytes(tableNameStart, tableNameLength);
+        if (null == this.tableName) {
+            this.tableName = getStringFromBytes(tableNameStart, tableNameLength);
+        }
+        return tableName;
     }
 
     public String getOriginalTable() {
-        return getStringFromBytes(originalTableNameStart, originalTableNameLength);
+        if (null == this.originalTableName) {
+           this.originalTableName = getStringFromBytes(originalTableNameStart, originalTableNameLength);
+        }
+        return originalTableName;
     }
 
     // alias name
     public String getName() {
-        return getStringFromBytes(nameStart, nameLength);
+        if (null == this.name) {
+            this.name = getStringFromBytes(nameStart, nameLength);
+        }
+
+        return this.name;
     }
 
     // real name
     public String getOriginalName() {
-        return getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
+        if (null == this.originalName) {
+            this.originalName = getStringFromBytes(originalColumnNameStart, originalColumnNameLength);
+        }
+
+        return this.originalName;
     }
 
     public short getCharsetNumber() {
@@ -719,7 +742,10 @@ public class ColumnDefinition {
     }
 
     public String getComplexTypeName() throws SQLException {
-        return getStringFromBytes(this.complexTypeNameStart, this.complexTypeNameLength);
+        if (null == this.complexTypeName) {
+            this.complexTypeName = getStringFromBytes(this.complexTypeNameStart, this.complexTypeNameLength);
+        }
+        return complexTypeName;
     }
 
     private String toAsciiString(byte[] buffer, int startPos, int length) {
