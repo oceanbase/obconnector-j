@@ -55,7 +55,13 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -1539,6 +1545,75 @@ public class ClobOracleTest extends BaseOracleTest {
         } finally {
             stmt.execute("set global ob_default_lob_inrow_threshold = 8192;");
         }
+    }
+
+    @Test
+    public void testForDima2025070800109848860() throws SQLException, ExecutionException, InterruptedException {
+        Connection conn = setConnection();
+        createTable("clob_1", "c1 number, c2 clob");
+
+        // init data
+        PreparedStatement statement = conn.prepareStatement("insert into clob_1 values (?, ?)");
+        statement.setInt(1, 1);
+        statement.setString(2, getRandomString(40 * 1000));
+        statement.execute();
+        statement.close();
+
+        // get clob list
+        List<java.sql.Clob> clobList = new ArrayList<>();
+        PreparedStatement ps = conn.prepareStatement("select c2 from clob_1 where c1 = 1");
+
+        ResultSet rs = null;
+        for (int i = 0; i < 50; i++) {
+            rs = ps.executeQuery();
+            rs.next();
+            java.sql.Clob clob = rs.getClob(1);
+            clobList.add(clob);
+        }
+
+        List<Future<String>> futures = new ArrayList<>();
+        ExecutorService threadPool = Executors.newFixedThreadPool(10);
+        for (java.sql.Clob lob : clobList) {
+            Future<String> future = threadPool.submit(() ->{
+                String reString = null;
+                try {
+                    StringBuffer sb = new StringBuffer();
+                    Reader reader = lob.getCharacterStream();
+                    char[] buffer = new char[2048];
+                    int size;
+                    while (-1 != (size = reader.read(buffer))) {
+                        sb.append(buffer, 0, size);
+                    }
+                    reString = sb.toString();
+                    reader.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
+                return reString;
+            });
+            futures.add(future);
+        }
+
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()) {
+
+        }
+
+        List<String> resList = new ArrayList<>();
+        for (Future<String> future : futures) {
+            resList.add(future.get());
+        }
+
+        int count = 0;
+        for (String res : resList) {
+            assertEquals(40 * 1000, res.length());
+            count++;
+        }
+        assertEquals(50, count);
+        rs.close();
+        ps.close();
+        conn.close();
     }
 
 }
