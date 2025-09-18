@@ -883,6 +883,9 @@ public class OceanBaseConnection implements ConnectionImpl {
             String database = matcher.group(10) == null ? null : matcher.group(10).trim();
             String procedureName = matcher.group(13) == null ? null : matcher.group(13).trim();
             String arguments = matcher.group(16) == null ? null : matcher.group(16).trim();
+            String beginWith = matcher.group(1) != null ? matcher.group(1).trim() : "";
+            String endWith = matcher.group(20) != null ? matcher.group(20).trim() : "";
+            boolean hasCurlyBraceWrapper = "{".equals(beginWith) && "}".equals(endWith);
             if (database == null && sessionStateAware) {
                 database = protocol.getDatabase();
             }
@@ -915,7 +918,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 }
                 CallableStatement callableStatement = createNewCallableStatement(querySetToServer,
                     procedureName, isFunction, databaseAndProcedure, database, arguments,
-                    resultSetType, resultSetConcurrency, exceptionFactory);
+                    resultSetType, resultSetConcurrency, hasCurlyBraceWrapper, exceptionFactory);
                 ((OceanBaseStatement) callableStatement).originalSql = querySetToServer;
                 if (callableStatement instanceof JDBC4ServerCallableStatement) {
                     ServerPrepareResult serverPrepareResult = ((JDBC4ServerCallableStatement) callableStatement).serverPrepareResult;
@@ -926,7 +929,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 return callableStatement;
             }
             return createNewCallableStatement(querySetToServer, procedureName, isFunction,
-                databaseAndProcedure, database, arguments, resultSetType, resultSetConcurrency,
+                databaseAndProcedure, database, arguments, resultSetType, resultSetConcurrency, hasCurlyBraceWrapper,
                 exceptionFactory);
         }
     }
@@ -966,6 +969,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                          String database, String arguments,
                                                          int resultSetType,
                                                          final int resultSetConcurrency,
+                                                         boolean hasCurlyBraceWrapper,
                                                          ExceptionFactory exceptionFactory)
                                                                                            throws SQLException {
         if (isFunction) {
@@ -990,6 +994,12 @@ public class OceanBaseConnection implements ConnectionImpl {
                     resultSetConcurrency, exceptionFactory);
             }
         } else {
+            if (this.getProtocol().isOracleMode() && this.options.obConvertCallsToBlocks && hasCurlyBraceWrapper && databaseAndProcedure != null) {
+                String callableSql = "BEGIN " + databaseAndProcedure + ((arguments == null) ? "()" : arguments) + "; END;";
+                return new OceanBaseProcedureStatement(false, callableSql,
+                        (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
+                        resultSetConcurrency, exceptionFactory, true);
+            }
             if (databaseAndProcedure != null && arguments == null) { // for call procname,add () to the end
                 String callableSql = "call " + databaseAndProcedure + "()";
                 return new OceanBaseProcedureStatement(false, callableSql,
