@@ -1350,8 +1350,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 if (clob == null) {
                     return null;
                 }
-                long len = clob.length();
-                return clob.getSubString(1, (int) len);
+                return ((com.oceanbase.jdbc.Clob)clob).getString();
             case ORA_BLOB:
                 throw new SQLFeatureNotSupportedException();
             case TIMESTAMP_TZ:
@@ -1870,7 +1869,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 System.arraycopy(row.buf, row.pos, data, 0, row.length);
                 com.oceanbase.jdbc.Clob clob = new com.oceanbase.jdbc.Clob(true, data, encoding,
                     this.statement.getConnection());
-                return (T) clob.getSubString(1, (int) clob.length());
+                return (T) clob.getString();
             }
             return (T) row.getInternalString(col, null, timeZone);
 

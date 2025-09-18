@@ -1616,4 +1616,88 @@ public class ClobOracleTest extends BaseOracleTest {
         conn.close();
     }
 
+    @Test
+    public void testForDima2025071000109887233() throws SQLException {
+        Connection conn = setConnection("&supportLobLocator=true&useServerPrepStmts=true");
+        createTable("t_clob", "c1 clob, c2 clob");
+        Statement stmt = conn.createStatement();
+        String text =  UtilTest.getRandomString(40*1000) + "aaa \uD844\uDF72 bbb123";
+        stmt.execute("ALTER SYSTEM SET lob_enable_block_cache_threshold='0K'");
+        try {
+            stmt.execute("insert into t_clob(c1)values('" + text + "')");
+            PreparedStatement ps = conn.prepareStatement("select * from t_clob");
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertTrue(rs.next());
+            // getString
+            String c1Str = rs.getString(1);
+            Assert.assertEquals(text.length(), c1Str.length());
+            Assert.assertEquals(text, c1Str);
+            String c2Str = rs.getString(2);
+            Assert.assertNull(c2Str);
+
+            // getClob
+            java.sql.Clob c1Clob = rs.getClob(1);
+            Assert.assertEquals(text.length() - 1, c1Clob.length());
+            Assert.assertEquals(text, c1Clob.getSubString(1, text.length()));
+            Assert.assertEquals(text.length(), c1Clob.length());
+            java.sql.Clob c2Clob = rs.getClob(2);
+            Assert.assertNull(c2Clob);
+
+            // getObject
+            String c1Str2 = rs.getObject(1, String.class);
+            Assert.assertEquals(text.length(), c1Str2.length());
+            Assert.assertEquals(text, c1Str2);
+
+            rs.close();
+            ps.close();
+
+            // ArrayImpl
+            stmt.execute("create or replace type clob_array as table of clob");
+            createProcedure("t_clob_pl", "(var out clob_array) is begin select c1 bulk collect into var FROM t_clob;end;");
+            CallableStatement cs = conn.prepareCall("{call t_clob_pl(?)}");
+            cs.registerOutParameter(1, Types.ARRAY, "CLOB_ARRAY");
+            cs.execute();
+            Array array = cs.getArray(1);
+            ResultSet arrayRs = array.getResultSet();
+            assertTrue(arrayRs.next());
+            assertEquals(1, arrayRs.getInt(1));
+            assertEquals(text, arrayRs.getString(2));
+            assertEquals(text.length(), arrayRs.getClob(2).length());
+            assertFalse(arrayRs.next());
+
+            arrayRs.close();
+            cs.close();
+        } catch (Exception e){
+            e.printStackTrace();
+            fail();
+        } finally {
+            stmt.execute("alter system set lob_enable_block_cache_threshold = '256K'");
+        }
+    }
+
+    @Test
+    public void testForPositionOrgetCharacterStream() throws SQLException, IOException {
+        Connection conn = setConnection("&supportLobLocator=true&useServerPrepStmts=true");
+        createTable("t_clob", "c1 clob, c2 clob");
+        Statement stmt = conn.createStatement();
+        String text = "aaa \uD844\uDF72 bbb123";
+        stmt.execute("ALTER SYSTEM SET lob_enable_block_cache_threshold='0K'");
+        stmt.execute("insert into t_clob(c1)values('" + text + "')");
+
+        PreparedStatement ps = conn.prepareStatement("select * from t_clob");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        java.sql.Clob clob = rs.getClob(1);
+        Assert.assertEquals(8, clob.position("bbb", 1));
+
+        StringBuffer sb = new StringBuffer();
+        Reader reader = clob.getCharacterStream(1, text.length());
+        char[] chars = new char[1024];
+        int len = 0;
+        while ((len = reader.read(chars)) != -1) {
+            sb.append(chars, 0, len);
+        }
+        Assert.assertEquals(text, sb.toString());
+    }
 }
