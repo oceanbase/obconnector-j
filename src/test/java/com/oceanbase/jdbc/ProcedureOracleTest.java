@@ -931,4 +931,29 @@ public class ProcedureOracleTest extends BaseOracleTest {
         Assert.assertArrayEquals(new int[]{0, 1, 3, 2}, result);
         Assert.assertEquals(6, batchPs.getUpdateCount());
     }
+
+    @Test
+    public void testForDima2025072200110062707() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&obConvertCallsToBlocks=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure call_proc as c number; begin select 1 into c from dual where 1 <> 1; end;");
+        CallableStatement cs = conn.prepareCall("call call_proc()");
+        cs.execute();
+
+        try {
+            cs = conn.prepareCall(" begin call_proc(); end; ");
+            cs.execute();
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("no data found"));
+        }
+
+        try {
+            cs= conn.prepareCall(" {call call_proc() } ");
+            cs.execute();
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("no data found"));
+        }
+    }
 }

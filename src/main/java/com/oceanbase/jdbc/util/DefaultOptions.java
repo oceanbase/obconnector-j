@@ -1193,7 +1193,14 @@ public enum DefaultOptions {
             "Should the driver refer to the internal values of auto-commit and transaction isolation " +
                     "that are set by 'Connection.setAutoCommit()' and 'Connection.setTransactionIsolation()' and transaction state as maintained by the protocol, " +
                     "rather than querying the database or blindly sending commands to the database for 'commit()' or 'rollback()' method calls?",
-            false),;
+            false),
+    OB_CONVERT_CALLS_TO_BLOCKS(
+            "obConvertCallsToBlocks",
+            Boolean.FALSE,
+            "2.4.16",
+            "Whether to convert {call xxx} syntax to BEGIN ... END; for Oracle tenants.",
+            false),
+    ;
 
   private final String optionName;
   private final String description;
