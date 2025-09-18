@@ -386,4 +386,32 @@ public class StatementOracleTest extends BaseOracleTest {
         pstmt1.close();
         pstmt2.close();
     }
+
+    @Test
+    public void testForDima2025071500109953119() throws SQLException, InterruptedException {
+        Connection conn = setConnection("&autoReconnect=false&useServerPrepStmts=true&useOceanBaseProtocolV20=false&cachePrepStmts=false");
+        Statement stmt = conn.createStatement();
+
+        String c1_sql1 = "select 1 from dual";
+        PreparedStatement c1_ps1 = conn.prepareStatement(c1_sql1);
+        c1_ps1.executeQuery();
+
+        stmt.execute("set wait_timeout = 1");
+        Thread.sleep(2000);
+        try {
+            stmt.execute("set wait_timeout = 2");
+            fail("should throw exception");
+        } catch (SQLException e) {
+            Assert.assertEquals("08S01", e.getSQLState());
+            Assert.assertEquals(0, e.getErrorCode());
+            Assert.assertEquals("java.sql.SQLNonTransientConnectionException", e.getClass().getName());
+        }
+
+        try {
+            conn = setConnection("&autoReconnect=true");
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("error parsing url : The autoReconnect parameter is no longer supported since version 2.4.16. Please remove it from the URL.", e.getMessage());
+        }
+    }
 }

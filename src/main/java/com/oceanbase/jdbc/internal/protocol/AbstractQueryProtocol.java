@@ -2765,7 +2765,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     + options.maxReconnects
                     + " attempts, giving up"
                     +  traces,
-                "08000",
+                "08S01",
                 initialException);
           }
           connect();
@@ -2787,8 +2787,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             cleanMemory();
-            return new SQLTransientConnectionException(
-                initialException.getMessage() + traces, "HY000", initialException);
+            return new SQLNonTransientConnectionException(
+                initialException.getMessage() + traces, "08S01", initialException);
           } catch (SQLException queryException) {
             // 1.2.2 failed to reset
             return new SQLTransientConnectionException(
@@ -2801,7 +2801,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           connected = false;
           return new SQLNonTransientConnectionException(
               initialException.getMessage() + "\nError during reconnection" + traces,
-              "08000",
+              "08S01",
               queryException);
         }
       }
@@ -2809,7 +2809,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // 2. don't reconnect
       connected = false;
       return new SQLNonTransientConnectionException(
-          initialException.getMessage() + getTraces(), "08000", initialException);
+          initialException.getMessage() + getTraces(), "08S01", initialException);
     } finally {
       if (!connected) {
         whyConnectedIsFalse();

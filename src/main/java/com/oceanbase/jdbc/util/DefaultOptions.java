@@ -1595,6 +1595,10 @@ public enum DefaultOptions {
     if (options.useOraclePrepareExecute) {
       options.extendOracleResultSetClass = false;
     }
+
+    if (options.autoReconnect) {
+      throw new IllegalArgumentException("The autoReconnect parameter is no longer supported since version 2.4.16. Please remove it from the URL.");
+    }
   }
 
   /**
