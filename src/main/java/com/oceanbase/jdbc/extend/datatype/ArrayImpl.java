@@ -142,9 +142,8 @@ public class ArrayImpl extends ComplexData implements ObArray {
     public String getString(int columnIndex) throws SQLException {
         Object obj = getObject(columnIndex);
         if (obj instanceof com.oceanbase.jdbc.Clob) {
-            Clob clob = (com.oceanbase.jdbc.Clob) obj;
-            long len = clob.length();
-            return clob.getSubString(1L, (int) len);
+            com.oceanbase.jdbc.Clob clob = (com.oceanbase.jdbc.Clob) obj;
+            return clob.getString();
         }
         return (String) obj;
     }
