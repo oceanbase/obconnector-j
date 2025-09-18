@@ -69,6 +69,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.oceanbase.jdbc.LocalInfileInterceptor;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
+import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.UrlParser;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -582,6 +583,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               if (serverPrepareResult == null) {
                   // prepare here
                   serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+                  if (results.getStatement() instanceof ServerSidePreparedStatement) {
+                    ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+                  }
               }
 
               boolean continueWrite = true;
