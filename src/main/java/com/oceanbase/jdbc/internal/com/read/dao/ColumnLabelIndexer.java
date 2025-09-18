@@ -61,11 +61,16 @@ import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 public class ColumnLabelIndexer {
 
     private final ColumnDefinition[] columnInfo;
+    // Use a HashMap to store the mapping between original field names and their indices.
     private Map<String, Integer>     originalMap;
+    // Use a TreeMap with case-insensitive ordering to store the mapping from column names to indices
     private Map<String, Integer>     aliasMap;
+    // Use a HashMap as a cache for fast lookups to avoid the lower performance of TreeMap.
+    private Map<String, Integer>     columnMapCache;
 
     public ColumnLabelIndexer(ColumnDefinition[] columnDefinitions) {
         this.columnInfo = columnDefinitions;
+        this.columnMapCache = new HashMap<>();
     }
 
     /**
@@ -82,6 +87,11 @@ public class ColumnLabelIndexer {
     // The specs in JDBC 4.0 specify that ResultSet.findColumn and
     // ResultSet.getXXX(String name) should use column alias (AS in the query).
     // If label isn't found, we use original table name.
+    Integer res = columnMapCache.get(name);
+    if (res != null) {
+      return res;
+    }
+
     if (aliasMap == null) {
       Map<String, Integer> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
       int counter = 0;
@@ -100,8 +110,9 @@ public class ColumnLabelIndexer {
       aliasMap = map;
     }
 
-    Integer res = aliasMap.get(name);
+    res = aliasMap.get(name);
     if (res != null) {
+      this.columnMapCache.put(name, res);
       return res;
     }
 
