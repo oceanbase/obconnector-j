@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.io.input;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
@@ -58,9 +59,9 @@ import com.oceanbase.jdbc.internal.logging.Logger;
 
 public interface PacketInputStream {
 
-    Buffer getPacket(boolean reUsable) throws IOException;
+    Buffer getPacket(boolean reUsable) throws IOException, SQLException;
 
-    byte[] getPacketArray(boolean reUsable) throws IOException;
+    byte[] getPacketArray(boolean reUsable) throws IOException, SQLException;
 
     int getLastPacketSeq();
 
@@ -83,4 +84,8 @@ public interface PacketInputStream {
     void endReceiveResponse(String sql);
 
     Logger getLogger();
+
+    void resetReadMysqlSeqNo();
+
+    void setMysqlSeqNoReset(boolean mysqlSeqNoReset);
 }

@@ -544,4 +544,39 @@ public class NewFeatureTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2024121700106532317() throws SQLException {
+        Connection conn = setConnection("&allowMultiQueries=true&enablePacketDebug=true");
+        createTable("zt1", "c1 int, c2 longtext");
+        PreparedStatement ps = conn.prepareStatement("insert into zt1 values (?, ?)");
+        for (int i = 0; i < 270; i++) {
+            ps.setInt(1, i);
+            ps.setString(2, BaseTest.getRandomString(10));
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        PreparedStatement qery = conn.prepareStatement("select * from zt1");
+        ResultSet rs = qery.executeQuery();
+        int count = 0;
+        while (rs.next()) {
+            count ++;
+        }
+        Assert.assertEquals(270, count);
+
+        // multi-query
+        PreparedStatement ps2 = conn.prepareStatement("insert into zt1 values (?, ?); select * from zt1;");
+        ps2.setInt(1, 1);
+        ps2.setString(2, "OceanBase");
+        ps2.execute();
+        assertTrue(ps2.getMoreResults());
+        rs = ps2.getResultSet();
+        count = 0;
+        while (rs.next()) {
+            count ++;
+        }
+        Assert.assertEquals(271, count);
+        conn.close();
+    }
+
 }

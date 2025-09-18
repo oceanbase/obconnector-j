@@ -729,7 +729,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 : 0x01), options, authenticationPluginType, seed, clientIp);
 
         writer.permitTrace(false);
-
+        // The handshake packet does not require packet sequence verification.
+        reader.setMysqlSeqNoReset(true);
         Buffer buffer = reader.getPacket(false);
         AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
 
@@ -941,6 +942,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 options, timeTrace);
 
             if (options.enablePacketDebug) {
+                writer.setPacketReader(reader);
                 writer.setTraceCache(traceCache);
                 reader.setTraceCache(traceCache);
             }

@@ -53,6 +53,7 @@ package com.oceanbase.jdbc.internal.io.input;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -86,12 +87,12 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
     }
 
     @Override
-    public Buffer getPacket(boolean reUsable) throws IOException {
+    public Buffer getPacket(boolean reUsable) throws IOException, SQLException {
         return new Buffer(getPacketArray(reUsable), lastPacketLength);
     }
 
     @Override
-    public byte[] getPacketArray(boolean reUsable) throws IOException {
+    public byte[] getPacketArray(boolean reUsable) throws IOException, SQLException {
         // read ob20 header
         if (isTailRead) {
             resolveOb20Packet();

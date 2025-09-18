@@ -54,6 +54,7 @@ import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.Arrays;
 
 import com.oceanbase.jdbc.internal.ColumnType;
@@ -72,6 +73,7 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
 
     protected byte[]            mysqlHeader = new byte[4];
     protected int               lastPacketLength;
+    protected boolean           enablePacketDebug;
 
     /**
      * Constructor of standard socket MySQL packet stream reader.
@@ -87,16 +89,18 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
         this.threadId = threadId;
         this.timeTrace = timeTrace;
+        this.enablePacketDebug = options.enablePacketDebug;
     }
 
     public StandardPacketInputStream(long threadId, Options options, TimeTrace timeTrace) {
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
         this.threadId = threadId;
         this.timeTrace = timeTrace;
+        this.enablePacketDebug = options.enablePacketDebug;
     }
 
     @Override
-    public Buffer getPacket(boolean reUsable) throws IOException {
+    public Buffer getPacket(boolean reUsable) throws IOException, SQLException {
         return new Buffer(getPacketArray(reUsable), lastPacketLength);
     }
 
@@ -108,7 +112,7 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
      * @return array packet.
      * @throws IOException if socket exception occur.
      */
-    public byte[] getPacketArray(boolean reUsable) throws IOException {
+    public byte[] getPacketArray(boolean reUsable) throws IOException, SQLException {
         // Read 4 byte mysqlHeader
         readMysqlStream(mysqlHeader, 0, 4);
         if (enableNetworkStatistics) {
@@ -120,6 +124,10 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
         mysqlSeqNo = mysqlHeader[3] & 0xff;
         logger.debug("read: {}, packetLength = {}, packetNumber = {}", serverThreadLog,
             lastPacketLength, mysqlSeqNo);
+
+        if (enablePacketDebug) {
+            checkMysqlSeqNo(mysqlHeader[3]);
+        }
 
         // prepare array
         byte[] mysqlBody;
@@ -141,6 +149,10 @@ public class StandardPacketInputStream extends AbstractPacketInputStream {
                 packetLength = (mysqlHeader[0] & 0xff) + ((mysqlHeader[1] & 0xff) << 8)
                                + ((mysqlHeader[2] & 0xff) << 16);
                 mysqlSeqNo = mysqlHeader[3] & 0xff;
+
+                if (enablePacketDebug) {
+                    checkMysqlSeqNo(mysqlSeqNo);
+                }
 
                 int currentBufferLength = mysqlBody.length;
                 byte[] newRawBytes = new byte[currentBufferLength + packetLength];
