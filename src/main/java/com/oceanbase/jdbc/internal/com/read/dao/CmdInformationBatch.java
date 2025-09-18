@@ -120,7 +120,7 @@ public class CmdInformationBatch implements CmdInformation {
   public void addSuccessStat(long updateCount, long insertId) {
     insertIds.add(insertId);
     if (containOnDuplicateKey) {
-      insertIdNumber += 1;
+      insertIdNumber += updateCount <= 0 ? 1 : updateCount;
     } else {
       insertIdNumber += updateCount;
     }
@@ -271,7 +271,7 @@ public class CmdInformationBatch implements CmdInformation {
       Iterator<Long> idIterator = insertIds.iterator();
       for (Long updateCountLong : updateCounts) {
           int updateCount = updateCountLong.intValue();
-          if (this.containOnDuplicateKey()) {
+          if (this.containOnDuplicateKey() && !rewritten) {
             // When using ON DUPLICATE KEY UPDATE, an insertId always exists, but updateCount may be >=0.
             // If it's 0, the following loop won't populate the ID, and values >=2 cause index overflow. Thus, we temporarily set it to 1.
             updateCount = 1;
