@@ -745,4 +745,38 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         }
         conn.commit();
     }
+
+    @Test
+    public void testForDima2025022600107332995() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&useArrayBinding=true");
+        createTable("t_c0", "c0 number primary key");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_c0 values(1)");
+        stmt.execute("alter system set open_cursors= 5;");
+
+        conn.setAutoCommit(false);
+
+        PreparedStatement ps = null;
+        for (int i = 0; i < 10; i++) {
+            try {
+                ps = conn.prepareStatement("insert into t_c0 values(?)");
+                for (int j = 0; j < 5; j++) {
+                    ps.setInt(1, j);
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            } catch (SQLException e) {
+                if (e.getMessage().contains("maximum open cursors exceeded")) {
+                    Assert.fail(e.getMessage());
+                }
+            } finally {
+                if (ps != null) {
+                    ps.close();
+                }
+            }
+        }
+        conn.setAutoCommit(true);
+        stmt.execute("alter system set open_cursors= 50");
+    }
 }

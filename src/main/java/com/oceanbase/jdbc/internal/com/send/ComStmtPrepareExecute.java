@@ -237,6 +237,10 @@ public class ComStmtPrepareExecute {
                             break;
                         case Packet.ERROR:
                             reader.getLogger().trace("Got tail ERROR packet.");
+                            // Close the cursor explicitly to prevent resource leak (on first request failure)
+                            if (serverPrepareResult == null && statementId != 0) {
+                                protocol.forceReleasePrepareStatement(statementId);
+                            }
                             throw protocol.readErrorPacket(buffer, results);
                         default:
                             reader.getLogger().error(
