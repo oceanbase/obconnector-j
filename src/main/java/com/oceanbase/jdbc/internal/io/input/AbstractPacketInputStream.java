@@ -2,6 +2,7 @@ package com.oceanbase.jdbc.internal.io.input;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
@@ -23,12 +24,14 @@ public abstract class AbstractPacketInputStream implements PacketInputStream {
 
     protected final byte[]     reusableArray           = new byte[REUSABLE_BUFFER_LENGTH];
     protected TimeTrace        timeTrace;
+    protected int              preMysqlSeqNo = -1;
+    protected boolean          mysqlSeqNoReset = false;
 
     @Override
-    public abstract Buffer getPacket(boolean reUsable) throws IOException;
+    public abstract Buffer getPacket(boolean reUsable) throws IOException, SQLException;
 
     @Override
-    public abstract byte[] getPacketArray(boolean reUsable) throws IOException;
+    public abstract byte[] getPacketArray(boolean reUsable) throws IOException, SQLException;
 
     protected abstract void readMysqlStream(byte[] rawBytes, int off, int remaining)
                                                                                     throws IOException;
@@ -99,4 +102,33 @@ public abstract class AbstractPacketInputStream implements PacketInputStream {
         }
     }
 
+    @Override
+    public void resetReadMysqlSeqNo() {
+        preMysqlSeqNo = 0;
+        this.mysqlSeqNoReset = true;
+    }
+
+    @Override
+    public void setMysqlSeqNoReset(boolean mysqlSeqNoReset) {
+        this.mysqlSeqNoReset = mysqlSeqNoReset;
+    }
+
+    public void checkMysqlSeqNo(int curMysqlSeqNo) throws SQLException {
+        if (!this.mysqlSeqNoReset) {
+            if ((curMysqlSeqNo == -128) && (this.preMysqlSeqNo != 127)) {
+                throw new SQLException("Packets out of order, expected packet # -128, but received packet # " + curMysqlSeqNo);
+            }
+
+            if ((this.preMysqlSeqNo == -1) && (curMysqlSeqNo != 0)) {
+                throw new SQLException("Packets out of order, expected packet # -1, but received packet # " + curMysqlSeqNo);
+            }
+
+            if ((curMysqlSeqNo != -128) && (this.preMysqlSeqNo != -1) && (curMysqlSeqNo != (this.preMysqlSeqNo + 1))) {
+                throw new SQLException("Packets out of order, expected packet # " + (this.preMysqlSeqNo + 1) + ", but received packet # " + curMysqlSeqNo);
+            }
+        }else {
+            this.mysqlSeqNoReset = false;
+        }
+        this.preMysqlSeqNo = curMysqlSeqNo;
+    }
 }

@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.TimeTrace;
 import com.oceanbase.jdbc.internal.util.StringUtils;
 import com.oceanbase.jdbc.internal.util.Utils;
@@ -102,6 +103,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private boolean           encloseParamInParentheses;
     private boolean           isOracleMode;
     protected List<byte[]>    sendPacketBufList;
+    private PacketInputStream packetReader;
 
     /**
      * Common feature to write data into socket, creating MariaDB Packet.
@@ -237,6 +239,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     public void flush() throws IOException {
         flushBuffer(true);
         doFlush();
+        if (packetReader != null) {
+            packetReader.resetReadMysqlSeqNo();
+        }
     }
 
     public void doFlush() throws IOException {
@@ -1173,4 +1178,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         isOracleMode = oracleMode;
     }
 
+    @Override
+    public void setPacketReader(PacketInputStream reader) {
+        this.packetReader = reader;
+    }
 }

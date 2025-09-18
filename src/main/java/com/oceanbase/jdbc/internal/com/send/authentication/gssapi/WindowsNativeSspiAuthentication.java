@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send.authentication.gssapi;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -76,7 +77,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
      */
     public void authenticate(final PacketOutputStream out, final PacketInputStream in,
                              final AtomicInteger sequence, final String servicePrincipalName,
-                             final String mechanisms) throws IOException {
+                             final String mechanisms) throws IOException, SQLException {
 
         // initialize a security context on the client
         IWindowsSecurityContext clientContext = WindowsSecurityContextImpl.getCurrent(mechanisms,

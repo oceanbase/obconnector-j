@@ -52,6 +52,7 @@ package com.oceanbase.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -104,7 +105,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
      * @throws IOException if socket error
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-                                                                                               throws IOException {
+            throws IOException, SQLException {
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
         } else {

@@ -51,6 +51,7 @@
 package com.oceanbase.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.oceanbase.jdbc.authentication.AuthenticationPlugin;
@@ -96,7 +97,7 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
      * @throws IOException if socket error
      */
     public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-                                                                                               throws IOException {
+            throws IOException, SQLException {
         if (authenticationData == null || authenticationData.isEmpty()) {
             out.writeEmptyPacket(sequence.incrementAndGet());
         } else {

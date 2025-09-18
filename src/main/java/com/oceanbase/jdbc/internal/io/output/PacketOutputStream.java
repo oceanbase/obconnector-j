@@ -58,6 +58,7 @@ import java.nio.charset.Charset;
 import java.util.TimeZone;
 
 import com.oceanbase.jdbc.internal.io.LruTraceCache;
+import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 @SuppressWarnings("RedundantThrows")
@@ -175,4 +176,6 @@ public interface PacketOutputStream {
     boolean isOracleMode();
 
     void setOracleMode(boolean oracleMode);
+
+    void setPacketReader(PacketInputStream packetReader);
 }
