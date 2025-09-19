@@ -119,6 +119,22 @@ public class ColumnDefinition {
     private String             originalTableName;
     private String             complexTypeName;
 
+    public enum RoutineParamInOutMode {
+        PARAM_INVALID(0),
+        PARAM_IN(1),
+        PARAM_OUT(2),
+        PARAM_INOUT(3);
+        private final int value;
+
+        RoutineParamInOutMode(int value) {
+            this.value = value;
+        }
+
+        private int getValue() {
+            return value;
+        }
+    }
+
     /**
      * Constructor for extent.
      *
@@ -778,5 +794,10 @@ public class ColumnDefinition {
 
     public int getElemSqlType() {
         return elemSqlType;
+    }
+
+    public boolean isOutput() {
+        return this.inoutType == RoutineParamInOutMode.PARAM_OUT.getValue()
+                || this.inoutType == RoutineParamInOutMode.PARAM_INOUT.getValue();
     }
 }

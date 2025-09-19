@@ -103,8 +103,8 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         }
         ResultSet rs = null;
         try (Statement stmt = con.getMetadataSafeStatement()) {
-            String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION FROM ALL_ARGUMENTS WHERE"
-                    + " (OVERLOAD is NULL OR OVERLOAD = 1) and POSITION != 0 AND object_name = '";
+            String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION, OVERLOAD FROM ALL_ARGUMENTS WHERE"
+                    + " POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
 
             paramMetaSql.append(name);
@@ -262,6 +262,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         }
 
         int i = 0;
+        int initOverLoad = -1;
         while (paramTypesRs.next()) {
             String inOut = paramTypesRs.getString("IN_OUT");
             int inOutModifier = DatabaseMetaData.procedureColumnUnknown;
@@ -289,6 +290,14 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
             int jdbcType = ColumnType.convertDbTypeToSqlType(typeName);//ColumnType.convertSqlTypeToClass(1);
             int precision = paramTypesRs.getInt("DATA_PRECISION");
             int scale = paramTypesRs.getInt("DATA_SCALE");
+
+            if (i == 0) {
+                initOverLoad = paramTypesRs.getInt("OVERLOAD");
+            }
+            int newOverLoad = paramTypesRs.getInt("OVERLOAD");
+            if (!this.hasDuplicateRoutine && initOverLoad != newOverLoad) {
+                this.hasDuplicateRoutine = true;
+            }
 
             CallParameter paramInfoToAdd = new CallParameter(paramName, i++, isInParameter,
                 isOutParameter, jdbcType, typeName, precision, scale, jdbcType, inOutModifier);

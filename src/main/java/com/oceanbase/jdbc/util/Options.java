@@ -247,6 +247,7 @@ public class Options implements Cloneable {
     public boolean oracleUseNumberForSetDouble;
     public boolean oracleXaPrepareThrowException;
     public boolean convertNoneNanoSecsToDate = true;
+    public boolean obIncludeOutOrNullParamTypeInfo;
     public boolean obConvertCallsToBlocks;
 
     @Override
@@ -760,6 +761,9 @@ public class Options implements Cloneable {
         if (oracleXaPrepareThrowException != opt.oracleXaPrepareThrowException) {
             return false;
         }
+        if (obIncludeOutOrNullParamTypeInfo != opt.obIncludeOutOrNullParamTypeInfo) {
+            return false;
+        }
         if (obConvertCallsToBlocks != opt.obConvertCallsToBlocks) {
             return false;
         }
@@ -928,6 +932,7 @@ public class Options implements Cloneable {
         result = 31 * result + (oracleUseNumberForSetDouble ? 1 : 0);
         result = 31 * result + (convertNoneNanoSecsToDate ? 1 : 0);
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
+        result = 31 * result + (obIncludeOutOrNullParamTypeInfo ? 1 : 0);
         result = 31 * result + (obConvertCallsToBlocks ? 1 : 0);
         return result;
     }

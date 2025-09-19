@@ -364,6 +364,15 @@ public enum ColumnType {
         return ColumnType.BLOB;
     }
 
+    public static ColumnType convertSqlTypeToColumnTypeForOracleRoutine(int sqlType) {
+        for (ColumnType columnType : typeOracleMap) {
+            if (columnType != null && columnType.sqlType == sqlType) {
+                return columnType;
+            }
+        }
+        return ColumnType.NULL;
+    }
+
     /**
      * Get columnTypeName.
      *

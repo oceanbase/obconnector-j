@@ -46,7 +46,6 @@ import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.Arrays;
 
 import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
 import org.junit.Assert;
@@ -930,6 +929,274 @@ public class ProcedureOracleTest extends BaseOracleTest {
         int[] result = batchPs.executeBatch();
         Assert.assertArrayEquals(new int[]{0, 1, 3, 2}, result);
         Assert.assertEquals(6, batchPs.getUpdateCount());
+    }
+
+    @Test
+    public void testForDimatestForDima2025041600108299276() throws SQLException {
+        boolean prepareExecuteProtocol = true;
+        CallableStatement cs = null;
+
+        Connection conn = setConnection("&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package pack_pl is \n" +
+                "  procedure proc_1(a1 in varchar2, a2 in varchar2, a3 out varchar2, a4 out varchar2);\n" +
+                "  procedure proc_1(b1 in number, b2 in out number, b3 in number, b4 out number);\n" +
+                "  procedure proc_1(c1 in varchar2, c2 in out varchar2, c3 out varchar2);\n" +
+                "  end pack_pl; ");
+
+        stmt.execute("create or replace package body pack_pl is \n" +
+                "  procedure proc_1(a1 in varchar2, a2 in varchar2, a3 out varchar2, a4 out varchar2) as begin a3 := 'a3'; a4 := 'a4'; end;\n" +
+                "  procedure proc_1(b1 in number, b2 in out number, b3 in number, b4 out number) is begin b4 := b1 + b2 + b3 ; b2 := 0; end;\n" +
+                "  procedure proc_1(c1 in varchar2, c2 in out varchar2, c3 out varchar2) is begin c3 := 'c3'; end;\n" +
+                "end pack_pl;");
+
+        stmt.execute("create or replace procedure proc_1(p1 in number, p2 in number, p3 in out number, p4 out number) is begin p4 := p1 + p2 + p3; end ;");
+
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                conn = setConnection("&useServerPrepStmts=true&obIncludeOutOrNullParamTypeInfo=true");
+                prepareExecuteProtocol = false;
+            }
+
+            // case1: same number of parameters, different data types.
+            cs = conn.prepareCall("{call pack_pl.proc_1(?, ?, ?, ?)}");
+            cs.setInt(1, 1);
+            cs.setInt(2, 2);
+            cs.setInt(3, 3);
+            cs.registerOutParameter(4, Types.INTEGER);
+            cs.execute();
+
+            if (prepareExecuteProtocol) {
+                Assert.assertEquals(0, cs.getInt(2));
+                Assert.assertEquals(6, cs.getInt(4));
+            } else {
+                try {
+                    cs.getInt(2);
+                    fail();
+                } catch (SQLException e) {
+                    Assert.assertTrue(e.getMessage().contains("is not declared as output parameter with method registerOutParameter"));
+                }
+                // A missing registration of an out parameter caused a misalignment in the value retrieval. Expected :6
+                Assert.assertEquals(0, cs.getInt(4));
+            }
+
+            // case2: has default value
+            cs = conn.prepareCall("call proc_1(1, 2, ?, ?)");
+            cs.setInt(1, 3);
+            cs.registerOutParameter(2, Types.INTEGER);
+            cs.execute();
+            if (prepareExecuteProtocol) {
+                Assert.assertEquals(3, cs.getInt(1));
+                Assert.assertEquals(6, cs.getInt(2));
+            } else {
+                try {
+                    cs.getInt(1);
+                    fail();
+                } catch (SQLException e) {
+                    Assert.assertTrue(e.getMessage().contains("is not out parameter"));
+                }
+                // A missing registration of an out parameter caused a misalignment in the value retrieval. Expected :6
+                Assert.assertEquals(3, cs.getInt(2));
+            }
+
+            // case3: different number of parameters
+            cs = conn.prepareCall("call pack_pl.proc_1('c1', ?, ?)");
+            cs.setString(1, "c2");
+            cs.registerOutParameter(2, Types.VARCHAR);
+            cs.execute();
+            if (prepareExecuteProtocol) {
+                Assert.assertEquals("c2", cs.getString(1));
+                Assert.assertEquals("c3", cs.getString(2));
+            } else {
+                try {
+                    cs.getString(1);
+                    fail();
+                } catch (SQLException e) {
+                    Assert.assertTrue(e.getMessage().contains("is not out parameter"));
+                }
+                // A missing registration of an out parameter caused a misalignment in the value retrieval. Expected :c3
+                Assert.assertEquals("c2", cs.getString(2));
+            }
+
+            // case4: pl anonymous block
+            cs = conn.prepareCall("begin proc_1(?, ?, ?, ?); end;");
+            cs.setInt(1, 1);
+            cs.setInt(2, 2);
+            cs.setInt(3, 3);
+            cs.registerOutParameter(4, Types.INTEGER);
+            cs.execute();
+
+            if (prepareExecuteProtocol) {
+                Assert.assertEquals(3, cs.getInt(3));
+                Assert.assertEquals(6, cs.getInt(4));
+            } else {
+                try {
+                    cs.getInt(3);
+                    fail();
+                } catch (SQLException e) {
+                    Assert.assertTrue(e.getMessage().contains("is not out parameter"));
+                }
+                // A missing registration of an out parameter caused a misalignment in the value retrieval. Expected :6
+                Assert.assertEquals(3, cs.getInt(4));
+            }
+
+            cs.close();
+            conn.close();
+        }
+
+    }
+
+    @Test
+    public void testForDima2025063000109741787() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace type plps_obj0 force as object(c0 int)");
+        stmt.execute("create or replace type plps_obj1 force as object(c0 int, c1 int)");
+        stmt.execute("create or replace package plps_pkg1 as procedure p1(a plps_obj0);end;");
+        stmt.execute("create or replace package body plps_pkg1 as procedure p1(a plps_obj0) is begin null;end;end;");
+
+        stmt.execute("create or replace type obj0 force as object(c0 int)");
+
+        stmt.execute("create or replace procedure p1(a out sys_refcursor) is begin "
+                + "  open a for select obj0(123) from dual; " + "end;");
+
+        CallableStatement cs = conn.prepareCall("call p1(?)");
+        cs.registerOutParameter(1, Types.REF_CURSOR);
+        cs.execute();
+        ResultSet rs = (ResultSet) cs.getObject(1);
+        Assert.assertTrue(rs.next());
+        Struct obj = (Struct) rs.getObject(1);
+        Object[] attributes = obj.getAttributes();
+        Assert.assertEquals(1, attributes.length);
+        Assert.assertEquals(new BigDecimal(123), attributes[0]);
+    }
+
+    @Test
+    public void testForDima2025052200109137103() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+        CallableStatement cs;
+        stmt.execute("create or replace package plkg_pk1 is " +
+                " procedure proc_p1 (p1 in varchar2, p2 out varchar2); " +
+                " procedure proc_p1 (p1 in number, p2 out number); " +
+                " end plkg_pk1;");
+
+        stmt.execute("create or replace package body plkg_pk1 is " +
+                " procedure proc_p1 (p1 in varchar2, p2 out varchar2) is begin p2 := 'a'; end; " +
+                " procedure proc_p1 (p1 in number, p2 out number) is begin p2 := 1; end; " +
+                " end plkg_pk1;");
+
+        CallableStatement call = conn.prepareCall("call plkg_pk1.proc_p1(?, ?)");
+        call.setNull(1, Types.INTEGER);
+        call.registerOutParameter(2, Types.INTEGER);
+        call.execute();
+        Assert.assertEquals(1, call.getInt(2));
+
+        // testForDima2025082100110574385
+        stmt.execute("create or replace package pack4 is " +
+                "procedure proc5(a in number, b in out number, c in number default 10); " +
+                "procedure proc5(a in number, b in varchar2, c out number); " +
+                "end;");
+        stmt.execute("create or replace package body pack4 is " +
+                "procedure proc5(a in number, b in out number, c in number default 10) is  begin b := a + b + c; end; " +
+                "procedure proc5(a in number, b in varchar2, c out number) is begin c := a || b ; end; " +
+                "end;");
+        cs = conn.prepareCall("{call pack4.proc5(a => ?,b => ?)}");
+        cs.setInt(1, 7); // a
+        cs.setInt(2, 10); // b
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.execute();
+        Assert.assertEquals(27, cs.getInt(2));
+
+        // testForDima2025082200110581469
+        stmt.execute("create or replace package pack2 is procedure proc2(a1 in out number, a2 in out number, a3 out number); end;");
+        stmt.execute("create or replace package body pack2 is procedure proc2(a1 in out number, a2 in out number, a3 out number) is begin a3 := a1 + a2;a1 := 100; end; end;");
+        stmt.execute("create or replace procedure proc2(a1 in out number, a2 in out number, a3 out number) is begin a3 := a1 + a2 + 10; a1 := 110; end;");
+
+        cs = conn.prepareCall("{call pack2.proc2(a2 => ?, a1 => ?, a3 => ?)}");
+        cs.setInt(1, 20); // a2
+        cs.setInt(2, 10); // a1
+        cs.registerOutParameter(1, Types.INTEGER); //a2
+        cs.registerOutParameter(2, Types.INTEGER); // a1
+        cs.registerOutParameter(3, Types.INTEGER); // a3
+        cs.execute();
+        Assert.assertEquals(cs.getInt(1), 20);
+        Assert.assertEquals(cs.getInt(2), 100);
+        Assert.assertEquals(cs.getInt(3), 30);
+
+        cs = conn.prepareCall("call proc2(a3 => ?, a1 => ?, a2 => ?)");
+        cs.setInt(2, 10); // a1
+        cs.setInt(3, 20); // a2
+        cs.registerOutParameter(1, Types.INTEGER); // a3
+        cs.registerOutParameter(2, Types.INTEGER); // a1
+        cs.registerOutParameter(3, Types.INTEGER); // a2
+        cs.execute();
+        Assert.assertEquals(cs.getInt(1), 40);
+        Assert.assertEquals(cs.getInt(2),110);
+        Assert.assertEquals(cs.getInt(3), 20);
+    }
+
+    @Test
+    public void testForDima2025071600109984548() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute(
+                "create or replace package pack3 is " +
+                        "procedure proc4(x in out number, y in number, z out number); " +
+                        "procedure proc4(x in out number, y in number, z out varchar2); " +
+                        "end;");
+        stmt.execute(
+                "create or replace package body pack3 is " +
+                        "procedure proc4(x in out number, y in number, z out number) is begin z := x*y;  x := y * z; end; " +
+                        "procedure proc4(x in out number, y in number, z out varchar2) is begin z := x || y;  x := x + 1; end; " +
+                        "end;");
+
+        CallableStatement cs = conn.prepareCall("{call pack3.proc4(?, ?, ?)}");
+        cs.setInt(1, 5); // x
+        cs.registerOutParameter(1, Types.INTEGER); // x
+        cs.setInt(2, 6); // y
+        cs.registerOutParameter(3, Types.VARCHAR); // z
+        cs.execute();
+        Assert.assertEquals(6, cs.getInt(1));
+        Assert.assertEquals(56, cs.getInt(3));
+    }
+
+    @Test
+    public void testForDima2025072300110097845() throws SQLException {
+        Connection conn = setConnection("useServerPrepStmts=true&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+
+        String packageSql = "CREATE OR REPLACE PACKAGE test_exception IS " +
+                "PROCEDURE proc5(p1 IN NUMBER, p2 OUT VARCHAR2); " +
+                "PROCEDURE proc5(p1 IN VARCHAR2, p2 OUT VARCHAR2); " +
+                "END test_exception;";
+
+        String bodySql = "CREATE OR REPLACE PACKAGE BODY test_exception IS " +
+                "PROCEDURE proc5(p1 IN NUMBER, p2 OUT VARCHAR2) IS " +
+                "BEGIN " +
+                "  IF p1 > 0 THEN p2 := 'POSITIVE_' || p1; " +
+                "  ELSE p2 := 'NEGATIVE_' || ABS(p1); END IF; " +
+                "EXCEPTION WHEN OTHERS THEN p2 := 'ERROR_NUM'; END; " +
+                "PROCEDURE proc5(p1 IN VARCHAR2, p2 OUT VARCHAR2) IS " +
+                "BEGIN " +
+                "  IF LENGTH(p1) > 0 THEN p2 := 'STRING_' || p1; " +
+                "  ELSE p2 := 'EMPTY_STRING'; END IF; " +
+                "EXCEPTION WHEN OTHERS THEN p2 := 'ERROR_STR'; END; " +
+                "END test_exception;";
+
+        stmt.execute(packageSql);
+        stmt.execute(bodySql);
+
+        CallableStatement cs = conn.prepareCall("call test_exception.proc5(?, ?)");
+        cs.setInt(1, 50);
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("POSITIVE_50", cs.getString(2));
+
+        cs.setNull(1, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("EMPTY_STRING", cs.getString(2));
     }
 
     @Test

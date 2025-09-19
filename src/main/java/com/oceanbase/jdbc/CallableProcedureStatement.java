@@ -57,9 +57,14 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.internal.ColumnType;
+import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
+import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.internal.util.constant.Version;
 import com.oceanbase.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public abstract class CallableProcedureStatement extends ServerSidePreparedStatement
@@ -84,6 +89,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     protected boolean                   hasInOutParameters;
     private boolean                     firstMapName = true;
     protected boolean                   resetSpecialParamIndex;
+    protected boolean                   resetPrepareExecuteParamIndex;
+    protected boolean                   isAnonymousBlock;
+    private List<ParsedCallParameters>  parsedArgumentsList;
+    private HashMap<Integer, ParsedCallParameters> parsedArgumentsMap;
     //    private boolean                     isParameterIndexUsed;
     //    private boolean                     isParameterNameUsed;
 
@@ -259,21 +268,43 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (this.isObFunction && !this.protocol.isOracleMode()) {
                 return 1; //for mysql ObFunciton only
             }
-            if (arguments != null && arguments.length() > 0 && arguments.contains("=>")
-                && !resetSpecialParamIndex) {
+
+            // If the prepare_execute is used, the outputParameterMapper can be reset using the inout info from the execute response.
+            boolean hasSpecialParams = arguments != null && arguments.length() > 0 && arguments.contains("=>");
+            if (!resetPrepareExecuteParamIndex && usePrepareExecute() && serverPrepareResult != null && supportsAccurateParameterInfo() && !hasSpecialParams) {
+                ColumnDefinition[] parameters = serverPrepareResult.getParameters();
+                outputParameterMapper = new int[parameters.length];
+                int currentOutputMapper = 1;
+                for (int i = 0; i < parameters.length; i++) {
+                    outputParameterMapper[i] = parameters[i].isOutput() ? currentOutputMapper ++  : -1;
+                }
+                resetPrepareExecuteParamIndex = true;
+            }
+            if (hasSpecialParams && !resetSpecialParamIndex && !isAnonymousBlock) {
                 // The index in outputParameterMapper only includes out parameters.
-                HashMap<String, Integer> outParamsIndexMap = new HashMap<>(parameterMetadata.allParams.size());
                 int index = 1;
-                for (CallParameter allParam : parameterMetadata.allParams) {
-                    if (allParam.isOutput()) {
-                        outParamsIndexMap.put(allParam.getName(), index++);
+                HashMap<String, Integer> outParamsIndexMap = null;
+                if (!protocol.isOracleMode()) {
+                    outParamsIndexMap = new HashMap<>(parameterMetadata.allParams.size());
+                    for (CallParameter allParam : parameterMetadata.allParams) {
+                        if (allParam.isOutput()) {
+                            outParamsIndexMap.put(allParam.getName().toUpperCase(), index++);
+                        }
+                    }
+                }else if (protocol.isOracleMode() && serverPrepareResult != null) {
+                    // Use columns instead of param, as it provides the names of the returned fields.
+                    outParamsIndexMap = new HashMap<>(serverPrepareResult.getColumns().length);
+                    for (ColumnDefinition column : serverPrepareResult.getColumns()) {
+                        outParamsIndexMap.put(column.getName().toUpperCase(), index++);
                     }
                 }
 
                 //resetParamIndex,
                 for (int i = 0; i < outputParameterMapper.length; i++) {
                     CallParameter parameter = params.get(i);
-                    outputParameterMapper[i] = parameter.isOutput() ? outParamsIndexMap.get(parameter.getName()) : -1;
+                    if (parameter.getName() != null) {
+                        outputParameterMapper[i] = parameter.isOutput() ? outParamsIndexMap.get(parameter.getName().toUpperCase()) : -1;
+                    }
                 }
                 resetSpecialParamIndex = true;
             }
@@ -730,6 +761,13 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
         callParameter.setOutput(true);
+        if (protocol.isOracleMode() && arguments != null) {
+            parsedCallParameters();
+            String name = parsedArgumentsMap.get(parameterIndex).getName();
+            if (!"?".equals(name)) {
+                callParameter.setName(name);
+            }
+        }
 
         if (protocol.isOracleMode()) {
             CallParameter placeHolderParameter = parameterMetadata
@@ -779,6 +817,13 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);
+        if (protocol.isOracleMode() && arguments != null) {
+            parsedCallParameters();
+            String name = parsedArgumentsMap.get(parameterIndex).getName();
+            if (!"?".equals(name)) {
+                callParameter.setName(name);
+            }
+        }
 
         if (protocol.isOracleMode()) {
             CallParameter placeHolderParameter = parameterMetadata
@@ -1350,6 +1395,54 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
     private int checkAndMinusForObFunction(int parameterIndex) {
         return parameterIndex;
+    }
+
+    private void parsedCallParameters() {
+        if (this.parsedArgumentsList != null) {
+            return;
+        }
+        List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>();
+        if (arguments != null) {
+            arguments = Utils.trimSQLString(arguments, false, true, false); //arguments  remove comments
+            paramList = Utils.parseArguments(arguments);
+        }
+
+        //check special parameters like "call test_p(a => ?)"
+        Pattern specialParametersPattern = Pattern.compile("\\w+\\s*=>\\s*\\?");
+        for (int i = 0; i < paramList.size(); i++) {
+            String parsedCallParameterName = paramList.get(i).getName();
+            if (specialParametersPattern.matcher(parsedCallParameterName).find()) {
+                paramList.set(i, new ParsedCallParameters(true, parsedCallParameterName.split("=")[0].trim()));
+            }
+        }
+
+        if (isObFunction) {
+            paramList.add(0, new ParsedCallParameters(true, "?"));
+        }
+
+        if (parsedArgumentsMap == null) {
+            parsedArgumentsMap = new HashMap<>(paramList.size());
+        }
+        int placeHolderIndex = 1;
+        for (ParsedCallParameters callParameters : paramList) {
+            if (callParameters.isParam()) {
+                callParameters.setPlaceHolderIndex(placeHolderIndex++);
+                parsedArgumentsMap.put(callParameters.getPlaceHolderIndex(), callParameters);
+            }
+        }
+        parsedArgumentsList = paramList;
+    }
+
+    /**
+     * Beginning with versions 4.2.5.6, 4.3.5.5, and 4.4.2,
+     * the server provides support for including precise `inout` parameter information in the prepare_execute response.
+     * It also supports processing `out` and `null` parameter data types received from the client.
+     */
+    protected boolean supportsAccurateParameterInfo() {
+        String obServerVersion = this.protocol.getObServerVersion();
+        return (Version.compare(obServerVersion, "4.3") < 0 && Version.compare(obServerVersion, "4.2.5.6") >= 0)
+                || (Version.compare(obServerVersion, "4.4") < 0 && Version.compare(obServerVersion, "4.3.5.5") >= 0 )
+                || Version.compare(obServerVersion, "4.4.2") >= 0;
     }
 
 }
