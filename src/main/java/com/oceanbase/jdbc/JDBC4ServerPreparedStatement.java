@@ -174,7 +174,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
     }
   }
 
-  private boolean usePrepareExecute() {
+  public boolean usePrepareExecute() {
       return protocol.supportStmtPrepareExecute() && !(sqlType == OceanBaseStatement.STMT_SELECT && options.extendOracleResultSetClass);
   }
   /**

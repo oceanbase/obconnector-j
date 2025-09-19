@@ -47,6 +47,7 @@ package com.oceanbase.jdbc.internal.util;
 public class ParsedCallParameters {
     private boolean isParam;
     private String  name;
+    private int     placeHolderIndex;
 
     public ParsedCallParameters(boolean isParam, String name) {
         this.isParam = isParam;
@@ -60,4 +61,13 @@ public class ParsedCallParameters {
     public String getName() {
         return name;
     }
+
+    public int getPlaceHolderIndex() {
+        return placeHolderIndex;
+    }
+
+    public void setPlaceHolderIndex(int placeHolderIndex) {
+        this.placeHolderIndex = placeHolderIndex;
+    }
+
 }

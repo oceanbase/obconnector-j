@@ -1194,6 +1194,13 @@ public enum DefaultOptions {
                     "that are set by 'Connection.setAutoCommit()' and 'Connection.setTransactionIsolation()' and transaction state as maintained by the protocol, " +
                     "rather than querying the database or blindly sending commands to the database for 'commit()' or 'rollback()' method calls?",
             false),
+    OB_INCLUDE_OUT_OR_NULL_PARAM_TYPEINFO(
+            "obIncludeOutOrNullParamTypeInfo",
+            Boolean.FALSE,
+            "2.4.16",
+            "In Oracle tenant mode, whether to send the data types of OUT parameters and SET NULL parameters of a routine to the server. " +
+                    "This is typically used in scenarios where there are routines with the same name.",
+            false),
     OB_CONVERT_CALLS_TO_BLOCKS(
             "obConvertCallsToBlocks",
             Boolean.FALSE,

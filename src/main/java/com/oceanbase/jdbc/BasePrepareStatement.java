@@ -783,6 +783,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setNull(final int parameterIndex, final int sqlType) throws SQLException {
+        if (this instanceof JDBC4ServerCallableStatement) {
+            if (((JDBC4ServerCallableStatement) this).shouldSendTypeForOutOrNullParam()) {
+                OBRoutineNullParameter nullParameter = new OBRoutineNullParameter(ColumnType.convertSqlTypeToColumnTypeForOracleRoutine(sqlType));
+                setParameter(parameterIndex, nullParameter);
+                return;
+            }
+        }
         setParameter(parameterIndex, new NullParameter());
     }
 
@@ -826,6 +833,13 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      */
     public void setNull(final int parameterIndex, final int sqlType, final String typeName)
                                                                                            throws SQLException {
+        if (this instanceof JDBC4ServerCallableStatement) {
+            if (((JDBC4ServerCallableStatement) this).shouldSendTypeForOutOrNullParam()) {
+                OBRoutineNullParameter nullParameter = new OBRoutineNullParameter(ColumnType.convertSqlTypeToColumnTypeForOracleRoutine(sqlType));
+                setParameter(parameterIndex, nullParameter);
+                return;
+            }
+        }
         setParameter(parameterIndex, new NullParameter());
     }
 

@@ -61,10 +61,7 @@ import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
-import com.oceanbase.jdbc.internal.com.send.parameters.NullParameter;
-import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
-import com.oceanbase.jdbc.internal.com.send.parameters.StreamParameter;
-import com.oceanbase.jdbc.internal.com.send.parameters.StringParameter;
+import com.oceanbase.jdbc.internal.com.send.parameters.*;
 import com.oceanbase.jdbc.internal.util.ParsedCallParameters;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.dao.CallableStatementCacheKey;
@@ -137,6 +134,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             this.isObFunction);
         setParamsAccordingToSetArguments();
         parameterMetadata.parameterCountOfStmt = this.parameterCount;
+        this.isAnonymousBlock = isAnonymousBlock;
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
@@ -472,7 +470,11 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         for (int index = 0; index < params.size(); index++) {
             if (!params.get(index).isInput()) {
                 if (!protocol.isOracleMode() || params.get(index).isOutput()) {
-                    super.setParameter(index + 1, new NullParameter());
+                    NullParameter nullParameter = new NullParameter();
+                    if (params.get(index).isOutput() && shouldSendTypeForOutOrNullParam()) {
+                        nullParameter = new OBRoutineNullParameter(ColumnType.convertSqlTypeToColumnTypeForOracleRoutine(params.get(index).getOutputSqlType()));
+                    }
+                    super.setParameter(index + 1, nullParameter);
                 } else {
                     throw new SQLException("Missing IN or OUT parameter in index::" + (index + 1));
                 }
@@ -683,5 +685,10 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 protocol.endCallInterface("JDBC4ServerCallableStatement.executeForStreamParameter");
             }
         }
+    }
+
+    public boolean shouldSendTypeForOutOrNullParam() {
+        boolean serverVersionSupported = this.supportsAccurateParameterInfo();
+        return serverVersionSupported && protocol.isOracleMode() && options.obIncludeOutOrNullParamTypeInfo && parameterMetadata.hasDuplicateRoutine ;
     }
 }

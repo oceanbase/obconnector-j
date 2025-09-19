@@ -114,6 +114,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     protected String                    query;
     protected SQLException              outputParamSetParamValueException;
     protected int                       parameterCountOfStmt;
+    protected boolean                   hasDuplicateRoutine;
 
     public String getProName() {
         return name;
@@ -244,6 +245,14 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     void resetParams(String arguments, boolean isObFunction) throws SQLException {
+        /*
+         * When hasDuplicateRoutine is true，it indicates the presence of a routine with the same name.
+         * At this point, the server's parameter information is considered unreliable.
+         * */
+        if (hasDuplicateRoutine) {
+            return;
+        }
+
         List<ParsedCallParameters> paramList = new ArrayList<ParsedCallParameters>();
         if (arguments != null) {
             arguments = Utils.trimSQLString(arguments, false, true, false); //arguments  remove comments
