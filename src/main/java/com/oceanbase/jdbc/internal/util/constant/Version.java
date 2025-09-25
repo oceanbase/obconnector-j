@@ -63,7 +63,7 @@ public final class Version {
 
     static {
         InputStream inputStream = null;
-        String tmpVersion = "2.4.15";
+        String tmpVersion = "2.4.16";
         try {
             Properties prop = new Properties();
             inputStream = Version.class.getResourceAsStream("/oceanbase.properties");

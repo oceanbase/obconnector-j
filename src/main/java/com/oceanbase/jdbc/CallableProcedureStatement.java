@@ -137,6 +137,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         clone.hasInOutParameters = hasInOutParameters;
         clone.outputParameterMapper = outputParameterMapper;
         clone.resetSpecialParamIndex = false;
+        clone.resetPrepareExecuteParamIndex = false;
         return clone;
     }
 
