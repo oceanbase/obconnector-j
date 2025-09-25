@@ -300,7 +300,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals("上海    ", attributes[1]);
     }
 
-    @Test 
+    @Test
     public void testForDima2024080100104013452() throws Exception {
         Connection conn = setConnection("&useServerPrepStmts=true&cacheCallableStmts=false");
         Statement stmt = conn.createStatement();
@@ -334,7 +334,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
             stmt.execute("alter system set open_cursors = 50");
         }
     }
-    
+
     @Test
     public void testForDima2024071500103721142() throws Exception {
         Statement stmt = sharedConnection.createStatement();
@@ -639,7 +639,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
             }
         }
     }
-    
+
     @Test
     public void testForDima2024110800105015106() throws SQLException {
         Connection conn = setConnection();
@@ -649,7 +649,7 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.setInt(2, 30);
         cs.execute();
         Assert.assertEquals(60, cs.getInt(1));
-    } 
+    }
 
     @Test
     public void testForDima2024062200102856610() throws SQLException {
@@ -1223,4 +1223,83 @@ public class ProcedureOracleTest extends BaseOracleTest {
             Assert.assertTrue(e.getMessage().contains("no data found"));
         }
     }
+
+    @Test
+    public void testForDima2025092300111121722() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&obConvertCallsToBlocks=true&cacheCallableStmts=true");
+        Statement stmt = conn.createStatement();
+        String packageSql = "create or replace package pkg3 is procedure p1(p1 in varchar2, p2 out varchar2);"
+                            + " procedure p1(p1 in varchar2, p2 in varchar2, p3 in varchar2, p4 out varchar2); end; ";
+
+        String bodySql = "create or replace package body pkg3 is"
+                         + " procedure p1(p1 in varchar2, p2 out varchar2) is begin p2 := p1 || '_1'; end;"
+                         + " procedure p1(p1 in varchar2, p2 in varchar2, p3 in varchar2, p4 out varchar2) is begin p4 := p1 || p2 || p3; end; end;";
+
+        stmt.execute(packageSql);
+        stmt.execute(bodySql);
+
+        CallableStatement cs = conn.prepareCall("call pkg3.p1(?,?,?,?)");
+        cs.setString(1, "test");
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.execute();
+        try {
+            cs.getString(2);
+        } catch (SQLException e) {
+            assertEquals("Parameter in index '2' is not out parameter", e.getMessage());
+        }
+        assertEquals("test", cs.getString(4));
+
+        cs = conn.prepareCall("call pkg3.p1(?,?,?,?)");
+        cs.setString(1, "test");
+        cs.setString(2, "bbb");
+        cs.setString(3, "aaa");
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.execute();
+        assertEquals("testbbbaaa", cs.getString(4));
+
+        cs = conn.prepareCall("call pkg3.p1(?,?,?,?)");
+        cs.setString(1, "test");
+        cs.setString(2, "222");
+        cs.setString(3, "aaa");
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.execute();
+        assertEquals("test222aaa", cs.getString(4));
+    }
+
+    @Test
+    public void testForPLFix() throws SQLException {
+        Connection conn = setConnection("&obIncludeOutOrNullParamTypeInfo=true&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package pkg1 as procedure p1(a out int);procedure p1(a out varchar2);end;");
+        stmt.execute("create or replace package body pkg1 as procedure p1(a out int) is begin a:=111;end;procedure p1(a out varchar2)is begin a:='aaa';end;end;");
+        CallableStatement cs = conn.prepareCall("call pkg1.p1(?)");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        assertEquals("111", cs.getString(1));
+
+        cs = conn.prepareCall("call pkg1.p1(?)");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.execute();
+        assertEquals("aaa", cs.getString(1));
+
+        cs = conn.prepareCall("{call pkg1.p1(a => ?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        assertEquals("111", cs.getString(1));
+
+        // testForDima2025092300111130039
+        cs = conn.prepareCall("begin pkg1.p1(?); end;");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.execute();
+        assertEquals("aaa", cs.getString(1));
+
+        // testForDima2025092300111130363
+        cs = conn.prepareCall("declare v varchar2(10); begin pkg1.p1(?); end;");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.execute();
+        assertEquals("aaa", cs.getString(1));
+    }
+
 }

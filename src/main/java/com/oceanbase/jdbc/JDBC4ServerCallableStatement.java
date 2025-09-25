@@ -689,6 +689,6 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
 
     public boolean shouldSendTypeForOutOrNullParam() {
         boolean serverVersionSupported = this.supportsAccurateParameterInfo();
-        return serverVersionSupported && protocol.isOracleMode() && options.obIncludeOutOrNullParamTypeInfo && parameterMetadata.hasDuplicateRoutine ;
+        return serverVersionSupported && protocol.isOracleMode() && options.obIncludeOutOrNullParamTypeInfo && (parameterMetadata.hasDuplicateRoutine || this.isAnonymousBlock) ;
     }
 }
