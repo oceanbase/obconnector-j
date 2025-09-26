@@ -532,11 +532,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
     private void readMetadataUsingInformationSchema() throws SQLException {
         PreparedStatement cps;
         if (database != null && !database.equals("")) {
-            cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND SPECIFIC_NAME = ? AND SPECIFIC_SCHEMA = ? ORDER BY ORDINAL_POSITION",
+            cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND UPPER(SPECIFIC_NAME) = ? AND UPPER(SPECIFIC_SCHEMA) = ? ORDER BY ORDINAL_POSITION",
                     Statement.NO_GENERATED_KEYS);
             cps.setString(3, this.database.replace("`", "").toUpperCase(Locale.ROOT));
         } else {
-            cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND SPECIFIC_NAME = ? ORDER BY ORDINAL_POSITION",
+            cps = con.clientPrepareStatement("SELECT * from information_schema.PARAMETERS WHERE ROUTINE_TYPE = ? AND UPPER(SPECIFIC_NAME) = ? ORDER BY ORDINAL_POSITION",
                     Statement.NO_GENERATED_KEYS);
         }
         cps.setString(1, isFunction ? "FUNCTION" : "PROCEDURE");
