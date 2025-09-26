@@ -691,4 +691,17 @@ public class ProcedureTest extends BaseTest {
         Assert.assertEquals(2, batchPs.getLargeUpdateCount());
     }
 
+    @Test
+    public void testForDima2025081900110514307() throws SQLException {
+        // use case sensitive server
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createProcedure("test_pl1", "(inout c0 int) begin select 1;end;");
+
+        CallableStatement cs = conn.prepareCall("{call test_pl1(?)}");
+        cs.setInt(1, 1);
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        Assert.assertEquals(1, cs.getInt(1));
+    }
+
 }
