@@ -557,4 +557,26 @@ public class ClobTest extends BaseTest {
         assertEquals(4, clob.position(rs.getClob(5), 1));
         assertEquals(-1, clob.position(rs.getClob(6), 1));
     }
+
+    @Test
+    public void testForDima2025092500111166542() throws SQLException {
+        Connection conn = setConnection();
+        java.sql.Clob clob = conn.createClob();
+        String str = "aaaaabbbbb";
+        clob.setString(1, str);
+        assertEquals(str, clob.getSubString(1, str.length()));
+        clob.free();
+        assertEquals(0, clob.length());
+        assertNull(clob.getAsciiStream());
+        assertNull(clob.getCharacterStream());
+        assertNull(clob.getSubString(1, 1));
+        assertEquals(-1, clob.position("ab",1));
+        assertEquals(0, clob.length());
+        try {
+            clob.truncate(3);
+            fail();
+        } catch (Exception e) {
+            assertTrue(e instanceof NullPointerException);
+        }
+    }
 }

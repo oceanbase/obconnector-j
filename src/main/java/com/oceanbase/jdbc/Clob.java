@@ -170,11 +170,8 @@ public class Clob extends Lob implements java.sql.Clob {
      * @return string value of blob content.
      */
     public String getString() throws SQLException {
-        if (this.isClosed) {
-            if (isOracleMode) {
-                throw new SQLException("Invalid operation on closed LOB");
-            }
-            return null;
+        if (this.isClosed && isOracleMode) {
+            throw new SQLException("Invalid operation on closed LOB");
         }
 
         // out-row of lob locator v2, needs to be read from server by procedure DBMS_LOB.READ
