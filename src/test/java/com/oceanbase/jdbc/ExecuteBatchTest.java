@@ -63,6 +63,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -513,6 +514,40 @@ public class ExecuteBatchTest extends BaseTest {
         rs = ps2.getGeneratedKeys(); // 8
         assertTrue(rs.next());
         assertEquals(8, rs.getInt(1));
+    }
+
+    @Test
+    public void testForDima2025091500110972489() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&rewriteBatchedStatements=true");
+        createTable("batch_t1", "c1 int, c2 varchar(10)");
+        PreparedStatement ps = conn.prepareStatement("insert into batch_t1 values(?, ?)");
+        ParameterMetaData parameterMetaData;
+
+        ps.setInt(1, 1);
+        ps.setString(2, "test_" + 1);
+        ps.execute();
+        parameterMetaData = ps.getParameterMetaData();
+        Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+        for (int j = 0; j < 3; j++) {
+            ps.setInt(1, j);
+            ps.setString(2, "batch_" + j);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        parameterMetaData = ps.getParameterMetaData();
+        Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+        ps.setInt(1, 2);
+        ps.setString(2, "test_" + 2);
+        ps.execute();
+        parameterMetaData = ps.getParameterMetaData();
+        Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(*) from batch_t1");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(5, rs.getInt(1));
     }
 
 }

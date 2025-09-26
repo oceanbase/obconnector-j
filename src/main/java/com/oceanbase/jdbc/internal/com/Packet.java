@@ -85,6 +85,7 @@ public class Packet {
     public static final byte CURSOR_TYPE_SCROLLABLE       = (byte) 0x04; // reserved, but not implemented server side
 
     /*----------------------- Execution Modes -----------------------------------*/
+    public static final int  EXECUTE_MODE_INIT            = 0x0000;     // initial value
     public static final int  OCI_BATCH_MODE               = 0x00000001; // batch the oci stmt for exec
     public static final int  OCI_EXACT_FETCH              = 0x00000002; // fetch exact rows specified
     //public static final int                               = 0x00000004; // available

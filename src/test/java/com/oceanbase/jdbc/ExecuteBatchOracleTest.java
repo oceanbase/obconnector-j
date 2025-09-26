@@ -503,4 +503,44 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         conn.commit();
         ps.close();
     }
+
+    @Test
+    public void testForDima2025091500110972489() throws SQLException {
+        Connection conn;
+        boolean useOraclePrepareExecute = false;
+        ParameterMetaData parameterMetaData;
+        for (int i = 0; i < 2; i++) {
+            conn = setConnection("&useServerPrepStmts=true&rewriteBatchedStatements=true&useOraclePrepareExecute=" + useOraclePrepareExecute);
+            createTable("batch_t1", "c1 int, c2 varchar2(10)");
+            PreparedStatement ps = conn.prepareStatement("insert into batch_t1 values(?, ?)");
+
+            ps.setInt(1, 1);
+            ps.setString(2, "test_" + 1);
+            ps.execute();
+            parameterMetaData = ps.getParameterMetaData();
+            Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+            for (int j = 0; j < 3; j++) {
+                ps.setInt(1, j);
+                ps.setString(2, "batch_" + j);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            parameterMetaData = ps.getParameterMetaData();
+            Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+            ps.setInt(1, 2);
+            ps.setString(2, "test_" + 2);
+            ps.execute();
+            parameterMetaData = ps.getParameterMetaData();
+            Assert.assertEquals(2, parameterMetaData.getParameterCount());
+
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select count(*) from batch_t1");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+            useOraclePrepareExecute = true;
+        }
+    }
+
 }
