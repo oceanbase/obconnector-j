@@ -54,6 +54,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
+
 public class ProcedureTest extends BaseTest {
     public static String procName  = "testProc" + getRandomString(5);
     public static String tableUser = "tUser" + getRandomString(5);
@@ -722,6 +724,45 @@ public class ProcedureTest extends BaseTest {
         } catch (SQLException e) {
             Assert.assertEquals("No parameter with index 1", e.getMessage());
         }
+    }
+
+    @Test
+    public void testForDima2025080800110373548() throws SQLException {
+        createFunction("testBug17248345", "(funccol int) returns int deterministic return 1");
+        createProcedure("testBug17248345", "(in proccol int) select 1");
+        ResultSet rsMD;
+        DatabaseMetaData testDbMetaData;
+
+        Connection conn = setConnection("&getProceduresReturnsFunctions=true");
+        testDbMetaData = conn.getMetaData();
+        rsMD = testDbMetaData.getProcedures(null, null, "testBug17248345");
+        assertTrue(rsMD.next());
+        assertEquals("testBug17248345", rsMD.getString("PROCEDURE_NAME"));
+        assertTrue(rsMD.next());
+        assertEquals("testBug17248345", rsMD.getString("PROCEDURE_NAME"));
+        assertFalse(rsMD.next());
+
+        rsMD = testDbMetaData.getProcedureColumns(null, null, "testBug17248345", "%");
+        assertTrue(rsMD.next());
+        assertEquals(null, rsMD.getString("COLUMN_NAME"));
+        assertTrue(rsMD.next());
+        assertEquals("funccol", rsMD.getString("COLUMN_NAME"));
+        assertTrue(rsMD.next());
+        assertEquals("proccol", rsMD.getString("COLUMN_NAME"));
+        assertFalse(rsMD.next());
+
+        conn = setConnection("&getProceduresReturnsFunctions=false");
+        testDbMetaData = conn.getMetaData();
+        rsMD = testDbMetaData.getProcedures(null, null, "testBug17248345");
+        assertTrue(rsMD.next());
+        assertEquals("testBug17248345", rsMD.getString("PROCEDURE_NAME"));
+        assertFalse(rsMD.next());
+
+        rsMD = testDbMetaData.getProcedureColumns(null, null, "testBug17248345", "%");
+        assertTrue(rsMD.next());
+        assertEquals("testBug17248345", rsMD.getString("PROCEDURE_NAME"));
+        assertEquals("proccol", rsMD.getString("COLUMN_NAME"));
+        assertFalse(rsMD.next());
     }
 
 }
