@@ -2091,4 +2091,18 @@ public class ResultSetOracleTest extends BaseOracleTest {
             assertTrue(e.getMessage().contains("is not in class java.lang.Long range"));
         }
     }
+
+    @Test
+    public void testForDima2025070100109750305() throws SQLException {
+        String[] urls = new String[]{"&useServerPrepStmts=false", "&useServerPrepStmts=true", "&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=10", "&useOraclePrepareExecute=true"};
+        for (int i = 0; i < 4; i++) {
+            try (Connection conn = setConnection(urls[i])) {
+                PreparedStatement ps = conn.prepareStatement("select 1 from dual where 1 = 2");
+                ResultSet rs = ps.executeQuery();
+                Assert.assertFalse(rs.isAfterLast());
+                Assert.assertFalse(rs.next());
+                Assert.assertTrue(rs.isAfterLast());
+            }
+        }
+    }
 }

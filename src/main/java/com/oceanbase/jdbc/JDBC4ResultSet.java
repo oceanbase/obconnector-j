@@ -961,6 +961,10 @@ public class JDBC4ResultSet implements ResultSetImpl {
             // COMPLETE ResultSet
             // has read all data and pointer is after last row, so return true
             // but when resultSet contain no row at all, ServerStatus.LAST_ROW_SENT is 1, but jdbc say that must return false
+            // oracleMode should return true when the ResultSet is empty.
+            if (protocol.isOracleMode()) {
+                return dataSize >= 0;
+            }
             return dataSize > 0;
         }
     }
@@ -1159,6 +1163,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
         cancelRowInserts();
 
         if (dataSize == 0) {
+            rowPointer = dataSize;
             return false;
         }
         if (rowPointer < dataSize - 1) {
