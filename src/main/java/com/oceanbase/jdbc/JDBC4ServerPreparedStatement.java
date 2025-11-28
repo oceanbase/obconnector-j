@@ -822,7 +822,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
         if (protocol.supportStmtPrepareExecute()) {
           //According to the protocol definition, if using arrayBinding iterationCount > 1.
-          if(options.useServerPrepStmts && !this.protocol.getAutocommit() && protocol.isOracleMode() && options.useArrayBinding && !options.rewriteBatchedStatements) {
+          if(parameterCount > 0 && options.useServerPrepStmts && !this.protocol.getAutocommit() && protocol.isOracleMode() && options.useArrayBinding && !options.rewriteBatchedStatements) {
             executeBatchByArrayBinding = true;
             iterationCount = 2;
           } else {
@@ -883,7 +883,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             }
           }
         } else {
-          if(options.useServerPrepStmts && !this.protocol.getAutocommit() && protocol.isOracleMode() && options.useArrayBinding) {
+          if(parameterCount > 0 && options.useServerPrepStmts && !this.protocol.getAutocommit() && protocol.isOracleMode() && options.useArrayBinding) {
             if(protocol.supportStmtPrepareExecute()) {
                 executeBatchByArrayBinding = true;
                 iterationCount = 2;
