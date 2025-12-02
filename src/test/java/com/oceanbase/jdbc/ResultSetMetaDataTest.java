@@ -501,4 +501,17 @@ public class ResultSetMetaDataTest extends BaseTest {
         Assert.assertTrue(average < 40);
 
     }
+
+    @Test
+    public void testForDima2025042500108530972( ) throws SQLException {
+        Connection  conn = setConnection("&useInformationSchema=false");
+        createTable("t1", "c1 char(1) DEFAULT NULL COMMENT '中文12232列'", "COMMENT = '中文1223表名'");
+        DatabaseMetaData testDbMetaData = conn.getMetaData();
+        ResultSet rs = testDbMetaData.getTables("test", null, "t1", new String[] {"TABLE"});
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("", rs.getString("REMARKS"));
+        rs = testDbMetaData.getColumns("test", null, "t1", "c1");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("中文12232列", rs.getString("REMARKS"));
+    }
 }

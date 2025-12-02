@@ -1048,7 +1048,7 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                 data[0] = catalog;
                 data[1] = null;
                 data[2] = rs.getString(1);
-                data[4] = new byte[0].toString();
+                data[4] = "";
                 data[5] = null;
                 data[6] = null;
                 data[7] = null;
