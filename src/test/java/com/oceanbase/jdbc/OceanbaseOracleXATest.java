@@ -47,6 +47,7 @@ import java.sql.*;
 import java.util.UUID;
 
 import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -360,6 +361,25 @@ public class OceanbaseOracleXATest extends BaseOracleTest {
         ResultSet rs1 = stmt.executeQuery("select count(1) from t1 ");
         Assert.assertTrue(rs1.next());
         Assert.assertEquals(2, rs1.getInt(1));
+    }
+
+    @Test
+    public void testForDima2025121800112846967() {
+        String user = System.getProperty("user");
+        String password = System.getProperty("password");
+        String host = System.getProperty("host");
+        String port = System.getProperty("port");
+
+        String url = String.format("jdbc:oceanbase:loadbalance://@(NET_SERVICE_NAME=(DESCRIPTION=(OBLB=ON)(ADDRESS_LIST=(OBLB_STRATEGY=RANDOM)(ADDRESS=(PROTOCOL=tcp)(HOST=%s)(PORT=%s)(WEIGHT=100)))))/test", host, port);
+        XADataSource ds = new OceanBaseDataSource(url);
+        try {
+            XAConnection xaConnection = ds.getXAConnection(user, password);
+            Assert.assertEquals("OceanBase", xaConnection.getConnection().getMetaData().getDatabaseProductName());
+            xaConnection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
     }
 
 }
