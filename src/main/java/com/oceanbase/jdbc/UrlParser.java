@@ -109,7 +109,7 @@ public class UrlParser implements Cloneable {
 
     private String               database;
     private Options              options             = null;
-    private List<HostAddress>    addresses;
+    private List<HostAddress>    addresses           = new ArrayList<>();
     private HaMode               haMode;
     private String               initialUrl;
     private boolean              multiMaster;
