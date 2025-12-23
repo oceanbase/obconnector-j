@@ -543,4 +543,28 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2025121500112760149() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        StringBuilder colSqlBuilder = new StringBuilder();
+        for (int i = 0; i < 150; i++) {
+            colSqlBuilder.append("c").append(i).append(" varchar(10),");
+        }
+        String colSql = colSqlBuilder.toString();
+        createTable("zt_1", colSql.substring(0, colSql.length() - 1));
+        // initialize data
+        PreparedStatement ps = conn.prepareStatement("select * from zt_1", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ps.setFetchSize(1000);
+        ResultSet rs = ps.executeQuery();
+        for (int i = 0; i < 10; i++) {
+            while (rs.next()) {
+                for (int j = 0; j < 150; j++) {
+                    rs.getString(i + 1);
+                }
+            }
+            rs.beforeFirst();
+        }
+        rs.close();
+        ps.close();
+    }
 }
