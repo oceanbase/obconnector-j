@@ -1302,4 +1302,22 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals("aaa", cs.getString(1));
     }
 
+    @Test
+    public void testForDima2025111300111925940() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure fqguo(p1 number, pcur out number, p2 number) as begin pcur := 1024; end;");
+
+        CallableStatement cs = conn.prepareCall("{call fqguo(?, ?, ?)}");
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.INTEGER);
+        cs.setInt(3, 2);
+        cs.execute();
+        assertEquals(1024, cs.getInt(2));
+
+        cs = conn.prepareCall("{call fqguo(15, ?, 8)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.execute();
+        assertEquals(1024, cs.getInt(1));
+    }
 }

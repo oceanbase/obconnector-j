@@ -1435,7 +1435,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     }
 
     /**
-     * Beginning with versions 4.2.5.6, 4.3.5.5, and 4.4.2,
+     * Beginning with versions 4.2.5.6, 4.3.5.5, 4.4.2 and 4.5.1
      * the server provides support for including precise `inout` parameter information in the prepare_execute response.
      * It also supports processing `out` and `null` parameter data types received from the client.
      */
@@ -1443,7 +1443,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         String obServerVersion = this.protocol.getObServerVersion();
         return (Version.compare(obServerVersion, "4.3") < 0 && Version.compare(obServerVersion, "4.2.5.6") >= 0)
                 || (Version.compare(obServerVersion, "4.4") < 0 && Version.compare(obServerVersion, "4.3.5.5") >= 0 )
-                || Version.compare(obServerVersion, "4.4.2") >= 0;
+                || (Version.compare(obServerVersion, "4.5") < 0 && Version.compare(obServerVersion, "4.4.2") >= 0 )
+                || Version.compare(obServerVersion, "4.5.1") >= 0;
     }
 
 }
