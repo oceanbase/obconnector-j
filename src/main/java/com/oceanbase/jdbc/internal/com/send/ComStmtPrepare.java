@@ -96,7 +96,7 @@ public class ComStmtPrepare {
             byte firstByte = buffer.getByteAt(buffer.position);
 
             if (firstByte == Packet.ERROR) {
-                throw buildErrorException(buffer);
+                throw buildErrorException(buffer, protocol);
             }
 
             if (firstByte == Packet.OK) {
@@ -164,8 +164,8 @@ public class ComStmtPrepare {
         }
     }
 
-    private static SQLException buildErrorException(Buffer buffer) {
-        ErrorPacket ep = new ErrorPacket(buffer);
+    private static SQLException buildErrorException(Buffer buffer, Protocol protocol) {
+        ErrorPacket ep = new ErrorPacket(buffer, protocol.getOptions());
         String message = ep.getMessage();
         if (1054 == ep.getErrorCode()) {
             return new SQLException(
