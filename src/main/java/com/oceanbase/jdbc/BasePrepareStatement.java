@@ -518,6 +518,16 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
      *     PreparedStatement</code>
      */
     public void setArray(final int parameterIndex, final Array array) throws SQLException {
+        if (!protocol.isOracleMode()) {
+            ObArray obArray = (ObArray) array;
+            if (obArray == null || obArray.getAttrCount() == 0) {
+                setNull(parameterIndex, ColumnType.NULL);
+            } else {
+                setParameter(parameterIndex, new ArrayParameter(obArray, this.connection
+                    .getProtocol().getOptions().getCharacterEncoding()));
+            }
+            return;
+        }
         if (array == null) {
             setNull(parameterIndex, ColumnType.NULL);
             return;

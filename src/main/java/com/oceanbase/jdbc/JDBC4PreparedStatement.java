@@ -59,9 +59,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
 import com.oceanbase.jdbc.internal.com.read.resultset.SelectResultSet;
+import com.oceanbase.jdbc.internal.com.send.parameters.ArrayParameter;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.StandardPacketOutputStream;
@@ -683,6 +685,15 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
 
   @Override
   public void setArray(final int parameterIndex, final Array array) throws SQLException {
+    if (!protocol.isOracleMode()) {
+      ObArray obArray = (ObArray) array;
+      if (obArray == null || obArray.getAttrCount() == 0) {
+        setNull(parameterIndex, ColumnType.NULL);
+      } else {
+        setParameter(parameterIndex, new ArrayParameter(obArray, this.connection.getProtocol().getOptions().getCharacterEncoding()));
+      }
+      return;
+    }
     throw new SQLFeatureNotSupportedException();
   }
 

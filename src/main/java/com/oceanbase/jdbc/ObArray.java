@@ -72,4 +72,6 @@ public interface ObArray extends ResultSet, Array, ObComplexData {
                                                                                        throws SQLException;
 
     void free() throws SQLException;
+
+    boolean isMysqlType() throws SQLException;
 }

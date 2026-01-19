@@ -1147,4 +1147,16 @@ public class ArrayImpl extends ComplexData implements ObArray {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
     }
+
+    @Override
+    public boolean isMysqlType() throws SQLException {
+        int baseType = this.getBaseType();
+        return baseType == MysqlComplexDataType.TYPE_TINYINT_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_SMALLINT_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_INT_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_BIGINT_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_FLOAT_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_DOUBLE_MYSQL
+               || baseType == MysqlComplexDataType.TYPE_VARCHAR_MYSQL;
+    }
 }

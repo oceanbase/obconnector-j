@@ -681,4 +681,76 @@ public class DataTypeMysqlCompleteTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2025081800110504306() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("zt1",
+            "c1 int[], c2 varchar(256)[], c3 bigint[], c4 TINYINT[], c5 float[], c6 double[], c7 SMALLINT[]");
+
+        Array intArray = conn.createArrayOf("int", new Integer[] { 1, 2 });
+        Array varcharArr = conn
+            .createArrayOf("varchar", new String[] { "aaa", "bbb", "OceanBase" });
+        Array bigintArr = conn.createArrayOf("bigint", new Long[] { 1L, 2L });
+        Array tinyintArr = conn.createArrayOf("tinyint", new Byte[] { 1, 2 });
+        Array floatArr = conn.createArrayOf("float", new Float[] { 1.0f, 2.0f });
+        Array doubleArr = conn.createArrayOf("double", new Double[] { 1.0, 2.0 });
+        Array smallintArr = conn.createArrayOf("smallint", new Short[] { 1 });
+
+        PreparedStatement ps = conn
+            .prepareStatement("insert into zt1 values (?, ?, ?, ?, ?, ?, ?)");
+        ps.setArray(1, intArray);
+        ps.setArray(2, varcharArr);
+        ps.setArray(3, bigintArr);
+        ps.setArray(4, tinyintArr);
+        ps.setArray(5, floatArr);
+        ps.setArray(6, doubleArr);
+        ps.setArray(7, smallintArr);
+        ps.execute();
+
+        ps.setArray(1, intArray);
+        ps.setArray(2, null);
+        ps.setNull(3, Types.ARRAY);
+        ps.setObject(4, null);
+        ps.setObject(5, floatArr);
+        ps.setArray(6, doubleArr);
+        ps.setArray(7, smallintArr);
+        ps.execute();
+
+        Array timeStampArr = conn.createArrayOf("timeStamp",
+            new Timestamp[] { Timestamp.valueOf("2025-09-12 12:23:34") });
+        try {
+            ps.setArray(1, timeStampArr);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Unsupported database type.", e.getMessage());
+        }
+
+        PreparedStatement queryStmt = conn.prepareStatement("select * from zt1");
+        queryStmt.execute();
+        ResultSet rs = queryStmt.getResultSet();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("[1,2]", rs.getString(1));
+        Assert.assertEquals("[\"aaa\",\"bbb\",\"OceanBase\"]", rs.getString(2));
+        Assert.assertEquals("[1,2]", rs.getString(3));
+        Assert.assertEquals("[1,2]", rs.getString(4));
+        Assert.assertEquals("[1,2]", rs.getString(5));
+        Assert.assertEquals("[1,2]", rs.getString(6));
+        Assert.assertEquals("[1]", rs.getString(7));
+
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("[1,2]", rs.getString(1));
+        Assert.assertNull(rs.getString(2));
+        Assert.assertNull(rs.getString(3));
+        Assert.assertNull(rs.getString(4));
+        Assert.assertEquals("[1,2]", rs.getString(5));
+        Assert.assertEquals("[1,2]", rs.getString(6));
+        Assert.assertEquals("[1]", rs.getString(7));
+
+        try {
+            rs.getArray(1);
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("Arrays not supported", e.getMessage());
+        }
+    }
 }
