@@ -811,4 +811,53 @@ public class NewFeatureOracleTest extends BaseOracleTest {
         conn.setAutoCommit(true);
         stmt.execute("alter system set open_cursors= 50");
     }
+
+    @Test
+    public void testForDima2025071500109964437() throws SQLException {
+        for(int k = 0; k < 2;k++) {
+            try {
+                String connUrl = "&useServerPrepStmts=true&useArrayBinding=true&autocommit=false";
+                if (k == 1) {
+                    connUrl = "&useOraclePrepareExecute=true&useArrayBinding=true&autocommit=false&rewriteBatchedStatements=false";
+                }
+                Connection conn = setConnection(connUrl);
+                createTable("testNVarChar2", "pk int,c1 NVARCHAR2(10), c2 NVARCHAR2(20),c3 clob");
+                conn.setAutoCommit(false);
+                PreparedStatement ps = conn.prepareStatement("insert into testNVarChar2 values(?,?,NLS_LOWER(?),RTRIM(?,'abc'))");
+
+                ps.setObject(1, 0);
+                ps.setObject(2, null);
+                ps.setObject(3, getRandomString(10));
+                ps.setObject(4, getRandomString(32760));
+                ps.addBatch();
+
+                int num1 = 1000;
+                int num2 = 100;
+                for (int i = 1; i <= num1; i++) {
+                    ps.setInt(1, i);
+                    ps.setString(2, getRandomString(1));
+                    ps.setString(3, getRandomString(10));
+                    ps.setString(4, getRandomString(32767));
+                    ps.addBatch();
+                }
+                for (int i = 0; i < num2; i++) {
+                    ps.setInt(1, i+1001);
+                    ps.setString(2, null);
+                    ps.setString(3, "aaa");
+                    ps.setString(4, null);
+                    ps.addBatch();
+                }
+                ps.setInt(1, 11001);
+                ps.setString(2, "a");
+                ps.setString(3, "b");
+                ps.setString(4, "18992");
+                ps.addBatch();
+                int[] effectRows = ps.executeBatch();
+                Assert.assertEquals(num1 + num2 + 2, effectRows.length);
+                conn.commit();
+            } catch (SQLException e) {
+                fail();
+            }
+        }
+    }
 }

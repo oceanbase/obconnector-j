@@ -349,26 +349,22 @@ public class ComStmtPrepareExecute {
             ParameterHolder curHolder = queryParameters.get(0)[i];
             pos.writeFieldLength(queryParamtersSize);
             int nullCount = (queryParamtersSize + 7) / 8;
-            int nullBitsPosition = pos.getPosition();
             if (!curHolder.isLongData()) {
-                for (int j = 0; j < nullCount; j++) {
-                    pos.writeBytes((byte) 0, 1);
+                byte[] nullBitsBuffer = new byte[nullCount];
+                for (int j = 0; j < queryParamtersSize; ++j) {
+                    ParameterHolder holder = queryParameters.get(j)[i];
+                    if (holder == null || holder.isLongData() || holder.isNullData()) {
+                        nullBitsBuffer[j / 8] |= (1 << (j % 8));
+                    }
                 }
+                pos.write(nullBitsBuffer, 0, nullCount);
             }
-            byte[] nullBitsBuffer = new byte[nullCount];
+
             for (int j = 0; j < queryParamtersSize; ++j) {
                 ParameterHolder holder = queryParameters.get(j)[i];
                 if (null != holder && !holder.isLongData() && !holder.isNullData()) {
                     holder.writeBinary(pos);
-                } else {
-                    nullBitsBuffer[j / 8] |= (1 << (j % 8));
                 }
-            }
-            if (!curHolder.isLongData()) {
-                int endPosition = pos.getPosition();
-                pos.setPosition(nullBitsPosition);
-                pos.write(nullBitsBuffer); // null bits
-                pos.setPosition(endPosition);
             }
         }
         pos.writeInt(protocol.getExecuteMode());
