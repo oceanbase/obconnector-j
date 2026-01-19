@@ -88,6 +88,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
     private final ColumnDefinition[] columnDefinition;
     private final int                columnInformationLength;
+    private boolean                  readFromHead;
 
     /**
      * Constructor.
@@ -102,6 +103,16 @@ public class BinaryRowProtocol extends RowProtocol {
         super(maxFieldSize, options);
         this.columnDefinition = columnDefinition;
         this.columnInformationLength = columnInformationLength;
+        for (int i = 0; i < columnDefinition.length; i++) {
+            switch (columnDefinition[i].getColumnType()) {
+                case COMPLEX:
+                case CURSOR:
+                    readFromHead = true;
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     /**
@@ -117,17 +128,6 @@ public class BinaryRowProtocol extends RowProtocol {
         if ((buf[1 + (newIndex + 2) / 8] & (1 << ((newIndex + 2) % 8))) != 0) {
             this.lastValueNull = BIT_LAST_FIELD_NULL;
             return;
-        }
-        boolean readFromHead = false;
-        for (int i = 0; i < columnDefinition.length; i++) {
-            switch (columnDefinition[i].getColumnType()) {
-                case COMPLEX:
-                case CURSOR:
-                    readFromHead = true;
-                    break;
-                default:
-                    break;
-            }
         }
 
         // if not must parse data until reading the desired field
