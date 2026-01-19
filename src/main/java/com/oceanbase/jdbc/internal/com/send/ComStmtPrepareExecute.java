@@ -123,7 +123,7 @@ public class ComStmtPrepareExecute {
             // check if parameters type (using setXXX) have change since previous request,
             // and resend new header type if so
             int mustSendHeaderType = 0;
-            if (parameterTypeHeader == null || parameterTypeHeader[0] == null) {
+            if (protocol.getOptions().sendTypesToServer || parameterTypeHeader == null || parameterTypeHeader[0] == null) {
                 mustSendHeaderType = 1;
             } else {
                 for (int i = 0; i < parameterCount; i++) {

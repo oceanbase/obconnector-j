@@ -55,6 +55,7 @@ import static org.junit.Assert.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
+import java.sql.Clob;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -883,6 +884,28 @@ public class PreparedStatementTest extends BaseTest {
             Assert.assertEquals("+00:00", rs.getString(2));
             rs.close();
         }
+    }
+
+    @Test
+    public void testForDima2025121900112871006() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&cachePrepStmts=true&sendTypesToServer=true");
+        createTable("t_type", "c1 int, c2 varchar(20), c3 timestamp");
+
+        Clob clob = conn.createClob();
+        clob.setString(1, "aaa");
+        for (int i = 0; i < 4; i++) {
+            PreparedStatement ps = conn.prepareStatement("insert into t_type values(?, ?, ?)");
+            ps.setInt(1, i);
+            ps.setString(2, "test_" + i);
+            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.execute();
+            ps.close();
+        }
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(1) from t_type");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(4, rs.getInt(1));
     }
 
     public  String getRandomVarchar(int length){

@@ -1207,6 +1207,12 @@ public enum DefaultOptions {
             "2.4.16",
             "Whether to convert {call xxx} syntax to BEGIN ... END; for Oracle tenants.",
             false),
+    SEND_TYPES_TO_SERVER(
+            "sendTypesToServer",
+            Boolean.TRUE,
+            "2.4.17",
+            "Control whether to forcibly send data types to the server.",
+            false),
     ;
 
   private final String optionName;
