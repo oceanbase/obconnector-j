@@ -588,6 +588,14 @@ public abstract class OceanBaseOracleDatabaseMetadata implements DatabaseMetaDat
         return true;
     }
 
+    public boolean supportsCatalogsInDataManipulation() {
+        return false;
+    }
+
+    public boolean supportsSchemasInDataManipulation() {
+        return true;
+    }
+
     public ResultSet keysQuery(String parentSchema, String parentTable, String foreignSchema,
                                String foreignTable, String orderBy) throws SQLException {
         int index = 1;
