@@ -212,13 +212,17 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
-    public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
+    public void setOnDuplicateKeyContained(boolean onDuplicateKeyContained) {
 
     }
 
     @Override
-    public boolean containOnDuplicateKey() {
+    public boolean getOnDuplicateKeyContained() {
         return false;
     }
 
+    @Override
+    public boolean getOnDuplicateKeySet() {
+        return false;
+    }
 }

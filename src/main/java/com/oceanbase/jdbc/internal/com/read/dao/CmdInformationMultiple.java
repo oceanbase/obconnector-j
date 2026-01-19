@@ -71,7 +71,8 @@ public class CmdInformationMultiple implements CmdInformation {
     private boolean               rewritten;
     private String                serverInfo;
     private boolean               arrayBinding;
-    private boolean               containOnDuplicateKey;
+    private boolean               onDuplicateKeyContained;
+    private boolean               onDuplicateKeySet;
 
     /**
      * Object containing update / insert ids, optimized for only multiple result.
@@ -288,13 +289,18 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
-    public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
-        this.containOnDuplicateKey = containOnDuplicateKey;
+    public void setOnDuplicateKeyContained(boolean onDuplicateKeyContained) {
+        this.onDuplicateKeyContained = onDuplicateKeyContained;
+        this.onDuplicateKeySet = true;
     }
 
     @Override
-    public boolean containOnDuplicateKey() {
-        return containOnDuplicateKey;
+    public boolean getOnDuplicateKeyContained() {
+        return onDuplicateKeyContained;
     }
 
+    @Override
+    public boolean getOnDuplicateKeySet() {
+        return onDuplicateKeySet;
+    }
 }
