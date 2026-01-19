@@ -60,6 +60,7 @@ import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.extend.datatype.ArrayImpl;
 import com.oceanbase.jdbc.extend.datatype.ComplexDataType;
+import com.oceanbase.jdbc.extend.datatype.MysqlComplexDataType;
 import com.oceanbase.jdbc.extend.datatype.StructImpl;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -320,7 +321,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                                                                              .getLogger("JDBC-COST-LOGGER");
 
     private OceanBaseConnection      lobConn;
-    
+
     private Properties              clientInfo                           = new Properties();
 
     private static final Pattern    CLIENTINFO_NAME_PATTERN              = Pattern.compile("\\w+\\.[a-zA-Z0-9_$]+");
@@ -1909,11 +1910,19 @@ public class OceanBaseConnection implements ConnectionImpl {
      *                      on a closed connection
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
+        ComplexDataType attrType = null;
         if (!this.getProtocol().isOracleMode()) {
-            throw exceptionFactory.notSupported("Array type is not supported");
+            attrType = new MysqlComplexDataType(typeName, this.getSchema(),
+                MysqlComplexDataType.getObComplexType(typeName));
+            MysqlComplexDataType parentType = new MysqlComplexDataType("", this.getSchema(),
+                ComplexDataType.TYPE_COLLECTION);
+            parentType.setAttrCount(1);
+            parentType.setAttrType(0, attrType);
+            ObArray array = new ArrayImpl(parentType);
+            array.setAttrData(elements);
+            return array;
         }
         boolean fetchTypeFromRemote = true;
-        ComplexDataType attrType = null;
         if (getCacheComplexData()) {
             synchronized (this.complexDataCache) {
                 attrType = (ComplexDataType) this.complexDataCache.get(typeName.toUpperCase());
@@ -2130,7 +2139,7 @@ public class OceanBaseConnection implements ConnectionImpl {
                 ps.close();
             }
             if (conn != null) {
-                conn.close();;
+                conn.close();
             }
         }
         return getComplexDataTypeFromCache(synonymOriginName);
