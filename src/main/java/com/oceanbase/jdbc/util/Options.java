@@ -249,6 +249,7 @@ public class Options implements Cloneable {
     public boolean convertNoneNanoSecsToDate = true;
     public boolean obIncludeOutOrNullParamTypeInfo;
     public boolean obConvertCallsToBlocks;
+    public boolean sendTypesToServer = true;
 
     @Override
     public String toString() {
@@ -767,6 +768,9 @@ public class Options implements Cloneable {
         if (obConvertCallsToBlocks != opt.obConvertCallsToBlocks) {
             return false;
         }
+        if (sendTypesToServer != opt.sendTypesToServer) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -934,6 +938,7 @@ public class Options implements Cloneable {
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
         result = 31 * result + (obIncludeOutOrNullParamTypeInfo ? 1 : 0);
         result = 31 * result + (obConvertCallsToBlocks ? 1 : 0);
+        result = 31 * result + (sendTypesToServer ? 1 : 0);
         return result;
     }
 
