@@ -739,18 +739,6 @@ public class OceanBaseConnection implements ConnectionImpl {
         return ps;
     }
 
-    private String getCachedSql(String originSql) {
-        if (StringCacheUtil.sqlStringCache == null) {
-            return originSql;
-        }
-        String sqlCache = (String) StringCacheUtil.sqlStringCache.get(originSql);
-        if (sqlCache == null) {
-            StringCacheUtil.sqlStringCache.put(originSql, originSql);
-            sqlCache = originSql;
-        }
-        return sqlCache;
-    }
-
     /**
      * Send ServerPrepareStatement or ClientPrepareStatement depending on SQL query and options If
      * server side and PREPARE can be delayed, a facade will be return, to have a fallback on client
@@ -775,9 +763,6 @@ public class OceanBaseConnection implements ConnectionImpl {
 
         if (sql != null) {
             String sqlQuery = Utils.nativeSql(sql, protocol);
-            if (options.useSqlStringCache) {
-                sqlQuery = getCachedSql(sqlQuery);
-            }
             // Oracle mode don't determine sql string, so that anonymous blocks can be executed through PS . Maybe ORACLE_PREPARABLE_STATEMENT_PATTERN  should be added (todo).
             if (options.useServerPrepStmts && (this.protocol.isOracleMode() || PREPARABLE_STATEMENT_PATTERN_MYSQL.matcher(sqlQuery).find())) {
                 // prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?

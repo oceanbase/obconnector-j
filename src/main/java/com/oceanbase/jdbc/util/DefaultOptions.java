@@ -1606,6 +1606,10 @@ public enum DefaultOptions {
     if (options.autoReconnect) {
       throw new IllegalArgumentException("The autoReconnect parameter is no longer supported since version 2.4.16. Please remove it from the URL.");
     }
+
+    if (options.useSqlStringCache) {
+      throw new IllegalArgumentException("The useSqlStringCache parameter is no longer supported since version 2.4.17. Please remove it from the URL.");
+    }
   }
 
   /**
