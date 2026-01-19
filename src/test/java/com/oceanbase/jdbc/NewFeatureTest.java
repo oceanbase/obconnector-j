@@ -49,8 +49,6 @@ import java.util.Arrays;
 
 import org.junit.*;
 
-import com.oceanbase.jdbc.internal.util.StringCacheUtil;
-
 import static org.junit.Assert.*;
 
 public class NewFeatureTest extends BaseTest {
@@ -328,24 +326,6 @@ public class NewFeatureTest extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        }
-    }
-
-    @Test
-    public void testFixVulnerabilities() throws SQLException {
-        try {
-            String str1 = new String("select 1 from dual");
-            String str2 = new String("select 1 from dual");
-            Assert.assertFalse(str1 == str2);
-            String sqlCache = (String) StringCacheUtil.sqlStringCache.get(str1);
-            if (sqlCache == null) {
-                StringCacheUtil.sqlStringCache.put(str1, str1);
-            }
-            String sqlCache2 = (String) StringCacheUtil.sqlStringCache.get(str2);
-            Assert.assertTrue(str1 == sqlCache2);
-        } catch (Exception e) {
-            Assert.fail();
-            e.printStackTrace();
         }
     }
 

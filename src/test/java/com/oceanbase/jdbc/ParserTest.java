@@ -211,4 +211,14 @@ public class ParserTest extends BaseTest {
         rs.close();
         pstmt.close();
     }
+
+    @Test
+    public void testForDima2025091000110897658() {
+        try {
+           Connection conn = setConnection("&useSqlStringCache=true");
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("error parsing url : The useSqlStringCache parameter is no longer supported since version 2.4.17. Please remove it from the URL.", e.getMessage());
+        }
+    }
 }
