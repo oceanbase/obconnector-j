@@ -1347,4 +1347,12 @@ public class DatabaseMetadataOracleTest extends BaseOracleTest {
         metaData = ps.getMetaData();
         Assert.assertNull(metaData);
     }
+
+    @Test
+    public void testForDima2025092500111164826() throws SQLException {
+        Connection conn = sharedConnection;
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertFalse(metaData.supportsCatalogsInDataManipulation());
+        Assert.assertTrue(metaData.supportsSchemasInDataManipulation());
+    }
 }

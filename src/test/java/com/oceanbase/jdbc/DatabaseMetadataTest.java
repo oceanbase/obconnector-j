@@ -2118,4 +2118,12 @@ public class DatabaseMetadataTest extends BaseTest {
         }
         columns.close();
     }
+
+    @Test
+    public void testForDima2025092500111164826() throws SQLException {
+        Connection conn = sharedConnection;
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertTrue(metaData.supportsCatalogsInDataManipulation());
+        Assert.assertFalse(metaData.supportsSchemasInDataManipulation());
+    }
 }

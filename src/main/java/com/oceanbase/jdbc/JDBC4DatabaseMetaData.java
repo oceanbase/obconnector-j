@@ -2499,6 +2499,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsSchemasInDataManipulation() {
+        if (this.protocol.isOracleMode()) {
+            return super.supportsSchemasInDataManipulation();
+        }
         return false;
     }
 
@@ -2522,6 +2525,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
     }
 
     public boolean supportsCatalogsInDataManipulation() {
+        if (this.protocol.isOracleMode()) {
+            return super.supportsCatalogsInDataManipulation();
+        }
         return true;
     }
 
