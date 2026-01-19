@@ -54,6 +54,8 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.*;
 import java.util.*;
 
@@ -1874,5 +1876,30 @@ public class DateTest extends BaseTest {
             stmt.close();
             connection.close();
         }
+    }
+
+    @Test
+    public void testForDima2025082500110618388() throws ParseException, SQLException {
+        Connection conn = setConnection();
+        createTable("test_table", "id int(11) NOT NULL, timestamp_col timestamp NULL DEFAULT NULL");
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date parsedDate = sdf.parse("1991-08-05 09:52:02");
+        Timestamp timestamp = new Timestamp(parsedDate.getTime());
+
+        String insertSQL = "INSERT INTO test_table (id, timestamp_col) VALUES (?, ?)";
+        PreparedStatement pstmt = conn.prepareStatement(insertSQL);
+        pstmt.setInt(1, 10);
+        pstmt.setTimestamp(2, timestamp);
+        pstmt.executeUpdate();
+
+        String selectSQL = "SELECT timestamp_col, cast(timestamp_col as char) FROM test_table WHERE id = ?";
+        pstmt = conn.prepareStatement(selectSQL);
+        pstmt.setInt(1, 10);
+        ResultSet rs = pstmt.executeQuery();
+        Assert.assertTrue(rs.next());
+        assertEquals("1991-08-05 09:52:02.0", rs.getTimestamp(1).toString());
+        Assert.assertEquals("1991-08-05 09:52:02", rs.getString(2));
+
     }
 }
