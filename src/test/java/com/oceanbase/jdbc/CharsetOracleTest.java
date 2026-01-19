@@ -3,6 +3,7 @@ package com.oceanbase.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -46,5 +47,21 @@ public class CharsetOracleTest extends BaseOracleTest{
         rs = stmt.executeQuery("select * from t_c2");
         Assert.assertTrue(rs.next());
         Assert.assertEquals("嘅_係_嘢_冇_咁_镬_嘥_2", rs.getString(1));
+    }
+
+    @Test
+    public void testForDima2025110500111807169() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("create or replace procedure pCharset(p1 number) is begin if p1 < 0 then raise_application_error(-20001, '非法参数'); end if; end;");
+        Connection conn =setConnection("&characterEncoding=gbk");
+        CallableStatement call = conn.prepareCall("call pCharset(?) ");
+        call.setInt(1, -10);
+        try {
+            call.execute();
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("非法参数"));
+        }
+
     }
 }

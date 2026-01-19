@@ -562,7 +562,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         try {
             // parse server greeting packet.
-            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
+            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader, options);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
@@ -782,7 +782,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     // ERR_Packet
                     // see https://mariadb.com/kb/en/library/err_packet/
                     // *************************************************************************************
-                    ErrorPacket errorPacket = new ErrorPacket(buffer);
+                    ErrorPacket errorPacket = new ErrorPacket(buffer, options);
                     if (credential.getPassword() != null && !credential.getPassword().isEmpty()
                         && options.passwordCharacterEncoding == null
                         && errorPacket.getErrorCode() == 1045
@@ -1601,7 +1601,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 break;
 
             case Packet.ERROR:
-                ErrorPacket ep = new ErrorPacket(buffer);
+                ErrorPacket ep = new ErrorPacket(buffer, options);
                 throw exceptionFactory.create("Could not connect: " + ep.getMessage(),
                     ep.getSqlState(), ep.getErrorCode());
 
@@ -1624,7 +1624,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 break;
 
             case Packet.ERROR:
-                ErrorPacket ep = new ErrorPacket(buffer);
+                ErrorPacket ep = new ErrorPacket(buffer, options);
                 throw exceptionFactory.create("Could not connect: " + ep.getMessage(),
                     ep.getSqlState(), ep.getErrorCode());
 

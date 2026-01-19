@@ -50,6 +50,10 @@
  */
 package com.oceanbase.jdbc.internal.com.read;
 
+import com.oceanbase.jdbc.internal.util.StringUtils;
+import com.oceanbase.jdbc.util.Options;
+
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /** See protocol documentation https://mariadb.com/kb/en/err_packet/ */
@@ -64,17 +68,18 @@ public class ErrorPacket {
      *
      * @param buffer current stream rawBytes
      */
-    public ErrorPacket(Buffer buffer) {
+    public ErrorPacket(Buffer buffer, Options options) {
+        Charset charset = StringUtils.getCharset(options.getCharacterEncoding());
         buffer.skipByte(); // 0xff Error header
         errorCode = buffer.readShort();
         if (buffer.getByte() == '#') {
             buffer.skipByte(); // skip '#'
             sqlState = buffer.readString(5);
-            message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+            message = buffer.readStringNullEnd(charset);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,
-                StandardCharsets.UTF_8);
+                    charset);
             sqlState = "HY000";
         }
     }

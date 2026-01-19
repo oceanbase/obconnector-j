@@ -1895,7 +1895,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final Buffer buffer = reader.getPacket(true);
 
       if (buffer.getByteAt(0) == Packet.ERROR) {
-        final ErrorPacket ep = new ErrorPacket(buffer);
+        final ErrorPacket ep = new ErrorPacket(buffer, options);
         throw new SQLException(
             "Could not select database '" + database + "' : " + ep.getMessage(),
             ep.getSqlState(),
@@ -2422,7 +2422,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     removeHasMoreResults();
     this.hasWarnings = false;
 
-    ErrorPacket ep = new ErrorPacket(buffer);
+    ErrorPacket ep = new ErrorPacket(buffer, options);
 
     results.addStatsError(false);
     // force current status to in transaction to ensure rollback/commit, since command may have issue a transaction

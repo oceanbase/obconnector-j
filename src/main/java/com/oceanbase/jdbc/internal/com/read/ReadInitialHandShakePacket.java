@@ -59,6 +59,7 @@ import java.sql.SQLException;
 import com.oceanbase.jdbc.internal.io.input.PacketInputStream;
 import com.oceanbase.jdbc.internal.protocol.OceanBaseCapabilityFlag;
 import com.oceanbase.jdbc.internal.util.Utils;
+import com.oceanbase.jdbc.util.Options;
 
 public class ReadInitialHandShakePacket {
 
@@ -83,11 +84,11 @@ public class ReadInitialHandShakePacket {
      * @throws IOException if a connection error occur
      * @throws SQLException if received an error packet
      */
-    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException,
+    public ReadInitialHandShakePacket(final PacketInputStream reader, Options options) throws IOException,
                                                                      SQLException {
         Buffer buffer = reader.getPacket(true);
         if (buffer.getByteAt(0) == ERROR) {
-            ErrorPacket errorPacket = new ErrorPacket(buffer);
+            ErrorPacket errorPacket = new ErrorPacket(buffer, options);
             throw new SQLException(errorPacket.getMessage());
         }
         protocolVersion = buffer.readByte();
