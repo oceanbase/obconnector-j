@@ -544,6 +544,30 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2025120400112451265() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true&cachePrepStmts=true");
+        createTable("t_batch", "c1 int, c2 varchar2(10)");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            conn.setAutoCommit(false);
+            for (int i = 0; i < 10; i++) {
+                PreparedStatement ps = conn.prepareStatement("insert into t_batch values(?, ?)");
+                ps.setInt(1, i);
+                ps.setString(2, "test_" + i);
+                ps.addBatch();
+                ps.executeBatch();
+                ps.close();
+            }
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        } finally {
+            stmt.execute("alter system set open_cursors = 50");
+        }
+    }
+
+    @Test
     public void testForDima2025121500112760149() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true");
         StringBuilder colSqlBuilder = new StringBuilder();
