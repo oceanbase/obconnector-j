@@ -77,7 +77,8 @@ public class CmdInformationBatch implements CmdInformation {
   private boolean rewritten;
   private String serverInfo;
   private boolean arrayBinding;
-  private boolean containOnDuplicateKey;
+  private boolean onDuplicateKeyContained;
+  private boolean onDuplicateKeySet;
 
   /**
    * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch, doesn't
@@ -119,7 +120,7 @@ public class CmdInformationBatch implements CmdInformation {
   @Override
   public void addSuccessStat(long updateCount, long insertId) {
     insertIds.add(insertId);
-    if (containOnDuplicateKey) {
+    if (onDuplicateKeyContained) {
       insertIdNumber += updateCount <= 0 ? 1 : updateCount;
     } else {
       insertIdNumber += updateCount;
@@ -271,7 +272,7 @@ public class CmdInformationBatch implements CmdInformation {
       Iterator<Long> idIterator = insertIds.iterator();
       for (Long updateCountLong : updateCounts) {
           int updateCount = updateCountLong.intValue();
-          if (this.containOnDuplicateKey() && !rewritten) {
+          if (this.getOnDuplicateKeyContained() && !rewritten) {
             // When using ON DUPLICATE KEY UPDATE, an insertId always exists, but updateCount may be >=0.
             // If it's 0, the following loop won't populate the ID, and values >=2 cause index overflow. Thus, we temporarily set it to 1.
             updateCount = 1;
@@ -349,12 +350,18 @@ public class CmdInformationBatch implements CmdInformation {
   }
 
   @Override
-  public void setContainOnDuplicateKey(boolean containOnDuplicateKey) {
-    this.containOnDuplicateKey = containOnDuplicateKey;
+  public void setOnDuplicateKeyContained(boolean onDuplicateKeyContained) {
+    this.onDuplicateKeyContained = onDuplicateKeyContained;
+    this.onDuplicateKeySet = true;
   }
 
   @Override
-  public boolean containOnDuplicateKey() {
-    return containOnDuplicateKey;
+  public boolean getOnDuplicateKeyContained() {
+    return onDuplicateKeyContained;
+  }
+
+  @Override
+  public boolean getOnDuplicateKeySet() {
+    return onDuplicateKeySet;
   }
 }

@@ -550,4 +550,15 @@ public class ExecuteBatchTest extends BaseTest {
         Assert.assertEquals(5, rs.getInt(1));
     }
 
+    @Test
+    public void testForDima2025121200112691130() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("test", "id int");
+        StringBuilder sql = new StringBuilder();
+        for(int i = 1;i <= 5000;i++){
+            sql.append("delete from test where id=" + i +" ;");
+        }
+        PreparedStatement ps = conn.prepareStatement(sql.toString());
+        Assert.assertEquals(0, ps.executeUpdate());
+    }
 }

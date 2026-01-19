@@ -166,7 +166,7 @@ public class Results {
         this.toCursorFetch = false;
     }
 
-    boolean containOnDuplicateKey(String sql, Protocol protocol) {
+    boolean isOnDuplicateKeyContained(String sql, Protocol protocol) {
         if (sql == null || sql.length() == 0) {
             return false;
         }
@@ -201,13 +201,16 @@ public class Results {
                 return;
             }
         }
-        boolean containOnDuplicateKey = containOnDuplicateKey(statement.getActualSql(), statement.getConnection().getProtocol());
-        cmdInformation.setContainOnDuplicateKey(containOnDuplicateKey);
+        boolean onDuplicateKeyContained = cmdInformation.getOnDuplicateKeyContained();
+        if (!cmdInformation.getOnDuplicateKeySet()) {
+            onDuplicateKeyContained = isOnDuplicateKeyContained(statement.getActualSql(), statement.getConnection().getProtocol());
+            cmdInformation.setOnDuplicateKeyContained(onDuplicateKeyContained);
+        }
         cmdInformation
             .addSuccessStat(
                 updateCount,
                 insertId,
-                containOnDuplicateKey,
+                onDuplicateKeyContained,
                 serverInfo);
     }
 

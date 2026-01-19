@@ -99,7 +99,9 @@ public interface CmdInformation {
 
     boolean getArrayBinding();
 
-    void setContainOnDuplicateKey(boolean containOnDuplicateKey);
+    void setOnDuplicateKeyContained(boolean onDuplicateKeyContained);
 
-    boolean containOnDuplicateKey();
+    boolean getOnDuplicateKeyContained();
+
+    boolean getOnDuplicateKeySet();
 }
