@@ -188,7 +188,7 @@ public class TextRowProtocol extends RowProtocol {
             case OLDDECIMAL:
             case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
+                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toPlainString(),
                     columnInfo);
             case BINARY_FLOAT:
                 if (getProtocol().isOracleMode()) {

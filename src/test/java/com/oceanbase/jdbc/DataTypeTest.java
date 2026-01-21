@@ -1557,4 +1557,39 @@ public class DataTypeTest extends BaseTest {
         assertTrue(rs4.next());
         assertEquals("2000-01-01", rs4.getString(1));
     }
+
+    @Test
+    public void testForDima2026011600113504280() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("t_number", "c1 decimal(20,10)");
+        Statement stmt = conn.createStatement();
+        String[] val1 = new String[]{"0.1", "0.01", "0.001", "0.0001", "0.00001", "0.000001", "0.0000001", "0.00000001",
+                                      "1", "10", "100", "1000", "10000", "100000", "1000000", "10000000", "100000000"};
+        for (String val : val1) {
+            stmt.execute("insert into t_number values(" + val + ")");
+        }
+
+        String[] res1 = new String[]{"0.1000000000", "0.0100000000", "0.0010000000", "0.0001000000", "0.0000100000", "0.0000010000", "0.0000001000", "0.0000000100",
+                "1.0000000000", "10.0000000000", "100.0000000000", "1000.0000000000", "10000.0000000000", "100000.0000000000", "1000000.0000000000", "10000000.0000000000", "100000000.0000000000"};
+        PreparedStatement ps1 = conn.prepareStatement("select * from t_number");
+        ResultSet rs = ps1.executeQuery();
+        int index = 0;
+        while (rs.next()) {
+            Assert.assertEquals(res1[index], rs.getString(1));
+            index ++;
+        }
+        Assert.assertEquals(17, index);
+
+        conn = setConnection("&useServerPrepStmts=true");
+        String[] res2 = new String[]{"0.1000000000", "0.0100000000", "0.0010000000", "0.0001000000", "0.0000100000", "0.0000010000", "1.000E-7", "1.00E-8",
+                "1.0000000000", "10.0000000000", "100.0000000000", "1000.0000000000", "10000.0000000000", "100000.0000000000", "1000000.0000000000", "10000000.0000000000", "100000000.0000000000"};
+        ps1 = conn.prepareStatement("select * from t_number");
+        rs = ps1.executeQuery();
+        index = 0;
+        while (rs.next()) {
+            Assert.assertEquals(res2[index], rs.getString(1));
+            index ++;
+        }
+        Assert.assertEquals(17, index);
+    }
 }

@@ -385,7 +385,8 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
             case OBDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(),
+                return (bigDecimal == null) ? null :
+                        zeroFillingIfNeeded(getProtocol().isOracleMode() ? bigDecimal.toPlainString() : bigDecimal.toString(),
                     columnInfo);
             case BINARY_FLOAT:
                 Float f = getInternalFloat(columnInfo);

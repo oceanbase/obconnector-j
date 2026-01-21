@@ -895,4 +895,33 @@ public class OracleDataTypeTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2026011600113504280() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("t_number", "c1 number(20, 10), c2 decimal, c3 float");
+        Statement stmt = conn.createStatement();
+        String[] val1 = new String[]{"0.1", "0.01", "0.001", "0.0001", "0.00001", "0.000001", "0.0000001", "0.00000001",
+                                      "1", "10", "100", "1000", "10000", "100000", "1000000", "10000000", "100000000"};
+        for (String val : val1) {
+            stmt.execute("insert into t_number values(" + val + ", " + val + ", " + val + ")");
+        }
+
+        String[] res1 = new String[]{"0.1", "0.01", "0.001", "0.0001", "0.00001", "0.000001", "0.0000001", "0.00000001",
+                "1", "10", "100", "1000", "10000", "100000", "1000000", "10000000", "100000000"};
+        String[] res2 = new String[]{"0", "0", "0", "0", "0", "0", "0", "0",
+                "1", "10", "100", "1000", "10000", "100000", "1000000", "10000000", "100000000"};
+        String[] res3 = new String[]{"0.1", "0.01", "0.001", "0.0001", "0.00001", "0.000001", "0.0000001", "0.00000001",
+                "1", "10", "100", "1000", "10000", "100000", "1000000", "10000000", "100000000"};
+
+        PreparedStatement ps1 = conn.prepareStatement("select * from t_number");
+        ResultSet rs1 = ps1.executeQuery();
+        int index = 0;
+        while (rs1.next()) {
+            Assert.assertEquals(res1[index], rs1.getString(1));
+            Assert.assertEquals(res2[index], rs1.getString(2));
+            Assert.assertEquals(res3[index], rs1.getString(3));
+            index ++;
+        }
+        Assert.assertEquals(17, index);
+    }
 }
