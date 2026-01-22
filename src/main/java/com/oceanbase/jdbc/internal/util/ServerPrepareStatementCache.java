@@ -85,7 +85,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
         if (mustBeRemoved) {
             ServerPrepareResult serverPrepareResult = ((ServerPrepareResult) eldest.getValue());
             serverPrepareResult.setRemoveFromCache();
-            if (serverPrepareResult.canBeDeallocate()) {
+            if (serverPrepareResult.tryMarkForDeallocate()) {
                 try {
                     protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
                 } catch (SQLException e) {
@@ -102,6 +102,15 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
         result.setAddToCache();
         super.put(key, result);
         return cachedServerPrepareResult;
+    }
+
+    public synchronized ServerPrepareResult remove(String key) {
+        ServerPrepareResult serverPrepareResult = super.remove(key);
+        if (serverPrepareResult != null) {
+            serverPrepareResult.setRemoveFromCache();
+            serverPrepareResult.needToCache();
+        }
+        return serverPrepareResult;
     }
 
     /**
@@ -123,7 +132,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
             }
         }
         // It is not added to the cache. When stmt.close() is performed, it is actually added to the cache.
-        result.setAddToCache();
+        result.needToCache();
         return null;
     }
 

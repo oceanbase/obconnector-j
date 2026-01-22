@@ -64,6 +64,7 @@ public class ServerPrepareResult implements PrepareResult {
     private final ColumnDefinition[] parameters;
     private ColumnType[]             parameterTypeHeader;
     private final AtomicBoolean      inCache      = new AtomicBoolean();
+    private final AtomicBoolean      needCache    = new AtomicBoolean();
     private Protocol                 unProxiedProtocol;
     // share indicator
     private volatile int             shareCounter = 1;
@@ -111,8 +112,20 @@ public class ServerPrepareResult implements PrepareResult {
         inCache.set(true);
     }
 
+    public boolean isCached() {
+        return inCache.get();
+    }
+
     public void setRemoveFromCache() {
         inCache.set(false);
+    }
+
+    public void needToCache() {
+        needCache.set(true);
+    }
+
+    public boolean getNeedToCache() {
+        return needCache.get() && canBeDeallocate();
     }
 
     /**
@@ -135,16 +148,18 @@ public class ServerPrepareResult implements PrepareResult {
     }
 
     /**
-     * Asked if can be deallocate (is not shared in other statement and not in cache) Set deallocate
+     * Asked if can be deallocate (is not shared in other statement and not in cache).
      * flag to true if so.
+     * This method only checks conditions without modifying state.
      *
      * @return true if can be deallocate
      */
     public synchronized boolean canBeDeallocate() {
-        if (shareCounter > 0 || isBeingDeallocate) {
-            return false;
-        }
-        if (!inCache.get()) {
+        return shareCounter <= 0 && !isBeingDeallocate && !inCache.get();
+    }
+
+    public synchronized boolean tryMarkForDeallocate() {
+        if (canBeDeallocate()) {
             isBeingDeallocate = true;
             return true;
         }
@@ -168,6 +183,7 @@ public class ServerPrepareResult implements PrepareResult {
         statementId = 0;
         shareCounter = 1;
         isBeingDeallocate = false;
+        needCache.set(false);
     }
 
     public int getStatementId() {

@@ -1438,4 +1438,34 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
             this.previousTurnParamSize = 1;
         }
     }
+
+    /**
+     * Immediately release server-side PreparedStatement resources.
+     *
+     * <p><strong>Use Cases:</strong>
+     * <ul>
+     *   <li>When the application <strong>does not require caching</strong> of server-side prepared statements</li>
+     * </ul>
+     *
+     * <p><strong>Differences from {@link #realClose(boolean, boolean)}:</strong>
+     * <ul>
+     *   <li>{@code releaseImmediately()}: Forcibly removes prepared statement information from the server and deletes it from the local cache (if present)</li>
+     *   <li>{@code realClose()}: When {@code cachePrepStmts=true}, simply returns the statement to the cache without notifying the server to close</li>
+     * </ul>
+     *
+     * <p>In short:<br>
+     * Need to <strong>immediately and completely</strong> release server resources → use this method;<br>
+     * Allow <strong>caching for reuse</strong> or <strong>delayed release</strong> → use {@code realClose()}.
+     *
+     * @throws SQLException if a database access error occurs
+     */
+    public void releaseImmediately() throws SQLException {
+        logger.debug("closing [ps-id={}] {}", serverPrepareResult.getStatementId(), serverPrepareResult.getSql());
+        this.protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
+        if (serverPrepareResult.isCached()) {
+            this.protocol.prepareStatementCache().remove(this.protocol.getDatabase() + "-" + serverPrepareResult.getSql());
+        }
+        serverPrepareResult.release();
+        released = true;
+    }
 }
