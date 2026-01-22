@@ -48,6 +48,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.oceanbase.jdbc.JDBC4ServerPreparedStatement;
 import com.oceanbase.jdbc.ServerSidePreparedStatement;
 import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
@@ -586,8 +587,11 @@ public class CursorResultSet extends Cursor {
 
     @Override
     public void close() throws SQLException {
-        if (this.statementUsedForFetch != null) {
-            this.statementUsedForFetch.close();
+        if (this.statementUsedForFetch != null  ) {
+            if (statementUsedForFetch instanceof JDBC4ServerPreparedStatement) {
+                JDBC4ServerPreparedStatement statement = (JDBC4ServerPreparedStatement) statementUsedForFetch;
+                statement.releaseImmediately();
+            }
             this.statementUsedForFetch = null;
         }
         super.close();

@@ -1990,21 +1990,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     // so synchronised use count indicator will be decrement.
     serverPrepareResult.decrementShareCounter();
 
-    // store in cache if not deallocate
-    if (options.cachePrepStmts && options.useServerPrepStmts && !serverPrepareResult.canBeDeallocate()) {
+    if (serverPrepareResult.getNeedToCache()) {
       ServerPrepareResult oldPrepareResult = serverPrepareStatementCache.put(database + "-" + serverPrepareResult.getSql(), serverPrepareResult);
       if (oldPrepareResult != null && oldPrepareResult != serverPrepareResult) {
         oldPrepareResult.setRemoveFromCache();
-        if (oldPrepareResult.canBeDeallocate()) {
+        if (oldPrepareResult.tryMarkForDeallocate()) {
           logger.debug("closing [ps-id={}] {}", oldPrepareResult.getStatementId(), oldPrepareResult.getSql());
           forceReleasePrepareStatement(oldPrepareResult.getStatementId());
           oldPrepareResult.release();
         }
       }
+      return;
     }
 
     // deallocate from server if not cached
-    if (serverPrepareResult.canBeDeallocate()) {
+    if (serverPrepareResult.tryMarkForDeallocate()) {
       logger.debug("closing [ps-id={}] {}", serverPrepareResult.getStatementId(), serverPrepareResult.getSql());
       forceReleasePrepareStatement(serverPrepareResult.getStatementId());
       if (options.cachePrepStmts && options.useServerPrepStmts) {

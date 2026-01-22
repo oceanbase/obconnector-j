@@ -1054,4 +1054,38 @@ public class StatementTest extends BaseTest {
         pstmt2.close();
     }
 
+    @Test
+    public void testForDima2025121500112758033() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&cachePrepStmts=true&prepStmtCacheSqlLimit=200");
+        createTable("zt1", "c1 int, c2 varchar(10)");
+
+        Statement statement = conn.createStatement();
+        statement.execute("alter system set open_cursors=10");
+        int paramSize = 100;
+        StringBuffer sb = new StringBuffer("select * from zt1 where c1 in (");
+        for (int j = 0; j < paramSize; j++) {
+            sb.append(" ?,");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(")");
+
+        int count = 0;
+        try {
+            for (int i = 0; i < 15; i++) {
+                PreparedStatement ps = conn.prepareStatement(sb.toString());
+                for (int j = 0; j < paramSize; j++) {
+                    ps.setInt(j + 1, i);
+                }
+                ps.executeQuery();
+                ps.close();
+                count++;
+            }
+        } catch (Exception e) {
+            Assert.fail();
+        } finally {
+            statement.execute("alter system set open_cursors=100");
+        }
+        Assert.assertEquals(15, count);
+    }
+
 }

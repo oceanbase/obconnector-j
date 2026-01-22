@@ -918,5 +918,25 @@ public class PreparedStatementTest extends BaseTest {
         }
         return sb.toString();
     }
+
+    @Test
+    public void testForDima2025070100109745655() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true&cachePrepStmts=true");
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(2);
+        stmt.execute("alter system set open_cursors=5");
+        try {
+            for (int i = 1; i <= 6; i++) {
+                String query_sql = String.format("select 1 from dual where 1= %s;", i);
+                ResultSet rs = stmt.executeQuery(query_sql);
+                rs.close();
+            }
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        } finally {
+            stmt.execute("alter system set open_cursors=100");
+            stmt.close();
+        }
+    }
  
 }
