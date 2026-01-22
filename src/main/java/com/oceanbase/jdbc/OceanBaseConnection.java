@@ -324,6 +324,8 @@ public class OceanBaseConnection implements ConnectionImpl {
 
     private Properties              clientInfo                           = new Properties();
 
+    private ClientInfoProvider       clientInfoProvider;
+
     private static final Pattern    CLIENTINFO_NAME_PATTERN              = Pattern.compile("\\w+\\.[a-zA-Z0-9_$]+");
 
     /**
@@ -1767,6 +1769,10 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     @Override
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
+        if (getClientInfoProviderImpl() != null) {
+            clientInfoProvider.setClientInfo(this, name, value);
+            return;
+        }
         if (this.protocol.isOracleMode()) {
             if (isClosed()) {
                 throw new SQLClientInfoException("No operations allowed after connection closed.", null);
@@ -1799,6 +1805,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     @Override
     public Properties getClientInfo() throws SQLException {
+        if (getClientInfoProviderImpl() != null) {
+            return clientInfoProvider.getClientInfo(this);
+        }
         if (this.protocol.isOracleMode()) {
             checkClosed();
         }
@@ -1829,6 +1838,10 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     @Override
     public void setClientInfo(final Properties properties) throws SQLClientInfoException {
+        if (getClientInfoProviderImpl() != null) {
+            this.clientInfoProvider.setClientInfo(this, properties);
+            return;
+        }
         if (this.protocol.isOracleMode()) {
             if (isClosed()) {
                 throw new SQLClientInfoException("No operations allowed after connection closed.", null);
@@ -1860,6 +1873,9 @@ public class OceanBaseConnection implements ConnectionImpl {
      */
     @Override
     public String getClientInfo(final String name) throws SQLException {
+        if (getClientInfoProviderImpl() != null) {
+            return this.clientInfoProvider.getClientInfo(this, name);
+        }
         if (this.protocol.isOracleMode()) {
             checkClosed();
             if (name == null) {
@@ -2769,4 +2785,24 @@ public class OceanBaseConnection implements ConnectionImpl {
     public CallableStatementCache getCallableStatementCache() {
         return callableStatementCache;
     }
+
+    private synchronized ClientInfoProvider getClientInfoProviderImpl() throws SQLClientInfoException {
+        if (this.clientInfoProvider != null) {
+            return this.clientInfoProvider;
+        }
+
+        if (this.options.clientInfoProvider != null && !this.options.clientInfoProvider.isEmpty()) {
+            ClientInfoProvider infoProvider = null;
+            try {
+                infoProvider = ClassLoaderUtils.newInstance(ClientInfoProvider.class,
+                    this.options.clientInfoProvider);
+                infoProvider.initialize(this, this.options.toProperties());
+                this.clientInfoProvider = infoProvider;
+            } catch (Exception e) {
+                throw new SQLClientInfoException("unable to get ClientInfoProvider", null, e);
+            }
+        }
+        return this.clientInfoProvider;
+    }
+
 }

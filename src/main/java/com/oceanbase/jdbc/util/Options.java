@@ -194,7 +194,8 @@ public class Options implements Cloneable {
     public int     blobSendChunkSize = 1048576;
     public String  connectionCollation = null;
     public boolean allowNanAndInf = false;
-    public String  zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
+    public String zeroDateTimeBehavior = ZERO_DATETIME_EXCEPTION;
+    public String clientInfoProvider;
 
     // OceanBase extended options
     public boolean supportLobLocator = true;
@@ -274,6 +275,26 @@ public class Options implements Cloneable {
         }
         result.append("}");
         return result.toString();
+    }
+
+    public Properties toProperties() {
+        Properties properties = new Properties();
+        Field[] fields = this.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            try {
+                if (!field.isAccessible()) {
+                    field.setAccessible(true);
+                }
+                Object value = field.get(this);
+                if (value != null) {
+                    properties.put(field.getName(), value.toString());
+                }
+            } catch (IllegalAccessException e) {
+                // ignore error
+            }
+        }
+        properties.putAll(nonMappedOptions);
+        return properties;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -768,6 +789,9 @@ public class Options implements Cloneable {
         if (obConvertCallsToBlocks != opt.obConvertCallsToBlocks) {
             return false;
         }
+        if (clientInfoProvider != opt.clientInfoProvider) {
+            return false;
+        }
         if (obClobToStringReturnsContents != opt.obClobToStringReturnsContents) {
             return false;
         }
@@ -941,6 +965,7 @@ public class Options implements Cloneable {
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
         result = 31 * result + (obIncludeOutOrNullParamTypeInfo ? 1 : 0);
         result = 31 * result + (obConvertCallsToBlocks ? 1 : 0);
+        result = 31 * result + (clientInfoProvider != null ? clientInfoProvider.hashCode() : 0);
         result = 31 * result + (obClobToStringReturnsContents ? 1 : 0);
         result = 31 * result + (sendTypesToServer ? 1 : 0);
         return result;
