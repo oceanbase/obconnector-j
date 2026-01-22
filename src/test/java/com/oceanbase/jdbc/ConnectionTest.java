@@ -1221,4 +1221,71 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testForDima2025082900110725760() throws SQLException {
+    Connection conn = setConnection("&useServerPrepStmts=true&clientInfoProvider=com.oceanbase.jdbc.DbmsApplicationInfoProvider");
+    Statement stmt = conn.createStatement();
+    conn.setClientInfo("test", "test_aaa");
+    Assert.assertEquals("test_aaa", conn.getClientInfo("xxx"));
+    ResultSet rs = stmt.executeQuery("select * from oceanbase.GV$OB_PROCESSLIST where INFO like '%GV$OB_PROCESSLIST%';");
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals("test_aaa", rs.getString("client_info"));
+    rs.close();
+
+    Properties properties = new Properties();
+    properties.put("k_aaa", "v_aaa");
+    properties.put("k_bbb", "v_bbb");
+    conn.setClientInfo(properties);
+
+    Properties info = conn.getClientInfo();
+    Assert.assertEquals(1, info.size());
+    Assert.assertEquals("v_aaa", info.get("clientInfo"));
+
+    createTable("test_client_info", "k varchar(10), v varchar(10)");
+    createProcedure("test_clientInfoProvider", "(in k varchar(10), in v varchar(10)) begin insert into test_client_info values (k, v); end;");
+    conn = setConnection("&useServerPrepStmts=true&clientInfoProvider=" + ConnectionOracleTest.TestClientInfoProvider.class.getName());
+    conn.setClientInfo("a11", "v_a11");
+    conn.setClientInfo("a22", "v_a22");
+
+    rs = stmt.executeQuery("select * from test_client_info");
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals("a11", rs.getString(1));
+    Assert.assertEquals("v_a11", rs.getString(2));
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals("a22", rs.getString(1));
+    Assert.assertEquals("v_a22", rs.getString(2));
+  }
+
+  public static class TestClientInfoProvider implements ClientInfoProvider {
+    @Override
+    public void initialize(Connection conn, Properties configurationProps) throws SQLException {}
+
+    @Override
+    public void destroy() throws SQLException {}
+
+    @Override
+    public Properties getClientInfo(Connection conn) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public String getClientInfo(Connection conn, String name) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public void setClientInfo(Connection conn, Properties properties) throws SQLClientInfoException {}
+
+    @Override
+    public void setClientInfo(Connection conn, String name, String value) throws SQLClientInfoException {
+      try (CallableStatement call = conn.prepareCall("call test_clientInfoProvider(?, ?)")) {
+        call.setString(1, name);
+        call.setString(2, value);
+        call.execute();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
 }

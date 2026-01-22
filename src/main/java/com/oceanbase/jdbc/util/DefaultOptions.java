@@ -1207,6 +1207,12 @@ public enum DefaultOptions {
             "2.4.16",
             "Whether to convert {call xxx} syntax to BEGIN ... END; for Oracle tenants.",
             false),
+    clientInfoProvider(
+            "clientInfoProvider",
+            "",
+            "2.4.17",
+            "The name of a class that implements the 'com.oceanbase.jdbc.ClientInfoProvider' interface in order to support JDBC-4.0's 'Connection.get/setClientInfo()' methods.",
+            false),
     OB_CLOB_TO_STRING_RETURNS_CONTENTS(
             "obClobToStringReturnsContents",
             Boolean.FALSE,
