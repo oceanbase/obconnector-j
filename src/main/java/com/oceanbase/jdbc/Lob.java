@@ -187,6 +187,7 @@ public abstract class Lob implements Serializable {
     protected ExceptionInterceptor exceptionInterceptor = null;
     protected boolean              isOracleMode;
     protected boolean              isClosed;
+    protected boolean              clobToStringReturnsContents;
     public Lob() {
         data = new byte[0];
         offset = 0;

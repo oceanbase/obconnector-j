@@ -2206,6 +2206,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             clob = new com.oceanbase.jdbc.Clob(false, data, encoding, this.statement.getConnection());
         }
         clob.isOracleMode = this.protocol.isOracleMode();
+        clob.clobToStringReturnsContents = this.options.obClobToStringReturnsContents;
         return clob;
     }
 
