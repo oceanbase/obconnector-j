@@ -37,11 +37,7 @@ public class TimeoutRecover implements RemoveStrategy {
     public boolean needToChangeStateInfo(HostStateInfo hostStateInfo) {
         long currentTimeNanos = System.nanoTime();
         long entryNanos = hostStateInfo.getTimestamp();
-        long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(currentTimeNanos - entryNanos);
-        if (durationSeconds >= timeout) {
-            return true;
-        } else {
-            return false;
-        }
+        long durationMillis = TimeUnit.NANOSECONDS.toMillis(currentTimeNanos - entryNanos);
+        return durationMillis >= timeout;
     }
 }
