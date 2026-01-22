@@ -1207,6 +1207,12 @@ public enum DefaultOptions {
             "2.4.16",
             "Whether to convert {call xxx} syntax to BEGIN ... END; for Oracle tenants.",
             false),
+    OB_CLOB_TO_STRING_RETURNS_CONTENTS(
+            "obClobToStringReturnsContents",
+            Boolean.FALSE,
+            "2.4.17",
+            "Clob.toString() returns CLOB content (not class name), compatible with pre-2.4.14 JDBC.",
+            false),
     SEND_TYPES_TO_SERVER(
             "sendTypesToServer",
             Boolean.TRUE,

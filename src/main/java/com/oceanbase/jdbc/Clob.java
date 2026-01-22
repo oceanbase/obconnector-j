@@ -165,6 +165,18 @@ public class Clob extends Lob implements java.sql.Clob {
         this.encoding = Charset.defaultCharset().name();
     }
 
+    @Override
+    public String toString() {
+        if (clobToStringReturnsContents) {
+            try {
+                return getString();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return super.toString();
+    }
+
     /**
      *
      * @return string value of blob content.

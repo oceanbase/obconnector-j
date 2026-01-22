@@ -53,7 +53,6 @@ package com.oceanbase.jdbc.util;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -249,6 +248,7 @@ public class Options implements Cloneable {
     public boolean convertNoneNanoSecsToDate = true;
     public boolean obIncludeOutOrNullParamTypeInfo;
     public boolean obConvertCallsToBlocks;
+    public boolean obClobToStringReturnsContents;
     public boolean sendTypesToServer = true;
 
     @Override
@@ -768,6 +768,9 @@ public class Options implements Cloneable {
         if (obConvertCallsToBlocks != opt.obConvertCallsToBlocks) {
             return false;
         }
+        if (obClobToStringReturnsContents != opt.obClobToStringReturnsContents) {
+            return false;
+        }
         if (sendTypesToServer != opt.sendTypesToServer) {
             return false;
         }
@@ -938,6 +941,7 @@ public class Options implements Cloneable {
         result = 31 * result + (oracleXaPrepareThrowException ? 1 : 0);
         result = 31 * result + (obIncludeOutOrNullParamTypeInfo ? 1 : 0);
         result = 31 * result + (obConvertCallsToBlocks ? 1 : 0);
+        result = 31 * result + (obClobToStringReturnsContents ? 1 : 0);
         result = 31 * result + (sendTypesToServer ? 1 : 0);
         return result;
     }

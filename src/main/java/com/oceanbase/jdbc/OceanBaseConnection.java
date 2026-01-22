@@ -1564,6 +1564,7 @@ public class OceanBaseConnection implements ConnectionImpl {
     public java.sql.Clob createClob() {
         Clob clob = new Clob();
         clob.isOracleMode = this.protocol.isOracleMode();
+        clob.clobToStringReturnsContents = this.options.obClobToStringReturnsContents;
         return clob;
     }
 

@@ -1700,4 +1700,35 @@ public class ClobOracleTest extends BaseOracleTest {
         }
         Assert.assertEquals(text, sb.toString());
     }
+
+    @Test
+    public void testForDima2025123100113169804() throws SQLException {
+        Connection conn = setConnection();
+        java.sql.Clob clob = conn.createClob();
+        clob.setString(1, "OceanBase");
+        Assert.assertTrue(clob.toString().contains("com.oceanbase.jdbc.Clob@"));
+
+        createTable("t_clob", "c1 clob");
+        PreparedStatement ps = conn.prepareStatement("insert into t_clob values(?)");
+        ps.setClob(1, clob);
+        ps.execute();
+
+        PreparedStatement queryPs = conn.prepareStatement("select * from t_clob");
+        ResultSet rs = queryPs.executeQuery();
+        Assert.assertTrue(rs.next());
+        java.sql.Clob rsClob = rs.getClob(1);
+        Assert.assertTrue(rsClob.toString().contains("com.oceanbase.jdbc.Clob@"));
+
+        conn = setConnection("&obClobToStringReturnsContents=true");
+        clob = conn.createClob();
+        clob.setString(1, "OceanBase");
+        Assert.assertEquals("OceanBase", clob.toString());
+
+        queryPs = conn.prepareStatement("select * from t_clob");
+        rs = queryPs.executeQuery();
+        Assert.assertTrue(rs.next());
+        rsClob = rs.getClob(1);
+        Assert.assertEquals("OceanBase", rsClob.toString());
+    }
+
 }
