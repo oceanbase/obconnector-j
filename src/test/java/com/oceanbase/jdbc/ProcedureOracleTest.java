@@ -1303,6 +1303,25 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2025101100111371470() throws SQLException {
+        Connection conn = setConnection();
+        createProcedure("test_proc1", "(a varchar2, b out varchar2, c varchar2) is begin b := a || c; end;");
+        CallableStatement cs = conn.prepareCall("call test_proc1(to_char(?), ?, '_oceanbase_' || ?)");
+        cs.setString(1, "test1");
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.setString(3, "test1");
+        cs.execute();
+        Assert.assertEquals("test1_oceanbase_test1", cs.getString(2));
+
+        cs = conn.prepareCall("call test_proc1(to_char(:a), :b, ':ob_oceanbase_' || :c)");
+        cs.setString(1, "test2");
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.setString(3, "test2");
+        cs.execute();
+        Assert.assertEquals("test2:ob_oceanbase_test2", cs.getString(2));
+    }
+
+    @Test
     public void testForDima2025111300111925940() throws SQLException {
         Connection conn = setConnection("&useOraclePrepareExecute=true");
         Statement stmt = conn.createStatement();
@@ -1320,4 +1339,5 @@ public class ProcedureOracleTest extends BaseOracleTest {
         cs.execute();
         assertEquals(1024, cs.getInt(1));
     }
+
 }
