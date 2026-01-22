@@ -704,4 +704,24 @@ public class ProcedureTest extends BaseTest {
         Assert.assertEquals(1, cs.getInt(1));
     }
 
+    @Test
+    public void testForDima2025101100111371470() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createProcedure("test_proc1", "(in a varchar(30), out b varchar(30), in c varchar(30)) begin set b := concat(a, c); end;");
+        CallableStatement cs = conn.prepareCall("call test_proc1(to_char(?), ?,  concat('_oceanbase_', ?))");
+        cs.setString(1, "test1");
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.setString(3, "test1");
+        cs.execute();
+        Assert.assertEquals("test1_oceanbase_test1", cs.getString(2));
+
+        cs = conn.prepareCall("call test_proc1(to_char(:a), :b, '_oceanbase_' || :c)");
+        try {
+            cs.setString(1, "test2");
+            fail();
+        } catch (SQLException e) {
+            Assert.assertEquals("No parameter with index 1", e.getMessage());
+        }
+    }
+
 }

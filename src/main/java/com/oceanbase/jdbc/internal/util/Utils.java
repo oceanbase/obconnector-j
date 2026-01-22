@@ -2045,7 +2045,7 @@ public class Utils {
         String[] parts = token.split("\\s*=>\\s*", 2);
         if (parts.length == 2) {
           String val = parts[1];
-          retList.add(new ParsedCallParameters(val.startsWith("?") || val.startsWith(":"), token));
+          retList.add(new ParsedCallParameters(isValidParameterPlaceholder(token) || val.startsWith(":"), token));
         }
       }
       if (find) {
@@ -2082,7 +2082,7 @@ public class Utils {
 
         if (!inSingleQuote && !inDoubleQuote && c == ',' && !inParentheses) {
           String token = currentParam.toString().trim();
-          retList.add(new ParsedCallParameters(token.startsWith("?") || token.startsWith(":"), token));
+          retList.add(new ParsedCallParameters(isValidParameterPlaceholder(token) || token.startsWith(":"), token));
           currentParam = new StringBuilder();
         } else {
           currentParam.append(c);
@@ -2093,8 +2093,25 @@ public class Utils {
       // add the last one
       if (currentParam.length() > 0) {
         String token = currentParam.toString().trim();
-        retList.add(new ParsedCallParameters(token.startsWith("?") || token.startsWith(":"), token));
+        retList.add(new ParsedCallParameters(isValidParameterPlaceholder(token) || token.startsWith(":"), token));
       }
       return retList;
     }
+
+  /**
+   * Determine whether the question mark placeholder ? is in a valid position in SQL (i.e., not within a single-quoted string literal).
+   *
+   */
+  public static boolean isValidParameterPlaceholder(String token) {
+    int quoteCount = 0;
+    for (int i = 0; i < token.length(); i++) {
+      char c = token.charAt(i);
+      if (c == '\'') {
+        quoteCount++;
+      } else if (c == '?') {
+        return (quoteCount % 2) == 0;
+      }
+    }
+    return false;
+  }
 }
