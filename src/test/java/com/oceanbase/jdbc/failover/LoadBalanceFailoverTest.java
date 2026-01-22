@@ -164,4 +164,47 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
             return value;
         }
     }
+
+    @Test
+    public void testForDima2025021300107205650() throws SQLException, InterruptedException {
+        String host = System.getProperty("host");
+        String port1 = System.getProperty("port1");
+        String port2 = System.getProperty("port2");
+        String user = System.getProperty("user");
+        String password = System.getProperty("password");
+
+        String Config = "(NET_SERVICE_NAME=(DESCRIPTION=\n" +
+                "  (OBLB=ON)\n" +
+                "  (OBLB_BLACKLIST=\n" +
+                "      (\n" +
+                "        REMOVE_STRATEGY=(\n" +
+                "          (NAME=TIMEOUT)\n" +
+                "          (TIMEOUT=5000)\n" +
+                "        )\n" +
+                "      )\n" +
+                "  )\n" +
+                "  (ADDRESS_LIST=\n" +
+                "     (OBLB_STRATEGY=ROTATION)\n" +
+                "     (ADDRESS=(PROTOCOL=tcp)(HOST="+ host +")(port="+ port1 +"))\n" +
+                "     (ADDRESS=(PROTOCOL=tcp)(HOST="+ host +")(port="+ port2 +"))\n" +
+                "   )\n" +
+                "   (CONNECT_DATA=(SERVICE_NAME=OBDATABASE))\n" +
+                "))";
+
+        String url = "jdbc:oceanbase:loadbalance://@" + Config + "/test";
+
+        // Port1 cannot connect, it is expected to connect to port2.
+        Connection conn;
+        conn = DriverManager.getConnection(url, user, password);
+        Assert.assertEquals(Integer.parseInt(port2), ((OceanBaseConnection) conn).getPort());
+        conn.close();
+
+        // Recovery: port1 can be pinged successfully.
+        Thread.sleep(6000);
+
+        // After 6 seconds, port1 is removed from the blacklist; it is expected to connect to port1.
+        conn = DriverManager.getConnection(url, user, password);
+        Assert.assertEquals(Integer.parseInt(port1), ((OceanBaseConnection) conn).getPort());
+        conn.close();
+    }
 }
