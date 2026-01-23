@@ -227,7 +227,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                                 out.write((byte) 2);
                                 out.flush();
                                 publicKey = Sha256PasswordPlugin.readPublicKeyFromSocket(in,
-                                    sequence, options);
+                                    sequence);
                             }
 
                             try {

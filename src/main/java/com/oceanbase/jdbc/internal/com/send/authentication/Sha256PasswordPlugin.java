@@ -106,14 +106,14 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
      * @throws SQLException if server return an Error packet or public key cannot be parsed.
      * @throws IOException if error reading socket
      */
-    public static PublicKey readPublicKeyFromSocket(PacketInputStream reader, AtomicInteger sequence, Options options)
+    public static PublicKey readPublicKeyFromSocket(PacketInputStream reader, AtomicInteger sequence)
                                                                                                      throws SQLException,
                                                                                                      IOException {
         Buffer buffer = reader.getPacket(true);
         sequence.set(reader.getLastPacketSeq());
         switch (buffer.getByteAt(0)) {
             case (byte) 0xFF:
-                ErrorPacket ep = new ErrorPacket(buffer, options);
+                ErrorPacket ep = new ErrorPacket(buffer);
                 String message = ep.getMessage();
                 throw new SQLException("Could not connect: " + message, ep.getSqlState(),
                     ep.getErrorCode());
@@ -266,7 +266,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
                 out.startPacket(sequence.incrementAndGet());
                 out.write((byte) 1);
                 out.flush();
-                publicKey = readPublicKeyFromSocket(in, sequence, options);
+                publicKey = readPublicKeyFromSocket(in, sequence);
             }
 
             try {

@@ -84,11 +84,11 @@ public class ReadInitialHandShakePacket {
      * @throws IOException if a connection error occur
      * @throws SQLException if received an error packet
      */
-    public ReadInitialHandShakePacket(final PacketInputStream reader, Options options) throws IOException,
+    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException,
                                                                      SQLException {
         Buffer buffer = reader.getPacket(true);
         if (buffer.getByteAt(0) == ERROR) {
-            ErrorPacket errorPacket = new ErrorPacket(buffer, options);
+            ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new SQLException(errorPacket.getMessage());
         }
         protocolVersion = buffer.readByte();

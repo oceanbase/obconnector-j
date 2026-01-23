@@ -165,7 +165,7 @@ public class ComStmtPrepare {
     }
 
     private static SQLException buildErrorException(Buffer buffer, Protocol protocol) {
-        ErrorPacket ep = new ErrorPacket(buffer, protocol.getOptions());
+        ErrorPacket ep = new ErrorPacket(buffer, protocol);
         String message = ep.getMessage();
         if (1054 == ep.getErrorCode()) {
             return new SQLException(
