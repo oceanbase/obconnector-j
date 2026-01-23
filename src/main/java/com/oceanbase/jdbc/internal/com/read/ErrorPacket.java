@@ -50,8 +50,8 @@
  */
 package com.oceanbase.jdbc.internal.com.read;
 
+import com.oceanbase.jdbc.internal.protocol.Protocol;
 import com.oceanbase.jdbc.internal.util.StringUtils;
-import com.oceanbase.jdbc.util.Options;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -64,12 +64,23 @@ public class ErrorPacket {
     private final String message;
 
     /**
+     * Read the error stream during the connection establishment process.
+     *
+     */
+    public ErrorPacket(Buffer buffer) {
+        this(buffer, null);
+    }
+
+    /**
      * Reading error stream.
      *
      * @param buffer current stream rawBytes
      */
-    public ErrorPacket(Buffer buffer, Options options) {
-        Charset charset = StringUtils.getCharset(options.getCharacterEncoding());
+    public ErrorPacket(Buffer buffer, Protocol protocol) {
+        Charset charset = StandardCharsets.UTF_8;
+        if (protocol != null && protocol.isCharsetVariablesSent()) {
+            charset = StringUtils.getCharset(protocol.getOptions().getCharacterEncoding());
+        }
         buffer.skipByte(); // 0xff Error header
         errorCode = buffer.readShort();
         if (buffer.getByte() == '#') {

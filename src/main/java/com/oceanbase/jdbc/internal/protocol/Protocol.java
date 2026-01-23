@@ -407,4 +407,5 @@ public interface Protocol {
 
     TimeZone getTimeZoneWithUseLegacyDatetimeCode();
 
+    boolean isCharsetVariablesSent();
 }

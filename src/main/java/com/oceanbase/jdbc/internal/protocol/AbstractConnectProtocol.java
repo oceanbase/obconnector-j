@@ -190,6 +190,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
     TimeTrace                             timeTrace;
+    protected boolean                     charsetVariablesSent;
 
     /**
      * Get a protocol instance.
@@ -562,7 +563,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         try {
             // parse server greeting packet.
-            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader, options);
+            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
@@ -782,7 +783,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     // ERR_Packet
                     // see https://mariadb.com/kb/en/library/err_packet/
                     // *************************************************************************************
-                    ErrorPacket errorPacket = new ErrorPacket(buffer, options);
+                    ErrorPacket errorPacket = new ErrorPacket(buffer);
                     if (credential.getPassword() != null && !credential.getPassword().isEmpty()
                         && options.passwordCharacterEncoding == null
                         && errorPacket.getErrorCode() == 1045
@@ -1219,6 +1220,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         writer.write("set names " + str);
         writer.flush();
+        this.charsetVariablesSent = true;
     }
 
     private void setCollationVariables() throws IOException {
@@ -1601,7 +1603,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 break;
 
             case Packet.ERROR:
-                ErrorPacket ep = new ErrorPacket(buffer, options);
+                ErrorPacket ep = new ErrorPacket(buffer, this);
                 throw exceptionFactory.create("Could not connect: " + ep.getMessage(),
                     ep.getSqlState(), ep.getErrorCode());
 
@@ -1624,7 +1626,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 break;
 
             case Packet.ERROR:
-                ErrorPacket ep = new ErrorPacket(buffer, options);
+                ErrorPacket ep = new ErrorPacket(buffer, this);
                 throw exceptionFactory.create("Could not connect: " + ep.getMessage(),
                     ep.getSqlState(), ep.getErrorCode());
 
@@ -2243,5 +2245,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             return TimeZone.getDefault();
         }
         return timeZone;
+    }
+
+    @Override
+    public boolean isCharsetVariablesSent() {
+        return charsetVariablesSent;
     }
 }

@@ -616,7 +616,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             protocol.removeActiveStreamingResult();
             protocol.removeHasMoreResults();
             protocol.setHasWarnings(false);
-            ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf), options);
+            ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf), protocol);
             isEof = true;
             throw ExceptionFactory.INSTANCE.create(errorPacket.getMessage(),
                 errorPacket.getSqlState(), errorPacket.getErrorCode());

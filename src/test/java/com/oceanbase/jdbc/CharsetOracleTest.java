@@ -62,6 +62,15 @@ public class CharsetOracleTest extends BaseOracleTest{
         } catch (SQLException e) {
             Assert.assertTrue(e.getMessage().contains("非法参数"));
         }
+    }
 
+    @Test
+    public void testForDima2026012100113589139() {
+        try {
+            setConnection("&characterEncoding=utf16");
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("You have an error in your SQL syntax;"));
+        }
     }
 }
