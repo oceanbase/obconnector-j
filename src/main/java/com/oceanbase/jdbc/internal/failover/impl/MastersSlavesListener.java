@@ -68,6 +68,7 @@ import com.oceanbase.jdbc.internal.failover.AbstractMastersSlavesListener;
 import com.oceanbase.jdbc.internal.failover.HandleErrorResult;
 import com.oceanbase.jdbc.internal.failover.thread.FailoverLoop;
 import com.oceanbase.jdbc.internal.failover.tools.SearchFilter;
+import com.oceanbase.jdbc.internal.failover.utils.HostStateInfo;
 import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.MastersSlavesProtocol;
@@ -1150,4 +1151,25 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             secondaryProtocol.reset();
         }
     }
+
+    @Override
+    public void resetOldsBlackListHosts() {
+        long currentTimeNanos = System.nanoTime();
+        Set<Map.Entry<HostAddress, HostStateInfo>> entries = getBlacklist().entrySet();
+        for (Map.Entry<HostAddress, HostStateInfo> blEntry : entries) {
+            HostStateInfo hostStateInfo = blEntry.getValue();
+            long entryNanos = hostStateInfo.getTimestamp();
+            long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(currentTimeNanos - entryNanos);
+            if (durationSeconds >= urlParser.getOptions().loadBalanceBlacklistTimeout) {
+                getBlacklist().remove(blEntry.getKey(), hostStateInfo);
+            }
+        }
+    }
+
+    @Override
+    public boolean isOracleMode() {
+        Protocol protocol = (currentProtocol != null) ? currentProtocol : secondaryProtocol;
+        return protocol.isOracleMode();
+    }
+
 }

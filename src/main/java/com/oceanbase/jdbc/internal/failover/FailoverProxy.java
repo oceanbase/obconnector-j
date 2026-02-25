@@ -95,6 +95,9 @@ public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_GET_MAJOR_VERSION          = "getMajorServerVersion";
     private static final String METHOD_IN_TRANSACTION             = "inTransaction";
     private static final String METHOD_IS_MARIADB                 = "isServerMariaDb";
+    private static final String METHOD_START_CALL_INTERFACE       = "startCallInterface";
+    private static final String METHOD_END_CALL_INTERFACE         = "endCallInterface";
+    private static final String METHOD_IS_ORACLE_MODE             = "isOracleMode";
 
     private static final Logger logger                            = LoggerFactory
                                                                       .getLogger(FailoverProxy.class);
@@ -289,6 +292,14 @@ public class FailoverProxy implements InvocationHandler {
                 // listener will report reset on any active connections (Master/slave)
                 listener.reset();
                 return null;
+            case METHOD_START_CALL_INTERFACE:
+                this.listener.startCallInterface();
+                return null;
+            case METHOD_END_CALL_INTERFACE:
+                this.listener.endCallInterface();
+                return null;
+            case METHOD_IS_ORACLE_MODE:
+                return this.listener.isOracleMode();
             default:
         }
 

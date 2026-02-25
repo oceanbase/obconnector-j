@@ -708,4 +708,23 @@ public abstract class AbstractMastersListener implements Listener {
       protocol.abort();
     }
   }
+
+  @Override
+  public void startCallInterface() {
+    if (currentProtocol != null) {
+      currentProtocol.startCallInterface();
+    }
+  }
+
+  @Override
+  public void endCallInterface() {
+    if (currentProtocol != null) {
+      currentProtocol.startCallInterface();
+    }
+  }
+
+  @Override
+  public boolean isOracleMode() {
+    return currentProtocol.isOracleMode();
+  }
 }

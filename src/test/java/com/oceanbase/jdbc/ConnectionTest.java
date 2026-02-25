@@ -1288,4 +1288,41 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testForDima2025111300111933631() throws SQLException, InterruptedException {
+    String url = System.getProperty("replicationUrl"); // slave node is unavailable
+    Connection conn = DriverManager.getConnection(url + "&loadBalanceBlacklistTimeout=5");
+    Assert.assertFalse(conn.isReadOnly());
+    Thread.sleep(10 * 1000);
+
+    try {
+      conn = DriverManager.getConnection(url + "&loadBalanceBlacklistTimeout=5");
+      Assert.assertFalse(conn.isReadOnly());
+    } catch (Exception e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void testForDima2025111300111933631_2() throws InterruptedException {
+    String url = System.getProperty("replicationUrl"); // master node is unavailable
+    Connection conn;
+    try {
+      DriverManager.getConnection(url + "&allowMasterDownConnection=false&loadBalanceBlacklistTimeout=5&retriesAllDown=10");
+      fail();
+    } catch (SQLException e) {
+      Assert.assertTrue(e.getMessage().contains("Communications link failure with primary. No active connection found for master"));
+    }
+
+    Thread.sleep(10 * 1000);
+    try {
+      conn = DriverManager.getConnection(url + "&allowMasterDownConnection=true&loadBalanceBlacklistTimeout=5&retriesAllDown=10");
+      Assert.assertFalse(conn.isReadOnly());
+      conn.setReadOnly(true);
+      Statement stmt = conn.createStatement();
+      stmt.execute("select 1");
+    } catch (Exception e) {
+      fail(e.getMessage());
+    }
+  }
 }
