@@ -449,4 +449,18 @@ public class StatementOracleTest extends BaseOracleTest {
         Assert.assertEquals(15, count);
     }
 
+    @Test
+    public void testForDima2025041700108314945() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select q'[select a='#{1}']' from dual");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("select a='#{1}'", rs.getString(1));
+
+        PreparedStatement ps = conn.prepareStatement("select q'2select // hello, --hello，，'123321'， #奥星贝斯  a='#{1}'2' from dual;");
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("select // hello, --hello，，'123321'， #奥星贝斯  a='#{1}'", rs.getString(1));
+    }
+
 }

@@ -546,6 +546,8 @@ public class Utils {
     boolean isSlashSlashComment = false;
     int inEscapeSeq = 0;
     boolean isOracleMode = protocol.isOracleMode();
+    boolean inOracleQquote = false;
+    char qQuoteDelimiter = 0;
 
     for (int i = 0; i < charArray.length; i++) {
       char car = charArray[i];
@@ -560,7 +562,7 @@ public class Utils {
         case '\'':
         case '"':
         case '`':
-          if (!inComment) {
+          if (!inComment && !inOracleQquote) {
             if (inQuote) {
               if (quoteChar == car) {
                 inQuote = false;
@@ -571,16 +573,25 @@ public class Utils {
             }
           }
           break;
+        case 'q':
+        case 'Q':
+          if (isOracleMode && !inComment && !inQuote && !isSlashSlashComment && inEscapeSeq <= 0 && !inOracleQquote
+                  && Character.isWhitespace(lastChar) && charArray.length > i + 2
+                  && charArray[i + 1] == '\'' && !Character.isWhitespace(charArray[i + 2])) {
+            inOracleQquote = true;
+            qQuoteDelimiter = charArray[i + 2];
+          }
+          break;
 
         case '*':
-          if (!inQuote && !inComment && lastChar == '/') {
+          if (!inQuote && !inComment && lastChar == '/' && !inOracleQquote) {
             inComment = true;
             isSlashSlashComment = false;
           }
           break;
         case '/':
         case '-':
-          if (!inQuote) {
+          if (!inQuote && !inOracleQquote) {
             if (inComment) {
               if (lastChar == '*' && !isSlashSlashComment) {
                 inComment = false;
@@ -597,19 +608,19 @@ public class Utils {
           }
           break;
         case '\n':
-          if (inComment && isSlashSlashComment) {
+          if (inComment && isSlashSlashComment && !inOracleQquote) {
             // slash-slash and dash-dash comments ends with the end of line
             inComment = false;
           }
           break;
         case '{':
-          if (!inQuote && !inComment) {
+          if (!inQuote && !inComment && !inOracleQquote) {
             inEscapeSeq++;
           }
           break;
 
         case '}':
-          if (!inQuote && !inComment) {
+          if (!inQuote && !inComment && !inOracleQquote) {
             inEscapeSeq--;
             if (inEscapeSeq == 0) {
               escapeSequenceBuf.append(car);
@@ -622,6 +633,11 @@ public class Utils {
           break;
 
         default:
+          if (inOracleQquote) {
+            if (car == qQuoteDelimiter && charArray.length > i + 1 && charArray[i + 1] == '\'') {
+              inOracleQquote = false;
+            }
+          }
           break;
       }
       lastChar = car;
