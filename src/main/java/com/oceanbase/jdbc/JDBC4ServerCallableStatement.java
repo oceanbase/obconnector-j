@@ -109,6 +109,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             this.parameterMetadata = new OceanBaseCallableParameterMetaData(connection, database,
                 procedureName, isObFunction);
         }
+        parsedCallParameters();
+        parameterMetadata.parameterCountOfStmt = this.parameterCount;
+        parameterMetadata.hasExpressionParam = this.hasExpressionParam;
         parameterMetadata.readMetadataFromDbIfRequired(this.originalSql, this.arguments,
             this.isObFunction);
         setParamsAccordingToSetArguments();

@@ -115,6 +115,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     protected SQLException              outputParamSetParamValueException;
     protected int                       parameterCountOfStmt;
     protected boolean                   hasDuplicateRoutine;
+    protected boolean                   hasExpressionParam;
 
     public String getProName() {
         return name;

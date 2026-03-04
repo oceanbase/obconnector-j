@@ -1340,4 +1340,76 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals(1024, cs.getInt(1));
     }
 
+    @Test
+    public void testForDima2026012600113705588() throws Exception {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure test_proc1(a in varchar2, b out varchar2, c in varchar2) is begin b := a || c; end;");
+        CallableStatement cs;
+
+        cs = conn.prepareCall("call test_proc1(?, ?, ?)");
+        Assert.assertEquals(3, cs.getParameterMetaData().getParameterCount());
+        cs.setString(1, "hello");
+        cs.registerOutParameter(2, Types.VARCHAR);
+        cs.setString(3, "OB");
+        cs.execute();
+        Assert.assertEquals("helloOB", cs.getString(2));
+        Assert.assertEquals("helloOB", cs.getString("B"));
+
+        cs = conn.prepareCall("call test_proc1(" +
+                "case when length(?) > 5 then substr(?, 1, 5) || '...' else ? end, ?, case when instr(?, '@') > 0 then 'Email' else 'text' end)");
+        Assert.assertEquals(5, cs.getParameterMetaData().getParameterCount());
+        cs.setString(1, "OceanBase");
+        cs.setString(2, "OceanBase");
+        cs.setString(3, "OceanBase");
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.setString(5, "ob@oceanbase.com");
+        cs.execute();
+        Assert.assertEquals("Ocean...Email", cs.getString(4));
+
+        cs = conn.prepareCall("call test_proc1(" +
+                "case when length(?) > 5 then '...' else ? end, ?, 'Email')");
+        Assert.assertEquals(3, cs.getParameterMetaData().getParameterCount());
+        cs.setString(1, "OceanBase");
+        cs.setString(2, "OceanBase");
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("...Email", cs.getString(3));
+
+        cs = conn.prepareCall("call test_proc1(" +
+                "case when length(:A1) > 5 then substr(:A2, 1, 5) || '...' else :A3 end, :B, case when instr(:C, '@') > 0 then 'Email' else 'text' end)");
+        Assert.assertEquals(5, cs.getParameterMetaData().getParameterCount());
+        cs.setString("A1", "OceanBase");
+        cs.setString("A2", "OceanBase");
+        cs.setString("A3", "OceanBase");
+        cs.registerOutParameter("B", Types.VARCHAR);
+        cs.setString("C", "ob@oceanbase.com");
+        cs.execute();
+        Assert.assertEquals("Ocean...Email", cs.getString(4));
+        Assert.assertEquals("Ocean...Email", cs.getString("B"));
+
+        cs = conn.prepareCall("begin test_proc1(" +
+                "case when length(?) > 5 then substr(?, 1, 5) || '...' else ? end, ?, case when instr(?, '@') > 0 then 'Email' else 'text' end); end;");
+        Assert.assertEquals(5, cs.getParameterMetaData().getParameterCount());
+        cs.setString(1, "OceanBase");
+        cs.setString(2, "OceanBase");
+        cs.setString(3, "OceanBase");
+        cs.registerOutParameter(4, Types.VARCHAR);
+        cs.setString(5, "ob@oceanbase.com");
+        cs.execute();
+        Assert.assertEquals("Ocean...Email", cs.getString(4));
+
+        cs = conn.prepareCall("begin test_proc1(" +
+                "case when length(:A1) > 5 then substr(:A2, 1, 5) || '...' else :A3 end, :B, case when instr(:C, '@') > 0 then 'Email' else 'text' end); end;");
+        Assert.assertEquals(5, cs.getParameterMetaData().getParameterCount());
+        cs.setString("A1", "OceanBase");
+        cs.setString("A2", "OceanBase");
+        cs.setString("A3", "OceanBase");
+        cs.registerOutParameter("B", Types.VARCHAR);
+        cs.setString("C", "ob@oceanbase.com");
+        cs.execute();
+        Assert.assertEquals("Ocean...Email", cs.getString(4));
+        Assert.assertEquals("Ocean...Email", cs.getString("B"));
+    }
+
 }
