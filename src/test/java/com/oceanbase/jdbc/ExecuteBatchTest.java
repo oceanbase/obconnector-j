@@ -56,6 +56,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.Thread.State;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -560,5 +561,58 @@ public class ExecuteBatchTest extends BaseTest {
         }
         PreparedStatement ps = conn.prepareStatement(sql.toString());
         Assert.assertEquals(0, ps.executeUpdate());
+    }
+
+    @Test
+    public void testForDima2026031900114742281() throws SQLException {
+        Connection conn = setConnection("&continueBatchOnError=false");
+        createTable("t_batch", "c1 int");
+
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("insert into t_batch values(1)");
+        stmt.addBatch("insert into t_batch values(2)");
+        stmt.addBatch("insert into t_batch values('s')");
+        stmt.addBatch("insert into t_batch values(4)");
+
+        try {
+            stmt.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            Assert.assertEquals("[1, 1]", Arrays.toString(e.getUpdateCounts()));
+        }
+
+        conn = setConnection("&rewriteBatchedStatements=true&continueBatchOnError=false");
+        PreparedStatement ps = conn.prepareStatement("insert into t_batch values(?)");
+        ps.setInt(1, 1);
+        ps.addBatch();
+
+        ps.setInt(1, 2);
+        ps.addBatch();
+
+        ps.setString(1, "s");
+        ps.addBatch();
+
+        ps.setInt(1, 4);
+        ps.addBatch();
+        try {
+            ps.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            Assert.assertEquals("[-3, -3, -3]", Arrays.toString(e.getUpdateCounts()));
+        }
+
+        conn = setConnection("&rewriteBatchedStatements=true&continueBatchOnError=true");
+        PreparedStatement ps2 = conn.prepareStatement("insert into t_batch values(?)");
+        ps2.addBatch("insert into t_batch values(1)");
+        ps2.addBatch("insert into t_batch values(2)");
+        ps2.addBatch("insert into t_batch values('s')");
+        ps2.addBatch("insert into t_batch values(4)");
+        try {
+            ps2.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            Assert.assertEquals("[1, 1, -3, 1]", Arrays.toString(e.getUpdateCounts()));
+
+        }
     }
 }
