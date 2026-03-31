@@ -46,6 +46,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 import static org.junit.Assert.fail;
 
+import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -856,4 +857,39 @@ public class DateOracleTest extends BaseOracleTest {
             fail();
         }
     }
+
+    @Test
+    public void testForDima2026032700114959606() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("t1", "c1 int, c2 number(38, 0)");
+        BigInteger hugeValue = new BigInteger("18446744097622196224");
+        BigInteger hugeValue2 = new BigInteger("111111111111111111111111111111");
+
+        Statement stmt = conn.createStatement();
+        PreparedStatement ps = conn.prepareStatement("insert into t1 values(?, ?)");
+        ps.setInt(1, 1);
+        ps.setObject(2, hugeValue, Types.NUMERIC);
+        ps.execute();
+        ps.setInt(1, 2);
+        ps.setObject(2, hugeValue, Types.DECIMAL);
+        ps.execute();
+
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        Assert.assertTrue(rs.next());
+        assertEquals(hugeValue, rs.getBigDecimal(2).toBigInteger());
+        Assert.assertTrue(rs.next());
+        assertEquals(hugeValue, rs.getBigDecimal(2).toBigInteger());
+
+        // UpdatableResultSet
+        Statement ps2 = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs1 = ps2.executeQuery("select c1, c2 from t1");
+        Assert.assertTrue(rs1.next());
+        rs1.updateObject(2, hugeValue2, Types.NUMERIC);
+        rs1.updateRow();
+
+        rs = stmt.executeQuery("SELECT c2 FROM t1 WHERE c1 = 1");
+        assertTrue(rs.next());
+        assertEquals(hugeValue2, rs.getBigDecimal(1).toBigInteger());
+    }
+
 }
