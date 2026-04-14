@@ -92,6 +92,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     protected boolean                   resetPrepareExecuteParamIndex;
     protected boolean                   isAnonymousBlock;
     private List<ParsedCallParameters>  parsedArgumentsList;
+    protected boolean                   hasExpressionParam;
     private HashMap<Integer, ParsedCallParameters> parsedArgumentsMap;
     //    private boolean                     isParameterIndexUsed;
     //    private boolean                     isParameterNameUsed;
@@ -160,7 +161,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             this.isObFunction);
 
         if (protocol.isOracleMode()
-            && (parameterMetadata.getParameterCount() == 0 || arguments == null)) {
+            && (parameterMetadata.getParameterCount() == 0 || arguments == null || hasExpressionParam)) {
             return getIndexAndFillParams(parameterName);
         }
 
@@ -271,7 +272,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             }
 
             // If the prepare_execute is used, the outputParameterMapper can be reset using the inout info from the execute response.
-            boolean hasSpecialParams = arguments != null && arguments.length() > 0 && arguments.contains("=>");
+            boolean hasSpecialParams = arguments != null && arguments.length() > 0 && (arguments.contains("=>") || hasExpressionParam);
             if (!resetPrepareExecuteParamIndex && usePrepareExecute() && serverPrepareResult != null && supportsAccurateParameterInfo() && !hasSpecialParams) {
                 ColumnDefinition[] parameters = serverPrepareResult.getParameters();
                 outputParameterMapper = new int[parameters.length];
@@ -762,7 +763,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutputSqlType(sqlType);
         callParameter.setTypeName(typeName);
         callParameter.setOutput(true);
-        if (protocol.isOracleMode() && arguments != null) {
+        if (protocol.isOracleMode() && arguments != null && !hasExpressionParam) {
             parsedCallParameters();
             String name = parsedArgumentsMap.get(parameterIndex).getName();
             if (!"?".equals(name)) {
@@ -818,7 +819,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         callParameter.setOutput(true);
         callParameter.setOutputSqlType(sqlType);
         callParameter.setScale(scale);
-        if (protocol.isOracleMode() && arguments != null) {
+        if (protocol.isOracleMode() && arguments != null && !hasExpressionParam) {
             parsedCallParameters();
             String name = parsedArgumentsMap.get(parameterIndex).getName();
             if (!"?".equals(name)) {
@@ -1398,7 +1399,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         return parameterIndex;
     }
 
-    private void parsedCallParameters() {
+    protected void parsedCallParameters() {
         if (this.parsedArgumentsList != null) {
             return;
         }
@@ -1429,6 +1430,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (callParameters.isParam()) {
                 callParameters.setPlaceHolderIndex(placeHolderIndex++);
                 parsedArgumentsMap.put(callParameters.getPlaceHolderIndex(), callParameters);
+            }
+            String parametersName = callParameters.getName();
+            if (parametersName != null && !parametersName.startsWith("?") && !parametersName.startsWith(":")) {
+                hasExpressionParam = true;
             }
         }
         parsedArgumentsList = paramList;

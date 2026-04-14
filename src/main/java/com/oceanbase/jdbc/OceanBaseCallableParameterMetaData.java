@@ -84,7 +84,9 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
      */
     public void readMetadataFromDbIfRequired(String query, String arguments, Boolean isObFunction)
                                                                                                   throws SQLException {
-        if (valid) {
+        // When expression parameters are present, metadata is not queried.
+        // This is because the parameters in the expression cannot be mapped to the parameters in the metadata at this time.
+        if (valid || hasExpressionParam) {
             return;
         }
         this.query = query;
