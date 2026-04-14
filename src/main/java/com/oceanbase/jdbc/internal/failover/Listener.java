@@ -187,4 +187,10 @@ public interface Listener {
 
     int getRetryAllDowns();
 
+    void startCallInterface();
+
+    void endCallInterface();
+
+    boolean isOracleMode();
+
 }
