@@ -414,45 +414,48 @@ public class OceanBaseStatement implements Statement, Cloneable {
         } else {
             ret = results.getCmdInformation().getUpdateCounts();
         }
-        if(!protocol.isOracleMode() && results.isExecuteBatchStmt()) {
-            if (!options.continueBatchOnError) {
-                int end = ret.length - 1;
-                int[] tmp = new int[end];
-                System.arraycopy(ret, 0, tmp, 0, end);
-                ret = tmp;
-                for (int i = 0; i < ret.length; i++) {
-                    ret[i] = Statement.EXECUTE_FAILED;
-                }
-            } else {
-                for (int i = 0; i < ret.length; i++) {
-                    if (i == 0) {
-                        ret[i] = -1;
-                    } else {
-                        ret[i] = Statement.EXECUTE_FAILED;
+
+        int end = 0;
+        boolean isPrepared = results.getStatement() instanceof BasePrepareStatement;
+        boolean useRewriteOrMulti = (options.rewriteBatchedStatements && size > 4) || options.allowMultiQueries;
+        if (!protocol.isOracleMode()) {
+            if (!isPrepared && useRewriteOrMulti) {
+                Arrays.fill(ret, Statement.EXECUTE_FAILED);
+                if (options.continueBatchOnError) {
+                    if (ret.length > 0) {
+                        ret[0] = -1;
                     }
+                } else {
+                    end = ret.length - 1;
                 }
+            } else if (isPrepared) {
+                if (results.isExecuteBatchStmt()) {
+                    if (!options.continueBatchOnError) {
+                        end = findFirstFailedIndex(ret);
+                    }
+                } else if (options.rewriteBatchedStatements) {
+                    Arrays.fill(ret, Statement.EXECUTE_FAILED);
+                    if (!options.continueBatchOnError) {
+                        end = ret.length - 1;
+                    }
+                } else if (!options.continueBatchOnError) {
+                    end = findFirstFailedIndex(ret);
+                }
+            } else if (!options.continueBatchOnError) {
+                end = findFirstFailedIndex(ret);
             }
         } else {
-            if (!options.continueBatchOnError) {
-                int end = 0;
-                if (results.getCmdInformation().getRewrite() && !(protocol.isOracleMode() && options.rewriteInsertByMultiQueries)) {
-                    end = ret.length - 1;
-                } else {
-                    for (int i = 0; i < ret.length; i++) {
-                        if (ret[i] == Statement.EXECUTE_FAILED) {
-                            end = i;
-                            break;
-                        }
-                    }
-                }
-                if (end != 0) {
-                    int[] tmp = new int[end];
-                    System.arraycopy(ret, 0, tmp, 0, end);
-                    ret = tmp;
-                } else {
-                    ret = new int[0];
-                }
+            if (!isPrepared) {
+                end = findFirstFailedIndex(ret);
+            } else {
+                ret = new int[0];
             }
+        }
+
+        if (end > 0 && end < ret.length) {
+            int[] tmp = new int[end];
+            System.arraycopy(ret, 0, tmp, 0, end);
+            ret = tmp;
         }
     sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
@@ -460,6 +463,22 @@ public class OceanBaseStatement implements Statement, Cloneable {
         return new BatchUpdateException(
                 sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
     }
+
+  /**
+   * Find the first failed index in the update counts.
+   *
+   * @param updateCounts the update counts
+   * @return the first failed index
+   */
+  private int findFirstFailedIndex(int[] updateCounts) {
+      for (int i = 0; i < updateCounts.length; i++) {
+          if (updateCounts[i] < 0) {
+              return i;
+          }
+      }
+      return 0;
+  }
+
   protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqlException, int size) {
       return executeBatchExceptionEpilogue(initialSqlException, size,false);
   }

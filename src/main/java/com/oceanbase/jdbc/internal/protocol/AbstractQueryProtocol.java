@@ -66,6 +66,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.oceanbase.jdbc.BasePrepareStatement;
 import com.oceanbase.jdbc.LocalInfileInterceptor;
 import com.oceanbase.jdbc.OceanBaseConnection;
 import com.oceanbase.jdbc.OceanBaseStatement;
@@ -1032,7 +1033,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final List<String> queries) throws SQLException {
     cmdPrologue();
     results.setExecuteBatchStmt(true);
-    if (this.options.rewriteBatchedStatements) {
+    if (!(results.getStatement() instanceof BasePrepareStatement) && ((this.options.rewriteBatchedStatements && queries != null && queries.size() > 4) || options.allowMultiQueries)) {
 
       // check that queries are rewritable
       boolean canAggregateSemiColumn = true;

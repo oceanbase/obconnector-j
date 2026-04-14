@@ -591,4 +591,43 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         rs.close();
         ps.close();
     }
+
+    @Test
+    public void testForDima2026031900114742281() throws SQLException {
+        Connection conn = setConnection("&continueBatchOnError=false");
+        createTable("t_batch", "c1 int");
+
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("insert into t_batch values(1)");
+        stmt.addBatch("insert into t_batch values(2)");
+        stmt.addBatch("insert into t_batch values('s')");
+        stmt.addBatch("insert into t_batch values(4)");
+
+        try {
+            stmt.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            Assert.assertEquals("[1, 1]", Arrays.toString(e.getUpdateCounts()));
+        }
+
+        conn = setConnection("&rewriteBatchedStatements=true&continueBatchOnError=false");
+        PreparedStatement ps = conn.prepareStatement("insert into t_batch values(?)");
+        ps.setInt(1, 1);
+        ps.addBatch();
+
+        ps.setInt(1, 2);
+        ps.addBatch();
+
+        ps.setString(1, "s");
+        ps.addBatch();
+
+        ps.setInt(1, 4);
+        ps.addBatch();
+        try {
+            ps.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            Assert.assertEquals("[]", Arrays.toString(e.getUpdateCounts()));
+        }
+    }
 }
