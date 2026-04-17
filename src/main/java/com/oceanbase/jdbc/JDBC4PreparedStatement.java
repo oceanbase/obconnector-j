@@ -205,6 +205,9 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
    *     <code>PreparedStatement</code>
    */
   public int executeUpdate() throws SQLException {
+    if (!this.protocol.isOracleMode()) {
+      validateNonSelectStatement(this.sqlType);
+    }
     if (execute()) {
       return 0;
     }
@@ -331,6 +334,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       lock.lock();
       try {
         lockLogger.debug("JDBC4PreparedStatement.executeBatch locked");
+        validateNonSelectStatement(this.sqlType);
         try {
           executeInternalBatch(size);
           results.commandEnd();
@@ -407,6 +411,7 @@ public class JDBC4PreparedStatement extends BasePrepareStatement {
       lock.lock();
       try {
         lockLogger.debug("JDBC4PreparedStatement.executeLargeBatch locked");
+        validateNonSelectStatement(this.sqlType);
         try {
           executeInternalBatch(size);
           results.commandEnd();

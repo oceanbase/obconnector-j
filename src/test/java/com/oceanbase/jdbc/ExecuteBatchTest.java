@@ -566,6 +566,78 @@ public class ExecuteBatchTest extends BaseTest {
     }
 
     @Test
+    public void testForDima2025071400109946593() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("test_c", "c1 int, c2 varchar(20)");
+
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("select * from test_c where c1 = 12");
+        try {
+            stmt.executeBatch();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        stmt.addBatch("select * from test_c where c1 = 12");
+        try {
+            stmt.executeLargeBatch();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        stmt.clearBatch();
+        try {
+            stmt.executeUpdate("select * from test_c where c1 = 1");
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        try {
+            stmt.executeLargeUpdate("select * from test_c where c1 = 1");
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        PreparedStatement ps = conn.prepareStatement("select * from test_c where c1 = ?");
+        ps.setInt(1, 1);
+        ps.addBatch();
+        try {
+            ps.executeBatch();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        ps.clearParameters();
+        ps.setInt(1, 1);
+        ps.addBatch();
+        try {
+            ps.executeLargeBatch();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        try {
+            ps.executeUpdate();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+
+        try {
+            ps.executeLargeUpdate();
+            fail();
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Can not issue SELECT"));
+        }
+    }
+
+    @Test
     public void testForDima2025090900110882492() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&useBatchMultiSend=true&rewriteBatchedStatements=true");
         createTable("t_batch", "c1 int, c2 int");
@@ -671,7 +743,6 @@ public class ExecuteBatchTest extends BaseTest {
             fail();
         } catch (BatchUpdateException e) {
             Assert.assertEquals("[1, 1, -3, 1]", Arrays.toString(e.getUpdateCounts()));
-
         }
     }
 }
