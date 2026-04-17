@@ -689,6 +689,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
       protocol.startCallInterface();
     }
 
+    validateNonSelectStatement(this.sqlType);
     executing = true;
     boolean executeBatchByArrayBinding=false; // just use for prepareExecute
 
@@ -1022,6 +1023,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
 
   @Override
   public long executeLargeUpdate() throws SQLException {
+      if (!this.protocol.isOracleMode()) {
+          validateNonSelectStatement(this.sqlType);
+      }
       if (execute()) {
           if (protocol.isOracleMode() && results.getResultSet() != null) {
               return results.getResultSet().getProcessedRows();
@@ -1058,6 +1062,9 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
    */
   @Override
   public int executeUpdate() throws SQLException {
+    if (!this.protocol.isOracleMode()) {
+      validateNonSelectStatement(this.sqlType);
+    }
     if (execute()) {
       if (protocol.isOracleMode() && results.getResultSet() != null) {
         return (int) results.getResultSet().getProcessedRows();
