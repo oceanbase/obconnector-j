@@ -52,6 +52,7 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.math.BigInteger;
 import java.sql.*;
 import java.sql.Date;
 import java.text.ParseException;
@@ -1902,4 +1903,41 @@ public class DateTest extends BaseTest {
         Assert.assertEquals("1991-08-05 09:52:02", rs.getString(2));
 
     }
+
+    @Test
+    public void testForDima2026032700114959606() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=false");
+        createTable("t1", "c1 int primary key, c2 decimal(65, 0)");
+        BigInteger hugeValue = new BigInteger("18446744097622196224");
+        BigInteger hugeValue2 = new BigInteger("111111111111111111111111111111");
+
+        Statement stmt = conn.createStatement();
+        PreparedStatement ps = conn.prepareStatement("insert into t1 values(?, ?)");
+        ps.setInt(1, 1);
+        ps.setObject(2, hugeValue, Types.NUMERIC);
+        ps.execute();
+        ps.setInt(1, 2);
+        ps.setObject(2, hugeValue, Types.DECIMAL);
+        ps.execute();
+
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        Assert.assertTrue(rs.next());
+        assertEquals(hugeValue, rs.getBigDecimal(2).toBigInteger());
+        Assert.assertTrue(rs.next());
+        assertEquals(hugeValue, rs.getBigDecimal(2).toBigInteger());
+
+        // UpdatableResultSet
+        PreparedStatement ps2 = conn.prepareStatement("select c1, c2 from t1 where c1 = ?", ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_UPDATABLE);
+        ps2.setInt(1, 1);
+        ResultSet rs1 = ps2.executeQuery();
+        Assert.assertTrue(rs1.next());
+        rs1.updateObject(2, hugeValue2, Types.NUMERIC);
+        rs1.updateRow();
+
+        rs = stmt.executeQuery("SELECT c2 FROM t1 WHERE c1 = 1");
+        assertTrue(rs.next());
+        assertEquals(hugeValue2, rs.getBigDecimal(1).toBigInteger());
+    }
+
 }

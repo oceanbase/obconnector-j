@@ -1385,6 +1385,8 @@ public abstract class BasePrepareStatement extends OceanBaseStatement implements
                 case Types.NUMERIC:
                     if (obj instanceof BigDecimal) {
                         setBigDecimal(parameterIndex, (BigDecimal) obj);
+                    } else if (obj instanceof BigInteger) {
+                        setBigDecimal(parameterIndex, new BigDecimal((BigInteger) obj));
                     } else if (obj instanceof Double || obj instanceof Float) {
                         setDouble(parameterIndex, bd.doubleValue());
                     } else {

@@ -3757,6 +3757,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
                 case Types.NUMERIC:
                     if (obj instanceof BigDecimal) {
                         updateBigDecimal(parameterIndex, (BigDecimal) obj);
+                    } else if (obj instanceof BigInteger) {
+                        updateBigDecimal(parameterIndex, new BigDecimal((BigInteger) obj));
                     } else if (obj instanceof Double || obj instanceof Float) {
                         updateDouble(parameterIndex, bd.doubleValue());
                     } else {
