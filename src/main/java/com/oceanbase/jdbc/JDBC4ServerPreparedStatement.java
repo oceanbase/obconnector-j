@@ -58,6 +58,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -99,6 +100,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
   protected ServerPrepareResult             serverPrepareResult;
   private   OceanBaseResultSetMetaData      resultSetMetaData;
   private   OceanBaseParameterMetaData      parameterMetaData;
+  private static final Pattern              RETURNING_INTO_PATTERN = Pattern.compile("((\\breturning\\s+)([\\s\\S]+?)(\\s+into\\s+)([\\s\\S]+))", Pattern.CASE_INSENSITIVE);
 
   /**
    * Constructor for creating Server prepared statement.
@@ -222,32 +224,14 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
           return;
       }
 
-      // calculate where "returning" starts and ends
-      String completeStmt = simpleSql.toLowerCase(Locale.ROOT);
-      int returningStartPos = completeStmt.indexOf("returning");
-      if (returningStartPos < 1 || completeStmt.charAt(returningStartPos - 1) != ' ') {
-          return;
-      }
-      int returningEndPos = returningStartPos + "returning".length();
-      if (returningEndPos >= completeStmt.length() || completeStmt.charAt(returningEndPos) != ' ') {
-          return;
-      }
-
-      // calculate where "into" starts and ends
-      String returningClause = completeStmt.substring(returningStartPos);
-      int intoStartPos = returningClause.indexOf("into");
-      if (intoStartPos < 1 || returningClause.charAt(intoStartPos - 1) != ' ') {
-          return;
-      }
-      int intoEndPos = intoStartPos + "into".length();
-      if (intoEndPos >= returningClause.length() || returningClause.charAt(intoEndPos) != ' ') {
-          return;
-      }
-
-      // calculate the count of ":var" or "?"
-      for (int i = 0; i < returningClause.length(); i++) {
-          if (returningClause.charAt(i) == ':' || returningClause.charAt(i) == '?') {
-              returnParamCount++;
+      Matcher matcher = RETURNING_INTO_PATTERN.matcher(simpleSql);
+      if (matcher.find()) {
+          String intoClause = matcher.group(5);
+          // calculate the count of ":var" or "?"
+          for (int i = 0; i < intoClause.length(); i++) {
+              if (intoClause.charAt(i) == ':' || intoClause.charAt(i) == '?') {
+                  returnParamCount++;
+              }
           }
       }
   }
