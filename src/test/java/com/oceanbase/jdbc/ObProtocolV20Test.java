@@ -149,4 +149,22 @@ public class ObProtocolV20Test extends BaseTest {
         return sb.toString();
     }
 
+    @Test
+    public void testForDima2025082600110657635() throws SQLException {
+        Connection connection = setConnection("&useServerPrepStmts=true&useBatchMultiSend=true&useOceanBaseProtocolV20=true");
+        createTable("test_batch", "c1 int, c2 int");
+        String insertSQL = "insert into test_batch values(?,?)";
+        PreparedStatement ps = connection.prepareStatement(insertSQL);
+        for (int i = 0; i < 10; i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(1) from test_batch");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(10, rs.getInt(1));
+    }
+
 }

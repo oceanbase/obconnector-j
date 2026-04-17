@@ -265,13 +265,14 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
                 ob20.header.connectionId));
         }
 
-        if (ob20.header.requestId != (ob20.curRequestId == 0 ? 0x00ffffff : ob20.curRequestId - 1)) {
+        Integer requestID = ob20.getRequestIdQueueForOb20().peek() ;
+        if (requestID == null || ob20.header.requestId != requestID) {
             logger.error(String.format(
                 "request Id mismatch, currRequestId=%d, but received requestId=%d",
-                ob20.curRequestId, ob20.header.requestId));
+                    requestID, ob20.header.requestId));
             throw new IOException(String.format(
                 "request Id mismatch, currRequestId=%d, but received requestId=%d",
-                ob20.curRequestId, ob20.header.requestId));
+                    requestID, ob20.header.requestId));
         }
 
         if (ob20.header.obSeqNo != ob20.getObSeqNo()) {
@@ -281,6 +282,11 @@ public class Ob20PacketInputStream extends StandardPacketInputStream {
             throw new IOException(String.format(
                 "packet sequence mismatch, expected obSeqNo=%d, but received obSeqNo=%d",
                 ob20.curObSeqNo, ob20.header.obSeqNo));
+        }
+
+        if ((ob20.header.flag & OceanBaseProtocolV20.OB_IS_LAST_PACKET) != 0) {
+            ob20.getRequestIdQueueForOb20().poll();
+            ob20.curObSeqNo = 0;
         }
     }
 

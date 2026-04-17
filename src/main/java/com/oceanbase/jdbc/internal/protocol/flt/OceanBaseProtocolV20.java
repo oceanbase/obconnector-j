@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 
@@ -210,11 +211,13 @@ public class OceanBaseProtocolV20 {
 
     public int                     curRequestId;
     public short                   curObSeqNo;
+    private final LinkedBlockingQueue<Integer> requestIdQueueForOb20;
 
     public OceanBaseProtocolV20(boolean useNewExtraInfo) {
         header = new Header(useNewExtraInfo);
         extraInfo = new ExtraInfo(useNewExtraInfo);
         curRequestId = (new Random()).nextInt(UINT_MAX24);
+        requestIdQueueForOb20 = new LinkedBlockingQueue<>();
     }
 
     public void setTraceInfo(FullLinkTrace.TraceInfo traceInfo) {
@@ -228,6 +231,7 @@ public class OceanBaseProtocolV20 {
     }
 
     public void updateRequestId() {
+        requestIdQueueForOb20.add(curRequestId);
         curRequestId++;
         if (curRequestId == UINT_MAX24 + 1) {
             curRequestId = 0;
@@ -347,4 +351,7 @@ public class OceanBaseProtocolV20 {
         }
     }
 
+    public LinkedBlockingQueue<Integer> getRequestIdQueueForOb20() {
+        return requestIdQueueForOb20;
+    }
 }
