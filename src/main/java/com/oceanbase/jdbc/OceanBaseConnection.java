@@ -970,9 +970,11 @@ public class OceanBaseConnection implements ConnectionImpl {
                 } else {
                     actualQuery = "BEGIN ?:=" + databaseAndProcedure + ((arguments == null) ? "()" : arguments) + ";END;";
                 }
-                return new OceanBaseProcedureStatement(true, actualQuery,
-                    (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
-                    resultSetConcurrency, exceptionFactory);
+                OceanBaseProcedureStatement procedureStatement = new OceanBaseProcedureStatement(true, actualQuery,
+                        (OceanBaseConnection) this, procedureName, database, arguments, resultSetType,
+                        resultSetConcurrency, exceptionFactory);
+                procedureStatement.setAnonymousBlock(true);
+                return procedureStatement;
             }
         } else {
             if (this.getProtocol().isOracleMode() && this.options.obConvertCallsToBlocks && hasCurlyBraceWrapper && databaseAndProcedure != null) {

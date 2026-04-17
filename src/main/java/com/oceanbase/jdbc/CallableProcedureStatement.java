@@ -1395,6 +1395,10 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         super.setNClob(checkAndMinusForObFunction(parameterIndex), reader);
     }
 
+    public void setAnonymousBlock(boolean anonymousBlock) {
+        isAnonymousBlock = anonymousBlock;
+    }
+
     private int checkAndMinusForObFunction(int parameterIndex) {
         return parameterIndex;
     }
