@@ -1015,6 +1015,21 @@ public class DataTypeOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2024062200102857005() throws Exception {
+        Connection conn = sharedConnection;
+        Statement stmt = conn.createStatement();
+        createTable("testJsonType", "id INT, jsonDoc JSON");
+        stmt.executeUpdate("INSERT INTO testJsonType VALUES (1, '{\"key1\": \"value1\"}')");
+        PreparedStatement ps = conn.prepareStatement("select * from testJsonType");
+        ResultSet rs = ps.executeQuery();
+
+        Assert.assertEquals("JSON", rs.getMetaData().getColumnTypeName(2));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("{\"key1\":\"value1\"}", rs.getString(2));
+        Assert.assertEquals("{\"key1\":\"value1\"}", rs.getString(2));
+    }
+
+    @Test
     public void testForDima2026030900114529456() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true&usePieceData=true");
         createTable("t_number", "c1 varchar(30)");
