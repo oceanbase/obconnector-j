@@ -44,9 +44,11 @@
 
 package com.oceanbase.jdbc;
 
+import joptsimple.internal.Strings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Clob;
@@ -590,6 +592,34 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         }
         rs.close();
         ps.close();
+    }
+
+    @Test
+    public void testForDima2026040300115148124() throws SQLException {
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("boundary_bug_test", "id INT, data clob");
+
+        int dataLength = 16777159;
+        String longStr = Strings.repeat('A', dataLength);
+        String sql = "insert into boundary_bug_test VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, 1);
+            ps.setCharacterStream(2, new StringReader(longStr), dataLength);
+            ps.addBatch();
+
+            ps.setInt(1, 2);
+            ps.setCharacterStream(2, new StringReader(longStr), dataLength);
+            ps.addBatch();
+
+            ps.executeBatch();
+        } catch (ArrayIndexOutOfBoundsException e) {
+            fail(e.getMessage());
+        }
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(*) from boundary_bug_test");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
     }
 
     @Test
