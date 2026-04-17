@@ -823,7 +823,7 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         }
 
         // if multi send capacity
-        if (options.useBatchMultiSend || options.useBulkStmts) {
+        if ((options.useBatchMultiSend || options.useBulkStmts) && !(options.rewriteBatchedStatements && isInsert)){
           serverPrepareResult = protocol.executeBatchServer(serverPrepareResult, results, actualSql, parametersList, hasLongData);
           if (results.getBatchSucceed()) {
             if (resultSetMetaData == null) {

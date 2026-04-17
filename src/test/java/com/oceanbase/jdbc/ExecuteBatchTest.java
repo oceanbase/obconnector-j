@@ -566,6 +566,35 @@ public class ExecuteBatchTest extends BaseTest {
     }
 
     @Test
+    public void testForDima2025090900110882492() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useBatchMultiSend=true&rewriteBatchedStatements=true");
+        createTable("t_batch", "c1 int, c2 int");
+
+        String updateSql = "update t_batch set c1 = ? where c2 = ?";
+        PreparedStatement ps = conn.prepareStatement(updateSql);
+        for (int i = 0; i < 10; i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        String sql = "insert into t_batch values(?, ?)";
+        ps = conn.prepareStatement(sql);
+        for (int i = 0; i < 10; i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(*) from t_batch");
+        rs.next();
+        Assert.assertEquals(10, rs.getInt(1));
+    }
+
+    @Test
     public void testForDima2026040300115148124() throws SQLException {
         Connection conn = setConnection("&rewriteBatchedStatements=true");
         createTable("boundary_bug_test", "id INT, data longtext");
