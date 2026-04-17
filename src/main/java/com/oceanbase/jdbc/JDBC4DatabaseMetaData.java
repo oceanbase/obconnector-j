@@ -2825,6 +2825,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
                      + " WHERE "
                      + catalogCond("ROUTINE_SCHEMA", catalog)
                      + patternCond("ROUTINE_NAME", procedureNamePattern)
+                     + getRoutineTypeConditionForGetProcedures()
+                     + " ORDER BY ROUTINE_SCHEMA, ROUTINE_NAME, ROUTINE_TYPE "
                      + "/* AND ROUTINE_TYPE='PROCEDURE' */";
         return executeQuery(sql);
     }
@@ -2954,7 +2956,8 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             boolean firstCondition = this.catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
             firstCondition = this.patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
             this.patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
-            sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
+            sb.append(getRoutineTypeConditionForGetProcedures());
+            sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ROUTINE_TYPE, ORDINAL_POSITION");
 
             return this.executeQuery(sb.toString());
         } else {
@@ -5440,5 +5443,9 @@ public class JDBC4DatabaseMetaData extends OceanBaseOracleDatabaseMetadata {
             resData[index ++] = row;
         }
         return  JDBC4ResultSet.createResultSet(columnNames, columnTypes, resData, this.protocol);
+    }
+
+    protected String getRoutineTypeConditionForGetProcedures() {
+        return this.protocol.getOptions().getProceduresReturnsFunctions ? "" : " AND ROUTINE_TYPE = 'PROCEDURE' ";
     }
 }

@@ -1225,6 +1225,16 @@ public enum DefaultOptions {
             "2.4.17",
             "Control whether to forcibly send data types to the server.",
             false),
+    GET_PROCEDURES_RETURNS_FUNCTIONS(
+            "getProceduresReturnsFunctions",
+            Boolean.TRUE,
+            "2.4.18",
+            "Pre-JDBC4 'DatabaseMetaData' API has only the 'getProcedures()' and 'getProcedureColumns()' methods, so they return metadata info for both stored procedures and functions. " +
+                    "JDBC4 was extended with the 'getFunctions()' and 'getFunctionColumns()' methods and the expected behaviours of previous methods are not well defined. " +
+                    "For JDBC4 and higher, default \"true\" value of the option means that calls of 'DatabaseMetaData.getProcedures()' and 'DatabaseMetaData.getProcedureColumns()' return metadata for both procedures and functions as before, " +
+                    "keeping backward compatibility. Setting this property to \"false\" decouples Connector/J from its pre-JDBC4 behaviours for 'DatabaseMetaData.getProcedures()' and 'DatabaseMetaData.getProcedureColumns()', " +
+                    "forcing them to return metadata for procedures only.",
+            false),
     ;
 
   private final String optionName;

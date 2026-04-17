@@ -149,6 +149,7 @@ public class Options implements Cloneable {
     public boolean emulateLocators;
     public int locatorFetchBufferSize = 1048576;
     public boolean useLocalSessionState = true;
+    public boolean getProceduresReturnsFunctions = true;
 
     // logging options
     public boolean log;
@@ -798,6 +799,9 @@ public class Options implements Cloneable {
         if (sendTypesToServer != opt.sendTypesToServer) {
             return false;
         }
+        if (getProceduresReturnsFunctions != opt.getProceduresReturnsFunctions) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -968,6 +972,7 @@ public class Options implements Cloneable {
         result = 31 * result + (clientInfoProvider != null ? clientInfoProvider.hashCode() : 0);
         result = 31 * result + (obClobToStringReturnsContents ? 1 : 0);
         result = 31 * result + (sendTypesToServer ? 1 : 0);
+        result = 31 * result + (getProceduresReturnsFunctions ? 1 : 0);
         return result;
     }
 
