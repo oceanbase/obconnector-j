@@ -365,12 +365,17 @@ public enum ColumnType {
     }
 
     public static ColumnType convertSqlTypeToColumnTypeForOracleRoutine(int sqlType) {
-        for (ColumnType columnType : typeOracleMap) {
-            if (columnType != null && columnType.sqlType == sqlType) {
-                return columnType;
-            }
+        switch (sqlType) {
+            case Types.NUMERIC:
+                return ColumnType.OBDECIMAL;
+            default:
+                for (ColumnType columnType : typeOracleMap) {
+                    if (columnType != null && columnType.sqlType == sqlType) {
+                        return columnType;
+                    }
+                }
+                return ColumnType.NULL;
         }
-        return ColumnType.NULL;
     }
 
     /**
