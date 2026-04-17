@@ -710,12 +710,15 @@ public class ClientPrepareResult implements PrepareResult {
           case 'O':
               if (state == LexState.Normal
                       && postValuePart == null
-                      && queryLength > i  + 1
+                      && queryLength > i  + 2
                       && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
-                  onDuplicateKeyUpdateIndex = sb.toString().length();
-                  sb.append(car);
-                  keyState = KeyState.No;
-                  skipChar = true;
+                  int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 2, queryLength);
+                  if ((nextValidPos < queryLength && nextValidPos > i + 2) && (query[nextValidPos] == 'd' || query[nextValidPos] == 'D')) {
+                      onDuplicateKeyUpdateIndex = sb.toString().length();
+                      sb.append(car);
+                      keyState = KeyState.No;
+                      skipChar = true;
+                  }
               }
               break;
           case 'd':
@@ -723,7 +726,7 @@ public class ClientPrepareResult implements PrepareResult {
               if (state == LexState.Normal
                       && keyState == KeyState.No
                       && postValuePart == null
-                      && queryLength > i  + 8
+                      && queryLength > i  + 9
                       && (query[i + 1] == 'u' || query[i + 1] == 'U')
                       && (query[i + 2] == 'p' || query[i + 2] == 'P')
                       && (query[i + 3] == 'l' || query[i + 3] == 'L')
@@ -732,9 +735,12 @@ public class ClientPrepareResult implements PrepareResult {
                       && (query[i + 6] == 'a' || query[i + 6] == 'A')
                       && (query[i + 7] == 't' || query[i + 7] == 'T')
                       && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
-                  sb.append(car);
-                  keyState = KeyState.Duplicate;
-                  skipChar = true;
+                  int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 9, queryLength);
+                  if ((nextValidPos < queryLength && nextValidPos > i + 9) && (query[nextValidPos] == 'k' || query[nextValidPos] == 'K')) {
+                      sb.append(car);
+                      keyState = KeyState.Duplicate;
+                      skipChar = true;
+                  }
               }
               break;
           case 'k':
@@ -742,12 +748,15 @@ public class ClientPrepareResult implements PrepareResult {
               if (state == LexState.Normal
                       && keyState == KeyState.Duplicate
                       && postValuePart == null
-                      && queryLength > i  + 2
+                      && queryLength > i  + 3
                       && (query[i + 1] == 'e' || query[i + 1] == 'E')
                       && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
-                  sb.append(car);
-                  keyState = KeyState.Key;
-                  skipChar = true;
+                  int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 3, query.length);
+                  if ((nextValidPos < queryLength && nextValidPos > i + 3) && (query[nextValidPos] == 'u' || query[nextValidPos] == 'U')) {
+                      sb.append(car);
+                      keyState = KeyState.Key;
+                      skipChar = true;
+                  }
               }
               break;
           case 'u':
@@ -1071,12 +1080,15 @@ public class ClientPrepareResult implements PrepareResult {
                 case 'O':
                     if (state == LexState.Normal
                             && postValuePart == null
-                            && queryLength > i  + 1
+                            && queryLength > i  + 2
                             && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
-                        onDuplicateKeyUpdateIndex = sb.toString().length();
-                        sb.append(car);
-                        keyState = KeyState.No;
-                        skipChar = true;
+                        int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 2, queryLength);
+                        if ((nextValidPos < queryLength && nextValidPos > i + 2) && (query[nextValidPos] == 'd' || query[nextValidPos] == 'D')) {
+                            onDuplicateKeyUpdateIndex = sb.toString().length();
+                            sb.append(car);
+                            keyState = KeyState.No;
+                            skipChar = true;
+                        }
                     }
                     break;
                 case 'd':
@@ -1084,7 +1096,7 @@ public class ClientPrepareResult implements PrepareResult {
                     if (state == LexState.Normal
                             && keyState == KeyState.No
                             && postValuePart == null
-                            && queryLength > i  + 8
+                            && queryLength > i  + 9
                             && (query[i + 1] == 'u' || query[i + 1] == 'U')
                             && (query[i + 2] == 'p' || query[i + 2] == 'P')
                             && (query[i + 3] == 'l' || query[i + 3] == 'L')
@@ -1093,9 +1105,12 @@ public class ClientPrepareResult implements PrepareResult {
                             && (query[i + 6] == 'a' || query[i + 6] == 'A')
                             && (query[i + 7] == 't' || query[i + 7] == 'T')
                             && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
-                        sb.append(car);
-                        keyState = KeyState.Duplicate;
-                        skipChar = true;
+                        int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 9, queryLength);
+                        if ((nextValidPos < queryLength && nextValidPos > i + 9) && (query[nextValidPos] == 'k' || query[nextValidPos] == 'K')) {
+                            sb.append(car);
+                            keyState = KeyState.Duplicate;
+                            skipChar = true;
+                        }
                     }
                     break;
                 case 'k':
@@ -1103,12 +1118,15 @@ public class ClientPrepareResult implements PrepareResult {
                     if (state == LexState.Normal
                             && keyState == KeyState.Duplicate
                             && postValuePart == null
-                            && queryLength > i  + 2
+                            && queryLength > i  + 3
                             && (query[i + 1] == 'e' || query[i + 1] == 'E')
                             && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
-                        sb.append(car);
-                        keyState = KeyState.Key;
-                        skipChar = true;
+                        int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 3, query.length);
+                        if ((nextValidPos < queryLength && nextValidPos > i + 3) && (query[nextValidPos] == 'u' || query[nextValidPos] == 'U')) {
+                            sb.append(car);
+                            keyState = KeyState.Key;
+                            skipChar = true;
+                        }
                     }
                     break;
                 case 'u':
