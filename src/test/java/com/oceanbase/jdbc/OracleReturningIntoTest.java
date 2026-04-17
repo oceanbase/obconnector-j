@@ -260,4 +260,31 @@ public class OracleReturningIntoTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2025072900110208623() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        String tableName = "test_returning";
+        createTable(tableName, "c1 INT, c2 VARCHAR2(20)");
+
+        String sql1 = "insert into " + tableName +" values(?, ?) returning c1, c2 into ?, ?";
+        String sql2 = "insert into " + tableName +" values(?, ?) returning c1, c2 into :res1, :res2";
+        String[] sqls = new String[]{sql1, sql2};
+        for (String sql : sqls) {
+            try {
+                JDBC4ServerPreparedStatement ps = (JDBC4ServerPreparedStatement) conn.prepareStatement(sql);
+                ps.setInt(1, 1);
+                ps.setString(2, "test");
+                ps.registerReturnParameter(3, Types.INTEGER);
+                ps.registerReturnParameter(4, Types.VARCHAR);
+                assertEquals(1, ps.executeUpdate());
+                ResultSet rs = ps.getReturnResultSet();
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("test", rs.getString(2));
+                assertFalse(rs.next());
+            } catch (SQLException e) {
+                fail("Simple INSERT returning into failed: " + e.getMessage());
+            }
+        }
+    }
 }
