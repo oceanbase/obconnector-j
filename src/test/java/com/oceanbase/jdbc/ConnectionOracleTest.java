@@ -252,4 +252,17 @@ public class ConnectionOracleTest extends BaseOracleTest{
         }
     }
 
+    @Test
+    public void testForDima2026031100114574982() throws SQLException {
+        String user = System.getProperty("user"); // use caching sha2
+        String pass = System.getProperty("pass");
+
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        ((OceanBaseConnection) conn).changeUser(user, pass);
+        ResultSet rs = stmt.executeQuery("select user from dual");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(user, rs.getString(1));
+    }
+
 }

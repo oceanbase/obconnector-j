@@ -1289,6 +1289,19 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
+  public void testForDima2026031100114574982() throws SQLException {
+    String user = System.getProperty("user"); // use caching sha2
+    String pass = System.getProperty("pass");
+
+    Connection conn = setConnection();
+    Statement stmt = conn.createStatement();
+    ((OceanBaseConnection) conn).changeUser(user, pass);
+    ResultSet rs = stmt.executeQuery("select current_user() from dual");
+    Assert.assertTrue(rs.next());
+    Assert.assertTrue(rs.getString(1).contains(user.substring(0, user.indexOf("@"))));
+  }
+
+  @Test
   public void testForDima2025111300111933631() throws SQLException, InterruptedException {
     String url = System.getProperty("replicationUrl"); // slave node is unavailable
     Connection conn = DriverManager.getConnection(url + "&loadBalanceBlacklistTimeout=5");
@@ -1325,4 +1338,5 @@ public class ConnectionTest extends BaseTest {
       fail(e.getMessage());
     }
   }
+  
 }
