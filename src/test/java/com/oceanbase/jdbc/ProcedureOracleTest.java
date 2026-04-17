@@ -1341,6 +1341,24 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2025092300111131115() throws SQLException {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package PKF_NAMED as function j(a in out varchar2, b in varchar2, c in varchar2) return varchar2; end;");
+        stmt.execute("create or replace package body PKF_NAMED as function j(a in out varchar2, b in varchar2, c in varchar2) return varchar2 is begin return a||b||c; end; end;");
+
+        CallableStatement cs = conn.prepareCall("? = call PKF_NAMED.j(b=>?, a=>?, c=>?)");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.setString(2, "B");
+        cs.setString(3, "A");
+        cs.setString(4, "C");
+        cs.execute();
+        assertEquals("ABC", cs.getString(1));
+        assertEquals("A", cs.getString(3));
+    }
+
+    @Test
     public void testForDima2026012600113705588() throws Exception {
         Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
         Statement stmt = conn.createStatement();

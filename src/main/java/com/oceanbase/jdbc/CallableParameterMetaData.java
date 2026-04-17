@@ -270,7 +270,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
             }
         }
         if (isObFunction) {
-            paramList.add(0, new ParsedCallParameters(true, "?"));
+            String paramName = haveSpecialParameters ? "functionreturn" : "?";
+            paramList.add(0, new ParsedCallParameters(true, paramName));
         }
 
         // expected: allParams.size() >= paramList.size()
