@@ -62,6 +62,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 
 public class StatementTest extends BaseTest {
 
@@ -1086,6 +1087,45 @@ public class StatementTest extends BaseTest {
             statement.execute("alter system set open_cursors=100");
         }
         Assert.assertEquals(15, count);
+    }
+
+    @Test
+    public void testForDima2025041800108358260() throws SQLException {
+        Connection conn = null;
+        int compatibleMysqlVersion = 8;
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                compatibleMysqlVersion = 5;
+            }
+            conn = setConnection("&compatibleMysqlVersion=" + compatibleMysqlVersion);
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select 1");
+            assertThrowsSQLException(rs::previous, "previous", compatibleMysqlVersion);
+            assertThrowsSQLException(rs::beforeFirst, "beforeFirst", compatibleMysqlVersion);
+            assertThrowsSQLException(rs::afterLast, "afterLast", compatibleMysqlVersion);
+            assertThrowsSQLException(rs::first, "first", compatibleMysqlVersion);
+            assertThrowsSQLException(rs::last, "last", compatibleMysqlVersion);
+            assertThrowsSQLException(() -> rs.absolute(1), "absolute", compatibleMysqlVersion);
+            assertThrowsSQLException(() -> rs.relative(1), "relative", compatibleMysqlVersion);
+            assertThrowsSQLException(rs::isLast, "isLast", compatibleMysqlVersion);
+            rs.close();
+            stmt.close();
+            conn.close();
+        }
+    }
+
+    private void assertThrowsSQLException(ThrowingRunnable runnable, String operationName, int compatibleMysqlVersion) {
+        try {
+            runnable.run();
+            if (compatibleMysqlVersion == 8 && !operationName.equals("isLast")) {
+                fail("should throw exception, " + operationName );
+            }
+        } catch (Throwable e) {
+            if (compatibleMysqlVersion == 5) {
+                fail("should not throw exception, " + operationName);
+            }
+            Assert.assertTrue(e.getMessage().contains("Operation not allowed for a result set of type ResultSet.TYPE_FORWARD_ONLY."));
+        }
     }
 
 }

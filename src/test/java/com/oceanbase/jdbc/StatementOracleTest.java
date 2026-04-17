@@ -48,6 +48,7 @@ import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 
 import static org.junit.Assert.fail;
 
@@ -447,6 +448,30 @@ public class StatementOracleTest extends BaseOracleTest {
             statement.execute("alter system set open_cursors=100");
         }
         Assert.assertEquals(15, count);
+    }
+
+    @Test
+    public void testForDima2025041800108358260() throws SQLException {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select 1 from dual");
+        assertThrowsSQLException(rs::previous, "previous");
+        assertThrowsSQLException(rs::beforeFirst, "beforeFirst");
+        assertThrowsSQLException(rs::isLast, "isLast");
+        assertThrowsSQLException(rs::afterLast, "afterLast");
+        assertThrowsSQLException(rs::first, "first");
+        assertThrowsSQLException(rs::last, "last");
+        assertThrowsSQLException(() -> rs.absolute(1), "absolute");
+        assertThrowsSQLException(() -> rs.relative(1), "relative");
+    }
+
+    private void assertThrowsSQLException(ThrowingRunnable runnable, String operationName) {
+        try {
+            runnable.run();
+            fail("should throw exception, " + operationName );
+        } catch (Throwable e) {
+            Assert.assertEquals("Invalid operation on TYPE_FORWARD_ONLY ResultSet", e.getMessage());
+        }
     }
 
     @Test

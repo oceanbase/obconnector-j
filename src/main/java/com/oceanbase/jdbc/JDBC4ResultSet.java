@@ -996,9 +996,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public void beforeFirst() throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1013,9 +1011,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public void afterLast() throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1030,9 +1026,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean first() throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1049,9 +1043,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean last() throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1065,9 +1057,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean absolute(int row) throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1112,9 +1102,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean relative(int rows) throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -1140,9 +1128,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
 
     @Override
     public boolean previous() throws SQLException {
-        if (resultSetScrollType == TYPE_FORWARD_ONLY && protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
-        }
+        checkForwardOnly();
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
@@ -4167,6 +4153,17 @@ public class JDBC4ResultSet implements ResultSetImpl {
             }
         }
         return "";
+    }
+
+    private void checkForwardOnly() throws SQLException {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+            if (protocol.isOracleMode()) {
+                throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            }
+            if (!protocol.isOracleMode() && options.compatibleMysqlVersion == 8) {
+                throw new SQLException("Operation not allowed for a result set of type ResultSet.TYPE_FORWARD_ONLY.");
+            }
+        }
     }
 
 }
