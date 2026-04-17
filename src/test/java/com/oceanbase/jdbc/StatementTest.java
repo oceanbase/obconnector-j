@@ -1090,6 +1090,23 @@ public class StatementTest extends BaseTest {
     }
 
     @Test
+    public void testForDima2025071800110022240() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&rewriteBatchedStatements=true");
+        Statement stmt = conn.createStatement();
+        String tableName = "test_on_duplicate_key_update1";
+        createTable(tableName, "c varchar(50)");
+        PreparedStatement ps = conn.prepareStatement("insert into test_on_duplicate_key_update1 (c) values (?)");
+        for (int i = 0; i < 3; i++) {
+            ps.setString(1, "aaa_" + i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ResultSet rs = stmt.executeQuery("select count(*) from " + tableName);
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
     public void testForDima2025041800108358260() throws SQLException {
         Connection conn = null;
         int compatibleMysqlVersion = 8;

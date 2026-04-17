@@ -1095,16 +1095,19 @@ public class Utils {
                     case 'o':
                     case 'O':
                         if (keyState != KeyState.OnDuplicateKeyUpdate
-                                && queryLength > i + 1
+                                && queryLength > i + 2
                                 && (query[i + 1] == 'n' || query[i + 1] == 'N')) {
-                            onDuplicateKeyUpdateStartIndex = trimedSqlString.length();
-                            keyState = KeyState.On;
+                            int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 2, queryLength);
+                            if ((nextValidPos < queryLength && nextValidPos > i + 2) && (query[nextValidPos] == 'd' || query[nextValidPos] == 'D')) {
+                              onDuplicateKeyUpdateStartIndex = trimedSqlString.length();
+                              keyState = KeyState.On;
+                            }
                         }
                         break;
                     case 'd':
                     case 'D':
                         if (keyState == KeyState.On
-                                && queryLength > i + 8
+                                && queryLength > i + 9
                                 && (query[i + 1] == 'u' || query[i + 1] == 'U')
                                 && (query[i + 2] == 'p' || query[i + 2] == 'P')
                                 && (query[i + 3] == 'l' || query[i + 3] == 'L')
@@ -1113,16 +1116,22 @@ public class Utils {
                                 && (query[i + 6] == 'a' || query[i + 6] == 'A')
                                 && (query[i + 7] == 't' || query[i + 7] == 'T')
                                 && (query[i + 8] == 'e' || query[i + 8] == 'E')) {
-                            keyState = KeyState.OnDuplicate;
+                            int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 9, queryLength);
+                            if ((nextValidPos < queryLength && nextValidPos > i + 9) && (query[nextValidPos] == 'k' || query[nextValidPos] == 'K')) {
+                              keyState = KeyState.OnDuplicate;
+                            }
                         }
                         break;
                     case 'k':
                     case 'K':
                         if (keyState == KeyState.OnDuplicate
-                                && queryLength > i + 2
+                                && queryLength > i + 3
                                 && (query[i + 1] == 'e' || query[i + 1] == 'E')
                                 && (query[i + 2] == 'y' || query[i + 2] == 'Y')) {
-                            keyState = KeyState.OnDuplicateKey;
+                            int nextValidPos = StringUtils.skipWhitespaceAndComments(query, i + 3, query.length);
+                            if ((nextValidPos < queryLength && nextValidPos > i + 3) && (query[nextValidPos] == 'u' || query[nextValidPos] == 'U')) {
+                              keyState = KeyState.OnDuplicateKey;
+                            }
                         }
                         break;
                     case 'u':

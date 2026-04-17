@@ -107,4 +107,49 @@ public class StringUtils {
         }
         return charset;
     }
+
+    public static int skipWhitespaceAndComments(char[] query, int startPos, int queryLength) {
+        int pos = startPos;
+        while (pos < queryLength) {
+            char c = query[pos];
+
+            // skip whitespace characters
+            if (Character.isWhitespace(c)) {
+                pos++;
+                continue;
+            }
+
+            // skip comments
+            if (pos + 1 < queryLength) {
+                if ((c == '/' && query[pos + 1] == '/') || (c == '-' && query[pos + 1] == '-')) {
+                    pos += 2;
+                    while (pos < queryLength && query[pos] != '\n') {
+                        pos++;
+                    }
+                    continue;
+                }
+
+                if (c == '#') {
+                    pos++;
+                    while (pos < queryLength && query[pos] != '\n') {
+                        pos++;
+                    }
+                    continue;
+                }
+
+                if (c == '/' && query[pos + 1] == '*') {
+                    pos += 2;
+                    while (pos + 1 < queryLength && !(query[pos] == '*' && query[pos + 1] == '/')) {
+                        pos++;
+                    }
+                    if (pos + 1 < queryLength) {
+                        pos += 2;
+                    }
+                    continue;
+                }
+            }
+            break;
+        }
+        return pos;
+    }
 }
