@@ -860,4 +860,19 @@ public class NewFeatureOracleTest extends BaseOracleTest {
             }
         }
     }
+
+    @Test
+    public void testForDima2025052900109278306() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true&useArrayBinding=true&useServerPrepStmts=true");
+        createTable("t_time", "c1 varchar2(10), c2 varchar2(10)");
+        conn.setAutoCommit(false);
+        try {
+            PreparedStatement ps2 = conn.prepareStatement("update t_time set c2 = '222' where c1 = '111' ");
+            ps2.addBatch();
+            ps2.executeBatch();
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 }
