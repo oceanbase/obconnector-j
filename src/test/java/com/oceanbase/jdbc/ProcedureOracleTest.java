@@ -1341,6 +1341,38 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2025092400111147975() throws SQLException {
+        Connection conn = setConnection("&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace package param_type_pkg as " +
+                "procedure test_proc(a in int, b out varchar2); " +
+                "procedure test_proc(a in int, b out number); " +
+                "end;");
+
+        stmt.execute("create or replace package body param_type_pkg as " +
+                "procedure test_proc(a in int, b out varchar2) is begin b := 'str_' || a; end; " +
+                "procedure test_proc(a in int, b out number) is begin b := a * 10; end; " +
+                "end;");
+
+        try {
+            CallableStatement cs1 = conn.prepareCall("call param_type_pkg.test_proc(?, ?)");
+            cs1.setInt(1, 5);
+            cs1.registerOutParameter(2, Types.VARCHAR);
+            cs1.execute();
+            assertEquals("str_5", cs1.getString(2));
+
+            CallableStatement cs2 = conn.prepareCall("call param_type_pkg.test_proc(?, ?)");
+            cs2.setInt(1, 5);
+            cs2.registerOutParameter(2, Types.NUMERIC);
+            cs2.execute();
+            assertEquals(50, cs2.getInt(2));
+        } finally {
+            conn.close();
+        }
+    }
+
+    @Test
     public void testForDima2025092300111131115() throws SQLException {
         Connection conn = setConnection();
         Statement stmt = conn.createStatement();
