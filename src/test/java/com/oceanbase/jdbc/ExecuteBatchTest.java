@@ -53,6 +53,7 @@ package com.oceanbase.jdbc;
 import static org.junit.Assert.*;
 
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.Thread.State;
 import java.sql.*;
@@ -64,6 +65,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import joptsimple.internal.Strings;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -561,6 +563,34 @@ public class ExecuteBatchTest extends BaseTest {
         }
         PreparedStatement ps = conn.prepareStatement(sql.toString());
         Assert.assertEquals(0, ps.executeUpdate());
+    }
+
+    @Test
+    public void testForDima2026040300115148124() throws SQLException {
+        Connection conn = setConnection("&rewriteBatchedStatements=true");
+        createTable("boundary_bug_test", "id INT, data longtext");
+
+        int dataLength = 16777163;
+        String longStr = Strings.repeat('A', dataLength);
+        String sql = "insert into boundary_bug_test VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, 1);
+            ps.setCharacterStream(2, new StringReader(longStr), dataLength);
+            ps.addBatch();
+
+            ps.setInt(1, 2);
+            ps.setCharacterStream(2, new StringReader(longStr), dataLength);
+            ps.addBatch();
+
+            ps.executeBatch();
+        } catch (ArrayIndexOutOfBoundsException e) {
+            fail(e.getMessage());
+        }
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(*) from boundary_bug_test");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
     }
 
     @Test

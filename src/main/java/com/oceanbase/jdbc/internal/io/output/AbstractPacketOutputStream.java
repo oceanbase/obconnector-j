@@ -923,6 +923,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                     }
 
                 } else {
+                    // if buffer can't grows and space is full, need flush at first
+                    if (buf.length <= pos) {
+                        flushBuffer(false);
+                    }
 
                     // not enough space in buffer, will fill buffer
                     if (noBackslashEscapes) {
@@ -1005,6 +1009,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                     }
 
                 } else {
+                    // if buffer can't grows and space is full, need flush at first
+                    if (buf.length <= pos) {
+                        flushBuffer(false);
+                    }
 
                     // not enough space in buffer, will fill buffer
                     if (noBackslashEscapes) {
