@@ -1698,7 +1698,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       SendHandshakeResponsePacket.sendChangeUser(writer, credential, host, database, clientCapabilities,
           serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
               : 0x01), options, authenticationPluginType, seed, clientIp, this.isOracleMode());
-      getResult(new Results());
+      processAuthentication(seed, options, credential);
       setUsername(user);
       postConnectionQueries();
     } catch (IOException e) {

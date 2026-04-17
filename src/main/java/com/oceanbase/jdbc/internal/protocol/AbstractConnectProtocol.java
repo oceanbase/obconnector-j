@@ -729,9 +729,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
             serverCapabilities, exchangeCharset, (byte) (Boolean.TRUE.equals(options.useSsl) ? 0x02
                 : 0x01), options, authenticationPluginType, seed, clientIp);
 
-        writer.permitTrace(false);
         // The handshake packet does not require packet sequence verification.
         reader.setMysqlSeqNoReset(true);
+        processAuthentication(seed, options, credential);
+    }
+
+    protected void processAuthentication(byte[] seed, Options options, Credential credential) throws IOException, SQLException {
+        writer.permitTrace(false);
         Buffer buffer = reader.getPacket(false);
         AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
 
@@ -842,7 +846,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                 // read data of the changed session info
                                     case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
                                         // read length
-                                        int type = buffer.readByte();
+                                        int type = buffer.readByte() & 0xFF;
                                         readLength++;
                                         long dataLength;
                                         switch (type) {
