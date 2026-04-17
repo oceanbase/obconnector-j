@@ -270,7 +270,10 @@ public class CursorResultSet extends Cursor {
         }
 
         if (!isServerSide) {
-            return isLastRowSent && rowPointer >= dataSize;
+            if (protocol.isOracleMode()) {
+                return isLastRowSent && rowPointer >= dataSize;
+            }
+            return isLastRowSent && rowPointer > dataSize;
         }
         return currentIndexInEntireResult == -1;
     }
@@ -515,6 +518,7 @@ public class CursorResultSet extends Cursor {
         cancelRowInserts();
 
         if (dataSize == 0) {
+            rowPointer = dataSize;
             return false;
         }
 

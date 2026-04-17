@@ -1955,4 +1955,33 @@ public class ResultSetTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testForDima2025070100109750305() throws SQLException {
+        String[] urls = new String[]{"&useServerPrepStmts=false", "&useServerPrepStmts=true", "&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=10"};
+        for (int i = 0; i < 3; i++) {
+            try (Connection conn = setConnection(urls[i])) {
+                PreparedStatement ps = conn.prepareStatement("select 1 from dual where 1 = 2");
+                ResultSet rs = ps.executeQuery();
+                Assert.assertFalse(rs.isAfterLast());
+                Assert.assertFalse(rs.next());
+                Assert.assertFalse(rs.isAfterLast());
+            }
+        }
+
+        // test for 2025063000109730348
+        Connection conn = setConnection("&useServerPrepStmts=true&useCursorFetch=true");
+        createTable("zt1", "c1 int, c2 varchar(20)");
+
+        Statement statement = conn.createStatement();
+        statement.execute("insert into zt1 values(1, 'a')");
+        PreparedStatement ps = conn.prepareStatement("select * from zt1");
+        ps.setFetchSize(1);
+        ResultSet rs = ps.executeQuery("select * from zt1");
+
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse(rs.isAfterLast());
+        Assert.assertFalse(rs.next());
+        Assert.assertFalse(rs.isAfterLast());
+    }
+
 }
