@@ -1592,4 +1592,21 @@ public class DataTypeTest extends BaseTest {
         }
         Assert.assertEquals(17, index);
     }
+
+    @Test
+    public void testForDima2026030900114529456() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        createTable("t_number", "c1 varchar(30)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_number values('1476588344285089793')");
+
+        PreparedStatement ps1 = conn.prepareStatement("select * from t_number");
+        ResultSet rs = ps1.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("1476588344285089793", rs.getString(1));
+        Assert.assertEquals(1476588344285089793L, rs.getLong(1));
+        Assert.assertEquals(1476588344285089793L, rs.getBigDecimal(1).longValue());
+        Assert.assertEquals(1.47658832E18f, rs.getFloat(1), 0.01);
+        Assert.assertEquals(1.47658834428508979E18D, rs.getDouble(1), 0.01);
+    }
 }

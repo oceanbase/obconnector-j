@@ -714,6 +714,10 @@ public class BinaryRowProtocol extends RowProtocol {
                     BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                     rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, bigDecimal, columnInfo);
                     return bigDecimal.longValue();
+                case BINARY_FLOAT:
+                case BINARY_DOUBLE:
+                    Double internalDouble = getInternalDouble(columnInfo);
+                    return internalDouble.longValue();
                 case VARSTRING:
                 case VARCHAR:
                 case STRING:
@@ -722,10 +726,6 @@ public class BinaryRowProtocol extends RowProtocol {
                     if (length == 0) {
                         return convertToZeroWithEmptyCheck();
                     }
-                case BINARY_FLOAT:
-                case BINARY_DOUBLE:
-                    Double internalDouble = getInternalDouble(columnInfo);
-                    return internalDouble.longValue();
                 case OBDECIMAL:
                     return Long.parseLong(new String(buf, pos, length,
                         getCurrentEncoding(columnInfo.getColumnType())).trim());
