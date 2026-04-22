@@ -167,4 +167,25 @@ public class ObProtocolV20Test extends BaseTest {
         Assert.assertEquals(10, rs.getInt(1));
     }
 
+    @Test
+    public void testForDima2026042200115615398() throws SQLException {
+        Connection conn = setConnectionOrigin("?useServerPrepStmts=true&useBatchMultiSend=true&useOceanBaseProtocolV20=true");
+        createTable("t_1", "c1 int, c2 varchar(30)");
+
+        PreparedStatement ps = conn.prepareStatement("insert into t_1 values (?, ?)");
+        ps.setInt(1, 1);
+        ps.setString(2, "oceanbase");
+        ps.execute();
+        ps.close();
+
+        PreparedStatement ps2 = conn.prepareStatement("select * from t_1");
+        ResultSet rs = ps2.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals("oceanbase", rs.getString(2));
+        rs.close();
+        ps2.close();
+
+    }
+
 }

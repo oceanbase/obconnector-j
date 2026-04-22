@@ -230,8 +230,10 @@ public class OceanBaseProtocolV20 {
         tailChecksum = 0;
     }
 
-    public void updateRequestId() {
-        requestIdQueueForOb20.add(curRequestId);
+    public void updateRequestId(boolean isNoResponseCommand) {
+        if (!isNoResponseCommand) {
+            requestIdQueueForOb20.add(curRequestId);
+        }
         curRequestId++;
         if (curRequestId == UINT_MAX24 + 1) {
             curRequestId = 0;
