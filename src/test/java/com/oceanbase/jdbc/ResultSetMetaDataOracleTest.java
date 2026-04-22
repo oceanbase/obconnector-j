@@ -81,5 +81,32 @@ public class ResultSetMetaDataOracleTest extends BaseOracleTest {
             Assert.assertEquals(metaInfo.metainfos[2], metaData.getScale(i));
         }
     }
+    
+    @Test
+    public void testForDima2026042200115616739() throws SQLException {
+        Connection conn = setConnection("&useNewResultSetMetaData=true&compatibleOjdbcVersion=6");
+        createTable("t_meta", "c0 json");
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t_meta");
+        ResultSetMetaData metaData = rs.getMetaData();
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            Assert.assertEquals(2147483644, metaData.getColumnDisplaySize(i));
+            Assert.assertEquals(-1, metaData.getPrecision(i));
+            Assert.assertEquals(0, metaData.getScale(i));
+        }
+        conn.close();
+
+        conn = setConnection("&useNewResultSetMetaData=false&compatibleOjdbcVersion=6");
+        createTable("t_meta", "c0 json");
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery("select * from t_meta");
+        metaData = rs.getMetaData();
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            Assert.assertEquals(2147483644, metaData.getColumnDisplaySize(i));
+            Assert.assertEquals(2147483644, metaData.getPrecision(i));
+            Assert.assertEquals(0, metaData.getScale(i));
+        }
+    }
 
 }
