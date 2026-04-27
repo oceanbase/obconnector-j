@@ -546,6 +546,11 @@ public class ColumnDefinition {
                 }
                 return clampGetLength(length) / maxWidth;
         }
+        if (isOracleMode) {
+            if (type == ColumnType.JSON) {
+                return -1;
+            }
+        }
         return clampGetLength(length);
     }
 
