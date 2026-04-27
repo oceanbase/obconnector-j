@@ -415,7 +415,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
             ret = results.getCmdInformation().getUpdateCounts();
         }
 
-        int end = 0;
+        int end = -1;
         boolean isPrepared = results.getStatement() instanceof BasePrepareStatement;
         boolean useRewriteOrMulti = (options.rewriteBatchedStatements && size > 4) || options.allowMultiQueries;
         if (!protocol.isOracleMode()) {
@@ -452,7 +452,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
             }
         }
 
-        if (end > 0 && end < ret.length) {
+        if (end >= 0 && end < ret.length) {
             int[] tmp = new int[end];
             System.arraycopy(ret, 0, tmp, 0, end);
             ret = tmp;

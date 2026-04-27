@@ -745,4 +745,23 @@ public class ExecuteBatchTest extends BaseTest {
             Assert.assertEquals("[1, 1, -3, 1]", Arrays.toString(e.getUpdateCounts()));
         }
     }
+
+    @Test
+    public void testForDima2026042200115630287() throws SQLException {
+        createTable("t_batch_uc", "c1 int");
+        Connection conn = setConnection("&continueBatchOnError=false");
+        Statement stmt = conn.createStatement();
+        stmt.addBatch("insert into t_batch_uc values('s')");  // 首条失败
+        stmt.addBatch("insert into t_batch_uc values(1)");
+        stmt.addBatch("insert into t_batch_uc values(2)");
+        try {
+            stmt.executeBatch();
+            fail();
+        } catch (BatchUpdateException e) {
+            int[] counts = e.getUpdateCounts();
+            Assert.assertEquals("[]", Arrays.toString(counts));
+        }
+        conn.close();
+    }
+
 }
