@@ -1415,10 +1415,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
         //check special parameters like "call test_p(a => ?)"
         Pattern specialParametersPattern = Pattern.compile("\\w+\\s*=>\\s*\\?");
+        Set<Integer> namedParameterIndices = new HashSet<>();
         for (int i = 0; i < paramList.size(); i++) {
             String parsedCallParameterName = paramList.get(i).getName();
             if (specialParametersPattern.matcher(parsedCallParameterName).find()) {
                 paramList.set(i, new ParsedCallParameters(true, parsedCallParameterName.split("=")[0].trim()));
+                namedParameterIndices.add(i);
             }
         }
 
@@ -1430,13 +1432,20 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             parsedArgumentsMap = new HashMap<>(paramList.size());
         }
         int placeHolderIndex = 1;
-        for (ParsedCallParameters callParameters : paramList) {
+        for (int i = 0; i < paramList.size(); i++) {
+            ParsedCallParameters callParameters = paramList.get(i);
             if (callParameters.isParam()) {
                 callParameters.setPlaceHolderIndex(placeHolderIndex++);
                 parsedArgumentsMap.put(callParameters.getPlaceHolderIndex(), callParameters);
             }
             String parametersName = callParameters.getName();
-            if (parametersName != null && !parametersName.startsWith("?") && !parametersName.startsWith(":")) {
+            // Adjust index for isObFunction: if isObFunction is true, a parameter was inserted at index 0
+            // so all named parameter indices need to be offset by 1
+            int adjustedIndex = isObFunction ? i - 1 : i;
+            if (parametersName != null 
+                && !parametersName.equals("?")
+                && !parametersName.startsWith(":")
+                && !namedParameterIndices.contains(adjustedIndex)) {
                 hasExpressionParam = true;
             }
         }

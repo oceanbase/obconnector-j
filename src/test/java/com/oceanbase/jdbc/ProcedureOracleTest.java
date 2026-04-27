@@ -1462,4 +1462,17 @@ public class ProcedureOracleTest extends BaseOracleTest {
         Assert.assertEquals("Ocean...Email", cs.getString("B"));
     }
 
+    @Test
+    public void testForDima2026042200115626855() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure p_expr_concat(a in varchar2, b out varchar2) is begin b := a; end;");
+        CallableStatement cs = conn.prepareCall("call p_expr_concat(  ? || ?, ?)");
+        cs.setString(1, "hello");
+        cs.setString(2, "world");
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("helloworld", cs.getString(3));
+    }
+
 }
