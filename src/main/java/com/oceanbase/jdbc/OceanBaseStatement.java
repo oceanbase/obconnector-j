@@ -2045,7 +2045,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
   }
 
   protected void validateNonSelectStatement(int sqlType) throws BatchUpdateException {
-    if (sqlType == OceanBaseStatement.STMT_SELECT) {
+    if (options.obStrictJdbcCompatibility && sqlType == OceanBaseStatement.STMT_SELECT) {
       throw new BatchUpdateException("Can not issue SELECT via executeUpdate() or executeLargeUpdate().", "01S03", null);
     }
   }

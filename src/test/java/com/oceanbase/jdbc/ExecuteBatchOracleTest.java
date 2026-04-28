@@ -596,7 +596,7 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
 
     @Test
     public void testForDima2025071400109946593() throws SQLException {
-        Connection conn = setConnection("&useServerPrepStmts=true");
+        Connection conn = setConnection("&useServerPrepStmts=true&obStrictJdbcCompatibility=true");
         createTable("test_c", "c1 int, c2 varchar(20)");
 
         Statement stmt = conn.createStatement();

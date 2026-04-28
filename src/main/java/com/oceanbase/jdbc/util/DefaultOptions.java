@@ -1235,6 +1235,13 @@ public enum DefaultOptions {
                     "keeping backward compatibility. Setting this property to \"false\" decouples Connector/J from its pre-JDBC4 behaviours for 'DatabaseMetaData.getProcedures()' and 'DatabaseMetaData.getProcedureColumns()', " +
                     "forcing them to return metadata for procedures only.",
             false),
+    OB_STRICT_JDBC_COMPATIBILITY(
+            "obStrictJdbcCompatibility",
+            Boolean.FALSE,
+            "2.4.18",
+            "Enables strict compatibility mode with the MySQL/Oracle JDBC drivers. When set to true, some behaviors of the OceanBase JDBC driver will align with those of the native drivers." +
+                    " The default is false, allowing OceanBase to use its own optimizations or behaviors from earlier versions to ensure consistency during upgrades.",
+            false),
     ;
 
   private final String optionName;
