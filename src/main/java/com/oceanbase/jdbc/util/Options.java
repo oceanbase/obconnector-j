@@ -252,6 +252,7 @@ public class Options implements Cloneable {
     public boolean obConvertCallsToBlocks;
     public boolean obClobToStringReturnsContents;
     public boolean sendTypesToServer = true;
+    public boolean obStrictJdbcCompatibility = false;
 
     @Override
     public String toString() {
@@ -802,6 +803,9 @@ public class Options implements Cloneable {
         if (getProceduresReturnsFunctions != opt.getProceduresReturnsFunctions) {
             return false;
         }
+        if (obStrictJdbcCompatibility != opt.obStrictJdbcCompatibility) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -973,6 +977,7 @@ public class Options implements Cloneable {
         result = 31 * result + (obClobToStringReturnsContents ? 1 : 0);
         result = 31 * result + (sendTypesToServer ? 1 : 0);
         result = 31 * result + (getProceduresReturnsFunctions ? 1 : 0);
+        result = 31 * result + (obStrictJdbcCompatibility ? 1 : 0);
         return result;
     }
 

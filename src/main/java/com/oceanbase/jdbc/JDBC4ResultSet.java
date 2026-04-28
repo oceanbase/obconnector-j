@@ -4160,7 +4160,7 @@ public class JDBC4ResultSet implements ResultSetImpl {
             if (protocol.isOracleMode()) {
                 throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
             }
-            if (!protocol.isOracleMode() && options.compatibleMysqlVersion == 8) {
+            if (!protocol.isOracleMode() && options.compatibleMysqlVersion == 8 && options.obStrictJdbcCompatibility) {
                 throw new SQLException("Operation not allowed for a result set of type ResultSet.TYPE_FORWARD_ONLY.");
             }
         }

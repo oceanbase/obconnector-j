@@ -1114,7 +1114,7 @@ public class StatementTest extends BaseTest {
             if (i == 1) {
                 compatibleMysqlVersion = 5;
             }
-            conn = setConnection("&compatibleMysqlVersion=" + compatibleMysqlVersion);
+            conn = setConnection("&obStrictJdbcCompatibility=true&compatibleMysqlVersion=" + compatibleMysqlVersion);
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("select 1");
             assertThrowsSQLException(rs::previous, "previous", compatibleMysqlVersion);
