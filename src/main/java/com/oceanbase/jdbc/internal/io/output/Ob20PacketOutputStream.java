@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
+import com.oceanbase.jdbc.internal.com.Packet;
 import com.oceanbase.jdbc.internal.com.read.Buffer;
 import com.oceanbase.jdbc.internal.io.TraceObject;
 import com.oceanbase.jdbc.internal.logging.Logger;
@@ -82,6 +83,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
     private boolean              enableOb20Checksum;
     byte[]                       outBytes;
     private int                  totalPacketLength;
+    private byte                 currentCommand; // Track current command type
 
     public Ob20PacketOutputStream(OutputStream out, long threadId, Options options,
                                   OceanBaseProtocolV20 ob20, TimeTrace timeTrace) {
@@ -102,7 +104,25 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
         mysqlSeqNo = 0;
         pos = 0;
         cmdLength = 0;
+        currentCommand = 0;
         startSendRequest();
+    }
+
+    @Override
+    public void write(int arr) throws IOException {
+        // Record the first byte as command type
+        if (pos == 0 && cmdLength == 0) {
+            currentCommand = (byte) arr;
+        }
+        super.write(arr);
+    }
+
+    /**
+     * Check if the current command doesn't require a server response.
+     * Commands like COM_QUIT and COM_STMT_CLOSE don't expect server response.
+     */
+    private boolean isNoResponseCommand() {
+        return currentCommand == Packet.COM_QUIT || currentCommand == Packet.COM_STMT_CLOSE;
     }
 
     @Override
@@ -198,7 +218,9 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
                 if (pos == MAX_PACKET_LENGTH) {
                     writeEmptyPacket();
                 } else {
-                    ob20.updateRequestId();
+                    // For commands that don't expect server response, remove requestId from queue
+                    // to prevent mismatch in response handling
+                    ob20.updateRequestId(isNoResponseCommand());
                 }
             }
             pos = 0;
@@ -218,7 +240,7 @@ public class Ob20PacketOutputStream extends AbstractPacketOutputStream {
 
         ob20.header.connectionId = threadId;
         ob20.header.requestId = ob20.curRequestId;
-        ob20.updateRequestId();
+        ob20.updateRequestId(false);
         ob20.header.obSeqNo = (byte) ob20.getObSeqNo();
         ob20.header.compressSeqNo = ob20.header.obSeqNo;
         ob20.header.payloadLength = OceanBaseProtocolV20.MYSQL_PACKET_HEADER;
