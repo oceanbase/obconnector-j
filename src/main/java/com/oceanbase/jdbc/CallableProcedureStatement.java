@@ -1437,16 +1437,18 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             if (callParameters.isParam()) {
                 callParameters.setPlaceHolderIndex(placeHolderIndex++);
                 parsedArgumentsMap.put(callParameters.getPlaceHolderIndex(), callParameters);
-            }
-            String parametersName = callParameters.getName();
-            // Adjust index for isObFunction: if isObFunction is true, a parameter was inserted at index 0
-            // so all named parameter indices need to be offset by 1
-            int adjustedIndex = isObFunction ? i - 1 : i;
-            if (parametersName != null 
-                && !parametersName.equals("?")
-                && !parametersName.startsWith(":")
-                && !namedParameterIndices.contains(adjustedIndex)) {
-                hasExpressionParam = true;
+
+                String parametersName = callParameters.getName();
+                // Adjust index for isObFunction: if isObFunction is true, a parameter was inserted at index 0
+                // so all named parameter indices need to be offset by 1
+                int adjustedIndex = isObFunction ? i - 1 : i;
+                if (parametersName != null
+                        && !parametersName.equals("?")
+                        && !parametersName.startsWith(":")
+                        && !namedParameterIndices.contains(adjustedIndex)
+                        && parametersName.contains("?")) {
+                    hasExpressionParam = true;
+                }
             }
         }
         parsedArgumentsList = paramList;
