@@ -43,7 +43,9 @@
  */
 package com.oceanbase.jdbc.extend.datatype;
 
-public class RowIdImpl implements java.sql.RowId {
+import java.sql.SQLException;
+
+public class RowIdImpl extends Datum implements java.sql.RowId {
     private String val;
 
     public RowIdImpl(String value) {
@@ -78,5 +80,21 @@ public class RowIdImpl implements java.sql.RowId {
     public int hashCode() {
         return val != null ? val.hashCode() : 0;
 
+    }
+
+    @Override
+    public boolean isConvertibleTo(Class targetClass) {
+        String callName = targetClass.getName();
+        return callName.compareTo("java.lang.String") == 0;
+    }
+
+    @Override
+    public Object toJdbc() throws SQLException {
+        return this;
+    }
+
+    @Override
+    public Object makeJdbcArray(int intVal) {
+        return new byte[intVal][];
     }
 }
