@@ -1242,6 +1242,12 @@ public enum DefaultOptions {
             "Enables strict compatibility mode with the MySQL/Oracle JDBC drivers. When set to true, some behaviors of the OceanBase JDBC driver will align with those of the native drivers." +
                     " The default is false, allowing OceanBase to use its own optimizations or behaviors from earlier versions to ensure consistency during upgrades.",
             false),
+    OB_GET_DATE_STRING_WITH_MILLIS(
+            "obGetDateStringWithMillis",
+            Boolean.FALSE,
+            "2.4.19",
+            "Determines whether ResultSet#getString returns DATE values with milliseconds in Oracle tenant mode.",
+            false),
     ;
 
   private final String optionName;

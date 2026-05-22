@@ -458,7 +458,8 @@ public class BinaryRowProtocol extends RowProtocol {
                     LocalDateTime localDateTime = timestamp.toLocalDateTime();
                     int nano = localDateTime.getNano();
                     if (nano == 0
-                        && (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO || options.compatibleOjdbcVersion == 8)) {
+                        && (columnInfo.getColumnType() == ColumnType.TIMESTAMP_NANO || options.compatibleOjdbcVersion == 8)
+                            && (columnInfo.getColumnType() != ColumnType.DATETIME || !options.obGetDateStringWithMillis)) {
                         nano = -1;
                     }
                     String str = DataTypeUtilities.TIMESTAMPTZToString(localDateTime.getYear(),
