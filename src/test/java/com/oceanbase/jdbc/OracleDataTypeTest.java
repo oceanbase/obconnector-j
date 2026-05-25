@@ -51,11 +51,12 @@ package com.oceanbase.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
+import com.oceanbase.jdbc.extend.datatype.RowIdImpl;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -923,5 +924,26 @@ public class OracleDataTypeTest extends BaseOracleTest {
             index ++;
         }
         Assert.assertEquals(17, index);
+    }
+
+    @Test
+    public void testForDima2026052200116263715() throws IOException, ClassNotFoundException {
+        RowIdImpl rowId = new RowIdImpl("123");
+
+        ByteArrayOutputStream bos = null;
+        try {
+            bos = new ByteArrayOutputStream();
+            ObjectOutputStream out = new ObjectOutputStream(bos);
+            out.writeObject(rowId);
+            out.flush();
+        } catch (NotSerializableException e) {
+            fail("RowIdImpl is not Serializable");
+        }
+
+        byte[] bytes = bos.toByteArray();
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        ObjectInputStream in = new ObjectInputStream(bis);
+        RowIdImpl newRowId = (RowIdImpl) in.readObject();
+        Assert.assertEquals(rowId, newRowId);
     }
 }
