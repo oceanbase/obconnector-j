@@ -124,7 +124,7 @@ public class UtilTest extends BaseTest {
                        + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
                        + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
                        + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
-                       + "FROM all_arguments\n" + "WHERE argument_name IS NULL\n"
+                       + "FROM SYS.ALL_ARGUMENTS\n" + "WHERE argument_name IS NULL\n"
                        + "  AND data_type IS NULL\n" + "  AND package_name LIKE ? \n"
                        + "  AND owner LIKE ? \n" + "  AND object_name LIKE ? \n"
                        + "UNION ALL SELECT\n" + "  -- Packaged procedures with arguments\n"
@@ -132,7 +132,7 @@ public class UtilTest extends BaseTest {
                        + "  object_name AS procedure_name,\n" + "  NULL,\n" + "  NULL,\n"
                        + "  NULL,\n" + "  'Packaged procedure' AS remarks,\n"
                        + "  1 AS procedure_type\n" + ",  NULL AS specific_name\n"
-                       + "FROM all_arguments";
+                       + "FROM SYS.ALL_ARGUMENTS";
         String sql14 = "DECLARE\n" + "  V_TABLENAME      VARCHAR2(20);\n"
                        + "  V_NUMBER         NUMBER;\n" + "BEGIN\n"
                        + "  V_TABLENAME     := :V_TABLENAME ;\n"
