@@ -1475,4 +1475,52 @@ public class ProcedureOracleTest extends BaseOracleTest {
         Assert.assertEquals("helloworld", cs.getString(3));
     }
 
+    @Test
+    public void testForDima2026062300116920238() throws SQLException {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package pkg_proc_1 is" +
+                " procedure test_proc_920238(p_a varchar2, p_b varchar2, p_d out varchar2); " +
+                " procedure test_proc_920238(p_a varchar2, p_b varchar2, p_c number, p_d out varchar2); " +
+                " end pkg_proc_1");
+
+        stmt.execute("create or replace package body pkg_proc_1 as " +
+                " procedure test_proc_920238(p_a varchar2, p_b varchar2, p_d out varchar2) is begin p_d := p_b;  end; " +
+                " procedure test_proc_920238(p_a varchar2, p_b varchar2, p_c number, p_d out varchar2) is begin p_d := p_b || '_p2'; end; " +
+                " end pkg_proc_1" );
+
+        CallableStatement call = conn.prepareCall("{call pkg_proc_1.test_proc_920238(?, ?, ?, ?)}");
+        call.setString(1, "1");
+        call.setString(2, "name");
+        call.setInt(3, 10);
+        call.registerOutParameter(4, Types.VARCHAR);
+        call.execute();
+        Assert.assertEquals("name_p2", call.getString(4));
+
+        CallableStatement call2 = conn.prepareCall("{call pkg_proc_1.test_proc_920238(:p_a, :p_b, :p_c, :p_d)}");
+        call2.setString("p_a", "1");
+        call2.setString("p_b", "name");
+        call2.setInt("p_c", 10);
+        call2.registerOutParameter("p_d", Types.VARCHAR);
+        call2.execute();
+        Assert.assertEquals("name_p2", call2.getString("p_d"));
+
+        CallableStatement call3 = conn.prepareCall("{call pkg_proc_1.test_proc_920238(:p_a, :p_b, :p_c, :p_d)}");
+        call3.setString("p_b", "name");
+        call3.setString("p_a", "1");
+        call3.setInt("p_c", 10);
+        call3.registerOutParameter("p_d", Types.VARCHAR);
+        call3.execute();
+        Assert.assertEquals("1_p2", call3.getString("p_d"));
+
+        CallableStatement call4 = conn.prepareCall("{call pkg_proc_1.test_proc_920238(p_a=>?, p_b=>?, p_c=>?, p_d=>?)}");
+        call4.setString("p_b", "name");
+        call4.setString("p_a", "1");
+        call4.setInt("p_c", 10);
+        call4.registerOutParameter("p_d", Types.VARCHAR);
+        call4.execute();
+        Assert.assertEquals("name_p2", call4.getString("p_d"));
+
+    }
+
 }
