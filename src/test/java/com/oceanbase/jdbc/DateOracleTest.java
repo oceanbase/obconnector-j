@@ -892,4 +892,39 @@ public class DateOracleTest extends BaseOracleTest {
         assertEquals(hugeValue2, rs.getBigDecimal(1).toBigInteger());
     }
 
+    @Test
+    public void testForDima2026052100116248248() throws SQLException {
+        Timestamp timestamp = Timestamp.valueOf("2026-05-21 14:23:34.999");
+        Date date = new Date(timestamp.getTime());
+
+        String[] urls = {
+                "&compatibleOjdbcVersion=6&obGetDateStringWithMillis=true&useServerPrepStmts=true",
+                "&compatibleOjdbcVersion=8&obGetDateStringWithMillis=true&useServerPrepStmts=true",
+                "&compatibleOjdbcVersion=8&obGetDateStringWithMillis=false&useServerPrepStmts=true"
+        };
+        String[][] expectedDateStr = {
+                {"2026-05-21 00:00:00.0", "2026-05-21 14:23:34.999"},
+                {"2026-05-21 14:23:34.0", "2026-05-21 14:23:34.999"},
+                {"2026-05-21 14:23:34", "2026-05-21 14:23:34.999"}
+        };
+
+        for (int i = 0; i < urls.length; i++) {
+            Connection conn = setConnection(urls[i]);
+            createTable("t_d", "t1 date, t2 timestamp");
+            try (PreparedStatement ps = conn.prepareStatement("insert into t_d (t1, t2) values (?, ?)")) {
+                ps.setDate(1, date);
+                ps.setTimestamp(2, timestamp);
+                ps.execute();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement("select * from t_d");
+                 ResultSet rs = ps.executeQuery()) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(expectedDateStr[i][0], rs.getString(1));
+                Assert.assertEquals(expectedDateStr[i][1], rs.getString(2));
+            }
+            conn.close();
+        }
+    }
+
 }

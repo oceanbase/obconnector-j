@@ -253,6 +253,7 @@ public class Options implements Cloneable {
     public boolean obClobToStringReturnsContents;
     public boolean sendTypesToServer = true;
     public boolean obStrictJdbcCompatibility = false;
+    public boolean obGetDateStringWithMillis;
 
     @Override
     public String toString() {
@@ -806,6 +807,9 @@ public class Options implements Cloneable {
         if (obStrictJdbcCompatibility != opt.obStrictJdbcCompatibility) {
             return false;
         }
+        if (obGetDateStringWithMillis != opt.obGetDateStringWithMillis) {
+            return false;
+        }
         return Objects.equals(minPoolSize, opt.minPoolSize);
     }
 
@@ -978,6 +982,7 @@ public class Options implements Cloneable {
         result = 31 * result + (sendTypesToServer ? 1 : 0);
         result = 31 * result + (getProceduresReturnsFunctions ? 1 : 0);
         result = 31 * result + (obStrictJdbcCompatibility ? 1 : 0);
+        result = 31 * result + (obGetDateStringWithMillis ? 1 : 0);
         return result;
     }
 
