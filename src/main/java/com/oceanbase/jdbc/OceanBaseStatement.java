@@ -1682,7 +1682,7 @@ public class OceanBaseStatement implements Statement, Cloneable {
         if (!this.protocol.isOracleMode()) {
             throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size ");
         }
-        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size. in Oracle mode, extendOracleResultSetClass is ineffective if useOraclePrepareExecute is set to true or usePieceData is set to true");
+        throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size. In Oracle mode, for OceanBase Connector/J version 2.4.7 and above, the extendOracleResultSetClass parameter must be set to true in order to use streaming result sets. Starting from version 2.4.10, this type of result set is no longer supported when using the prepareExecute protocol.");
     }
 
     // Oracle JDBC would change 0 to default, which means there is no need to set

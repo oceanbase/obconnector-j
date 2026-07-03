@@ -1957,7 +1957,7 @@ public class ResultSetOracleTest extends BaseOracleTest {
                 cs2.setFetchSize(Integer.MIN_VALUE);
                 fail();
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("invalid fetch size. in Oracle mode, extendOracleResultSetClass is ineffective if useOraclePrepareExecute is set to true or usePieceData is set to true"));
+                assertTrue(e.getMessage().contains("invalid fetch size. In Oracle mode, for OceanBase Connector/J version 2.4.7 and above, the extendOracleResultSetClass parameter must be set to true in order to use streaming result sets. Starting from version 2.4.10, this type of result set is no longer supported when using the prepareExecute protocol."));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2104,5 +2104,34 @@ public class ResultSetOracleTest extends BaseOracleTest {
                 Assert.assertTrue(rs.isAfterLast());
             }
         }
+    }
+
+    @Test
+    public void testForDima2026052100116231748() throws SQLException {
+        Connection conn = setConnection("&extendOracleResultSetClass=false");
+        createTable("t1", "c1 int, c2 varchar2(20)");
+        PreparedStatement ps = conn.prepareStatement("select * from t1");
+        try {
+            ps.setFetchSize(Integer.MIN_VALUE);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("invalid fetch size. In Oracle mode, for OceanBase Connector/J version 2.4.7 and above, " +
+                    "the extendOracleResultSetClass parameter must be set to true in order to use streaming result sets. " +
+                    "Starting from version 2.4.10, this type of result set is no longer supported when using the prepareExecute protocol."));
+        }
+        ps.close();
+
+        conn = setConnection("&extendOracleResultSetClass=true&usePieceData=true");
+        ps = conn.prepareStatement("select * from t1");
+        try {
+            ps.setFetchSize(Integer.MIN_VALUE);
+            fail();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("invalid fetch size. In Oracle mode, for OceanBase Connector/J version 2.4.7 and above, " +
+                    "the extendOracleResultSetClass parameter must be set to true in order to use streaming result sets. " +
+                    "Starting from version 2.4.10, this type of result set is no longer supported when using the prepareExecute protocol."));
+        }
+        ps.close();
+        conn.close();
     }
 }
