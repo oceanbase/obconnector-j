@@ -87,7 +87,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      */
     protected int[]                     outputParameterMapper;
     protected boolean                   hasInOutParameters;
-    private boolean                     firstMapName = true;
+    protected boolean                   firstMapName = true;
     protected boolean                   resetSpecialParamIndex;
     protected boolean                   resetPrepareExecuteParamIndex;
     protected boolean                   isAnonymousBlock;
@@ -161,7 +161,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             this.isObFunction);
 
         if (protocol.isOracleMode()
-            && (parameterMetadata.getParameterCount() == 0 || arguments == null || hasExpressionParam)) {
+            && (parameterMetadata.getParameterCount() == 0 || arguments == null || hasExpressionParam || parameterMetadata.hasDuplicateRoutine)) {
             return getIndexAndFillParams(parameterName);
         }
 
@@ -195,7 +195,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      * @return
      */
     private int getIndexAndFillParams(String parameterName) {
-        if (firstMapName && (arguments == null ? true : !arguments.contains("=>"))) {
+        if (firstMapName && (arguments == null || !arguments.contains("=>"))) {
             params.clear();
             firstMapName = false;
         }
@@ -204,6 +204,14 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
             String name = params.get(i - 1).getName();
             if (name != null && name.equalsIgnoreCase(parameterName)) {
                 return i;
+            }
+        }
+
+        if (parameterMetadata.hasDuplicateRoutine && arguments != null && arguments.contains("=>")) {
+            for (ParsedCallParameters parameter : parsedArgumentsList) {
+                if (parameter.isParam() && parameter.getName() != null && parameter.getName().equalsIgnoreCase(parameterName)) {
+                    return parameter.getPlaceHolderIndex();
+                }
             }
         }
 

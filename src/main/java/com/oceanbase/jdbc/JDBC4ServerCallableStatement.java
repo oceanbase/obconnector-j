@@ -204,6 +204,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                                                                              throws CloneNotSupportedException {
         JDBC4ServerCallableStatement clone = (JDBC4ServerCallableStatement) super.clone(connection);
         clone.outputResultSet = null;
+        clone.firstMapName = true;
         return clone;
     }
 
