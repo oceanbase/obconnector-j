@@ -763,4 +763,51 @@ public class ExecuteBatchTest extends BaseTest {
         }
         conn.close();
     }
+
+    @Test
+    public void testForDima2026042400115686855() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useBatchMultiSend=true&useOceanBaseProtocolV20=true&log=true");
+        Statement stmt1 = conn.createStatement();
+        try {
+            stmt1.execute("drop table t_batch_ob20_error");
+        } catch (SQLException e) {
+        }
+        stmt1.execute("create table t_batch_ob20_error (c1 int primary key, c2 varchar(100))");
+        PreparedStatement ps = conn.prepareStatement("insert into t_batch_ob20_error values(?, ?)");
+        ps.setInt(1, 1);
+        ps.setString(2, "existing_1");
+        ps.execute();
+
+        for (int i = 1; i <= 6; i++) {
+            ps.setInt(1, i);
+            ps.setString(2, "batch_" + i);
+            ps.addBatch();
+        }
+
+        try {
+            ps.executeBatch();
+            fail("Expected error for duplicate key");
+        } catch (SQLException e) {
+            // ignore
+        }
+
+        ps.clearBatch();
+        for (int i = 10; i <= 12; i++) {
+            ps.setInt(1, i);
+            ps.setString(2, "recovery_" + i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select count(*) from t_batch_ob20_error where c1 >= 10");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(3, rs.getInt(1));
+
+        rs.close();
+        ps.close();
+        stmt.close();
+        conn.close();
+    }
+
 }
