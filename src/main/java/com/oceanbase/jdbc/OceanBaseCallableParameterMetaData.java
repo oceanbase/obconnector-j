@@ -105,7 +105,7 @@ public class OceanBaseCallableParameterMetaData extends CallableParameterMetaDat
         }
         ResultSet rs = null;
         try (Statement stmt = con.getMetadataSafeStatement()) {
-            String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION, OVERLOAD FROM ALL_ARGUMENTS WHERE"
+            String query_sql = "SELECT DISTINCT(ARGUMENT_NAME), IN_OUT, DATA_TYPE, DATA_PRECISION, DATA_SCALE, POSITION, OVERLOAD FROM SYS.ALL_ARGUMENTS WHERE"
                     + " POSITION != 0 AND object_name = '";
             StringBuilder paramMetaSql = new StringBuilder(query_sql);
 

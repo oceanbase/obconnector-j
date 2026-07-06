@@ -47,11 +47,11 @@ public class DefaultSQLs {
     public static final String OB_ORA_GET_PROCEDURE_CATALOG_PROCEDURE_TYPE    = "DECODE(object_type, 'PROCEDURE', 1,'FUNCTION', 2,0)";
     public static final String OB_ORA_GET_PROCEDURE_CATALOG_NULL              = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,"
                                                                                 + OB_ORA_GET_PROCEDURE_CATALOG_PROCEDURE_TYPE
-                                                                                + " AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
+                                                                                + " AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name IS NOT NULL  AND owner LIKE ?  AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
     public static final String OB_ORA_GET_PROCEDURE_CATALOG_EMPTY             = "SELECT  NULL AS procedure_cat,owner AS procedure_schem,object_name AS procedure_name,NULL,NULL,NULL,'Standalone procedure or function' AS remarks,"
                                                                                 + OB_ORA_GET_PROCEDURE_CATALOG_PROCEDURE_TYPE
                                                                                 + " AS procedure_type,  NULL AS specific_name FROM all_objects WHERE (object_type = 'PROCEDURE' OR object_type = 'FUNCTION') AND owner LIKE ?  AND object_name LIKE ? ";
-    public static final String OB_ORA_GET_PROCEDURE_WITH_CATALOG              = "SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
+    public static final String OB_ORA_GET_PROCEDURE_WITH_CATALOG              = "SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL   AND data_type IS NULL   AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged procedure' AS remarks, 1 AS procedure_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NOT NULL  AND position = 1  AND position = sequence  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? UNION ALL SELECT  package_name AS procedure_cat, owner AS procedure_schem,object_name AS procedure_name,NULL, NULL,NULL,'Packaged function' AS remarks, 2 AS procedure_type,  NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL  AND in_out = 'OUT'  AND   data_level = 0  AND package_name LIKE ?  AND owner LIKE ?   AND object_name LIKE ? ORDER BY procedure_schem, procedure_name";
     public static final String OB_ORA_GET_SCHEMAS                             = "SELECT username AS table_schem,null as table_catalog  FROM all_users ORDER BY table_schem";
     public static final String OB_ORA_GET_SCHEMAS_WITH_SCHEMAPATTERN          = "SELECT username AS table_schem,null as table_catalog FROM all_users WHERE username LIKE ? ORDER BY table_schem";
     public static final String OB_ORA_GET_CATALOG                             = "select 'getCatalog return null' as table_cat from dual where 2=1";
@@ -108,10 +108,10 @@ public class DefaultSQLs {
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE = "DECODE (data_type, 'TABLE', 2, 'PL/SQL TABLE', 2, 1)";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_NULL               = "SELECT NULL   AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  UNION ALL SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,"
                                                                                 + OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE
-                                                                                + "AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  AND data_level = 0   AND package_name IS NOT NULL  AND owner LIKE ?   AND object_name LIKE ?  ORDER BY function_schem, function_name";
+                                                                                + "AS function_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL  AND in_out = 'OUT'  AND data_level = 0   AND package_name IS NOT NULL  AND owner LIKE ?   AND object_name LIKE ?  ORDER BY function_schem, function_name";
     public static final String OB_ORA_GET_FUNCTION_WITH_CATALOG               = "SELECT package_name AS function_cat,owner AS function_schem,object_name AS function_name,'Packaged function' AS remarks,"
                                                                                 + OB_ORA_GET_FUNCTION_CATALOG_NULL_FUNCTION_TYPE
-                                                                                + "AS function_type, NULL AS specific_name FROM all_arguments WHERE argument_name IS NULL  AND in_out = 'OUT'  ";
+                                                                                + "AS function_type, NULL AS specific_name FROM SYS.ALL_ARGUMENTS WHERE argument_name IS NULL  AND in_out = 'OUT'  ";
     public static final String OB_ORA_GET_FUNCTION_CATALOG_EMPTY              = "SELECT NULL  AS function_cat,owner AS function_schem,object_name AS function_name,'Standalone function' AS remarks,0 AS function_type,NULL AS specific_name FROM all_objects WHERE object_type = 'FUNCTION'  AND owner LIKE ?   AND object_name LIKE ?  ";
     public static final String OB_ORA_GET_INDEX_NO_UNIQUE                     = "DECODE (i.uniqueness, 'UNIQUE', 0, 1)";
     public static final String OB_ORA_GET_INDEX                               = "select null as table_cat, owner as table_schem,table_name, 0 as NON_UNIQUE,null as index_qualifier,null as index_name, 0 as type,0 as ordinal_position, null as column_name,null as asc_or_desc, num_rows as cardinality,blocks as pages,null as filter_condition from all_tables where %s table_name = '%s' union  select null as table_cat,i.owner as table_schem,i.table_name,"
@@ -205,7 +205,7 @@ public class DefaultSQLs {
                                                                                 "      loc := 'USER_ARGUMENTS'; " +
                                                                                 "    end if; " +
                                                                                 "  else " +
-                                                                                "    select count(*) into cnt from all_arguments where owner = in_owner and package_name = in_package_name; " +
+                                                                                "    select count(*) into cnt FROM SYS.ALL_ARGUMENTS where owner = in_owner and package_name = in_package_name; " +
                                                                                 "    if( cnt >= 1 ) then " +
                                                                                 "      out_owner := in_owner; " +
                                                                                 "      out_package_name := in_package_name; " +
@@ -272,7 +272,7 @@ public class DefaultSQLs {
                                                                                 "      loc := 'USER_PROCEDURES'; " +
                                                                                 "    end if; " +
                                                                                 "  else " +
-                                                                                "    select count(*) into cnt from all_arguments where owner = in_owner and object_name = in_name; " +
+                                                                                "    select count(*) into cnt FROM SYS.ALL_ARGUMENTS where owner = in_owner and object_name = in_name; " +
                                                                                 "    if( cnt >= 1 ) then " +
                                                                                 "      out_owner := in_owner; " +
                                                                                 "      out_name := in_name; " +
@@ -356,7 +356,7 @@ public class DefaultSQLs {
                                                                                 " sequence, " +
                                                                                 " overload, " +
                                                                                 " NULL AS default_value " +
-                                                                                " FROM all_arguments \n ";
+                                                                                " FROM SYS.ALL_ARGUMENTS \n ";
 
     public static final String OB_ORA_GET_PROCEDURE_COL_INFO_V8               = "SELECT arg.package_name AS procedure_cat,  " +
                                                                                 "       arg.owner AS procedure_schem,  " +
@@ -436,7 +436,7 @@ public class DefaultSQLs {
                                                                                 "       arg.sequence,  " +
                                                                                 "       arg.overload,  " +
                                                                                 "       NULL as default_value  " +
-                                                                                " FROM all_arguments arg";
+                                                                                " FROM SYS.ALL_ARGUMENTS arg";
     public static final String OB_ORA_GET_FUNCTION_COL_INFO_V6                = " SELECT package_name AS function_cat,\n"
                                                                                 + "       arg.owner AS function_schem,\n"
                                                                                 + "       arg.object_name AS function_name,\n"
@@ -483,7 +483,7 @@ public class DefaultSQLs {
                                                                                 + "       arg.sequence,\n"
                                                                                 + "       arg.overload,\n"
                                                                                 + "       null as default_value\n"
-                                                                                + " FROM all_arguments arg, all_procedures proc\n"
+                                                                                + " FROM SYS.ALL_ARGUMENTS arg, all_procedures proc\n"
                                                                                 + " WHERE arg.owner LIKE ? ESCAPE '/'\n"
                                                                                 + "  AND arg.object_name LIKE ? ESCAPE '/'\n"
                                                                                 + "  AND proc.object_id = arg.object_id\n"
@@ -571,7 +571,7 @@ public class DefaultSQLs {
                                                                                 + "     arg.sequence,\n"
                                                                                 + "     arg.overload,\n"
                                                                                 + "     null as default_value\n"
-                                                                                + " FROM all_arguments arg, all_procedures proc\n"
+                                                                                + " FROM SYS.ALL_ARGUMENTS arg, all_procedures proc\n"
                                                                                 + " WHERE arg.owner LIKE ? ESCAPE '/'\n"
                                                                                 + "  AND arg.object_name LIKE ? ESCAPE '/'\n"
                                                                                 + "  AND proc.object_id = arg.object_id\n"
