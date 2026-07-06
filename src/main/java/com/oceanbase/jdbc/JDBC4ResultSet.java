@@ -2256,8 +2256,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            String attrTypename = "";
-            if (typeName.isEmpty()) {
+            String attrTypename = this.columnsInformation[internalColumnIndex].getElemTypeName();
+            if (typeName.isEmpty() && (attrTypename == null || attrTypename.isEmpty())) {
                 attrTypename = getAttrTypeNameOfSetArray(actualColumnIndex);
             }
             ComplexDataType type = ((OceanBaseConnection) conn).getComplexDataType(typeName, this.columnsInformation[internalColumnIndex], attrTypename);
@@ -2289,8 +2289,8 @@ public class JDBC4ResultSet implements ResultSetImpl {
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
             String typeName = this.columnsInformation[internalColumnIndex].getComplexTypeName();
-            String attrTypeName = "";
-            if (typeName.isEmpty()) {
+            String attrTypeName = this.columnsInformation[internalColumnIndex].getElemTypeName();
+            if (typeName.isEmpty() && (attrTypeName == null || attrTypeName.isEmpty())) {
                 attrTypeName = getAttrTypeNameOfSetArray(actualColumnIndex);
             }
             ComplexDataType type = null;
@@ -4156,6 +4156,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         ParameterMetaData parameterMetaData = procedureStatement.getParameterMetaData();
         Map<String, CallParameter> mapNameToParameter = ((OceanBaseCallableParameterMetaData) parameterMetaData).getMapNameToParameter();
         CallParameter parameter = mapNameToParameter.get(this.columnsInformation[internalColumnIndex].getName());
+        if (parameter == null) {
+            throw e;
+        }
         String parameterTypeName = parameter.getTypeName();
         if (!parameter.isOutput() || parameterTypeName == null || parameterTypeName.isEmpty()) {
             throw e;

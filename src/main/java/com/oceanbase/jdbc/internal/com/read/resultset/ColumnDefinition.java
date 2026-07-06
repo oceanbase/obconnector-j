@@ -108,6 +108,10 @@ public class ColumnDefinition {
     private int                complexTypeNameLength   = -1;
     private int                complexVersion          = 0;
     private int                elemSqlType             = -1;
+    private int                elemTypeSchemaNameStart  = -1;
+    private int                elemTypeSchemaNameLength = -1;
+    private int                elemTypeNameStart        = -1;
+    private int                elemTypeNameLength       = -1;
     private final boolean      isOracleMode;
     private int                precisionAdjustFactor   = 0;
     private String             encoding                = "UTF-8";
@@ -119,6 +123,8 @@ public class ColumnDefinition {
     private String             tableName;
     private String             originalTableName;
     private String             complexTypeName;
+    private String             elemTypeSchemaName;
+    private String             elemTypeName;
 
     public enum RoutineParamInOutMode {
         PARAM_INVALID(0),
@@ -264,6 +270,18 @@ public class ColumnDefinition {
             // if type name is null, means no named array
             if (this.complexTypeNameLength == 0) {
                 elemSqlType = buffer.readByte() & 0xff;
+
+                if (buffer.remaining() > 0) {
+                    elemTypeSchemaNameStart = buffer.getPosition() + 1;
+                    elemTypeSchemaNameLength = buffer.fastSkipLenString();
+                    elemTypeSchemaNameStart = adjustStartForFieldLength(elemTypeSchemaNameStart,
+                            elemTypeSchemaNameLength);
+
+                    elemTypeNameStart = buffer.getPosition() + 1;
+                    elemTypeNameLength = buffer.fastSkipLenString();
+                    elemTypeNameStart = adjustStartForFieldLength(elemTypeNameStart,
+                            elemTypeNameLength);
+                }
             }
         }
 
@@ -824,8 +842,23 @@ public class ColumnDefinition {
                 || this.inoutType == RoutineParamInOutMode.PARAM_INOUT.getValue();
     }
 
+    public String getElemTypeSchemaName() {
+        if (null == this.elemTypeSchemaName) {
+            this.elemTypeSchemaName = getStringFromBytes(this.elemTypeSchemaNameStart, this.elemTypeSchemaNameLength);
+        }
+        return elemTypeSchemaName;
+    }
+
+    public String getElemTypeName() {
+        if (null == this.elemTypeName) {
+            this.elemTypeName = getStringFromBytes(this.elemTypeNameStart, this.elemTypeNameLength);
+        }
+        return elemTypeName;
+    }
+
     public boolean isDummyColumn() {
         return "__$_OB_PS_DUMMY_COLUMN_$__".equals(getName())
                 && "oceanbase".equals(getDatabase()) && "oceanbase".equals(getTable()) && "oceanbase".equals(getOriginalTable());
     }
+
 }

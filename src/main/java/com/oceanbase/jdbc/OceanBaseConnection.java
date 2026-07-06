@@ -1977,6 +1977,9 @@ public class OceanBaseConnection implements ConnectionImpl {
                 || (!attrTypeName.isEmpty() && columnDefinition.getElemSqlType() == ColumnType.COMPLEX.getType()))){
             return getAnonymousArrayComplexType(columnDefinition, attrTypeName);
         }
+        if (typeName.isEmpty()) {
+            throw new SQLException("unknown complex data type. typeName is empty");
+        }
         ComplexDataType type = null;
         type = getComplexDataTypeFromCache(typeName);
         if (null != type && type.isValid()) {
