@@ -1476,6 +1476,58 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2026050900115989186() throws SQLException {
+        Connection conn = setConnection("&obIncludeOutOrNullParamTypeInfo=true&usePieceData=true");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace package pkg1 is " +
+                "procedure proc_1(p1 number, p2 out number, p3 out varchar2) ; " +
+                "procedure proc_1(p1 number, p2 out date, p3 out varchar2) ; " +
+                "procedure proc_1(p1 number, p2 out clob, p3 out varchar2) ; " +
+                "procedure proc_1(p1 number, p2 out varchar, p3 out varchar2) ; " +
+                "procedure proc_1(p1 number, p2 out binary_float, p3 out varchar2) ; " +
+                "end;");
+
+        stmt.execute("create or replace package body pkg1 is " +
+                "procedure proc_1(p1 number, p2 out number, p3 out varchar2) is begin p3 := 'type is number'; end; " +
+                "procedure proc_1(p1 number, p2 out date, p3 out varchar2) is begin p3 := 'type is date'; end; " +
+                "procedure proc_1(p1 number, p2 out clob, p3 out varchar2) is begin p3 := 'type is clob'; end; " +
+                "procedure proc_1(p1 number, p2 out varchar, p3 out varchar2) is begin p3 := 'type is varchar'; end; " +
+                "procedure proc_1(p1 number, p2 out binary_float, p3 out varchar2) is begin p3 := 'type is binary_float'; end; " +
+                "end; ");
+
+        CallableStatement cs = conn.prepareCall("call pkg1.proc_1(?, ?, ?)");
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.TIME);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("type is date", cs.getString(3));
+
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.CLOB);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("type is clob", cs.getString(3));
+
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.DECIMAL);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("type is number", cs.getString(3));
+
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.FLOAT);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("type is binary_float", cs.getString(3));
+
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.CHAR);
+        cs.registerOutParameter(3, Types.VARCHAR);
+        cs.execute();
+        Assert.assertEquals("type is varchar", cs.getString(3));
+    }
+
+    @Test
     public void testForDima2026050900115989760() throws SQLException {
         Connection conn = setConnection();
         Statement stmt = conn.createStatement();
@@ -1538,5 +1590,5 @@ public class ProcedureOracleTest extends BaseOracleTest {
         call4.execute();
         Assert.assertEquals("name_p2", call4.getString("p_d"));
     }
-
+ 
 }
