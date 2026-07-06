@@ -1984,4 +1984,75 @@ public class ResultSetTest extends BaseTest {
         Assert.assertFalse(rs.isAfterLast());
     }
 
+    @Test
+    public void testForDima2026043000115852939() throws SQLException {
+        createTable("t_res", "c1 int");
+        Statement stmt = sharedConnection.createStatement();
+        for (int i = 0; i < 15; i++) {
+            stmt.execute("insert into t_res values (" + i + ")");
+        }
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        // complete
+        conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true&compatibleMysqlVersion=5");
+        ps = conn.prepareStatement("select * from t_res");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.first());
+        Assert.assertTrue(rs.isFirst());
+        Assert.assertTrue(rs.last());
+        Assert.assertTrue(rs.isLast());
+        rs.close();
+
+        // cursor
+        conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true&useCursorFetch=true&compatibleMysqlVersion=5");
+        ps = conn.prepareStatement("select * from t_res");
+        ps.setFetchSize(10);
+        rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.isFirst());
+        try {
+            rs.first();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+        Assert.assertFalse(rs.isLast());
+        try {
+            rs.last();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+        rs.close();
+
+        // streaming
+        conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true&compatibleMysqlVersion=5");
+        ps = conn.prepareStatement("select * from t_res");
+        ps.setFetchSize(Integer.MIN_VALUE);
+        rs = ps.executeQuery();
+        try {
+            rs.first();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+
+        try {
+            rs.isFirst();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+
+        try {
+            rs.last();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+
+        try {
+            rs.isLast();
+            fail("Invalid operation on TYPE_FORWARD_ONLY CURSOR ResultSet");
+        } catch (SQLException e) {
+        }
+    }
+
 }
