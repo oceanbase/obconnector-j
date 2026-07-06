@@ -64,6 +64,7 @@ import com.oceanbase.jdbc.internal.com.read.dao.Results;
 import com.oceanbase.jdbc.internal.com.send.ComStmtPrepare;
 import com.oceanbase.jdbc.internal.com.send.ComStmtPrepareExecute;
 import com.oceanbase.jdbc.internal.com.send.parameters.ParameterHolder;
+import com.oceanbase.jdbc.internal.io.output.Ob20PacketOutputStream;
 import com.oceanbase.jdbc.internal.io.output.PacketOutputStream;
 import com.oceanbase.jdbc.internal.util.BulkStatus;
 import com.oceanbase.jdbc.internal.util.SqlStates;
@@ -83,7 +84,7 @@ public abstract class AbstractMultiSend {
     private List<ParameterHolder[]>  parametersList;
     private PrepareResult            prepareResult;
     private List<String>             queries;
-    private String                   sql;
+    protected String                 sql;
     private ThreadPoolExecutor       readScheduler;
 
     /**
@@ -242,52 +243,36 @@ public abstract class AbstractMultiSend {
         }
 
         boolean useCurrentThread = false;
-        for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
-          sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
-
-          status.sendSubCmdCounter++;
-          status.sendCmdCounter++;
-          if (useCurrentThread) {
-            try {
-              if (protocol.supportStmtPrepareExecute()) {
-                prepareResult = ComStmtPrepareExecute.read(getProtocol(), protocol.getReader(), (ServerPrepareResult) prepareResult, results);
-              } else {
-                protocol.getResult(results);
-              }
-            } catch (SQLException qex) {
-              if (((readPrepareStmtResult && prepareResult == null)
-                  || !protocol.getOptions().continueBatchOnError)) {
-                throw qex;
-              } else {
-                exception = qex;
-              }
-            }
-          } else if (futureReadTask == null) {
-            try {
-              futureReadTask = new FutureTask<>(
-                                  new AsyncMultiRead(status, protocol, false, this,
-                                        paramCount, results, parametersList, queries, sql, prepareResult));
-              readScheduler.execute(futureReadTask);
-            } catch (RejectedExecutionException r) {
-              useCurrentThread = true;
-              try {
-                if (protocol.supportStmtPrepareExecute()) {
-                  prepareResult = ComStmtPrepareExecute.read(getProtocol(), protocol.getReader(), (ServerPrepareResult) prepareResult, results);
-                } else {
-                  protocol.getResult(results);
-                }
-              } catch (SQLException qex) {
-                if (((readPrepareStmtResult && prepareResult == null)
-                    || !protocol.getOptions().continueBatchOnError)) {
-                  throw qex;
-                } else {
-                  exception = qex;
-                }
-              }
-            }
+        if (writer instanceof Ob20PacketOutputStream) {
+          for (; status.sendSubCmdCounter < requestNumberByBulk;) {
+              sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
+              status.sendSubCmdCounter++;
+              status.sendCmdCounter++;
           }
+          status.sendEnded = true;
+          futureReadTask = startAsyncRead(status, paramCount);
+          if (futureReadTask == null) {
+              useCurrentThread = true;
+              exception = readResultWithCurrentThread();
+          }
+        } else {
+          for (; status.sendSubCmdCounter < requestNumberByBulk;) {
+              sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
+              status.sendSubCmdCounter++;
+              status.sendCmdCounter++;
+
+              if (!useCurrentThread && futureReadTask == null) {
+                  futureReadTask = startAsyncRead(status, paramCount);
+                  if (futureReadTask == null) {
+                      useCurrentThread = true;
+                  }
+              }
+              if (useCurrentThread) {
+                  exception = readResultWithCurrentThread();
+              }
+          }
+          status.sendEnded = true;
         }
-        status.sendEnded = true;
 
         if (!useCurrentThread) {
           protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
@@ -330,8 +315,10 @@ public abstract class AbstractMultiSend {
 
         if (protocol.isInterrupted()) {
           // interrupted during read, must throw an exception manually
-          futureReadTask.cancel(true);
-          throw new SQLTimeoutException("Timeout during batch execution");
+          if (futureReadTask != null) {
+            futureReadTask.cancel(true);
+          }
+        throw new SQLTimeoutException("Timeout during batch execution");
         }
         futureReadTask = null;
 
@@ -352,5 +339,35 @@ public abstract class AbstractMultiSend {
 
     public Protocol getProtocol() {
         return protocol;
+    }
+
+    private FutureTask<AsyncMultiReadResult> startAsyncRead(BulkStatus status, int paramCount) {
+        try {
+            FutureTask<AsyncMultiReadResult> futureTask = new FutureTask<>(new AsyncMultiRead(status, protocol, false, this,
+                    paramCount, results, parametersList, queries, sql, prepareResult));
+            readScheduler.execute(futureTask);
+            return futureTask;
+        } catch (RejectedExecutionException e) {
+            return null;
+        }
+    }
+
+    private SQLException readResultWithCurrentThread() throws IOException, SQLException {
+        SQLException exception = null;
+        try {
+            if (protocol.supportStmtPrepareExecute()) {
+                prepareResult = ComStmtPrepareExecute.read(getProtocol(), protocol.getReader(), (ServerPrepareResult) prepareResult, results);
+            } else {
+                protocol.getResult(results);
+            }
+        } catch (SQLException qex) {
+            if (((readPrepareStmtResult && prepareResult == null)
+                    || !protocol.getOptions().continueBatchOnError)) {
+                throw qex;
+            } else {
+                exception = qex;
+            }
+        }
+        return exception;
     }
 }

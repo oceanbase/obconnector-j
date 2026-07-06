@@ -1364,7 +1364,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       public SQLException handleResultException(SQLException qex, Results results, List<ParameterHolder[]> parametersList,
                                                 List<String> queries, int currentCounter, int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
-        return OceanBaseSqlException.of(qex, prepareResult.getSql());
+        return OceanBaseSqlException.of(qex, prepareResult == null ? this.sql : prepareResult.getSql());
       }
 
       @Override
