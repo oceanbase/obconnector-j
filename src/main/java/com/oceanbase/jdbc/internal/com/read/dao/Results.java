@@ -95,6 +95,7 @@ public class Results {
     private boolean                rewritten;
     private CmdInformation         cmdInformation;
     private boolean                batchSucceed = false;
+    private boolean                enablePsMetaCache;
     protected static final Logger  lockLogger = LoggerFactory.getLogger("JDBC-COST-LOGGER");
 
     public boolean isExecuteBatchStmt() {
@@ -602,4 +603,11 @@ public class Results {
         return returning;
     }
 
+    public void setEnablePsMetaCache(boolean enablePsMetaCache) {
+        this.enablePsMetaCache = enablePsMetaCache;
+    }
+
+    public boolean isEnablePsMetaCache() {
+        return enablePsMetaCache;
+    }
 }

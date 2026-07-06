@@ -514,4 +514,42 @@ public class ResultSetMetaDataTest extends BaseTest {
         Assert.assertTrue(rs.next());
         Assert.assertEquals("中文12232列", rs.getString("REMARKS"));
     }
+
+    @Test
+    public void testForDima2026051500116123179() throws SQLException {
+        Connection conn = setConnection("&obCachePsMetaData=true&useServerPrepStmts=true&log=true");
+        createTable("t_meta", "c1 int, c2 varchar(20)");
+
+        Statement stmt = conn.createStatement();
+        int count = 20;
+        for (int i = 0; i < count; i++) {
+            stmt.execute("insert into t_meta values (" + i + ", 'test_" + i + "')");
+        }
+
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                conn = setConnection("&obCachePsMetaData=true&useServerPrepStmts=true&useCursorFetch=true&defaultFetchSize=8&log=true");
+            }
+
+            PreparedStatement ps = conn.prepareStatement("select * from t_meta");
+            ResultSet rs = ps.executeQuery();
+            for (int j = 0; j < count; j++) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(j, rs.getInt("c1"));
+                Assert.assertEquals("test_" + j, rs.getString("c2"));
+            }
+
+            ResultSet rs2 = ps.executeQuery();
+            for (int j = 0; j < count; j++) {
+                Assert.assertTrue(rs2.next());
+                Assert.assertEquals(j, rs2.getInt("c1"));
+                Assert.assertEquals("test_" + j, rs2.getString("c2"));
+            }
+
+            ResultSetMetaData metaData = rs2.getMetaData();
+            Assert.assertEquals(2, metaData.getColumnCount());
+            Assert.assertEquals("c1", metaData.getColumnName(1));
+            Assert.assertEquals("c2", metaData.getColumnName(2));
+        }
+    }
 }

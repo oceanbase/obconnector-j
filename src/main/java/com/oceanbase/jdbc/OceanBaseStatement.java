@@ -2050,4 +2050,8 @@ public class OceanBaseStatement implements Statement, Cloneable {
     }
   }
 
+  public boolean canCacheMetaData() {
+    return false;
+  }
+
 }

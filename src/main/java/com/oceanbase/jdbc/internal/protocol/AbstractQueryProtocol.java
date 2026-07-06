@@ -66,12 +66,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.oceanbase.jdbc.BasePrepareStatement;
-import com.oceanbase.jdbc.LocalInfileInterceptor;
-import com.oceanbase.jdbc.OceanBaseConnection;
-import com.oceanbase.jdbc.OceanBaseStatement;
-import com.oceanbase.jdbc.ServerSidePreparedStatement;
-import com.oceanbase.jdbc.UrlParser;
+import com.oceanbase.jdbc.*;
 import com.oceanbase.jdbc.credential.Credential;
 import com.oceanbase.jdbc.internal.ColumnType;
 import com.oceanbase.jdbc.internal.com.Packet;
@@ -2264,6 +2259,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.getCharacterEncoding(), options);
       }
 
+      ci = handlePsMetaCache(ci, results);
+
       if (!eofDeprecated) {
         Buffer bufferEof = reader.getPacket(true);
         if (bufferEof.readByte() != Packet.EOF) {
@@ -2560,6 +2557,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         ci[i] = new ColumnDefinition(reader.getPacket(false), isOracleMode(), options.getCharacterEncoding(), options);
       }
 
+      ci = handlePsMetaCache(ci, results);
+
       boolean callableResult = false;
       boolean isPsOutParamter = false;
       if (!eofDeprecated) {
@@ -2611,6 +2610,28 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } catch (IOException e) {
       throw handleIoException(e);
     }
+  }
+
+  private ColumnDefinition[] handlePsMetaCache(ColumnDefinition[] ci, Results results) {
+    if (results.getStatement() != null && results.getStatement().canCacheMetaData()) {
+      ServerPrepareResult serverPrepareResult = ((JDBC4ServerPreparedStatement) results.getStatement()).getServerPrepareResult();
+      // The first return when using the prepare_execute protocol
+      if (serverPrepareResult == null && results.getStatementId() != 0) {
+        resultSetMetaDataCache.put(results.getStatementId() , ci);
+        return ci;
+      } else if (serverPrepareResult != null) {
+        int statementId = serverPrepareResult.getStatementId();
+        if (results.isEnablePsMetaCache() || (ci.length == 1 && ci[0].isDummyColumn())) {
+          ColumnDefinition[] columns = resultSetMetaDataCache.get(statementId);
+          if (columns != null) {
+            ci = columns;
+          }
+        } else {
+          resultSetMetaDataCache.put(statementId, ci);
+        }
+      }
+    }
+    return ci;
   }
 
   public void prologProxy(

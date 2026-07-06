@@ -70,6 +70,7 @@ public class ComStmtPrepareExecute {
     private static int ARRAY_BINDING_FIELD                = 0x0002;
     private static int RETURNING_RESULT_SET_WITH_FIELD    = 0x0003;
     private static int PL_OUT_PARAMETER                   = 0x0004;
+    private static int ENABLE_PS_META_CACHE               = 0x0008;
 
     /**
      * Send a prepare statement binary stream.
@@ -222,6 +223,8 @@ public class ComStmtPrepareExecute {
                         }
                         results.setToPrepareExecute(true);
                         results.setReturning((extendFlag & RETURNING_RESULT_SET_WITHOUT_FIELD) != 0);
+                        boolean enablePsMetaCache = (extendFlag & ENABLE_PS_META_CACHE) != 0;
+                        results.setEnablePsMetaCache(enablePsMetaCache);
 
                         protocol.readResultSet(columns, results);
 
