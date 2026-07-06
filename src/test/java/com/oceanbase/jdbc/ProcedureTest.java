@@ -765,4 +765,19 @@ public class ProcedureTest extends BaseTest {
         assertFalse(rsMD.next());
     }
 
+    @Test
+    public void testForDima2026050900115989760() throws SQLException {
+        Connection conn = setConnection();
+        createProcedure("proc_1", "(in c1 int, out c2 int) begin set c2 := 10; end;");
+        CallableStatement cs = conn.prepareCall("call proc_1(?, ?)");
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.NUMERIC);
+        cs.execute();
+        cs.close();
+        try {
+            cs.close();
+        } catch (SQLException e) {
+            fail("close statement failed");
+        }
+    }
 }

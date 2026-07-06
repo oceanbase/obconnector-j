@@ -1476,6 +1476,23 @@ public class ProcedureOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2026050900115989760() throws SQLException {
+        Connection conn = setConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace procedure proc_1(c1 number, c2 out number) is begin null; end;");
+        CallableStatement cs = conn.prepareCall("call proc_1(?, ?)");
+        cs.setInt(1, 1);
+        cs.registerOutParameter(2, Types.NUMERIC);
+        cs.execute();
+        cs.close();
+        try {
+            cs.close();
+        } catch (SQLException e) {
+            fail("close statement failed");
+        }
+    }
+
+    @Test
     public void testForDima2026062300116920238() throws SQLException {
         Connection conn = setConnection();
         Statement stmt = conn.createStatement();
@@ -1520,7 +1537,6 @@ public class ProcedureOracleTest extends BaseOracleTest {
         call4.registerOutParameter("p_d", Types.VARCHAR);
         call4.execute();
         Assert.assertEquals("name_p2", call4.getString("p_d"));
-
     }
 
 }

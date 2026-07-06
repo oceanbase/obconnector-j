@@ -622,6 +622,9 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
             return false;
         }
 
+        if (connection == null) {
+            return false;
+        }
         if (database == null) {
             database = connection.getProtocol().getDatabase();
         }
