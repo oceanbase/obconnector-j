@@ -620,6 +620,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (prepareResult != null && prepareResult.incrementShareCounter()) {
           serverPrepareResult = prepareResult;
           serverPrepareResult.resetParameterTypeHeader();
+          if (results.getStatement() instanceof ServerSidePreparedStatement) {
+            ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+          }
           results.setStatementId(serverPrepareResult.getStatementId());
         }
       }
@@ -1599,6 +1602,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (prepareResult != null && prepareResult.incrementShareCounter()) {
           serverPrepareResult = prepareResult;
           serverPrepareResult.resetParameterTypeHeader();
+          if (results.getStatement() instanceof ServerSidePreparedStatement) {
+            ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+          }
           results.setStatementId(serverPrepareResult.getStatementId());
         }
       }

@@ -648,4 +648,55 @@ public class PreparedStatementOracleTest extends BaseOracleTest {
         }
     }
 
+    @Test
+    public void testForDima2026060500116578178() throws SQLException {
+        Connection conn = setConnection("&cachePrepStmts=true&prepStmtCacheSize=5&usePieceData=true");
+        createTable("tz1", "c1 number , c2 varchar2(30)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into tz1 values(1,'test')");
+        stmt.execute("alter system set open_cursors = 10");
+
+        PreparedStatement ps = null;
+        for (int i = 0; i < 30; i++) {
+            ps = conn.prepareStatement("select * from tz1 where c1 = ?");
+            ps.setInt(1, i);
+            if (i % 2 == 0) {
+                ps.setString(1, "test_" + i);
+            }
+            try {
+                ps.execute();
+            } catch (SQLException e) {
+                if (e.getMessage().contains("maximum open cursors exceeded")) {
+                    Assert.fail(e.getMessage());
+                }
+            }finally {
+                ps.close();
+            }
+        }
+
+        // array binding
+        conn = setConnection("&cachePrepStmts=true&prepStmtCacheSize=5&usePieceData=true&useArrayBinding=true");
+        conn.setAutoCommit(false);
+        for (int i = 0; i < 30; i++) {
+            ps = conn.prepareStatement("insert into tz1 values(?, ?)");
+            ps.setInt(1, i);
+            ps.setString(2, "test_" + i);
+            if (i % 2 == 0) {
+                ps.setString(1, "test_" + i);
+            }
+            ps.addBatch();
+            try {
+                ps.executeBatch();
+            } catch (SQLException e) {
+                if (e.getMessage().contains("maximum open cursors exceeded")) {
+                    Assert.fail(e.getMessage());
+                }
+            }finally {
+                ps.close();
+            }
+        }
+        conn.setAutoCommit(true);
+        stmt.execute("alter system set open_cursors = 50");
+    }
+
 }
