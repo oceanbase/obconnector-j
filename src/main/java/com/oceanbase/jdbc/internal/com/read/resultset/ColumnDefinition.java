@@ -115,6 +115,7 @@ public class ColumnDefinition {
     private String             name;
     private String             originalName;
     private String             databaseName;
+    private String             catalogName;
     private String             tableName;
     private String             originalTableName;
     private String             complexTypeName;
@@ -150,10 +151,14 @@ public class ColumnDefinition {
         this.isOracleMode = other.isOracleMode;
         this.precision = other.precision;
         this.inoutType = other.inoutType;
-        catalogNameLength = other.nameLength;
+        this.encoding = other.encoding;
+        this.options = other.options;
+        this.precisionAdjustFactor = other.precisionAdjustFactor;
+
+        catalogNameLength = other.catalogNameLength;
         catalogNameStart = other.catalogNameStart;
-        databaseNameStart = other.nameStart;
-        databaseNameLength = other.nameLength;
+        databaseNameStart = other.databaseNameStart;
+        databaseNameLength = other.databaseNameLength;
         tableNameLength = other.tableNameLength;
         tableNameStart = other.tableNameStart;
         originalTableNameStart = other.originalTableNameStart;
@@ -163,7 +168,13 @@ public class ColumnDefinition {
         nameStart = other.nameStart;
         nameLength = other.nameLength;
         longColFlag = other.longColFlag;
-        options = other.options;
+
+        complexSchemaNameStart = other.complexSchemaNameStart;
+        complexSchemaNameLength = other.complexSchemaNameLength;
+        complexTypeNameStart = other.complexTypeNameStart;
+        complexTypeNameLength = other.complexTypeNameLength;
+        complexVersion = other.complexVersion;
+        elemSqlType = other.elemSqlType;
     }
 
     /**
@@ -375,6 +386,13 @@ public class ColumnDefinition {
             this.tableName = getStringFromBytes(tableNameStart, tableNameLength);
         }
         return tableName;
+    }
+
+    public String getCatalog() {
+        if (null == this.catalogName) {
+            this.catalogName = getStringFromBytes(catalogNameStart, catalogNameLength);
+        }
+        return catalogName;
     }
 
     public String getOriginalTable() {
@@ -804,5 +822,10 @@ public class ColumnDefinition {
     public boolean isOutput() {
         return this.inoutType == RoutineParamInOutMode.PARAM_OUT.getValue()
                 || this.inoutType == RoutineParamInOutMode.PARAM_INOUT.getValue();
+    }
+
+    public boolean isDummyColumn() {
+        return "__$_OB_PS_DUMMY_COLUMN_$__".equals(getName())
+                && "oceanbase".equals(getDatabase()) && "oceanbase".equals(getTable()) && "oceanbase".equals(getOriginalTable());
     }
 }

@@ -105,6 +105,7 @@ import com.oceanbase.jdbc.internal.logging.Logger;
 import com.oceanbase.jdbc.internal.logging.LoggerFactory;
 import com.oceanbase.jdbc.internal.protocol.flt.FullLinkTrace;
 import com.oceanbase.jdbc.internal.protocol.flt.OceanBaseProtocolV20;
+import com.oceanbase.jdbc.internal.util.ResultSetMetaDataCache;
 import com.oceanbase.jdbc.internal.util.ServerPrepareStatementCache;
 import com.oceanbase.jdbc.internal.util.Utils;
 import com.oceanbase.jdbc.internal.util.constant.*;
@@ -157,6 +158,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean                     explicitClosed;
     protected String                      database;
     protected long                        serverThreadId;
+    protected ResultSetMetaDataCache      resultSetMetaDataCache;
     protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean                     eofDeprecated;
     protected long                        serverCapabilities;
@@ -187,6 +189,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean                     enableFullLinkTrace;
     protected boolean                     useNewExtraInfo;
     protected boolean                     useNewResultSetMetaData;
+    protected boolean                     cachePsMetaData;
     OceanBaseProtocolV20                  ob20;
     FullLinkTrace                         fullLinkTrace;
     TimeTrace                             timeTrace;
@@ -214,6 +217,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(
                 options.prepStmtCacheSize, this);
         }
+        resultSetMetaDataCache = new ResultSetMetaDataCache();
         galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null ? Collections
             .emptyList() : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
         this.traceCache = traceCache;
@@ -514,6 +518,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         if (options.enablePacketDebug) {
             traceCache.clearMemory();
+        }
+        if (resultSetMetaDataCache != null) {
+            resultSetMetaDataCache.clear();
         }
     }
 
@@ -890,6 +897,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                                         // process __ob_client_capability_flag
                                         if (name.equals(SendHandshakeResponsePacket.OB_CLIENT_CAPABILITY_FLAG)) {
                                             useNewResultSetMetaData = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_USE_NEW_RESULTSET_METADATA) != 0);
+                                            cachePsMetaData = ((Long.parseLong(value) & OceanBaseCapabilityFlag.OB_CAP_CACHE_PS_META) != 0);
                                         }
                                         break;
                                     default:
@@ -2241,6 +2249,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     private void resetObClientOptions() {
         options.useNewResultSetMetaData = useNewResultSetMetaData;
+        options.obCachePsMetaData = cachePsMetaData;
     }
 
     @Override

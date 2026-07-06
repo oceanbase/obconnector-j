@@ -112,5 +112,6 @@ public class OceanBaseCapabilityFlag {
     public static final long OB_CLIENT_CAP_LOB_LOCATOR_V2          = 1;
     public static final long OB_CAP_USE_NEW_RESULTSET_METADATA     = 1 << 1;
     public static final long OB_CAP_OB_SET_DOUBLE_USE_NUMBER       = 1 << 2;
+    public static final long OB_CAP_CACHE_PS_META                  = 1 << 3;
 
 }

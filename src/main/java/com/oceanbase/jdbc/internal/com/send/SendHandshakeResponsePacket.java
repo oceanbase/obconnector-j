@@ -394,6 +394,9 @@ public class SendHandshakeResponsePacket {
             if (options.oracleUseNumberForSetDouble) {
                 capFlag |= OceanBaseCapabilityFlag.OB_CAP_OB_SET_DOUBLE_USE_NUMBER;
             }
+            if (options.obCachePsMetaData) {
+                capFlag |= OceanBaseCapabilityFlag.OB_CAP_CACHE_PS_META;
+            }
             if (capFlag != 0) {
                 buffer.writeStringSmallLength(_CLIENT_CAPABILITY.getBytes(pos.getCharset()));
                 buffer.writeStringLength(String.valueOf(capFlag), pos.getCharset());

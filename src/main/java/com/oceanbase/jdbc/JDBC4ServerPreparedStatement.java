@@ -1412,6 +1412,10 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         this.serverPrepareResult = serverPrepareResult;
     }
 
+    public ServerPrepareResult getServerPrepareResult() {
+        return this.serverPrepareResult;
+    }
+
     private void releasePreparedIfRewritten() throws SQLException {
         if (this.previousTurnParamSize != 1 && serverPrepareResult != null) {
             logger.debug("releasing old [ps-id={}] {}", serverPrepareResult.getStatementId(), actualSql);
@@ -1458,5 +1462,11 @@ public class JDBC4ServerPreparedStatement extends BasePrepareStatement implement
         }
         serverPrepareResult.release();
         released = true;
+    }
+
+    @Override
+    public boolean canCacheMetaData() {
+        return options.useServerPrepStmts && options.obCachePsMetaData && this.getSqlType() == OceanBaseStatement.STMT_SELECT
+                && ((serverPrepareResult != null && serverPrepareResult.getStatementId() != 0) || options.useOraclePrepareExecute);
     }
 }

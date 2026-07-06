@@ -82,6 +82,19 @@ public class Buffer {
 
     }
 
+    /**
+     * Copy constructor that creates a deep copy of another Buffer.
+     *
+     * @param other the Buffer to copy
+     */
+    public Buffer(Buffer other) {
+        if (other.buf != null) {
+            this.buf = Arrays.copyOf(other.buf, other.buf.length);
+        }
+        this.position = other.position;
+        this.limit = other.limit;
+    }
+
     public int remaining() {
         return limit - position;
     }
