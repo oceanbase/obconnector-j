@@ -2107,6 +2107,58 @@ public class ResultSetOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2026043000115852939() throws SQLException {
+        createTable("t_res", "c1 int");
+        Statement stmt = sharedConnection.createStatement();
+        for (int i = 0; i < 15; i++) {
+            stmt.execute("insert into t_res values (" + i + ")");
+        }
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        for (int i = 0; i < 3; i++) {
+            // complete
+            if (i == 0) {
+                conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true&extendOracleResultSetClass=true");
+                ps = conn.prepareStatement("select * from t_res");
+            }
+            // cursor
+            if (i == 1) {
+                conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true");
+                ps = conn.prepareStatement("select * from t_res");
+            }
+            // streaming
+            if (i == 2) {
+                conn = setConnection("&obStrictJdbcCompatibility=true&useServerPrepStmts=true&extendOracleResultSetClass=true");
+                ps = conn.prepareStatement("select * from t_res");
+                ps.setFetchSize(Integer.MIN_VALUE);
+            }
+
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.isFirst());
+
+            try {
+                rs.first();
+                fail("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } catch (SQLException e) {
+            }
+
+            try {
+                rs.isLast();
+                fail("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } catch (SQLException e) {
+            }
+
+            try {
+                rs.last();
+                fail("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } catch (SQLException e) {
+            }
+        }
+    }
+
+    @Test
     public void testForDima2026052100116231748() throws SQLException {
         Connection conn = setConnection("&extendOracleResultSetClass=false");
         createTable("t1", "c1 int, c2 varchar2(20)");
@@ -2134,4 +2186,5 @@ public class ResultSetOracleTest extends BaseOracleTest {
         ps.close();
         conn.close();
     }
+
 }

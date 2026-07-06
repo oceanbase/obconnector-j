@@ -973,7 +973,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean isFirst() throws SQLException {
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
-            throw new SQLException("Invalid operation on STREAMING ResultSet");
+            if (!options.obStrictJdbcCompatibility) {
+                throw new SQLException("Invalid operation on STREAMING ResultSet");
+            } else {
+                if (!protocol.isOracleMode() && options.compatibleMysqlVersion != 8) {
+                    throw new SQLException("Operation not supported for streaming result sets");
+                }
+            }
         }
 
         // COMPLETE ResultSet
@@ -984,12 +990,24 @@ public class JDBC4ResultSet implements ResultSetImpl {
     public boolean isLast() throws SQLException {
         checkClose();
         if (rsClass == ResultSetClass.STREAMING) {
-            throw new SQLException("Invalid operation on STREAMING ResultSet");
+            if (!options.obStrictJdbcCompatibility) {
+                throw new SQLException("Invalid operation on STREAMING ResultSet");
+            } else {
+                if (!protocol.isOracleMode() && options.compatibleMysqlVersion != 8) {
+                    throw new SQLException("Operation not supported for streaming result sets");
+                }
+            }
         }
 
         // COMPLETE ResultSet
         if (protocol.isOracleMode()) {
-            throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            if (!options.obStrictJdbcCompatibility) {
+                throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } else {
+                if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+                    throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+                }
+            }
         }
         return isEof && rowPointer == dataSize - 1 && dataSize > 0;
     }
@@ -1031,6 +1049,13 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
         }
+        if (options.obStrictJdbcCompatibility && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            if (protocol.isOracleMode() ) {
+                throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } else if (!protocol.isOracleMode() && options.compatibleMysqlVersion == 8 ){
+                throw new SQLException("Operation not allowed for a result set of type ResultSet.TYPE_FORWARD_ONLY.");
+            }
+        }
         cancelRowInserts();
 
         // COMPLETE ResultSet, dataSize != -1
@@ -1048,6 +1073,15 @@ public class JDBC4ResultSet implements ResultSetImpl {
         if (rsClass == ResultSetClass.STREAMING) {
             throw new SQLException("Invalid operation on STREAMING ResultSet");
         }
+
+        if (options.obStrictJdbcCompatibility && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            if (protocol.isOracleMode() ) {
+                throw new SQLException("Invalid operation on TYPE_FORWARD_ONLY ResultSet");
+            } else if (!protocol.isOracleMode() && options.compatibleMysqlVersion == 8 ){
+                throw new SQLException("Operation not allowed for a result set of type ResultSet.TYPE_FORWARD_ONLY.");
+            }
+        }
+
         cancelRowInserts();
 
         // COMPLETE ResultSet
