@@ -70,21 +70,27 @@ public class OBArrayParameter implements Cloneable, ParameterHolder {
 
     public void storeArrayTypeInfo(PacketOutputStream packet) throws IOException, SQLException {
         ObArray array = arrayValue;
-        packet.writeFieldLength(0);
-        packet.writeFieldLength(0);
+        byte[] nameBytes =  array.getComplexType().getSchemaName().getBytes();
+        packet.writeFieldLength(nameBytes.length);
+        packet.write(nameBytes);
+        nameBytes = array.getComplexType().getTypeName().getBytes();
+        packet.writeFieldLength(nameBytes.length);
+        packet.write(nameBytes);
         packet.writeFieldLength(array.getComplexType().getVersion());
-        int elementType = ComplexUtil.getMysqlType(array.getBaseType()).getType();
-        packet.writeBytes((byte) elementType, 1);
-        if (elementType >= ColumnType.COMPLEX.getType()
-            && elementType <= ColumnType.STRUCT.getType()) {
-            byte[] tmp = array.getComplexType().getAttrType(0).getSchemaName().getBytes();
-            packet.writeFieldLength(tmp.length);
-            packet.write(tmp);
-            tmp = array.getComplexType().getAttrType(0).getTypeName().getBytes();
-            packet.writeFieldLength(tmp.length);
-            packet.write(tmp);
-            packet.writeFieldLength(tmp.length);
+        if (nameBytes.length == 0) {
+            int elementType = ComplexUtil.getMysqlType(array.getBaseType()).getType();
+            packet.writeBytes((byte) elementType, 1);
+            if (elementType >= ColumnType.COMPLEX.getType()
+                    && elementType <= ColumnType.STRUCT.getType()) {
+                byte[] tmp = array.getComplexType().getAttrType(0).getSchemaName().getBytes();
+                packet.writeFieldLength(tmp.length);
+                packet.write(tmp);
+                tmp = array.getComplexType().getAttrType(0).getTypeName().getBytes();
+                packet.writeFieldLength(tmp.length);
+                packet.write(tmp);
+                packet.writeFieldLength(tmp.length);
 
+            }
         }
     }
 

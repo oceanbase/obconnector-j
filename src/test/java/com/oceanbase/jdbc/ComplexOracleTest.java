@@ -1306,4 +1306,34 @@ public class ComplexOracleTest extends BaseOracleTest {
         Assert.assertEquals("9_res", ps.getString(4));
     }
 
+    @Test
+    public void testForDima2026060100116469256() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t_varray_boundary");
+        } catch (SQLException e) {
+            // ignore
+        }
+        stmt.execute("create or replace type type_array10 as varray(10) of int");
+        createTable("t_varray_boundary", "c1 type_array10");
+
+        Integer[] maxElements = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        Array array10 = conn.createArrayOf("TYPE_ARRAY10", maxElements);
+        PreparedStatement ps = conn.prepareStatement("insert into t_varray_boundary(c1) values(?)");
+        ps.setArray(1, array10);
+        ps.execute();
+
+        ResultSet rs = stmt.executeQuery("select t.c1 from t_varray_boundary t");
+        Assert.assertTrue(rs.next());
+
+        Array r1 = rs.getArray(1);
+        Object[] r1Obj = (Object[])r1.getArray();
+        Assert.assertEquals(10, r1Obj.length);
+        for (int i = 0; i < r1Obj.length; i++) {
+            Assert.assertEquals(i + 1, ((BigDecimal)r1Obj[i]).intValue());
+        }
+
+        Assert.assertFalse(rs.next());
+    }
 }
