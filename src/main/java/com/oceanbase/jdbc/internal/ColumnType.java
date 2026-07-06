@@ -366,14 +366,51 @@ public enum ColumnType {
 
     public static ColumnType convertSqlTypeToColumnTypeForOracleRoutine(int sqlType) {
         switch (sqlType) {
+            case Types.BOOLEAN:
+                return ColumnType.TINYINT;
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.BIGINT:
             case Types.NUMERIC:
+            case Types.INTEGER:
+            case Types.DECIMAL:
                 return ColumnType.OBDECIMAL;
+            case Types.CHAR:
+                return ColumnType.STRING;
+            case Types.NCHAR:
+                return ColumnType.NCHAR;
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+                return ColumnType.VARSTRING;
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+                return ColumnType.NVARCHAR2;
+            case Types.DATE:
+            case Types.TIME:
+            case Types.TIME_WITH_TIMEZONE:
+                return ColumnType.DATETIME;
+            case Types.TIMESTAMP:
+                return ColumnType.TIMESTAMP_NANO;
+            case Types.TIMESTAMP_WITH_TIMEZONE:
+                return ColumnType.TIMESTAMP_TZ;
+            case Types.FLOAT:
+                return ColumnType.BINARY_FLOAT;
+            case Types.REAL:
+                return ColumnType.NUMBER_FLOAT;
+            case Types.DOUBLE:
+                return ColumnType.BINARY_DOUBLE;
+            case Types.BLOB:
+                return ColumnType.ORA_BLOB;
+            case Types.CLOB:
+                return ColumnType.ORA_CLOB;
+            case Types.ROWID:
+                return ColumnType.ROWID;
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                return ColumnType.RAW;
             default:
-                for (ColumnType columnType : typeOracleMap) {
-                    if (columnType != null && columnType.sqlType == sqlType) {
-                        return columnType;
-                    }
-                }
                 return ColumnType.NULL;
         }
     }
