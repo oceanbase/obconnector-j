@@ -1307,6 +1307,36 @@ public class ComplexOracleTest extends BaseOracleTest {
     }
 
     @Test
+    public void testForDima2026031100114573589() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+
+        Statement stmt = conn.createStatement();
+        stmt.execute("create or replace force type obj_type1 as object(a varchar2(10), b varchar2(10))");
+        stmt.execute("create or replace force type obj_type2 as object(a number, b number)");
+        stmt.execute("create or replace force type array_obj1 as table of obj_type1");
+
+        Struct obj1Struct = conn.createStruct("obj_type1", new Object[] { "a", "b" });
+        Struct obj1Struct2 = conn.createStruct("obj_type1", new Object[] { "c", "d" });
+        Array obj1Array = conn.createArrayOf("array_obj1", new Object[] { obj1Struct, obj1Struct2 });
+
+        CallableStatement cs = conn.prepareCall("begin ? := ?;end;");
+        cs.registerOutParameter(1, Types.ARRAY);
+        cs.setArray(2, obj1Array);
+        cs.execute();
+        Array resultArray = cs.getArray(1);
+        Object[] arrayElements = (Object[]) resultArray.getArray();
+        Struct struct = (Struct) arrayElements[0];
+        Object[] attributes = struct.getAttributes();
+        Assert.assertEquals("a", attributes[0]);
+        Assert.assertEquals("b", attributes[1]);
+
+        Struct struct2 = (Struct) arrayElements[1];
+        Object[] attributes2 = struct2.getAttributes();
+        Assert.assertEquals("c", attributes2[0]);
+        Assert.assertEquals("d", attributes2[1]);
+    }
+
+    @Test
     public void testForDima2026060100116469256() throws SQLException {
         Connection conn = setConnection("&useServerPrepStmts=true");
         Statement stmt = conn.createStatement();
@@ -1336,4 +1366,5 @@ public class ComplexOracleTest extends BaseOracleTest {
 
         Assert.assertFalse(rs.next());
     }
+
 }
