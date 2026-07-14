@@ -1590,5 +1590,62 @@ public class ProcedureOracleTest extends BaseOracleTest {
         call4.execute();
         Assert.assertEquals("name_p2", call4.getString("p_d"));
     }
- 
+
+    private void createPkgProcOverloadWithInOutParams(Statement stmt, String pkgName, String procName)
+            throws SQLException {
+        stmt.execute("create or replace package " + pkgName + " is"
+                + " procedure " + procName + "(p_a in out int, p_b in varchar2, p_c out varchar2);"
+                + " procedure " + procName + "(p_a in out varchar2, p_b in int, p_c out varchar2);"
+                + " end " + pkgName);
+        stmt.execute("create or replace package body " + pkgName + " as"
+                + " procedure " + procName + "(p_a in out int, p_b in varchar2, p_c out varchar2) is"
+                + " begin p_c := p_b || '_' || p_a; p_a := p_a * 10; end;"
+                + " procedure " + procName + "(p_a in out varchar2, p_b in int, p_c out varchar2) is"
+                + " begin p_c := p_a || '_' || p_b; p_a := upper(p_a); end;"
+                + " end " + pkgName);
+    }
+
+    @Test
+    public void testForDima2026071000117331522() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true&obIncludeOutOrNullParamTypeInfo=true");
+        Statement stmt = conn.createStatement();
+        createPkgProcOverloadWithInOutParams(stmt, "pkg_inout", "proc_inout");
+
+        CallableStatement cs = conn.prepareCall("{call pkg_inout.proc_inout(p_a=>?, p_b=>?, p_c=>?)}");
+        cs.setInt("p_a", 5);
+        cs.registerOutParameter("p_a", Types.INTEGER);
+        cs.setString("p_b", "test");
+        cs.registerOutParameter("p_c", Types.VARCHAR);
+        cs.execute();
+        assertEquals("test_5", cs.getString("p_c"));
+        assertEquals(50, cs.getInt("p_a")); // p_a = p_a * 10
+
+        cs = conn.prepareCall("{call pkg_inout.proc_inout(p_c=>?, p_b=>?, p_a=>?)}");
+        cs.registerOutParameter("p_c", Types.VARCHAR);
+        cs.setString("p_b", "hello");
+        cs.setInt("p_a", 3);
+        cs.registerOutParameter("p_a", Types.INTEGER);
+        cs.execute();
+        assertEquals("hello_3", cs.getString("p_c"));
+        assertEquals(30, cs.getInt("p_a"));
+
+        cs = conn.prepareCall("{call pkg_inout.proc_inout(p_a=>?, p_b=>?, p_c=>?)}");
+        cs.setString("p_a", "world");
+        cs.registerOutParameter("p_a", Types.VARCHAR);
+        cs.setInt("p_b", 7);
+        cs.registerOutParameter("p_c", Types.VARCHAR);
+        cs.execute();
+        assertEquals("world_7", cs.getString("p_c"));
+        assertEquals("WORLD", cs.getString("p_a")); // p_a = upper(p_a)
+
+        cs = conn.prepareCall("{call pkg_inout.proc_inout(p_b=>?, p_a=>?, p_c=>?)}");
+        cs.setInt("p_b", 99);
+        cs.setString("p_a", "lower");
+        cs.registerOutParameter("p_a", Types.VARCHAR);
+        cs.registerOutParameter("p_c", Types.VARCHAR);
+        cs.execute();
+        assertEquals("lower_99", cs.getString("p_c"));
+        assertEquals("LOWER", cs.getString("p_a"));
+    }
+
 }
