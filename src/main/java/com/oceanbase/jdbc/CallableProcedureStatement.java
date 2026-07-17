@@ -231,6 +231,23 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
      */
     private int nameToOutputIndex(String parameterName) throws SQLException {
         if (protocol.isOracleMode()) {
+            boolean hasSpecialParams = arguments != null && !arguments.isEmpty() && arguments.contains("=>");
+            if (hasSpecialParams && !resetSpecialParamIndex && serverPrepareResult != null) {
+                int index = 1;
+                HashMap<String, Integer> outParamsIndexMap = new HashMap<>(serverPrepareResult.getColumns().length);;
+                for (ColumnDefinition column : serverPrepareResult.getColumns()) {
+                    outParamsIndexMap.put(column.getName().toUpperCase(), index++);
+                }
+
+                //resetParamIndex,
+                for (int i = 0; i < outputParameterMapper.length; i++) {
+                    CallParameter parameter = params.get(i);
+                    if (parameter.getName() != null) {
+                        outputParameterMapper[i] = parameter.isOutput() ? outParamsIndexMap.get(parameter.getName().toUpperCase()) : -1;
+                    }
+                }
+                resetSpecialParamIndex = true;
+            }
             for (int i = 0; i < params.size(); i++) {
                 String name = params.get(i).getName();
                 if (name != null && name.equalsIgnoreCase(parameterName)) {
