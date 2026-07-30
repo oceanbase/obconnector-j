@@ -7,6 +7,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class ResultSetMetaDataOracleTest extends BaseOracleTest {
 
     @Test
@@ -144,6 +148,78 @@ public class ResultSetMetaDataOracleTest extends BaseOracleTest {
             Assert.assertEquals(2, metaData.getColumnCount());
             Assert.assertEquals("c1", metaData.getColumnName(1).toLowerCase());
             Assert.assertEquals("c2", metaData.getColumnName(2).toLowerCase());
+        }
+    }
+
+    @Test
+    public void testForDima2026072800117809102() throws SQLException {
+        Connection conn = setConnection("&obCachePsMetaData=true&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        createTable("t_meta_schema_refresh", "id number, name varchar2(20)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_meta_schema_refresh values (1, 'alice')");
+
+        PreparedStatement ps = conn.prepareStatement("select * from t_meta_schema_refresh");
+        ResultSet rs;
+        ResultSetMetaData metaData;
+        for (int i = 0; i < 2; i++) {
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            metaData = rs.getMetaData();
+            Assert.assertEquals(2, metaData.getColumnCount());
+            Assert.assertEquals("ID", metaData.getColumnName(1));
+            Assert.assertEquals("NAME", metaData.getColumnName(2));
+        }
+
+        stmt.execute("alter table t_meta_schema_refresh add (score number default 99)");
+        for (int i = 0; i < 2; i++) {
+            rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            metaData = rs.getMetaData();
+            Assert.assertEquals(3, metaData.getColumnCount());
+            Assert.assertEquals("ID", metaData.getColumnName(1));
+            Assert.assertEquals("NAME", metaData.getColumnName(2));
+            Assert.assertEquals("SCORE", metaData.getColumnName(3));
+        }
+    }
+
+    @Test
+    public void testForDima2026072900117827043() throws SQLException {
+        Connection conn = setConnection("&obCachePsMetaData=true&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        createTable("t_meta_derived_bind", "id number, name varchar2(20)");
+        Statement stmt = conn.createStatement();
+        stmt.execute("insert into t_meta_derived_bind values (1, 'one')");
+        stmt.execute("insert into t_meta_derived_bind values (2, 'two')");
+
+        String sql = "select d.dynamic_value, d.id from "
+                + "(select ? as dynamic_value, id from t_meta_derived_bind) d "
+                + "where d.id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, 42);
+            ps.setInt(2, 1);
+            try (ResultSet rs = ps.executeQuery()) {
+                ResultSetMetaData meta = rs.getMetaData();
+                assertEquals(2, meta.getColumnCount());
+                assertEquals("NUMBER", meta.getColumnTypeName(1));
+                assertEquals("NUMBER", meta.getColumnTypeName(2));
+                assertTrue(rs.next());
+                assertEquals(42, rs.getInt(1));
+                assertEquals(1, rs.getInt("id"));
+                assertFalse(rs.next());
+            }
+
+            ps.setString(1, "forty-two");
+            ps.setInt(2, 2);
+            try (ResultSet rs = ps.executeQuery()) {
+                ResultSetMetaData meta = rs.getMetaData();
+                assertEquals(2, meta.getColumnCount());
+                assertEquals("CHAR", meta.getColumnTypeName(1));
+                assertEquals("NUMBER", meta.getColumnTypeName(2));
+                assertTrue(rs.next());
+                assertEquals("forty-two", rs.getString(1));
+                assertEquals(2, rs.getInt("id"));
+                assertFalse(rs.next());
+            }
         }
     }
 
