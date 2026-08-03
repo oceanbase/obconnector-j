@@ -1367,4 +1367,86 @@ public class ComplexOracleTest extends BaseOracleTest {
         Assert.assertFalse(rs.next());
     }
 
+    @Test
+    public void testForDima2026070800117279915() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=false");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t_array_null_semantics");
+        } catch (SQLException e) {
+            // ignore
+        }
+        try {
+            stmt.execute("drop type type_array_null_semantics force");
+        } catch (SQLException e) {
+            // ignore
+        }
+        stmt.execute("create or replace type type_array_null_semantics as varray(5) of number");
+        stmt.execute("create table t_array_null_semantics(id int primary key, c1 type_array_null_semantics)");
+
+        PreparedStatement psNull = conn.prepareStatement("insert into t_array_null_semantics(id, c1) values(?, ?)");
+        psNull.setInt(1, 1);
+        psNull.setNull(2, Types.ARRAY, "TYPE_ARRAY_NULL_SEMANTICS");
+        assertEquals(1, psNull.executeUpdate());
+
+        PreparedStatement psEmpty = conn.prepareStatement("insert into t_array_null_semantics(id, c1) values(?, ?)");
+        psEmpty.setInt(1, 2);
+        psEmpty.setArray(2, conn.createArrayOf("TYPE_ARRAY_NULL_SEMANTICS", new BigDecimal[] {}));
+        assertEquals(1, psEmpty.executeUpdate());
+
+        PreparedStatement psHasNull = conn.prepareStatement("insert into t_array_null_semantics(id, c1) values(?, ?)");
+        psHasNull.setInt(1, 3);
+        psHasNull.setArray(2, conn.createArrayOf("TYPE_ARRAY_NULL_SEMANTICS",
+                new BigDecimal[] {BigDecimal.ONE, null, BigDecimal.TEN}));
+        assertEquals(1, psHasNull.executeUpdate());
+
+        ResultSet rs = stmt.executeQuery("select id,c1 from t_array_null_semantics order by id");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("id"));
+        assertNull(rs.getArray("c1"));
+
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt("id"));
+        Object[] emptyObj = (Object[]) rs.getArray("c1").getArray();
+        assertEquals(0, emptyObj.length);
+
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt("id"));
+        Object[] hasNullObj = (Object[]) rs.getArray("c1").getArray();
+        assertEquals(3, hasNullObj.length);
+        assertEquals(0, ((BigDecimal) hasNullObj[0]).compareTo(BigDecimal.ONE));
+        assertNull(hasNullObj[1]);
+        assertEquals(0, ((BigDecimal) hasNullObj[2]).compareTo(BigDecimal.TEN));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void testForDima2026070900117316383() throws SQLException {
+        Connection conn = setConnection("&useServerPrepStmts=true&useOraclePrepareExecute=true");
+        Statement stmt = conn.createStatement();
+        try {
+            stmt.execute("drop table t_null_array_repro");
+        } catch (SQLException e) {
+            // ignore
+        }
+        try {
+            stmt.execute("drop type type_null_array_repro force");
+        } catch (SQLException e) {
+            // ignore
+        }
+        stmt.execute("create or replace type type_null_array_repro as varray(3) of number");
+        stmt.execute("create table t_null_array_repro(id int primary key, c1 type_null_array_repro)");
+
+        PreparedStatement ps = conn.prepareStatement("insert into t_null_array_repro(id, c1) values(?, ?)");
+        ps.setInt(1, 1);
+        ps.setNull(2, Types.ARRAY, "TYPE_NULL_ARRAY_REPRO");
+        assertEquals(1, ps.executeUpdate());
+
+        ResultSet rs = stmt.executeQuery("select c1 from t_null_array_repro where id = 1");
+        assertTrue(rs.next());
+        Array arr = rs.getArray("c1");
+        assertTrue("SQL NULL array column should set wasNull()", rs.wasNull());
+        assertNull("getArray() should return null for NULL array column", arr);
+    }
+
 }

@@ -2252,6 +2252,9 @@ public class JDBC4ResultSet implements ResultSetImpl {
         }
         int actualColumnIndex = columnIndex + columnIndexOffset;
         checkObjectRange(actualColumnIndex);
+        if (row.lastValueWasNull()) {
+            return null;
+        }
         int internalColumnIndex = actualColumnIndex - 1;
         Connection conn = this.statement.getConnection(); // fixme to be the complex connection
         if (this.columnsInformation[internalColumnIndex].getColumnType() == ColumnType.COMPLEX) {
