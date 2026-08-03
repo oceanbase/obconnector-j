@@ -50,6 +50,7 @@ public class RowIdImpl extends Datum implements java.sql.RowId {
 
     public RowIdImpl(String value) {
         val = value;
+        data = getBytes();
     }
 
     @Override
@@ -74,6 +75,29 @@ public class RowIdImpl extends Datum implements java.sql.RowId {
     @Override
     public String toString() {
         return val;
+    }
+
+    @Override
+    public void setBytes(byte[] bytes) {
+        super.setBytes(bytes);
+        this.val = this.stringValue();
+    }
+
+    @Override
+    public void setByte(int index, byte b) {
+
+    }
+
+    @Override
+    public void setShareBytes(byte[] bytes) {
+        super.setShareBytes(bytes);
+        this.val = this.stringValue();
+    }
+
+    @Override
+    public String stringValue() {
+        byte[] bytes = super.getBytes();
+        return new String(bytes);
     }
 
     @Override

@@ -946,4 +946,18 @@ public class OracleDataTypeTest extends BaseOracleTest {
         RowIdImpl newRowId = (RowIdImpl) in.readObject();
         Assert.assertEquals(rowId, newRowId);
     }
+
+    @Test
+    public void testForDima2026072000117560956() {
+        RowIdImpl rowId = new RowIdImpl("123");
+        Assert.assertEquals("123", rowId.stringValue());
+        Assert.assertEquals("123", rowId.toString());
+        Assert.assertArrayEquals(new byte[]{49, 50, 51}, rowId.getBytes());
+
+        rowId.setBytes("abcd".getBytes());
+        Assert.assertEquals("abcd", rowId.stringValue());
+        Assert.assertEquals("abcd", rowId.toString());
+        Assert.assertArrayEquals(new byte[]{97, 98, 99,100}, rowId.getBytes());
+    }
+
 }
