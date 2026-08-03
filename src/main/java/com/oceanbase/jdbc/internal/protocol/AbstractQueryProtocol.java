@@ -2627,7 +2627,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return ci;
       } else if (serverPrepareResult != null) {
         int statementId = serverPrepareResult.getStatementId();
-        if (results.isEnablePsMetaCache() || (ci.length == 1 && ci[0].isDummyColumn())) {
+        if (ci.length == 1 && ci[0].isDummyColumn()) {
           ColumnDefinition[] columns = resultSetMetaDataCache.get(statementId);
           if (columns != null) {
             ci = columns;
