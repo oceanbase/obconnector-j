@@ -403,6 +403,7 @@ public enum ColumnType {
             case Types.BLOB:
                 return ColumnType.ORA_BLOB;
             case Types.CLOB:
+            case Types.NCLOB:
                 return ColumnType.ORA_CLOB;
             case Types.ROWID:
                 return ColumnType.ROWID;
