@@ -1648,4 +1648,55 @@ public class ProcedureOracleTest extends BaseOracleTest {
         assertEquals("LOWER", cs.getString("p_a"));
     }
 
+    @Test
+    public void testForDima2026072800117803156() throws SQLException {
+        Connection conn = setConnection("&obIncludeOutOrNullParamTypeInfo=true&usePieceData=true");
+        Statement stmt = conn.createStatement();
+
+        stmt.execute("create or replace package jdbc_nclob_pkg as " +
+                "procedure p(a in number, b out varchar2); " +
+                "procedure p(a in number, b out clob); " +
+                "end;");
+        stmt.execute("create or replace package body jdbc_nclob_pkg as " +
+                "procedure p(a in number, b out varchar2) is begin b := 'varchar2_' || a; end; " +
+                "procedure p(a in number, b out clob) is begin b := 'clob_' || a || '_content'; end; " +
+                "end;");
+
+        try {
+            CallableStatement cs = conn.prepareCall("call jdbc_nclob_pkg.p(?, ?)");
+            cs.setInt(1, 42);
+            cs.registerOutParameter(2, Types.NCLOB);
+            cs.execute();
+            NClob nclob = cs.getNClob(2);
+            String str = nclob.getSubString(1, (int) nclob.length());
+            Assert.assertEquals(str, "clob_42_content");
+            nclob.free();
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            CallableStatement cs = conn.prepareCall("call jdbc_nclob_pkg.p(?, ?)");
+            cs.setInt(1, 42);
+            cs.registerOutParameter(2, Types.CLOB);
+            cs.execute();
+            java.sql.Clob nclob = cs.getClob(2);
+            String str = nclob.getSubString(1, (int) nclob.length());
+            Assert.assertEquals(str, "clob_42_content");
+            nclob.free();
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            CallableStatement cs = conn.prepareCall("call jdbc_nclob_pkg.p(?, ?)");
+            cs.setInt(1, 42);
+            cs.registerOutParameter(2, Types.VARCHAR);
+            cs.execute();
+            Assert.assertEquals(cs.getString(2), "varchar2_42");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
 }
