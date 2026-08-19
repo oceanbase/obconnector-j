@@ -566,6 +566,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     UUID spanId = null;
 
     lock.lock();
+    // search serverPrepareResult in cache
+    if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
+      ServerPrepareResult prepareResult = this.prepareStatementCache().remove(this.getDatabase() + "-" + results.getStatement().getActualSql());
+      if (prepareResult != null && prepareResult.incrementShareCounter()) {
+        serverPrepareResult = prepareResult;
+        serverPrepareResult.resetParameterTypeHeader();
+        if (results.getStatement() instanceof ServerSidePreparedStatement) {
+          ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+        }
+        results.setStatementId(serverPrepareResult.getStatementId());
+      }
+    }
+
+    boolean isEligibleForPieceDataRequest = serverPrepareResult != null && serverPrepareResult.isEligibleForPieceDataRequest();
     try {
       lockLogger.debug("AbstractQueryProtocol.executePreparedQuery locked");
       spanId = ob20BeginTraceAndSpan("prepare and execute query");
@@ -576,12 +590,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                   || results != null && results.getStatement() != null && results.getStatement().isInternal()) {
           for (int i = 0; i < parameterCount; i++) {
             if (parameters[i].isLongData()) {
-              if (serverPrepareResult == null) {
-                  // prepare here
-                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
-                  if (results.getStatement() instanceof ServerSidePreparedStatement) {
-                    ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
-                  }
+              if (!isEligibleForPieceDataRequest) {
+                serverPrepareResult = ensureValidPieceDataRequest(serverPrepareResult, results);
+                isEligibleForPieceDataRequest = true;
+                if (results.getStatement() instanceof ServerSidePreparedStatement) {
+                  ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+                }
               }
 
               boolean continueWrite = true;
@@ -614,19 +628,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
       writer.setTimeZone(this.getServerTimeZone());
 
-      // search serverPrepareResult in cache
-      if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
-        ServerPrepareResult prepareResult = this.prepareStatementCache().remove(this.getDatabase() + "-" + results.getStatement().getActualSql());
-        if (prepareResult != null && prepareResult.incrementShareCounter()) {
-          serverPrepareResult = prepareResult;
-          serverPrepareResult.resetParameterTypeHeader();
-          if (results.getStatement() instanceof ServerSidePreparedStatement) {
-            ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
-          }
-          results.setStatementId(serverPrepareResult.getStatementId());
-        }
-      }
-
       // send execute query
       boolean withRefCursor = false;
       if (serverPrepareResult != null) {
@@ -651,6 +652,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           (serverPrepareResult != null && serverPrepareResult.isReturnByPrepareExecute()) ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, serverPrepareResult);
 
       serverPrepareResult = ComStmtPrepareExecute.read(this, reader, (serverPrepareResult != null && serverPrepareResult.isReturnByPrepareExecute()) ? serverPrepareResult : null, results);
+      serverPrepareResult.setEligibleForPieceDataRequest(isEligibleForPieceDataRequest);
       results.setToCursorFetch(false);
       return serverPrepareResult;
     } catch (SQLException qex) {
@@ -1311,8 +1313,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         spanId = ob20BeginTraceAndSpan("execute batch on server");
 
         initializeBatchReader();
-        ServerPrepareResult tempServerPrepareResult = null;
-        serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, tempServerPrepareResult, parametersList, true, sql, readScheduler) {
+        serverPrepareResult = (ServerPrepareResult) new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql, readScheduler, hasLongData) {
             @Override
             public void sendCmd(PacketOutputStream writer, Results results, List<ParameterHolder[]> parametersList,
                                 List<String> queries, int paramCount, BulkStatus status, PrepareResult prepareResult) throws SQLException, IOException {
@@ -1330,13 +1331,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           if (options.useServerPrepStmts && options.usePieceData) {
             for (int i = 0; i < paramCount; i++) {
               if (parameters[i].isLongData()) {
-                writer.startPacket(0);
-                writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
-                writer.writeInt(statementId);
-                writer.writeShort((short) i);
-                writer.writeShort(Packet.OCI_LAST_PIECE); // piece type
-                parameters[i].writeBinary(writer);
-                writer.flush();
+                boolean continueWrite = true;
+                boolean first = true;
+                int pieceCount = 0;
+                while (continueWrite) {
+                  writer.startPacket(0);
+                  writer.write(Packet.COM_STMT_SEND_PIECE_DATA);
+                  writer.writeInt(((ServerPrepareResult)prepareResult).getStatementId());
+                  writer.writeShort((short) (i));
+                  continueWrite = ((LongDataParameterHolder) parameters[i]).writePieceData(writer, first, options);
+                  first = false;
+                  pieceCount ++;
+                }
+                status.pieceRequestCountArray[status.sendSubCmdCounter] = pieceCount;
               }
             }
           } else {
@@ -1356,7 +1363,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         if (supportStmtPrepareExecute()) {
           results.setParameters(parameters);
-          ComStmtPrepareExecute.send(writer, results, paramCount, parameters, tempServerPrepareResult != null ? tempServerPrepareResult.getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol(), tempServerPrepareResult);
+          ComStmtPrepareExecute.send(writer, results, paramCount, parameters, prepareResult != null ? ((ServerPrepareResult)prepareResult).getParameterTypeHeader() : null, Packet.CURSOR_TYPE_NO_CURSOR, getProtocol(), (ServerPrepareResult)prepareResult);
         } else {
           ComStmtExecute.send(writer, statementId, parameters, paramCount, parameterTypeHeader,
               Packet.CURSOR_TYPE_NO_CURSOR, getProtocol());
@@ -1556,6 +1563,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     UUID spanId = null;
 
     lock.lock();
+    // search serverPrepareResult in cache
+    if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
+      ServerPrepareResult prepareResult = this.prepareStatementCache().remove(this.getDatabase() + "-" + results.getStatement().getActualSql());
+      if (prepareResult != null && prepareResult.incrementShareCounter()) {
+        serverPrepareResult = prepareResult;
+        serverPrepareResult.resetParameterTypeHeader();
+        if (results.getStatement() instanceof ServerSidePreparedStatement) {
+          ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
+        }
+        results.setStatementId(serverPrepareResult.getStatementId());
+      }
+    }
+    boolean isEligibleForPieceDataRequest = serverPrepareResult != null && serverPrepareResult.isEligibleForPieceDataRequest();
     try {
       lockLogger.debug("AbstractQueryProtocol.prepare executePreparedQueryArrayBinding");
       spanId = ob20BeginTraceAndSpan("execute query to be prepared by array binding");
@@ -1569,8 +1589,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
               boolean continueWrite = true;
               boolean first = true;
               while (continueWrite) {
-                if (serverPrepareResult == null) {
-                  serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+                if (!isEligibleForPieceDataRequest) {
+                  serverPrepareResult = ensureValidPieceDataRequest(serverPrepareResult,results);
+                  isEligibleForPieceDataRequest = true;
                   serverPrepareResult.resetParameterTypeHeader();
                 }
                 writer.startPacket(0);
@@ -1596,19 +1617,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
       writer.setTimeZone(this.getServerTimeZone());
 
-      // search serverPrepareResult in cache
-      if (serverPrepareResult == null && options.useServerPrepStmts && options.cachePrepStmts) {
-        ServerPrepareResult prepareResult = this.prepareStatementCache().remove(this.getDatabase() + "-" + results.getStatement().getActualSql());
-        if (prepareResult != null && prepareResult.incrementShareCounter()) {
-          serverPrepareResult = prepareResult;
-          serverPrepareResult.resetParameterTypeHeader();
-          if (results.getStatement() instanceof ServerSidePreparedStatement) {
-            ((ServerSidePreparedStatement)results.getStatement()).setServerPrepareResult(serverPrepareResult);
-          }
-          results.setStatementId(serverPrepareResult.getStatementId());
-        }
-      }
-
       // send execute query
       boolean withRefCursor = false;
       if (serverPrepareResult != null) {
@@ -1633,6 +1641,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           parameterCount, serverPrepareResult != null ? serverPrepareResult.getParameterTypeHeader() : null, cursorFlag, this, results, serverPrepareResult);
 
       serverPrepareResult = ComStmtPrepareExecute.read(this, reader, serverPrepareResult, results);
+      serverPrepareResult.setEligibleForPieceDataRequest(isEligibleForPieceDataRequest);
       results.setToCursorFetch(false);
       return serverPrepareResult;
     } catch (SQLException qex) {
@@ -3003,6 +3012,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       }
     }
+  }
+
+  @Override
+  public ServerPrepareResult ensureValidPieceDataRequest(ServerPrepareResult serverPrepareResult, Results results) throws SQLException {
+    if (serverPrepareResult != null) {
+      logger.debug("closing [ps-id={}] {}", serverPrepareResult.getStatementId(), serverPrepareResult.getSql());
+      forceReleasePrepareStatement(serverPrepareResult.getStatementId());
+      serverPrepareResult.release();
+    }
+
+    // prepare here
+    serverPrepareResult = prepare(results.getStatement().getActualSql(), true);
+    serverPrepareResult.setEligibleForPieceDataRequest(true);
+    serverPrepareResult.resetParameterTypeHeader();
+    return serverPrepareResult;
   }
 
 }

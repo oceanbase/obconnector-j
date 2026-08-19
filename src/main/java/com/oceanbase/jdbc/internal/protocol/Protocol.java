@@ -408,4 +408,6 @@ public interface Protocol {
     TimeZone getTimeZoneWithUseLegacyDatetimeCode();
 
     boolean isCharsetVariablesSent();
+
+    ServerPrepareResult ensureValidPieceDataRequest(ServerPrepareResult serverPrepareResult, Results results) throws SQLException;
 }

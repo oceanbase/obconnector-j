@@ -799,4 +799,71 @@ public class ExecuteBatchOracleTest extends BaseOracleTest {
         stmt.close();
         conn.close();
     }
+
+    @Test
+    public void testForDima2026020500113961978() throws SQLException {
+        Clob clob = new com.oceanbase.jdbc.Clob("aa".getBytes());
+        // case1
+        Connection conn = setConnection("&usePieceData=true&cachePrepStmts=true");
+        Statement stmt = conn.createStatement();
+        createTable("t_piece", "c1 varchar2(20)");
+        PreparedStatement ps = conn.prepareStatement("insert into t_piece values (?)");
+        ps.setString(1, "aa");
+        ps.execute();
+
+        ps.setClob(1, clob);
+        ps.execute();
+        ps.close();
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into t_piece values (?)");
+        ps2.setClob(1, clob);
+        ps2.execute();
+
+        ps2.setString(1, "aa");
+        ps2.execute();
+        ps2.close();
+
+        // case2
+        conn = setConnection("&usePieceData=true&useArrayBinding=true");
+        createTable("t_piece", "c1 varchar2(20)");
+        conn.setAutoCommit(false);
+
+        PreparedStatement ps3 = conn.prepareStatement("insert into t_piece values (?)");
+        ps3.setString(1, "aa");
+        ps3.execute();
+        for (int i = 0; i < 3; i++) {
+            ps3.setClob(1, clob);
+            ps3.addBatch();
+        }
+        ps3.executeBatch();
+        conn.commit();
+        // case3
+        conn = setConnection("&usePieceData=true&useBatchMultiSend=true&cachePrepStmts=true");
+        createTable("t_piece", "c1 varchar2(20)");
+        stmt.execute("alter system set open_cursors = 5");
+        try {
+            PreparedStatement ps4 = conn.prepareStatement("insert into t_piece values(?)");
+            ps4.setString(1, "aa");
+            ps4.execute();
+
+            for (int i = 0; i < 10; i++) {
+                ps4.setClob(1, clob);
+                ps4.addBatch();
+            }
+            ps4.executeBatch();
+            ps4.close();
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        } finally {
+            stmt.execute("alter system set open_cursors = 100");
+        }
+
+        Statement stmt1 = conn.createStatement();
+        ResultSet rs = stmt1.executeQuery("select * from t_piece");
+        for (int i = 0; i < 11; i++) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("aa", rs.getString(1));
+        }
+        Assert.assertFalse(rs.next());
+    }
 }
