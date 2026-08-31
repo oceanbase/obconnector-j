@@ -70,6 +70,7 @@ public class ServerPrepareResult implements PrepareResult {
     private volatile int             shareCounter = 1;
     private volatile boolean         isBeingDeallocate;
     private volatile boolean         returnByPrepareExecute;
+    private volatile boolean         isEligibleForPieceDataRequest;
 
     /**
      * PrepareStatement Result object.
@@ -216,6 +217,14 @@ public class ServerPrepareResult implements PrepareResult {
 
     public void setReturnByPrepareExecute(boolean returnByPrepareExecute) {
         this.returnByPrepareExecute = returnByPrepareExecute;
+    }
+
+    public boolean isEligibleForPieceDataRequest() {
+        return isEligibleForPieceDataRequest;
+    }
+
+    public void setEligibleForPieceDataRequest(boolean eligibleForPieceDataRequest) {
+        this.isEligibleForPieceDataRequest = eligibleForPieceDataRequest;
     }
 
 }

@@ -78,6 +78,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final Results                 results;
     private final int                     paramCount;
     private final AsyncMultiReadResult    asyncMultiReadResult;
+    private final boolean                 hasLongData;
 
     /**
      * Read results async to avoid local and remote networking stack buffer overflow "lock".
@@ -95,7 +96,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     public AsyncMultiRead(BulkStatus status, Protocol protocol, boolean readPrepareStmtResult,
                           AbstractMultiSend bulkSend, int paramCount, Results results,
                           List<ParameterHolder[]> parametersList, List<String> queries, String sql,
-                          PrepareResult prepareResult) {
+                          PrepareResult prepareResult, boolean hasLongData) {
         this.status = status;
         this.sendCmdInitialCounter = status.sendCmdCounter - 1;
         this.protocol = protocol;
@@ -107,6 +108,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         this.queries = queries;
         this.sql = sql;
         this.asyncMultiReadResult = new AsyncMultiReadResult(prepareResult);
+        this.hasLongData = hasLongData;
     }
 
     @Override
@@ -141,6 +143,12 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
             while (counter < status.sendSubCmdCounter) {
                 try {
                     if (protocol.supportStmtPrepareExecute()) {
+                        if (hasLongData && protocol.getOptions().useServerPrepStmts && protocol.getOptions().usePieceData) {
+                            for (int i = 0; i < status.pieceRequestCountArray[counter]; i++) {
+                                protocol.getResult(results);
+                            }
+                        }
+
                         asyncMultiReadResult
                             .setPrepareResult(ComStmtPrepareExecute.read(protocol,
                                 protocol.getReader(),

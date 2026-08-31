@@ -86,6 +86,7 @@ public abstract class AbstractMultiSend {
     private List<String>             queries;
     protected String                 sql;
     private ThreadPoolExecutor       readScheduler;
+    private boolean                  hasLongData;
 
     /**
      * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
@@ -102,7 +103,7 @@ public abstract class AbstractMultiSend {
     public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
                              ServerPrepareResult serverPrepareResult,
                              List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult,
-                             String sql, ThreadPoolExecutor readScheduler) {
+                             String sql, ThreadPoolExecutor readScheduler, boolean hasLongData) {
         this.protocol = protocol;
         this.writer = writer;
         this.results = results;
@@ -112,6 +113,7 @@ public abstract class AbstractMultiSend {
         this.readPrepareStmtResult = readPrepareStmtResult;
         this.sql = sql;
         this.readScheduler = readScheduler;
+        this.hasLongData = hasLongData;
     }
 
     /**
@@ -226,6 +228,14 @@ public abstract class AbstractMultiSend {
     int paramCount = estimatedParameterCount;
 
     try {
+      if (binaryProtocol && protocol.supportStmtPrepareExecute() && hasLongData) {
+        status.pieceRequestCountArray = new int[parametersList.size()];
+        boolean isEligibleForPieceDataRequest = prepareResult != null && ((ServerPrepareResult)prepareResult).isEligibleForPieceDataRequest();
+        if (!isEligibleForPieceDataRequest) {
+          prepareResult = protocol.ensureValidPieceDataRequest((ServerPrepareResult) prepareResult, results);
+          statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+        }
+      }
       do {
         status.sendEnded = false;
         status.sendSubCmdCounter = 0;
@@ -344,7 +354,7 @@ public abstract class AbstractMultiSend {
     private FutureTask<AsyncMultiReadResult> startAsyncRead(BulkStatus status, int paramCount) {
         try {
             FutureTask<AsyncMultiReadResult> futureTask = new FutureTask<>(new AsyncMultiRead(status, protocol, false, this,
-                    paramCount, results, parametersList, queries, sql, prepareResult));
+                    paramCount, results, parametersList, queries, sql, prepareResult, hasLongData));
             readScheduler.execute(futureTask);
             return futureTask;
         } catch (RejectedExecutionException e) {
