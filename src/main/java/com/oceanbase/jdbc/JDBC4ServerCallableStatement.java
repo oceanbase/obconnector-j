@@ -342,6 +342,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         int beginIndex = 0;
         StringBuilder sb = new StringBuilder();
         List<byte[]> queryParts = new ArrayList<>(paramCount);
+        List<String> outputVariables = new ArrayList<>();
         List<Integer> paramIndexs = trimSQLStringInternal.getParamsIndexs();
         if (paramCount > 0  && paramIndexs.size() > 0) {
             for (int i = 0; i < paramIndexs.size() ; i++) {
@@ -358,6 +359,7 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
                 if (inParamInfo.isOutput()) {
                     String inOutParameterName = mysqlParamNames.get(parameterIndex);
                     inOutParameterName = inOutParameterName.replaceAll("\\`(\\w+)\\`", "$1");
+                    outputVariables.add("@`" + inOutParameterName.substring(1).replace("`", "``") + "`");
                     if (haveStreamParam) {
                         queryParts.add(inOutParameterName.getBytes());
                     } else {
@@ -402,7 +404,24 @@ public class JDBC4ServerCallableStatement extends CallableProcedureStatement imp
         } else {
             r = this.executeUpdate(sb.toString());
         }
+        if (!outputVariables.isEmpty() && results.getCallableResultSet() == null
+                && results.getFetchSize() != 0) {
+            // Preserve unread CALL rows and read any trailing native OUT result before
+            // issuing another command on this connection.
+            results.loadFully(false, protocol);
+        }
         outputResultSet = results.getCallableResultSet();
+        if (outputResultSet == null && !outputVariables.isEmpty()) {
+            // Snapshot the variables while execute still owns the connection lock.
+            // Another call can reuse these variable names before the first OUT getter.
+            String select = "SELECT " + String.join(", ", outputVariables);
+            Results output = new Results(this, 0, false, 1, false, resultSetScrollType,
+                resultSetConcurrency, java.sql.Statement.NO_GENERATED_KEYS,
+                protocol.getAutoIncrementIncrement(), select, null);
+            protocol.executeQuery(true, output, select);
+            output.commandEnd();
+            outputResultSet = output.getResultSet();
+        }
         if (outputResultSet != null) {
             outputResultSet.next();
         }
